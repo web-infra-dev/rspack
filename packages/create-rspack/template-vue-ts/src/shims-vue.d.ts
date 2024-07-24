@@ -1,6 +1,5 @@
 declare module "*.vue" {
-	import { DefineComponent } from "vue";
-	// biome-ignore lint/complexity/noBannedTypes: reason
+	import type { DefineComponent } from "vue";
 	const component: DefineComponent<{}, {}, any>;
 	export default component;
 }

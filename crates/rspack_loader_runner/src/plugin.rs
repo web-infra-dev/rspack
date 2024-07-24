@@ -1,6 +1,9 @@
 use rspack_error::Result;
 
-use crate::{content::Content, runner::ResourceData, LoaderContext};
+use crate::{
+  content::{Content, ResourceData},
+  LoaderContext,
+};
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
@@ -10,9 +13,17 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     "unknown"
   }
 
-  fn loader_context(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()>;
+  fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    Ok(())
+  }
 
-  fn before_each(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()>;
+  fn should_yield(&self, _context: &LoaderContext<Self::Context>) -> Result<bool> {
+    Ok(false)
+  }
 
-  async fn process_resource(&self, resource_data: &mut ResourceData) -> Result<Option<Content>>;
+  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    Ok(())
+  }
+
+  async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>>;
 }

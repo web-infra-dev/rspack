@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
@@ -10,11 +11,11 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
+use rspack_util::atom::Atom;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
-use swc_core::ecma::atoms::Atom;
 
 use crate::property_access;
 use crate::BuildMetaExportsType;
@@ -78,6 +79,29 @@ impl ExportsInfoId {
 
   pub fn get_exports_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfo {
     mg.get_exports_info_mut_by_id(self)
+  }
+
+  pub fn is_export_provided(&self, names: &[Atom], mg: &ModuleGraph) -> Option<ExportProvided> {
+    let Some(name) = names.first() else {
+      return None;
+    };
+    let info = self.get_read_only_export_info(name, mg);
+    if let Some(exports_info) = info.exports_info
+      && names.len() > 1
+    {
+      return exports_info.is_export_provided(&names[1..], mg);
+    }
+    match info.provided? {
+      ExportInfoProvided::True => {
+        if names.len() == 1 {
+          Some(ExportProvided::True)
+        } else {
+          None
+        }
+      }
+      ExportInfoProvided::False => Some(ExportProvided::False),
+      ExportInfoProvided::Null => Some(ExportProvided::Null),
+    }
   }
 
   pub fn is_module_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
@@ -221,6 +245,24 @@ impl ExportsInfoId {
       }
     }
     changed
+  }
+
+  pub fn get_read_only_export_info_recursive<'a>(
+    &self,
+    names: &[Atom],
+    mg: &'a ModuleGraph,
+  ) -> Option<&'a ExportInfo> {
+    if names.is_empty() {
+      return None;
+    }
+    let export_info = self.get_read_only_export_info(&names[0], mg);
+    if names.len() == 1 {
+      return Some(export_info);
+    }
+    let Some(exports_info) = export_info.exports_info else {
+      return None;
+    };
+    exports_info.get_read_only_export_info_recursive(&names[1..], mg)
   }
 
   pub fn get_read_only_export_info<'a>(&self, name: &Atom, mg: &'a ModuleGraph) -> &'a ExportInfo {
@@ -698,11 +740,17 @@ impl ExportsInfo {
       }
       UsedName::Vec(value) => {
         if value.is_empty() {
-          let other_export_info = module_graph.get_export_info_by_id(&self.other_exports_info);
-          return other_export_info.get_used(runtime);
+          return self
+            .other_exports_info
+            .get_export_info(module_graph)
+            .get_used(runtime);
         }
         let info = self.id.get_read_only_export_info(&value[0], module_graph);
-        if let Some(exports_info) = info.get_exports_info(module_graph) {
+        if let Some(exports_info) = info
+          .exports_info
+          .map(|id| id.get_exports_info(module_graph))
+          && value.len() > 1
+        {
           return exports_info.get_used(
             UsedName::Vec(value.iter().skip(1).cloned().collect::<Vec<_>>()),
             runtime,
@@ -825,25 +873,25 @@ impl ExportInfoId {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
   }
 
-  pub fn get_provided_info(&self, mg: &ModuleGraph) -> String {
+  pub fn get_provided_info(&self, mg: &ModuleGraph) -> &'static str {
     let export_info = self.get_export_info(mg);
     match export_info.provided {
-      Some(ExportInfoProvided::False) => "not provided".to_string(),
-      Some(ExportInfoProvided::Null) => "maybe provided (runtime-defined)".to_string(),
-      Some(ExportInfoProvided::True) => "provided".to_string(),
-      None => "no provided info".to_string(),
+      Some(ExportInfoProvided::False) => "not provided",
+      Some(ExportInfoProvided::Null) => "maybe provided (runtime-defined)",
+      Some(ExportInfoProvided::True) => "provided",
+      None => "no provided info",
     }
   }
 
-  pub fn get_used_info(&self, mg: &ModuleGraph) -> String {
+  pub fn get_used_info(&self, mg: &ModuleGraph) -> Cow<str> {
     let export_info = self.get_export_info(mg);
     if let Some(global_used) = export_info.global_used {
       return match global_used {
-        UsageState::Unused => "unused".to_string(),
-        UsageState::NoInfo => "no usage info".to_string(),
-        UsageState::Unknown => "maybe used (runtime-defined)".to_string(),
-        UsageState::Used => "used".to_string(),
-        UsageState::OnlyPropertiesUsed => "only properties used".to_string(),
+        UsageState::Unused => "unused".into(),
+        UsageState::NoInfo => "no usage info".into(),
+        UsageState::Unknown => "maybe used (runtime-defined)".into(),
+        UsageState::Used => "used".into(),
+        UsageState::OnlyPropertiesUsed => "only properties used".into(),
       };
     } else if let Some(used_in_runtime) = &export_info.used_in_runtime {
       let mut map = HashMap::default();
@@ -869,14 +917,14 @@ impl ExportInfoId {
         .collect();
 
       if !specific_info.is_empty() {
-        return specific_info.join("; ");
+        return specific_info.join("; ").into();
       }
     }
 
     if export_info.has_use_in_runtime_info {
-      "unused".to_string()
+      "unused".into()
     } else {
-      "no usage info".to_string()
+      "no usage info".into()
     }
   }
   pub fn get_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfo {
@@ -1067,7 +1115,7 @@ impl ExportInfoId {
         .get_or_insert(HashMap::default());
       let mut changed = false;
       for k in runtime.iter() {
-        match used_in_runtime.entry(k.to_string()) {
+        match used_in_runtime.entry(k.clone()) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, _) if new == &UsageState::Unused => {
               occ.remove();
@@ -1166,7 +1214,7 @@ impl ExportInfoId {
       let mut changed = false;
 
       for k in runtime.iter() {
-        match used_in_runtime.entry(k.to_string()) {
+        match used_in_runtime.entry(k.clone()) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, old) if condition(old) && new == &UsageState::Unused => {
               occ.remove();
@@ -1252,11 +1300,17 @@ impl ExportInfoId {
     if !export_info.target_is_set || export_info.target.is_empty() {
       return FindTargetRetEnum::Undefined;
     }
-    let raw_target = export_info
-      .get_max_target_readonly()
-      .values()
-      .next()
-      .cloned();
+
+    let raw_target = if export_info.max_target_is_set {
+      export_info
+        .get_max_target_readonly()
+        .values()
+        .next()
+        .cloned()
+    } else {
+      export_info._get_max_target().values().next().cloned()
+    };
+
     let Some(raw_target) = raw_target else {
       return FindTargetRetEnum::Undefined;
     };
@@ -1358,7 +1412,7 @@ pub struct ExportInfo {
   pub has_use_in_runtime_info: bool,
   pub can_mangle_use: Option<bool>,
   pub global_used: Option<UsageState>,
-  pub used_in_runtime: Option<HashMap<String, UsageState>>,
+  pub used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
 }
 
 impl ExportsHash for ExportInfo {
@@ -1398,6 +1452,19 @@ pub enum ExportInfoProvided {
   False,
   /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830  
   Null,
+}
+
+#[derive(Debug, Hash, Clone, Copy)]
+pub enum ExportProvided {
+  True,
+  False,
+  Null,
+}
+
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalBinding {
+  ExportInfo(ExportInfoId),
+  ExportsInfo(ExportsInfoId),
 }
 
 #[derive(Clone, Debug)]
@@ -1511,6 +1578,23 @@ impl ExportInfo {
 
   pub fn is_reexport(&self) -> bool {
     !self.terminal_binding && self.target_is_set && !self.target.is_empty()
+  }
+
+  pub fn get_terminal_binding(&self, module_graph: &ModuleGraph) -> Option<TerminalBinding> {
+    if self.terminal_binding {
+      return Some(TerminalBinding::ExportInfo(self.id));
+    }
+    let target = self
+      .id
+      .get_target(&mut ImmutableModuleGraph::new(module_graph), None)?;
+    let exports_info = module_graph.get_exports_info(&target.module);
+    let Some(export) = target.export else {
+      return Some(TerminalBinding::ExportsInfo(exports_info.id));
+    };
+    exports_info
+      .id
+      .get_read_only_export_info_recursive(&export, module_graph)
+      .map(|r| TerminalBinding::ExportInfo(r.id))
   }
 
   pub fn can_mangle(&self) -> Option<bool> {
@@ -1647,6 +1731,8 @@ impl ExportInfo {
     map
   }
 
+  /// Panics:
+  /// Panics if max target is not set before.
   fn get_max_target_readonly(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     assert!(self.max_target_is_set);
     &self.max_target
@@ -1838,9 +1924,9 @@ pub fn get_dependency_used_by_exports_condition(
       Some(DependencyCondition::Fn(Arc::new(
         move |_, runtime, module_graph: &ModuleGraph| {
           let module_identifier = module_graph
-            .parent_module_by_dependency_id(&dependency_id)
+            .get_parent_module(&dependency_id)
             .expect("should have parent module");
-          let exports_info = module_graph.get_exports_info(&module_identifier);
+          let exports_info = module_graph.get_exports_info(module_identifier);
           for export_name in used_by_exports.iter() {
             if exports_info.get_used(UsedName::Str(export_name.clone()), runtime, module_graph)
               != UsageState::Unused

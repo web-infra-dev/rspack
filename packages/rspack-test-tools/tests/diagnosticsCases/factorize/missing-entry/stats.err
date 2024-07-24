@@ -1,1 +1,1 @@
-ERROR in × Resolve error: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/missing-entry'
+ERROR in × Module not found: Can't resolve './' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/missing-entry'

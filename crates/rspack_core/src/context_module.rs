@@ -11,15 +11,16 @@ use indoc::formatdoc;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
+use swc_core::atoms::Atom;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
@@ -27,9 +28,10 @@ use crate::{
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
   BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
   ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
-  DependencyId, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
+  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -115,21 +117,10 @@ impl ContextNameSpaceObject {
   }
 }
 
-pub fn context_reg_exp(expr: &str, flags: &str) -> Option<RspackRegex> {
-  if expr.is_empty() {
-    return None;
-  }
-  let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
-  clean_regexp_in_context_module(regexp)
-}
-
-pub fn clean_regexp_in_context_module(regexp: RspackRegex) -> Option<RspackRegex> {
-  if regexp.sticky() || regexp.global() {
-    // TODO: warning
-    None
-  } else {
-    Some(regexp)
-  }
+#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub enum ContextTypePrefix {
+  Import,
+  Normal,
 }
 
 #[derive(Derivative, Debug, Clone)]
@@ -139,8 +130,10 @@ pub struct ContextOptions {
   pub recursive: bool,
   #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub reg_exp: Option<RspackRegex>,
-  pub include: Option<String>,
-  pub exclude: Option<String>,
+  #[derivative(Hash = "ignore", PartialEq = "ignore")]
+  pub include: Option<RspackRegex>,
+  #[derivative(Hash = "ignore", PartialEq = "ignore")]
+  pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
   pub request: String,
   pub context: String,
@@ -149,6 +142,7 @@ pub struct ContextOptions {
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
+  pub referenced_exports: Option<Vec<Atom>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -159,6 +153,7 @@ pub struct ContextModuleOptions {
   pub resource_fragment: String,
   pub context_options: ContextOptions,
   pub resolve_options: Option<Box<Resolve>>,
+  pub type_prefix: ContextTypePrefix,
 }
 
 #[derive(Debug)]
@@ -353,7 +348,7 @@ impl ContextModule {
       webpackEmptyAsyncContext.id = {id};
       module.exports = webpackEmptyAsyncContext;
       "#,
-      keys = returning_function("[]", ""),
+      keys = returning_function(&compilation.options.output.environment, "[]", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     })
     .boxed()
@@ -371,7 +366,7 @@ impl ContextModule {
       webpackEmptyContext.id = {id};
       module.exports = webpackEmptyContext;
       "#,
-      keys = returning_function("[]", ""),
+      keys = returning_function(&compilation.options.output.environment, "[]", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     })
     .boxed()
@@ -577,7 +572,7 @@ impl ContextModule {
       module.exports = webpackAsyncContext;
       "#,
       map = json_stringify(&map),
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     }));
     source.boxed()
@@ -639,7 +634,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -685,7 +680,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = RuntimeGlobals::MODULE_FACTORIES,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -726,7 +721,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = RuntimeGlobals::MODULE_FACTORIES,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -745,7 +740,7 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, false, "fakeMap[id]"),
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]"),
       }
     } else {
       RuntimeGlobals::REQUIRE.name().to_string()
@@ -777,7 +772,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function("Object.keys(map)", ""),
+      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.id(&compilation.chunk_graph))
     };
     RawSource::from(source).boxed()
@@ -844,7 +839,7 @@ impl Module for ContextModule {
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -862,7 +857,7 @@ impl Module for ContextModule {
     self.identifier.as_str().into()
   }
 
-  fn size(&self, _source_type: &crate::SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&crate::SourceType>, _compilation: &Compilation) -> f64 {
     160.0
   }
 
@@ -903,12 +898,11 @@ impl Module for ContextModule {
       build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn,
+        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
         ..Default::default()
       },
       dependencies,
       blocks,
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     })
   }
@@ -1010,8 +1004,19 @@ impl ContextModule {
     if !dir.is_dir() {
       return Ok(());
     }
+    let include = &options.context_options.include;
+    let exclude = &options.context_options.exclude;
     for entry in fs::read_dir(dir).into_diagnostic()? {
       let path = entry.into_diagnostic()?.path();
+      let path_str = path.to_string_lossy().to_string();
+
+      if let Some(exclude) = exclude
+        && exclude.test(&path_str)
+      {
+        // ignore excluded files
+        continue;
+      }
+
       if path.is_dir() {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
@@ -1023,11 +1028,17 @@ impl ContextModule {
         // ignore hidden files
         continue;
       } else {
+        if let Some(include) = include
+          && !include.test(&path_str)
+        {
+          // ignore not included files
+          continue;
+        }
+
         // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
         let relative_path = {
-          let p = path
-            .to_string_lossy()
-            .to_string()
+          let p = path_str
+            .clone()
             .drain(ctx.len()..)
             .collect::<String>()
             .replace('\\', "/");
@@ -1037,6 +1048,7 @@ impl ContextModule {
             format!("./{p}")
           }
         };
+
         let requests = alternative_requests(
           resolve_options,
           vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
@@ -1064,7 +1076,8 @@ impl ContextModule {
             context: options.resource.clone().into(),
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
-            referenced_exports: None,
+            referenced_exports: options.context_options.referenced_exports.clone(),
+            dependency_type: DependencyType::ContextElement(options.type_prefix),
           });
         })
       }
@@ -1072,7 +1085,10 @@ impl ContextModule {
     Ok(())
   }
 
-  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<AsyncDependenciesBlock>)> {
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -1115,11 +1131,12 @@ impl ContextModule {
           .into_iter()
           .map(|dep| Box::new(dep) as Box<dyn Dependency>)
           .collect(),
+        None,
       );
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
       }
-      blocks.push(block);
+      blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
@@ -1147,24 +1164,21 @@ impl ContextModule {
           });
         let preload_order = group_options.and_then(|o| o.preload_order);
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
+        let fetch_priority = group_options.and_then(|o| o.fetch_priority);
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
-          Some(
-            (
-              self.options.context_options.start,
-              self.options.context_options.end,
-            )
-              .into(),
-          ),
+          None,
           Some(&context_element_dependency.user_request.clone()),
           vec![Box::new(context_element_dependency)],
+          Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           name,
           preload_order,
           prefetch_order,
+          fetch_priority,
         )));
-        blocks.push(block);
+        blocks.push(Box::new(block));
       }
     } else {
       dependencies = context_element_dependencies
@@ -1202,12 +1216,20 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
-    id += &include;
+    id += &include.to_source_string();
   }
   if let Some(exclude) = &options.context_options.exclude {
     id += "|exclude: ";
-    id += &exclude;
+    id += &exclude.to_source_string();
   }
+  if let Some(exports) = &options.context_options.referenced_exports {
+    id += "|referencedExports: ";
+    id += &format!(
+      "[{}]",
+      exports.iter().map(|x| format!(r#""{x}""#)).join(",")
+    );
+  }
+
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
       id += "|chunkName: ";

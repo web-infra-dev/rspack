@@ -1,6 +1,6 @@
-import path from "path";
+import path from "node:path";
 
-import type { LoaderContext, LoaderDefinition } from "../..";
+import type { Filename, LoaderContext, LoaderDefinition } from "../..";
 import { CssExtractRspackPlugin } from "./index";
 import schema from "./loader-options.json";
 import { stringifyLocal, stringifyRequest } from "./utils";
@@ -33,6 +33,7 @@ export interface CssExtractRspackLoaderOptions {
 
 	// TODO: support layer
 	layer?: boolean;
+	defaultExport?: boolean;
 }
 
 function hotLoader(
@@ -67,7 +68,12 @@ const loader: LoaderDefinition = function loader(content) {
 		this._compiler &&
 		this._compiler.options &&
 		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css
+		this._compiler.options.experiments.css &&
+		this._module &&
+		(this._module.type === "css" ||
+			this._module.type === "css/auto" ||
+			this._module.type === "css/global" ||
+			this._module.type === "css/module")
 	) {
 		return content;
 	}
@@ -78,27 +84,19 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		this._compiler &&
 		this._compiler.options &&
 		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css
+		this._compiler.options.experiments.css &&
+		this._module &&
+		(this._module.type === "css" ||
+			this._module.type === "css/auto" ||
+			this._module.type === "css/global" ||
+			this._module.type === "css/module")
 	) {
-		let e = new Error(
-			"You can't use `experiments.css` and `css-extract-rspack-plugin` together, please set `experiments.css` to `false`"
+		const e = new Error(
+			`use type 'css' and \`CssExtractRspackPlugin\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`CssExtractRspackPlugin\` in your rspack config (now \`CssExtractRspackPlugin\` does nothing).`
 		);
 		e.stack = undefined;
 		this.emitWarning(e);
 
-		return;
-	}
-
-	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.rspackFuture &&
-		this._compiler.options.experiments.rspackFuture.newTreeshaking === false
-	) {
-		this.emitError(
-			new Error("Cannot use CssExtractRspackPlugin without newTreeshaking")
-		);
 		return;
 	}
 
@@ -122,7 +120,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		publicPath = AUTO_PUBLIC_PATH;
 	}
 
-	let publicPathForExtract: string | undefined;
+	let publicPathForExtract: Filename | undefined;
 
 	if (typeof publicPath === "string") {
 		const isAbsolutePublicPath = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(publicPath);
@@ -143,7 +141,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			| Record<string, any>
 	) => {
 		/** @type {Locals | undefined} */
-		let locals: Record<string, string>;
+		let locals: Record<string, string> | undefined;
 		let namedExport;
 
 		const esModule =
@@ -162,7 +160,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				(!originalExports.default || !("locals" in originalExports.default));
 
 			if (namedExport) {
-				Object.keys(originalExports).forEach(key => {
+				for (const key of Object.keys(originalExports)) {
 					if (key !== "default") {
 						if (!locals) {
 							locals = {};
@@ -172,7 +170,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 							originalExports as Record<string, string>
 						)[key];
 					}
-				});
+				}
 			} else {
 				locals = exports && exports.locals;
 			}
@@ -182,8 +180,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 
 				dependencies = exports
 					.map(([id, content, media, sourceMap, supports, layer]) => {
-						let identifier = id;
-						let context = this.rootContext;
+						const identifier = id;
+						const context = this.rootContext;
 
 						const count = identifierCountMap.get(identifier) || 0;
 
@@ -212,22 +210,54 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			return;
 		}
 
-		const result = locals!
-			? namedExport
-				? Object.keys(locals)
+		const result = (function makeResult() {
+			if (locals) {
+				if (namedExport) {
+					const identifiers = Array.from(
+						(function* generateIdentifiers() {
+							let identifierId = 0;
+
+							for (const key of Object.keys(locals)) {
+								identifierId += 1;
+
+								yield [`_${identifierId.toString(16)}`, key];
+							}
+						})()
+					);
+
+					const localsString = identifiers
 						.map(
-							key =>
-								`\nexport var ${key} = ${stringifyLocal(
-									/** @type {Locals} */ locals[key]
+							([id, key]) =>
+								`\nvar ${id} = ${stringifyLocal(
+									/** @type {Locals} */ locals![key]
 								)};`
 						)
-						.join("")
-				: `\n${
-						esModule ? "export default" : "module.exports ="
-					} ${JSON.stringify(locals)};`
-			: esModule
-				? `\nexport {};`
-				: "";
+						.join("");
+					const exportsString = `export { ${identifiers
+						.map(([id, key]) => `${id} as ${JSON.stringify(key)}`)
+						.join(", ")} }`;
+
+					const defaultExport =
+						typeof options.defaultExport !== "undefined"
+							? options.defaultExport
+							: false;
+
+					return defaultExport
+						? `${localsString}\n${exportsString}\nexport default { ${identifiers
+								.map(([id, key]) => `${JSON.stringify(key)}: ${id}`)
+								.join(", ")} }\n`
+						: `${localsString}\n${exportsString}\n`;
+				}
+
+				return `\n${
+					esModule ? "export default" : "module.exports = "
+				} ${JSON.stringify(locals)};`;
+			}
+			if (esModule) {
+				return "\nexport {};";
+			}
+			return "";
+		})();
 
 		let resultSource = `// extracted by ${CssExtractRspackPlugin.pluginName}`;
 
@@ -261,7 +291,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	this.importModule(
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{
-			publicPath: /** @type {string} */ publicPathForExtract,
+			publicPath: /** @type {Filename} */ publicPathForExtract,
 			baseUri: `${BASE_URI}/`
 		},
 		(error, exports) => {

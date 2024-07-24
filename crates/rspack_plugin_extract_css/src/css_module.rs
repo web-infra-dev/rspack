@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 
 use once_cell::sync::Lazy;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, AsyncDependenciesBlockIdentifier, BuildContext,
@@ -12,14 +13,13 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashSet;
 
 use crate::css_dependency::CssDependency;
 use crate::plugin::{MODULE_TYPE, SOURCE_TYPE};
 
 pub(crate) static DEPENDENCY_TYPE: Lazy<DependencyType> =
-  Lazy::new(|| DependencyType::Custom("mini-extract-dep".into()));
+  Lazy::new(|| DependencyType::Custom("mini-extract-dep"));
 
 #[impl_source_map_config]
 #[derive(Debug)]
@@ -40,7 +40,7 @@ pub(crate) struct CssModule {
   dependencies: Vec<DependencyId>,
 
   identifier__: Identifier,
-
+  cacheable: bool,
   file_dependencies: FxHashSet<PathBuf>,
   context_dependencies: FxHashSet<PathBuf>,
   missing_dependencies: FxHashSet<PathBuf>,
@@ -84,6 +84,7 @@ impl CssModule {
       build_meta: None,
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
+      cacheable: dep.cacheable,
       file_dependencies: dep.file_dependencies,
       context_dependencies: dep.context_dependencies,
       missing_dependencies: dep.missing_dependencies,
@@ -136,7 +137,7 @@ impl Module for CssModule {
       .map(|resource| resource.split('?').next().unwrap_or(resource).into())
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     self.content.len() as f64
   }
 
@@ -160,6 +161,7 @@ impl Module for CssModule {
     Ok(BuildResult {
       build_info: BuildInfo {
         hash: Some(self.compute_hash(build_context.compiler_options)),
+        cacheable: self.cacheable,
         file_dependencies: self.file_dependencies.clone(),
         context_dependencies: self.context_dependencies.clone(),
         missing_dependencies: self.missing_dependencies.clone(),
@@ -185,7 +187,7 @@ impl Module for CssModule {
 }
 
 impl Identifiable for CssModule {
-  fn identifier(&self) -> rspack_identifier::Identifier {
+  fn identifier(&self) -> rspack_collections::Identifier {
     self.identifier__
   }
 }

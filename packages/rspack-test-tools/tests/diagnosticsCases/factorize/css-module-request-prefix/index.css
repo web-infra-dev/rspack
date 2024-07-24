@@ -1,5 +1,5 @@
-@import "~normalize.css";
+@import "~pkg";
 
 .class {
-  color: red;
+  background-image: url(~pkg/img.png);
 }

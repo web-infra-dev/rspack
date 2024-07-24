@@ -8,6 +8,7 @@ class MyPlugin {
 
 			compilation.hooks.afterOptimizeModules.tap("MyPlugin", modules => {
 				expect(a).toBeGreaterThan(1);
+				modules = [...modules];
 				expect(modules.length).toEqual(1);
 				expect(modules[0].resource.includes("d.js")).toBeTruthy();
 			});

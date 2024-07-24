@@ -1,14 +1,13 @@
+import { NavIcon } from 'rsfamily-doc-ui/nav-icon';
 import Theme from 'rspress/theme';
 import { HomeLayout } from './pages';
-import { RsfamilyNavIcon } from 'rsfamily-nav-icon';
-import 'rsfamily-nav-icon/dist/index.css';
 // enable this when we need a new announcement
 // import { Announcement } from './components/Announcement';
 // import { NoSSR } from 'rspress/runtime';
 
 const Layout = () => (
   <Theme.Layout
-    beforeNavTitle={<RsfamilyNavIcon />}
+    beforeNavTitle={<NavIcon />}
     // beforeNav={
     //   <NoSSR>
     //     <Announcement />
@@ -17,7 +16,6 @@ const Layout = () => (
   />
 );
 
-// eslint-disable-next-line import/export
 export * from 'rspress/theme';
 
 export default {

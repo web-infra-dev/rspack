@@ -3,6 +3,7 @@ use swc_core::ecma::ast::{CallExpr, MemberProp};
 use super::BasicEvaluatedExpression;
 use crate::{parser_plugin::JavascriptParserPlugin, visitors::JavascriptParser};
 
+#[inline]
 pub fn eval_call_expression(
   parser: &mut JavascriptParser,
   expr: &CallExpr,

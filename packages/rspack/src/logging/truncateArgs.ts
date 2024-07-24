@@ -28,11 +28,11 @@ const truncateArgs = (args, maxLength) => {
 	if (availableLength > 0 && args.length === 1) {
 		if (availableLength >= args[0].length) {
 			return args;
-		} else if (availableLength > 3) {
-			return ["..." + args[0].slice(-availableLength + 3)];
-		} else {
-			return [args[0].slice(-availableLength)];
 		}
+		if (availableLength > 3) {
+			return ["..." + args[0].slice(-availableLength + 3)];
+		}
+		return [args[0].slice(-availableLength)];
 	}
 
 	// Check if there is space for at least 4 chars per arg
@@ -77,13 +77,14 @@ const truncateArgs = (args, maxLength) => {
 		const length = lengths[i];
 		if (str.length === length) {
 			return str;
-		} else if (length > 5) {
-			return "..." + str.slice(-length + 3);
-		} else if (length > 0) {
-			return str.slice(-length);
-		} else {
-			return "";
 		}
+		if (length > 5) {
+			return "..." + str.slice(-length + 3);
+		}
+		if (length > 0) {
+			return str.slice(-length);
+		}
+		return "";
 	});
 };
 

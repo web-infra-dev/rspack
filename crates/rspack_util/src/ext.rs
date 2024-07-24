@@ -1,4 +1,4 @@
-use std::{any::Any, hash::Hash};
+use std::{any::Any, borrow::Cow, hash::Hash};
 
 pub trait AsAny {
   fn as_any(&self) -> &dyn Any;
@@ -44,6 +44,34 @@ impl<T: Eq + Any> DynEq for T {
       self == module
     } else {
       false
+    }
+  }
+}
+
+pub trait CowExt<'a, T>
+where
+  T: ToOwned + ?Sized + 'a,
+{
+  fn map<R>(self, f: impl FnOnce(&T) -> Cow<R>) -> Cow<'a, R>
+  where
+    R: ToOwned + ?Sized;
+}
+
+impl<'a, T> CowExt<'a, T> for Cow<'a, T>
+where
+  T: ToOwned + ?Sized + 'a,
+{
+  fn map<R>(self, f: impl FnOnce(&T) -> Cow<R>) -> Cow<'a, R>
+  where
+    R: ToOwned + ?Sized,
+  {
+    use std::borrow::Borrow;
+    match self {
+      Cow::Borrowed(borrowed) => f(borrowed),
+      Cow::Owned(owned) => {
+        let result = f(owned.borrow());
+        Cow::Owned(result.into_owned())
+      }
     }
   }
 }

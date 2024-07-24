@@ -1,27 +1,40 @@
 use std::fmt::Debug;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{borrow::Cow, convert::Infallible};
+use std::{borrow::Cow, convert::Infallible, ptr};
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_error::error;
 use rspack_macros::MergeFrom;
+use rspack_util::atom::Atom;
+use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
-pub const FILE_PLACEHOLDER: &str = "[file]";
-pub const BASE_PLACEHOLDER: &str = "[base]";
-pub const NAME_PLACEHOLDER: &str = "[name]";
-pub const PATH_PLACEHOLDER: &str = "[path]";
-pub const EXT_PLACEHOLDER: &str = "[ext]";
-pub const QUERY_PLACEHOLDER: &str = "[query]";
-pub const FRAGMENT_PLACEHOLDER: &str = "[fragment]";
-pub const ID_PLACEHOLDER: &str = "[id]";
-pub const RUNTIME_PLACEHOLDER: &str = "[runtime]";
-pub const URL_PLACEHOLDER: &str = "[url]";
+pub static FILE_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
+pub static BASE_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
+pub static NAME_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
+pub static PATH_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
+pub static EXT_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
+pub static QUERY_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
+pub static FRAGMENT_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
+pub static ID_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
+pub static RUNTIME_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
+pub static URL_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
 pub static HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
 pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
@@ -36,7 +49,7 @@ static DATA_URI_REGEX: Lazy<Regex> =
 
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {
-  Template(String),
+  Template(Atom),
   Fn(F),
 }
 
@@ -52,6 +65,27 @@ pub struct Filename<F = Arc<dyn FilenameFn>>(FilenameKind<F>);
 impl<F> Filename<F> {
   pub fn from_fn(f: F) -> Self {
     Self(FilenameKind::Fn(f))
+  }
+}
+
+impl Hash for dyn FilenameFn + '_ {
+  fn hash<H: Hasher>(&self, _: &mut H) {}
+}
+impl PartialEq for dyn FilenameFn + '_ {
+  fn eq(&self, other: &Self) -> bool {
+    ptr::eq(self, other)
+  }
+}
+impl Eq for dyn FilenameFn + '_ {}
+
+impl PartialOrd for dyn FilenameFn + '_ {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+impl Ord for dyn FilenameFn + '_ {
+  fn cmp(&self, _: &Self) -> std::cmp::Ordering {
+    std::cmp::Ordering::Equal
   }
 }
 
@@ -121,20 +155,25 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
   ) -> Result<String, Self::Error> {
-    self.deref().call(path_data, asset_info)
+    self.deref().call(path_data, asset_info).map_err(|err| {
+      error!(
+        "Failed to render filename function: {}. Did you return the correct filename?",
+        err.to_string()
+      )
+    })
   }
 }
 
 impl<F> From<String> for Filename<F> {
   fn from(value: String) -> Self {
-    Self(FilenameKind::Template(value))
+    Self(FilenameKind::Template(Atom::from(value)))
   }
 }
 impl<F> FromStr for Filename<F> {
   type Err = Infallible;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    Ok(Self(FilenameKind::Template(s.to_owned())))
+    Ok(Self(FilenameKind::Template(Atom::from(s))))
   }
 }
 
@@ -172,16 +211,16 @@ impl<F: LocalFilenameFn> Filename<F> {
         Cow::Owned(filename_fn.call(&options, asset_info.as_deref())?)
       }
     };
-    Ok(render_template(template.as_ref(), options, asset_info))
+    Ok(render_template(template, options, asset_info))
   }
 }
 
 fn render_template(
-  template: &str,
+  template: Cow<str>,
   options: PathData,
   mut asset_info: Option<&mut AssetInfo>,
 ) -> String {
-  let mut template = template.to_string();
+  let mut t = template;
   if let Some(filename) = options.filename {
     if let Some(caps) = DATA_URI_REGEX.captures(filename) {
       let ext = mime_guess::get_mime_extensions_str(
@@ -191,48 +230,55 @@ fn render_template(
           .as_str(),
       )
       .map(|exts| exts[0]);
-      template = template.replace(FILE_PLACEHOLDER, "");
-      template = template.replace(QUERY_PLACEHOLDER, "");
-      template = template.replace(FRAGMENT_PLACEHOLDER, "");
-      template = template.replace(PATH_PLACEHOLDER, "");
-      template = template.replace(BASE_PLACEHOLDER, "");
-      template = template.replace(NAME_PLACEHOLDER, "");
-      template = template.replace(
-        EXT_PLACEHOLDER,
-        &ext.map(|ext| format!(".{}", ext)).unwrap_or_default(),
-      );
+      t = t
+        .map(|t| FILE_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| QUERY_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| PATH_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| BASE_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| NAME_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| {
+          EXT_PLACEHOLDER.replace_all(t, &ext.map(|ext| format!(".{}", ext)).unwrap_or_default())
+        });
     } else if let Some(ResourceParsedData {
       path: file,
       query,
       fragment,
     }) = parse_resource(filename)
     {
-      template = template.replace(FILE_PLACEHOLDER, &file.to_string_lossy());
-      template = template.replace(
-        EXT_PLACEHOLDER,
-        &file
-          .extension()
-          .map(|p| format!(".{}", p.to_string_lossy()))
-          .unwrap_or_default(),
-      );
+      t = t
+        .map(|t| FILE_PLACEHOLDER.replace_all(t, file.to_string_lossy()))
+        .map(|t| {
+          EXT_PLACEHOLDER.replace_all(
+            t,
+            file
+              .extension()
+              .map(|p| format!(".{}", p.to_string_lossy()))
+              .unwrap_or_default(),
+          )
+        });
+
       if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        template = template.replace(BASE_PLACEHOLDER, &base);
+        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, &base));
       }
       if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        template = template.replace(NAME_PLACEHOLDER, &name);
+        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, &name));
       }
-      template = template.replace(
-        PATH_PLACEHOLDER,
-        &file
-          .parent()
-          .map(|p| p.to_string_lossy())
-          // "" -> "", "folder" -> "folder/"
-          .filter(|p| !p.is_empty())
-          .map(|p| p + "/")
-          .unwrap_or_default(),
-      );
-      template = template.replace(QUERY_PLACEHOLDER, &query.unwrap_or_default());
-      template = template.replace(FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default());
+      t = t
+        .map(|t| {
+          PATH_PLACEHOLDER.replace_all(
+            t,
+            &file
+              .parent()
+              .map(|p| p.to_string_lossy())
+              // "" -> "", "folder" -> "folder/"
+              .filter(|p| !p.is_empty())
+              .map(|p| p + "/")
+              .unwrap_or_default(),
+          )
+        })
+        .map(|t| QUERY_PLACEHOLDER.replace_all(t, &query.unwrap_or_default()))
+        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, &fragment.unwrap_or_default()));
     }
   }
   if let Some(content_hash) = options.content_hash {
@@ -240,8 +286,8 @@ fn render_template(
       // set version as content hash
       asset_info.version = content_hash.to_string();
     }
-    template = CONTENT_HASH_PLACEHOLDER
-      .replace_all(&template, |caps: &Captures| {
+    t = t.map(|t| {
+      CONTENT_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
         let content_hash = &content_hash[..hash_len(content_hash, caps)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(true);
@@ -249,34 +295,34 @@ fn render_template(
         }
         content_hash
       })
-      .into_owned();
+    });
   }
   if let Some(hash) = options.hash {
     for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
-      template = reg
-        .replace_all(&template, |caps: &Captures| {
+      t = t.map(|t| {
+        reg.replace_all(t, |caps: &Captures| {
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(true);
-            asset_info.set_content_hash(hash.to_owned());
+            asset_info.set_full_hash(hash.to_owned());
           }
           hash
         })
-        .into_owned();
+      });
     }
   }
   if let Some(chunk) = options.chunk {
     if let Some(id) = &options.id {
-      template = template.replace(ID_PLACEHOLDER, id);
+      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
     } else if let Some(id) = &chunk.id {
-      template = template.replace(ID_PLACEHOLDER, &id.to_string());
+      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
     }
     if let Some(name) = chunk.name_for_filename_template() {
-      template = template.replace(NAME_PLACEHOLDER, name);
+      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, name));
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
-      template = CHUNK_HASH_PLACEHOLDER
-        .replace_all(&template, |caps: &Captures| {
+      t = t.map(|t| {
+        CHUNK_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
           let hash = &**d;
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
@@ -285,22 +331,22 @@ fn render_template(
           }
           hash
         })
-        .into_owned();
+      });
     }
   }
 
   if let Some(id) = &options.id {
-    template = template.replace(ID_PLACEHOLDER, id);
+    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
   } else if let Some(module) = options.module {
     if let Some(chunk_graph) = options.chunk_graph {
       if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        template = template.replace(ID_PLACEHOLDER, id);
+        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
       }
     }
   }
-  template = template.replace(RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_"));
+  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
-    template = template.replace(URL_PLACEHOLDER, url);
+    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, url));
   }
-  template
+  t.into_owned()
 }

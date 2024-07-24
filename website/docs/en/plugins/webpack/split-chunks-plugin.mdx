@@ -149,14 +149,14 @@ Prevents exposing path info when creating names for parts splitted by maxSize.
 
 ### splitChunks.minSize
 
-- **Type:** `number`
+- **Type:** `number | Record<string, number>`
 - **Default:** `20000` in production and `10000` in others
 
 Minimum size, in bytes, for a chunk to be generated.
 
 ### splitChunks.maxSize
 
-`number = 0`
+`number | Record<string, number> = 0`
 
 Using `maxSize` (either globally `optimization.splitChunks.maxSize` per cache group `optimization.splitChunks.cacheGroups[x].maxSize` or for the fallback cache group `optimization.splitChunks.fallbackCacheGroup.maxSize`) tells Rspack to try to split chunks bigger than `maxSize` bytes into smaller parts. Parts will be at least `minSize` (next to `maxSize`) in size.
 The algorithm is deterministic and changes to the modules will only have local effects. So that it is usable when using long term caching and doesn't require records. `maxSize` is only a hint and could be violated when modules are bigger than `maxSize` or splitting would violate `minSize`.
@@ -179,7 +179,7 @@ Setting the value for `maxSize` sets the value for both `maxAsyncSize` and `maxI
 
 ### splitChunks.maxAsyncSize
 
-`number`
+`number | Record<string, number>`
 
 Like `maxSize`, `maxAsyncSize` can be applied globally (`splitChunks.maxAsyncSize`), to cacheGroups (`splitChunks.cacheGroups.{cacheGroup}.maxAsyncSize`), or to the fallback cache group (`splitChunks.fallbackCacheGroup.maxAsyncSize`).
 
@@ -187,7 +187,7 @@ The difference between `maxAsyncSize` and `maxSize` is that `maxAsyncSize` will 
 
 ### splitChunks.maxInitialSize
 
-`number`
+`number | Record<string, number>`
 
 Like `maxSize`, `maxInitialSize` can be applied globally (`splitChunks.maxInitialSize`), to cacheGroups (`splitChunks.cacheGroups.{cacheGroup}.maxInitialSize`), or to the fallback cache group (`splitChunks.fallbackCacheGroup.maxInitialSize`).
 

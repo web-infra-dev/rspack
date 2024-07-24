@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt::Debug,
   hash::Hash,
   path::{Path, PathBuf},
@@ -7,6 +8,8 @@ use std::{
 };
 
 use derivative::Derivative;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
@@ -35,6 +38,8 @@ pub struct OutputOptions {
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
+  pub chunk_load_timeout: u32,
+  pub charset: bool,
   pub filename: Filename,
   pub chunk_filename: Filename,
   pub cross_origin_loading: CrossOriginLoading,
@@ -178,7 +183,14 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
+static PREPARE_ID_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+
 impl<'a> PathData<'a> {
+  pub fn prepare_id(v: &str) -> Cow<str> {
+    PREPARE_ID_REGEX.replace_all(v, "_")
+  }
+
   pub fn filename(mut self, v: &'a str) -> Self {
     self.filename = Some(v);
     self
@@ -241,17 +253,26 @@ impl<'a> PathData<'a> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, MergeFrom)]
 pub enum PublicPath {
-  // TODO: should be RawPublicPath(Filename)
-  String(String),
+  Filename(Filename),
   Auto,
 }
 
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
-      Self::String(s) => Self::ensure_ends_with_slash(s.to_string()),
+      Self::Filename(f) => Self::ensure_ends_with_slash(Self::render_filename(compilation, f)),
       Self::Auto => Self::render_auto_public_path(compilation, filename),
     }
+  }
+
+  pub fn render_filename(compilation: &Compilation, template: &Filename) -> String {
+    compilation
+      .get_path(
+        template,
+        // @{link https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/runtime/PublicPathRuntimeModule.js#L30-L32}
+        PathData::default().hash(compilation.get_hash().unwrap_or("XXXX")),
+      )
+      .expect("failed to render public")
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
@@ -287,9 +308,9 @@ impl FromStr for PublicPath {
   type Err = ParseError;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s.eq("auto") {
-      Ok(PublicPath::Auto)
+      Ok(Self::Auto)
     } else {
-      Ok(PublicPath::String(s.to_string()))
+      Ok(Self::Filename(Filename::from_str(s)?))
     }
   }
 }
@@ -299,7 +320,7 @@ impl From<String> for PublicPath {
     if value == "auto" {
       Self::Auto
     } else {
-      Self::String(value)
+      Self::Filename(value.into())
     }
   }
 }
@@ -384,10 +405,15 @@ pub struct LibraryCustomUmdObject {
 
 #[derive(Debug)]
 pub struct Environment {
+  pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
 }
 
 impl Environment {
+  pub fn supports_const(&self) -> bool {
+    self.r#const.unwrap_or_default()
+  }
+
   pub fn supports_arrow_function(&self) -> bool {
     self.arrow_function.unwrap_or_default()
   }

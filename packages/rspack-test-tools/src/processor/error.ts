@@ -1,10 +1,10 @@
-import { StatsError, StatsWarnings } from "@rspack/core";
-import fs from "fs";
-import path from "path";
+import type fs from "node:fs";
+import path from "node:path";
+import type { StatsError, StatsWarnings } from "@rspack/core";
 import prettyFormat from "pretty-format";
 import merge from "webpack-merge";
 
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
@@ -22,7 +22,11 @@ const CWD_PATTERN = new RegExp(
 	path.join(process.cwd(), "../../").replace(/\\/g, "/"),
 	"gm"
 );
-const ERROR_STACK_PATTERN = /(?:\n\s+at\s.*)+/gm;
+const ERROR_STACK_PATTERN = /(│.* at ).*/g;
+
+function cleanErrorStack(message: string) {
+	return message.replace(ERROR_STACK_PATTERN, "$1xxx");
+}
 
 function cleanError(err: Error) {
 	const result: Partial<Record<keyof Error, any>> = {};
@@ -31,11 +35,11 @@ function cleanError(err: Error) {
 	}
 
 	if (result.message) {
-		result.message = err.message.replace(ERROR_STACK_PATTERN, "");
+		result.message = cleanErrorStack(err.message);
 	}
 
 	if (result.stack) {
-		result.stack = result.stack.replace(ERROR_STACK_PATTERN, "");
+		result.stack = cleanErrorStack(result.stack);
 	}
 
 	return result;
@@ -87,7 +91,17 @@ export class ErrorProcessor<
 					mode: "none",
 					devtool: false,
 					optimization: {
-						minimize: false
+						minimize: false,
+						moduleIds: "named",
+						chunkIds: "named"
+					},
+					experiments: {
+						css: true,
+						rspackFuture: {
+							bundlerInfo: {
+								force: false
+							}
+						}
 					}
 				} as TCompilerOptions<T>;
 				if (typeof _errorOptions.options === "function") {

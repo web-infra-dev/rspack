@@ -1,5 +1,5 @@
-const path = require("path");
-const fs = require("fs");
+const path = require("node:path");
+const fs = require("node:fs");
 
 const {
 	any,
@@ -21,7 +21,7 @@ const {
 
 const WORKSPACE_ROOT = path.resolve(__dirname, "../../");
 const RSPACK_TEST = "packages/rspack/tests";
-const WEBPACK_TEST = "webpack-test";
+const WEBPACK_TEST = "tests/webpack-test";
 
 const indentLines = s =>
 	s
@@ -44,7 +44,7 @@ const CONTENT_COMPARATOR = async (p, a, b) => {
 		};
 		aa = await format(aa, o);
 		bb = await format(bb, o);
-	} catch (e) {}
+	} catch (e) { }
 	return aa === bb;
 };
 
@@ -59,8 +59,8 @@ async function main() {
 
 	// 1. Track tasks that have different content but share the same test name.
 	if (difference.size > 0) {
-		let excludeList = require("./diff-exclude.cjs");
-		let retained = retain(each(not(matchedInAny(excludeList))))(difference);
+		const excludeList = require("./diff-exclude.cjs");
+		const retained = retain(each(not(matchedInAny(excludeList))))(difference);
 		if (retained.length > 0) {
 			errored = true;
 			console.log(
@@ -84,7 +84,7 @@ This would cause misunderstandings between those tests. This file can be removed
 
 	// 2. Calculate cases that can be safely removed from cases in rspack.
 	{
-		let maybeIdentical = unify(
+		const maybeIdentical = unify(
 			retain(each(matchedWith(/^[^\/]*Cases/)))(identical).map(item => {
 				item = item.split("/").slice(0, 3).join("/");
 				if (path.extname(item)) {
@@ -117,7 +117,7 @@ This would cause misunderstandings between those tests. This file can be removed
 			);
 			console.log(
 				suggestion(
-					`Remove the test cases from rspack and TURN ON webpack test case to suppress this warning.`
+					"Remove the test cases from rspack and TURN ON webpack test case to suppress this warning."
 				)
 			);
 		}

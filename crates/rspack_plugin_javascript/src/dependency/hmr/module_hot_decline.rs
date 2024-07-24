@@ -41,10 +41,6 @@ impl Dependency for ModuleHotDeclineDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ModuleHotDeclineDependency"
-  }
 }
 
 impl ModuleDependency for ModuleHotDeclineDependency {

@@ -1,5 +1,5 @@
 const rspack = require("@rspack/core");
-const path = require("path");
+const path = require("node:path");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 
 const prod = process.env.NODE_ENV === "production";
@@ -10,7 +10,7 @@ module.exports = {
 	},
 	resolve: {
 		extensions: ["*", ".js", ".jsx", ".tsx", ".ts"],
-		tsConfigPath: path.resolve(__dirname, "tsconfig.assets.json")
+		tsConfig: path.resolve(__dirname, "tsconfig.assets.json")
 	},
 	devtool: false,
 	output: {

@@ -22,7 +22,7 @@ module.exports = {
 						}
 					}
 				],
-				type: "js"
+				type: "javascript/auto"
 			}
 		]
 	},

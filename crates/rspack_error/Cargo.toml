@@ -8,15 +8,15 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow            = { workspace = true, features = ["backtrace"] }
-derivative        = { workspace = true }
-futures           = { workspace = true }
-miette            = { version = "5", features = ["fancy"] }
-once_cell         = { workspace = true }
-owo-colors        = "3.5.0"
-rspack_identifier = { path = "../rspack_identifier" }
-swc_core          = { workspace = true, features = ["common"] }
-termcolor         = "1"
-textwrap          = "0.15.2"
-thiserror         = "1"
-unicode-width     = "0.1.11"
+anyhow             = { workspace = true, features = ["backtrace"] }
+derivative         = { workspace = true }
+futures            = { workspace = true }
+miette             = { version = "5", features = ["fancy"] }
+once_cell          = { workspace = true }
+owo-colors         = "3.5.0"
+rspack_collections = { path = "../rspack_collections" }
+swc_core           = { workspace = true, features = ["common"] }
+termcolor          = "1"
+textwrap           = "0.15.2"
+thiserror          = "1"
+unicode-width      = "0.1.11"

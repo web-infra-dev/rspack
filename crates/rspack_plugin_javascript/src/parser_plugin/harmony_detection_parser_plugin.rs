@@ -1,12 +1,13 @@
 use std::ops::Add;
 
-use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType};
+use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType, SpanExt};
 use swc_core::common::source_map::Pos;
 use swc_core::common::{BytePos, Span, Spanned};
-use swc_core::ecma::ast::{ModuleItem, Program};
+use swc_core::ecma::ast::{Ident, ModuleItem, Program, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::HarmonyCompatibilityDependency;
+use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::{create_traceable_error, JavascriptParser};
 
 impl<'parser> JavascriptParser<'parser> {
@@ -89,6 +90,25 @@ impl JavascriptParserPlugin for HarmonyDetectionParserPlugin {
     let hi = lo.add(BytePos::from_u32(AWAIT_LEN));
     let span = Span::new(lo, hi, stmt.span.ctxt);
     parser.handle_top_level_await(self.top_level_await, span);
+  }
+
+  fn evaluate_typeof(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<BasicEvaluatedExpression> {
+    (parser.is_esm && for_name == "exports")
+      .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0))
+  }
+
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    _ident: &Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    (parser.is_esm && for_name == "exports").then_some(true)
   }
 }
 

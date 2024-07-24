@@ -1,8 +1,8 @@
-import path from "path";
-import vm from "vm";
+import path from "node:path";
+import vm from "node:vm";
 
-import { ECompilerType } from "../../type";
-import {
+import type { ECompilerType } from "../../type";
+import type {
 	IBasicGlobalContext,
 	IBasicModuleScope,
 	TBasicRunnerFile,
@@ -11,7 +11,7 @@ import {
 } from "../type";
 import { BasicRunner } from "./basic";
 
-const define = function (...args: unknown[]) {
+const define = (...args: unknown[]) => {
 	const factory = args.pop() as () => {};
 	factory();
 };
@@ -27,7 +27,7 @@ export class CommonJsRunner<
 				ms: number | undefined,
 				...args: any
 			) => {
-				let timeout = setTimeout(cb, ms, ...args);
+				const timeout = setTimeout(cb, ms, ...args);
 				timeout.unref();
 				return timeout;
 			}) as typeof setTimeout,
@@ -40,20 +40,16 @@ export class CommonJsRunner<
 			console: this.globalContext!.console,
 			setTimeout: this.globalContext!.setTimeout,
 			clearTimeout: this.globalContext!.clearTimeout,
-			it: this._options.env.it,
-			beforeEach: this._options.env.beforeEach,
-			afterEach: this._options.env.afterEach,
-			expect: this._options.env.expect,
-			jest,
 			nsObj: (m: Object) => {
 				Object.defineProperty(m, Symbol.toStringTag, {
 					value: "Module"
 				});
 				return m;
-			}
+			},
+			...this._options.env
 		};
 		if (this._options.stats) {
-			baseModuleScope["__STATS__"] = this._options.stats;
+			baseModuleScope.__STATS__ = this._options.stats;
 		}
 		return baseModuleScope;
 	}
@@ -88,13 +84,12 @@ export class CommonJsRunner<
 			const modules = this._options.testConfig.modules;
 			if (modules && modulePathStr in modules) {
 				return modules[modulePathStr];
-			} else {
-				return require(
-					modulePathStr.startsWith("node:")
-						? modulePathStr.slice(5)
-						: modulePathStr
-				);
 			}
+			return require(
+				modulePathStr.startsWith("node:")
+					? modulePathStr.slice(5)
+					: modulePathStr
+			);
 		};
 	}
 
@@ -102,7 +97,7 @@ export class CommonJsRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
-			let file = context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}

@@ -1,10 +1,7 @@
 export default {
 	"*.rs": "rustfmt --edition 2021",
-	"*.{ts,js}": "pnpm run format:js",
+	"*.{ts,tsx,js}": "pnpm run format:js",
 	"*.toml": "npx @taplo/cli format",
-	"*.{ts,js,cts,cjs,mts,mjs}": () => [
-		"pnpm run lint:js",
-		"pnpm eslint --report-unused-disable-directives-severity off --cache --fix",
-		"pnpm run api-extractor:ci"
-	]
+	"*.{ts,tsx,js,cts,cjs,mts,mjs}": () => ["pnpm run lint:js", "node ./x ae ci"],
+	"package.json": "pnpm run check-dependency-version"
 };

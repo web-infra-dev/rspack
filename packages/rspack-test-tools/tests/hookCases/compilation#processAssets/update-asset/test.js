@@ -11,7 +11,7 @@ module.exports = {
 	options(context) {
 		return {
 			output: {
-				filename: '[name].[contenthash].js'
+				filename: "[name].[contenthash].js"
 			},
 			plugins: [
 				function plugin(compiler) {
@@ -41,7 +41,7 @@ module.exports = {
 							},
 							context.snapped(assets => {
 								compilation.getAssets().forEach(({ info }) => {
-									contentHashes.push(info.contentHash);
+									contentHashes.push(info.contenthash);
 								});
 							})
 						);
@@ -53,7 +53,7 @@ module.exports = {
 									compiler.webpack.Compilation
 										.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
 							},
-							(assets) => {
+							assets => {
 								files.push(...Object.keys(assets));
 							}
 						);

@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawHttpExternalsRspackPluginOptions
+	type RawHttpExternalsRspackPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

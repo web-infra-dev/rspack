@@ -4,6 +4,7 @@ use swc_core::ecma::ast::ArrayLit;
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
+#[inline]
 pub fn eval_array_expression(
   scanner: &mut JavascriptParser,
   expr: &ArrayLit,

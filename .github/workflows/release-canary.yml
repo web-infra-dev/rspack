@@ -8,10 +8,16 @@ on:
         type: string
         description: "Commit SHA"
 
+permissions:
+  # To publish packages with provenance
+  id-token: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
+    with:
+      force-use-github-runner: true
 
   build:
     name: Build Canary

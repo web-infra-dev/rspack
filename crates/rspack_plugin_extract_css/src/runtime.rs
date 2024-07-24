@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
+use rspack_collections::UkeySet;
 use rspack_core::{
   impl_runtime_module, rspack_sources::RawSource, ChunkUkey, Compilation, CrossOriginLoading,
   RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
 use crate::plugin::{InsertType, SOURCE_TYPE};
 
@@ -14,7 +15,7 @@ static WITH_LOADING: &str = include_str!("./runtime/with_loading.js");
 static WITH_HMR: &str = include_str!("./runtime/with_hmr.js");
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub(crate) struct CssLoadingRuntimeModule {
   chunk: ChunkUkey,
   attributes: FxHashMap<String, String>,
@@ -34,20 +35,11 @@ impl CssLoadingRuntimeModule {
     loading: bool,
     hmr: bool,
   ) -> Self {
-    Self {
-      chunk,
-      attributes,
-      link_type,
-      insert,
-      loading,
-      hmr,
-      source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(chunk, attributes, link_type, insert, loading, hmr)
   }
 
-  fn get_css_chunks(&self, compilation: &Compilation) -> FxHashSet<ChunkUkey> {
-    let mut set: FxHashSet<ChunkUkey> = Default::default();
+  fn get_css_chunks(&self, compilation: &Compilation) -> UkeySet<ChunkUkey> {
+    let mut set: UkeySet<ChunkUkey> = Default::default();
     let module_graph = compilation.get_module_graph();
 
     let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
@@ -67,7 +59,7 @@ impl CssLoadingRuntimeModule {
 }
 
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> rspack_identifier::Identifier {
+  fn name(&self) -> rspack_collections::Identifier {
     "webpack/runtime/css loading".into()
   }
 
@@ -136,9 +128,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
         let with_loading = WITH_LOADING.replace(
           "__INSTALLED_CHUNKS__",
-          &chunk.ids.iter().fold(String::default(), |output, id| {
-            format!("{output}\"{id}\": 0,\n")
-          }),
+          &chunk
+            .ids
+            .iter()
+            .fold(String::default(), |output, id: &String| {
+              format!(
+                "{output}{}: 0,\n",
+                serde_json::to_string(id).expect("json stringify failed")
+              )
+            }),
         );
 
         let with_loading = with_loading.replace(
@@ -155,7 +153,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               .filter_map(|id| {
                 let chunk = compilation.chunk_by_ukey.expect_get(id);
 
-                chunk.id.as_ref().map(|id| format!("\"{}\": 1,\n", id))
+                chunk.id.as_ref().map(|id| {
+                  format!(
+                    "{}: 1,\n",
+                    serde_json::to_string(id).expect("json stringify failed")
+                  )
+                })
               })
               .collect::<String>()
           ),

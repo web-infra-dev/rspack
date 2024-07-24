@@ -2244,4 +2244,32 @@ mod test {
       }
     )
   }
+
+  #[test]
+  fn test_merge_resolver_options_19() {
+    let first = Resolve {
+      extensions: string_list(&[]),
+      by_dependency: Some(ByDependency::from_iter([(
+        "x".into(),
+        Resolve {
+          extensions: string_list(&["1", "2", "3"]),
+          ..Default::default()
+        },
+      )])),
+      ..Default::default()
+    };
+
+    let second = Resolve {
+      extensions: string_list(&[]),
+      ..Default::default()
+    };
+
+    pretty_assertions::assert_eq!(
+      merge_resolve(first, second),
+      Resolve {
+        extensions: string_list(&[]),
+        ..Default::default()
+      }
+    )
+  }
 }

@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+use rspack_collections::{IdentifierLinkedMap, UkeySet};
 use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -7,8 +8,7 @@ use rspack_core::{
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::IdentifierLinkedMap;
-use rspack_plugin_javascript::{runtime::stringify_chunks_to_array, RenderJsChunkArgs};
+use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
 
 pub fn update_hash_for_entry_startup(
@@ -56,14 +56,14 @@ pub fn get_all_chunks(
   exclude_chunk1: &ChunkUkey,
   exclude_chunk2: Option<&ChunkUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> HashSet<ChunkUkey> {
+) -> UkeySet<ChunkUkey> {
   fn add_chunks(
     chunk_group_by_ukey: &ChunkGroupByUkey,
-    chunks: &mut HashSet<ChunkUkey>,
+    chunks: &mut UkeySet<ChunkUkey>,
     entrypoint_ukey: &ChunkGroupUkey,
     exclude_chunk1: &ChunkUkey,
     exclude_chunk2: Option<&ChunkUkey>,
-    visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
+    visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
   ) {
     if let Some(entrypoint) = get_chunk_group_from_ukey(entrypoint_ukey, chunk_group_by_ukey) {
       for chunk in &entrypoint.chunks {
@@ -99,8 +99,8 @@ pub fn get_all_chunks(
     }
   }
 
-  let mut chunks: HashSet<ChunkUkey> = HashSet::default();
-  let mut visit_chunk_groups = HashSet::default();
+  let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
+  let mut visit_chunk_groups = UkeySet::default();
 
   add_chunks(
     chunk_group_by_ukey,
@@ -114,30 +114,28 @@ pub fn get_all_chunks(
   chunks
 }
 
-pub fn get_runtime_chunk_output_name(args: &RenderJsChunkArgs) -> Result<String> {
+pub fn get_runtime_chunk_output_name(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> Result<String> {
   let entry_point = {
-    let entry_points = args
-      .compilation
+    let entry_points = compilation
       .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey);
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
     let (_, entry_point_ukey) = entry_points
       .iter()
       .next()
       .ok_or_else(|| error!("should has entry point ukey"))?;
 
-    args
-      .compilation
-      .chunk_group_by_ukey
-      .expect_get(entry_point_ukey)
+    compilation.chunk_group_by_ukey.expect_get(entry_point_ukey)
   };
 
-  let runtime_chunk = args
-    .compilation
+  let runtime_chunk = compilation
     .chunk_by_ukey
-    .expect_get(&entry_point.get_runtime_chunk(&args.compilation.chunk_group_by_ukey));
+    .expect_get(&entry_point.get_runtime_chunk(&compilation.chunk_group_by_ukey));
 
-  get_chunk_output_name(runtime_chunk, args.compilation)
+  get_chunk_output_name(runtime_chunk, compilation)
 }
 
 pub fn generate_entry_startup(

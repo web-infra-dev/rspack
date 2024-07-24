@@ -9,18 +9,16 @@ module.exports = {
 
 		@@ ... @@
 		-     "node": false,
-		-     "web": true,
 		+     "node": true,
+		@@ ... @@
+		-     "web": true,
 		+     "web": false,
 		@@ ... @@
-		-         "exportsOnly": false,
-		+         "exportsOnly": true,
+		-       "document": true,
+		+       "document": false,
 		@@ ... @@
-		-         "exportsOnly": false,
-		+         "exportsOnly": true,
-		@@ ... @@
-		-         "exportsOnly": false,
-		+         "exportsOnly": true,
+		-     "target": "web",
+		+     "target": "node",
 		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "__filename": "warn-mock",
@@ -30,8 +28,9 @@ module.exports = {
 		+     "global": false,
 		@@ ... @@
 		-     "chunkFormat": "array-push",
-		-     "chunkLoading": "jsonp",
 		+     "chunkFormat": "commonjs",
+		@@ ... @@
+		-     "chunkLoading": "jsonp",
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",

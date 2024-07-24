@@ -16,12 +16,11 @@ pnpm-lock.yaml
 # Infra
 
 /.github/workflows @jerrykingxyz
-/benchcases @IWANABETHATGUY
 /scripts @jerrykingxyz
 
 # Webpack Tests
 
-/webpack-test
+/tests/webpack-test
 
 # Crates in alphabetical order
 
@@ -32,12 +31,11 @@ pnpm-lock.yaml
 /crates/rspack_binding_options
 /crates/rspack_core
 /crates/rspack_core/src/compiler/make @jerrykingxyz
-/crates/rspack_database
 /crates/rspack_error
 /crates/rspack_fs
 /crates/rspack_fs_node
 /crates/rspack_futures
-/crates/rspack_identifier
+/crates/rspack_collections
 /crates/rspack_ids
 /crates/rspack_napi_shared
 
@@ -65,8 +63,6 @@ pnpm-lock.yaml
 /crates/rspack_plugin_schemes
 /crates/rspack_plugin_split_chunks
 /crates/rspack_plugin_wasm
-/crates/rspack_regex @IWANABETHATGUY
-/crates/rspack_symbol @IWANABETHATGUY
 /crates/rspack_tracing
 /crates/rspack_util
 

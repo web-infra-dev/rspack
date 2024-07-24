@@ -1,0 +1,3 @@
+.a:not(.b:not(:global .c):local .d) {
+  color: red;
+}

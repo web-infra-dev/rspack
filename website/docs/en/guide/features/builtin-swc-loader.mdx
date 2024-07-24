@@ -320,7 +320,17 @@ import 'antd/es/button/style';
 
 ### rspackExperiments.relay
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta
+  addedVersion="0.3.4"
+  stability={Stability.Removed}
+  removedVersion="1.0.0-alpha.0"
+/>
+
+:::warning
+Please migrate to [builtin:swc-loader plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) with [@swc/plugin-relay](https://github.com/swc-project/plugins/tree/main/packages/relay) instead.
+
+Note: options might be _CHANGED_ accordingly, please refer to the document over there.
+:::
 
 Converted `graphql` call expression to corresponding `require` call expression.
 
@@ -343,7 +353,17 @@ If specific configuration is passed, Rspack will not attempt to locate any `rela
 
 ### rspackExperiments.emotion
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta
+  addedVersion="0.3.4"
+  stability={Stability.Removed}
+  removedVersion="1.0.0-alpha.0"
+/>
+
+:::warning
+Please migrate to [builtin:swc-loader plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) with [@swc/plugin-emotion](https://github.com/swc-project/plugins/tree/main/packages/emotion) instead.
+
+Note: options might be _CHANGED_ accordingly, please refer to the document over there.
+:::
 
 Using optimization for emotion in compile-time.
 
@@ -451,7 +471,17 @@ This option allows you to tell Rspack what imports it should look at to determin
 
 ### rspackExperiments.styledComponents
 
-<ApiMeta stability={Stability.Experimental} addedVersion="0.3.7" />
+<ApiMeta
+  stability={Stability.Removed}
+  addedVersion="0.3.7"
+  removedVersion="1.0.0-alpha.0"
+/>
+
+:::warning
+Please migrate to [builtin:swc-loader plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) with [@swc/plugin-styled-components](https://github.com/swc-project/plugins/tree/main/packages/styled-components) instead.
+
+Note: options might be _CHANGED_ accordingly, please refer to the document over there.
+:::
 
 - **Type:**
 

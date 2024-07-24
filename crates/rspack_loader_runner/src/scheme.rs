@@ -6,6 +6,7 @@ pub enum Scheme {
   Data,
   File,
   Http,
+  Https,
   Custom(String),
 }
 
@@ -21,35 +22,50 @@ impl Scheme {
   pub fn is_none(&self) -> bool {
     matches!(self, Self::None)
   }
+
+  pub fn is_http(&self) -> bool {
+    matches!(self, Self::Http)
+  }
+
+  pub fn is_https(&self) -> bool {
+    matches!(self, Self::Https)
+  }
 }
 
 impl From<&str> for Scheme {
   fn from(value: &str) -> Self {
-    match value {
-      "" => Self::None,
-      // To avoid conflict with builtin loader protocol
-      "builtin" => Self::None,
-      "data" => Self::Data,
-      "file" => Self::File,
-      "http" => Self::Http,
-      v => Self::Custom(v.to_string()),
+    if value.is_empty() || value.eq_ignore_ascii_case("builtin") {
+      Self::None
+    } else if value.eq_ignore_ascii_case("data") {
+      Self::Data
+    } else if value.eq_ignore_ascii_case("file") {
+      Self::File
+    } else if value.eq_ignore_ascii_case("http") {
+      Self::Http
+    } else if value.eq_ignore_ascii_case("https") {
+      Self::Https
+    } else {
+      Self::Custom(value.to_string())
+    }
+  }
+}
+
+impl Scheme {
+  pub fn as_str(&self) -> &str {
+    match self {
+      Self::None => "",
+      Self::Data => "data",
+      Self::File => "file",
+      Self::Http => "http",
+      Self::Https => "https",
+      Self::Custom(v) => v,
     }
   }
 }
 
 impl fmt::Display for Scheme {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{}",
-      match self {
-        Self::None => "",
-        Self::Data => "data",
-        Self::File => "file",
-        Self::Http => "http",
-        Self::Custom(v) => v,
-      }
-    )
+    write!(f, "{}", self.as_str())
   }
 }
 
@@ -110,7 +126,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  Scheme::from(specifier[..i].to_ascii_lowercase().as_str())
+  Scheme::from(&specifier[..i])
 }
 
 #[cfg(test)]
@@ -130,6 +146,7 @@ mod tests {
   #[test]
   fn http_for_http_url() {
     assert_eq!(get_scheme("http://localhost"), Scheme::Http);
+    assert_eq!(get_scheme("https://localhost"), Scheme::Https);
   }
 
   #[test]

@@ -8,21 +8,16 @@ use rspack_error::{error, Result};
 use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{JsPlugin, RenderJsModuleContentArgs};
+use crate::{JsPlugin, RenderSource};
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  ordered_modules: Vec<&BoxModule>,
+  ordered_modules: &Vec<&BoxModule>,
   all_strict: bool,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let include_module_ids = &compilation.include_module_ids;
-
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|module| {
-      compilation.options.is_new_tree_shaking() || include_module_ids.contains(&module.identifier())
-    })
     .filter_map(|module| {
       render_module(compilation, chunk_ukey, module, all_strict, true)
         .transpose()
@@ -79,16 +74,18 @@ pub fn render_module(
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
-  let drive = JsPlugin::get_compilation_drives(compilation);
+  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let mut module_chunk_init_fragments = ChunkInitFragments::default();
+  let mut render_source = RenderSource {
+    source: origin_source.clone(),
+  };
+  hooks.render_module_content.call(
+    compilation,
+    module,
+    &mut render_source,
+    &mut module_chunk_init_fragments,
+  )?;
   let mut sources = ConcatSource::default();
-  let render_module_result = drive
-    .render_module_content(RenderJsModuleContentArgs {
-      compilation,
-      module,
-      module_source: origin_source.clone(),
-      chunk_init_fragments: ChunkInitFragments::default(),
-    })
-    .expect("render_module_content failed");
 
   if factory {
     let runtime_requirements = compilation
@@ -147,8 +144,8 @@ pub fn render_module(
     {
       sources.add(RawSource::from("\"use strict\";\n"));
     }
-    sources.add(render_module_result.module_source);
-    sources.add(RawSource::from("})"));
+    sources.add(render_source.source);
+    sources.add(RawSource::from("\n\n})"));
     if is_diff_mode() {
       sources.add(RawSource::from(format!(
         "\n{}\n",
@@ -157,13 +154,13 @@ pub fn render_module(
     }
     sources.add(RawSource::from(",\n"));
   } else {
-    sources.add(render_module_result.module_source);
+    sources.add(render_source.source);
   }
 
   Ok(Some((
     sources.boxed(),
     code_gen_result.chunk_init_fragments.clone(),
-    render_module_result.chunk_init_fragments,
+    module_chunk_init_fragments,
   )))
 }
 

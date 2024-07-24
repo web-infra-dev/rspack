@@ -1,3 +1,4 @@
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
@@ -9,8 +10,8 @@ use swc_core::ecma::atoms::Atom;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  name: Atom,
-  value: Atom, // id
+  pub name: Atom,
+  pub value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {
@@ -24,10 +25,6 @@ impl HarmonyExportSpecifierDependency {
 }
 
 impl Dependency for HarmonyExportSpecifierDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportSpecifierDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -56,7 +53,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
   }
@@ -87,7 +84,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let used_name = if compilation.options.is_new_tree_shaking() {
+    let used_name = {
       let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
       let used_name =
         exports_info_id.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
@@ -99,14 +96,6 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
           vec[0].clone()
         }
       })
-    } else if compilation.options.builtins.tree_shaking.is_true() {
-      module_graph
-        .get_exports_info(&module.identifier())
-        .old_get_used_exports()
-        .contains(&self.name)
-        .then(|| self.name.clone())
-    } else {
-      Some(self.name.clone())
     };
     if let Some(used_name) = used_name {
       init_fragments.push(Box::new(HarmonyExportInitFragment::new(

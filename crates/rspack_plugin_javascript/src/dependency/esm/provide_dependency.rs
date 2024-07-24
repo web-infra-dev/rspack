@@ -1,5 +1,8 @@
 use itertools::Itertools;
-use rspack_core::{module_raw, NormalInitFragment, UsedName};
+use rspack_core::{
+  create_exports_object_referenced, module_raw, ExtendedReferencedExport, ModuleGraph,
+  NormalInitFragment, RuntimeSpec, UsedName,
+};
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan};
@@ -46,8 +49,16 @@ impl Dependency for ProvideDependency {
     None
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "ProvideDependency"
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if self.ids.is_empty() {
+      create_exports_object_referenced()
+    } else {
+      vec![ExtendedReferencedExport::Array(self.ids.clone())]
+    }
   }
 }
 

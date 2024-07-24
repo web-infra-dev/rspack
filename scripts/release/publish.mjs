@@ -1,6 +1,6 @@
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import * as core from "@actions/core";
-import * as path from "path";
-import { fileURLToPath } from "url";
 
 import { getLastVersion } from "./version.mjs";
 
@@ -14,7 +14,7 @@ export async function publish_handler(mode, options) {
 	if (fs.existsSync(npmrcPath)) {
 		console.info("Found existing .npmrc file");
 	} else {
-		console.info(`No .npmrc file found, creating one`);
+		console.info("No .npmrc file found, creating one");
 
 		fs.writeFileSync(
 			npmrcPath,
@@ -23,7 +23,7 @@ export async function publish_handler(mode, options) {
 	}
 	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
 		options.tag
-	} --no-git-checks`;
+	} --no-git-checks --provenance`;
 	const version = await getLastVersion(root);
 	core.setOutput("version", version);
 	core.notice(`Version: ${version}`);

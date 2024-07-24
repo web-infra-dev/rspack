@@ -1,6 +1,9 @@
-import { BuiltinPluginName, RawSizeLimitsPluginOptions } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawSizeLimitsPluginOptions
+} from "@rspack/binding";
 
-import { Performance } from "..";
+import type { Performance } from "..";
 import { create } from "./base";
 
 export const SizeLimitsPlugin = create(

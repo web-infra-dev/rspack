@@ -22,21 +22,24 @@ module.exports = {
 		"PublicPath: auto
 		asset main.js 207 bytes {909} [emitted] (name: main)
 		Entrypoint main 207 bytes = main.js
-		chunk {909} main.js (main) [entry]
-		  ./fixtures/a.js [585] {909}
+		chunk {909} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
+		  > ./fixtures/a main
+		  ./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
 		    [no exports]
 		    [used exports unknown]
 		    Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
+		    ModuleConcatenation bailout: Module is not an ECMAScript module
 		    entry ./fixtures/a
 		    cjs self exports reference self [585]
-		./fixtures/a.js [585] {909}
+		./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
 		  [no exports]
 		  [used exports unknown]
 		  Statement with side_effects in source code at ./fixtures/a.js:1:0-3:2
+		  ModuleConcatenation bailout: Module is not an ECMAScript module
 		  entry ./fixtures/a
 		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (d64955662040c788c943)"
+		Rspack compiled successfully (c54fcee237a48276e019)"
 	`);
 	}
 };

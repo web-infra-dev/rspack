@@ -7,6 +7,24 @@ Used to decide how to handle different types of modules in a project.
 - **Type:** `Object`
 - **Default:** `{}`
 
+## module.defaultRules
+
+- **Type:** `Rule[]`
+
+An array of rules applied by default for modules.
+
+See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364) for details.
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    defaultRules: [
+      '...', // you can use "..." to reference those rules applied by webpack by default
+    ],
+  },
+};
+```
+
 ## module.noParse
 
 - **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
@@ -174,6 +192,75 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 - **Default:** `false`
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
+
+#### module.parser.javascript.exportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+- **Default:** `"auto"`
+
+Warn or error for using non-existent exports and conflicting re-exports.
+
+- `"error"`: Report errors.
+- `"warn"`: Report warnings.
+- `"auto"`: Depending on whether the module is a strict ESM, give an error if it is, otherwise give a warning.
+- `false`: Disable this feature.
+
+#### module.parser.javascript.importExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+
+Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.reexportExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **Type:** `"error" | "warn" | "auto" | false`
+
+Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.worker
+
+<ApiMeta addedVersion="1.0.0-alpha.0" />
+
+- **Type:** `string[] | boolean`
+
+Provide custom syntax for Worker parsing, commonly used to support Worklet:
+
+```js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // Supports CSS paintWorklet
+          'CSS.paintWorklet.addModule()',
+          // Supports AudioWorklet, with the leading '*' indicating the recognition of a variable named 'context', for example:
+          // let context = new AudioContext();
+          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
+          '*context.audioWorklet.addModule()',
+          // Extends default syntax: ["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
+
+#### module.parser.javascript.overrideStrict
+
+<ApiMeta addedVersion="1.0.0-alpha.4" />
+
+- **Type:** `'strict' | 'non-strict'`
+
+Override the module to strict or non-strict.
+
+This may affect the behavior of the module (some behaviors differ between strict and non-strict), so please configure this option carefully.
 
 ### module.parser["javascript/auto"]
 
@@ -396,7 +483,7 @@ module.exports = {
 
 #### module.generator.asset.publicPath
 
-- **Type:** `string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
 
 Override [`output.publicPath`](/config/output#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.
@@ -502,7 +589,9 @@ Customize how CSS export names are exported to javascript modules, such as keepi
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
 
-Avoid generating and loading a stylesheet and only embed exports from CSS into output javascript files.
+If `true`, **only exports** the identifier mappings from CSS into the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
+
+If `false`, generate stylesheets and embed them in the template.
 
 #### module.generator["css/auto"].localIdentName
 
@@ -515,14 +604,16 @@ Customize the format of the local class names generated for CSS modules, besides
 
 #### module.generator["css/auto"].esModule
 
-<ApiMeta addedVersion="0.6.4" />
+<ApiMeta addedVersion="0.7.0" />
 
 - **Type:** `boolean`
 - **Default:** `true`
 
+This configuration is available for improved ESM-CJS interoperability purposes.
+
 Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES Module during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
 
-For example, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+For example, a common use case, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
 
 The original source code of the third-party component library:
 
@@ -576,7 +667,7 @@ Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexpo
 
 #### module.generator.css.esModule
 
-<ApiMeta addedVersion="0.6.4" />
+<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
@@ -608,7 +699,7 @@ Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautol
 
 #### module.generator["css/module"].esModule
 
-<ApiMeta addedVersion="0.6.4" />
+<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
@@ -754,10 +845,31 @@ Matches all modules that match this resource, and will match against the Resourc
 
 ### Rule.descriptionData
 
-- **Type:** `{ [k: string]: Condition }`
+- **Type:** `{ [key: string]: Condition }`
 - **Default:** `undefined`
 
-Matches all modules that match this resource, and will match against the data in the Resource's package.json.
+`descriptionData` option allows you to match values of properties in the description file, typically `package.json`, to determine which modules a rule should apply to. This is a useful way to apply rules to specific modules based on metadata found in their `package.json`.
+
+The object keys in `descriptionData` correspond to keys in the module's `package.json`, such as `name`, `version`, etc. Each key should be associated with a [`Condition`](/config/module#condition) for matching the `package.json` data.
+
+For example, below we are applying the rule only to JavaScript resources with `'rspack'` string included in their `package.json` `name`.
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: /node_modules/,
+        descriptionData: {
+          name: packageJsonName => packageJsonName.includes('rspack'),
+        },
+        // additional rule options...
+      },
+    ],
+  },
+};
+```
 
 ### Rule.loaders
 

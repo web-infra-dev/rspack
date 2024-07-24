@@ -29,9 +29,6 @@ const fs = require("fs");
 // @lic
 
 it("should contain custom banner", () => {
-	const content = fs.readFileSync(__filename, "utf-8");
-	const lines = content.split("\n");
-	expect(lines.length).toBe(2);
-	const banner = lines[0];
-	expect(banner).toBe("/*! custom */");
+	const custom = fs.readFileSync(__filename, "utf-8").startsWith("/*! custom */");
+	expect(custom).toBeTruthy();
 });

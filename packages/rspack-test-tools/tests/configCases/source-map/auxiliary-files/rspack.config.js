@@ -10,7 +10,9 @@ module.exports = {
                     name: "test case",
                     stage: Compilation.PROCESS_ASSETS_STAGE_REPORT
                 }, () => {
-                    expect(Array.from(compilation.chunks[0].auxiliaryFiles)).toEqual(["bundle0.js.map"]);
+										let chunks = [...compilation.chunks];
+										let auxiliaryFiles = [...chunks[0].auxiliaryFiles]
+                    expect(Array.from(auxiliaryFiles)).toEqual(["bundle0.js.map"]);
                 });
             });
         }

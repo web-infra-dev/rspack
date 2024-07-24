@@ -8,6 +8,8 @@ __webpack_require__.r(__webpack_exports__);
 
 __webpack_require__.e(/* import() */ "dynamic-2_js-_15a90").then(__webpack_require__.bind(__webpack_require__, "./dynamic-2.js"));
 console.log("dynamic-1");
+
+
 }),
 
 }]);
@@ -23,9 +25,13 @@ __webpack_require__.r(__webpack_exports__);
 
 __webpack_require__.e(/* import() */ "dynamic-2_js-_15a90").then(__webpack_require__.bind(__webpack_require__, "./dynamic-2.js"));
 console.log("dynamic-1");
+
+
 }),
 "./shared.js": (function () {
 console.log("shared");
+
+
 }),
 
 }]);
@@ -41,6 +47,8 @@ __webpack_require__.r(__webpack_exports__);
 
 __webpack_require__.e(/* import() */ "dynamic-1_js-_1d740").then(__webpack_require__.bind(__webpack_require__, "./dynamic-1.js"));
 console.log("dynamic-2");
+
+
 }),
 
 }]);
@@ -56,9 +64,13 @@ __webpack_require__.r(__webpack_exports__);
 
 __webpack_require__.e(/* import() */ "dynamic-1_js-_1d740").then(__webpack_require__.bind(__webpack_require__, "./dynamic-1.js"));
 console.log("dynamic-2");
+
+
 }),
 "./shared.js": (function () {
 console.log("shared");
+
+
 }),
 
 }]);
@@ -70,6 +82,8 @@ console.log("shared");
 __webpack_require__.e(/* import() */ "dynamic-1_js-_1d741").then(__webpack_require__.bind(__webpack_require__, "./dynamic-1.js"));
 __webpack_require__.e(/* import() */ "dynamic-2_js-_15a91").then(__webpack_require__.bind(__webpack_require__, "./dynamic-2.js"));
 console.log("index");
+
+
 }),
 
 },function(__webpack_require__) {

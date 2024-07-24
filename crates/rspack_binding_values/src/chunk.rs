@@ -22,7 +22,7 @@ pub struct JsChunk {
   pub hash: Option<String>,
   pub content_hash: HashMap<String, String>,
   pub rendered_hash: Option<String>,
-  pub chunk_reasons: Vec<String>,
+  pub chunk_reason: Option<String>,
   pub auxiliary_files: Vec<String>,
 }
 
@@ -48,7 +48,8 @@ impl JsChunk {
       hash,
       rendered_hash,
       content_hash,
-      chunk_reasons,
+      chunk_reason,
+      ..
     } = chunk;
     let mut files = Vec::from_iter(files.iter().cloned());
     files.sort_unstable();
@@ -58,12 +59,8 @@ impl JsChunk {
     runtime.sort_unstable();
 
     Self {
-      inner_ukey: usize::from(chunk.ukey) as u32,
-      inner_groups: chunk
-        .groups
-        .iter()
-        .map(|ukey| ukey.as_usize() as u32)
-        .collect(),
+      inner_ukey: chunk.ukey.as_u32(),
+      inner_groups: chunk.groups.iter().map(|ukey| ukey.as_u32()).collect(),
       name: name.clone(),
       id: id.clone(),
       ids: ids.clone(),
@@ -82,14 +79,14 @@ impl JsChunk {
         .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
         .collect::<std::collections::HashMap<String, String>>(),
       rendered_hash: rendered_hash.as_ref().map(|hash| hash.to_string()),
-      chunk_reasons: chunk_reasons.clone(),
+      chunk_reason: chunk_reason.clone(),
       auxiliary_files,
     }
   }
 }
 
 fn chunk(ukey: u32, compilation: &Compilation) -> &Chunk {
-  let ukey = ChunkUkey::from(ukey as usize);
+  let ukey = ChunkUkey::from(ukey);
   compilation.chunk_by_ukey.expect_get(&ukey)
 }
 

@@ -17,6 +17,7 @@ pub struct CommonJsFullRequireDependency {
   span: Option<ErrorSpan>,
   is_call: bool,
   optional: bool,
+  asi_safe: bool,
 }
 
 impl CommonJsFullRequireDependency {
@@ -27,6 +28,7 @@ impl CommonJsFullRequireDependency {
     span: Option<ErrorSpan>,
     is_call: bool,
     optional: bool,
+    asi_safe: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -36,6 +38,7 @@ impl CommonJsFullRequireDependency {
       span,
       is_call,
       optional,
+      asi_safe,
     }
   }
 }
@@ -55,28 +58,6 @@ impl Dependency for CommonJsFullRequireDependency {
 
   fn span(&self) -> Option<ErrorSpan> {
     self.span
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsFullRequireDependency"
-  }
-}
-
-impl ModuleDependency for CommonJsFullRequireDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request;
-  }
-
-  fn get_optional(&self) -> bool {
-    self.optional
   }
 
   fn get_referenced_exports(
@@ -100,6 +81,24 @@ impl ModuleDependency for CommonJsFullRequireDependency {
       }
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
+  }
+}
+
+impl ModuleDependency for CommonJsFullRequireDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 }
 
@@ -144,6 +143,9 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
             0
           )
         );
+        if self.asi_safe {
+          require_expr = format!("({require_expr})");
+        }
       }
     }
 

@@ -1,11 +1,10 @@
-use std::collections::{HashMap, HashSet};
-
 use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, Compilation, CompilationOptimizeChunks, Logger,
   Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -16,7 +15,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
 
-  let mut source_module_chunks = HashMap::new();
+  let mut source_module_chunks = HashMap::default();
   compilation
     .get_module_graph()
     .modules()
@@ -38,14 +37,14 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
       }
     });
 
-  let mut target_module_chunks = HashMap::new();
-
+  let mut target_module_chunks = HashMap::default();
+  let mut visited_chunk_group_keys = HashSet::default();
   for (module_id, chunk_keys) in &source_module_chunks {
-    let mut target_chunks = HashSet::new();
+    let mut target_chunks = HashSet::default();
     for chunk_key in chunk_keys {
       if let Some(chunk) = get_chunk_from_ukey(chunk_key, &compilation.chunk_by_ukey) {
         let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
-        let mut visited_chunk_group_keys = HashSet::new();
+        visited_chunk_group_keys.clear();
         'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
           if visited_chunk_group_keys.contains(chunk_group_key) {
             continue;

@@ -5,6 +5,7 @@ use super::BasicEvaluatedExpression;
 use crate::utils::eval;
 use crate::visitors::JavascriptParser;
 
+#[inline]
 pub fn eval_new_expression(
   scanner: &mut JavascriptParser,
   expr: &NewExpr,

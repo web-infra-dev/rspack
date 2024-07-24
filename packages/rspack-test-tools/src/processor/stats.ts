@@ -1,24 +1,21 @@
 /* eslint-disable no-control-regex */
 
-import { Compiler, Stats } from "@rspack/core";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
+import type { Compiler, Stats } from "@rspack/core";
 
 import { escapeEOL } from "../helper";
 import captureStdio from "../helper/legacy/captureStdio";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IStatsProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "runable"
-	> {}
+	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
 
 const REG_ERROR_CASE = /error$/;
 const quoteMeta = (str: string) => {
@@ -48,11 +45,13 @@ export class StatsProcessor<
 	async compiler(context: ITestContext) {
 		await super.compiler(context);
 		const instance = this.getCompiler(context).getCompiler()! as any;
-		const compilers = instance.compilers ? instance.compilers : [instance];
-		compilers.forEach((c: Compiler) => {
-			const ifs = c.inputFileSystem;
-			c.inputFileSystem = Object.create(ifs);
-			c.inputFileSystem.readFile = function () {
+		const compilers: Compiler[] = instance.compilers
+			? instance.compilers
+			: [instance];
+		for (const compiler of compilers) {
+			const ifs = compiler.inputFileSystem;
+			compiler.inputFileSystem = Object.create(ifs);
+			compiler.inputFileSystem.readFile = () => {
 				const args = Array.prototype.slice.call(arguments);
 				const callback = args.pop();
 				ifs.readFile.apply(
@@ -69,7 +68,7 @@ export class StatsProcessor<
 			};
 
 			// CHANGE: The checkConstraints() function is currently not implemented in rspack
-			// c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
+			// compiler.hooks.compilation.tap("StatsTestCasesTest", compilation => {
 			// 	[
 			// 		"optimize",
 			// 		"optimizeModules",
@@ -83,7 +82,7 @@ export class StatsProcessor<
 			// 		);
 			// 	});
 			// });
-		});
+		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
@@ -194,7 +193,16 @@ export class StatsProcessor<
 		context: ITestContext
 	): TCompilerOptions<T> {
 		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
-			return {};
+			return {
+				experiments: {
+					css: true,
+					rspackFuture: {
+						bundlerInfo: {
+							force: false
+						}
+					}
+				}
+			} as TCompilerOptions<T>;
 		}
 		return {
 			context: context.getSource(),
@@ -206,8 +214,16 @@ export class StatsProcessor<
 			},
 			optimization: {
 				minimize: false
+			},
+			experiments: {
+				css: true,
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
 	static overrideOptions<T extends ECompilerType>(
 		index: number,

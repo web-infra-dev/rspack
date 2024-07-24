@@ -10,10 +10,11 @@ Rspack will select appropriate optimization configuration based on the [`mode`](
 
 ## optimization.moduleIds
 
-<PropertyType type="'named' | 'deterministic'" />
+<PropertyType type="'natural' | 'named' | 'deterministic'" />
 
 | option          | description                                                                                                                         |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `natural`       | Use numeric ids in order of usage.                                                                                                  |
 | `named`         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode.                                 |
 | `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode. |
 
@@ -46,6 +47,7 @@ to false will disable this optimization.
 
 :::info
 This optimization currently has the potential to significantly impact performance.
+
 If you are encountering performance issue, and you are using `optimization.splitChunks`, also have set `optimization.splitChunks.chunks` to 'all', you can disable `optimization.mergeDuplicateChunks`.
 :::
 
@@ -56,13 +58,13 @@ If you are encountering performance issue, and you are using `optimization.split
   defaultValueList={[
     {
       defaultValue:
-        '[new SwcJsMinimizerRspackPlugin(), new SwcCssMinimizerRspackPlugin()]',
+        '[new SwcJsMinimizerRspackPlugin(), new LightningCssMinimizerRspackPlugin()]',
     },
   ]}
 />
 
 Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
-and [`rspack.SwcCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin) are used.
+and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin) are used.
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
 ```js title=rspack.config.js
@@ -190,7 +192,7 @@ module.exports = {
 
 ## optimization.splitChunks
 
-<PropertyType type="false | object" />
+- **Type:** `false | object`
 
 Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
 
@@ -198,7 +200,7 @@ It is enabled by default for dynamically imported modules.
 
 To turn it off, set it to `false`.
 
-See details at [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin).
+See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
 
 ## optimization.usedExports
 
@@ -289,3 +291,29 @@ The following values are supported:
 | 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
 | true            | Same as 'deterministic'                                                                                                            |
 | false           | Keep original name. Good for readability and debugging.                                                                            |
+
+## optimization.nodeEnv
+
+- **Type:** `boolean | string`
+- **Default:** `false`
+
+Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
+`optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
+
+Possible values:
+
+- any string: the value to set `process.env.NODE_ENV` to.
+- false: do not modify/set the value of `process.env.NODE_ENV`.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    nodeEnv: 'production',
+  },
+};
+```
+
+:::tip
+When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
+:::

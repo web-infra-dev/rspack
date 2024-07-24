@@ -22,6 +22,15 @@ impl VariableInfoId {
   }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TagInfoId(u32);
+
+impl TagInfoId {
+  fn init() -> TagInfoId {
+    TagInfoId(0)
+  }
+}
+
 #[derive(Debug)]
 pub struct VariableInfoDB {
   count: VariableInfoId,
@@ -41,13 +50,26 @@ impl VariableInfoDB {
       map: Default::default(),
     }
   }
+}
 
-  fn insert(&mut self, mut variable_info: VariableInfo) -> VariableInfoId {
-    let id = self.next();
-    variable_info.set_id(id);
-    let prev = self.map.insert(id, variable_info);
-    assert!(prev.is_none());
+#[derive(Debug)]
+pub struct TagInfoDB {
+  count: TagInfoId,
+  map: FxHashMap<TagInfoId, TagInfo>,
+}
+
+impl TagInfoDB {
+  fn next(&mut self) -> TagInfoId {
+    let id = self.count;
+    self.count.0 += 1;
     id
+  }
+
+  fn new() -> Self {
+    Self {
+      count: TagInfoId::init(),
+      map: Default::default(),
+    }
   }
 }
 
@@ -56,6 +78,7 @@ pub struct ScopeInfoDB {
   count: ScopeInfoId,
   map: FxHashMap<ScopeInfoId, ScopeInfo>,
   variable_info_db: VariableInfoDB,
+  tag_info_db: TagInfoDB,
 }
 
 impl Default for ScopeInfoDB {
@@ -76,10 +99,11 @@ impl ScopeInfoDB {
       count: ScopeInfoId::init(),
       map: Default::default(),
       variable_info_db: VariableInfoDB::new(),
+      tag_info_db: TagInfoDB::new(),
     }
   }
 
-  fn _create(&mut self, parent: Option<&ScopeInfoId>) -> ScopeInfoId {
+  fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
     let id = self.next();
     let stack = match parent {
       Some(parent) => {
@@ -107,41 +131,57 @@ impl ScopeInfoDB {
     self._create(None)
   }
 
-  pub fn create_child(&mut self, parent: &ScopeInfoId) -> ScopeInfoId {
+  pub fn create_child(&mut self, parent: ScopeInfoId) -> ScopeInfoId {
     self._create(Some(parent))
   }
 
-  pub fn expect_get_scope(&self, id: &ScopeInfoId) -> &ScopeInfo {
+  pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
     self
       .map
-      .get(id)
+      .get(&id)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn expect_get_mut_scope(&mut self, id: &ScopeInfoId) -> &mut ScopeInfo {
+  pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
     self
       .map
-      .get_mut(id)
+      .get_mut(&id)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn expect_get_variable(&self, id: &VariableInfoId) -> &VariableInfo {
-    self
-      .variable_info_db
-      .map
-      .get(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
-  }
-
-  pub fn expect_get_mut_variable(&mut self, id: &VariableInfoId) -> &mut VariableInfo {
+  pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
     self
       .variable_info_db
       .map
-      .get_mut(id)
+      .get(&id)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn get<S: AsRef<str>>(&mut self, id: &ScopeInfoId, key: S) -> Option<VariableInfoId> {
+  pub fn expect_get_mut_variable(&mut self, id: VariableInfoId) -> &mut VariableInfo {
+    self
+      .variable_info_db
+      .map
+      .get_mut(&id)
+      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+  }
+
+  pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
+    self
+      .tag_info_db
+      .map
+      .get(&id)
+      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+  }
+
+  pub fn expect_get_mut_tag_info(&mut self, id: TagInfoId) -> &mut TagInfo {
+    self
+      .tag_info_db
+      .map
+      .get_mut(&id)
+      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+  }
+
+  pub fn get<S: AsRef<str>>(&mut self, id: ScopeInfoId, key: S) -> Option<VariableInfoId> {
     let definitions = self.expect_get_scope(id);
     if let Some(&top_value) = definitions.map.get(key.as_ref()) {
       if top_value == VariableInfo::TOMBSTONE || top_value == VariableInfo::UNDEFINED {
@@ -153,7 +193,7 @@ impl ScopeInfoDB {
       for index in (0..definitions.stack.len() - 1).rev() {
         // SAFETY: boundary had been checked
         let id = unsafe { definitions.stack.get_unchecked(index) };
-        if let Some(&value) = self.expect_get_scope(id).map.get(key.as_ref()) {
+        if let Some(&value) = self.expect_get_scope(*id).map.get(key.as_ref()) {
           if value == VariableInfo::TOMBSTONE || value == VariableInfo::UNDEFINED {
             return None;
           } else {
@@ -171,14 +211,13 @@ impl ScopeInfoDB {
     }
   }
 
-  pub fn set(&mut self, id: ScopeInfoId, key: String, info: VariableInfo) {
-    let variable_info_id = self.variable_info_db.insert(info);
-    let scope = self.expect_get_mut_scope(&id);
+  pub fn set(&mut self, id: ScopeInfoId, key: String, variable_info_id: VariableInfoId) {
+    let scope = self.expect_get_mut_scope(id);
     scope.map.insert(key, variable_info_id);
   }
 
   pub fn delete<S: AsRef<str>>(&mut self, id: ScopeInfoId, key: S) {
-    let scope = self.expect_get_mut_scope(&id);
+    let scope = self.expect_get_mut_scope(id);
     if scope.stack.len() > 1 {
       scope
         .map
@@ -189,11 +228,36 @@ impl ScopeInfoDB {
   }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug)]
 pub struct TagInfo {
+  id: TagInfoId,
   pub tag: &'static str,
-  pub data: Option<serde_json::Value>,
-  pub next: Option<Box<TagInfo>>,
+  pub data: Option<Box<dyn anymap::CloneAny>>,
+  pub next: Option<TagInfoId>,
+}
+
+impl TagInfo {
+  pub fn create(
+    definitions_db: &mut ScopeInfoDB,
+    tag: &'static str,
+    data: Option<Box<dyn anymap::CloneAny>>,
+    next: Option<TagInfoId>,
+  ) -> TagInfoId {
+    let id = definitions_db.tag_info_db.next();
+    let tag_info = TagInfo {
+      id,
+      tag,
+      data,
+      next,
+    };
+    let prev = definitions_db.tag_info_db.map.insert(id, tag_info);
+    assert!(prev.is_none());
+    id
+  }
+
+  pub fn id(&self) -> TagInfoId {
+    self.id
+  }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -202,39 +266,98 @@ pub enum FreeName {
   True,
 }
 
+/// Similar to `VariableInfo` in webpack but more general.
+/// For example, webpack will only store a string when both
+/// `free_name` and `tag_info` are `None`, but we use `VariableInfo` instead.
 #[derive(Debug, PartialEq, Eq)]
 pub struct VariableInfo {
-  id: Option<VariableInfoId>,
+  id: VariableInfoId,
   pub declared_scope: ScopeInfoId,
+
+  /// `free_name` is used for special identifiers such as `require` in
+  /// CommonJS:
+  ///
+  /// ```ignore
+  /// let alias = require;
+  /// ```
+  ///
+  /// The info about `alias` becomes:
+  ///
+  /// ```ignore
+  /// VariableInfo {
+  ///   id: self_id,
+  ///   declared_scope: function_f_scope,
+  ///   free_name: Some("require"),
+  /// }
+  /// ```
+  /// This can help us redirect the invocation, such as `alias(something)`,
+  /// into `require(something)`.
+  ///
+  /// Furthermore, if the value of this field is `Some(FreeName::True)`, it means
+  /// we can skip further handling.
   pub free_name: Option<FreeName>,
-  pub tag_info: Option<TagInfo>,
+
+  /// For example, if we want to bundle a case that has the same name as one
+  /// already used in the webpack output, we must rename the argument
+  /// `__webpack_require__` to something else.
+  ///
+  /// ```ignore
+  /// function f(__webpack_require__) {
+  ///  __webpack_require__(something)
+  /// }
+  /// ```
+  ///
+  /// Firstly, it tries to define the argument `__webpack_require__` as a
+  /// normal variable (`free_name` and `tag_info` both `None`). However, it should
+  /// invoke `Javascript::tag_variable` because it has the same name as the
+  /// webpack runtime require.
+  ///
+  /// so the info about the argument `__webpack_require__` becomes:
+  ///
+  /// ```ignore
+  /// VariableInfo {
+  ///   id: self_id,
+  ///   declared_scope: function_f_scope,
+  ///   free_name: Some("__webpack_require__"),
+  ///   tag: Some(Tag {
+  ///     tag: COMPACT_WEBPACK_RUNTIME_REQUIRE_IDENTIFIER,
+  ///     data: SOME_DATA_TO_RENAME_THIS_IDENTIFIER
+  ///   })
+  /// }
+  /// ```
+  ///
+  /// Then, when we encounter the callee `__webpack_require__`,
+  /// the `tag_info` will help us known how to handle it correctly.
+  pub tag_info: Option<TagInfoId>,
 }
 
 impl VariableInfo {
   const TOMBSTONE: VariableInfoId = VariableInfoId(0);
   const UNDEFINED: VariableInfoId = VariableInfoId(1);
 
-  pub fn new(
+  pub fn create(
+    definitions_db: &mut ScopeInfoDB,
     declared_scope: ScopeInfoId,
     free_name: Option<FreeName>,
-    tag_info: Option<TagInfo>,
-  ) -> Self {
-    Self {
-      id: None,
+    tag_info: Option<TagInfoId>,
+  ) -> VariableInfoId {
+    let id = definitions_db.variable_info_db.next();
+    let variable_info = VariableInfo {
+      id,
       declared_scope,
       free_name,
       tag_info,
-    }
-  }
-
-  fn set_id(&mut self, id: VariableInfoId) {
-    self.id = Some(id);
+    };
+    let prev = definitions_db
+      .variable_info_db
+      .map
+      .insert(id, variable_info);
+    assert!(prev.is_none());
+    id
   }
 
   pub fn id(&self) -> VariableInfoId {
-    self
-      .id
-      .expect("should already store VariableInfo to VariableInfoDB")
+    self.id
   }
 }
 

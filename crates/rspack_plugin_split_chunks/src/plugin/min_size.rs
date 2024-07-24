@@ -62,9 +62,9 @@ impl SplitChunksPlugin {
 
     // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
     // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
-    violating_modules
-      .into_iter()
-      .for_each(|violating_module| module_group.remove_module(violating_module.deref()));
+    violating_modules.into_iter().for_each(|violating_module| {
+      module_group.remove_module(violating_module.deref(), compilation)
+    });
 
     module_group.modules.is_empty()
   }

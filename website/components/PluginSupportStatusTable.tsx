@@ -1,12 +1,12 @@
-import React from 'react';
 import { Table } from '@builtIns/Table';
+import type React from 'react';
 import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
 
 enum SupportStatus {
-  NotSupported,
-  PartiallySupported,
-  FullySupported,
+  NotSupported = 0,
+  PartiallySupported = 1,
+  FullySupported = 2,
 }
 
 const SUPPORT_STATUS_LOCALIZED = {
@@ -45,19 +45,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'BannerPlugin',
     url: '/plugins/webpack/banner-plugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`stage` option not supported',
-      zh: '不支持 `stage` 选项',
-    },
-  },
-  {
-    name: 'ContextExclusionPlugin',
-    status: SupportStatus.NotSupported,
-  },
-  {
-    name: 'ContextReplacementPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'DefinePlugin',
@@ -79,11 +67,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EvalSourceMapDevToolPlugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`test`, `include`, `exclude`, `moduleFilenameTemplate`, `protocol` options not supported',
-      zh: '不支持 `test`、`include`、`exclude`、`moduleFilenameTemplate`、`protocol` 选项',
-    },
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'HashedModuleIdsPlugin',
@@ -376,11 +360,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'FetchCompileAsyncWasmPlugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: 'Temporarily not exported from the JavaScript side',
-      zh: '暂时未从 JavaScript 侧导出',
-    },
+    url: '/plugins/webpack/fetch-compile-async-wasm-plugin',
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'FetchCompileWasmPlugin',
@@ -403,6 +384,10 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.FullySupported,
   },
   {
+    name: 'NaturalChunkIdsPlugin',
+    status: SupportStatus.FullySupported,
+  },
+  {
     name: 'NamedChunkIdsPlugin',
     status: SupportStatus.PartiallySupported,
     notes: {
@@ -420,7 +405,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NaturalModuleIdsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'OccurrenceChunkIdsPlugin',

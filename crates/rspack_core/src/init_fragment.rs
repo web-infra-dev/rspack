@@ -1,6 +1,7 @@
 use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
+  sync::atomic::AtomicU32,
 };
 
 use dyn_clone::{clone_trait_object, DynClone};
@@ -17,17 +18,16 @@ use crate::{
   RuntimeCondition, RuntimeGlobals,
 };
 
+static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
+
 pub struct InitFragmentContents {
   pub start: String,
   pub end: Option<String>,
 }
 
-pub struct InitFragmentKeyUnique;
-pub type InitFragmentKeyUKey = rspack_database::Ukey<InitFragmentKeyUnique>;
-
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
-  Unique(InitFragmentKeyUKey),
+  Unique(u32),
   HarmonyImport(String),
   HarmonyExportStar(String), // TODO: align with webpack and remove this
   HarmonyExports,
@@ -42,7 +42,9 @@ pub enum InitFragmentKey {
 
 impl InitFragmentKey {
   pub fn unique() -> Self {
-    Self::Unique(rspack_database::Ukey::new())
+    Self::Unique(
+      NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+    )
   }
 }
 
@@ -391,6 +393,14 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
         start: "".to_string(),
         end: None,
       })
+    } else if self.promises.len() == 1 {
+      let sep = self.promises.front().expect("at least have one");
+      Ok(InitFragmentContents {
+        start: format!(
+          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n{sep} = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];"
+        ),
+        end: None,
+      })
     } else {
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
@@ -521,10 +531,8 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ConditionalInitFragment {
 
 fn wrap_in_condition(condition: &str, source: &str) -> String {
   format!(
-    r#"
-    if ({condition}) {{
-      {source}
-    }}
-    "#
+    r#"if ({condition}) {{
+  {source}
+}}"#
   )
 }

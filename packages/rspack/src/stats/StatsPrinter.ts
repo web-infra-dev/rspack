@@ -7,8 +7,8 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type { AsArray, Hook } from "tapable";
-import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
+import type { AsArray, Hook } from "@rspack/lite-tapable";
+import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type {
 	StatsAsset,
@@ -194,14 +194,13 @@ export class StatsPrinter {
 	): string {
 		if (this._inPrint) {
 			return this._print(type, object, baseContext);
-		} else {
-			try {
-				this._inPrint = true;
-				return this._print(type, object, baseContext);
-			} finally {
-				this._levelHookCache.clear();
-				this._inPrint = false;
-			}
+		}
+		try {
+			this._inPrint = true;
+			return this._print(type, object, baseContext);
+		} finally {
+			this._levelHookCache.clear();
+			this._inPrint = false;
 		}
 	}
 

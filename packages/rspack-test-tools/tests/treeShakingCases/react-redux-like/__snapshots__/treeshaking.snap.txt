@@ -7,18 +7,28 @@
 
 _foo__WEBPACK_IMPORTED_MODULE_0__["default"];
 _foo__WEBPACK_IMPORTED_MODULE_1__["default"];
+
+
 }),
-"./lib.js": (function (__unused_webpack_module, __webpack_exports__) {
+"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 function Provider() {}
-/* harmony default export */ __webpack_exports__["default"] = (Provider);
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Provider);
+
+
 }),
 "./selector.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return useSelector; }
 });
 function useSelector() {
-    return "";
+	return "";
 }
+
+
 }),
 
 },function(__webpack_require__) {

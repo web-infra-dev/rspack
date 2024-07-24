@@ -2,11 +2,11 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
@@ -18,7 +18,7 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, FactoryMeta, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions,
   Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec,
+  StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -43,7 +43,11 @@ impl Serialize for ExternalRequestValue {
   where
     S: serde::Serializer,
   {
-    self.iter().collect::<Vec<_>>().serialize(serializer)
+    if self.rest.is_none() {
+      self.primary.serialize(serializer)
+    } else {
+      self.iter().collect::<Vec<_>>().serialize(serializer)
+    }
   }
 }
 
@@ -69,6 +73,15 @@ impl ExternalRequestValue {
   }
 }
 
+fn get_namespace_object_export(concatenation_scope: Option<&mut ConcatenationScope>) -> Cow<str> {
+  if let Some(concatenation_scope) = concatenation_scope {
+    concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+    format!("var {NAMESPACE_OBJECT_EXPORT}").into()
+  } else {
+    "module.exports".into()
+  }
+}
+
 fn get_source_for_global_variable_external(
   variable_names: &ExternalRequestValue,
   external_type: &ExternalType,
@@ -81,6 +94,26 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
   let variable_name = request.primary();
   let object_lookup = property_access(request.iter(), 1);
   format!("{variable_name}{object_lookup}")
+}
+
+fn get_source_for_commonjs(module_and_specifiers: &ExternalRequestValue) -> String {
+  let module_name = module_and_specifiers.primary();
+  format!(
+    "require({}){}",
+    json_stringify(module_name),
+    property_access(module_and_specifiers.iter(), 1)
+  )
+}
+
+fn get_source_for_import(
+  module_and_specifiers: &ExternalRequestValue,
+  compilation: &Compilation,
+) -> String {
+  format!(
+    "{}({})",
+    compilation.options.output.import_function_name,
+    serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string")
+  )
 }
 
 #[impl_source_map_config]
@@ -103,7 +136,10 @@ impl ExternalModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      id: Identifier::from(format!("external {external_type} {request:?}")),
+      id: Identifier::from(format!(
+        "external {external_type} {}",
+        serde_json::to_string(&request).expect("invalid json to_string")
+      )),
       request,
       external_type,
       user_request,
@@ -125,90 +161,45 @@ impl ExternalModule {
     }
   }
 
-  fn get_source_for_commonjs(&self, module_and_specifiers: &ExternalRequestValue) -> String {
-    let module_name = module_and_specifiers.primary();
-    format!(
-      "module.exports = require('{}'){}",
-      module_name,
-      property_access(module_and_specifiers.iter(), 1)
-    )
-  }
-
-  fn get_source_for_import(
-    &self,
-    module_and_specifiers: &ExternalRequestValue,
-    compilation: &Compilation,
-  ) -> String {
-    format!(
-      "module.exports = {}({})",
-      compilation.options.output.import_function_name,
-      serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string")
-    )
-  }
-
-  fn get_source_for_script_external(
-    &self,
-    url_and_global: &ExternalRequestValue,
-    runtime_requirements: &mut RuntimeGlobals,
-  ) -> Result<String> {
-    let url_and_global = extract_url_and_global(url_and_global.primary())?;
-    runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
-    Ok(format!(
-      r#"
-var __webpack_error__ = new Error();
-module.exports = new Promise(function(resolve, reject) {{
-  if(typeof {global} !== "undefined") return resolve();
-  {load_script}({url_str}, function(event) {{
-    if(typeof {global} !== "undefined") return resolve();
-    var errorType = event && (event.type === 'load' ? 'missing' : event.type);
-    var realSrc = event && event.target && event.target.src;
-    __webpack_error__.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
-    __webpack_error__.name = 'ScriptExternalLoadError';
-    __webpack_error__.type = errorType;
-    __webpack_error__.request = realSrc;
-    reject(__webpack_error__);
-  }}, {global_str});
-}}).then(function() {{ return {global}; }});
-"#,
-      global = url_and_global.global,
-      global_str =
-        serde_json::to_string(url_and_global.global).map_err(|e| error!(e.to_string()))?,
-      url_str = serde_json::to_string(url_and_global.url).map_err(|e| error!(e.to_string()))?,
-      load_script = RuntimeGlobals::LOAD_SCRIPT.name()
-    ))
-  }
-
   fn get_source(
     &self,
     compilation: &Compilation,
     request: Option<&ExternalRequestValue>,
     external_type: &ExternalType,
+    concatenation_scope: Option<&mut ConcatenationScope>,
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let mut runtime_requirements: RuntimeGlobals = Default::default();
     let source = match self.external_type.as_str() {
       "this" if let Some(request) = request => format!(
-        "module.exports = (function() {{ return {}; }}())",
+        "{} = (function() {{ return {}; }}());",
+        get_namespace_object_export(concatenation_scope),
         get_source_for_global_variable_external(request, external_type)
       ),
       "window" | "self" if let Some(request) = request => format!(
-        "module.exports = {}",
+        "{} = {};",
+        get_namespace_object_export(concatenation_scope),
         get_source_for_global_variable_external(request, external_type)
       ),
       "global" if let Some(request) = request => format!(
-        "module.exports ={} ",
+        "{} = {};",
+        get_namespace_object_export(concatenation_scope),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
       "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static"
         if let Some(request) = request =>
       {
-        self.get_source_for_commonjs(request)
+        format!(
+          "{} = {};",
+          get_namespace_object_export(concatenation_scope),
+          get_source_for_commonjs(request)
+        )
       }
       "node-commonjs" if let Some(request) = request => {
         if compilation.options.output.module {
           chunk_init_fragments.push(
             NormalInitFragment::new(
-              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
+              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from \"module\";\n"
                 .to_string(),
               InitFragmentStage::StageHarmonyImports,
               0,
@@ -218,11 +209,16 @@ module.exports = new Promise(function(resolve, reject) {{
             .boxed(),
           );
           format!(
-            "module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
-            request.primary()
+            "{} = __WEBPACK_EXTERNAL_createRequire(import.meta.url)({});",
+            get_namespace_object_export(concatenation_scope),
+            json_stringify(request.primary())
           )
         } else {
-          self.get_source_for_commonjs(request)
+          format!(
+            "{} = {};",
+            get_namespace_object_export(concatenation_scope),
+            get_source_for_commonjs(request)
+          )
         }
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
@@ -232,55 +228,87 @@ module.exports = new Promise(function(resolve, reject) {{
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
         format!(
-          "module.exports = __WEBPACK_EXTERNAL_MODULE_{}__",
+          "{} = __WEBPACK_EXTERNAL_MODULE_{}__;",
+          get_namespace_object_export(concatenation_scope),
           to_identifier(id)
         )
       }
-      "import" if let Some(request) = request => self.get_source_for_import(request, compilation),
-      "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => {
-        format!(
-          "module.exports = {}",
-          get_source_for_default_case(false, request)
-        )
-      }
+      "import" if let Some(request) = request => format!(
+        "{} = {};",
+        get_namespace_object_export(concatenation_scope),
+        get_source_for_import(request, compilation)
+      ),
+      "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
+        "{} = {};",
+        get_namespace_object_export(concatenation_scope),
+        get_source_for_default_case(false, request)
+      ),
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
-          let id = compilation
-            .get_module_graph()
-            .module_graph_module_by_identifier(&self.identifier())
-            .map(|m| m.id(&compilation.chunk_graph))
-            .unwrap_or_default();
-          let identifier = to_identifier(id);
+          let id = to_identifier(&request.primary);
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
-                "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
-                request.primary()
+                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
+                id.clone(),
+                json_stringify(request.primary())
               ),
               InitFragmentStage::StageHarmonyImports,
               0,
-              InitFragmentKey::ExternalModule(identifier.clone()),
+              InitFragmentKey::ExternalModule(request.primary().into()),
               None,
             )
             .boxed(),
           );
           runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
           format!(
-            r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}
-            var y = x => () => x
-            module.exports = __WEBPACK_EXTERNAL_MODULE_{identifier}__"#,
+            r#"
+var x = y => {{ var x = {{}}; {}(x, y); return x; }}
+var y = x => () => x
+{} = __WEBPACK_EXTERNAL_MODULE_{}__;
+"#,
             RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+            get_namespace_object_export(concatenation_scope),
+            id.clone()
           )
         } else {
-          self.get_source_for_import(request, compilation)
+          format!(
+            "{} = {};",
+            get_namespace_object_export(concatenation_scope),
+            get_source_for_import(request, compilation)
+          )
         }
       }
       "script" if let Some(request) = request => {
-        self.get_source_for_script_external(request, &mut runtime_requirements)?
+        let url_and_global = extract_url_and_global(request.primary())?;
+        runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
+        format!(
+          r#"
+var __webpack_error__ = new Error();
+{export} = new Promise(function(resolve, reject) {{
+if(typeof {global} !== "undefined") return resolve();
+{load_script}({url_str}, function(event) {{
+  if(typeof {global} !== "undefined") return resolve();
+  var errorType = event && (event.type === 'load' ? 'missing' : event.type);
+  var realSrc = event && event.target && event.target.src;
+  __webpack_error__.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
+  __webpack_error__.name = 'ScriptExternalLoadError';
+  __webpack_error__.type = errorType;
+  __webpack_error__.request = realSrc;
+  reject(__webpack_error__);
+}}, {global_str});
+}}).then(function() {{ return {global}; }});
+"#,
+          export = get_namespace_object_export(concatenation_scope),
+          global = url_and_global.global,
+          global_str =
+            serde_json::to_string(url_and_global.global).map_err(|e| error!(e.to_string()))?,
+          url_str = serde_json::to_string(url_and_global.url).map_err(|e| error!(e.to_string()))?,
+          load_script = RuntimeGlobals::LOAD_SCRIPT.name()
+        )
       }
       _ => "".to_string(),
     };
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
     Ok((
       RawSource::from(source).boxed(),
       chunk_init_fragments,
@@ -321,21 +349,18 @@ impl Module for ExternalModule {
     &self,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     match self.external_type.as_ref() {
       "amd" | "umd" | "amd-require" | "umd2" | "system" | "jsonp" => {
         // return `${this.externalType} externals can't be concatenated`;
-        Some(format!(
-          "{} externals can't be concatenated",
-          self.external_type
-        ))
+        Some(format!("{} externals can't be concatenated", self.external_type).into())
       }
       _ => None,
     }
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
@@ -373,7 +398,7 @@ impl Module for ExternalModule {
     ))
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0
@@ -390,6 +415,7 @@ impl Module for ExternalModule {
     let build_info = BuildInfo {
       hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       top_level_declarations: Some(FxHashSet::default()),
+      strict: true,
       ..Default::default()
     };
 
@@ -398,7 +424,6 @@ impl Module for ExternalModule {
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     };
     // TODO add exports_type for request
@@ -426,9 +451,8 @@ impl Module for ExternalModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
-    // TODO: ConcatenationScope
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
@@ -456,8 +480,12 @@ impl Module for ExternalModule {
         );
       }
       _ => {
-        let (source, chunk_init_fragments, runtime_requirements) =
-          self.get_source(compilation, request, external_type)?;
+        let (source, chunk_init_fragments, runtime_requirements) = self.get_source(
+          compilation,
+          request,
+          external_type,
+          concatenation_scope.as_mut(),
+        )?;
         cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
         cgr.runtime_requirements.insert(runtime_requirements);
@@ -468,7 +496,10 @@ impl Module for ExternalModule {
         );
       }
     };
-    cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    if concatenation_scope.is_none() {
+      cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    }
+    cgr.concatenation_scope = concatenation_scope;
     Ok(cgr)
   }
 

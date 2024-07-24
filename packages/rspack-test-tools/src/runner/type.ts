@@ -1,4 +1,4 @@
-import { ITestEnv } from "../type";
+import type { ITestEnv } from "../type";
 
 export type TRunnerRequirer = (
 	currentDirectory: string,
@@ -16,15 +16,14 @@ export type TBasicRunnerFile = {
 };
 
 export enum EEsmMode {
-	Unknown,
-	Evaluated,
-	Unlinked
+	Unknown = 0,
+	Evaluated = 1,
+	Unlinked = 2
 }
 
 export interface IBasicModuleScope extends ITestEnv {
 	console: Console;
 	expect: jest.Expect;
-	jest: typeof jest;
 	[key: string]: any;
 }
 

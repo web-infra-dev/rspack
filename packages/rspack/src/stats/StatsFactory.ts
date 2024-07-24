@@ -7,12 +7,12 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
-import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
+import type { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
+import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
-import { Comparator, concatComparators } from "../util/comparators";
-import { GroupConfig, smartGrouping } from "../util/smartGrouping";
+import { type Comparator, concatComparators } from "../util/comparators";
+import { type GroupConfig, smartGrouping } from "../util/smartGrouping";
 
 export type KnownStatsFactoryContext = {
 	type: string;
@@ -56,7 +56,7 @@ type Hooks = Readonly<{
 			undefined
 		>
 	>;
-	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>;
+	result: HookMap<SyncWaterfallHook<[any[], StatsFactoryContext]>>;
 	merge: HookMap<SyncBailHook<[any[], StatsFactoryContext], undefined>>;
 	getItemName: HookMap<
 		SyncBailHook<[any, StatsFactoryContext], string | undefined>
@@ -143,7 +143,7 @@ export class StatsFactory {
 			),
 			result: new HookMap(
 				() =>
-					new SyncWaterfallHook<[any[], StatsFactoryContext], undefined>([
+					new SyncWaterfallHook<[any[], StatsFactoryContext]>([
 						"result",
 						"context"
 					])
@@ -247,15 +247,14 @@ export class StatsFactory {
 	) {
 		if (this._inCreate) {
 			return this._create(type, data, baseContext);
-		} else {
-			try {
-				this._inCreate = true;
-				return this._create(type, data, baseContext);
-			} finally {
-				for (const key of Object.keys(this._caches) as CacheKey[])
-					this._caches[key].clear();
-				this._inCreate = false;
-			}
+		}
+		try {
+			this._inCreate = true;
+			return this._create(type, data, baseContext);
+		} finally {
+			for (const key of Object.keys(this._caches) as CacheKey[])
+				this._caches[key].clear();
+			this._inCreate = false;
 		}
 	}
 
@@ -390,22 +389,21 @@ export class StatsFactory {
 				result,
 				(h, r) => h.call(r, context)
 			);
-		} else {
-			const object = {};
-
-			// run extract on value
-			this._forEachLevel(this.hooks.extract, this._caches.extract, type, h =>
-				h.call(object, data, context)
-			);
-
-			// run result on extracted object
-			return this._forEachLevelWaterfall(
-				this.hooks.result,
-				this._caches.result,
-				type,
-				object,
-				(h, r) => h.call(r, context)
-			);
 		}
+		const object = {};
+
+		// run extract on value
+		this._forEachLevel(this.hooks.extract, this._caches.extract, type, h =>
+			h.call(object, data, context)
+		);
+
+		// run result on extracted object
+		return this._forEachLevelWaterfall(
+			this.hooks.result,
+			this._caches.result,
+			type,
+			object,
+			(h, r) => h.call(r, context)
+		);
 	}
 }

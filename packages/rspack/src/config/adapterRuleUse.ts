@@ -1,26 +1,30 @@
 import type {
 	JsAssetInfo,
-	JsLoaderContext,
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
-import { ResolveRequest } from "enhanced-resolve";
+import type { ResolveRequest } from "enhanced-resolve";
 
-import { Compiler } from "../Compiler";
-import { Logger } from "../logging/Logger";
-import Hash = require("../util/hash");
-import {
-	resolveEmotion,
-	resolvePluginImport,
-	resolveReact,
-	resolveRelay
-} from "../builtin-loader";
-import { Compilation } from "../Compilation";
-import { parsePathQueryFragment } from "../loader-runner";
+import type { Compilation } from "../Compilation";
+import type { Compiler } from "../Compiler";
+import type { Module } from "../Module";
+import { resolvePluginImport } from "../builtin-loader";
+import { browserslistToTargets } from "../builtin-loader/lightningcss";
+import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
+import type { Logger } from "../logging/Logger";
 import { isNil } from "../util";
-import { Mode, Resolve, RuleSetLoaderWithOptions, RuleSetUseItem } from "./zod";
+import type Hash from "../util/hash";
+import type {
+	Mode,
+	PublicPath,
+	Resolve,
+	RuleSetLoaderWithOptions,
+	RuleSetUseItem,
+	Target
+} from "./zod";
+import browserslist = require("browserslist");
 
-const BUILTIN_LOADER_PREFIX = "builtin:";
+export const BUILTIN_LOADER_PREFIX = "builtin:";
 
 export interface ComposeJsUseOptions {
 	devtool: RawOptions["devtool"];
@@ -42,21 +46,6 @@ export interface SourceMap {
 
 export interface AdditionalData {
 	[index: string]: any;
-}
-
-export interface LoaderObject {
-	request: string;
-	path: string;
-	query: string;
-	fragment: string;
-	options: object | string | undefined;
-	ident: string;
-	normal: Function | undefined;
-	pitch: Function | undefined;
-	raw: boolean | undefined;
-	data: object | undefined;
-	pitchExecuted: boolean;
-	normalExecuted: boolean;
 }
 
 export interface LoaderContext<OptionsType = {}> {
@@ -106,6 +95,7 @@ export interface LoaderContext<OptionsType = {}> {
 	 */
 	loaders: LoaderObject[];
 	mode?: Mode;
+	target?: Target;
 	hot?: boolean;
 	/**
 	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
@@ -143,7 +133,7 @@ export interface LoaderContext<OptionsType = {}> {
 	addBuildDependency(file: string): void;
 	importModule(
 		request: string,
-		options: { publicPath?: string; baseUri?: string },
+		options: { publicPath?: PublicPath; baseUri?: string },
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;
@@ -156,31 +146,7 @@ export interface LoaderContext<OptionsType = {}> {
 	data: unknown;
 	_compiler: Compiler;
 	_compilation: Compilation;
-	/**
-	 * Internal field for interoperability.
-	 * Do not use this in anywhere else.
-	 *
-	 * @internal
-	 */
-	__internal__context: JsLoaderContext;
-	/**
-	 * Internal field for interoperability.
-	 * Do not use this in anywhere else.
-	 *
-	 * @internal
-	 */
-	__internal__pushNativeDiagnostics: (diagnostics: any) => void;
-}
-
-export interface LoaderResult {
-	cacheable: boolean;
-	content: string | Buffer;
-	sourceMap?: string | SourceMap;
-	additionalData?: AdditionalData;
-	fileDependencies: string[];
-	contextDependencies: string[];
-	missingDependencies: string[];
-	buildDependencies: string[];
+	_module: Module;
 }
 
 export interface LoaderDefinitionFunction<
@@ -235,22 +201,24 @@ type GetLoaderOptions = (
 	options: ComposeJsUseOptions
 ) => RuleSetLoaderWithOptions["options"];
 
-const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
+const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
 	if (o && typeof o === "object" && o.rspackExperiments) {
-		let expr = o.rspackExperiments;
-		const contextPath = options.context!;
-		const production = options.mode === "production" || !options.mode;
-		if (expr.emotion) {
-			expr.emotion = resolveEmotion(expr.emotion, production);
-		}
-		if (expr.relay) {
-			expr.relay = resolveRelay(expr.relay, contextPath);
-		}
+		const expr = o.rspackExperiments;
 		if (expr.import || expr.pluginImport) {
 			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
 		}
-		if (expr.react) {
-			expr.react = resolveReact(expr.react);
+	}
+	return o;
+};
+
+const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
+	if (o && typeof o === "object") {
+		if (o.targets && typeof o.targets === "string") {
+			o.targets = browserslistToTargets(browserslist(o.targets));
+		}
+
+		if (o.targets && Array.isArray(o.targets)) {
+			o.targets = browserslistToTargets(o.targets);
 		}
 	}
 	return o;
@@ -263,6 +231,10 @@ function getBuiltinLoaderOptions(
 ): RuleSetLoaderWithOptions["options"] {
 	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}swc-loader`)) {
 		return getSwcLoaderOptions(o, options);
+	}
+
+	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}lightningcss-loader`)) {
+		return getLightningcssLoaderOptions(o, options);
 	}
 
 	return o;
@@ -278,17 +250,20 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		let o;
+		let o,
+			isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
 			o = getBuiltinLoaderOptions(use.loader, use.options, options);
 			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);
+			isBuiltin = true;
 		}
 
 		return {
 			loader: resolveStringifyLoaders(
 				use,
 				`${path}[${index}]`,
-				options.compiler
+				options.compiler,
+				isBuiltin
 			),
 			options: o
 		};
@@ -298,7 +273,8 @@ function createRawModuleRuleUsesImpl(
 function resolveStringifyLoaders(
 	use: RuleSetLoaderWithOptions,
 	path: string,
-	compiler: Compiler
+	compiler: Compiler,
+	isBuiltin: boolean
 ) {
 	const obj = parsePathQueryFragment(use.loader);
 	let ident: string | null = null;
@@ -315,6 +291,9 @@ function resolveStringifyLoaders(
 	if (use.options && typeof use.options === "object") {
 		if (!ident) ident = "[[missing ident]]";
 		compiler.__internal__ruleSet.references.set(ident, use.options);
+		if (isBuiltin) {
+			compiler.__internal__ruleSet.builtinReferences.set(ident, use.options);
+		}
 	}
 
 	return obj.path + obj.query + obj.fragment;

@@ -127,7 +127,7 @@ module.exports = {
 
 ### splitChunks.minSize
 
-- **类型：** `number`
+- **类型：** `number | Record<string, number>`
 - **默认值：** 生产环境下为 `20000`, 其余为 `10000`
 
 生成 chunk 的最小体积（以 bytes 为单位）。
@@ -173,7 +173,7 @@ module.exports = {
 
 ### splitChunks.maxAsyncSize
 
-- **类型：** `number`
+- **类型：** `number | Record<string, number>`
 
 像 `maxSize` 一样，`maxAsyncSize` 可以为 cacheGroups（`splitChunks.cacheGroups.{cacheGroup}.maxAsyncSize`）或 fallback 缓存组（`splitChunks.fallbackCacheGroup.maxAsyncSize` ）全局应用（`splitChunks.maxAsyncSize`）
 
@@ -181,7 +181,7 @@ module.exports = {
 
 ### splitChunks.maxInitialSize
 
-- **类型：** `number`
+- **类型：** `number | Record<string, number>`
 
 像 `maxSize` 一样，`maxInitialSize` 可以对 cacheGroups（`splitChunks.cacheGroups.{cacheGroup}.maxInitialSize`）或 fallback 缓存组（`splitChunks.fallbackCacheGroup.maxInitialSize`）全局应用（splitChunks.maxInitialSize）。
 

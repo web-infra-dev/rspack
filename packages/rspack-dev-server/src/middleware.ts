@@ -1,11 +1,11 @@
-import type { Compiler } from "@rspack/core";
-import crypto from "crypto";
+import crypto from "node:crypto";
+import type { IncomingMessage } from "node:http";
+import { extname } from "node:path";
+import { parse } from "node:url";
+import type { Compilation, Compiler } from "@rspack/core";
 import type { RequestHandler, Response } from "express";
-import type { IncomingMessage } from "http";
 import mime from "mime-types";
-import { extname } from "path";
-import { parse } from "url";
-import wdm from "webpack-dev-middleware";
+import type wdm from "webpack-dev-middleware";
 
 function etag(buf: any) {
 	const hash = crypto.createHash("sha256").update(buf).digest("hex");
@@ -13,14 +13,27 @@ function etag(buf: any) {
 	return etag;
 }
 
+function createPublicPathGetter(compiler: Compiler) {
+	const raw = compiler.options.output.publicPath || "/";
+
+	if (typeof raw === "function") {
+		return (compilation?: Compilation) =>
+			compilation ? compilation.getPath(raw) : raw({ hash: "XXXX" }, undefined);
+	}
+	if (/\[(hash|fullhash)[:\]]/.test(raw)) {
+		return (compilation?: Compilation) =>
+			compilation ? compilation.getPath(raw) : raw.replace(/\/$/, "") + "/";
+	}
+	return () => raw.replace(/\/$/, "") + "/";
+}
+
 export function getRspackMemoryAssets(
 	compiler: Compiler,
 	rdm: ReturnType<typeof wdm>
 ): RequestHandler {
-	const publicPath = compiler.options.output.publicPath
-		? compiler.options.output.publicPath.replace(/\/$/, "") + "/"
-		: "/";
-	return function (req: IncomingMessage, res: Response, next: () => void) {
+	const getPublicPath = createPublicPathGetter(compiler);
+
+	return (req: IncomingMessage, res: Response, next: () => void) => {
 		const { method, url } = req;
 		if (method !== "GET") {
 			return next();
@@ -29,6 +42,7 @@ export function getRspackMemoryAssets(
 		// css hmr will append query string, so here need to remove query string
 		// @ts-expect-error
 		const path = parse(url).pathname;
+		const publicPath = getPublicPath(compiler._lastCompilation);
 		// asset name is not start with /, so path need to slice 1
 		// @ts-expect-error
 		const filename = path.startsWith(publicPath)

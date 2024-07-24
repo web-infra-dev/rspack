@@ -9,6 +9,9 @@ version    = "0.1.0"
 default = []
 plugin  = ["rspack_loader_swc/plugin"]
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [dependencies]
 async-trait                           = { workspace = true }
 derivative                            = { workspace = true }
@@ -16,15 +19,19 @@ glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
 rspack_binding_values                 = { path = "../rspack_binding_values" }
+rspack_collections                    = { path = "../rspack_collections" }
 rspack_core                           = { path = "../rspack_core" }
 rspack_error                          = { path = "../rspack_error" }
 rspack_hook                           = { path = "../rspack_hook" }
-rspack_identifier                     = { path = "../rspack_identifier" }
 rspack_ids                            = { path = "../rspack_ids" }
+rspack_loader_lightningcss            = { path = "../rspack_loader_lightningcss" }
+rspack_loader_preact_refresh          = { path = "../rspack_loader_preact_refresh" }
 rspack_loader_react_refresh           = { path = "../rspack_loader_react_refresh" }
 rspack_loader_runner                  = { path = "../rspack_loader_runner" }
 rspack_loader_swc                     = { path = "../rspack_loader_swc" }
+rspack_loader_testing                 = { path = "../rspack_loader_testing" }
 rspack_napi                           = { path = "../rspack_napi" }
+rspack_napi_macros                    = { path = "../rspack_napi_macros" }
 rspack_plugin_asset                   = { path = "../rspack_plugin_asset" }
 rspack_plugin_banner                  = { path = "../rspack_plugin_banner" }
 rspack_plugin_copy                    = { path = "../rspack_plugin_copy" }
@@ -42,6 +49,7 @@ rspack_plugin_javascript              = { path = "../rspack_plugin_javascript" }
 rspack_plugin_json                    = { path = "../rspack_plugin_json" }
 rspack_plugin_lazy_compilation        = { path = "../rspack_plugin_lazy_compilation" }
 rspack_plugin_library                 = { path = "../rspack_plugin_library" }
+rspack_plugin_lightning_css_minimizer = { path = "../rspack_plugin_lightning_css_minimizer" }
 rspack_plugin_limit_chunk_count       = { path = "../rspack_plugin_limit_chunk_count" }
 rspack_plugin_merge_duplicate_chunks  = { path = "../rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                      = { path = "../rspack_plugin_mf" }
@@ -60,10 +68,9 @@ rspack_plugin_wasm                    = { path = "../rspack_plugin_wasm" }
 rspack_plugin_web_worker_template     = { path = "../rspack_plugin_web_worker_template" }
 rspack_plugin_worker                  = { path = "../rspack_plugin_worker" }
 rspack_regex                          = { path = "../rspack_regex" }
-rspack_swc_visitors                   = { path = "../rspack_swc_visitors" }
 rustc-hash                            = { workspace = true }
 serde                                 = { workspace = true, features = ["derive"] }
 serde_json                            = { workspace = true }
-swc_config                            = { workspace = true }
 swc_core                              = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                 = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+tracing                               = { workspace = true }

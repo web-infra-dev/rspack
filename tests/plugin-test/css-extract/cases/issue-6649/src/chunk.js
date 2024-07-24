@@ -1,0 +1,1 @@
+import(/* webpackChunkName: "\css\chunk" */"./inject.css");

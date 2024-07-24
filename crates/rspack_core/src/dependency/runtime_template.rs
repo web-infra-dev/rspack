@@ -8,9 +8,9 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, ExportsArgument, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -23,13 +23,14 @@ pub fn runtime_condition_expression(
     return "true".to_string();
   };
 
-  if let RuntimeCondition::Boolean(v) = runtime_condition {
-    return v.to_string();
-  }
+  let runtime_condition = match runtime_condition {
+    RuntimeCondition::Boolean(v) => return v.to_string(),
+    RuntimeCondition::Spec(spec) => spec,
+  };
 
   let mut positive_runtime_ids = HashSet::default();
   for_each_runtime(
-    runtime,
+    Some(runtime_condition),
     |runtime| {
       if let Some(runtime_id) =
         runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
@@ -42,7 +43,7 @@ pub fn runtime_condition_expression(
 
   let mut negative_runtime_ids = HashSet::default();
   for_each_runtime(
-    subtract_runtime(runtime, runtime_condition.as_spec()).as_ref(),
+    subtract_runtime(runtime, Some(runtime_condition)).as_ref(),
     |runtime| {
       if let Some(runtime_id) =
         runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
@@ -103,6 +104,7 @@ pub fn export_from_import(
   id: &DependencyId,
   is_call: bool,
   call_context: bool,
+  asi_safe: Option<bool>,
 ) -> String {
   let TemplateContext {
     runtime_requirements,
@@ -119,7 +121,6 @@ pub fn export_from_import(
   else {
     return missing_module(request);
   };
-  let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
   let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
 
@@ -133,10 +134,20 @@ pub fn export_from_import(
           if is_call {
             return format!("{import_var}_default(){}", property_access(export_name, 1));
           } else {
-            return format!(
-              "({import_var}_default(){})",
-              property_access(export_name, 1)
-            );
+            return if let Some(asi_safe) = asi_safe {
+              match asi_safe {
+                true => format!(
+                  "({import_var}_default(){})",
+                  property_access(export_name, 1)
+                ),
+                false => format!(
+                  ";({import_var}_default(){})",
+                  property_access(export_name, 1)
+                ),
+              }
+            } else {
+              format!("{import_var}_default.a{}", property_access(export_name, 1))
+            };
           }
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
@@ -173,12 +184,28 @@ pub fn export_from_import(
         )
         .boxed(),
       );
-      return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
+      let prefix = if let Some(asi_safe) = asi_safe {
+        match asi_safe {
+          true => "",
+          false => ";",
+        }
+      } else {
+        "Object"
+      };
+      return format!(
+        "/*#__PURE__*/ {prefix}({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))",
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        if matches!(exports_type, ExportsType::DefaultOnly) {
+          ""
+        } else {
+          ", 2"
+        }
+      );
     }
   }
 
   if !export_name.is_empty() {
-    let used_name = if is_new_treeshaking {
+    let used_name: Cow<Vec<Atom>> = {
       let exports_info_id = compilation
         .get_module_graph()
         .get_exports_info(&module_identifier)
@@ -200,8 +227,6 @@ pub fn export_from_import(
           to_normal_comment(&property_access(&export_name, 0))
         );
       }
-    } else {
-      Cow::Borrowed(&export_name)
     };
     let comment = if *used_name != export_name {
       to_normal_comment(&property_access(&export_name, 0))
@@ -209,8 +234,16 @@ pub fn export_from_import(
       "".to_string()
     };
     let property = property_access(&*used_name, 0);
+    let access = format!("{import_var}{comment}{property}");
     if is_call && !call_context {
-      format!("(0, {import_var}{comment}{property})")
+      if let Some(asi_safe) = asi_safe {
+        match asi_safe {
+          true => format!("(0,{access})"),
+          false => format!(";(0,{access})"),
+        }
+      } else {
+        format!("Object({access})")
+      }
     } else {
       format!("{import_var}{comment}{property}")
     }
@@ -308,7 +341,11 @@ pub fn module_id_expr(
         ..Default::default()
       }
     ),
-    serde_json::to_string(module_id).expect("should render module id")
+    match module_id.parse::<i32>() {
+      Ok(id) => serde_json::to_string(&id),
+      Err(_) => serde_json::to_string(module_id),
+    }
+    .expect("should render module id")
   )
 }
 
@@ -553,22 +590,52 @@ pub fn block_promise(
     .map(|c| compilation.chunk_by_ukey.expect_get(c))
     .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id.is_some())
     .collect::<Vec<_>>();
+
   if chunks.len() == 1 {
     let chunk_id = serde_json::to_string(chunks[0].id.as_ref().expect("should have chunk.id"))
       .expect("should able to json stringify");
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-    format!("{}({comment}{chunk_id})", RuntimeGlobals::ENSURE_CHUNK)
+
+    let fetch_priority = chunk_group
+      .kind
+      .get_normal_options()
+      .and_then(|x| x.fetch_priority);
+
+    if fetch_priority.is_some() {
+      runtime_requirements.insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
+    format!(
+      "{}({comment}{chunk_id}{})",
+      RuntimeGlobals::ENSURE_CHUNK,
+      fetch_priority
+        .map(|x| format!(r#", "{x}""#))
+        .unwrap_or_default()
+    )
   } else if !chunks.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
+
+    let fetch_priority = chunk_group
+      .kind
+      .get_normal_options()
+      .and_then(|x| x.fetch_priority);
+
+    if fetch_priority.is_some() {
+      runtime_requirements.insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
     format!(
       "Promise.all({comment}[{}])",
       chunks
         .iter()
         .map(|c| format!(
-          "{}({})",
+          "{}({}{})",
           RuntimeGlobals::ENSURE_CHUNK,
           serde_json::to_string(c.id.as_ref().expect("should have chunk.id"))
-            .expect("should able to json stringify")
+            .expect("should able to json stringify"),
+          fetch_priority
+            .map(|x| format!(r#", "{x}""#))
+            .unwrap_or_default()
         ))
         .collect::<Vec<_>>()
         .join(", ")
@@ -637,12 +704,20 @@ fn weak_error(request: &str) -> String {
   format!("var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }
 
-pub fn returning_function(return_value: &str, args: &str) -> String {
-  format!("function({args}) {{ return {return_value}; }}")
+pub fn returning_function(environment: &Environment, return_value: &str, args: &str) -> String {
+  if environment.supports_arrow_function() {
+    format!("({args}) => ({return_value})")
+  } else {
+    format!("function({args}) {{ return {return_value}; }}")
+  }
 }
 
-pub fn basic_function(args: &str, body: &str) -> String {
-  format!("function({args}) {{\n{body}\n}}")
+pub fn basic_function(environment: &Environment, args: &str, body: &str) -> String {
+  if environment.supports_arrow_function() {
+    format!("({args}) => {{\n{body}\n}}")
+  } else {
+    format!("function({args}) {{\n{body}\n}}")
+  }
 }
 
 pub fn sync_module_factory(
@@ -652,10 +727,11 @@ pub fn sync_module_factory(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
   let factory = returning_function(
+    &compilation.options.output.environment,
     &module_raw(compilation, runtime_requirements, dep, request, false),
     "",
   );
-  returning_function(&factory, "")
+  returning_function(&compilation.options.output.environment, &factory, "")
 }
 
 pub fn async_module_factory(
@@ -671,14 +747,19 @@ pub fn async_module_factory(
   let dep = block.get_dependencies()[0];
   let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation, "");
   let factory = returning_function(
+    &compilation.options.output.environment,
     &module_raw(compilation, runtime_requirements, &dep, request, false),
     "",
   );
   returning_function(
+    &compilation.options.output.environment,
     &if ensure_chunk.starts_with("Promise.resolve(") {
       factory
     } else {
-      format!("{ensure_chunk}.then({})", returning_function(&factory, ""))
+      format!(
+        "{ensure_chunk}.then({})",
+        returning_function(&compilation.options.output.environment, &factory, "")
+      )
     },
     "",
   )

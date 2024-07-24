@@ -6,15 +6,14 @@ export const memoize = <T>(fn: () => T): (() => T) => {
 		if (cache) {
 			// @ts-expect-error
 			return result;
-		} else {
-			result = fn();
-			cache = true;
-			// Allow to clean up memory for fn
-			// and all dependent resources
-			// @ts-expect-error
-			fn = undefined;
-			return result;
 		}
+		result = fn();
+		cache = true;
+		// Allow to clean up memory for fn
+		// and all dependent resources
+		// @ts-expect-error
+		fn = undefined;
+		return result;
 	};
 };
 
@@ -35,7 +34,11 @@ export function memoizeValue<T>(fn: () => T): T {
 	const getValue: () => any = memoize(fn);
 	return new Proxy({} as any, {
 		get(_, property) {
-			return getValue()[property];
+			let res = getValue()[property];
+			if (typeof res === "function") {
+				res = res.bind(getValue());
+			}
+			return res;
 		},
 		set(_, property, newValue) {
 			getValue()[property] = newValue;

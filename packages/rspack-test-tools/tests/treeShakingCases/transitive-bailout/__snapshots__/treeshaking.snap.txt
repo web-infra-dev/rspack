@@ -8,18 +8,24 @@ __webpack_require__.d(__webpack_exports__, {
 });
 const a = 3;
 const b = 3;
+
+
 }),
 "./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 const res = __webpack_require__("./lib.js");
-exports.test = function() {
-    res;
+exports.test = function () {
+	res;
 };
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./answer.js");
 
 _answer__WEBPACK_IMPORTED_MODULE_0__.test;
+
+
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -29,6 +35,8 @@ __webpack_require__.d(__webpack_exports__, {
   b: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.b; }
 });
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+
+
 
 }),
 

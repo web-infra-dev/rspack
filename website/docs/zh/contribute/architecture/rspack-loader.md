@@ -30,7 +30,7 @@ style-loader 等其他可能会消费以下 loader 的处理结果的 loader 可
 
 ### loader 执行的操作
 
-在 loader 的原始实现中，Rspack首先会转换普通的 loader，
+在 loader 的原始实现中，Rspack 首先会转换普通的 loader，
 然后将其传递给 Rust 端。在构建模块的过程中，将直接调用这些 loader：
 
 ![旧架构](https://user-images.githubusercontent.com/10465670/233357319-e80f6b32-331c-416d-b4b5-30f3e0e394bd.png)

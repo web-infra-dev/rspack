@@ -1,14 +1,21 @@
 ```js title=main.js
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-"./a.js": (function (module) {
+"../../normalModuleFactory​#afterResolve/duplicate/a.js": (function (module) {
 module.exports = "a";
+
+
 }),
-"./c.js": (function (module) {
+"../../normalModuleFactory​#afterResolve/duplicate/c.js": (function (module) {
 module.exports = "c";
+
+
 }),
 "fs": (function (module) {
-module.exports = require('fs')}),
+"use strict";
+module.exports = require("fs");
+
+}),
 
 });
 /************************************************************************/
@@ -69,13 +76,12 @@ __webpack_require__.o = function (obj, prop) {
 
 })();
 /************************************************************************/
-var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
 "use strict";
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/a.js");
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_a__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./c.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/c.js");
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("fs");
 /* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_2__);
@@ -83,14 +89,17 @@ var __webpack_exports__ = {};
  // b.js will be transform to c.js
 
 
-it("should remove duplicate request modules generate by after resolve hook", ()=>{
-    expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
-    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
-    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
-    const ext = ".js";
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).not.toContain("./b" + ext);
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./c" + ext);
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("./c" + ext).length - 1).toBe(2);
+
+it("should remove duplicate request modules generate by after resolve hook", () => {
+	expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
+	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+	const ext = ".js";
+	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).not.toContain("duplicate/b" + ext);
+	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("duplicate/c" + ext);
+	expect(
+		fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("duplicate/c" + ext).length - 1
+	).toBe(2);
 });
 
 })();

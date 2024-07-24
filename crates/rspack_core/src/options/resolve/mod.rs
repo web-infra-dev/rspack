@@ -7,8 +7,8 @@ use hashlink::LinkedHashMap;
 
 use crate::DependencyCategory;
 
-pub type AliasMap = oxc_resolver::AliasValue;
-pub type Alias = oxc_resolver::Alias;
+pub type AliasMap = rspack_resolver::AliasValue;
+pub type Alias = rspack_resolver::Alias;
 
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
@@ -103,9 +103,9 @@ pub struct TsconfigOptions {
   pub references: TsconfigReferences,
 }
 
-impl From<TsconfigOptions> for oxc_resolver::TsconfigOptions {
+impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
   fn from(val: TsconfigOptions) -> Self {
-    oxc_resolver::TsconfigOptions {
+    rspack_resolver::TsconfigOptions {
       config_file: val.config_file,
       references: val.references.into(),
     }
@@ -122,12 +122,12 @@ pub enum TsconfigReferences {
   Paths(Vec<PathBuf>),
 }
 
-impl From<TsconfigReferences> for oxc_resolver::TsconfigReferences {
+impl From<TsconfigReferences> for rspack_resolver::TsconfigReferences {
   fn from(val: TsconfigReferences) -> Self {
     match val {
-      TsconfigReferences::Disabled => oxc_resolver::TsconfigReferences::Disabled,
-      TsconfigReferences::Auto => oxc_resolver::TsconfigReferences::Auto,
-      TsconfigReferences::Paths(paths) => oxc_resolver::TsconfigReferences::Paths(paths),
+      TsconfigReferences::Disabled => rspack_resolver::TsconfigReferences::Disabled,
+      TsconfigReferences::Auto => rspack_resolver::TsconfigReferences::Auto,
+      TsconfigReferences::Paths(paths) => rspack_resolver::TsconfigReferences::Paths(paths),
     }
   }
 }

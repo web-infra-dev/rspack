@@ -10,7 +10,7 @@ module.exports = {
 		}),
 		function test(compiler) {
 			compiler.assets = [];
-			compiler.hooks.assetEmitted.tap("test", function (name) {
+			compiler.hooks.assetEmitted.tap("test", name => {
 				if (name.includes(".hot-update.")) {
 					return;
 				}

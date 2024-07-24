@@ -47,6 +47,12 @@ module.exports = {
 		LOG from rspack.EnsureChunkConditionsPlugin
 		<t> ensure chunk conditions: X ms
 
+		LOG from rspack.ModuleConcatenationPlugin
+		<t> select relevant modules: X ms
+		<t> sort relevant modules: X ms
+		<t> find modules to concatenate: X ms
+		<t> sort concat configurations: X ms
+
 		LOG from rspack.RealContentHashPlugin
 		<t> hash to asset names: X ms
 
@@ -66,6 +72,10 @@ module.exports = {
 		<t> prepare entrypoints: X ms
 		<t> process queue: X ms
 		<t> extend chunkGroup runtime: X ms
+		    8 queue items processed (4 blocks)
+		    0 chunk groups connected
+		    0 chunk groups processed for merging (0 module sets)
+		    0 chunk group info updated (0 already connected chunk groups reconnected)
 		"
 	`);
 	}

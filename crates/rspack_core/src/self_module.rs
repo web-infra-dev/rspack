@@ -2,9 +2,9 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
@@ -76,7 +76,7 @@ impl Module for SelfModule {
     vec![]
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     self.identifier.len() as f64
   }
 
@@ -123,7 +123,6 @@ impl Module for SelfModule {
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     })
   }

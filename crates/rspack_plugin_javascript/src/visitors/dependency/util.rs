@@ -1,11 +1,13 @@
-use itertools::Itertools;
-use rspack_core::extract_member_expression_chain;
-use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, ExpressionInfoKind, SpanExt};
+use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, SpanExt};
+use rspack_error::miette::diagnostic;
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
+use rspack_regex::RspackRegex;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::Atom;
+
+use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 
 pub fn collect_destructuring_assignment_properties(
   object_pat: &ObjectPat,
@@ -216,6 +218,7 @@ pub mod expr_name {
   pub const REQUIRE_RESOLVE_WEAK: &str = "require.resolveWeak";
   pub const IMPORT_META: &str = "import.meta";
   pub const IMPORT_META_URL: &str = "import.meta.url";
+  pub const IMPORT_META_WEBPACK: &str = "import.meta.webpack";
   pub const IMPORT_META_WEBPACK_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
@@ -237,44 +240,37 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
 }
 
 pub fn extract_require_call_info(
-  expr: &Expr,
+  parser: &mut JavascriptParser,
+  expr: &MemberExpr,
 ) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
-  let member_info = extract_member_expression_chain(expr);
-  let root_members = match member_info.kind() {
-    ExpressionInfoKind::CallExpression(info) => info
-      .root_members()
-      .iter()
-      .map(|n| n.0.to_owned())
-      .collect_vec(),
-    ExpressionInfoKind::MemberExpression(_) => vec![],
-    ExpressionInfoKind::Expression => vec![],
-  };
-  let args = match member_info.kind() {
-    ExpressionInfoKind::CallExpression(info) => {
-      info.args().iter().map(|i| i.to_owned()).collect_vec()
-    }
-    ExpressionInfoKind::MemberExpression(_) => vec![],
-    ExpressionInfoKind::Expression => vec![],
-  };
-
-  let members = member_info
-    .members()
-    .iter()
-    .map(|n| n.0.to_owned())
-    .collect_vec();
-
-  let Some(fist_arg) = args.first() else {
+  let Some((members, args, root)) = parser
+    .get_member_expression_info(expr, AllowedMemberTypes::CallExpression)
+    .and_then(|info| match info {
+      MemberExpressionInfo::Call(info) => Some((info.members, info.call.args, info.root_info)),
+      MemberExpressionInfo::Expression(_) => None,
+    })
+  else {
+    // not require() call
     return None;
   };
 
-  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi());
+  // call require() with no param
+  let Some(first_arg) = args.first() else {
+    return None;
+  };
 
-  if (root_members.len() == 1 && root_members.first().is_some_and(|f| f == "require"))
-    || (root_members.len() == 2
-      && root_members.first().is_some_and(|f| f == "module")
-      && root_members.get(1).is_some_and(|f| f == "require"))
-  {
-    Some((members, fist_arg.to_owned(), loc))
+  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi(), None);
+
+  if let ExportedVariableInfo::Name(root) = root {
+    if root == "module" && members.first().is_some_and(|m| m == "require") {
+      // module.require().x.x
+      Some((members[1..].to_vec(), first_arg.to_owned(), loc))
+    } else if root == "require" {
+      // require().x.x
+      Some((members, first_arg.to_owned(), loc))
+    } else {
+      None
+    }
   } else {
     None
   }
@@ -307,12 +303,13 @@ pub fn expression_not_supported(
   (
     Box::new(
       create_traceable_error(
-        "Module parse failed".into(),
+        "Unsupported feature".into(),
         format!("{name} is not supported by Rspack."),
         file,
         expr.span().into(),
       )
-      .with_severity(Severity::Warning),
+      .with_severity(Severity::Warning)
+      .with_hide_stack(Some(true)),
     ),
     Box::new(ConstDependency::new(
       expr.span().real_lo(),
@@ -341,6 +338,51 @@ pub fn create_traceable_error(
 ) -> TraceableError {
   TraceableError::from_source_file(fm, span.start as usize, span.end as usize, title, message)
     .with_kind(DiagnosticKind::JavaScript)
+}
+
+pub fn context_reg_exp(
+  expr: &str,
+  flags: &str,
+  error_span: Option<ErrorSpan>,
+  parser: &mut JavascriptParser,
+) -> Option<RspackRegex> {
+  if expr.is_empty() {
+    return None;
+  }
+  let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
+  clean_regexp_in_context_module(regexp, error_span, parser)
+}
+
+pub fn clean_regexp_in_context_module(
+  regexp: RspackRegex,
+  error_span: Option<ErrorSpan>,
+  parser: &mut JavascriptParser,
+) -> Option<RspackRegex> {
+  if regexp.sticky() || regexp.global() {
+    if let Some(error_span) = error_span {
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
+          parser.source_file,
+          error_span,
+        )
+        .with_severity(rspack_error::RspackSeverity::Warn),
+      ));
+    } else {
+      parser.warning_diagnostics.push(
+        diagnostic!(
+          severity = Severity::Warning,
+          code = "Critical dependency",
+          "Contexts can't use RegExps with the 'g' or 'y' flags"
+        )
+        .into(),
+      );
+    }
+    None
+  } else {
+    Some(regexp)
+  }
 }
 
 #[cfg(test)]

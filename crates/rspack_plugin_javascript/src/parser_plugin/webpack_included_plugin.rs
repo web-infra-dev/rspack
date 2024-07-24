@@ -11,7 +11,7 @@ const WEBPACK_IS_INCLUDED: &str = "__webpack_is_included__";
 pub struct WebpackIsIncludedPlugin;
 
 impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
-  fn call(&self, parser: &mut JavascriptParser<'_>, expr: &CallExpr, name: &str) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, name: &str) -> Option<bool> {
     if name != WEBPACK_IS_INCLUDED || expr.args.len() != 1 || expr.args[0].spread.is_some() {
       return None;
     }

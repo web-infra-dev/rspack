@@ -1,14 +1,14 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import rimraf from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	ITester,
 	ITestProcessor,
+	ITester,
 	TRunnerFactory,
 	TTestConfig
 } from "../type";
@@ -18,6 +18,7 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	clean?: boolean;
 	describe?: boolean;
 	timeout?: number;
+	contextValue?: Record<string, unknown>;
 	steps: (
 		creatorConfig: IBasicCaseCreatorOptions<T> & {
 			name: string;
@@ -56,6 +57,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		} else {
 			this.describe(name, tester, testConfig);
 		}
+
+		return tester;
 	}
 
 	protected describe(
@@ -71,13 +74,27 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			const description =
 				typeof this._options.description === "function"
 					? this._options.description(name, index)
-					: `${name}${index ? `[${index}]` : ""} should compile`;
+					: `step ${index ? `[${index}]` : ""} should pass`;
+			let bailout = false;
 			it(
 				description,
 				async () => {
+					if (bailout) {
+						throw `Case "${name}" step ${index + 1} bailout because ${tester.step + 1} failed`;
+					}
 					await tester.compile();
 					await tester.check(env);
-					tester.next();
+					const context = tester.getContext();
+					if (!tester.next() && context.hasError()) {
+						bailout = true;
+						const errors = context
+							.getError()
+							.map(i => `${i.stack}`.split("\n").join("\t\n"))
+							.join("\n\n");
+						throw new Error(
+							`Case "${name}" failed at step ${tester.step + 1}:\n${errors}`
+						);
+					}
 				},
 				this._options.timeout || 30000
 			);
@@ -92,14 +109,14 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
 		if (typeof this._options.runner === "function" && !testConfig.noTest) {
 			return createLazyTestEnv(10000);
-		} else {
-			return {
-				expect,
-				it,
-				beforeEach,
-				afterEach
-			};
 		}
+		return {
+			expect,
+			it,
+			beforeEach,
+			afterEach,
+			jest
+		};
 	}
 
 	protected clean(folders: string[]) {
@@ -146,6 +163,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			src,
 			dist,
 			testConfig,
+			contextValue: this._options.contextValue,
 			runnerFactory: this._options.runner,
 			steps: this._options.steps({
 				...this._options,

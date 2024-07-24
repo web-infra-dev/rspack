@@ -7,10 +7,12 @@ pub trait SpanExt {
 }
 
 impl SpanExt for Span {
+  #[inline]
   fn real_lo(&self) -> u32 {
     self.lo().0 - 1
   }
 
+  #[inline]
   fn real_hi(&self) -> u32 {
     self.hi().0 - 1
   }

@@ -1,6 +1,6 @@
 import { BuiltinPluginName } from "@rspack/binding";
 
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import { runLoaders } from "../loader-runner";
 import { create } from "./base";
 

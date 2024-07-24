@@ -1,11 +1,8 @@
-use itertools::Itertools;
-use rspack_core::{
-  context_reg_exp, ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt,
-};
+use rspack_core::{ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt};
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
 use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr};
+use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::RequireHeaderDependency;
@@ -13,23 +10,25 @@ use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDep
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::{
-  create_context_dependency, create_traceable_error, expr_matcher, expr_name, JavascriptParser,
+  context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
+  JavascriptParser,
 };
 use crate::visitors::{extract_require_call_info, is_require_call_start};
 
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
+  expr: &Expr,
   callee_start: u32,
   callee_end: u32,
   args_end: u32,
   span: Option<ErrorSpan>,
 ) -> CommonJsRequireContextDependency {
-  let result = create_context_dependency(param, parser);
+  let result = create_context_dependency(param, expr, parser);
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
-    reg_exp: context_reg_exp(&result.reg, ""),
+    reg_exp: context_reg_exp(&result.reg, "", None, parser),
     include: None,
     exclude: None,
     category: DependencyCategory::CommonJS,
@@ -40,6 +39,7 @@ fn create_commonjs_require_context_dependency(
     replaces: result.replaces,
     start: callee_start,
     end: callee_end,
+    referenced_exports: None,
   };
   CommonJsRequireContextDependency::new(
     callee_start,
@@ -87,19 +87,20 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let Some((members, first_arg, loc)) = extract_require_call_info(&expr) else {
+    let Some((members, first_arg, loc)) = extract_require_call_info(parser, mem_expr) else {
       return None;
     };
 
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
-        param.string().to_string(),
-        members.iter().map(|i| i.to_owned()).collect_vec(),
+        param.string().to_owned(),
+        members,
         loc,
         Some(mem_expr.span.into()),
         is_call,
         parser.in_try,
+        !parser.is_asi_position(mem_expr.span_lo()),
       )
     })
   }
@@ -116,6 +117,7 @@ impl CommonJsImportsParserPlugin {
         Some(span.into()),
         param.range().0,
         param.range().1,
+        Some(parser.source_map.clone()),
         parser.in_try,
       );
       parser.dependencies.push(Box::new(dep));
@@ -135,14 +137,13 @@ impl CommonJsImportsParserPlugin {
     let dep = create_commonjs_require_context_dependency(
       parser,
       param,
+      argument_expr,
       call_expr.callee.span().real_lo(),
       call_expr.callee.span().real_hi(),
       call_expr.span.real_hi(),
       Some(call_expr.span.into()),
     );
     parser.dependencies.push(Box::new(dep));
-    // FIXME: align `parser.walk_expression` to webpack, which put into `context_dependency_helper`
-    parser.walk_expression(argument_expr);
     Some(true)
   }
 
@@ -180,6 +181,7 @@ impl CommonJsImportsParserPlugin {
           .push(Box::new(RequireHeaderDependency::new(
             call_expr.callee.span().real_lo(),
             call_expr.callee.span().hi().0,
+            Some(parser.source_map.clone()),
           )));
         return Some(true);
       }
@@ -197,6 +199,7 @@ impl CommonJsImportsParserPlugin {
         .push(Box::new(RequireHeaderDependency::new(
           call_expr.callee.span().real_lo(),
           call_expr.callee.span_hi().0,
+          Some(parser.source_map.clone()),
         )));
     }
     Some(true)
@@ -225,6 +228,7 @@ impl CommonJsImportsParserPlugin {
         replaces: Vec::new(),
         start: ident.span().real_lo(),
         end: ident.span().real_hi(),
+        referenced_exports: None,
       },
       Some(ident.span().into()),
       parser.in_try,
@@ -271,18 +275,20 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expression: &Ident,
-    start: u32,
-    end: u32,
+    _parser: &mut JavascriptParser,
+    expr: &UnaryExpr,
+    for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    if expression.sym.as_str() == expr_name::REQUIRE
-      && parser.is_unresolved_ident(expr_name::REQUIRE)
-    {
-      Some(eval::evaluate_to_string("function".to_string(), start, end))
-    } else {
-      None
-    }
+    (for_name == expr_name::REQUIRE
+      || for_name == expr_name::REQUIRE_RESOLVE
+      || for_name == expr_name::REQUIRE_RESOLVE_WEAK)
+      .then(|| {
+        eval::evaluate_to_string(
+          "function".to_string(),
+          expr.span.real_lo(),
+          expr.span.real_hi(),
+        )
+      })
   }
 
   fn evaluate_identifier(

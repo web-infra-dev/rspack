@@ -1,11 +1,11 @@
-import path from "path";
+import path from "node:path";
 
 import {
 	DefaultsConfigProcessor,
-	IDefaultsConfigProcessorOptions
+	type IDefaultsConfigProcessorOptions
 } from "../processor";
 import { TestContext } from "../test/context";
-import { ECompilerType, ITestProcessor } from "../type";
+import { ECompilerType, type ITestProcessor } from "../type";
 
 export type TDefaultsCaseConfig = Omit<
 	IDefaultsConfigProcessorOptions<ECompilerType.Rspack>,
@@ -29,7 +29,10 @@ async function run(name: string, processor: ITestProcessor) {
 	} catch (e: unknown) {
 		context.emitError(name, e as Error);
 	} finally {
-		await processor.check?.({ expect, it, beforeEach, afterEach }, context);
+		await processor.check?.(
+			{ expect, it, beforeEach, afterEach, jest },
+			context
+		);
 		await processor.after?.(context);
 	}
 }

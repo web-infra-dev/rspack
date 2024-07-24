@@ -1,16 +1,16 @@
-import React from 'react';
 import { Table } from '@builtIns/Table';
+import Markdown from 'markdown-to-jsx';
+import type React from 'react';
 import { useLang } from 'rspress/runtime';
 import S from './PluginSupportStatusTable.module.scss';
-import Markdown from 'markdown-to-jsx';
 import * as i18n from './i18n';
 
 export enum CompatibleStatus {
-  NotCompatible,
-  PartiallyCompatible,
-  Alternative,
-  Compatible,
-  Included,
+  NotCompatible = 0,
+  PartiallyCompatible = 1,
+  Alternative = 2,
+  Compatible = 3,
+  Included = 4,
 }
 
 const SUPPORT_STATUS_LOCALIZED = {
@@ -84,6 +84,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'css-minimizer-webpack-plugin',
       url: 'https://github.com/webpack-contrib/css-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
+      description: i18n[lang]['css-minimizer-webpack-plugin-desc'],
     },
     {
       name: 'eslint-webpack-plugin',
@@ -110,7 +111,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'terser-webpack-plugin',
       url: 'https://webpack.js.org/plugins/terser-webpack-plugin',
-      status: CompatibleStatus.Alternative,
+      status: CompatibleStatus.Compatible,
       description: i18n[lang]['terser-webpack-plugin-desc'],
     },
     {
@@ -143,6 +144,43 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: '@vanilla-extract/webpack-plugin',
       url: 'https://github.com/vanilla-extract-css/vanilla-extract',
       status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'webpack-stats-plugin',
+      url: 'https://www.npmjs.com/package/webpack-stats-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'license-webpack-plugin',
+      url: 'https://www.npmjs.com/package/license-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'monaco-editor-webpack-plugin',
+      url: 'https://www.npmjs.com/package/monaco-editor-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'dotenv-webpack',
+      url: 'https://www.npmjs.com/package/dotenv-webpack',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'friendly-errors-webpack-plugin',
+      url: 'https://www.npmjs.com/package/friendly-errors-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'webpackbar',
+      url: 'https://www.npmjs.com/package/webpackbar',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+    },
+    {
+      name: 'progress-bar-webpack-plugin',
+      url: 'https://www.npmjs.com/package/progress-bar-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['progress-plugin-function-un-support-desc'],
     },
     {
       name: 'image-minimizer-webpack-plugin',

@@ -1,4 +1,4 @@
-```html title=default.ef8306b113a7b5d7.html
+```html title=default.a8774da68d9d07f7.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,7 +10,7 @@
 </body></html>
 ```
 
-```html title=index.ef8306b113a7b5d7.html
+```html title=index.a8774da68d9d07f7.html
 <!DOCTYPE html>
 <html>
 <head>

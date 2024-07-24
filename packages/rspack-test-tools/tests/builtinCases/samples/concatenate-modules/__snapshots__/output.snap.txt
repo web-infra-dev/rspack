@@ -9,9 +9,14 @@ const answer = 103330;
 ;// CONCATENATED MODULE: ./index.js
 
 answer;
+
 function index_answer() {}
+
 index_answer();
+
 function test() {}
+
+
 }),
 
 },function(__webpack_require__) {

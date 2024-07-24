@@ -13,17 +13,17 @@ it("should generate correct sourceMap", async () => {
 	expect(aSourceIndex).toBeGreaterThanOrEqual(0);
 	expect(map.sourcesContent[aSourceIndex]).toEqual(sourceContent);
 
-	checkStub(["fo", "o"].join(""), sourceContent);
-	checkStub(["ba", "r"].join(""), sourceContent);
-	checkStub(["ba", "z"].join(""), sourceContent);
-	checkStub(wrap(["f", 1].join("")), sourceContent);
-	checkStub(wrap(["b", 1].join("")), sourceContent);
-	checkStub(wrap(["b", 2].join("")), sourceContent);
-	checkStub(wrap(["ab", "c"].join("")), sourceContent);
+	checkStub("foo", sourceContent);
+	checkStub("bar", sourceContent);
+	checkStub("baz", sourceContent);
+	checkStub(wrap("f1"), sourceContent, false);
+	checkStub(wrap("b1"), sourceContent, false);
+	checkStub(wrap("b2"), sourceContent, false);
+	checkStub(wrap("abc"), sourceContent, false);
 });
 
 const wrap = v => `"${v}"`;
-const checkStub = async (stub, sourceContent) => {
+const checkStub = async (stub, sourceContent, ident = true) => {
 	const fs = require("fs");
 	const { SourceMapConsumer } = require("source-map");
 
@@ -31,7 +31,7 @@ const checkStub = async (stub, sourceContent) => {
 	const map = JSON.parse(source);
 	const consumer = await new SourceMapConsumer(map);
 	const generated = fs.readFileSync(__filename, "utf-8");
-	const { line, column } = consumer.originalPositionFor(
+	const { line, column, name } = consumer.originalPositionFor(
 		positionFor(generated, stub)
 	);
 	const { line: originalLine, column: originalColumn } = positionFor(
@@ -40,6 +40,9 @@ const checkStub = async (stub, sourceContent) => {
 	);
 	expect(line).toBe(originalLine);
 	expect(column).toBe(originalColumn);
+	if (ident) {
+		expect(name).toBe(stub)
+	}
 };
 
 const positionFor = (content, text) => {

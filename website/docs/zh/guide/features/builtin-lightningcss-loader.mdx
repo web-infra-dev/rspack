@@ -1,0 +1,110 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# 内置 lightningcss-loader
+
+<ApiMeta addedVersion="1.0.0" />
+
+`builtin:lightningcss-loader` 使用 Rspack 内置的 [lightningcss](https://github.com/parcel-bundler/lightningcss) 处理 CSS，可以替代 `postcss-loader` 中的降级功能，让 CSS 编译更快。
+
+## 示例
+
+如果需要在项目中使用 `builtin:lightningcss-loader`，需进行如下配置。
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loader
+        ],
+      },
+    ],
+  },
+};
+```
+
+## 类型声明
+
+你可以使用 `@rspack/core` 导出的 `LightningcssLoaderOptions` 类型来开启类型提示：
+
+- `rspack.config.js`:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loader
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Options
+
+下面是 `builtin:lightningcss-loader` 支持的配置。详细的解释请查看 [lightningcss 文档](https://lightningcss.dev/transpilation.html)
+
+```ts
+type LightningcssLoaderOptions = {
+  errorRecovery?: boolean;
+  targets?: Targets | string[] | string;
+  include?: Features;
+  exclude?: Features;
+  draft?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
+```
+
+你可以从 `@rspack/core` 包中的 `lightningcss` 属性找到需要的 `lightningcss` 导出，例如 `Features`:
+
+```ts
+const rspack = require('@rspack/core');
+const { Features } = rspack.lightningcss;
+```
+
+其中 `targets` 可以直接写 `browserslist` 查询字符串，`browserslist` 查询结果，或是 lightningcss 的 `targets`，例如
+
+```js
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: '> 0.2%',
+};
+// or
+const browserslist = require('browserslist');
+
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: browserslist('> 0.2%'),
+};
+// or
+const rspack = require('@rspack/core');
+const browserslist = require('browserslist');
+
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+};
+```

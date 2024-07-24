@@ -6,8 +6,8 @@ use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
   ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilerHooks, CompilerOptions,
-  ContextModuleFactoryHooks, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, Plugin,
-  PluginContext, ResolverFactory,
+  ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType, NormalModuleFactoryHooks,
+  NormalModuleHooks, Plugin, PluginContext, ResolverFactory,
 };
 
 #[derive(Derivative)]
@@ -26,6 +26,7 @@ pub struct PluginDriver {
   pub normal_module_factory_hooks: NormalModuleFactoryHooks,
   pub context_module_factory_hooks: ContextModuleFactoryHooks,
   pub normal_module_hooks: NormalModuleHooks,
+  pub concatenated_module_hooks: ConcatenatedModuleHooks,
 }
 
 impl PluginDriver {
@@ -39,6 +40,7 @@ impl PluginDriver {
     let mut normal_module_factory_hooks = Default::default();
     let mut context_module_factory_hooks = Default::default();
     let mut normal_module_hooks = Default::default();
+    let mut concatenated_module_hooks = Default::default();
     let mut registered_parser_and_generator_builder = FxDashMap::default();
     let mut apply_context = ApplyContext {
       registered_parser_and_generator_builder: &mut registered_parser_and_generator_builder,
@@ -47,6 +49,7 @@ impl PluginDriver {
       normal_module_factory_hooks: &mut normal_module_factory_hooks,
       context_module_factory_hooks: &mut context_module_factory_hooks,
       normal_module_hooks: &mut normal_module_hooks,
+      concatenated_module_hooks: &mut concatenated_module_hooks,
     };
     for plugin in &plugins {
       plugin
@@ -71,6 +74,7 @@ impl PluginDriver {
         normal_module_factory_hooks,
         context_module_factory_hooks,
         normal_module_hooks,
+        concatenated_module_hooks,
       }),
       options,
     )

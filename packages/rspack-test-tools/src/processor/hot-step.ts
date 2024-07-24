@@ -1,26 +1,33 @@
-import { Chunk, StatsCompilation } from "@rspack/core";
+import path from "node:path";
 import fs from "fs-extra";
-import path from "path";
 
-import { escapeEOL, escapeSep } from "../helper";
-import { THotStepRuntimeData } from "../runner";
-import {
+import type { Chunk } from "webpack";
+import { escapeEOL, escapeSep, replacePaths } from "../helper";
+import type { THotStepRuntimeData } from "../runner";
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions,
 	TCompilerStats,
-	TCompilerStatsCompilation
+	TCompilerStatsCompilation,
+	TUpdateOptions
 } from "../type";
-import { HotProcessor, IHotProcessorOptions, TUpdateOptions } from "./hot";
+import { HotProcessor, type IHotProcessorOptions } from "./hot";
+
+const NOOP_SET = new Set();
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
+
+type TModuleGetHandler = (
+	file: string,
+	options: TCompilerOptions<ECompilerType>
+) => string[];
 
 declare var global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};
-	updateSnapshot: boolean;
 };
 
 const SELF_HANDLER = (
@@ -36,28 +43,34 @@ const SELF_HANDLER = (
 			options.output?.uniqueName || ""
 		}`
 	);
-	global["self"] ??= {};
-	global["self"][hotUpdateGlobalKey] = hotUpdateGlobal;
+	global.self ??= {};
+	global.self[hotUpdateGlobalKey] = hotUpdateGlobal;
 	require(file);
-	delete global["self"][hotUpdateGlobalKey];
-	if (!Object.keys(global["self"]).length) {
-		delete global["self"];
+	delete global.self[hotUpdateGlobalKey];
+	if (!Object.keys(global.self).length) {
+		delete global.self;
 	}
 	return res;
 };
 
-const GET_MODULE_HANDLER = {
+const NODE_HANDLER = (file: string): string[] => {
+	return Object.keys(require(file).modules) || [];
+};
+
+const GET_MODULE_HANDLER: Record<string, TModuleGetHandler> = {
 	web: SELF_HANDLER,
-	"async-node": (file: string): string[] => {
-		return Object.keys(require(file).modules) || [];
-	},
-	webworker: SELF_HANDLER
+	webworker: SELF_HANDLER,
+	"async-node": NODE_HANDLER,
+	node: NODE_HANDLER
 };
 
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
 export interface IHotSnapshotProcessorOptions<T extends ECompilerType>
-	extends IHotProcessorOptions<T> {}
+	extends IHotProcessorOptions<T> {
+	getModuleHandler?: TModuleGetHandler;
+	snapshot?: string;
+}
 
 export class HotSnapshotProcessor<
 	T extends ECompilerType
@@ -82,11 +95,19 @@ export class HotSnapshotProcessor<
 					assets: true,
 					chunks: true
 				});
-				for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(
-					i => i.hasRuntime()
-				)) {
-					if (!this.entries[entry.id!]) {
-						this.entries[entry.id!] = entry.runtime!;
+
+				const chunks = Array.from(
+					// Some chunk fields are missing from rspack
+					(stats?.compilation.chunks as unknown as Chunk[]) || NOOP_SET
+				);
+
+				for (const entry of chunks.filter(i => i.hasRuntime())) {
+					if (!this.entries[entry.id!] && entry.runtime) {
+						this.entries[entry.id!] =
+							// Webpack uses `string | SortableSet<string>` for `entry.runtime`
+							typeof entry.runtime === "string"
+								? [entry.runtime]
+								: Array.from(entry.runtime);
 					}
 				}
 				this.matchStepSnapshot(
@@ -121,10 +142,20 @@ export class HotSnapshotProcessor<
 			return;
 		}
 		const statsJson = stats.toJson({ assets: true, chunks: true });
-		for (let entry of ((stats?.compilation.chunks as Chunk[]) || []).filter(i =>
-			i.hasRuntime()
-		)) {
-			this.entries[entry.id!] = entry.runtime!;
+
+		const chunks = Array.from(
+			// Some chunk fields are missing from rspack
+			(stats?.compilation.chunks as unknown as Chunk[]) || NOOP_SET
+		);
+
+		for (const entry of chunks.filter(i => i.hasRuntime())) {
+			if (entry.runtime) {
+				this.entries[entry.id!] =
+					// Webpack uses `string | SortableSet<string>` for `entry.runtime`
+					typeof entry.runtime === "string"
+						? [entry.runtime]
+						: Array.from(entry.runtime);
+			}
 		}
 		let matchFailed: Error | null = null;
 		try {
@@ -148,12 +179,13 @@ export class HotSnapshotProcessor<
 		const compiler = this.getCompiler(context);
 		const compilerOptions = compiler.getOptions();
 		const getModuleHandler =
+			this._hotOptions.getModuleHandler ||
 			GET_MODULE_HANDLER[compilerOptions.target as TSupportTarget];
 		env.expect(typeof getModuleHandler).toBe("function");
 
 		const lastHash = this.hashes[this.hashes.length - 1];
 		const snapshotPath = context.getSource(
-			`__snapshots__/${compilerOptions.target}/${step}.snap.txt`
+			`${this._hotOptions.snapshot || `__snapshots__/${compilerOptions.target}`}/${step}.snap.txt`
 		);
 		const title = `Case ${path.basename(this._options.name)}: Step ${step}`;
 		const hotUpdateFile: Array<{
@@ -163,9 +195,10 @@ export class HotSnapshotProcessor<
 			runtime: string[];
 		}> = [];
 		const hotUpdateManifest: Array<{ name: string; content: string }> = [];
-		const changedFiles: string[] = require(
-			context.getSource("changed-file.js")
-		).map((i: string) => escapeSep(path.relative(context.getSource(), i)));
+		const changedFiles: string[] = this.updateOptions.changedFiles.map(
+			(i: string) => escapeSep(path.relative(context.getSource(), i))
+		);
+		changedFiles.sort();
 
 		const hashes: Record<string, string> = {
 			[lastHash || "LAST_HASH"]: "LAST_HASH",
@@ -175,23 +208,31 @@ export class HotSnapshotProcessor<
 		// TODO: find a better way
 		// replace [runtime] to [runtime of id] to prevent worker hash
 		const runtimes: Record<string, string> = {};
-		for (let [id, runtime] of Object.entries(this.entries)) {
-			for (let r of runtime) {
-				if (r !== id) {
-					runtimes[r] = `[runtime of ${id}]`;
+		for (const [id, runtime] of Object.entries(this.entries)) {
+			if (typeof runtime === "string") {
+				if (runtime !== id) {
+					runtimes[runtime] = `[runtime of ${id}]`;
+				}
+			} else if (Array.isArray(runtime)) {
+				for (const r of runtime) {
+					if (r !== id) {
+						runtimes[r] = `[runtime of ${id}]`;
+					}
 				}
 			}
 		}
 
 		const replaceContent = (str: string) => {
-			for (let [raw, replacement] of Object.entries(hashes)) {
+			for (const [raw, replacement] of Object.entries(hashes)) {
 				str = str.split(raw).join(replacement);
 			}
-			return str;
+			// handle timestamp in css-extract
+			str = str.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "");
+			return replacePaths(str);
 		};
 
 		const replaceFileName = (str: string) => {
-			for (let [raw, replacement] of Object.entries({
+			for (const [raw, replacement] of Object.entries({
 				...hashes,
 				...runtimes
 			})) {
@@ -213,7 +254,7 @@ export class HotSnapshotProcessor<
 						compilerOptions
 					);
 					const runtime: string[] = [];
-					for (let i of content.matchAll(
+					for (const i of content.matchAll(
 						/\/\/ (webpack\/runtime\/[\w_-]+)\s*\n/g
 					)) {
 						runtime.push(i[1]);
@@ -226,8 +267,9 @@ export class HotSnapshotProcessor<
 						modules,
 						runtime
 					});
-					return `- Update: ${renderName}, size: ${i.size}`;
-				} else if (fileName.endsWith("hot-update.json")) {
+					return `- Update: ${renderName}, size: ${content.length}`;
+				}
+				if (fileName.endsWith("hot-update.json")) {
 					const manifest = JSON.parse(content);
 					manifest.c?.sort();
 					manifest.r?.sort();
@@ -237,7 +279,8 @@ export class HotSnapshotProcessor<
 						content: JSON.stringify(manifest)
 					});
 					return `- Manifest: ${renderName}, size: ${i.size}`;
-				} else if (fileName.endsWith(".js")) {
+				}
+				if (fileName.endsWith(".js")) {
 					return `- Bundle: ${renderName}`;
 				}
 			})
@@ -253,14 +296,14 @@ export class HotSnapshotProcessor<
 			runtime.javascript.updatedRuntime.sort();
 			runtime.javascript.acceptedModules.sort();
 			runtime.javascript.disposedModules.sort();
-			for (let value of Object.values(
+			for (const value of Object.values(
 				runtime.javascript.outdatedDependencies
 			)) {
 				value.sort();
 			}
 		}
 
-		let content = `
+		const content = `
 # ${title}
 
 ## Changed Files
@@ -281,7 +324,7 @@ ${i.content}
 `
 	)
 	.join("\n\n")}
-		
+
 ## Update
 
 ${hotUpdateFile
@@ -357,12 +400,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 
 				`.trim();
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
-			fs.ensureDirSync(path.dirname(snapshotPath));
-			fs.writeFileSync(snapshotPath, content, "utf-8");
-			return;
-		}
-		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		env.expect(content).toBe(snapshotContent);
+		env.expect(escapeEOL(content)).toMatchFileSnapshot(snapshotPath);
 	}
 }

@@ -44,10 +44,6 @@ impl URLDependency {
 }
 
 impl Dependency for URLDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "URLDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

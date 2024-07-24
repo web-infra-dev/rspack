@@ -1,23 +1,29 @@
 use rspack_core::{
-  extract_member_expression_chain, BuildMetaDefaultObject, BuildMetaExportsType,
-  ExpressionInfoKind, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
+  BuildMetaDefaultObject, BuildMetaExportsType, RuntimeGlobals, RuntimeRequirementsDependency,
+  SpanExt,
 };
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{AssignExpr, AssignTarget, CallExpr, PropOrSpread, SimpleAssignTarget};
+use swc_core::ecma::ast::{
+  AssignExpr, AssignTarget, CallExpr, PropOrSpread, SimpleAssignTarget, UnaryExpr,
+};
 use swc_core::ecma::ast::{Callee, ExprOrSpread, Ident, MemberExpr, ObjectLit};
 use swc_core::ecma::ast::{Expr, Lit, Prop, PropName, ThisExpr, UnaryOp};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependency};
 use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
+use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::expr_like::ExprLike;
-use crate::visitors::{expr_matcher, JavascriptParser, TopLevelScope};
+use crate::visitors::{
+  expr_matcher, AllowedMemberTypes, JavascriptParser, MemberExpressionInfo, TopLevelScope,
+};
 
 const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
 
 fn get_member_expression_info<E: ExprLike>(
+  parser: &mut JavascriptParser,
   expr: &E,
   is_module_exports_start: Option<bool>,
 ) -> Option<Vec<Atom>> {
@@ -26,19 +32,22 @@ fn get_member_expression_info<E: ExprLike>(
     None => is_module_exports_member_expr_start(expr),
   };
   expr.as_member().and_then(|expr: &MemberExpr| {
-    let expression_info = extract_member_expression_chain(expr);
-    if matches!(
-      expression_info.kind(),
-      ExpressionInfoKind::MemberExpression(_)
-    ) {
+    let Some(members) = parser
+      .get_member_expression_info(expr, AllowedMemberTypes::Expression)
+      .and_then(|info| match info {
+        MemberExpressionInfo::Call(_) => None,
+        MemberExpressionInfo::Expression(info) => Some(info.members),
+      })
+      .map(|members| {
+        members
+          .iter()
+          .skip(if is_module_exports_start { 1 } else { 0 })
+          .map(|n| n.to_owned())
+          .collect::<Vec<_>>()
+      })
+    else {
       return None;
-    }
-    let members = expression_info
-      .members()
-      .iter()
-      .skip(if is_module_exports_start { 2 } else { 1 })
-      .map(|n| n.0.to_owned())
-      .collect::<Vec<_>>();
+    };
     match expr.obj {
       box Expr::Call(_) => Some(members),
       box Expr::Ident(_) => Some(members),
@@ -273,8 +282,11 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       };
       parser.bailout();
       parser
-        .presentational_dependencies
-        .push(Box::new(ModuleDecoratorDependency::new(decorator)));
+        .dependencies
+        .push(Box::new(ModuleDecoratorDependency::new(
+          decorator,
+          !parser.is_esm,
+        )));
       Some(true)
     } else if !parser.is_esm && parser.is_exports_ident(ident) {
       parser.bailout();
@@ -322,7 +334,9 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      if let Some(remaining) = get_member_expression_info(expr, Some(is_module_exports_start)) {
+      if let Some(remaining) =
+        get_member_expression_info(parser, expr, Some(is_module_exports_start))
+      {
         if remaining.is_empty() {
           parser.bailout();
         }
@@ -364,7 +378,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      let Some(remaining) = get_member_expression_info(left_expr, Some(is_module_exports_start))
+      let Some(remaining) =
+        get_member_expression_info(parser, left_expr, Some(is_module_exports_start))
       else {
         return None;
       };
@@ -396,7 +411,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
               (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
               base,
               remaining,
-              false, // TODO: align parser.isStatementLevelExpression
+              !parser.is_statement_level_expression(assign_expr.span()),
             )));
           return Some(true);
         }
@@ -417,7 +432,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
           // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
           // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-          parser.stmt_level == 1 && parser.last_stmt_is_expr_stmt,
+          parser.statement_path.len() == 1
+            && parser.is_statement_level_expression(assign_expr.span()),
           Some(&assign_expr.right),
         );
       }
@@ -457,7 +473,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     } else if let Callee::Expr(expr) = &call_expr.callee {
       let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
         let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-        if let Some(remaining) = get_member_expression_info(&**expr, Some(is_module_exports_start))
+        if let Some(remaining) =
+          get_member_expression_info(parser, &**expr, Some(is_module_exports_start))
         {
           // exports()
           // module.exports()
@@ -487,45 +504,47 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // Object.defineProperty(module.exports, "xxx", { value: 1 });
       // Object.defineProperty(this, "xxx", { value: 1 });
       if expr_matcher::is_object_define_property(&**expr)
+        && parser.is_statement_level_expression(call_expr.span())
         && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)
       {
-        parser.enable();
-
-        if let Some(ExprOrSpread {
+        let Some(ExprOrSpread {
           expr: box Expr::Lit(Lit::Str(str)),
           ..
         }) = call_expr.args.get(1)
-        {
-          // Object.defineProperty(exports, "__esModule", { value: true });
-          // Object.defineProperty(module.exports, "__esModule", { value: true });
-          // Object.defineProperty(this, "__esModule", { value: true });
-          if str.value == "__esModule" {
-            parser.check_namespace(
-              parser.stmt_level == 1,
-              get_value_of_property_description(arg2),
-            );
-          }
+        else {
+          return None;
+        };
 
-          let base = if parser.is_exports_expr(&**expr) {
-            ExportsBase::DefinePropertyExports
-          } else if expr_matcher::is_module_exports(&**expr) {
-            ExportsBase::DefinePropertyModuleExports
-          } else if parser.is_top_level_this_expr(&**expr) {
-            ExportsBase::DefinePropertyThis
-          } else {
-            panic!("Unexpected expr type");
-          };
-          parser
-            .dependencies
-            .push(Box::new(CommonJsExportsDependency::new(
-              (call_expr.span.real_lo(), call_expr.span.real_hi()),
-              Some((arg2.span().real_lo(), arg2.span().real_hi())),
-              base,
-              vec![str.value.clone()],
-            )));
+        parser.enable();
+        // Object.defineProperty(exports, "__esModule", { value: true });
+        // Object.defineProperty(module.exports, "__esModule", { value: true });
+        // Object.defineProperty(this, "__esModule", { value: true });
+        if str.value == "__esModule" {
+          parser.check_namespace(
+            parser.statement_path.len() == 1,
+            get_value_of_property_description(arg2),
+          );
         }
+
+        let base = if parser.is_exports_expr(&**expr) {
+          ExportsBase::DefinePropertyExports
+        } else if expr_matcher::is_module_exports(&**expr) {
+          ExportsBase::DefinePropertyModuleExports
+        } else if parser.is_top_level_this_expr(&**expr) {
+          ExportsBase::DefinePropertyThis
+        } else {
+          panic!("Unexpected expr type");
+        };
+        parser
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            (call_expr.span.real_lo(), call_expr.span.real_hi()),
+            Some((arg2.span().real_lo(), arg2.span().real_hi())),
+            base,
+            vec![str.value.clone()],
+          )));
 
         parser.walk_expression(&arg2.expr);
         Some(true)
@@ -545,5 +564,20 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     } else {
       None
     }
+  }
+
+  fn evaluate_typeof(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<BasicEvaluatedExpression> {
+    (for_name == "module" || for_name == "exports").then(|| {
+      eval::evaluate_to_string(
+        "object".to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )
+    })
   }
 }

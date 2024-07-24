@@ -1,7 +1,9 @@
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
+use rspack_collections::Identifier;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
@@ -11,7 +13,6 @@ use rspack_core::{
   StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
@@ -96,15 +97,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         presentational_dependencies: vec![],
         code_generation_dependencies: vec![],
         source,
-        analyze_result: Default::default(),
         side_effects_bailout: None,
       }
       .with_diagnostic(diagnostic),
     )
   }
 
-  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
-    match source_type {
+  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+    match source_type.unwrap_or(&SourceType::Wasm) {
       SourceType::JavaScript => {
         40.0
           + module
@@ -289,10 +289,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     _module: &dyn Module,
     _mg: &rspack_core::ModuleGraph,
     _cg: &rspack_core::ChunkGraph,
-  ) -> Option<String> {
-    Some(String::from(
-      "Module Concatenation is not implemented for AsyncWasmParserAndGenerator",
-    ))
+  ) -> Option<Cow<'static, str>> {
+    Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
   }
 }
 

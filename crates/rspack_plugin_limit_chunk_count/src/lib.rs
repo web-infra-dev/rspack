@@ -1,8 +1,9 @@
 mod chunk_combination;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
+use rspack_collections::{UkeyMap, UkeySet};
 use rspack_core::{
   compare_chunks_with_graph, get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkSizeOptions,
   ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
@@ -11,12 +12,12 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 fn add_to_set_map(
-  map: &mut HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>>,
+  map: &mut UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>>,
   key: &ChunkUkey,
   value: ChunkCombinationUkey,
 ) {
   if map.get(key).is_none() {
-    let mut set = HashSet::new();
+    let mut set = UkeySet::default();
     set.insert(value);
     map.insert(*key, set);
   } else {
@@ -24,7 +25,7 @@ fn add_to_set_map(
     if let Some(set) = set {
       set.insert(value);
     } else {
-      let mut set = HashSet::new();
+      let mut set = UkeySet::default();
       set.insert(value);
       map.insert(*key, set);
     }
@@ -92,7 +93,8 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   // we keep a mapping from chunk to all combinations
   // but this mapping is not kept up-to-date with deletions
   // so `deleted` flag need to be considered when iterating this
-  let mut combinations_by_chunk: HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>> = HashMap::new();
+  let mut combinations_by_chunk: UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>> =
+    UkeyMap::default();
 
   let chunk_size_option = ChunkSizeOptions {
     chunk_overhead: self.options.chunk_overhead,
@@ -112,6 +114,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         chunk_by_ukey,
         chunk_group_by_ukey,
         &module_graph,
+        compilation,
       );
       let a_size = chunk_graph.get_chunk_size(
         a,
@@ -119,6 +122,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         chunk_by_ukey,
         chunk_group_by_ukey,
         &module_graph,
+        compilation,
       );
       let b_size = chunk_graph.get_chunk_size(
         b,
@@ -126,6 +130,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         chunk_by_ukey,
         chunk_group_by_ukey,
         &module_graph,
+        compilation,
       );
 
       let c = ChunkCombination {
@@ -150,7 +155,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   // list of modified chunks during this run
   // combinations affected by this change are skipped to allow
   // further optimizations
-  let mut modified_chunks: HashSet<ChunkUkey> = HashSet::new();
+  let mut modified_chunks: UkeySet<ChunkUkey> = UkeySet::default();
 
   while let Some(combination_ukey) = combinations.pop_first() {
     let combination = combinations.get_mut(&combination_ukey);
@@ -248,6 +253,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
               chunk_by_ukey,
               chunk_group_by_ukey,
               &module_graph,
+              compilation,
             );
             combination.a = a;
             combination.integrated_size = new_integrated_size;
@@ -268,6 +274,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
               chunk_by_ukey,
               chunk_group_by_ukey,
               &module_graph,
+              compilation,
             );
             combination.b = a;
             combination.integrated_size = new_integrated_size;

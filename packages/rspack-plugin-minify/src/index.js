@@ -30,7 +30,8 @@ module.exports = class RspackMinifyPlugin {
 				minifySyntax: true,
 				minifyWhitespace: true
 			});
-		} else if (this.options.minifier === "terser") {
+		}
+		if (this.options.minifier === "terser") {
 			const options = Object.assign({}, this.options);
 			delete options.minifier;
 			delete options.target;

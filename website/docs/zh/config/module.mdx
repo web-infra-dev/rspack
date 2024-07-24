@@ -7,6 +7,24 @@ import { ApiMeta } from '../../../components/ApiMeta';
 - **类型：** `Object`
 - **默认值：** `{}`
 
+## module.defaultRules
+
+- **类型：** `Rule[]`
+
+应用于模块的默认规则。
+
+详见[源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364)。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    defaultRules: [
+      '...', // 使用 "..." 来引用 Rspack 默认规则
+    ],
+  },
+};
+```
+
 ## module.noParse
 
 - **类型：** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
@@ -174,6 +192,75 @@ module.exports = {
 - **默认值：** `false`
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
+
+#### module.parser.javascript.exportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **类型：** `"error" | "warn" | "auto" | false`
+- **默认值：** `"auto"`
+
+当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
+
+- `"error"`：进行报错。
+- `"warn"`：进行警告。
+- `"auto"`：根据模块是否为严格 ESM，如果是严格 ESM 则报错，否则警告。
+- `false`：关闭该功能。
+
+#### module.parser.javascript.importExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **类型：** `"error" | "warn" | "auto" | false`
+
+当使用了不存在的导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
+
+#### module.parser.javascript.reexportExportsPresence
+
+<ApiMeta addedVersion="0.7.1" />
+
+- **类型：** `"error" | "warn" | "auto" | false`
+
+当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
+
+#### module.parser.javascript.worker
+
+<ApiMeta addedVersion="1.0.0-alpha.0" />
+
+- **类型：** `string[] | boolean`
+
+为 Worker 解析提供自定义的语法，常用于支持 Worklet：
+
+```js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // 支持 CSS paintWorklet
+          'CSS.paintWorklet.addModule()',
+          // 支持 AudioWorklet，最前面的 '*' 表示识别名为 'context' 的变量，比如：
+          // let context = new AudioContext();
+          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
+          '*context.audioWorklet.addModule()',
+          // 继承默认语法：["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
+
+#### module.parser.javascript.overrideStrict
+
+<ApiMeta addedVersion="1.0.0-alpha.4" />
+
+- **类型：** `'strict' | 'non-strict'`
+
+将模块覆盖为严格模式或非严格模式。
+
+这可能会影响模块的行为（某些行为在严格模式和非严格模式之间有所不同），因此请谨慎配置此选项。
 
 ### module.parser["javascript/auto"]
 
@@ -396,7 +483,7 @@ module.exports = {
 
 #### module.generator.asset.publicPath
 
-- **类型：** `string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
 
 覆盖 [`output.publicPath`](/config/output#outputpublicpath)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
@@ -502,7 +589,9 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `true` for node environments, `false` for web environments.
 
-避免生成和加载样式表，只将来自 CSS 的导出嵌入到输出的 JavaScript 文件中。
+如果为 `true`，仅从 CSS 中导出标识符映射表到 JavaScript 文件中，而不在 template 中注入任何 stylesheets。适用于使用 CSS Modules 进行预渲染的场景（例如 SSR）。
+
+如果为 `false`，生成 stylesheets 并将其注入到 template 中。
 
 #### module.generator["css/auto"].localIdentName
 
@@ -754,10 +843,31 @@ module.exports = {
 
 ### Rule.descriptionData
 
-- **类型：** `{ [k: string]: Condition }`
+- **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
 
-匹配所有符合这个资源的模块，会和 Resource 的 package.json 中的字段进行匹配。
+`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+
+`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](/config/module#condition) 进行关联。
+
+例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: /node_modules/,
+        descriptionData: {
+          name: packageJsonName => packageJsonName.includes('rspack'),
+        },
+        // 其他 rule options...
+      },
+    ],
+  },
+};
+```
 
 ### Rule.loaders
 

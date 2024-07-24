@@ -13,6 +13,8 @@ pub mod runtime;
 pub mod utils;
 pub mod visitors;
 mod webpack_comment;
+pub use parser_plugin::*;
+
 pub use crate::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin;
 pub use crate::plugin::*;
 

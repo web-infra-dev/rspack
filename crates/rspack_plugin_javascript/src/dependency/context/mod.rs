@@ -23,8 +23,16 @@ fn create_resource_identifier_for_context_dependency(
     .as_ref()
     .map(|r| r.to_source_string())
     .unwrap_or_default();
-  let include = options.include.as_deref().unwrap_or_default();
-  let exclude = options.exclude.as_deref().unwrap_or_default();
+  let include = options
+    .include
+    .as_ref()
+    .map(|x| x.to_source_string())
+    .unwrap_or_default();
+  let exclude = options
+    .exclude
+    .as_ref()
+    .map(|x| x.to_source_string())
+    .unwrap_or_default();
   let mode = options.mode.as_str();
   // TODO: need `RawChunkGroupOptions`
   let id = format!(

@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require("node:path");
 const rspack = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
@@ -57,5 +57,8 @@ module.exports = {
 				type: "css"
 			}
 		]
+	},
+	experiments: {
+		css: true
 	}
 };

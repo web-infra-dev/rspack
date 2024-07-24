@@ -1,0 +1,10 @@
+WARNING in ./index.js
+  ⚠ Module parse warning:
+  ╰─▶   ⚠ Magic comments parse failed: `webpackExports` could not be used with destructuring assignment.
+         ╭─[1:1]
+       1 │ (async function () {
+       2 │   const { a, b } = await import(/* webpackExports: ["a", "b", "c"] */ './lib');
+         ·                          ─────────────────────────────────────────────────────
+       3 │   (a, b)
+       4 │ })();
+         ╰────

@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   async_module_factory, impl_module_meta_info, impl_source_map_config, rspack_sources::Source,
   sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
@@ -11,7 +12,6 @@ use rspack_core::{
 use rspack_core::{ConcatenationScope, FactoryMeta};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -111,7 +111,7 @@ impl DependenciesBlock for ConsumeSharedModule {
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     42.0
   }
 
@@ -159,8 +159,8 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
-        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep]);
-        blocks.push(block);
+        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
+        blocks.push(Box::new(block));
       }
     }
 

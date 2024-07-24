@@ -1,16 +1,13 @@
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IHashProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "runable"
-	> {}
+	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
 
 const REG_ERROR_CASE = /error$/;
 
@@ -58,8 +55,16 @@ export class HashProcessor<
 			context: context.getSource(),
 			output: {
 				path: context.getDist()
+			},
+			experiments: {
+				css: true,
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
 	static overrideOptions<T extends ECompilerType>(
 		index: number,

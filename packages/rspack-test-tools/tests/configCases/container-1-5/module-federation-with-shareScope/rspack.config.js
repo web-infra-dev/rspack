@@ -7,11 +7,6 @@ const common = {
 	optimization: {
 		runtimeChunk: "single"
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	}
 };
 
 /** @type {ConstructorParameters<typeof ModuleFederationPlugin>[0]} */

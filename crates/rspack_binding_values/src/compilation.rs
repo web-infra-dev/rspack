@@ -4,7 +4,9 @@ use std::ops::DerefMut;
 use std::path::PathBuf;
 
 use napi_derive::napi;
+use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
+use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
@@ -14,7 +16,7 @@ use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 
 use super::module::ToJsModule;
-use super::PathWithInfo;
+use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
@@ -22,6 +24,7 @@ use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
   JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
 };
+use crate::{JsDiagnostic, JsRspackError};
 
 #[napi(object_from_js = false)]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
@@ -59,14 +62,6 @@ impl DerefMut for JsCompilation {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self.0
   }
-}
-
-#[napi(object)]
-pub struct JsDiagnostic {
-  #[napi(ts_type = "'error' | 'warning'")]
-  pub severity: String,
-  pub title: String,
-  pub message: String,
 }
 
 #[napi]
@@ -183,12 +178,35 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_named_chunk_keys(&self) -> Vec<String> {
+    self.0.named_chunks.keys().cloned().collect::<Vec<_>>()
+  }
+
+  #[napi]
   pub fn get_named_chunk(&self, name: String) -> Option<JsChunk> {
     self
       .0
       .named_chunks
       .get(&name)
       .and_then(|c| get_chunk_from_ukey(c, &self.0.chunk_by_ukey).map(JsChunk::from))
+  }
+
+  #[napi]
+  pub fn get_named_chunk_group_keys(&self) -> Vec<String> {
+    self
+      .0
+      .named_chunk_groups
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>()
+  }
+
+  #[napi]
+  pub fn get_named_chunk_group(&self, name: String) -> Option<JsChunkGroup> {
+    self.0.named_chunk_groups.get(&name).and_then(|c| {
+      get_chunk_group_from_ukey(c, &self.0.chunk_group_by_ukey)
+        .map(|cg| JsChunkGroup::from_chunk_group(cg, self.0))
+    })
   }
 
   #[napi]
@@ -212,38 +230,47 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
-    let filenames = self
+  pub fn get_asset_filenames(&self) -> Vec<String> {
+    self
       .0
       .assets()
       .iter()
       .filter(|(_, asset)| asset.get_source().is_some())
       .map(|(filename, _)| filename)
       .cloned()
-      .collect();
-    Ok(filenames)
+      .collect()
   }
 
   #[napi]
-  pub fn has_asset(&self, name: String) -> Result<bool> {
-    Ok(self.0.assets().contains_key(&name))
+  pub fn has_asset(&self, name: String) -> bool {
+    self.0.assets().contains_key(&name)
   }
 
   #[napi]
-  pub fn emit_asset(
+  pub fn emit_asset_from_loader(
     &mut self,
     filename: String,
     source: JsCompatSource,
     asset_info: JsAssetInfo,
-  ) -> Result<()> {
+    module: String,
+  ) {
+    self.emit_asset(filename.clone(), source, asset_info);
+    self
+      .0
+      .module_assets
+      .entry(ModuleIdentifier::from(module))
+      .or_default()
+      .insert(filename);
+  }
+
+  #[napi]
+  pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
     let compat_source: CompatSource = source.into();
 
     self.0.emit_asset(
       filename,
       rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
     );
-
-    Ok(())
   }
 
   #[napi]
@@ -268,6 +295,16 @@ impl JsCompilation {
         )
       })
       .collect()
+  }
+
+  #[napi(getter)]
+  pub fn chunk_groups(&self) -> Vec<JsChunkGroup> {
+    self
+      .0
+      .chunk_group_by_ukey
+      .values()
+      .map(|cg| JsChunkGroup::from_chunk_group(cg, self.0))
+      .collect::<Vec<JsChunkGroup>>()
   }
 
   #[napi(getter)]
@@ -311,24 +348,19 @@ impl JsCompilation {
       .collect()
   }
 
-  #[napi(ts_args_type = r#"severity: "error" | "warning", title: string, message: string"#)]
-  pub fn push_diagnostic(&mut self, severity: String, title: String, message: String) {
-    let diagnostic = match severity.as_str() {
-      "warning" => rspack_error::Diagnostic::warn(title, message),
-      _ => rspack_error::Diagnostic::error(title, message),
-    };
-    self.0.push_diagnostic(diagnostic);
+  #[napi]
+  pub fn push_diagnostic(&mut self, diagnostic: JsDiagnostic) {
+    self.0.push_diagnostic(diagnostic.into());
   }
 
   #[napi]
-  pub fn splice_diagnostic(&mut self, start: u32, end: u32, replace_with: Vec<JsDiagnostic>) {
-    let diagnostics = replace_with
-      .iter()
-      .map(|item| match item.severity.as_str() {
-        "warning" => rspack_error::Diagnostic::warn(item.title.clone(), item.message.clone()),
-        _ => rspack_error::Diagnostic::error(item.title.clone(), item.message.clone()),
-      })
-      .collect();
+  pub fn splice_diagnostic(
+    &mut self,
+    start: u32,
+    end: u32,
+    replace_with: Vec<crate::JsDiagnostic>,
+  ) {
+    let diagnostics = replace_with.into_iter().map(Into::into).collect();
     self
       .0
       .splice_diagnostic(start as usize, end as usize, diagnostics);
@@ -339,6 +371,32 @@ impl JsCompilation {
     while let Some(diagnostic) = diagnostics.pop() {
       self.0.push_diagnostic(diagnostic);
     }
+  }
+
+  #[napi]
+  pub fn get_errors(&self) -> Vec<JsRspackError> {
+    let colored = self.0.options.stats.colors;
+    self
+      .0
+      .get_errors_sorted()
+      .map(|d| {
+        JsRspackError::try_from_diagnostic(d, colored)
+          .expect("should convert diagnostic to `JsRspackError`")
+      })
+      .collect()
+  }
+
+  #[napi]
+  pub fn get_warnings(&self) -> Vec<JsRspackError> {
+    let colored = self.0.options.stats.colors;
+    self
+      .0
+      .get_warnings_sorted()
+      .map(|d| {
+        JsRspackError::try_from_diagnostic(d, colored)
+          .expect("should convert diagnostic to `JsRspackError`")
+      })
+      .collect()
   }
 
   #[napi]
@@ -431,9 +489,7 @@ impl JsCompilation {
       let modules = self
         .0
         .rebuild_module(
-          rustc_hash::FxHashSet::from_iter(
-            module_identifiers.into_iter().map(ModuleIdentifier::from),
-          ),
+          IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()
@@ -453,9 +509,9 @@ impl JsCompilation {
     &'static self,
     env: Env,
     request: String,
-    public_path: Option<String>,
+    public_path: Option<JsFilename>,
     base_uri: Option<String>,
-    _original_module: Option<String>,
+    original_module: Option<String>,
     original_module_context: Option<String>,
     callback: JsFunction,
   ) -> Result<()> {
@@ -468,14 +524,16 @@ impl JsCompilation {
       let result = module_executor
         .import_module(
           request,
-          public_path,
+          public_path.map(|p| p.into()),
           base_uri,
-          original_module_context.map(rspack_core::Context::new),
+          original_module_context.map(rspack_core::Context::from),
+          original_module.map(ModuleIdentifier::from),
         )
         .await;
       match result {
         Ok(res) => {
           let js_result = JsExecuteModuleResult {
+            cacheable: res.cacheable,
             file_dependencies: res
               .file_dependencies
               .into_iter()
@@ -513,6 +571,7 @@ pub struct JsExecuteModuleResult {
   pub context_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
+  pub cacheable: bool,
   pub assets: Vec<String>,
   pub id: u32,
 }

@@ -1,14 +1,14 @@
-import fs from "fs";
+import fs from "node:fs";
+import path from "node:path";
 import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
-import path from "path";
 
 import { escapeSep } from "../../../helper";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
-import { ECompilerType } from "../../../type";
-import { TRunnerRequirer } from "../../type";
-import { IBasicRunnerOptions } from "../basic";
+import type { ECompilerType } from "../../../type";
+import type { TRunnerRequirer } from "../../type";
+import type { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
 
 export class JSDOMWebRunner<
@@ -60,7 +60,7 @@ export class JSDOMWebRunner<
     `);
 
 		const vmContext = this.dom.getInternalVMContext();
-		vmContext["global"] = {};
+		vmContext.global = {};
 	}
 
 	run(file: string) {
@@ -102,15 +102,15 @@ export class JSDOMWebRunner<
 
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
-		moduleScope["EventSource"] = EventSource;
-		moduleScope["Worker"] = createFakeWorker(this._options.env, {
+		moduleScope.EventSource = EventSource;
+		moduleScope.Worker = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
 		const urlToPath = (url: string) => {
 			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
 			return path.resolve(this._webOptions.dist, `./${url}`);
 		};
-		moduleScope["fetch"] = async (url: string) => {
+		moduleScope.fetch = async (url: string) => {
 			try {
 				const buffer: Buffer = await new Promise((resolve, reject) =>
 					fs.readFile(urlToPath(url), (err, b) =>
@@ -132,12 +132,12 @@ export class JSDOMWebRunner<
 				throw err;
 			}
 		};
-		moduleScope["URL"] = URL;
-		moduleScope["importScripts"] = (url: string) => {
+		moduleScope.URL = URL;
+		moduleScope.importScripts = (url: string) => {
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
-		moduleScope["STATS"] = moduleScope.__STATS__;
+		moduleScope.STATS = moduleScope.__STATS__;
 		return moduleScope;
 	}
 
@@ -145,7 +145,7 @@ export class JSDOMWebRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
-			let file = context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -169,7 +169,9 @@ export class JSDOMWebRunner<
 			}
 
 			const scopeKey = escapeSep(file!.path);
-			const args = Object.keys(currentModuleScope);
+			const args = Object.keys(currentModuleScope).filter(
+				arg => !["window", "self", "globalThis", "console"].includes(arg)
+			);
 			const argValues = args
 				.map(arg => `window["${scopeKey}"]["${arg}"]`)
 				.join(", ");

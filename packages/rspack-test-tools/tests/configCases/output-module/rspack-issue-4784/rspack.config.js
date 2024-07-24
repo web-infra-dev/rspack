@@ -21,9 +21,6 @@ module.exports = {
 	},
 	experiments: {
 		outputModule: true,
-		rspackFuture: {
-			newTreeshaking: true
-		}
 	},
 	plugins: [
 		{

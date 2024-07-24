@@ -7,28 +7,28 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "assert";
-import { Callback } from "tapable";
-import util from "util";
+import assert from "node:assert";
+import util from "node:util";
+import type { Callback } from "@rspack/lite-tapable";
 
 import { Compiler } from "./Compiler";
 import {
+	MultiCompiler,
+	type MultiCompilerOptions,
+	type MultiRspackOptions
+} from "./MultiCompiler";
+import MultiStats from "./MultiStats";
+import { Stats } from "./Stats";
+import {
+	type RspackOptions,
+	type RspackPluginFunction,
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
 	getNormalizedRspackOptions,
-	RspackOptions,
-	rspackOptions,
-	RspackPluginFunction
+	rspackOptions
 } from "./config";
-import {
-	MultiCompiler,
-	MultiCompilerOptions,
-	MultiRspackOptions
-} from "./MultiCompiler";
-import MultiStats from "./MultiStats";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
-import { Stats } from "./Stats";
 import { asArray, isNil } from "./util";
 import { validate } from "./util/validate";
 
@@ -104,7 +104,7 @@ function rspack(
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	try {
-		for (let o of asArray(options)) {
+		for (const o of asArray(options)) {
 			validate(o, rspackOptions);
 		}
 	} catch (e) {

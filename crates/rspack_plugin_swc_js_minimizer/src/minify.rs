@@ -28,7 +28,7 @@ use swc_core::{
   ecma::{
     ast::Ident,
     atoms::Atom,
-    parser::{EsConfig, Syntax},
+    parser::{EsSyntax, Syntax},
     transforms::base::{
       fixer::{fixer, paren_remover},
       helpers::{self, Helpers},
@@ -168,7 +168,7 @@ pub fn minify(
           let program = parse_js(
             fm.clone(),
             target,
-            Syntax::Es(EsConfig {
+            Syntax::Es(EsSyntax {
               jsx: true,
               decorators: true,
               decorators_before_export: true,
@@ -188,7 +188,7 @@ pub fn minify(
                   rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(
                     err,
                     &fm,
-                    &ModuleType::Js,
+                    &ModuleType::JsAuto,
                   ))
                 })
                 .collect::<Vec<_>>(),
@@ -246,28 +246,34 @@ pub fn minify(
             leading_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
                 if extract_comments.condition.is_match(&c.text) {
-                  extracted_comments.push(match c.kind {
+                  let comment = match c.kind {
                     CommentKind::Line => {
-                      format!("// {}", c.text)
+                      format!("//{}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
                     }
-                  });
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
                 }
               });
             });
             trailing_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
                 if extract_comments.condition.is_match(&c.text) {
-                  extracted_comments.push(match c.kind {
+                  let comment = match c.kind {
                     CommentKind::Line => {
-                      format!("// {}", c.text)
+                      format!("//{}", c.text)
                     }
                     CommentKind::Block => {
                       format!("/*{}*/", c.text)
                     }
-                  });
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
                 }
               });
             });
@@ -308,6 +314,7 @@ pub fn minify(
               emit_columns: true,
               names: source_map_names,
             },
+            None,
             true,
             Some(&comments),
             &opts.format,

@@ -62,6 +62,7 @@ pub struct RawBannerPluginOptions {
   pub entry_only: Option<bool>,
   pub footer: Option<bool>,
   pub raw: Option<bool>,
+  pub stage: Option<i32>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawBannerRules>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
@@ -99,6 +100,7 @@ impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
       entry_only: value.entry_only,
       footer: value.footer,
       raw: value.raw,
+      stage: value.stage,
       test: value.test.map(|v| RawBannerRulesWrapper(v).into()),
       include: value.include.map(|v| RawBannerRulesWrapper(v).into()),
       exclude: value.exclude.map(|v| RawBannerRulesWrapper(v).into()),

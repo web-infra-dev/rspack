@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-x64-gnu",
-  "version": "0.7.0-beta.1",
+  "version": "1.0.0-alpha.5",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-x64-gnu.node",
@@ -11,7 +11,8 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "rspack.linux-x64-gnu.node"

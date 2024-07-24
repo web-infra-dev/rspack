@@ -5,7 +5,11 @@
 
 "use strict";
 
-const { AsyncParallelHook, AsyncSeriesBailHook, SyncHook } = require("tapable");
+const {
+	AsyncParallelHook,
+	AsyncSeriesBailHook,
+	SyncHook
+} = require("@rspack/lite-tapable");
 const {
 	makeWebpackError,
 	makeWebpackErrorCallback

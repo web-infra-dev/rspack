@@ -7,7 +7,7 @@ use swc_core::{
   common::{errors::HANDLER, FileName, Globals, Mark, GLOBALS},
   ecma::{
     ast::*,
-    parser::{parse_file_as_module, Syntax, TsConfig},
+    parser::{parse_file_as_module, Syntax, TsSyntax},
     transforms::base::resolver,
     visit::VisitMutWith,
   },
@@ -52,7 +52,7 @@ fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
         HANDLER.set(handler, || {
           parse_file_as_module(
             &fm,
-            Syntax::Typescript(TsConfig {
+            Syntax::Typescript(TsSyntax {
               tsx: true,
               decorators: true,
               ..Default::default()

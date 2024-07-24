@@ -1,8 +1,9 @@
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
-  CompilationHooks, CompilerHooks, ContextModuleFactoryHooks, GeneratorOptions, ModuleType,
-  NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
+  CompilationHooks, CompilerHooks, ConcatenatedModuleHooks, ContextModuleFactoryHooks,
+  GeneratorOptions, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator,
+  ParserOptions,
 };
 
 #[derive(Debug, Default)]
@@ -43,6 +44,7 @@ pub struct ApplyContext<'c> {
   pub normal_module_factory_hooks: &'c mut NormalModuleFactoryHooks,
   pub context_module_factory_hooks: &'c mut ContextModuleFactoryHooks,
   pub normal_module_hooks: &'c mut NormalModuleHooks,
+  pub concatenated_module_hooks: &'c mut ConcatenatedModuleHooks,
 }
 
 impl<'c> ApplyContext<'c> {

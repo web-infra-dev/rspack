@@ -11,17 +11,22 @@ module.exports = {
 		-   "cache": false,
 		+   "cache": true,
 		@@ ... @@
+		-   "devtool": false,
+		+   "devtool": "eval",
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@
+		-     "chunkIds": "natural",
+		+     "chunkIds": "named",
+		@@ ... @@
+		-     "moduleIds": "natural",
 		-     "nodeEnv": false,
+		+     "moduleIds": "named",
 		+     "nodeEnv": "development",
 		@@ ... @@
 		-     "pathinfo": false,
 		+     "pathinfo": true,
-		@@ ... @@
-		-           "production",
-		+           "development",
 		@@ ... @@
 		-       "production",
 		+       "development",

@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use strict";
 const fs = require("graceful-fs");
-const path = require("path");
+const path = require("node:path");
 
 const check = (expected, actual) => {
 	if (expected instanceof RegExp) {
@@ -102,7 +102,8 @@ module.exports = function checkArrayExpectation(
 				),
 				true
 			);
-		} else if (expected.length > array.length) {
+		}
+		if (expected.length > array.length) {
 			return (
 				done(
 					new Error(

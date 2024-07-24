@@ -27,6 +27,11 @@
     },
     "layer": {
       "type": "string"
+    },
+    "defaultExport": {
+      "type": "boolean",
+      "description": "Duplicate the named export with CSS modules locals to the default export (only when `esModules: true` for css-loader).",
+      "link": "https://github.com/webpack-contrib/mini-css-extract-plugin#defaultexports"
     }
   }
 }

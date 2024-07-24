@@ -1,15 +1,12 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 import { parseResource } from "../helper/legacy/parseResource";
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IConfigProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"defaultOptions" | "overrideOptions" | "findBundle"
-	> {}
+	extends IMultiTaskProcessorOptions<T> {}
 
 export class ConfigProcessor<
 	T extends ECompilerType
@@ -60,8 +57,11 @@ export class ConfigProcessor<
 				minimize: false
 			},
 			experiments: {
+				css: true,
 				rspackFuture: {
-					newTreeshaking: true
+					bundlerInfo: {
+						force: false
+					}
 				}
 			}
 		} as TCompilerOptions<T>;

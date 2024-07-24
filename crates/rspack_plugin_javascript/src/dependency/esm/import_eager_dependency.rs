@@ -1,10 +1,11 @@
 use rspack_core::{
   module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ImportDependencyTrait,
-  ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
   TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
+
+use super::import_dependency::create_import_dependency_referenced_exports;
 
 #[derive(Debug, Clone)]
 pub struct ImportEagerDependency {
@@ -52,8 +53,12 @@ impl Dependency for ImportEagerDependency {
     self.span
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportEagerDependency"
+  fn get_referenced_exports(
+    &self,
+    module_graph: &rspack_core::ModuleGraph,
+    _runtime: Option<&rspack_core::RuntimeSpec>,
+  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+    create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)
   }
 }
 
@@ -68,24 +73,6 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_exports) = &self.referenced_exports {
-      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
-    } else {
-      vec![ExtendedReferencedExport::Array(vec![])]
-    }
-  }
-}
-
-impl ImportDependencyTrait for ImportEagerDependency {
-  fn referenced_exports(&self) -> Option<&Vec<Atom>> {
-    self.referenced_exports.as_ref()
   }
 }
 
@@ -105,7 +92,7 @@ impl DependencyTemplate for ImportEagerDependency {
         &self.id,
         block,
         &self.request,
-        self.dependency_type().as_str().as_ref(),
+        self.dependency_type().as_str(),
         false,
       )
       .as_str(),

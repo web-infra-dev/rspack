@@ -3,9 +3,11 @@ mod entry;
 mod execute;
 mod overwrite;
 
-use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
+use dashmap::{mapref::entry::Entry, DashSet};
 pub use execute::ExecuteModuleId;
+pub use execute::ExecutedRuntimeModule;
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
@@ -18,12 +20,10 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::{
-  repair::MakeTaskContext, update_module_graph_with_artifact, MakeArtifact, MakeParam,
-};
+use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, EntryDependency,
+  DependencyId, LoaderImportDependency, PublicPath,
 };
 
 #[derive(Debug, Default)]
@@ -34,13 +34,20 @@ pub struct ModuleExecutor {
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
   assets: DashMap<String, CompilationAsset>,
+  module_assets: IdentifierDashMap<DashSet<String>>,
+  code_generated_modules: IdentifierDashSet,
+  module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
+  pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
 }
 
 impl ModuleExecutor {
   pub async fn hook_before_make(&mut self, compilation: &Compilation) {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
-    let mut params = vec![];
-    params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+    let mut params = Vec::with_capacity(5);
+    params.push(MakeParam::CheckNeedBuild);
+    if !compilation.modified_files.is_empty() {
+      params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+    }
     if !compilation.removed_files.is_empty() {
       params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
@@ -53,13 +60,13 @@ impl ModuleExecutor {
       params.push(MakeParam::ForceBuildModules(modules));
     }
     make_artifact.diagnostics = Default::default();
+    make_artifact.has_module_graph_change = false;
 
-    make_artifact =
-      if let Ok(artifact) = update_module_graph_with_artifact(compilation, make_artifact, params) {
-        artifact
-      } else {
-        MakeArtifact::default()
-      };
+    make_artifact = if let Ok(artifact) = update_module_graph(compilation, make_artifact, params) {
+      artifact
+    } else {
+      MakeArtifact::default()
+    };
 
     let mut ctx = MakeTaskContext::new(compilation, make_artifact);
     let (event_sender, event_receiver) = unbounded_channel();
@@ -85,7 +92,7 @@ impl ModuleExecutor {
     });
   }
 
-  pub async fn hook_before_process_assets(&mut self, compilation: &mut Compilation) {
+  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")
@@ -99,22 +106,57 @@ impl ModuleExecutor {
       panic!("receive make artifact failed");
     }
 
+    let module_assets = std::mem::take(&mut self.module_assets);
+    for (original_module_identifier, files) in module_assets {
+      let assets = compilation
+        .module_assets
+        .entry(original_module_identifier)
+        .or_default();
+      for file in files {
+        assets.insert(file);
+      }
+    }
+
+    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
+    for (original_module_identifier, code_generation_modules) in module_code_generation_modules {
+      for module_identifier in code_generation_modules {
+        if let Some(module_assets) = compilation.module_assets.remove(&module_identifier) {
+          compilation
+            .module_assets
+            .entry(original_module_identifier)
+            .or_default()
+            .extend(module_assets);
+        }
+      }
+    }
+
     let assets = std::mem::take(&mut self.assets);
     for (filename, asset) in assets {
       compilation.emit_asset(filename, asset);
     }
 
-    let diagnostics = std::mem::take(&mut self.make_artifact.diagnostics);
-    compilation.push_batch_diagnostic(diagnostics);
+    let diagnostics = self.make_artifact.take_diagnostics();
+    compilation.extend_diagnostics(diagnostics);
+
+    let built_modules = self.make_artifact.take_built_modules();
+    for id in built_modules {
+      compilation.built_modules.insert(id);
+    }
+
+    let code_generated_modules = std::mem::take(&mut self.code_generated_modules);
+    for id in code_generated_modules {
+      compilation.code_generated_modules.insert(id);
+    }
   }
 
   #[allow(clippy::too_many_arguments)]
   pub async fn import_module(
     &self,
     request: String,
-    public_path: Option<String>,
+    public_path: Option<PublicPath>,
     base_uri: Option<String>,
     original_module_context: Option<Context>,
+    original_module_identifier: Option<Identifier>,
   ) -> Result<ExecuteModuleResult> {
     let sender = self
       .event_sender
@@ -122,13 +164,13 @@ impl ModuleExecutor {
       .expect("should have event sender");
     let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
       Entry::Vacant(v) => {
-        let dep = EntryDependency::new(
+        let dep = LoaderImportDependency::new(
           request.clone(),
           original_module_context.unwrap_or(Context::from("")),
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
-        (EntryParam::EntryDependency(Box::new(dep)), dep_id)
+        (EntryParam::Entry(Box::new(dep)), dep_id)
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();
@@ -148,10 +190,38 @@ impl ModuleExecutor {
         },
       ))
       .expect("should success");
-    let (execute_result, assets) = rx.await.expect("should receiver success");
+    let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
+      rx.await.expect("should receiver success");
+
+    if let Ok(execute_result) = &execute_result
+      && let Some(original_module_identifier) = original_module_identifier
+    {
+      self
+        .module_assets
+        .entry(original_module_identifier)
+        .or_default()
+        .extend(execute_result.assets.clone());
+    }
 
     for (key, value) in assets {
-      self.assets.insert(key, value);
+      self.assets.insert(key.clone(), value);
+    }
+
+    for id in code_generated_modules {
+      self.code_generated_modules.insert(id);
+      if let Some(original_module_identifier) = original_module_identifier {
+        self
+          .module_code_generated_modules
+          .entry(original_module_identifier)
+          .or_default()
+          .insert(id);
+      }
+    }
+
+    for runtime_module in executed_runtime_modules {
+      self
+        .executed_runtime_modules
+        .insert(runtime_module.identifier, runtime_module);
     }
 
     execute_result

@@ -49,24 +49,44 @@ module.exports = {
 		Object {
 		  "assets": Array [
 		    Object {
+		      "auxiliaryChunkIdHints": Array [],
+		      "auxiliaryChunkNames": Array [],
+		      "chunkIdHints": Array [],
 		      "chunkNames": Array [],
 		      "emitted": true,
 		      "info": Object {
+		        "chunkhash": Array [],
+		        "contenthash": Array [],
 		        "development": false,
+		        "fullhash": Array [],
 		        "hotModuleReplacement": false,
+		        "immutable": false,
+		        "javascriptModule": false,
+		        "minimized": true,
+		        "related": Object {},
 		      },
 		      "name": "TestChild.js",
-		      "size": 700,
+		      "size": 353,
 		      "type": "asset",
 		    },
 		    Object {
+		      "auxiliaryChunkIdHints": Array [],
+		      "auxiliaryChunkNames": Array [],
+		      "chunkIdHints": Array [],
 		      "chunkNames": Array [
 		        "main",
 		      ],
 		      "emitted": true,
 		      "info": Object {
+		        "chunkhash": Array [],
+		        "contenthash": Array [],
 		        "development": false,
+		        "fullhash": Array [],
 		        "hotModuleReplacement": false,
+		        "immutable": false,
+		        "javascriptModule": false,
+		        "minimized": true,
+		        "related": Object {},
 		      },
 		      "name": "main.js",
 		      "size": 207,
@@ -82,16 +102,26 @@ module.exports = {
 		    Object {
 		      "assets": Array [
 		        Object {
+		          "auxiliaryChunkIdHints": Array [],
+		          "auxiliaryChunkNames": Array [],
+		          "chunkIdHints": Array [],
 		          "chunkNames": Array [
 		            "TestChild",
 		          ],
 		          "emitted": true,
 		          "info": Object {
+		            "chunkhash": Array [],
+		            "contenthash": Array [],
 		            "development": false,
+		            "fullhash": Array [],
 		            "hotModuleReplacement": false,
+		            "immutable": false,
+		            "javascriptModule": false,
+		            "minimized": true,
+		            "related": Object {},
 		          },
 		          "name": "TestChild.js",
-		          "size": 700,
+		          "size": 353,
 		          "type": "asset",
 		        },
 		      ],
@@ -101,9 +131,11 @@ module.exports = {
 		        ],
 		      },
 		      "children": Array [],
+		      "filteredAssets": undefined,
 		      "name": "TestChild",
 		    },
 		  ],
+		  "filteredAssets": undefined,
 		}
 	`);
 	}

@@ -10,7 +10,7 @@
 
 import type { JsStatsChunk as Chunk } from "@rspack/binding";
 
-import { ChunkGroup } from "../ChunkGroup";
+import type { ChunkGroup } from "../ChunkGroup";
 
 export type Comparator = <T>(arg0: T, arg1: T) => -1 | 0 | 1;
 
@@ -117,12 +117,11 @@ export const compareSelect = <T, R>(
 				return comparator(aValue, bValue);
 			}
 			return -1;
-		} else {
-			if (bValue !== undefined && bValue !== null) {
-				return 1;
-			}
-			return 0;
 		}
+		if (bValue !== undefined && bValue !== null) {
+			return 1;
+		}
+		return 0;
 	};
 	compareSelectCache.set(getter, comparator, result);
 	return result;

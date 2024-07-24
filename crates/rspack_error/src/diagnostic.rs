@@ -1,7 +1,12 @@
-use std::{fmt, ops::Deref, sync::Arc};
+use std::{
+  fmt,
+  ops::Deref,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
@@ -33,6 +38,16 @@ impl From<miette::Severity> for RspackSeverity {
   }
 }
 
+impl From<&str> for RspackSeverity {
+  fn from(value: &str) -> Self {
+    let s = value.to_ascii_lowercase();
+    match s.as_str() {
+      "warning" => RspackSeverity::Warn,
+      _ => RspackSeverity::Error,
+    }
+  }
+}
+
 impl fmt::Display for RspackSeverity {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
@@ -47,7 +62,14 @@ impl fmt::Display for RspackSeverity {
 }
 
 #[derive(Debug, Clone)]
-pub struct Diagnostic(Arc<miette::Error>, DiagnosticMeta);
+pub struct Diagnostic {
+  inner: Arc<miette::Error>,
+  module_identifier: Option<Identifier>,
+  file: Option<PathBuf>,
+  hide_stack: Option<bool>,
+  chunk: Option<u32>,
+  stack: Option<String>,
+}
 
 impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
   fn from(value: Box<dyn miette::Diagnostic + Send + Sync>) -> Self {
@@ -57,7 +79,14 @@ impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
 
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
-    Self(value.into(), DiagnosticMeta::default())
+    Self {
+      inner: Arc::new(value),
+      module_identifier: None,
+      file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
+    }
   }
 }
 
@@ -65,33 +94,41 @@ impl Deref for Diagnostic {
   type Target = miette::Error;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.inner
   }
 }
 
 impl Diagnostic {
   pub fn warn(title: String, message: String) -> Self {
-    Self(
-      Error::from(
+    Self {
+      inner: Error::from(
         MietteDiagnostic::new(message)
           .with_code(title)
           .with_severity(miette::Severity::Warning),
       )
       .into(),
-      DiagnosticMeta::default(),
-    )
+      module_identifier: None,
+      file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
+    }
   }
 
   pub fn error(title: String, message: String) -> Self {
-    Self(
-      Error::from(
+    Self {
+      inner: Error::from(
         MietteDiagnostic::new(message)
           .with_code(title)
           .with_severity(miette::Severity::Error),
       )
       .into(),
-      DiagnosticMeta::default(),
-    )
+      module_identifier: None,
+      file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
+    }
   }
 }
 
@@ -104,37 +141,73 @@ impl Diagnostic {
       } else {
         GraphicalTheme::unicode_nocolor()
       })
-      .with_context_lines(2);
+      .with_context_lines(2)
+      .with_width(usize::MAX);
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
   }
 
   pub fn message(&self) -> String {
-    self.0.to_string()
+    self.inner.to_string()
   }
 
   pub fn severity(&self) -> Severity {
-    self.0.severity().unwrap_or_default().into()
+    self.inner.severity().unwrap_or_default().into()
   }
 
   pub fn module_identifier(&self) -> Option<Identifier> {
-    self.1.module_identifier
+    self.module_identifier
   }
 
   pub fn with_module_identifier(mut self, module_identifier: Option<Identifier>) -> Self {
-    self.1.set_module_identifier(module_identifier);
+    self.module_identifier = module_identifier;
     self
   }
-}
 
-#[derive(Debug, Default, Clone)]
-struct DiagnosticMeta {
-  module_identifier: Option<Identifier>,
-}
+  pub fn file(&self) -> Option<&Path> {
+    self.file.as_deref()
+  }
 
-impl DiagnosticMeta {
-  fn set_module_identifier(&mut self, module_identifier: Option<Identifier>) {
-    self.module_identifier = module_identifier;
+  pub fn with_file(mut self, file: Option<PathBuf>) -> Self {
+    self.file = file;
+    self
+  }
+
+  pub fn hide_stack(&self) -> Option<bool> {
+    self.hide_stack
+  }
+
+  pub fn with_hide_stack(mut self, hide_stack: Option<bool>) -> Self {
+    self.hide_stack = hide_stack;
+    self
+  }
+
+  pub fn chunk(&self) -> Option<u32> {
+    self.chunk
+  }
+
+  pub fn with_chunk(mut self, chunk: Option<u32>) -> Self {
+    self.chunk = chunk;
+    self
+  }
+
+  pub fn stack(&self) -> Option<String> {
+    self.stack.clone()
+  }
+
+  pub fn with_stack(mut self, stack: Option<String>) -> Self {
+    self.stack = stack;
+    self
+  }
+
+  pub fn details(&self) -> Option<String> {
+    let hide_stack = self.hide_stack.unwrap_or_default();
+    if hide_stack {
+      // TODO: generate detail content for typed error
+      self.stack()
+    } else {
+      None
+    }
   }
 }
 

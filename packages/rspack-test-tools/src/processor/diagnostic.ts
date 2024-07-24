@@ -1,31 +1,19 @@
-import assert from "assert";
-import fs from "fs";
-import path from "path";
+import assert from "node:assert";
+import path from "node:path";
 
 import { escapeEOL } from "../helper";
-import {
+import { replacePaths } from "../helper/replace-paths";
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { BasicProcessor, IBasicProcessorOptions } from "./basic";
-const serializer = require("jest-serializer-path");
-const normalizePaths = serializer.normalizePaths;
-const rspackPath = path.resolve(__dirname, "../../../rspack");
-
-const replacePaths = (input: string) => {
-	const rspackRoot = normalizePaths(rspackPath);
-	return normalizePaths(input).split(rspackRoot).join("<RSPACK_ROOT>");
-};
-
-declare var global: {
-	updateSnapshot: boolean;
-};
-
+import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
-	extends Omit<IBasicProcessorOptions<T>, "defaultOptions" | "runable"> {
+	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;
+	format?: (output: string) => string;
 }
 
 export class DiagnosticProcessor<
@@ -53,23 +41,15 @@ export class DiagnosticProcessor<
 				warnings: true
 			})
 		);
-		// TODO: change to stats.errorStack
-		output = output
-			.split("│")
-			.join("")
-			.split(/\r?\n/)
-			.map((s: string) => s.trim())
-			.join("");
+
+		if (typeof this._diagnosticOptions.format === "function") {
+			output = this._diagnosticOptions.format(output);
+		}
 
 		const errorOutputPath = path.resolve(
 			context.getSource(this._diagnosticOptions.snapshot)
 		);
-		if (!fs.existsSync(errorOutputPath) || global.updateSnapshot) {
-			fs.writeFileSync(errorOutputPath, escapeEOL(output));
-		} else {
-			const expectContent = fs.readFileSync(errorOutputPath, "utf-8");
-			expect(escapeEOL(output)).toBe(escapeEOL(expectContent));
-		}
+		env.expect(escapeEOL(output)).toMatchFileSnapshot(errorOutputPath);
 	}
 
 	static defaultOptions<T extends ECompilerType>(
@@ -90,7 +70,15 @@ export class DiagnosticProcessor<
 			},
 			output: {
 				path: context.getDist()
+			},
+			experiments: {
+				css: true,
+				rspackFuture: {
+					bundlerInfo: {
+						force: false
+					}
+				}
 			}
-		};
+		} as TCompilerOptions<T>;
 	}
 }

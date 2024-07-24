@@ -6,8 +6,8 @@
 
 import * as NodePath from "node:path";
 
-import { Compiler } from "../Compiler";
-import { ResolveData } from "../Module";
+import type { Compiler } from "../Compiler";
+import type { ResolveData } from "../Module";
 
 type ModuleReplacer = (createData: ResolveData) => void;
 

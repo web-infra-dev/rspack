@@ -19,10 +19,6 @@ impl RemoteToExternalDependency {
 }
 
 impl Dependency for RemoteToExternalDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "RemoteToExternalDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

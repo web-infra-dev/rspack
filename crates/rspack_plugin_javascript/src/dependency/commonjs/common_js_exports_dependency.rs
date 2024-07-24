@@ -72,10 +72,6 @@ impl CommonJsExportsDependency {
 }
 
 impl Dependency for CommonJsExportsDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsExportsDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

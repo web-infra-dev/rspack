@@ -1,8 +1,53 @@
-use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDependencyTrait};
+use rspack_core::{
+  create_exports_object_referenced, module_namespace_promise, DependencyType, ErrorSpan,
+  ExportsType, ExtendedReferencedExport, ModuleGraph, ReferencedExport,
+};
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::Atom;
+
+pub fn create_import_dependency_referenced_exports(
+  dependency_id: &DependencyId,
+  referenced_exports: &Option<Vec<Atom>>,
+  mg: &ModuleGraph,
+) -> Vec<ExtendedReferencedExport> {
+  if let Some(referenced_exports) = referenced_exports {
+    let mut refs = vec![];
+    for referenced_export in referenced_exports {
+      if referenced_export == "default" {
+        let Some(strict) = mg
+          .get_parent_module(dependency_id)
+          .and_then(|id| mg.module_by_identifier(id))
+          .and_then(|m| m.build_meta())
+          .map(|bm| bm.strict_harmony_module)
+        else {
+          return create_exports_object_referenced();
+        };
+        let Some(imported_module) = mg
+          .module_identifier_by_dependency_id(dependency_id)
+          .and_then(|id| mg.module_by_identifier(id))
+        else {
+          return create_exports_object_referenced();
+        };
+        let exports_type = imported_module.get_exports_type_readonly(mg, strict);
+        if matches!(
+          exports_type,
+          ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+        ) {
+          return create_exports_object_referenced();
+        }
+      }
+      refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
+        vec![referenced_export.clone()],
+        false,
+      )));
+    }
+    refs
+  } else {
+    create_exports_object_referenced()
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
@@ -50,8 +95,12 @@ impl Dependency for ImportDependency {
     self.span
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportDependency"
+  fn get_referenced_exports(
+    &self,
+    module_graph: &rspack_core::ModuleGraph,
+    _runtime: Option<&rspack_core::RuntimeSpec>,
+  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+    create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)
   }
 }
 
@@ -66,12 +115,6 @@ impl ModuleDependency for ImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-}
-
-impl ImportDependencyTrait for ImportDependency {
-  fn referenced_exports(&self) -> Option<&Vec<Atom>> {
-    self.referenced_exports.as_ref()
   }
 }
 
@@ -91,7 +134,7 @@ impl DependencyTemplate for ImportDependency {
         &self.id,
         block,
         &self.request,
-        self.dependency_type().as_str().as_ref(),
+        self.dependency_type().as_str(),
         false,
       )
       .as_str(),

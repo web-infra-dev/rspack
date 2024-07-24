@@ -3,7 +3,6 @@
 exports[`Base Defaults Snapshot should have the correct base config 1`] = `
 Object {
   "bail": false,
-  "builtins": Object {},
   "cache": false,
   "context": "<cwd>",
   "dependencies": undefined,
@@ -18,14 +17,15 @@ Object {
   },
   "experiments": Object {
     "asyncWebAssembly": false,
-    "css": true,
+    "css": undefined,
+    "futureDefaults": false,
     "lazyCompilation": false,
     "rspackFuture": Object {
       "bundlerInfo": Object {
-        "force": false,
+        "bundler": "rspack",
+        "force": true,
         "version": "$version$",
       },
-      "newTreeshaking": true,
     },
     "topLevelAwait": true,
   },
@@ -36,11 +36,31 @@ Object {
     "electronPreload": false,
     "electronRenderer": false,
     "node": false,
+    "nwjs": false,
     "web": true,
   },
   "externalsType": "var",
   "ignoreWarnings": undefined,
   "infrastructureLogging": Object {},
+  "loader": Object {
+    "environment": Object {
+      "arrowFunction": true,
+      "asyncFunction": true,
+      "bigIntLiteral": undefined,
+      "const": true,
+      "destructuring": true,
+      "document": true,
+      "dynamicImport": undefined,
+      "dynamicImportInWorker": undefined,
+      "forOf": true,
+      "globalThis": undefined,
+      "module": undefined,
+      "nodePrefixForCoreModules": true,
+      "optionalChaining": true,
+      "templateLiteral": true,
+    },
+    "target": "web",
+  },
   "mode": "none",
   "module": Object {
     "defaultRules": Array [
@@ -109,30 +129,6 @@ Object {
         "type": "javascript/esm",
       },
       Object {
-        "resolve": Object {
-          "fullySpecified": true,
-          "preferRelative": true,
-        },
-        "test": /\\\\\\.css\\$/i,
-        "type": "css/auto",
-      },
-      Object {
-        "mimetype": "text/css+module",
-        "resolve": Object {
-          "fullySpecified": true,
-          "preferRelative": true,
-        },
-        "type": "css/module",
-      },
-      Object {
-        "mimetype": "text/css",
-        "resolve": Object {
-          "fullySpecified": true,
-          "preferRelative": true,
-        },
-        "type": "css",
-      },
-      Object {
         "dependency": "url",
         "oneOf": Array [
           Object {
@@ -145,24 +141,7 @@ Object {
         ],
       },
     ],
-    "generator": Object {
-      "css": Object {
-        "esModule": true,
-        "exportsOnly": false,
-      },
-      "css/auto": Object {
-        "esModule": true,
-        "exportsConvention": "as-is",
-        "exportsOnly": false,
-        "localIdentName": "[uniqueName]-[id]-[local]",
-      },
-      "css/module": Object {
-        "esModule": true,
-        "exportsConvention": "as-is",
-        "exportsOnly": false,
-        "localIdentName": "[uniqueName]-[id]-[local]",
-      },
-    },
+    "generator": Object {},
     "noParse": undefined,
     "parser": Object {
       "asset": Object {
@@ -170,45 +149,68 @@ Object {
           "maxSize": 8096,
         },
       },
-      "css": Object {
-        "namedExports": true,
-      },
-      "css/auto": Object {
-        "namedExports": true,
-      },
-      "css/module": Object {
-        "namedExports": true,
-      },
       "javascript": Object {
         "dynamicImportMode": "lazy",
         "dynamicImportPrefetch": false,
         "dynamicImportPreload": false,
+        "exportsPresence": undefined,
         "exprContextCritical": true,
+        "importExportsPresence": undefined,
+        "overrideStrict": undefined,
+        "reexportExportsPresence": undefined,
+        "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
       "javascript/auto": Object {
         "dynamicImportMode": "lazy",
         "dynamicImportPrefetch": false,
         "dynamicImportPreload": false,
+        "exportsPresence": undefined,
         "exprContextCritical": true,
+        "importExportsPresence": undefined,
+        "overrideStrict": undefined,
+        "reexportExportsPresence": undefined,
+        "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
       "javascript/dynamic": Object {
         "dynamicImportMode": "lazy",
         "dynamicImportPrefetch": false,
         "dynamicImportPreload": false,
+        "exportsPresence": undefined,
         "exprContextCritical": true,
+        "importExportsPresence": undefined,
+        "overrideStrict": undefined,
+        "reexportExportsPresence": undefined,
+        "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
       "javascript/esm": Object {
         "dynamicImportMode": "lazy",
         "dynamicImportPrefetch": false,
         "dynamicImportPreload": false,
+        "exportsPresence": undefined,
         "exprContextCritical": true,
+        "importExportsPresence": undefined,
+        "overrideStrict": undefined,
+        "reexportExportsPresence": undefined,
+        "strictExportPresence": false,
         "url": true,
+        "worker": Array [
+          "...",
+        ],
         "wrappedContextCritical": false,
       },
     },
@@ -221,7 +223,7 @@ Object {
     "global": "warn",
   },
   "optimization": Object {
-    "chunkIds": "named",
+    "chunkIds": "natural",
     "concatenateModules": false,
     "innerGraph": false,
     "mangleExports": false,
@@ -229,30 +231,21 @@ Object {
     "minimize": false,
     "minimizer": Array [
       SwcJsMinimizerRspackPlugin {
-        "_options": Object {
-          "compress": "{\\"passes\\":1,\\"pure_funcs\\":[],\\"drop_console\\":false}",
-          "exclude": undefined,
-          "extractComments": undefined,
-          "format": "{\\"comments\\":false,\\"asciiOnly\\":false}",
-          "include": undefined,
-          "mangle": "{\\"keep_classnames\\":false,\\"keep_fnames\\":false}",
-          "module": undefined,
-          "test": undefined,
-        },
+        "_args": Array [],
         "affectedHooks": "compilation",
         "name": "SwcJsMinimizerRspackPlugin",
       },
-      SwcCssMinimizerRspackPlugin {
-        "_options": undefined,
+      LightningCssMinimizerRspackPlugin {
+        "_args": Array [],
         "affectedHooks": undefined,
-        "name": "SwcCssMinimizerRspackPlugin",
+        "name": "LightningCssMinimizerRspackPlugin",
       },
     ],
-    "moduleIds": "named",
+    "moduleIds": "natural",
     "nodeEnv": false,
     "providedExports": true,
     "realContentHash": false,
-    "removeAvailableModules": true,
+    "removeAvailableModules": false,
     "removeEmptyChunks": true,
     "runtimeChunk": false,
     "sideEffects": "flag",
@@ -275,7 +268,6 @@ Object {
       "chunks": "async",
       "defaultSizeTypes": Array [
         "javascript",
-        "css",
         "unknown",
       ],
       "hidePathInfo": false,
@@ -289,8 +281,10 @@ Object {
   "output": Object {
     "assetModuleFilename": "[hash][ext][query]",
     "asyncChunks": true,
+    "charset": true,
     "chunkFilename": "[name].js",
     "chunkFormat": "array-push",
+    "chunkLoadTimeout": 120000,
     "chunkLoading": "jsonp",
     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
     "clean": false,
@@ -341,7 +335,7 @@ Object {
     "pathinfo": false,
     "publicPath": "auto",
     "scriptType": false,
-    "sourceMapFilename": "[file].map",
+    "sourceMapFilename": "[file].map[query]",
     "strictModuleErrorHandling": false,
     "trustedTypes": undefined,
     "uniqueName": "@rspack/test-tools",
@@ -376,22 +370,6 @@ Object {
           "module",
           "...",
         ],
-      },
-      "css-import": Object {
-        "conditionNames": Array [
-          "webpack",
-          "production",
-          "style",
-        ],
-        "extensions": Array [
-          ".css",
-        ],
-        "mainFields": Array [
-          "style",
-          "...",
-        ],
-        "mainFiles": Array [],
-        "preferRelative": true,
       },
       "esm": Object {
         "aliasFields": Array [

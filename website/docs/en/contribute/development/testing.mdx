@@ -39,7 +39,7 @@ Node.js testing provides three test suites:
 
 ### Webpack Testing
 
-Rspack copied the whole Webpack test suite to the `webpack-test` folder to check the compatibility of webpack. If you need to add new test cases, it is recommended to first check if the case has been exists in this folder. You can enable a test case by removing the `test.filter.js` file or modifying its return value to `true`.
+Rspack copied the whole Webpack test suite to the `tests/webpack-test` folder to check the compatibility of webpack. If you need to add new test cases, it is recommended to first check if the case has been exists in this folder. You can enable a test case by removing the `test.filter.js` file or modifying its return value to `true`.
 
 You can run Webpack tests by running `./x test webpack` or `pnpm run test:webpack` at the root folder.
 
@@ -64,7 +64,7 @@ You can also go to the `packages/rspack-test-tools` folder and run `npm run test
 
 ### Webpack Plugin Testing
 
-Due to implementation differences and performance considerations, Rspack will internally support some Webpack plugins. Similarly, the test suites for these plugins are copied to the `plugin-test` folder to test the compatibility of the plugins.
+Due to implementation differences and performance considerations, Rspack will internally support some Webpack plugins. Similarly, the test suites for these plugins are copied to the `tests/plugin-test` folder to test the compatibility of the plugins.
 
 You can run Webpack plugin tests by running `./x test plugin` or `pnpm run test:plugin` at the root folder.
 

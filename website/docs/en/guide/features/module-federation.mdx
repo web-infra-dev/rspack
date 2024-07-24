@@ -4,19 +4,81 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
 
-Module Federation allows JavaScript applications to dynamically load code from other builds at runtime.
-This feature has several use cases, including:
+Module Federation is an architectural pattern for the decentralization of JavaScript applications (similar to microservices on the server-side). It allows you to share code and resources among multiple JavaScript applications (or micro-frontends).
 
-- Independent applications (known as "microfrontends" in microfrontend architecture) to share modules without the need to recompile the entire application.
+The Rspack team worked closely with the Module Federation development team, and provides first-class support for the Module Federation.
+
+## Use case
+
+Module Federation has some typical use cases, including:
+
+- Allow independent applications (known as "microfrontends" in microfrontend architecture) to share modules without the need to recompile the entire application.
 - Distributed teams to work on different parts of the same application without the need to recompile the entire application.
 - Dynamic code loading and sharing between applications during runtime
 
-Rspack supports two versions of Module Federation: Module Federation 1.0 and Module Federation 1.5.
+Module Federation can help you:
 
-- Module Federation 1.0 is the current implementation of ModuleFederationPlugin in Webpack.
-- Module Federation 1.5, among other things, adds runtime plugin functionality to 1.0, allowing for the extension of Module Federation's behavior, functionality, and providing control inversion to users.
+- Reduce code duplication
+- Improve code maintainability
+- Lower the overall size of your applications
+- Enhance the performance of your applications
 
-Detailed configuration can be found in:
+## How to use
 
-- [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin)
-- [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1)
+There are currently several versions of Module Federation, you can choose one to use:
+
+### Module Federation v1.0
+
+This version was implemented for compatibility with the [webpack.container.ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/).
+
+You can use it through Rspack's [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1).
+
+:::tip
+Module Federation v1.0 is no longer being iterated. We recommend using Module Federation v1.5 or v2.0.
+:::
+
+### Module Federation v1.5
+
+This version is natively supported in Rspack. In addition to supporting module export, module loading, and dependency sharing capabilities of Module Federation v1.0, it also adds runtime plugin functionality, allowing users to extend the behavior and functionality of module federation.
+
+You can use it with Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), no need to install any plugins.
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  output: {
+    // set uniqueName explicitly to make HMR work
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+> Refer to: [Module Federation v1.5 Example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/module-federation-v1.5).
+
+### Module Federation v2.0
+
+This is the enhanced version of Module Federation. Based on Module Federation v1.5, it provides some additional features out of the box, such as dynamic type hints and manifest, etc. These features make Module Federation more suitable for supporting micro-front-end architecture of large web applications.
+
+You need to install the additional `@module-federation/enhanced` plugin to use Module Federation v2.0.
+
+```js title="rspack.config.js"
+const {
+  ModuleFederationPlugin,
+} = require('@module-federation/enhanced/rspack');
+
+module.exports = {
+  plugins: [
+    new ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+Please refer to the [Module Federation v2.0 documentation](https://module-federation.io/) for detailed usage.

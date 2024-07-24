@@ -12,6 +12,7 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
     }
   }
 }
+
 #[napi(object)]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
@@ -19,13 +20,13 @@ pub struct JsAssetInfo {
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
-  // pub full_hash:
+  pub fullhash: Vec<String>,
   /// the value(s) of the chunk hash used for this asset
-  pub chunk_hash: Vec<String>,
+  pub chunkhash: Vec<String>,
   /// the value(s) of the module hash used for this asset
-  // pub module_hash:
+  // pub modulehash:
   /// the value(s) of the content hash used for this asset
-  pub content_hash: Vec<String>,
+  pub contenthash: Vec<String>,
   // when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   pub source_filename: Option<String>,
   /// size in bytes, only set after asset has been emitted
@@ -38,6 +39,13 @@ pub struct JsAssetInfo {
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: JsAssetInfoRelated,
+  /// unused css local ident for the css chunk
+  pub css_unused_idents: Option<Vec<String>>,
+  /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
+  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
+  /// in the rust struct and have the Js side to reshape and align with webpack
+  /// Related: packages/rspack/src/Compilation.ts
+  pub extras: serde_json::Map<String, serde_json::Value>,
 }
 
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
@@ -47,12 +55,15 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       minimized: i.minimized,
       development: i.development,
       hot_module_replacement: i.hot_module_replacement,
-      chunk_hash: i.chunk_hash.into_iter().collect(),
+      chunk_hash: i.chunkhash.into_iter().collect(),
       related: i.related.into(),
-      content_hash: i.content_hash.into_iter().collect(),
+      full_hash: i.fullhash.into_iter().collect(),
+      content_hash: i.contenthash.into_iter().collect(),
       version: String::from(""),
       source_filename: i.source_filename,
       javascript_module: i.javascript_module,
+      css_unused_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
+      extras: i.extras,
     }
   }
 }
@@ -79,10 +90,13 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       development: info.development,
       hot_module_replacement: info.hot_module_replacement,
       related: info.related.into(),
-      chunk_hash: info.chunk_hash.into_iter().collect(),
-      content_hash: info.content_hash.into_iter().collect(),
+      chunkhash: info.chunk_hash.into_iter().collect(),
+      fullhash: info.full_hash.into_iter().collect(),
+      contenthash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
       javascript_module: info.javascript_module,
+      css_unused_idents: info.css_unused_idents.map(|i| i.into_iter().collect()),
+      extras: info.extras,
     }
   }
 }

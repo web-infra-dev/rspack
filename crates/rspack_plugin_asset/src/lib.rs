@@ -1,21 +1,17 @@
 #![feature(let_chains)]
 
-use std::{collections::HashMap, hash::Hash};
+use std::{borrow::Cow, hash::Hasher};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
-use rkyv::{from_bytes, to_bytes, AlignedVec, Archive, Deserialize, Serialize};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  tree_shaking::{
-    analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
-  },
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildExtraDataType,
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetParserDataUrl, BuildMetaDefaultObject,
+  BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
   CompilerOptions, GenerateContext, Module, ModuleGraph, NormalModule, ParseContext,
-  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, ResourceData, RuntimeGlobals,
-  SourceType, NAMESPACE_OBJECT_EXPORT,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -45,8 +41,7 @@ type IsInline = bool;
 const ASSET_INLINE: bool = true;
 const ASSET_RESOURCE: bool = false;
 
-#[derive(Debug, Clone, Archive, Serialize, Deserialize)]
-#[archive(compare(PartialEq), check_bytes)]
+#[derive(Debug, Clone)]
 enum CanonicalizedDataUrlOption {
   Source,
   Asset(IsInline),
@@ -112,7 +107,7 @@ impl AssetParserAndGenerator {
     compiler_options: &CompilerOptions,
   ) -> RspackHashDigest {
     let mut hasher = RspackHash::from(&compiler_options.output);
-    source.hash(&mut hasher);
+    hasher.write(&source.buffer());
     hasher.digest(&compiler_options.output.hash_digest)
   }
 
@@ -123,7 +118,11 @@ impl AssetParserAndGenerator {
     source: &BoxSource,
   ) -> Option<String> {
     let func_args = AssetGeneratorDataUrlFnArgs {
-      filename: resource_data.resource_path.to_string_lossy().to_string(),
+      filename: resource_data
+        .resource_path
+        .as_deref()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default(),
       content: source.source().into_owned().to_string(),
     };
 
@@ -148,15 +147,18 @@ impl AssetParserAndGenerator {
     {
       return Ok(format!("{mimetype}{parameters}"));
     }
-    mime_guess::MimeGuess::from_path(&resource_data.resource_path)
-      .first_raw()
-      .map(ToOwned::to_owned)
-      .ok_or_else(|| {
-        error!(
-          "failed to guess mime type of {:?}",
-          resource_data.resource_path
-        )
-      })
+    if let Some(resource_path) = &resource_data.resource_path {
+      return mime_guess::MimeGuess::from_path(resource_path)
+        .first_raw()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| {
+          error!(
+            "DataUrl can't be generated automatically, because there is no mimetype for \"{ext:?}\" in mimetype database. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl",
+            ext = resource_path.extension()
+          )
+        });
+    }
+    Err(error!("DataUrl can't be generated automatically. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl"))
   }
 
   fn get_encoding(
@@ -227,9 +229,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
     let original_source_size = module.original_source().map_or(0, |source| source.size()) as f64;
-    match source_type {
+    match source_type.unwrap_or(&SourceType::Asset) {
       SourceType::Asset => original_source_size,
       SourceType::JavaScript => {
         if module.original_source().is_none() {
@@ -274,8 +276,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       source,
       build_meta,
       build_info,
-      compiler_options,
-      module_identifier,
       ..
     } = parse_context;
     build_info.strict = true;
@@ -307,11 +307,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         ))
       }
     };
-    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      AssetModule::new(module_identifier).analyze()
-    } else {
-      OptimizeAnalyzeResult::default()
-    };
 
     Ok(
       rspack_core::ParseResult {
@@ -321,15 +316,12 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         source,
         presentational_dependencies: vec![],
         code_generation_dependencies: vec![],
-        analyze_result,
         side_effects_bailout: None,
       }
       .with_empty_diagnostic(),
     )
   }
 
-  // Safety: `original_source` and `ast_and_source` are available in code generation.
-  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,
@@ -401,7 +393,22 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .module_generator_options
             .and_then(|x| x.asset_public_path())
           {
-            let public_path = public_path.render(compilation, &filename);
+            let public_path = match public_path {
+              PublicPath::Filename(template) => {
+                let (public_path, another_asset_info) = compilation.get_asset_path_with_info(
+                  template,
+                  PathData::default()
+                    .module(module)
+                    .chunk_graph(&generate_context.compilation.chunk_graph)
+                    .content_hash(contenthash)
+                    .hash(contenthash)
+                    .filename(&source_file_name),
+                )?;
+                asset_info.merge_another(&another_asset_info);
+                PublicPath::ensure_ends_with_slash(public_path)
+              }
+              PublicPath::Auto => public_path.render(compilation, &filename),
+            };
             serde_json::to_string(&format!("{public_path}{filename}"))
               .map_err(|e| error!(e.to_string()))?
           } else {
@@ -466,26 +473,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     result
   }
-  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
-    extra_data.insert(
-      BuildExtraDataType::AssetParserAndGenerator,
-      to_bytes::<_, 256>(&self.parsed_asset_config).expect("Failed to store extra data"),
-    );
-  }
-
-  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
-    if let Some(data) = extra_data.get(&BuildExtraDataType::AssetParserAndGenerator) {
-      self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(data)
-        .expect("Failed to resume extra data");
-    }
-  }
 
   fn get_concatenation_bailout_reason(
     &self,
     _module: &dyn rspack_core::Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     None
   }
 }
@@ -501,43 +495,14 @@ async fn render_manifest(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
 
-  let ordered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules(chunk_ukey, &module_graph);
+  let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::Asset,
+    &module_graph,
+  );
 
   let assets = ordered_modules
     .par_iter()
-    .filter(|m| {
-      let module = module_graph
-        .module_by_identifier(&m.identifier())
-        // FIXME: use result
-        .expect("Failed to get module");
-
-      let all_incoming_analyzed = module_graph
-        .get_incoming_connections(&module.identifier())
-        .iter()
-        .all(|c| {
-          if let Some(original_module_identifier) = c.original_module_identifier {
-            module_graph
-              .module_graph_module_by_identifier(&original_module_identifier)
-              .map(|original_module| {
-                !compilation
-                  .bailout_module_identifiers
-                  .contains_key(&original_module.module_identifier)
-                  && original_module.module_type.is_js_like()
-              })
-              .unwrap_or(false)
-          } else {
-            false
-          }
-        });
-
-      module.source_types().contains(&SourceType::Asset)
-        && (!all_incoming_analyzed
-          || compilation
-            .include_module_ids
-            .contains(&module.identifier()))
-    })
     .map(|m| {
       let code_gen_result = compilation
         .code_generation_results

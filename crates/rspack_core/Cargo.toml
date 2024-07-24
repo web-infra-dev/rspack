@@ -6,7 +6,7 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anymap = "1.0.0-beta.2"
+anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
@@ -15,35 +15,30 @@ derivative = { workspace = true }
 dyn-clone = "1.0.17"
 either = "1"
 futures = { workspace = true }
-glob-match = "0.2.1"
 hashlink = { workspace = true }
-hex = "0.4.3"
-indexmap = { workspace = true }
+hex = { workspace = true }
+indexmap = { workspace = true, features = ["rayon"] }
 indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
 num-bigint = "0.4.4"
 once_cell = { workspace = true }
-oxc_resolver = { version = "1.7.0", features = ["package_json_raw_json_api"] }
 paste = { workspace = true }
-petgraph = { version = "0.6.4", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
-rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_ast = { path = "../rspack_ast" }
-rspack_database = { path = "../rspack_database", features = ["rayon"] }
+rspack_collections = { path = "../rspack_collections" }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
-rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_macros = { path = "../rspack_macros" }
 rspack_regex = { path = "../rspack_regex" }
+rspack_resolver = { version = "0.1.0", features = ["package_json_raw_json_api"] }
 rspack_sources = { workspace = true }
-rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
@@ -55,6 +50,7 @@ swc_core = { workspace = true, features = [
   "__utils",
   "__ecma_transforms",
   "ecma_ast",
+  "ecma_parser",
   "ecma_codegen",
   "ecma_quote",
   "common_concurrent",

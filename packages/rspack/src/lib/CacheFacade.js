@@ -59,6 +59,7 @@ class MultiItemCache {
 	getPromise() {
 		// @ts-expect-error
 		const next = i => {
+			// @ts-ignore if your typescript version >= 5.5, this line will throw an error
 			return this._items[i].getPromise().then(result => {
 				if (result !== undefined) return result;
 				if (++i < this._items.length) return next(i);

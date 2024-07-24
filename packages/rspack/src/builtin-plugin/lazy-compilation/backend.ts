@@ -9,9 +9,9 @@ import type {
 	IncomingMessage,
 	ServerOptions as ServerOptionsImport,
 	ServerResponse
-} from "http";
-import type { AddressInfo, ListenOptions, Server, Socket } from "net";
-import type { SecureContextOptions, TlsOptions } from "tls";
+} from "node:http";
+import type { AddressInfo, ListenOptions, Server, Socket } from "node:net";
+import type { SecureContextOptions, TlsOptions } from "node:tls";
 
 import type { Compiler } from "../..";
 
@@ -78,7 +78,7 @@ const getBackend =
 			typeof options.server === "function"
 				? options.server
 				: (() => {
-						const http = isHttps ? require("https") : require("http");
+						const http = isHttps ? require("node:https") : require("node:http");
 						return http.createServer.bind(http, options.server);
 					})();
 		const listen =

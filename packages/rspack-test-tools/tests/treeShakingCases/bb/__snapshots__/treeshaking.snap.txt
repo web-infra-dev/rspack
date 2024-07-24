@@ -6,11 +6,16 @@ __webpack_require__.d(__webpack_exports__, {
   ccc: function() { return ccc; }
 });
 const ccc = 30;
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./c.js");
 
+
 _a_js__WEBPACK_IMPORTED_MODULE_0__.ccc;
+
+
 }),
 
 },function(__webpack_require__) {

@@ -1,6 +1,6 @@
 import { HashProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, ITester, TTestConfig } from "../type";
+import { ECompilerType, type ITester, type TTestConfig } from "../type";
 
 export type THashCaseConfig = Pick<
 	TTestConfig<ECompilerType.Rspack>,

@@ -6,7 +6,7 @@ module.exports = {
 			{
 				test: /\.png$/,
 				use: [{ loader: "file-loader", options: { esModule: false } }],
-				type: "js"
+				type: "javascript/auto"
 			}
 		]
 	}

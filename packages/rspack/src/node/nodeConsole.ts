@@ -8,8 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-const util = require("util");
-const truncateArgs = require("../logging/truncateArgs");
+import * as util from "node:util";
+import { truncateArgs } from "../logging/truncateArgs";
+
 // @ts-expect-error
 export = ({ colors, appendOnly, stream }) => {
 	// @ts-expect-error
@@ -28,9 +29,8 @@ export = ({ colors, appendOnly, stream }) => {
 				str.replace(/\n/g, colorSuffix + "\n" + prefix + colorPrefix) +
 				colorSuffix
 			);
-		} else {
-			return prefix + str.replace(/\n/g, "\n" + prefix);
 		}
+		return prefix + str.replace(/\n/g, "\n" + prefix);
 	};
 
 	const clearStatusMessage = () => {

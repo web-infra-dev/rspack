@@ -1,10 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::{
   generate_javascript_hmr_runtime,
@@ -16,7 +15,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ReadFileChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -24,12 +23,10 @@ pub struct ReadFileChunkLoadingRuntimeModule {
 
 impl Default for ReadFileChunkLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/readfile_chunk_loading"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/readfile_chunk_loading"),
+      None,
+    )
   }
 }
 

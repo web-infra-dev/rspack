@@ -10,9 +10,4 @@ module.exports = {
 		providedExports: true,
 		usedExports: "global"
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	}
 };

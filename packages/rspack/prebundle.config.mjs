@@ -1,12 +1,18 @@
 // @ts-check
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** @type {import('prebundle').Config} */
 export default {
 	dependencies: [
 		"zod",
-		"zod-validation-error",
+		{
+			name: "zod-validation-error",
+			externals: {
+				zod: "../zod"
+			}
+		},
 		"json-parse-even-better-errors",
 		"neo-async",
 		"graceful-fs",
@@ -22,12 +28,24 @@ export default {
 			externals: {
 				"caniuse-lite": "caniuse-lite",
 				"/^caniuse-lite(/.*)/": "caniuse-lite$1"
+			},
+			// preserve the `require(require.resolve())`
+			beforeBundle(task) {
+				const nodeFile = join(task.depPath, "node.js");
+				const content = readFileSync(nodeFile, "utf-8");
+				writeFileSync(
+					nodeFile,
+					content.replaceAll(
+						"require(require.resolve",
+						'eval("require")(require.resolve'
+					)
+				);
 			}
 		},
 		{
 			name: "enhanced-resolve",
 			externals: {
-				tapable: "tapable",
+				tapable: "@rspack/lite-tapable",
 				"graceful-fs": "../graceful-fs/index.js"
 			},
 			afterBundle({ depPath, distPath }) {
@@ -46,6 +64,21 @@ export default {
 						"export type ResolveRequest ="
 					)
 				);
+			}
+		},
+		{
+			name: "webpack-sources",
+			ignoreDts: true,
+			afterBundle(task) {
+				const __filename = fileURLToPath(import.meta.url);
+				const __dirname = dirname(__filename);
+				const dtsInputPath = join(
+					__dirname,
+					"declarations/webpack-sources.d.ts"
+				);
+				const dtsContent = readFileSync(dtsInputPath, "utf-8");
+				const dtsOutputPath = join(task.distPath, "index.d.ts");
+				writeFileSync(dtsOutputPath, dtsContent, "utf-8");
 			}
 		}
 	]

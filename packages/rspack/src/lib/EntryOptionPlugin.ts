@@ -8,12 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
+import assert from "node:assert";
 
-import { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
+import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 import {
 	DynamicEntryPlugin,
-	EntryOptions,
+	type EntryOptions,
 	EntryPlugin
 } from "../builtin-plugin";
 

@@ -1,7 +1,6 @@
 use derivative::Derivative;
-use rspack_core::{ChunkUkey, Module};
-use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet;
+use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_core::{ChunkUkey, Compilation, Module};
 
 use crate::{common::SplitChunkSizes, CacheGroup};
 
@@ -29,7 +28,7 @@ pub(crate) struct ModuleGroup {
   pub sizes: SplitChunkSizes,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[derivative(Debug = "ignore")]
-  pub chunks: FxHashSet<ChunkUkey>,
+  pub chunks: UkeySet<ChunkUkey>,
 }
 
 impl ModuleGroup {
@@ -51,26 +50,26 @@ impl ModuleGroup {
     }
   }
 
-  pub fn add_module(&mut self, module: &dyn Module) {
+  pub fn add_module(&mut self, module: &dyn Module, compilation: &Compilation) {
     let old_len = self.modules.len();
     self.modules.insert(module.identifier());
 
     if self.modules.len() != old_len {
       module.source_types().iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
-        *size += module.size(ty);
+        *size += module.size(Some(ty), compilation);
       });
     }
   }
 
-  pub fn remove_module(&mut self, module: &dyn Module) {
+  pub fn remove_module(&mut self, module: &dyn Module, compilation: &Compilation) {
     let old_len = self.modules.len();
     self.modules.remove(&module.identifier());
 
     if self.modules.len() != old_len {
       module.source_types().iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
-        *size -= module.size(ty);
+        *size -= module.size(Some(ty), compilation);
         *size = size.max(0.0)
       });
     }

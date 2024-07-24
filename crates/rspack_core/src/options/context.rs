@@ -5,16 +5,17 @@ use std::{
 };
 
 use rspack_loader_runner::ResourceData;
+use rspack_util::atom::Atom;
 
 use crate::{contextify, parse_resource};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Context {
-  inner: String,
+  inner: Atom,
 }
 
 impl Context {
-  pub fn new(inner: String) -> Self {
+  pub fn new(inner: Atom) -> Self {
     Self { inner }
   }
 
@@ -25,7 +26,7 @@ impl Context {
 
 impl AsRef<Path> for Context {
   fn as_ref(&self) -> &Path {
-    Path::new(&self.inner)
+    Path::new(self.inner.as_str())
   }
 }
 
@@ -45,28 +46,20 @@ impl Deref for Context {
 
 impl From<String> for Context {
   fn from(v: String) -> Self {
-    Self { inner: v }
+    Self { inner: v.into() }
   }
 }
 
 impl From<&str> for Context {
   fn from(v: &str) -> Self {
-    Self {
-      inner: v.to_owned(),
-    }
-  }
-}
-
-impl From<Context> for String {
-  fn from(v: Context) -> Self {
-    v.inner
+    Self { inner: v.into() }
   }
 }
 
 impl From<PathBuf> for Context {
   fn from(v: PathBuf) -> Self {
     Self {
-      inner: v.to_string_lossy().into_owned(),
+      inner: v.to_string_lossy().into(),
     }
   }
 }
@@ -74,7 +67,7 @@ impl From<PathBuf> for Context {
 impl From<&Path> for Context {
   fn from(v: &Path) -> Self {
     Self {
-      inner: v.to_string_lossy().into_owned(),
+      inner: v.to_string_lossy().into(),
     }
   }
 }
@@ -87,18 +80,51 @@ impl fmt::Display for Context {
 
 impl Context {
   pub fn shorten(&self, request: &str) -> String {
-    contextify(&self.inner, request)
+    contextify(self.inner.as_str(), request)
   }
 }
 
+fn dirname(path: &str) -> &str {
+  if path == "/" {
+    return path;
+  }
+  let i = path.rfind('/');
+  let j = path.rfind("\\\\");
+  let i2 = path.find('/');
+  let j2 = path.find("\\\\");
+  let (idx, is_i) = match (i, j) {
+    (None, None) => return path,
+    (None, Some(j)) => (j, false),
+    (Some(i), None) => (i, true),
+    (Some(i), Some(j)) => {
+      if i > j {
+        (i, true)
+      } else {
+        (j, false)
+      }
+    }
+  };
+  let idx2 = (if is_i { i2 } else { j2 }).expect("should have value");
+  if idx == idx2 {
+    return &path[..idx + 1];
+  }
+  &path[..idx]
+}
+
 pub fn get_context(resource_data: &ResourceData) -> Context {
-  if let Some(dirname) = resource_data.resource_path.parent() {
-    dirname.into()
-  } else if let Some(parsed) = parse_resource(&resource_data.resource)
-    && let Some(dirname) = parsed.path.parent()
+  if let Some(resource_path) = &resource_data.resource_path
+    && let Some(dirname) = resource_path.parent()
   {
     dirname.into()
+  } else if let Some(parsed) = parse_resource(&resource_data.resource) {
+    dirname(&parsed.path.to_string_lossy()).into()
   } else {
     Context::from("")
   }
+}
+
+#[test]
+fn dirname_data_uri() {
+  let d = dirname("data:text/javascript,import \"a\"");
+  assert_eq!(d, "data:text/");
 }

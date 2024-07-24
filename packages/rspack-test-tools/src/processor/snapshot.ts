@@ -1,18 +1,13 @@
-import { type Compiler as RspackCompiler } from "@rspack/core";
-import fs from "fs-extra";
-import path from "path";
-import {
-	type Compilation as WebpackCompilation,
-	type Compiler as WebpackCompiler
+import path from "node:path";
+import type { Compiler as RspackCompiler } from "@rspack/core";
+import type {
+	Compilation as WebpackCompilation,
+	Compiler as WebpackCompiler
 } from "webpack";
 
 import { escapeEOL } from "../helper";
-import { ECompilerType, ITestContext, ITestEnv } from "../type";
-import { BasicProcessor, IBasicProcessorOptions } from "./basic";
-
-declare var global: {
-	updateSnapshot: boolean;
-};
+import type { ECompilerType, ITestContext, ITestEnv } from "../type";
+import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
 export interface ISnapshotProcessorOptions<T extends ECompilerType>
 	extends IBasicProcessorOptions<T> {
@@ -74,12 +69,6 @@ export class SnapshotProcessor<
 					`./__snapshots__/${this._snapshotOptions.snapshot}`
 				);
 
-		if (!fs.existsSync(snapshotPath) || global.updateSnapshot) {
-			fs.ensureDirSync(path.dirname(snapshotPath));
-			fs.writeFileSync(snapshotPath, content, "utf-8");
-			return;
-		}
-		const snapshotContent = escapeEOL(fs.readFileSync(snapshotPath, "utf-8"));
-		env.expect(content).toBe(snapshotContent);
+		env.expect(content).toMatchFileSnapshot(snapshotPath);
 	}
 }

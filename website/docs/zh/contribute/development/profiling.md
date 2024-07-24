@@ -20,7 +20,7 @@
 两种方式开启 tracing:
 
 - 如果你正在使用 `@rspack/cli`，你可以通过 `RSPACK_PROFILE` 环境变量来开启它。
-- 如果你正在使用 `@rspack/core` 而不是 `@rspack/cli`，你可以通过`experimental_registerGlobalTrace` 和 `experimental_cleanupGlobalTrace` 开启，查看 [我们如何使用这两个函数在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/25df2981ce1f0232ab05109c0995a249f57e2a09/packages/rspack-cli/src/utils/profile.ts#L186-L187) 获取更多信息。
+- 如果你正在使用 `@rspack/core` 而不是 `@rspack/cli`，你可以通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启，查看 [我们如何使用这两个函数在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) 获取更多信息。
 
 ### Chrome
 
@@ -34,7 +34,7 @@
 RSPACK_PROFILE=TRACE=layer=chrome rspack build
 ```
 
-产生了一个 trace 文件 (`.rspack-profile-${timestamp}/trace.json`) 在目前的工作目录。
+产生了一个 trace 文件 (`.rspack-profile-${timestamp}-${pid}/trace.json`) 在目前的工作目录。
 
 JSON 跟踪文件可以在 `chrome://tracing` 或者 [ui.perfetto.dev](https://ui.perfetto.dev) 查看。
 
@@ -50,7 +50,7 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 
 ### Nodejs Profiling
 
-如果我们发现性能瓶颈在JS端（比如js loader），那么我们需要进一步分析 js 端，可以使用 Nodejs Profiling 来分析。例如
+如果我们发现性能瓶颈在 JS 端（比如 js loader），那么我们需要进一步分析 js 端，可以使用 Nodejs Profiling 来分析。例如
 
 ```bash
 node --cpu-prof {rspack_bin_path} -c rspack.config.js

@@ -1,9 +1,13 @@
-import path from "path";
+import path from "node:path";
 
 import FakeDocument from "../../helper/legacy/FakeDocument";
-import { ECompilerType } from "../../type";
-import { IBasicModuleScope, TBasicRunnerFile, TRunnerRequirer } from "../type";
-import { IBasicRunnerOptions } from "./basic";
+import type { ECompilerType } from "../../type";
+import type {
+	IBasicModuleScope,
+	TBasicRunnerFile,
+	TRunnerRequirer
+} from "../type";
+import type { IBasicRunnerOptions } from "./basic";
 import { CommonJsRunner } from "./cjs";
 
 interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>
@@ -23,7 +27,7 @@ export class WatchRunner<
 
 	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
-		globalContext["document"] = this.document;
+		globalContext.document = this.document;
 		return globalContext;
 	}
 
@@ -33,10 +37,10 @@ export class WatchRunner<
 		file: TBasicRunnerFile
 	): IBasicModuleScope {
 		const moduleScope = super.createModuleScope(requireFn, m, file);
-		moduleScope["__dirname"] = path.dirname(file.path);
-		moduleScope["document"] = this.globalContext!["document"];
-		moduleScope["STATE"] = this.state;
-		moduleScope["WATCH_STEP"] = this._watchOptions.stepName;
+		moduleScope.__dirname = path.dirname(file.path);
+		moduleScope.document = this.globalContext!.document;
+		moduleScope.STATE = this.state;
+		moduleScope.WATCH_STEP = this._watchOptions.stepName;
 		return moduleScope;
 	}
 }

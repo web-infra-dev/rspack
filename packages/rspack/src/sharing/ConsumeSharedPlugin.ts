@@ -1,14 +1,14 @@
 import {
-	BuiltinPlugin,
+	type BuiltinPlugin,
 	BuiltinPluginName,
-	RawConsumeSharedPluginOptions
+	type RawConsumeSharedPluginOptions
 } from "@rspack/binding";
 
+import type { Compiler } from "../Compiler";
 import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
 } from "../builtin-plugin/base";
-import { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
 import { isRequiredVersion } from "./utils";
@@ -46,7 +46,7 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 				(item, key) => {
 					if (Array.isArray(item))
 						throw new Error("Unexpected array in options");
-					let result =
+					const result =
 						item === key || !isRequiredVersion(item)
 							? // item is a request/key
 								{

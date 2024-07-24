@@ -1,10 +1,12 @@
-import {
+/// <reference types="../jest.d.ts" />
+
+import type EventEmitter from "node:events";
+import type {
 	Compiler as RspackCompiler,
 	RspackOptions,
 	Stats as RspackStats,
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
-import EventEmitter from "events";
 import type {
 	Compiler as WebpackCompiler,
 	Configuration as WebpackOptions,
@@ -12,7 +14,7 @@ import type {
 	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
 
-import { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
+import type { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
 
 export interface ITestContext {
 	getSource(sub?: string): string;
@@ -86,6 +88,8 @@ export interface ITesterConfig {
 	temp?: string;
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
+	compilerFactories?: TCompilerFactories;
+	contextValue?: Record<string, unknown>;
 	runnerFactory?: new (
 		name: string,
 		context: ITestContext
@@ -95,6 +99,7 @@ export interface ITesterConfig {
 export interface ITester {
 	step: number;
 	total: number;
+	getContext(): ITestContext;
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
 	check(env: ITestEnv): Promise<void>;
@@ -172,9 +177,16 @@ export interface ITestEnv {
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
+	[key: string]: unknown;
+}
+
+export const enum EDocumentType {
+	Fake = "fake",
+	JSDOM = "jsdom"
 }
 
 export type TTestConfig<T extends ECompilerType> = {
+	documentType?: EDocumentType;
 	validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
 	noTest?: boolean;
 	beforeExecute?: () => void;
@@ -212,3 +224,14 @@ export interface TRunnerFactory<T extends ECompilerType> {
 		env: ITestEnv
 	): ITestRunner;
 }
+
+export type TUpdateOptions = {
+	updateIndex: number;
+	totalUpdates: number;
+	changedFiles: string[];
+};
+
+export type TCompilerFactories = Record<
+	ECompilerType,
+	TCompilerFactory<ECompilerType>
+>;

@@ -12,6 +12,7 @@ pub enum TemplateStringKind {
   Raw,
 }
 
+#[inline]
 fn get_simplified_template_result(
   scanner: &mut JavascriptParser,
   kind: TemplateStringKind,
@@ -63,6 +64,7 @@ fn get_simplified_template_result(
   (quasis, parts)
 }
 
+#[inline]
 pub fn eval_tpl_expression(
   scanner: &mut JavascriptParser,
   tpl: &Tpl,
@@ -80,6 +82,7 @@ pub fn eval_tpl_expression(
   }
 }
 
+#[inline]
 pub fn eval_tagged_tpl_expression(
   scanner: &mut JavascriptParser,
   tagged_tpl: &TaggedTpl,

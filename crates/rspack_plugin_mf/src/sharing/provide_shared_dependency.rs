@@ -45,10 +45,6 @@ impl ProvideSharedDependency {
 }
 
 impl Dependency for ProvideSharedDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "ProvideSharedDependency"
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

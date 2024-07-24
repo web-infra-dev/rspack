@@ -2,6 +2,8 @@
 
 [JSON](https://en.wikipedia.org/wiki/JSON) is a first-class citizen with Rspack. You can import it directly, for example:
 
+## Default import
+
 ```json title="example.json"
 {
   "foo": "bar"
@@ -10,5 +12,20 @@
 
 ```ts title="index.js"
 import json from './example.json';
-json.foo; // bar
+console.log(json.foo); // "bar"
+```
+
+## Named import
+
+In non-`.mjs` non-strict ESM files, you can directly import properties from JSON.
+
+```json title="example.json"
+{
+  "foo": "bar"
+}
+```
+
+```ts title="index.js"
+import { foo } from './example.json';
+console.log(foo); // "bar"
 ```

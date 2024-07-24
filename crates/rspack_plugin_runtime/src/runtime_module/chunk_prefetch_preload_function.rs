@@ -1,13 +1,12 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ChunkPrefetchPreloadFunctionRuntimeModule {
   id: Identifier,
   runtime_function: RuntimeGlobals,
@@ -20,16 +19,14 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
     runtime_function: RuntimeGlobals,
     runtime_handlers: RuntimeGlobals,
   ) -> Self {
-    Self {
-      id: Identifier::from(format!(
+    Self::with_default(
+      Identifier::from(format!(
         "webpack/runtime/chunk_prefetch_function/{}",
         child_type
       )),
       runtime_function,
       runtime_handlers,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

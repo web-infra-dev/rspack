@@ -10,8 +10,8 @@
 
 import asyncLib from "neo-async";
 
-import { MultiCompiler } from "./MultiCompiler";
-import { Watching } from "./Watching";
+import type { MultiCompiler } from "./MultiCompiler";
+import type { Watching } from "./Watching";
 
 class MultiWatching {
 	watchings: Watching[];

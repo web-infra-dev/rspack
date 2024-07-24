@@ -35,7 +35,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, module: &dyn Module, _source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
@@ -50,10 +50,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       loaders,
       ..
     } = parse_context;
-    build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
-    // TODO default_object is not align with webpack
-    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn;
     let source = box_source.source();
     let strip_bom_source = source.strip_prefix('\u{feff}');
     let need_strip_bom = strip_bom_source.is_some();
@@ -108,6 +104,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       ),
     };
     build_info.json_data = data.clone();
+    build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Default;
+    // Ignore the json named exports warning, this violates standards, but other bundlers support it without warning.
+    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn { ignore: true };
 
     Ok(
       rspack_core::ParseResult {
@@ -120,7 +120,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         blocks: vec![],
         code_generation_dependencies: vec![],
         source: box_source,
-        analyze_result: Default::default(),
         side_effects_bailout: None,
       }
       .with_diagnostic(diagnostics),
@@ -200,7 +199,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     _module: &dyn Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     None
   }
 }

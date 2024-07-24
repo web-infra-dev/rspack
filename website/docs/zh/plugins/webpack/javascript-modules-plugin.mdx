@@ -1,0 +1,29 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# JavascriptModulesPlugin
+
+<ApiMeta addedVersion={'1.0.0-alpha.0'} />
+
+处理 JavaScript 的打包，一般用于获取 [JavascriptModulesPlugin 的相关钩子](/api/plugin-api/javascript-modules-plugin-hooks)：
+
+```js
+class MyJsMinimizerPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, compilation => {
+      // 用来获取 JavascriptModulesPlugin 的 chunkHash 钩子
+      const hooks =
+        compiler.webpack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+          compilation,
+        );
+      // 由于 JS chunk 被优化，内容改变，所以要更新 JS chunk 的 chunk hash
+      hooks.chunkHash.tap(MyJsMinimizerPlugin.name, (chunk, hash) => {
+        hash.update(`minimized by ${MyJsMinimizerPlugin.name}`);
+      });
+      // 优化 JS chunk
+      compilation.hooks.processAssets.tap(MyJsMinimizerPlugin.name, assets => {
+        optimize(assets);
+      });
+    });
+  }
+}
+```

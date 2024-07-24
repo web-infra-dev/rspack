@@ -1,13 +1,13 @@
+import path from "node:path";
 import {
-	DevServer,
-	MultiRspackOptions,
-	rspack,
-	RspackOptions
+	type DevServer,
+	type MultiRspackOptions,
+	type RspackOptions,
+	rspack
 } from "@rspack/core";
-import path from "path";
 
-import type { RspackCLI } from "../rspack-cli";
-import { RspackCommand, RspackPreviewCLIOptions } from "../types";
+import type { RspackCLI } from "../cli";
+import type { RspackCommand, RspackPreviewCLIOptions } from "../types";
 import { previewOptions } from "../utils/options";
 
 const defaultRoot = "dist";
@@ -85,7 +85,6 @@ async function getPreviewConfig(
 
 	if (Array.isArray(item)) {
 		return Promise.all(item.map(internalPreviewConfig));
-	} else {
-		return internalPreviewConfig(item as RspackOptions);
 	}
+	return internalPreviewConfig(item as RspackOptions);
 }

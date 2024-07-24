@@ -1,4 +1,7 @@
-import { IStatsAPIProcessorOptions, StatsAPIProcessor } from "../processor";
+import {
+	type IStatsAPIProcessorOptions,
+	StatsAPIProcessor
+} from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
 

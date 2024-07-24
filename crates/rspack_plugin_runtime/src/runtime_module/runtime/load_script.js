@@ -2,7 +2,7 @@ var inProgress = {};
 
 $UNIQUE_PREFIX$
 // loadScript function to load a script via script tag
-__webpack_require__.l = function (url, done, key, chunkId) {
+__webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 	if (inProgress[url]) {
 		inProgress[url].push(done);
 		return;
@@ -22,12 +22,13 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 		needAttach = true;
 		script = document.createElement('script');
 		$SCRIPT_TYPE$
-		script.charset = 'utf-8';
-		script.timeout = 120;
+		$SCRIPT_CHARSET$
+		script.timeout = $CHUNK_LOAD_TIMEOUT_IN_SECONDS$;
 		if (__webpack_require__.nc) {
 			script.setAttribute("nonce", __webpack_require__.nc);
 		}
 		$UNIQUE_SET_ATTRIBUTE$
+		$FETCH_PRIORITY_SET_ATTRIBUTE$
 		script.src = $URL$;
 
 		__CROSS_ORIGIN_LOADING_PLACEHOLDER__
@@ -50,7 +51,7 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 			type: 'timeout',
 			target: script
 		}),
-		120000
+		$CHUNK_LOAD_TIMEOUT$
 	);
 	script.onerror = onScriptComplete.bind(null, script.onerror);
 	script.onload = onScriptComplete.bind(null, script.onload);

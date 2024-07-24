@@ -7,9 +7,8 @@ use rspack_core::{
   get_js_chunk_filename_template, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
-  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
-  PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory,
-  SourceType,
+  DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
+  Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -27,7 +26,7 @@ async fn compilation(
 ) -> Result<()> {
   // HarmonyModulesPlugin
   compilation.set_dependency_factory(
-    DependencyType::EsmImport(ErrorSpan::default()),
+    DependencyType::EsmImport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -35,7 +34,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::EsmExport(ErrorSpan::default()),
+    DependencyType::EsmExport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -73,17 +72,17 @@ async fn compilation(
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::ContextElement,
+    DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import),
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ContextElement(rspack_core::ContextTypePrefix::Normal),
     params.normal_module_factory.clone(),
   );
   // ImportMetaContextPlugin
   compilation.set_dependency_factory(
     DependencyType::ImportMetaContext,
     params.context_module_factory.clone(),
-  );
-  compilation.set_dependency_factory(
-    DependencyType::ContextElement,
-    params.normal_module_factory.clone(),
   );
   // ImportPlugin
   compilation.set_dependency_factory(
@@ -105,6 +104,11 @@ async fn compilation(
     DependencyType::Provided,
     params.normal_module_factory.clone(),
   );
+  // ImportModule
+  compilation.set_dependency_factory(
+    DependencyType::LoaderImport,
+    params.normal_module_factory.clone(),
+  );
   // other
   compilation.set_dependency_factory(
     DependencyType::WebpackIsIncluded,
@@ -112,15 +116,15 @@ async fn compilation(
       normal_module_factory: params.normal_module_factory.clone(),
     }),
   );
-  compilation.set_dependency_factory(
-    DependencyType::CjsSelfReference,
-    Arc::new(SelfModuleFactory {}),
-  );
+
+  let self_factory = Arc::new(SelfModuleFactory {});
+  compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
+  compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
   Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -138,25 +142,25 @@ fn additional_tree_runtime_requirements(
 }
 
 #[plugin_hook(CompilationChunkHash for JsPlugin)]
-fn chunk_hash(
+async fn chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  self.get_chunk_hash(chunk_ukey, compilation, hasher)?;
+  self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
     .chunk_by_ukey
     .expect_get(chunk_ukey)
     .has_runtime(&compilation.chunk_group_by_ukey)
   {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   }
   Ok(())
 }
 
 #[plugin_hook(CompilationContentHash for JsPlugin)]
-fn content_hash(
+async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -168,13 +172,13 @@ fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   } else {
     chunk.id.hash(&mut hasher);
     chunk.ids.hash(&mut hasher);
   }
 
-  self.get_chunk_hash(chunk_ukey, compilation, hasher)?;
+  self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
 
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
@@ -306,18 +310,27 @@ impl Plugin for JsPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::Js,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsEsm,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsDynamic,
-      Box::new(|_, _| Box::new(JavaScriptParserAndGenerator) as Box<dyn ParserAndGenerator>),
-    );
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsAuto, {
+        Box::new(move |_, _| {
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+        })
+      });
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsEsm, {
+        Box::new(move |_, _| {
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+        })
+      });
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::JsDynamic, {
+        Box::new(move |_, _| {
+          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+        })
+      });
 
     Ok(())
   }

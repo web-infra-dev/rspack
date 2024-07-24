@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 
-import { ECompilerType, TCompilerOptions } from "../type";
+import type { ECompilerType, TCompilerOptions } from "../type";
 
 export function readConfigFile<T extends ECompilerType>(
 	files: string[]

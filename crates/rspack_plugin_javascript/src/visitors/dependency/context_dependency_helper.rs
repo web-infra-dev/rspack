@@ -1,12 +1,14 @@
 use std::borrow::Cow;
 
 use itertools::Itertools;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::Severity;
 use rspack_util::json_stringify;
+use swc_core::ecma::ast::Expr;
 
-use super::context_helper::{quote_meta, split_context_from_prefix};
-use super::{create_traceable_error, ContextModuleScanResult};
+use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 // FIXME: delete this after `parserOptions.wrappedContextRegExp.source`
@@ -14,6 +16,7 @@ const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
 
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
+  expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
   if param.is_template_string() {
@@ -92,6 +95,12 @@ pub fn create_context_dependency(
       ));
     }
 
+    // Webpack will walk only the expression parts of the template string
+    // but we walk the whole template string, which allows us don't need to implement
+    // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
+    // This may have slight performance difference in some cases
+    parser.walk_expression(expr);
+
     ContextModuleScanResult {
       context,
       reg,
@@ -160,6 +169,12 @@ pub fn create_context_dependency(
       ));
     }
 
+    // Webpack will walk only the dynamic parts of evaluated expression
+    // but we walk the whole expression, which allows us don't need to implement
+    // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
+    // This may have slight performance difference in some cases
+    parser.walk_expression(expr);
+
     ContextModuleScanResult {
       context,
       reg,
@@ -167,7 +182,6 @@ pub fn create_context_dependency(
       fragment,
       replaces,
     }
-    // TODO: handle `param.wrappedInnerExpressions`
   } else {
     if parser.javascript_options.expr_context_critical {
       let range = param.range();
@@ -181,6 +195,9 @@ pub fn create_context_dependency(
         .with_severity(Severity::Warn),
       ));
     }
+
+    parser.walk_expression(expr);
+
     ContextModuleScanResult {
       context: String::from("."),
       reg: String::new(),
@@ -189,4 +206,28 @@ pub fn create_context_dependency(
       replaces: Vec::new(),
     }
   }
+}
+
+pub struct ContextModuleScanResult {
+  pub context: String,
+  pub reg: String,
+  pub query: String,
+  pub fragment: String,
+  pub replaces: Vec<(String, u32, u32)>,
+}
+
+pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
+  if let Some(idx) = prefix.rfind('/') {
+    (prefix[..idx].to_string(), format!(".{}", &prefix[idx..]))
+  } else {
+    (".".to_string(), prefix)
+  }
+}
+
+static META_REG: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
+});
+
+pub fn quote_meta(str: &str) -> Cow<str> {
+  META_REG.replace_all(str, "\\$0")
 }

@@ -3,9 +3,10 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 
 use dashmap::DashMap;
 use rayon::prelude::*;
+use rspack_collections::UkeySet;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
 use rspack_error::Result;
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHasher};
 
 use super::ModuleGroupMap;
 use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
@@ -89,7 +90,7 @@ impl SplitChunksPlugin {
       { Self::prepare_combination_maps(&module_graph, &compilation.chunk_graph) };
 
     let combinations_cache =
-      DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
+      DashMap::<ChunksKey, Vec<UkeySet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
 
     let get_combination = |chunks_key: ChunksKey| match combinations_cache.entry(chunks_key) {
       dashmap::mapref::entry::Entry::Occupied(entry) => entry.get().clone(),
@@ -230,13 +231,15 @@ impl SplitChunksPlugin {
               selected_chunks_key,
             },
             &module_group_map,
-            &mut chunk_key_to_string
+            &mut chunk_key_to_string,
+            compilation
           )?;
 
           fn merge_matched_item_into_module_group_map(
             matched_item: MatchedItem<'_>,
             module_group_map: &DashMap<String, ModuleGroup>,
-            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>
+            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>,
+            compilation: &Compilation,
           ) -> Result<()> {
             let MatchedItem {
               idx,
@@ -253,7 +256,7 @@ impl SplitChunksPlugin {
               ChunkNameGetter::String(name) => Some(name.to_string()),
               ChunkNameGetter::Disabled => None,
               ChunkNameGetter::Fn(f) => {
-                let ctx = ChunkNameGetterFnCtx { module };
+                let ctx = ChunkNameGetterFnCtx { module, chunks: &selected_chunks, cache_group_key: &cache_group.key };
                 f(ctx)?
               }
             };
@@ -287,7 +290,7 @@ impl SplitChunksPlugin {
               })
             };
 
-            module_group.add_module(module);
+            module_group.add_module(module, compilation);
             module_group
               .chunks
               .extend(selected_chunks.iter().map(|c| c.ukey));
@@ -305,7 +308,7 @@ impl SplitChunksPlugin {
     &self,
     current_module_group: &ModuleGroup,
     module_group_map: &mut ModuleGroupMap,
-    used_chunks: &FxHashSet<ChunkUkey>,
+    used_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     // remove all modules from other entries and update size
@@ -328,7 +331,7 @@ impl SplitChunksPlugin {
             let module = module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
-            other_module_group.remove_module(&**module);
+            other_module_group.remove_module(&**module, compilation);
           }
         });
 
@@ -388,7 +391,7 @@ impl SplitChunksPlugin {
     let mut sorted_chunk_ukeys = chunks
       .map(|chunk| {
         // Increment each usize by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
-        chunk.as_usize() + 1
+        chunk.as_u32() + 1
       })
       .collect::<Vec<_>>();
     sorted_chunk_ukeys.sort_unstable();
@@ -404,11 +407,11 @@ impl SplitChunksPlugin {
     module_graph: &ModuleGraph,
     chunk_graph: &ChunkGraph,
   ) -> (
-    HashMap<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>,
-    FxHashMap<usize, Vec<FxHashSet<ChunkUkey>>>,
+    HashMap<ChunksKey, UkeySet<ChunkUkey>, ChunksKeyHashBuilder>,
+    FxHashMap<usize, Vec<UkeySet<ChunkUkey>>>,
   ) {
     let mut chunk_sets_in_graph =
-      HashMap::<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>::default();
+      HashMap::<ChunksKey, UkeySet<ChunkUkey>, ChunksKeyHashBuilder>::default();
 
     for module in module_graph.modules().keys() {
       let chunks = chunk_graph.get_module_chunks(*module);
@@ -416,7 +419,7 @@ impl SplitChunksPlugin {
       chunk_sets_in_graph.insert(chunk_key, chunks.clone());
     }
 
-    let mut chunk_sets_by_count = FxHashMap::<usize, Vec<FxHashSet<ChunkUkey>>>::default();
+    let mut chunk_sets_by_count = FxHashMap::<usize, Vec<UkeySet<ChunkUkey>>>::default();
 
     for chunks in chunk_sets_in_graph.values() {
       let count = chunks.len();

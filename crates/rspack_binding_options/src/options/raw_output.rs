@@ -144,12 +144,14 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawEnvironment {
+  pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
   fn from(value: RawEnvironment) -> Self {
     Self {
+      r#const: value.r#const,
       arrow_function: value.arrow_function,
     }
   }
@@ -162,8 +164,9 @@ pub struct RawOutputOptions {
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
   pub clean: bool,
-  pub public_path: String,
-  pub asset_module_filename: String,
+  #[napi(ts_type = "\"auto\" | JsFilename")]
+  pub public_path: JsFilename,
+  pub asset_module_filename: JsFilename,
   pub wasm_loading: String,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
@@ -185,6 +188,8 @@ pub struct RawOutputOptions {
   pub iife: bool,
   pub module: bool,
   pub chunk_loading: String,
+  pub chunk_load_timeout: u32,
+  pub charset: bool,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
@@ -248,6 +253,8 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       worker_public_path: value.worker_public_path,
       script_type: value.script_type,
       environment: value.environment.into(),
+      charset: value.charset,
+      chunk_load_timeout: value.chunk_load_timeout,
     })
   }
 }

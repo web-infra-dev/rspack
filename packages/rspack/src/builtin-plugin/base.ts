@@ -1,6 +1,6 @@
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 
-import { Compiler, RspackPluginInstance } from "..";
+import type { Compiler, RspackPluginInstance } from "..";
 
 type AffectedHooks = keyof Compiler["hooks"];
 
@@ -18,9 +18,8 @@ export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
 	if (typeof affectedHooks === "undefined") {
 		// this arm should be removed
 		return false;
-	} else {
-		return !HOOKS_CAN_NOT_INHERENT_FROM_PARENT.includes(affectedHooks);
 	}
+	return !HOOKS_CAN_NOT_INHERENT_FROM_PARENT.includes(affectedHooks);
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
@@ -29,7 +28,7 @@ export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 
 	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
-		let raw = this.raw(compiler);
+		const raw = this.raw(compiler);
 		if (raw) {
 			raw.canInherentFromParent = canInherentFromParent(this.affectedHooks);
 			compiler.__internal__registerBuiltinPlugin(raw);
@@ -49,23 +48,23 @@ export function createBuiltinPlugin<R>(
 
 export function create<T extends any[], R>(
 	name: binding.BuiltinPluginName,
-	resolve: (...args: T) => R,
+	resolve: (this: Compiler, ...args: T) => R,
 	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reserved.
 	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
 	affectedHooks?: AffectedHooks
 ) {
 	class Plugin extends RspackBuiltinPlugin {
 		name = name;
-		_options: R;
+		_args: T;
 		affectedHooks = affectedHooks;
 
 		constructor(...args: T) {
 			super();
-			this._options = resolve(...args);
+			this._args = args;
 		}
 
-		raw(): binding.BuiltinPlugin {
-			return createBuiltinPlugin(name, this._options);
+		raw(compiler: Compiler): binding.BuiltinPlugin {
+			return createBuiltinPlugin(name, resolve.apply(compiler, this._args));
 		}
 	}
 

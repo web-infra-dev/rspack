@@ -6,13 +6,33 @@
 
 Called when a new dependency request is encountered. A dependency can be ignored by returning `false`. Otherwise, it should return `undefined` to proceed.
 
+## `factorize`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+:::warning
+Returning module instance is not supported for now.
+:::
+
+Called before initiating resolve. It should return undefined to proceed.
+
+## `resolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+:::warning
+Returning module instance or `false` is not supported for now.
+:::
+
+Called before the request is resolved. It should return undefined to proceed.
+
 ## `afterResolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
 Called after the request is resolved.
 
-## `ResolveForScheme`
+## `resolveForScheme`
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`
 

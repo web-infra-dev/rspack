@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
@@ -10,10 +10,9 @@ use rspack_core::{
   RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
+use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::{
-  JavascriptModulesPluginPlugin, JsChunkHashArgs, JsPlugin, PluginJsChunkHashHookOutput,
-};
+use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 
 use crate::runtime_module::{
   chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
@@ -24,8 +23,8 @@ use crate::runtime_module::{
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
   MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
-  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
+  RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -139,33 +138,9 @@ fn handle_dependency_globals(
   }
 }
 
-#[derive(Debug, Default)]
-struct RuntimeJavascriptModulesPluginPlugin;
-
-impl JavascriptModulesPluginPlugin for RuntimeJavascriptModulesPluginPlugin {
-  fn js_chunk_hash(&self, args: &mut JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
-    for identifier in args
-      .compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(args.chunk_ukey)
-    {
-      if let Some((hash, _)) = args
-        .compilation
-        .runtime_module_code_generation_results
-        .get(identifier)
-      {
-        hash.hash(&mut args.hasher);
-      }
-    }
-    Ok(())
-  }
-}
-
 #[plugin]
 #[derive(Debug, Default)]
-pub struct RuntimePlugin {
-  js_plugin: Arc<RuntimeJavascriptModulesPluginPlugin>,
-}
+pub struct RuntimePlugin;
 
 #[plugin_hook(CompilerCompilation for RuntimePlugin)]
 async fn compilation(
@@ -173,8 +148,29 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut drive = JsPlugin::get_compilation_drives_mut(compilation);
-  drive.add_plugin(self.js_plugin.clone());
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for RuntimePlugin)]
+async fn js_chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  for identifier in compilation
+    .chunk_graph
+    .get_chunk_runtime_modules_iterable(chunk_ukey)
+  {
+    if let Some((hash, _)) = compilation
+      .runtime_module_code_generation_results
+      .get(identifier)
+    {
+      hash.hash(hasher);
+    }
+  }
   Ok(())
 }
 
@@ -204,17 +200,6 @@ fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::EXPORT_STAR) {
-    compilation.add_runtime_module(
-      chunk_ukey,
-      NormalRuntimeModule::new(
-        RuntimeGlobals::EXPORT_STAR,
-        include_str!("runtime/common/_export_star.js"),
-      )
-      .boxed(),
-    )?
-  }
-
   if compilation.options.output.trusted_types.is_some() {
     if runtime_requirements.contains(RuntimeGlobals::LOAD_SCRIPT) {
       runtime_requirements_mut.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
@@ -313,21 +298,18 @@ fn runtime_requirements_in_tree(
       {
         compilation.add_runtime_module(chunk_ukey, BaseUriRuntimeModule::default().boxed())?;
       }
-      RuntimeGlobals::PUBLIC_PATH => {
-        match &public_path {
-          // TODO string publicPath support [hash] placeholder
-          PublicPath::String(str) => {
-            compilation.add_runtime_module(
-              chunk_ukey,
-              PublicPathRuntimeModule::new(str.as_str().into()).boxed(),
-            )?;
-          }
-          PublicPath::Auto => {
-            compilation
-              .add_runtime_module(chunk_ukey, AutoPublicPathRuntimeModule::default().boxed())?;
-          }
+      RuntimeGlobals::PUBLIC_PATH => match &public_path {
+        PublicPath::Filename(filename) => {
+          compilation.add_runtime_module(
+            chunk_ukey,
+            PublicPathRuntimeModule::new(Box::new(filename.clone())).boxed(),
+          )?;
         }
-      }
+        PublicPath::Auto => {
+          compilation
+            .add_runtime_module(chunk_ukey, AutoPublicPathRuntimeModule::default().boxed())?;
+        }
+      },
       RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => {
         compilation.add_runtime_module(
           chunk_ukey,
@@ -404,6 +386,7 @@ fn runtime_requirements_in_tree(
           LoadScriptRuntimeModule::new(
             compilation.options.output.unique_name.clone(),
             compilation.options.output.trusted_types.is_some(),
+            *chunk_ukey,
           )
           .boxed(),
         )?;

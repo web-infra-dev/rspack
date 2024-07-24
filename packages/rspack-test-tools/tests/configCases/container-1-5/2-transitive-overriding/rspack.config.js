@@ -4,15 +4,11 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 module.exports = {
 	optimization: {
 		chunkIds: "named",
-		moduleIds: "named"
+		moduleIds: "named",
+		concatenateModules: false,
 	},
 	output: {
 		uniqueName: "2-transitive-overriding"
-	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
 	},
 	plugins: [
 		new ModuleFederationPlugin({

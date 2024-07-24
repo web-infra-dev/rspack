@@ -38,14 +38,13 @@ import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 export { ModuleFilenameHelpers };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
-import Template = require("./Template");
-export { Template };
+export { Template } from "./Template";
 
 export const WebpackError = Error;
 
 export type { Watching } from "./Watching";
 
-const sources = require("webpack-sources"); // use require to avoid wrong types, @types/webpack-sources is outdate
+import sources = require("webpack-sources");
 export { sources };
 
 import {
@@ -75,10 +74,6 @@ export const util = { createHash, cleverMerge };
 
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { type OutputFileSystem } from "./util/fs";
-export {
-	cleanupGlobalTrace as experimental_cleanupGlobalTrace,
-	registerGlobalTrace as experimental_registerGlobalTrace
-} from "@rspack/binding";
 
 ///// Internal Plugins /////
 export type { BannerPluginArgument } from "./builtin-plugin";
@@ -99,6 +94,14 @@ export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
+
+import { FetchCompileAsyncWasmPlugin } from "./builtin-plugin";
+interface Web {
+	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
+}
+export const web: Web = {
+	FetchCompileAsyncWasmPlugin
+};
 
 import { NodeTargetPlugin } from "./builtin-plugin";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
@@ -132,11 +135,18 @@ interface Wasm {
 }
 export const wasm: Wasm = { EnableWasmLoadingPlugin };
 
-import { EnableChunkLoadingPlugin } from "./builtin-plugin";
+import {
+	EnableChunkLoadingPlugin,
+	JavascriptModulesPlugin
+} from "./builtin-plugin";
 interface JavaScript {
 	EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
+	JavascriptModulesPlugin: typeof JavascriptModulesPlugin;
 }
-export const javascript: JavaScript = { EnableChunkLoadingPlugin };
+export const javascript: JavaScript = {
+	EnableChunkLoadingPlugin,
+	JavascriptModulesPlugin
+};
 
 import { WebWorkerTemplatePlugin } from "./builtin-plugin";
 interface Webworker {
@@ -220,6 +230,7 @@ export const sharing = {
 ///// Rspack Postfixed Internal Plugins /////
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
+export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
 export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
@@ -230,6 +241,7 @@ export type {
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
 export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
+export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
@@ -247,3 +259,24 @@ export type {
 	SwcLoaderTransformConfig,
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
+
+import * as lightningcss from "./builtin-loader/lightningcss/index";
+
+export { type LoaderOptions as LightningcssLoaderOptions } from "./builtin-loader/lightningcss/index";
+export { lightningcss };
+
+///// Experiments Stuff /////
+import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+interface Experiments {
+	globalTrace: {
+		register: typeof registerGlobalTrace;
+		cleanup: typeof cleanupGlobalTrace;
+	};
+}
+
+export const experiments: Experiments = {
+	globalTrace: {
+		register: registerGlobalTrace,
+		cleanup: cleanupGlobalTrace
+	}
+};

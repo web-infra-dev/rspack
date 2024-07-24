@@ -7,15 +7,16 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "assert";
+import assert from "node:assert";
 import fs from "graceful-fs";
 
-import {
+import type {
 	Compiler,
 	OptimizationRuntimeChunkNormalized,
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
+import { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -43,7 +44,6 @@ import {
 	HttpExternalsRspackPlugin,
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
-	JsLoaderRspackPlugin,
 	JsonModulesPlugin,
 	LazyCompilationPlugin,
 	MangleExportsPlugin,
@@ -52,6 +52,8 @@ import {
 	ModuleConcatenationPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
+	NaturalChunkIdsPlugin,
+	NaturalModuleIdsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -66,11 +68,10 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import { Module } from "./Module";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
+import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
-import { cleverMerge } from "./util/cleverMerge";
 
 export class RspackOptionsApply {
 	constructor() {}
@@ -112,6 +113,9 @@ export class RspackOptionsApply {
 			!options.externalsPresets.electronRenderer
 		) {
 			new ElectronTargetPlugin().apply(compiler);
+		}
+		if (options.externalsPresets.nwjs) {
+			new ExternalsPlugin("node-commonjs", "nw.gui").apply(compiler);
 		}
 		if (
 			options.externalsPresets.web ||
@@ -234,28 +238,26 @@ export class RspackOptionsApply {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
 
-		if (options.experiments.rspackFuture?.newTreeshaking) {
-			if (options.optimization.sideEffects) {
-				new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
-					compiler
-				);
-			}
-			if (options.optimization.providedExports) {
-				new FlagDependencyExportsPlugin().apply(compiler);
-			}
-			if (options.optimization.usedExports) {
-				new FlagDependencyUsagePlugin(
-					options.optimization.usedExports === "global"
-				).apply(compiler);
-			}
-			if (options.optimization.concatenateModules) {
-				new ModuleConcatenationPlugin().apply(compiler);
-			}
-			if (options.optimization.mangleExports) {
-				new MangleExportsPlugin(
-					options.optimization.mangleExports !== "size"
-				).apply(compiler);
-			}
+		if (options.optimization.sideEffects) {
+			new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+				compiler
+			);
+		}
+		if (options.optimization.providedExports) {
+			new FlagDependencyExportsPlugin().apply(compiler);
+		}
+		if (options.optimization.usedExports) {
+			new FlagDependencyUsagePlugin(
+				options.optimization.usedExports === "global"
+			).apply(compiler);
+		}
+		if (options.optimization.concatenateModules) {
+			new ModuleConcatenationPlugin().apply(compiler);
+		}
+		if (options.optimization.mangleExports) {
+			new MangleExportsPlugin(
+				options.optimization.mangleExports !== "size"
+			).apply(compiler);
 		}
 
 		if (options.experiments.lazyCompilation) {
@@ -268,12 +270,11 @@ export class RspackOptionsApply {
 				lazyOptions.entries ?? true,
 				lazyOptions.imports ?? true,
 				typeof lazyOptions.test === "function"
-					? function (jsModule) {
-							return (lazyOptions.test as (jsModule: Module) => boolean)!.call(
+					? jsModule =>
+							(lazyOptions.test as (jsModule: Module) => boolean)!.call(
 								lazyOptions,
 								new Module(jsModule)
-							);
-						}
+							)
 					: lazyOptions.test
 						? {
 								source: lazyOptions.test.source,
@@ -310,6 +311,10 @@ export class RspackOptionsApply {
 					new NamedModuleIdsPlugin().apply(compiler);
 					break;
 				}
+				case "natural": {
+					new NaturalModuleIdsPlugin().apply(compiler);
+					break;
+				}
 				case "deterministic": {
 					new DeterministicModuleIdsPlugin().apply(compiler);
 					break;
@@ -321,6 +326,9 @@ export class RspackOptionsApply {
 		const chunkIds = options.optimization.chunkIds;
 		if (chunkIds) {
 			switch (chunkIds) {
+				case "natural": {
+					new NaturalChunkIdsPlugin().apply(compiler);
+				}
 				case "named": {
 					new NamedChunkIdsPlugin().apply(compiler);
 					break;
@@ -363,6 +371,7 @@ export class RspackOptionsApply {
 		).apply(compiler);
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
+		new DefaultStatsPresetPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);
 
 		if (options.ignoreWarnings && options.ignoreWarnings.length > 0) {
@@ -373,21 +382,7 @@ export class RspackOptionsApply {
 		if (!compiler.inputFileSystem) {
 			throw new Error("No input filesystem provided");
 		}
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("normal")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				return resolveOptions;
-			});
-		compiler.resolverFactory.hooks.resolveOptions
-			.for("context")
-			.tap("RspackOptionsApply", resolveOptions => {
-				resolveOptions = cleverMerge(options.resolve, resolveOptions);
-				resolveOptions.fileSystem = compiler.inputFileSystem;
-				resolveOptions.resolveToContext = true;
-				return resolveOptions;
-			});
+
 		compiler.hooks.afterResolvers.call(compiler);
 	}
 }

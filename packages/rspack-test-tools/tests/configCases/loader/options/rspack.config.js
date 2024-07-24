@@ -1,6 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "none",
+	optimization: {
+		moduleIds: 'named'
+	},
 	module: {
 		rules: [
 			{

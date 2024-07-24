@@ -1,16 +1,16 @@
-import { AsyncSeriesBailHook, HookMap, SyncHook } from "tapable";
-import util from "util";
+import util from "node:util";
+import * as liteTapable from "@rspack/lite-tapable";
 
 import { Compilation } from "./Compilation";
-import { LoaderContext } from "./config";
+import type { LoaderContext } from "./config";
 
 const compilationHooksMap = new WeakMap<
 	Compilation,
 	{
-		loader: SyncHook<[LoaderContext]>;
+		loader: liteTapable.SyncHook<[LoaderContext]>;
 		readResourceForScheme: any;
-		readResource: HookMap<
-			AsyncSeriesBailHook<[LoaderContext], string | Buffer>
+		readResource: liteTapable.HookMap<
+			liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
 		>;
 	}
 >();
@@ -62,10 +62,8 @@ const deprecateAllProperties = <O extends object>(
 	}
 	return newObj;
 };
-// Actually it is just a NormalModule proxy, used for hooks api alignment
-// Maybe we can 1:1 align to webpack NormalModule once we found a better way to reduce communicate overhead between rust and js
+
 export class NormalModule {
-	constructor() {}
 	static getCompilationHooks(compilation: Compilation) {
 		if (!(compilation instanceof Compilation)) {
 			throw new TypeError(
@@ -75,12 +73,9 @@ export class NormalModule {
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {
-				loader: new SyncHook(["loaderContext"]),
-				// beforeLoaders: new SyncHook(["loaders", "module", "loaderContext"]),
-				// beforeParse: new SyncHook(["module"]),
-				// beforeSnapshot: new SyncHook(["module"]),
+				loader: new liteTapable.SyncHook(["loaderContext"]),
 				// TODO webpack 6 deprecate
-				readResourceForScheme: new HookMap(scheme => {
+				readResourceForScheme: new liteTapable.HookMap(scheme => {
 					const hook = hooks!.readResource.for(scheme);
 					return createFakeHook({
 						tap: (options: string, fn: any) =>
@@ -97,12 +92,11 @@ export class NormalModule {
 							hook.tapPromise(options, (loaderContext: LoaderContext) =>
 								fn(loaderContext.resource)
 							)
-					});
+					}) as any;
 				}),
-				readResource: new HookMap(
-					() => new AsyncSeriesBailHook(["loaderContext"])
+				readResource: new liteTapable.HookMap(
+					() => new liteTapable.AsyncSeriesBailHook(["loaderContext"])
 				)
-				// needBuild: new AsyncSeriesBailHook(["module", "context"])
 			};
 			compilationHooksMap.set(compilation, hooks);
 		}

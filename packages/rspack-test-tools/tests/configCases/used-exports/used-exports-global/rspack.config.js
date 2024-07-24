@@ -10,11 +10,6 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	},
 	optimization: {
 		minimize: false,
 		mangleExports: false,

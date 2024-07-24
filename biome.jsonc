@@ -1,0 +1,81 @@
+{
+	"$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
+	"formatter": {
+		"enabled": false
+	},
+	"json": {
+		"parser": {
+			"allowComments": true,
+			"allowTrailingCommas": true
+		}
+	},
+	"organizeImports": {
+		"enabled": true,
+		"ignore": [
+			"packages/rspack/src/config/schema.check.js",
+			"packages/**/etc/**/*",
+			"crates/**/*",
+			"tests/**/*",
+			"packages/rspack-plugin-preact-refresh/tests/**/*",
+			"packages/rspack-test-tools/template/**/*",
+			"packages/rspack-test-tools/tests/**/*",
+			"packages/rspack-plugin-mini-css-extract/test/cases/**/*",
+			"packages/playground/**/*",
+			// --- ignore runtime code in browser
+			"packages/rspack/hot",
+			"packages/rspack-dev-server/client",
+			"packages/rspack/src/builtin-plugin/css-extract/hmr",
+			"packages/rspack-plugin-react-refresh/client",
+			"packages/rspack-plugin-preact-refresh/client",
+			"packages/rspack/src/container/default.runtime.js"
+		]
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": false,
+			"a11y": {
+				"useButtonType": "error",
+				"noSvgWithoutTitle": "error"
+			},
+			"complexity": {
+				"useArrowFunction": "error",
+				"useLiteralKeys": "error",
+				"noForEach": "error"
+			},
+			"style": {
+				"noUnusedTemplateLiteral": "error",
+				"useNodejsImportProtocol": "error",
+				"noUselessElse": "error",
+				"noNonNullAssertion": "off",
+				"useNumberNamespace": "error",
+				"useConst": "error",
+				"useImportType": "error",
+				"useExportType": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error"
+			},
+			"suspicious": {
+				"noDoubleEquals": "error"
+			}
+		},
+		"ignore": [
+			"tests/**/*",
+			"crates/**/*",
+			"packages/rspack-test-tools/template",
+			// --- ignore runtime code in browser
+			"packages/rspack/hot",
+			"packages/rspack-dev-server/client",
+			"packages/rspack/src/builtin-plugin/css-extract/hmr",
+			"packages/rspack-plugin-react-refresh/client",
+			"packages/rspack-plugin-preact-refresh/client",
+			"packages/rspack/src/container/default.runtime.js"
+		]
+	},
+	"vcs": {
+		"enabled": true,
+		"defaultBranch": "main",
+		"clientKind": "git",
+		"useIgnoreFile": true
+	}
+}

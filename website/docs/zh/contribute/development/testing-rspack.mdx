@@ -107,14 +107,7 @@ module.exports = {
 | 默认配置 | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hot.ts#L86) |
 | 产物运行 | `是`                                                                                                                  |
 
-此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置，但需要额外在用例目录下添加 `changed-file.js` 来指定变更的文件，如下所示：
-
-```js title="changed-file.js"
-const path = require('path');
-module.exports = [
-  path.resolve(__dirname, './file.js'), // file.js 变化并触发热更新
-];
-```
+此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置
 
 对应的在变更的文件内通过 `---` 分割变更前后的代码：
 
@@ -223,16 +216,16 @@ Snapshot 结构如下：
 
 ```js {8-11} title="{case}.js"
 type TStatsAPICaseConfig = {
-  description: string; // 用例描述
-  options?: (context: ITestContext) => TCompilerOptions<T>; // 用例构建配置
-  build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 用例构建方式
-  check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>; // 用例的 stats 检测函数
-}
+  description: string, // 用例描述
+  options?: (context: ITestContext) => TCompilerOptions<T>, // 用例构建配置
+  build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>, // 用例构建方式
+  check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>, // 用例的 stats 检测函数
+};
 
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
   // ...
-}
+};
 ```
 
 ## Diagnostic
@@ -259,7 +252,7 @@ module.exports = {
 
 ```js {5-8} title="test.config.js"
 type THashCaseConfig = {
-  validate?: (stats: TCompilerStats<T>) => void;
+  validate?: (stats: TCompilerStats<T>) => void,
 };
 
 /** @type {import('../..').THashCaseConfig} */
@@ -285,7 +278,11 @@ interface TCompilerCaseConfig {
   options?: (context: ITestContext) => TCompilerOptions<T>; // 用例构建配置
   compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 用例 compiler 创建方式
   build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 用例构建方式
-  check?: (context: ITestContext, compiler: TCompiler<T>, stats: TCompilerStats<T>) => Promise<void>; // 用例的检测函数
+  check?: (
+    context: ITestContext,
+    compiler: TCompiler<T>,
+    stats: TCompilerStats<T>,
+  ) => Promise<void>; // 用例的检测函数
 }
 
 /** @type {import('../..').TCompilerCaseConfig} */
@@ -312,7 +309,10 @@ interface TDefaultsCaseConfig {
   description: string; // 用例描述
   cwd?: string; // 用例的生成构建配置时的 process.cwd，默认为 `rspack-test-tools` 目录
   options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>; // 用例构建配置
-	diff: (diff: jest.JestMatchers<Diff>, defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>) => Promise<void>; // 与默认配置之间的差异
+  diff: (
+    diff: jest.JestMatchers<Diff>,
+    defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>,
+  ) => Promise<void>; // 与默认配置之间的差异
 }
 
 /** @type {import('../..').TDefaultsCaseConfig} */
@@ -335,7 +335,10 @@ module.exports = {
 ```js {8-11} title="{case}.js"
 interface TErrorCaseConfig {
   description: string; // 用例描述
-  options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>; // 用例配置
+  options?: (
+    options: TCompilerOptions<T>,
+    context: ITestContext,
+  ) => TCompilerOptions<T>; // 用例配置
   build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 用例构建方式
   check?: (stats: TStatsDiagnostics) => Promise<void>; // 用例的检测函数
 }
@@ -362,9 +365,12 @@ module.exports = {
 ```js {8-11} title="{case}/test.js"
 interface THookCaseConfig {
   description: string; // 用例描述
-  options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>; // 用例配置
+  options?: (
+    options: TCompilerOptions<T>,
+    context: ITestContext,
+  ) => TCompilerOptions<T>; // 用例配置
   compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 创建 compiler 实例后回调
-	check?: (context: ITestContext) => Promise<void>; // 构建完成后回调
+  check?: (context: ITestContext) => Promise<void>; // 构建完成后回调
 }
 
 /** @type {import("../../../..").THookCaseConfig} */

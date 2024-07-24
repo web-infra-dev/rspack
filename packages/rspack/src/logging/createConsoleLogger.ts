@@ -104,12 +104,10 @@ export = ({ level = "info", debug = false, console }: any) => {
 			if (Array.isArray(args)) {
 				if (args.length > 0 && typeof args[0] === "string") {
 					return [`[${name}] ${args[0]}`, ...args.slice(1)];
-				} else {
-					return [`[${name}]`, ...args];
 				}
-			} else {
-				return [];
+				return [`[${name}]`, ...args];
 			}
+			return [];
 		};
 		const debug = debugFilters.some(f => f(name));
 		switch (type) {

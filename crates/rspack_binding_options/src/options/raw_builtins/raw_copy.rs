@@ -6,17 +6,33 @@ use napi_derive::napi;
 use rspack_core::rspack_sources::RawSource;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
-  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType, Transformer,
+  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToOption, ToType,
+  Transformer,
 };
 
-type RawTransformer = ThreadsafeFunction<(Either<String, Buffer>, String), Either<String, Buffer>>;
+type RawTransformer = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
+
+type RawToFn = ThreadsafeFunction<RawToOptions, String>;
+
+type RawTo = Either<String, RawToFn>;
+
+#[derive(Debug, Clone)]
+#[napi(object)]
+pub struct RawToOptions {
+  pub context: String,
+  pub absolute_filename: Option<String>,
+}
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone)]
 #[napi(object, object_to_js = false)]
 pub struct RawCopyPattern {
   pub from: String,
-  pub to: Option<String>,
+  #[derivative(Debug = "ignore")]
+  #[napi(
+    ts_type = "string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)"
+  )]
+  pub to: Option<RawTo>,
   pub context: Option<String>,
   pub to_type: Option<String>,
   pub no_error_on_missing: bool,
@@ -25,7 +41,9 @@ pub struct RawCopyPattern {
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
   #[derivative(Debug = "ignore")]
-  #[napi(ts_type = "(input: string | Buffer, absoluteFilename: string) => string | Buffer")]
+  #[napi(
+    ts_type = "(input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>"
+  )]
   pub transform: Option<RawTransformer>,
 }
 
@@ -79,7 +97,19 @@ impl From<RawCopyPattern> for CopyPattern {
 
     Self {
       from,
-      to,
+      to: to.map(|to| match to {
+        Either::A(s) => ToOption::String(s),
+        Either::B(f) => ToOption::Fn(Box::new(move |ctx| {
+          let f = f.clone();
+          Box::pin(async move {
+            f.call(RawToOptions {
+              context: ctx.context.to_owned(),
+              absolute_filename: ctx.absolute_filename.map(|filename| filename.to_owned()),
+            })
+            .await
+          })
+        })),
+      }),
       context: context.map(PathBuf::from),
       to_type: if let Some(to_type) = to_type {
         match to_type.to_lowercase().as_str() {
@@ -119,15 +149,8 @@ impl From<RawCopyPattern> for CopyPattern {
             }
           }
 
-          fn convert_to_js_type(input: RawSource) -> Either<String, Buffer> {
-            match input {
-              RawSource::Source(s) => Either::A(s),
-              RawSource::Buffer(b) => Either::B(b.into()),
-            }
-          }
-
           Box::pin(async move {
-            f.call((convert_to_js_type(input), absolute_filename.to_owned()))
+            f.call((input.into(), absolute_filename.to_owned()))
               .await
               .map(convert_to_enum)
           })

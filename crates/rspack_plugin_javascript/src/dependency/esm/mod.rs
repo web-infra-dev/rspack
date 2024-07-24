@@ -18,7 +18,7 @@ pub use self::harmony_export_imported_specifier_dependency::HarmonyExportImporte
 pub use self::harmony_export_specifier_dependency::HarmonyExportSpecifierDependency;
 pub use self::harmony_import_dependency::get_import_emitted_runtime;
 pub use self::harmony_import_dependency::harmony_import_dependency_apply;
-pub use self::harmony_import_dependency::{HarmonyImportSideEffectDependency, Specifier};
+pub use self::harmony_import_dependency::HarmonyImportSideEffectDependency;
 pub use self::harmony_import_specifier_dependency::HarmonyImportSpecifierDependency;
 pub use self::import_dependency::ImportDependency;
 pub use self::import_eager_dependency::ImportEagerDependency;

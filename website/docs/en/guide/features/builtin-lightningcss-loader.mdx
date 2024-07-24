@@ -1,0 +1,110 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# Builtin lightningcss-loader
+
+<ApiMeta addedVersion="1.0.0" />
+
+The `builtin:lightningcss-loader` uses the builtin [lightningcss](https://github.com/parcel-bundler/lightningcss) from Rspack to process CSS, which can replace the syntax lowering functionality in `postcss-loader` to make the CSS transformation faster.
+
+## Example
+
+To use `builtin:lightningcss-loader` in your project, you need to configure it as follows.
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loaders
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Type Declarations
+
+You can use the `LightningcssLoaderOptions` type exported by `@rspack/core` to enable type hints:
+
+- `rspack.config.js`:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loaders
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Options
+
+Below are the configurations supported by `builtin:lightningcss-loader`. For detailed configuration, please refer to [lightningcss document](https://lightningcss.dev/transpilation.html)
+
+```ts
+type LightningcssLoaderOptions = {
+  errorRecovery?: boolean;
+  targets?: Targets | string[] | string;
+  include?: Features;
+  exclude?: Features;
+  draft?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
+```
+
+You can find the necessary `lightningcss` exports from the `lightningcss` property in the `@rspack/core` package, such as `Features`:
+
+```ts
+const rspack = require('@rspack/core');
+const { Features } = rspack.lightningcss;
+```
+
+The `targets` can be directly written as a `browserslist` query string, the result of a `browserslist` query, or the `targets` of lightningcss, for example:
+
+```js
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: '> 0.2%',
+};
+// or
+const browserslist = require('browserslist');
+
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: browserslist('> 0.2%'),
+};
+// or
+const rspack = require('@rspack/core');
+const browserslist = require('browserslist');
+
+/** @type {import('@rspack/core').LightningcssLoaderOptions} */
+const options = {
+  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+};
+```

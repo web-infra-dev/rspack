@@ -36,7 +36,8 @@ pub struct RawEntryOptions {
   pub runtime: Option<RawEntryRuntime>,
   pub chunk_loading: Option<String>,
   pub async_chunks: Option<bool>,
-  pub public_path: Option<String>,
+  #[napi(ts_type = "\"auto\" | JsFilename")]
+  pub public_path: Option<JsFilename>,
   pub base_uri: Option<String>,
   #[napi(ts_type = "string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)")]
   pub filename: Option<JsFilename>,

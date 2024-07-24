@@ -5,7 +5,7 @@
 
 "use strict";
 
-const inspect = require("util").inspect.custom;
+const inspect = require("node:util").inspect.custom;
 
 // /** @typedef {import("./Chunk")} Chunk */
 // /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */

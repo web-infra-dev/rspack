@@ -2,6 +2,7 @@
 
 mod merge;
 
+pub mod atom;
 pub mod comparators;
 pub mod diff_mode;
 pub mod ext;

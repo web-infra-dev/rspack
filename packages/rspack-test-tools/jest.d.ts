@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { DiffOptions } from "jest-diff";
+import type { DiffOptions } from "jest-diff";
 
 declare interface FileMatcherOptions {
 	diff?: DiffOptions;

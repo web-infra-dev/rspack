@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -8,11 +9,10 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::Identifier;
 use rspack_plugin_runtime::chunk_has_js;
-use rspack_util::source_map::SourceMapKind;
+
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct FederationRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -20,12 +20,7 @@ pub struct FederationRuntimeModule {
 
 impl Default for FederationRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("module_federation/runtime"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("module_federation/runtime"), None)
   }
 }
 
@@ -90,7 +85,7 @@ if(!{federation_global}){{
 pub struct ModuleFederationRuntimePlugin;
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleFederationRuntimePlugin)]
-fn additional_tree_runtime_requirements(
+async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

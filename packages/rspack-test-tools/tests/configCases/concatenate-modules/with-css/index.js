@@ -4,7 +4,7 @@ test;
 
 it("should concatenate css", () => {
 	expect(styles).toMatchObject({
-		foo: "__foo_css__foo",
-		test: "__foo_css__test"
+		foo: "./foo.css__foo",
+		test: "./foo.css__test"
 	});
 });

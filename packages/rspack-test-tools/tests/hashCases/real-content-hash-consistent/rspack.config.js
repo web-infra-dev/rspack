@@ -19,6 +19,7 @@ const base = {
 	context: __dirname
 };
 
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		...base,

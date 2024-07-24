@@ -1,49 +1,49 @@
-import type {
-	RawAssetGeneratorOptions,
-	RawAssetInlineGeneratorOptions,
-	RawAssetParserDataUrl,
-	RawAssetParserOptions,
-	RawAssetResourceGeneratorOptions,
-	RawCssAutoGeneratorOptions,
-	RawCssAutoParserOptions,
-	RawCssGeneratorOptions,
-	RawCssModuleGeneratorOptions,
-	RawCssModuleParserOptions,
-	RawCssParserOptions,
-	RawFuncUseCtx,
-	RawGeneratorOptions,
-	RawJavascriptParserOptions,
-	RawLibraryName,
-	RawLibraryOptions,
-	RawModuleRule,
-	RawModuleRuleUse,
-	RawModuleRuleUses,
-	RawOptions,
-	RawParserOptions,
-	RawRspackFuture,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions
+import assert from "node:assert";
+import {
+	type RawAssetGeneratorOptions,
+	type RawAssetInlineGeneratorOptions,
+	type RawAssetParserDataUrl,
+	type RawAssetParserOptions,
+	type RawAssetResourceGeneratorOptions,
+	type RawCssAutoGeneratorOptions,
+	type RawCssAutoParserOptions,
+	type RawCssGeneratorOptions,
+	type RawCssModuleGeneratorOptions,
+	type RawCssModuleParserOptions,
+	type RawCssParserOptions,
+	type RawFuncUseCtx,
+	type RawGeneratorOptions,
+	type RawJavascriptParserOptions,
+	type RawLibraryName,
+	type RawLibraryOptions,
+	type RawModuleRule,
+	type RawModuleRuleUse,
+	type RawOptions,
+	type RawParserOptions,
+	type RawRspackFuture,
+	type RawRuleSetCondition,
+	RawRuleSetConditionType,
+	type RawRuleSetLogicalConditions
 } from "@rspack/binding";
-import assert from "assert";
 
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
-	ComposeJsUseOptions,
-	createRawModuleRuleUses,
-	LoaderContext,
-	LoaderDefinition,
-	LoaderDefinitionFunction
+	type ComposeJsUseOptions,
+	type LoaderContext,
+	type LoaderDefinition,
+	type LoaderDefinitionFunction,
+	createRawModuleRuleUses
 } from "./adapterRuleUse";
-import {
+import type {
 	ExperimentsNormalized,
 	ModuleOptionsNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
-import {
+import type {
 	AssetGeneratorDataUrl,
 	AssetGeneratorOptions,
 	AssetInlineGeneratorOptions,
@@ -53,13 +53,8 @@ import {
 	ChunkLoading,
 	CrossOriginLoading,
 	CssAutoGeneratorOptions,
-	CssAutoParserOptions,
 	CssGeneratorOptions,
-	CssModuleGeneratorOptions,
-	CssModuleParserOptions,
 	CssParserOptions,
-	EntryRuntime,
-	Environment,
 	GeneratorOptionsByModuleType,
 	JavascriptParserOptions,
 	LibraryName,
@@ -126,8 +121,7 @@ export const getRawOptions = (
 		profile: options.profile!,
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		bail: options.bail!,
-		// TODO: remove this
-		builtins: options.builtins as any
+		__references: {}
 	};
 };
 
@@ -147,9 +141,8 @@ function getRawExtensionAlias(
 	const entries = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
-		} else {
-			return [key, [value]];
 		}
+		return [key, [value]];
 	});
 	return Object.fromEntries(entries);
 }
@@ -172,9 +165,24 @@ function getRawResolveByDependency(
 	);
 }
 
-function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
-	let references = resolve.tsConfig?.references;
-	let tsconfigConfigFile = resolve.tsConfigPath ?? resolve.tsConfig?.configFile;
+function getRawTsConfig(
+	tsConfig: Resolve["tsConfig"]
+): RawOptions["resolve"]["tsconfig"] {
+	assert(
+		typeof tsConfig !== "string",
+		"should resolve string tsConfig in normalization"
+	);
+	if (tsConfig === undefined) return tsConfig;
+	const { configFile, references } = tsConfig;
+	return {
+		configFile,
+		referencesType:
+			references === "auto" ? "auto" : references ? "manual" : "disabled",
+		references: references === "auto" ? undefined : references
+	};
+}
+
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
@@ -183,14 +191,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 			string,
 			Array<string>
 		>,
-		tsconfig: tsconfigConfigFile
-			? {
-					configFile: tsconfigConfigFile,
-					referencesType:
-						references == "auto" ? "auto" : references ? "manual" : "disabled",
-					references: references == "auto" ? undefined : references
-				}
-			: undefined,
+		tsconfig: getRawTsConfig(resolve.tsConfig),
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
@@ -250,6 +251,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			workerWasmLoading === false ? "false" : workerWasmLoading,
 		workerPublicPath: output.workerPublicPath!,
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
+		charset: output.charset!,
+		chunkLoadTimeout: output.chunkLoadTimeout!,
 		environment: output.environment!
 	};
 }
@@ -327,7 +330,7 @@ function getRawModule(
 		{ rules: module.rules as RuleSetRule[] }
 	];
 	const rules = ruleSet.map((rule, index) =>
-		getRawModuleRule(rule, `ruleSet[${index}]`, options)
+		getRawModuleRule(rule, `ruleSet[${index}]`, options, "javascript/auto")
 	);
 	return {
 		rules,
@@ -374,7 +377,8 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
-	options: ComposeJsUseOptions
+	options: ComposeJsUseOptions,
+	upperType: string
 ): RawModuleRule => {
 	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
 	// See: https://webpack.js.org/configuration/module/#ruleloader
@@ -388,20 +392,19 @@ const getRawModuleRule = (
 	}
 	let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
 	if (typeof rule.use === "function") {
+		const use = rule.use;
 		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
 				...rawContext,
 				compiler: options.compiler
 			};
-			const uses = (
-				rule.use as Exclude<RawModuleRuleUses["funcUse"], undefined>
-			)(context);
+			const uses = use(context);
 
 			return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
 		};
 	}
 
-	let rawModuleRule: RawModuleRule = {
+	const rawModuleRule: RawModuleRule = {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -429,31 +432,34 @@ const getRawModuleRule = (
 		sideEffects: rule.sideEffects,
 		use:
 			typeof rule.use === "function"
-				? { type: "function", funcUse }
-				: {
-						type: "array",
-						arrayUse: createRawModuleRuleUses(
-							rule.use ?? [],
-							`${path}.use`,
-							options
-						)
-					},
+				? funcUse
+				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser
-			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
+			? getRawParserOptions(rule.parser, rule.type ?? upperType)
 			: undefined,
 		generator: rule.generator
-			? getRawGeneratorOptions(rule.generator, rule.type ?? "javascript/auto")
+			? getRawGeneratorOptions(rule.generator, rule.type ?? upperType)
 			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
-					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
+					getRawModuleRule(
+						rule,
+						`${path}.oneOf[${index}]`,
+						options,
+						rule.type ?? upperType
+					)
 				)
 			: undefined,
 		rules: rule.rules
 			? rule.rules.map((rule, index) =>
-					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
+					getRawModuleRule(
+						rule,
+						`${path}.rules[${index}]`,
+						options,
+						rule.type ?? upperType
+					)
 				)
 			: undefined,
 		enforce: rule.enforce
@@ -474,12 +480,13 @@ const getRawModuleRule = (
 		delete rawModuleRule.resourceFragment;
 
 		rawModuleRule.rspackResource = getRawRuleSetCondition(
-			function (resourceQueryFragment) {
+			resourceQueryFragment => {
 				const { path, query, fragment } = parseResource(resourceQueryFragment);
 
 				if (rule.test && !tryMatch(path, rule.test)) {
 					return false;
-				} else if (rule.resource && !tryMatch(path, rule.resource)) {
+				}
+				if (rule.resource && !tryMatch(path, rule.resource)) {
 					return false;
 				}
 
@@ -506,14 +513,14 @@ function getRawRuleSetCondition(
 ): RawRuleSetCondition {
 	if (typeof condition === "string") {
 		return {
-			type: "string",
-			stringMatcher: condition
+			type: RawRuleSetConditionType.string,
+			string: condition
 		};
 	}
 	if (condition instanceof RegExp) {
 		return {
-			type: "regexp",
-			regexpMatcher: {
+			type: RawRuleSetConditionType.regexp,
+			regexp: {
 				source: condition.source,
 				flags: condition.flags
 			}
@@ -521,20 +528,20 @@ function getRawRuleSetCondition(
 	}
 	if (typeof condition === "function") {
 		return {
-			type: "function",
-			funcMatcher: condition
+			type: RawRuleSetConditionType.func,
+			func: condition
 		};
 	}
 	if (Array.isArray(condition)) {
 		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getRawRuleSetCondition(i))
+			type: RawRuleSetConditionType.array,
+			array: condition.map(i => getRawRuleSetCondition(i))
 		};
 	}
 	if (typeof condition === "object" && condition !== null) {
 		return {
-			type: "logical",
-			logicalMatcher: [getRawRuleSetLogicalConditions(condition)]
+			type: RawRuleSetConditionType.logical,
+			logical: [getRawRuleSetLogicalConditions(condition)]
 		};
 	}
 	throw new Error(
@@ -558,7 +565,9 @@ function getRawParserOptionsByModuleType(
 	parser: ParserOptionsByModuleType
 ): Record<string, RawParserOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).map(([k, v]) => [k, getRawParserOptions(v, k)])
+		Object.entries(parser)
+			.map(([k, v]) => [k, getRawParserOptions(v, k)])
+			.filter(([k, v]) => v !== undefined)
 	);
 }
 
@@ -566,50 +575,57 @@ function getRawGeneratorOptionsByModuleType(
 	parser: GeneratorOptionsByModuleType
 ): Record<string, RawGeneratorOptions> {
 	return Object.fromEntries(
-		Object.entries(parser).map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+		Object.entries(parser)
+			.map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+			.filter(([k, v]) => v !== undefined)
 	);
 }
 
 function getRawParserOptions(
 	parser: { [k: string]: any },
 	type: string
-): RawParserOptions {
+): RawParserOptions | undefined {
 	if (type === "asset") {
 		return {
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
-	} else if (type === "javascript") {
-		return {
-			type: "javascript",
-			javascript: getRawJavascriptParserOptions(parser)
-		};
-	} else if (type === "javascript/auto") {
+	}
+	if (type === "javascript") {
+		// Filter this out, since `parser["javascript"]` already merge into `parser["javascript/*"]` in default.ts
+		return;
+	}
+	if (type === "javascript/auto") {
 		return {
 			type: "javascript/auto",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "javascript/dynamic") {
+	}
+	if (type === "javascript/dynamic") {
 		return {
 			type: "javascript/dynamic",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "javascript/esm") {
+	}
+	if (type === "javascript/esm") {
 		return {
 			type: "javascript/esm",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "css") {
+	}
+	if (type === "css") {
 		return {
 			type: "css",
 			css: getRawCssParserOptions(parser)
 		};
-	} else if (type === "css/auto") {
+	}
+	if (type === "css/auto") {
 		return {
 			type: "css/auto",
 			cssAuto: getRawCssParserOptions(parser)
 		};
-	} else if (type === "css/module") {
+	}
+	if (type === "css/module") {
 		return {
 			type: "css/module",
 			cssModule: getRawCssParserOptions(parser)
@@ -626,6 +642,7 @@ function getRawJavascriptParserOptions(
 		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
 		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
 		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
+		dynamicImportFetchPriority: parser.dynamicImportFetchPriority?.toString(),
 		url:
 			parser.url === false
 				? "false"
@@ -633,8 +650,35 @@ function getRawJavascriptParserOptions(
 					? parser.url
 					: "true",
 		exprContextCritical: parser.exprContextCritical ?? true,
-		wrappedContextCritical: parser.wrappedContextCritical ?? false
+		wrappedContextCritical: parser.wrappedContextCritical ?? false,
+		exportsPresence:
+			parser.exportsPresence === false ? "false" : parser.exportsPresence,
+		importExportsPresence:
+			parser.importExportsPresence === false
+				? "false"
+				: parser.importExportsPresence,
+		reexportExportsPresence:
+			parser.reexportExportsPresence === false
+				? "false"
+				: parser.reexportExportsPresence,
+		strictExportPresence: parser.strictExportPresence ?? false,
+		worker: getRawJavascriptParserOptionsWorker(parser.worker!),
+		overrideStrict: parser.overrideStrict
 	};
+}
+
+function getRawJavascriptParserOptionsWorker(
+	worker: boolean | string[]
+): RawJavascriptParserOptions["worker"] {
+	const DEFAULT_SYNTAX = [
+		"Worker",
+		"SharedWorker",
+		"navigator.serviceWorker.register()",
+		"Worker from worker_threads"
+	];
+	return (
+		worker === false ? [] : Array.isArray(worker) ? worker : ["..."]
+	).flatMap(item => (item === "..." ? DEFAULT_SYNTAX : item));
 }
 
 function getRawAssetParserOptions(
@@ -674,7 +718,7 @@ function getRawCssParserOptions(
 function getRawGeneratorOptions(
 	generator: { [k: string]: any },
 	type: string
-): RawGeneratorOptions {
+): RawGeneratorOptions | undefined {
 	if (type === "asset") {
 		return {
 			type: "asset",
@@ -715,6 +759,18 @@ function getRawGeneratorOptions(
 			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
 		};
 	}
+
+	if (
+		[
+			"javascript",
+			"javascript/auto",
+			"javascript/dynamic",
+			"javascript/esm"
+		].includes(type)
+	) {
+		return undefined;
+	}
+
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
 
@@ -825,12 +881,9 @@ function getRawExperiments(
 }
 
 function getRawRspackFutureOptions(
-	future: RspackFutureOptions
+	_future: RspackFutureOptions
 ): RawRspackFuture {
-	assert(!isNil(future.newTreeshaking));
-	return {
-		newTreeshaking: future.newTreeshaking
-	};
+	return {};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {

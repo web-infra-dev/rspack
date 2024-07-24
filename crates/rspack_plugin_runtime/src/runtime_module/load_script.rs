@@ -1,28 +1,29 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
+
+use crate::get_chunk_runtime_requirements;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct LoadScriptRuntimeModule {
   id: Identifier,
   unique_name: String,
   with_create_script_url: bool,
+  chunk_ukey: ChunkUkey,
 }
 
 impl LoadScriptRuntimeModule {
-  pub fn new(unique_name: String, with_create_script_url: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/load_script"),
+  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/load_script"),
       unique_name,
       with_create_script_url,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+      chunk_ukey,
+    )
   }
 }
 
@@ -32,6 +33,9 @@ impl RuntimeModule for LoadScriptRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
+    let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
+
     let url = if self.with_create_script_url {
       format!("{}(url)", RuntimeGlobals::CREATE_SCRIPT_URL)
     } else {
@@ -72,6 +76,12 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ))
     };
 
+    let script_charset = if compilation.options.output.charset {
+      "script.charset = 'utf-8';".to_string()
+    } else {
+      "".to_string()
+    };
+
     Ok(RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
@@ -80,6 +90,9 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         )
         .replace("$URL$", &url)
         .replace("$SCRIPT_TYPE$", &script_type)
+        .replace("$SCRIPT_CHARSET$", &script_charset)
+        .replace("$CHUNK_LOAD_TIMEOUT$", &compilation.options.output.chunk_load_timeout.to_string())
+        .replace("$CHUNK_LOAD_TIMEOUT_IN_SECONDS$", &compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string())
         .replace(
           "$UNIQUE_GET_ATTRIBUTE$",
           match unique_prefix {
@@ -87,6 +100,20 @@ impl RuntimeModule for LoadScriptRuntimeModule {
             None => r#"s.getAttribute("src") == url"#,
           },
         )
+        .replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", if with_fetch_priority {
+          r#"
+            if(fetchPriority) {
+              script.setAttribute("fetchpriority", fetchPriority);
+            }
+          "#
+        } else {
+          ""
+        })
+        .replace("$FETCH_PRIORITY$", if with_fetch_priority {
+          ", fetchPriority"
+        } else {
+          ""
+        })
         .replace(
           "$UNIQUE_SET_ATTRIBUTE$",
           match unique_prefix {

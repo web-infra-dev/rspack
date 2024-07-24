@@ -1,12 +1,22 @@
-import { JsAssetInfo, JsModule, RawFuncUseCtx } from "@rspack/binding";
+import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 
-import { Compilation, Compiler } from "..";
-import type { Builtins as BuiltinsType } from "../builtin-plugin";
+import type { Compilation, Compiler } from "..";
 import { Chunk } from "../Chunk";
-import { PathData } from "../Compilation";
+import type { PathData } from "../Compilation";
 import { Module } from "../Module";
+
+const filenameTemplate = z.string();
+export type FilenameTemplate = z.infer<typeof filenameTemplate>;
+
+const filename = filenameTemplate.or(
+	z
+		.function()
+		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
+		.returns(z.string())
+);
+export type Filename = z.infer<typeof filename>;
 
 //#region Name
 const name = z.string();
@@ -41,10 +51,7 @@ export type Falsy = z.infer<typeof falsy>;
 //#endregion
 
 //#region Entry
-const rawPublicPath = z.string();
-export type RawPublicPath = z.infer<typeof rawPublicPath>;
-
-const publicPath = z.literal("auto").or(rawPublicPath);
+const publicPath = z.literal("auto").or(filename);
 export type PublicPath = z.infer<typeof publicPath>;
 
 const baseUri = z.string();
@@ -144,17 +151,6 @@ export type LibraryOptions = z.infer<typeof libraryOptions>;
 const library = libraryName.or(libraryOptions).optional();
 export type Library = z.infer<typeof library>;
 
-const filenameTemplate = z.string();
-export type FilenameTemplate = z.infer<typeof filenameTemplate>;
-
-const filename = filenameTemplate.or(
-	z
-		.function()
-		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
-		.returns(z.string())
-);
-export type Filename = z.infer<typeof filename>;
-
 const entryFilename = filename;
 export type EntryFilename = z.infer<typeof entryFilename>;
 
@@ -190,7 +186,9 @@ export type EntryObject = z.infer<typeof entryObject>;
 const entryStatic = entryObject.or(entryUnnamed);
 export type EntryStatic = z.infer<typeof entryStatic>;
 
-const entry = entryStatic.or(z.function().returns(entryStatic));
+const entry = entryStatic.or(
+	z.function().returns(entryStatic.or(z.promise(entryStatic)))
+);
 export type Entry = z.infer<typeof entry>;
 //#endregion
 
@@ -201,7 +199,7 @@ export type Path = z.infer<typeof path>;
 const pathinfo = z.boolean().or(z.literal("verbose"));
 export type Pathinfo = z.infer<typeof pathinfo>;
 
-const assetModuleFilename = z.string();
+const assetModuleFilename = filename;
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
 const webassemblyModuleFilename = z.string();
@@ -353,7 +351,6 @@ const output = z.strictObject({
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
-	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
 	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
@@ -382,6 +379,8 @@ const output = z.strictObject({
 	devtoolModuleFilenameTemplate: devtoolModuleFilenameTemplate.optional(),
 	devtoolFallbackModuleFilenameTemplate:
 		devtoolFallbackModuleFilenameTemplate.optional(),
+	chunkLoadTimeout: z.number().optional(),
+	charset: z.boolean().optional(),
 	environment: environment.optional()
 });
 export type Output = z.infer<typeof output>;
@@ -396,12 +395,14 @@ const resolveAlias = z.record(
 );
 export type ResolveAlias = z.infer<typeof resolveAlias>;
 
-const resolveTsconfig = z.strictObject({
-	configFile: z.string(),
-	references: z.array(z.string()).or(z.literal("auto")).optional()
-});
-
-export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
+const resolveTsConfigFile = z.string();
+const resolveTsConfig = resolveTsConfigFile.or(
+	z.strictObject({
+		configFile: resolveTsConfigFile,
+		references: z.array(z.string()).or(z.literal("auto")).optional()
+	})
+);
+export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
 
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
@@ -417,8 +418,7 @@ const baseResolveOptions = z.strictObject({
 	enforceExtension: z.boolean().optional(),
 	importsFields: z.array(z.string()).optional(),
 	descriptionFiles: z.array(z.string()).optional(),
-	tsConfigPath: z.string().optional(),
-	tsConfig: resolveTsconfig.optional(),
+	tsConfig: resolveTsConfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
 	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional(),
@@ -434,8 +434,7 @@ const resolveOptions: z.ZodType<ResolveOptions> = baseResolveOptions.extend({
 	byDependency: z.lazy(() => z.record(resolveOptions)).optional()
 });
 
-const resolve = resolveOptions;
-export type Resolve = z.infer<typeof resolve>;
+export type Resolve = z.infer<typeof resolveOptions>;
 //#endregion
 
 //#region Module
@@ -564,21 +563,38 @@ const cssModuleParserOptions = z.strictObject({
 });
 export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
 
-//TODO: "weak", "lazy-once"
-const dynamicImportMode = z.enum(["eager", "lazy"]);
+const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
 const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
+const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
 const wrappedContextCritical = z.boolean();
+const exportsPresence = z.enum(["error", "warn", "auto"]).or(z.literal(false));
+const importExportsPresence = z
+	.enum(["error", "warn", "auto"])
+	.or(z.literal(false));
+const reexportExportsPresence = z
+	.enum(["error", "warn", "auto"])
+	.or(z.literal(false));
+const strictExportPresence = z.boolean();
+const worker = z.array(z.string()).or(z.boolean());
+const overrideStrict = z.enum(["strict", "non-strict"]);
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
 	dynamicImportPreload: dynamicImportPreload.optional(),
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
+	dynamicImportFetchPriority: dynamicImportFetchPriority.optional(),
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
-	wrappedContextCritical: wrappedContextCritical.optional()
+	wrappedContextCritical: wrappedContextCritical.optional(),
+	exportsPresence: exportsPresence.optional(),
+	importExportsPresence: importExportsPresence.optional(),
+	reexportExportsPresence: reexportExportsPresence.optional(),
+	strictExportPresence: strictExportPresence.optional(),
+	worker: worker.optional(),
+	overrideStrict: overrideStrict.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -644,7 +660,7 @@ export type AssetInlineGeneratorOptions = z.infer<
 
 const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
-	filename: filenameTemplate.optional(),
+	filename: filename.optional(),
 	publicPath: publicPath.optional()
 });
 export type AssetResourceGeneratorOptions = z.infer<
@@ -744,8 +760,8 @@ export type ModuleOptions = z.infer<typeof moduleOptions>;
 //#endregion
 
 //#region Target
-const allowTarget = z
-	.enum([
+const allowTarget = z.union([
+	z.enum([
 		"web",
 		"webworker",
 		"es3",
@@ -759,66 +775,61 @@ const allowTarget = z
 		"es2021",
 		"es2022",
 		"browserslist"
-	])
-	.or(z.literal("node"))
-	.or(z.literal("async-node"))
-	.or(
-		z.custom<`node${number}`>(
-			value => typeof value === "string" && /^node\d+$/.test(value)
-		)
+	]),
+	z.literal("node"),
+	z.literal("async-node"),
+	z.custom<`node${number}`>(
+		value => typeof value === "string" && /^node\d+$/.test(value)
+	),
+	z.custom<`async-node${number}`>(
+		value => typeof value === "string" && /^async-node\d+$/.test(value)
+	),
+	z.custom<`node${number}.${number}`>(
+		value => typeof value === "string" && /^node\d+\.\d+$/.test(value)
+	),
+	z.custom<`async-node${number}.${number}`>(
+		value => typeof value === "string" && /^async-node\d+\.\d+$/.test(value)
+	),
+	z.literal("electron-main"),
+	z.custom<`electron${number}-main`>(
+		value => typeof value === "string" && /^electron\d+-main$/.test(value)
+	),
+	z.custom<`electron${number}.${number}-main`>(
+		value => typeof value === "string" && /^electron\d+\.\d+-main$/.test(value)
+	),
+	z.literal("electron-renderer"),
+	z.custom<`electron${number}-renderer`>(
+		value => typeof value === "string" && /^electron\d+-renderer$/.test(value)
+	),
+	z.custom<`electron${number}.${number}-renderer`>(
+		value =>
+			typeof value === "string" && /^electron\d+\.\d+-renderer$/.test(value)
+	),
+	z.literal("electron-preload"),
+	z.custom<`electron${number}-preload`>(
+		value => typeof value === "string" && /^electron\d+-preload$/.test(value)
+	),
+	z.custom<`electron${number}.${number}-preload`>(
+		value =>
+			typeof value === "string" && /^electron\d+\.\d+-preload$/.test(value)
+	),
+	z.literal("nwjs"),
+	z.custom<`nwjs${number}`>(
+		value => typeof value === "string" && /^nwjs\d+$/.test(value)
+	),
+	z.custom<`nwjs${number}.${number}`>(
+		value => typeof value === "string" && /^nwjs\d+\.\d+$/.test(value)
+	),
+	z.literal("node-webkit"),
+	z.custom<`node-webkit${number}`>(
+		value => typeof value === "string" && /^node-webkit\d+$/.test(value)
+	),
+	z.custom<`node-webkit${number}.${number}`>(
+		value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
 	)
-	.or(
-		z.custom<`async-node${number}`>(
-			value => typeof value === "string" && /^async-node\d+$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`node${number}.${number}`>(
-			value => typeof value === "string" && /^node\d+\.\d+$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`async-node${number}.${number}`>(
-			value => typeof value === "string" && /^async-node\d+\.\d+$/.test(value)
-		)
-	)
-	.or(z.literal("electron-main"))
-	.or(
-		z.custom<`electron${number}-main`>(
-			value => typeof value === "string" && /^electron\d+-main$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`electron${number}.${number}-main`>(
-			value =>
-				typeof value === "string" && /^electron\d+\.\d+-main$/.test(value)
-		)
-	)
-	.or(z.literal("electron-renderer"))
-	.or(
-		z.custom<`electron${number}-renderer`>(
-			value => typeof value === "string" && /^electron\d+-renderer$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`electron${number}.${number}-renderer`>(
-			value =>
-				typeof value === "string" && /^electron\d+\.\d+-renderer$/.test(value)
-		)
-	)
-	.or(z.literal("electron-preload"))
-	.or(
-		z.custom<`electron${number}-preload`>(
-			value => typeof value === "string" && /^electron\d+-preload$/.test(value)
-		)
-	)
-	.or(
-		z.custom<`electron${number}.${number}-preload`>(
-			value =>
-				typeof value === "string" && /^electron\d+\.\d+-preload$/.test(value)
-		)
-	);
-const target = z.literal(false).or(allowTarget).or(allowTarget.array());
+]);
+
+const target = z.union([z.literal(false), allowTarget, allowTarget.array()]);
 export type Target = z.infer<typeof target>;
 //#endregion
 
@@ -865,7 +876,12 @@ export type ExternalItemObjectUnknown = z.infer<
 const externalItemFunctionData = z.strictObject({
 	context: z.string().optional(),
 	dependencyType: z.string().optional(),
-	request: z.string().optional()
+	request: z.string().optional(),
+	contextInfo: z
+		.strictObject({
+			issuer: z.string()
+		})
+		.optional()
 });
 export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
 
@@ -908,7 +924,8 @@ const externalsPresets = z.strictObject({
 	electron: z.boolean().optional(),
 	electronMain: z.boolean().optional(),
 	electronPreload: z.boolean().optional(),
-	electronRenderer: z.boolean().optional()
+	electronRenderer: z.boolean().optional(),
+	nwjs: z.boolean().optional()
 });
 export type ExternalsPresets = z.infer<typeof externalsPresets>;
 //#endregion
@@ -985,6 +1002,9 @@ export type NodeOptions = z.infer<typeof nodeOptions>;
 
 const node = z.literal(false).or(nodeOptions);
 export type Node = z.infer<typeof node>;
+
+const loader = z.record(z.string(), z.any());
+export type Loader = z.infer<typeof loader>;
 //#endregion
 
 //#region Snapshot
@@ -998,15 +1018,23 @@ export type CacheOptions = z.infer<typeof cacheOptions>;
 //#endregion
 
 //#region Stats
+const statsPresets = z.enum([
+	"normal",
+	"none",
+	"verbose",
+	"errors-only",
+	"errors-warnings",
+	"minimal",
+	"detailed",
+	"summary"
+]);
 const statsOptions = z.strictObject({
 	all: z.boolean().optional(),
-	preset: z
-		.enum(["normal", "none", "verbose", "errors-only", "errors-warnings"])
-		.optional(),
+	preset: z.boolean().or(statsPresets).optional(),
 	assets: z.boolean().optional(),
 	chunks: z.boolean().optional(),
 	modules: z.boolean().optional(),
-	entrypoints: z.boolean().optional(),
+	entrypoints: z.boolean().or(z.literal("auto")).optional(),
 	chunkGroups: z.boolean().optional(),
 	warnings: z.boolean().optional(),
 	warningsCount: z.boolean().optional(),
@@ -1024,7 +1052,6 @@ const statsOptions = z.strictObject({
 	timings: z.boolean().optional(),
 	builtAt: z.boolean().optional(),
 	moduleAssets: z.boolean().optional(),
-	modulesSpace: z.number().optional(),
 	nestedModules: z.boolean().optional(),
 	source: z.boolean().optional(),
 	logging: z
@@ -1038,14 +1065,69 @@ const statsOptions = z.strictObject({
 	usedExports: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
 	optimizationBailout: z.boolean().optional(),
-	orphanModules: z.boolean().optional()
+	groupModulesByType: z.boolean().optional(),
+	groupModulesByCacheStatus: z.boolean().optional(),
+	groupModulesByLayer: z.boolean().optional(),
+	groupModulesByAttributes: z.boolean().optional(),
+	groupModulesByPath: z.boolean().optional(),
+	groupModulesByExtension: z.boolean().optional(),
+	modulesSpace: z.number().optional(),
+	chunkModulesSpace: z.number().optional(),
+	nestedModulesSpace: z.number().optional(),
+	relatedAssets: z.boolean().optional(),
+	groupAssetsByEmitStatus: z.boolean().optional(),
+	groupAssetsByInfo: z.boolean().optional(),
+	groupAssetsByPath: z.boolean().optional(),
+	groupAssetsByExtension: z.boolean().optional(),
+	groupAssetsByChunk: z.boolean().optional(),
+	assetsSpace: z.number().optional(),
+	orphanModules: z.boolean().optional(),
+	excludeModules: z
+		.array(
+			z
+				.string()
+				.or(z.instanceof(RegExp))
+				.or(z.function(z.tuple([z.string(), z.any(), z.any()]), z.boolean()))
+		)
+		.or(z.string())
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string(), z.any(), z.any()]), z.boolean()))
+		.or(z.boolean())
+		.optional(),
+	excludeAssets: z
+		.array(
+			z
+				.string()
+				.or(z.instanceof(RegExp))
+				.or(z.function(z.tuple([z.string(), z.any()]), z.boolean()))
+		)
+		.or(z.string())
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string(), z.any()]), z.boolean()))
+		.optional(),
+	modulesSort: z.string().optional(),
+	chunkModulesSort: z.string().optional(),
+	nestedModulesSort: z.string().optional(),
+	chunksSort: z.string().optional(),
+	assetsSort: z.string().optional(),
+	performance: z.boolean().optional(),
+	env: z.boolean().optional(),
+	chunkGroupAuxiliary: z.boolean().optional(),
+	chunkGroupChildren: z.boolean().optional(),
+	chunkGroupMaxAssets: z.number().optional(),
+	dependentModules: z.boolean().optional(),
+	chunkOrigins: z.boolean().optional(),
+	runtime: z.boolean().optional(),
+	depth: z.boolean().optional(),
+	reasonsSpace: z.number().optional(),
+	groupReasonsByOrigin: z.boolean().optional(),
+	errorDetails: z.boolean().optional(),
+	errorStack: z.boolean().optional(),
+	moduleTrace: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
-const statsValue = z
-	.enum(["none", "errors-only", "errors-warnings", "normal", "verbose"])
-	.or(z.boolean())
-	.or(statsOptions);
+const statsValue = z.boolean().or(statsPresets).or(statsOptions);
 export type StatsValue = z.infer<typeof statsValue>;
 //#endregion
 
@@ -1101,8 +1183,13 @@ const optimizationSplitChunksName = z
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp))
-	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
-const optimizationSplitChunksSizes = z.number();
+	.or(
+		z
+			.function()
+			.args(z.instanceof(Chunk, { message: "Input not instance of Chunk" }))
+			.returns(z.boolean())
+	);
+const optimizationSplitChunksSizes = z.number().or(z.record(z.number()));
 const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
@@ -1161,8 +1248,8 @@ export type OptimizationSplitChunksOptions = z.infer<
 >;
 
 const optimization = z.strictObject({
-	moduleIds: z.enum(["named", "deterministic"]).optional(),
-	chunkIds: z.enum(["named", "deterministic"]).optional(),
+	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
+	chunkIds: z.enum(["natural", "named", "deterministic"]).optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
@@ -1184,13 +1271,13 @@ export type Optimization = z.infer<typeof optimization>;
 
 //#region Experiments
 const rspackFutureOptions = z.strictObject({
-	newTreeshaking: z.boolean().optional(),
 	bundlerInfo: z
 		.strictObject({
 			version: z.string().optional(),
+			bundler: z.string().optional(),
 			force: z
 				.boolean()
-				.or(z.array(z.enum(["version"])))
+				.or(z.array(z.enum(["version", "uniqueId"])))
 				.optional()
 		})
 		.optional()
@@ -1281,11 +1368,6 @@ const performance = z
 export type Performance = z.infer<typeof performance>;
 //#endregion
 
-//#region Builtins (deprecated)
-const builtins = z.custom<BuiltinsType>();
-export type Builtins = z.infer<typeof builtins>;
-//#endregion
-
 export const rspackOptions = z.strictObject({
 	name: name.optional(),
 	dependencies: dependencies.optional(),
@@ -1302,17 +1384,17 @@ export const rspackOptions = z.strictObject({
 	context: context.optional(),
 	devtool: devTool.optional(),
 	node: node.optional(),
+	loader: loader.optional(),
 	ignoreWarnings: ignoreWarnings.optional(),
 	watchOptions: watchOptions.optional(),
 	watch: watch.optional(),
 	stats: statsValue.optional(),
 	snapshot: snapshotOptions.optional(),
 	optimization: optimization.optional(),
-	resolve: resolve.optional(),
-	resolveLoader: resolve.optional(),
+	resolve: resolveOptions.optional(),
+	resolveLoader: resolveOptions.optional(),
 	plugins: plugins.optional(),
 	devServer: devServer.optional(),
-	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
 	profile: profile.optional(),
 	bail: bail.optional(),

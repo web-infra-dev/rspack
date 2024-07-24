@@ -1,7 +1,7 @@
 var uniqueName = "__UNIQUE_NAME__";
 // loadCssChunkData is unnecessary
 var loadingAttribute = "data-webpack-loading";
-var loadStylesheet = function (chunkId, url, done, hmr) {
+var loadStylesheet = function (chunkId, url, done, hmr, fetchPriority) {
 	var link,
 		needAttach,
 		key = "chunk-" + chunkId;
@@ -28,7 +28,13 @@ var loadStylesheet = function (chunkId, url, done, hmr) {
 	if (!link) {
 		needAttach = true;
 		link = document.createElement("link");
+		if (__webpack_require__.nc) {
+			link.setAttribute("nonce", __webpack_require__.nc);
+		}
 		link.setAttribute("data-webpack", uniqueName + ":" + key);
+		if (fetchPriority) {
+			link.setAttribute("fetchpriority", fetchPriority);
+		}
 		link.setAttribute(loadingAttribute, 1);
 		link.rel = "stylesheet";
 		link.href = url;
@@ -46,13 +52,11 @@ var loadStylesheet = function (chunkId, url, done, hmr) {
 	if (link.getAttribute(loadingAttribute)) {
 		var timeout = setTimeout(
 			onLinkComplete.bind(null, undefined, { type: "timeout", target: link }),
-			120000
+			__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__
 		);
 		link.onerror = onLinkComplete.bind(null, link.onerror);
 		link.onload = onLinkComplete.bind(null, link.onload);
 	} else onLinkComplete(undefined, { type: "load", target: link });
-	hmr
-		? hmr.parentNode.insertBefore(link, hmr)
-		: needAttach && document.head.appendChild(link);
+	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };

@@ -8,13 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
 	Bail,
-	Builtins,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -54,10 +51,11 @@ import type {
 	InfrastructureLogging,
 	LazyCompilationOptions,
 	LibraryOptions,
+	Loader,
 	Mode,
 	Name,
-	Node,
 	NoParseOption,
+	Node,
 	Optimization,
 	OptimizationRuntimeChunk,
 	OutputModule,
@@ -95,11 +93,10 @@ export const getNormalizedRspackOptions = (
 				? config.ignoreWarnings.map(ignore => {
 						if (typeof ignore === "function") {
 							return ignore;
-						} else {
-							return (warning: Error) => {
-								return ignore.test(warning.message);
-							};
 						}
+						return (warning: Error) => {
+							return ignore.test(warning.message);
+						};
 					})
 				: undefined,
 		name: config.name,
@@ -172,10 +169,7 @@ export const getNormalizedRspackOptions = (
 						output.auxiliaryComment !== undefined
 							? output.auxiliaryComment
 							: libraryBase.auxiliaryComment,
-					amdContainer:
-						output.amdContainer !== undefined
-							? output.amdContainer
-							: libraryBase.amdContainer,
+					amdContainer: libraryBase.amdContainer,
 					export:
 						output.libraryExport !== undefined
 							? output.libraryExport
@@ -211,14 +205,26 @@ export const getNormalizedRspackOptions = (
 				devtoolModuleFilenameTemplate: output.devtoolModuleFilenameTemplate,
 				devtoolFallbackModuleFilenameTemplate:
 					output.devtoolFallbackModuleFilenameTemplate,
+				chunkLoadTimeout: output.chunkLoadTimeout,
+				charset: output.charset,
 				environment: cloneObject(output.environment)
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
-			...resolve
+			...resolve,
+			tsConfig: optionalNestedConfig(resolve.tsConfig, tsConfig => {
+				return typeof tsConfig === "string"
+					? { configFile: tsConfig }
+					: tsConfig;
+			})
 		})),
 		resolveLoader: nestedConfig(config.resolveLoader, resolve => ({
-			...resolve
+			...resolve,
+			tsConfig: optionalNestedConfig(resolve.tsConfig, tsConfig => {
+				return typeof tsConfig === "string"
+					? { configFile: tsConfig }
+					: tsConfig;
+			})
 		})),
 		module: nestedConfig(config.module, module => ({
 			noParse: module.noParse,
@@ -248,6 +254,7 @@ export const getNormalizedRspackOptions = (
 					...node
 				}
 		),
+		loader: cloneObject(config.loader),
 		snapshot: nestedConfig(config.snapshot, _snapshot => ({})),
 		cache: optionalNestedConfig(config.cache, cache => cache),
 		stats: nestedConfig(config.stats, stats => {
@@ -302,10 +309,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		bail: config.bail,
-		builtins: nestedConfig(config.builtins, builtins => ({
-			...builtins
-		}))
+		bail: config.bail
 	};
 };
 
@@ -487,6 +491,8 @@ export interface OutputNormalized {
 	devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
 	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
 	environment?: Environment;
+	charset?: boolean;
+	chunkLoadTimeout?: number;
 }
 
 export interface ModuleOptionsNormalized {
@@ -535,6 +541,7 @@ export interface RspackOptionsNormalized {
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
+	loader: Loader;
 	snapshot: SnapshotOptions;
 	cache?: CacheOptions;
 	stats: StatsValue;
@@ -548,5 +555,4 @@ export interface RspackOptionsNormalized {
 	performance?: Performance;
 	profile?: Profile;
 	bail?: Bail;
-	builtins: Builtins;
 }

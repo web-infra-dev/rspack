@@ -1,14 +1,14 @@
 use std::{marker::PhantomData, sync::Arc};
 
+use rspack_collections::Identifier;
 use rspack_core::{rspack_sources::Source, Compilation};
 use rspack_error::Result;
-use rspack_identifier::Identifier;
 use rspack_macros::impl_runtime_module;
 
 #[test]
 fn with_generic() {
   #[impl_runtime_module]
-  #[derive(Debug, Eq)]
+  #[derive(Debug)]
   struct Foo<T: std::fmt::Debug + Send + Sync + Eq + 'static> {
     marker: PhantomData<T>,
   }

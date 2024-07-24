@@ -1,15 +1,15 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 import { ECompilerEvent } from "../compiler";
 import copyDiff from "../helper/legacy/copyDiff";
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 // This file is used to port step number to rspack.config.js/webpack.config.js
 const currentWatchStepModulePath = path.resolve(
@@ -21,10 +21,7 @@ type TRspackExperiments = TCompilerOptions<ECompilerType>["experiments"];
 type TRspackOptimization = TCompilerOptions<ECompilerType>["optimization"];
 
 export interface IWatchProcessorOptions<T extends ECompilerType>
-	extends Omit<
-		IMultiTaskProcessorOptions<T>,
-		"overrideOptinos" | "findBundle"
-	> {
+	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
 	experiments?: TRspackExperiments;
@@ -138,6 +135,19 @@ export class WatchProcessor<
 						options.optimization[key] = optimization[key];
 				}
 			}
+
+			(options as TCompilerOptions<ECompilerType.Rspack>).experiments ??= {};
+			(options as TCompilerOptions<ECompilerType.Rspack>).experiments!.css ??=
+				true;
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.rspackFuture ??= {};
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.rspackFuture!.bundlerInfo ??= {};
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
 		};
 	}
 }

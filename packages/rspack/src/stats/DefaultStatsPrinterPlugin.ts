@@ -9,10 +9,10 @@
  */
 
 import type { Compiler } from "../Compiler";
-import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
-import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 import { compareIds } from "../util/comparators";
+import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
+import type { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -26,7 +26,8 @@ const printSizes = (
 	const keys = Object.keys(sizes);
 	if (keys.length > 1) {
 		return keys.map(key => `${formatSize(sizes[key])} (${key})`).join(" ");
-	} else if (keys.length === 1) {
+	}
+	if (keys.length === 1) {
 		return formatSize(sizes[keys[0]]);
 	}
 };
@@ -57,7 +58,7 @@ const isValidId = (id: any) => {
 	return typeof id === "number" || id;
 };
 
-const moreCount = (list: any[] | undefined, count: Number) => {
+const moreCount = (list: any[] | null | undefined, count: Number) => {
 	return list && list.length > 0 ? `+ ${count}` : `${count}`;
 };
 
@@ -129,7 +130,7 @@ const SIMPLE_PRINTERS: Record<
 		} else if (errorsCount === 0 && warningsCount === 0) {
 			statusMessage = `compiled ${green("successfully")}`;
 		} else {
-			statusMessage = `compiled`;
+			statusMessage = "compiled";
 		}
 		if (
 			builtAtMessage ||
@@ -410,11 +411,10 @@ const SIMPLE_PRINTERS: Record<
 					providedExportsCount === usedExports.length
 				) {
 					return cyan(formatFlag("all exports used"));
-				} else {
-					return cyan(
-						formatFlag(`only some exports used: ${usedExports.join(", ")}`)
-					);
 				}
+				return cyan(
+					formatFlag(`only some exports used: ${usedExports.join(", ")}`)
+				);
 			}
 		}
 	},
@@ -603,18 +603,18 @@ const SIMPLE_PRINTERS: Record<
 	// 	chunkEntry ? formatFlag("entry") : undefined,
 	// "error.chunkInitial": (chunkInitial, { formatFlag }) =>
 	// 	chunkInitial ? formatFlag("initial") : undefined,
-	// "error.file": (file, { bold }) => bold(file),
+	"error.file": (file, { bold }) => bold(file),
 	"error.moduleName": (moduleName, { bold }) => {
 		return moduleName.includes("!")
 			? `${bold(moduleName.replace(/^(\s|\S)*!/, ""))} (${moduleName})`
 			: `${bold(moduleName)}`;
 	},
-	// "error.loc": (loc, { green }) => green(loc),
+	"error.loc": (loc, { green }) => green(loc),
 	"error.message": (message, { bold, formatError }) =>
 		message.includes("\u001b[") ? message : bold(formatError(message)),
 	// "error.details": (details, { formatError }) => formatError(details),
 	// "error.stack": stack => stack,
-	// "error.moduleTrace": moduleTrace => undefined,
+	"error.moduleTrace": moduleTrace => undefined,
 	"error.separator!": () => "\n",
 
 	"loggingEntry(error).loggingEntry.message": (message, { red }) =>
@@ -1267,18 +1267,17 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 				timeReference / 16
 			];
 			if (time < times[3]) return `${time}${unit}`;
-			else if (time < times[2]) return bold(`${time}${unit}`);
-			else if (time < times[1]) return green(`${time}${unit}`);
-			else if (time < times[0]) return yellow(`${time}${unit}`);
-			else return red(`${time}${unit}`);
-		} else {
-			let timeStr = time.toString();
-			if (time > 1000) {
-				timeStr = `${(time / 1000).toFixed(2)}`;
-				unit = " s";
-			}
-			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
+			if (time < times[2]) return bold(`${time}${unit}`);
+			if (time < times[1]) return green(`${time}${unit}`);
+			if (time < times[0]) return yellow(`${time}${unit}`);
+			return red(`${time}${unit}`);
 		}
+		let timeStr = time.toString();
+		if (time > 1000) {
+			timeStr = `${(time / 1000).toFixed(2)}`;
+			unit = " s";
+		}
+		return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 	},
 	formatError: (msg, { green, yellow, red }) => {
 		let message = msg as string;

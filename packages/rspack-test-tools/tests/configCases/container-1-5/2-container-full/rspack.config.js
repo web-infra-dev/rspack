@@ -5,11 +5,6 @@ module.exports = {
 	output: {
 		uniqueName: "2-container-full"
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	},
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "main",

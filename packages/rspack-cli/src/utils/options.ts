@@ -1,4 +1,4 @@
-import yargs from "yargs";
+import type yargs from "yargs";
 export const commonOptions = (yargs: yargs.Argv) => {
 	return yargs
 		.options({
@@ -107,11 +107,7 @@ export function normalizeEnv(argv: yargs.Arguments) {
 				return;
 			}
 
-			if (!prevRef[someKey]) {
-				prevRef[someKey] = {};
-			}
-
-			if (typeof prevRef[someKey] === "string") {
+			if (!prevRef[someKey] || typeof prevRef[someKey] === "string") {
 				prevRef[someKey] = {};
 			}
 

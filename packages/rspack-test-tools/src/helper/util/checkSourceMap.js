@@ -1,6 +1,11 @@
 // @ts-nocheck
 // Check the mapping of various key locations back to the original source
-export default async function checkSourceMap(out, outCodeMap, toSearch) {
+export default async function checkSourceMap(
+	out,
+	outCodeMap,
+	toSearch,
+	_checkColumn = true // passing `false` indicating it's an `OriginalSource`.
+) {
 	let failed = false;
 	const recordCheck = (success, message) => {
 		if (!success) {
@@ -10,10 +15,10 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 	};
 
 	const sourceMap = require("source-map");
-	const path = require("path");
+	const path = require("node:path");
 
 	const sources = JSON.parse(outCodeMap).sources;
-	for (let source of sources) {
+	for (const source of sources) {
 		if (sources.filter(s => s === source).length > 1) {
 			throw new Error(
 				`Duplicate source ${JSON.stringify(source)} found in source map`
@@ -22,9 +27,17 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 	}
 	const map = await new sourceMap.SourceMapConsumer(outCodeMap);
 	for (const id in toSearch) {
-		const outIndex = out.indexOf(id);
+		const isSearchConfig =
+			typeof toSearch[id] === "object" && toSearch[id] !== null;
+		const outId = isSearchConfig ? toSearch[id].outId ?? id : id;
+		const checkColumn = isSearchConfig
+			? toSearch[id].checkColumn ?? _checkColumn
+			: _checkColumn;
+		const inSource = isSearchConfig ? toSearch[id].inSource : toSearch[id];
+
+		const outIndex = out.indexOf(outId);
 		if (outIndex < 0)
-			throw new Error(`Failed to find "${id}" in output ${out}`);
+			throw new Error(`Failed to find "${outId}" in output ${out}`);
 		const outLines = out.slice(0, outIndex).split("\n");
 		const outLine = outLines.length;
 		const outLastLine = outLines[outLines.length - 1];
@@ -34,10 +47,9 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 			column: outColumn
 		});
 
-		const inSource = toSearch[id];
 		recordCheck(
 			source === inSource,
-			`expected source: ${inSource}, observed source: ${source}@${line}:${column}, {out_source}@${outLine}:${outColumn}.`
+			`expected source: ${inSource}, observed source: ${source}@${line}:${column}, {out_source}@${outLine}:${outColumn}. ${checkColumn ? "" : "(column ignored)"}`
 		);
 
 		const inCode = map.sourceContentFor(source);
@@ -57,30 +69,41 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 			if (inMatch) inColumn -= inMatch[0].length;
 		}
 
-		const expected = JSON.stringify({ source, line: inLine, column: inColumn });
+		const expected = JSON.stringify({
+			source,
+			line: inLine,
+			column: checkColumn ? inColumn : 0
+		});
 		const observed = JSON.stringify({ source, line, column });
 		recordCheck(
 			expected === observed,
 			`expected original position: ${expected}, observed original position: ${observed}, out: ${
-				outLine + "," + outColumn + "," + outIndex + ":" + id
-			}`
+				outLine + "," + outColumn + "," + outIndex + ":" + outId
+			}, ${checkColumn ? "" : "(column ignored)"}`
 		);
 
 		// Also check the reverse mapping
 		const positions = map.allGeneratedPositionsFor({
 			source,
 			line: inLine,
-			column: inColumn
+			column: checkColumn ? inColumn : 0
 		});
 		recordCheck(
 			positions.length > 0,
-			`expected generated positions: 1, observed generated positions: ${positions.length}`
+			`expected generated positions: 1, observed generated positions: ${positions.length} ${checkColumn ? "" : "(column ignored)"}`
 		);
 		let found = false;
 		for (const { line, column } of positions) {
-			if (line === outLine && column === outColumn) {
-				found = true;
-				break;
+			if (line === outLine) {
+				if (!checkColumn && column === 0) {
+					found = true;
+					break;
+				}
+
+				if (checkColumn && column === outColumn) {
+					found = true;
+					break;
+				}
 			}
 		}
 		const expectedPosition = JSON.stringify({
@@ -90,7 +113,7 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 		const observedPositions = JSON.stringify(positions);
 		recordCheck(
 			found,
-			`expected generated position: ${expectedPosition}, observed generated positions: ${observedPositions}`
+			`expected generated position: ${expectedPosition}, observed generated positions: ${observedPositions} ${checkColumn ? "" : "(column ignored)"}`
 		);
 	}
 

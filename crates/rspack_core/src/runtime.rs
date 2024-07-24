@@ -2,15 +2,22 @@ use std::collections::hash_map::IntoValues;
 use std::ops::{Deref, DerefMut};
 use std::{cmp::Ordering, fmt::Debug, sync::Arc};
 
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_util::fx_hash::FxIndexSet;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{EntryOptions, EntryRuntime};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct RuntimeSpec(HashSet<Arc<str>>);
+pub struct RuntimeSpec(FxIndexSet<Arc<str>>);
+
+impl std::hash::Hash for RuntimeSpec {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.0.iter().for_each(|item| item.hash(state));
+  }
+}
 
 impl Deref for RuntimeSpec {
-  type Target = HashSet<Arc<str>>;
+  type Target = FxIndexSet<Arc<str>>;
 
   fn deref(&self) -> &Self::Target {
     &self.0
@@ -23,21 +30,21 @@ impl DerefMut for RuntimeSpec {
   }
 }
 
-impl From<HashSet<Arc<str>>> for RuntimeSpec {
-  fn from(value: HashSet<Arc<str>>) -> Self {
+impl From<FxIndexSet<Arc<str>>> for RuntimeSpec {
+  fn from(value: FxIndexSet<Arc<str>>) -> Self {
     Self::new(value)
   }
 }
 
 impl FromIterator<Arc<str>> for RuntimeSpec {
   fn from_iter<T: IntoIterator<Item = Arc<str>>>(iter: T) -> Self {
-    Self(HashSet::from_iter(iter))
+    Self(FxIndexSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
   type Item = Arc<str>;
-  type IntoIter = std::collections::hash_set::IntoIter<Self::Item>;
+  type IntoIter = indexmap::set::IntoIter<Self::Item>;
 
   fn into_iter(self) -> Self::IntoIter {
     self.0.into_iter()
@@ -45,7 +52,7 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: HashSet<Arc<str>>) -> Self {
+  pub fn new(inner: FxIndexSet<Arc<str>>) -> Self {
     Self(inner)
   }
 
@@ -87,13 +94,13 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
     return false;
   }
 
-  let mut a: Vec<Arc<str>> = Vec::from_iter(a.iter().cloned());
-  let mut b: Vec<Arc<str>> = Vec::from_iter(b.iter().cloned());
+  for a in a.iter() {
+    if !b.contains(a) {
+      return false;
+    }
+  }
 
-  a.sort_unstable();
-  b.sort_unstable();
-
-  a.into_iter().zip(b).all(|(a, b)| a == b)
+  true
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -137,8 +144,7 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
 }
 
 pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
-  let mut arr = runtime.iter().map(|item| item.as_ref()).collect::<Vec<_>>();
-  arr.sort();
+  let arr = runtime.iter().map(|item| item.as_ref()).collect::<Vec<_>>();
   arr.join(",")
 }
 
@@ -225,7 +231,7 @@ pub fn subtract_runtime_condition(
     (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => {
-      let mut set = HashSet::default();
+      let mut set = FxIndexSet::default();
       for item in a.iter() {
         if !b.contains(item) {
           set.insert(item.clone());
@@ -235,7 +241,7 @@ pub fn subtract_runtime_condition(
     }
     (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
       let a = runtime.cloned().unwrap_or_default();
-      let mut set = HashSet::default();
+      let mut set = FxIndexSet::default();
       for item in a.iter() {
         if !b.contains(item) {
           set.insert(item.clone());

@@ -1,18 +1,41 @@
+use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
-use derivative::Derivative;
 use itertools::Itertools;
-use rspack_database::DatabaseItem;
+use rspack_collections::IdentifierMap;
+use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_error::{error, Result};
-use rspack_identifier::IdentifierMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, Filename};
+use crate::{
+  compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
+  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority, Filename,
+};
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
+#[derive(Debug, Clone)]
+pub struct SyntheticDependencyLocation {
+  pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum OriginLocation {
+  Real(DependencyLocation),
+  Synthetic(SyntheticDependencyLocation),
+}
+
+#[derive(Debug, Clone)]
+pub struct OriginRecord {
+  pub module_id: Option<ModuleIdentifier>,
+  pub loc: Option<OriginLocation>,
+  pub request: Option<String>,
+}
+
 impl DatabaseItem for ChunkGroup {
-  fn ukey(&self) -> rspack_database::Ukey<Self> {
+  type ItemUkey = ChunkGroupUkey;
+
+  fn ukey(&self) -> Self::ItemUkey {
     self.ukey
   }
 }
@@ -23,17 +46,18 @@ pub struct ChunkGroup {
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
-  pub parents: HashSet<ChunkGroupUkey>,
+  pub parents: UkeySet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) children: HashSet<ChunkGroupUkey>,
-  async_entrypoints: HashSet<ChunkGroupUkey>,
+  pub(crate) children: UkeySet<ChunkGroupUkey>,
+  async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
+  origins: Vec<OriginRecord>,
 }
 
 impl ChunkGroup {
@@ -52,6 +76,7 @@ impl ChunkGroup {
       runtime_chunk: None,
       entry_point_chunk: None,
       index: None,
+      origins: vec![],
     }
   }
 
@@ -147,9 +172,9 @@ impl ChunkGroup {
     self.async_entrypoints.iter()
   }
 
-  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
+  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> UkeySet<ChunkGroupUkey> {
     let mut queue = vec![];
-    let mut ancestors = HashSet::default();
+    let mut ancestors = UkeySet::default();
 
     queue.extend(self.parents.iter().copied());
 
@@ -281,6 +306,65 @@ impl ChunkGroup {
       true
     }
   }
+
+  pub fn add_origin(
+    &mut self,
+    module_id: Option<ModuleIdentifier>,
+    loc: Option<OriginLocation>,
+    request: Option<String>,
+  ) {
+    self.origins.push(OriginRecord {
+      module_id,
+      loc,
+      request,
+    });
+  }
+
+  pub fn origins(&self) -> &Vec<OriginRecord> {
+    &self.origins
+  }
+
+  pub fn get_children_by_orders(
+    &self,
+    compilation: &Compilation,
+  ) -> HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>> {
+    let mut children_by_orders = HashMap::<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>::default();
+
+    let orders = vec![ChunkGroupOrderKey::Preload, ChunkGroupOrderKey::Prefetch];
+
+    for order_key in orders {
+      let mut list = vec![];
+      for child_ukey in &self.children {
+        let Some(child_group) =
+          get_chunk_group_from_ukey(child_ukey, &compilation.chunk_group_by_ukey)
+        else {
+          continue;
+        };
+        if let Some(order) = child_group
+          .kind
+          .get_normal_options()
+          .and_then(|o| match order_key {
+            ChunkGroupOrderKey::Prefetch => o.prefetch_order,
+            ChunkGroupOrderKey::Preload => o.preload_order,
+          })
+        {
+          list.push((order, child_group.ukey));
+        }
+      }
+
+      list.sort_by(|a, b| {
+        let cmp = b.0.cmp(&a.0);
+        match cmp {
+          Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
+          _ => cmp,
+        }
+      });
+
+      children_by_orders.insert(order_key, list.iter().map(|i| i.1).collect_vec());
+    }
+
+    children_by_orders
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -355,8 +439,7 @@ impl EntryRuntime {
 
 // pub type EntryRuntime = String;
 
-#[derive(Derivative, Debug, Default, Clone)]
-#[derivative(Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -364,12 +447,6 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  #[derivative(
-    Hash = "ignore",
-    PartialEq = "ignore",
-    PartialOrd = "ignore",
-    Ord = "ignore"
-  )]
   pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
   pub depend_on: Option<Vec<String>>,
@@ -394,10 +471,9 @@ impl EntryOptions {
     merge_field!(async_chunks);
     merge_field!(public_path);
     merge_field!(base_uri);
+    merge_field!(filename);
     merge_field!(library);
     merge_field!(depend_on);
-
-    self.filename = other.filename.clone();
     Ok(())
   }
 
@@ -436,6 +512,7 @@ pub struct ChunkGroupOptions {
   pub name: Option<String>,
   pub preload_order: Option<u32>,
   pub prefetch_order: Option<u32>,
+  pub fetch_priority: Option<DynamicImportFetchPriority>,
 }
 
 impl ChunkGroupOptions {
@@ -443,11 +520,13 @@ impl ChunkGroupOptions {
     name: Option<String>,
     preload_order: Option<u32>,
     prefetch_order: Option<u32>,
+    fetch_priority: Option<DynamicImportFetchPriority>,
   ) -> Self {
     Self {
       name,
       preload_order,
       prefetch_order,
+      fetch_priority,
     }
   }
   pub fn name_optional(mut self, name: Option<String>) -> Self {

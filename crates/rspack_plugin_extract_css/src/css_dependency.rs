@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  DependencyId, ModuleDependency, ModuleGraph,
 };
 use rustc_hash::FxHashSet;
 
@@ -25,7 +26,7 @@ pub struct CssDependency {
   pub(crate) order_index: u32,
 
   resource_identifier: String,
-
+  pub(crate) cacheable: bool,
   pub(crate) file_dependencies: FxHashSet<PathBuf>,
   pub(crate) context_dependencies: FxHashSet<PathBuf>,
   pub(crate) missing_dependencies: FxHashSet<PathBuf>,
@@ -43,6 +44,7 @@ impl CssDependency {
     source_map: String,
     identifier_index: u32,
     order_index: u32,
+    cacheable: bool,
     file_dependencies: FxHashSet<PathBuf>,
     context_dependencies: FxHashSet<PathBuf>,
     missing_dependencies: FxHashSet<PathBuf>,
@@ -60,6 +62,7 @@ impl CssDependency {
       identifier_index,
       order_index,
       resource_identifier,
+      cacheable,
       file_dependencies,
       context_dependencies,
       missing_dependencies,
@@ -72,10 +75,6 @@ impl AsDependencyTemplate for CssDependency {}
 impl AsContextDependency for CssDependency {}
 
 impl Dependency for CssDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "mini-extract-css-dependency"
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -95,7 +94,7 @@ impl Dependency for CssDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut FxHashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::TransitiveOnly
   }

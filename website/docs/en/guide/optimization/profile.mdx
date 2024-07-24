@@ -10,7 +10,7 @@ The Rspack CLI supports the use of the `RSPACK_PROFILE` environment variable for
 $ RSPACK_PROFILE=ALL rspack build
 ```
 
-This command will generate a `.rspack-profile-${timestamp}` folder in the current folder, and it will contain `logging.json`, `trace.json` and `jscpuprofile.json` files.
+This command will generate a `.rspack-profile-${timestamp}-${pid}` folder in the current folder, and it will contain `logging.json`, `trace.json` and `jscpuprofile.json` files.
 
 - `trace.json`: The time spent on each phase of the Rust side is recorded at a granular level using [tracing](https://github.com/tokio-rs/tracing) and can be viewed using [ui.perfetto.dev](https://ui.perfetto.dev/)
 - `jscpuprofile.json`: The time spent at each stage on the JavaScript side is recorded at a granular level using [Node.js inspector](https://nodejs.org/dist/latest-v18.x/docs/api/inspector.html) and can be viewed using [speedscope.app](https://www.speedscope.app/)

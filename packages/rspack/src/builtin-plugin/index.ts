@@ -1,9 +1,10 @@
+export { RspackBuiltinPlugin } from "./base";
+
 export * from "./APIPlugin";
 export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./AssetModulesPlugin";
 export * from "./AsyncWebAssemblyModulesPlugin";
 export * from "./BannerPlugin";
-export { RspackBuiltinPlugin } from "./base";
 export * from "./BundlerInfoRspackPlugin";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CommonJsChunkFormatPlugin";
@@ -43,6 +44,8 @@ export * from "./ModuleChunkFormatPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./NamedChunkIdsPlugin";
 export * from "./NamedModuleIdsPlugin";
+export * from "./NaturalChunkIdsPlugin";
+export * from "./NaturalModuleIdsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ProgressPlugin";
 export * from "./ProvidePlugin";
@@ -55,38 +58,9 @@ export * from "./SizeLimitsPlugin";
 export * from "./SourceMapDevToolPlugin";
 export * from "./SplitChunksPlugin";
 export * from "./SwcCssMinimizerPlugin";
+export * from "./LightningCssMiminizerRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
-
-///// DEPRECATED /////
-import { RawBuiltins } from "@rspack/binding";
-
-import { RspackOptionsNormalized } from "..";
-
-function resolveTreeShaking(
-	treeShaking: Builtins["treeShaking"],
-	production: boolean
-): string {
-	return treeShaking !== undefined
-		? treeShaking.toString()
-		: production
-			? "true"
-			: "false";
-}
-
-export interface Builtins {
-	treeShaking?: boolean | "module";
-}
-
-export function deprecated_resolveBuiltins(
-	builtins: Builtins,
-	options: RspackOptionsNormalized
-): RawBuiltins {
-	const production = options.mode === "production" || !options.mode;
-
-	return {
-		treeShaking: resolveTreeShaking(builtins.treeShaking, production)
-	};
-}
+export * from "./FetchCompileAsyncWasmPlugin";

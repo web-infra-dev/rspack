@@ -1,12 +1,12 @@
 // @ts-nocheck
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const rimraf = require("rimraf");
 
 module.exports = function copyDiff(src, dest, initial) {
 	fs.mkdirSync(dest, { recursive: true });
 	const files = fs.readdirSync(src);
-	files.forEach(filename => {
+	for (const filename of files) {
 		const srcFile = path.join(src, filename);
 		const destFile = path.join(dest, filename);
 		const directory = fs.statSync(srcFile).isDirectory();
@@ -30,5 +30,5 @@ module.exports = function copyDiff(src, dest, initial) {
 				}
 			}
 		}
-	});
+	}
 };

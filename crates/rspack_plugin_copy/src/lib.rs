@@ -3,6 +3,7 @@ use std::{
   fmt::Display,
   fs,
   hash::Hash,
+  ops::DerefMut,
   path::{Path, PathBuf, MAIN_SEPARATOR},
   sync::{Arc, Mutex},
 };
@@ -69,17 +70,30 @@ impl Display for ToType {
 }
 
 pub type TransformerFn =
-  Box<dyn for<'a> Fn(RawSource, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
+  Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
 pub enum Transformer {
   Fn(TransformerFn),
+}
+
+pub struct ToFnCtx<'a> {
+  pub context: &'a str,
+  pub absolute_filename: Option<&'a str>,
+}
+
+pub type ToFn = Box<dyn for<'a> Fn(ToFnCtx<'a>) -> BoxFuture<'a, Result<String>> + Sync + Send>;
+
+pub enum ToOption {
+  String(String),
+  Fn(ToFn),
 }
 
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CopyPattern {
   pub from: String,
-  pub to: Option<String>,
+  #[derivative(Debug = "ignore")]
+  pub to: Option<ToOption>,
   pub context: Option<PathBuf>,
   pub to_type: Option<ToType>,
   pub no_error_on_missing: bool,
@@ -178,6 +192,35 @@ impl CopyRspackPlugin {
     };
 
     let to = if let Some(to) = pattern.to.as_ref() {
+      let to = match to {
+        ToOption::String(s) => s.to_owned(),
+        ToOption::Fn(r) => {
+          if let Some(context) = context.to_str() {
+            let to_result = r(ToFnCtx {
+              context,
+              absolute_filename: absolute_filename.to_str(),
+            })
+            .await;
+            let to = match to_result {
+              Ok(to) => to,
+              Err(e) => {
+                diagnostics
+                  .lock()
+                  .expect("failed to obtain lock of `diagnostics`")
+                  .push(Diagnostic::error(
+                    "Run copy to fn error".into(),
+                    e.to_string(),
+                  ));
+                "".to_string()
+              }
+            };
+            to
+          } else {
+            "".to_string()
+          }
+        }
+      };
+
       to.clone()
         .as_path()
         .normalize()
@@ -239,11 +282,11 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
-    let mut source = match tokio::fs::read(absolute_filename.clone()).await {
+    let source_vec = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
         logger.debug(format!("read '{}'...", absolute_filename.display()));
 
-        RawSource::Buffer(data)
+        data
       }
       Err(e) => {
         let e: Error = DiagnosticError::from(e.boxed()).into();
@@ -256,11 +299,13 @@ impl CopyRspackPlugin {
       }
     };
 
+    let mut source = RawSource::Buffer(source_vec.clone());
+
     if let Some(transform) = &pattern.transform {
       if let Some(absolute_filename) = absolute_filename.to_str() {
         match transform {
           Transformer::Fn(transformer) => {
-            let transformed = transformer(source.clone(), absolute_filename).await;
+            let transformed = transformer(source_vec, absolute_filename).await;
             match transformed {
               Ok(code) => {
                 source = code;
@@ -532,11 +577,20 @@ impl CopyRspackPlugin {
       }
       Err(e) => {
         if pattern.no_error_on_missing {
+          let to = if let Some(to) = &pattern.to {
+            match to {
+              ToOption::String(s) => s,
+              ToOption::Fn(_) => "",
+            }
+          } else {
+            ""
+          };
+
           logger.log(format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
             PathBuf::from(orig_from).display(),
             context.display(),
-            pattern.to
+            to,
           ));
 
           return None;
@@ -594,13 +648,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .context_dependencies
     .extend(context_dependencies);
-  compilation.push_batch_diagnostic(
+  compilation.extend_diagnostics(std::mem::take(
     diagnostics
       .lock()
       .expect("failed to obtain lock of `diagnostics`")
-      .drain(..)
-      .collect(),
-  );
+      .deref_mut(),
+  ));
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
   copied_result.into_iter().for_each(|(_priority, result)| {

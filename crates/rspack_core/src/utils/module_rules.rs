@@ -27,46 +27,48 @@ pub async fn module_rule_matcher<'a>(
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule.try_match(&resource_data.resource).await?
+    && !test_rule.try_match(resource_data.resource.as_str()).await?
   {
     return Ok(false);
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
+  let resource_path = || {
+    resource_data
+      .resource_path
+      .as_deref()
+      .map(|p| p.to_string_lossy().into_owned())
+      .unwrap_or_default()
+  };
   if let Some(test_rule) = &module_rule.test
-    && !test_rule
-      .try_match(&resource_data.resource_path.to_string_lossy())
-      .await?
+    && !test_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule
-      .try_match(&resource_data.resource_path.to_string_lossy())
-      .await?
+    && !resource_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule
-      .try_match(&resource_data.resource_path.to_string_lossy())
-      .await?
+    && !include_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule
-      .try_match(&resource_data.resource_path.to_string_lossy())
-      .await?
+    && exclude_rule.try_match(resource_path().as_str()).await?
   {
     return Ok(false);
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
     if let Some(resource_query) = &resource_data.resource_query {
-      if !resource_query_rule.try_match(resource_query).await? {
+      if !resource_query_rule
+        .try_match(resource_query.as_str())
+        .await?
+      {
         return Ok(false);
       }
     } else {
@@ -77,7 +79,7 @@ pub async fn module_rule_matcher<'a>(
   if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
     if let Some(resource_fragment) = &resource_data.resource_fragment {
       if !resource_fragment_condition
-        .try_match(resource_fragment)
+        .try_match(resource_fragment.as_str())
         .await?
       {
         return Ok(false);
@@ -89,7 +91,7 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(mimetype_condition) = &module_rule.mimetype {
     if let Some(mimetype) = &resource_data.mimetype {
-      if !mimetype_condition.try_match(mimetype).await? {
+      if !mimetype_condition.try_match(mimetype.as_str()).await? {
         return Ok(false);
       }
     } else {
@@ -102,7 +104,7 @@ pub async fn module_rule_matcher<'a>(
     if scheme.is_none() {
       return Ok(false);
     }
-    if !scheme_condition.try_match(&scheme.to_string()).await? {
+    if !scheme_condition.try_match(scheme.as_str()).await? {
       return Ok(false);
     }
   }
@@ -115,7 +117,7 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
-    && !dependency_rule.try_match(&dependency.to_string()).await?
+    && !dependency_rule.try_match(dependency.as_str()).await?
   {
     return Ok(false);
   }
@@ -123,7 +125,10 @@ pub async fn module_rule_matcher<'a>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = &resource_data.resource_description {
       for (k, matcher) in description_data {
-        if let Some(v) = resource_description.json().get(k).and_then(|v| v.as_str()) {
+        if let Some(v) = k
+          .split('.')
+          .try_fold(resource_description.json(), |acc, key| acc.get(key))
+        {
           if !matcher.try_match(v).await? {
             return Ok(false);
           }

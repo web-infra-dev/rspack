@@ -8,9 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { KnownCreateStatsOptionsContext } from "./Compilation";
-import { Stats } from "./Stats";
-import { StatsCompilation } from "./stats/statsFactoryUtils";
+import type { KnownCreateStatsOptionsContext } from "./Compilation";
+import type { Stats } from "./Stats";
+import type { StatsCompilation } from "./stats/statsFactoryUtils";
 import { indent } from "./util";
 import * as identifierUtils from "./util/identifier";
 

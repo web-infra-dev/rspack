@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
 use linked_hash_set::LinkedHashSet;
+use rspack_collections::Identifier;
 use rspack_core::{
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Plugin,
   PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::Identifier;
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -46,7 +46,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport(_) | DependencyType::EsmExport(_)
+            DependencyType::EsmImport | DependencyType::EsmExport
           )
         } else {
           false

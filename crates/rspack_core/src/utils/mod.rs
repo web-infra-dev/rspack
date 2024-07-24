@@ -1,7 +1,9 @@
 use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
+use rspack_collections::Identifier;
 use rspack_util::comparators::compare_ids;
+use rspack_util::comparators::compare_numbers;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -26,7 +28,6 @@ mod source;
 pub mod task_loop;
 mod template;
 mod to_path;
-mod visitor;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
@@ -45,7 +46,6 @@ pub use self::runtime::*;
 pub use self::source::*;
 pub use self::template::*;
 pub use self::to_path::to_path;
-pub use self::visitor::*;
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
@@ -100,7 +100,13 @@ pub fn stringify_map<T: Display>(map: &HashMap<String, T>) -> String {
       .keys()
       .sorted_unstable()
       .fold(String::new(), |prev, cur| {
-        prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
+        prev
+          + format!(
+            r#"{}: {},"#,
+            serde_json::to_string(cur).expect("json stringify failed"),
+            map.get(cur).expect("get key from map")
+          )
+          .as_str()
       })
   )
 }
@@ -140,6 +146,20 @@ pub fn compare_chunk_group(
       chunks_a,
       chunks_b,
     ),
+  }
+}
+
+pub fn compare_modules_by_pre_order_index_or_identifier(
+  module_graph: &ModuleGraph,
+  a: &Identifier,
+  b: &Identifier,
+) -> std::cmp::Ordering {
+  if let Some(a) = module_graph.get_pre_order_index(a)
+    && let Some(b) = module_graph.get_pre_order_index(b)
+  {
+    compare_numbers(a, b)
+  } else {
+    compare_ids(a, b)
   }
 }
 

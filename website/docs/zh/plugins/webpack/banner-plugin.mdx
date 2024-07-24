@@ -23,6 +23,7 @@ type BannerPluginOptions = {
   entryOnly?: boolean;
   footer?: boolean;
   raw?: boolean;
+  stage?: number;
   test?: BannerRules;
   include?: BannerRules;
   exclude?: BannerRules;
@@ -75,6 +76,12 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
       type: '`boolean|undefined`',
       default: 'undefined',
       description: '如果值为 true，将直接输出，不会被作为注释',
+    },
+    {
+      name: '`stage`',
+      type: '`number|undefined`',
+      default: '`PROCESS_ASSETS_STAGE_ADDITIONS`(-100)',
+      description: 'Banner 应在哪个编译阶段注入',
     },
     {
       name: '`test`',

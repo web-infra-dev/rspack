@@ -1,36 +1,47 @@
-use rspack_ast::RspackAst;
+use std::borrow::Cow;
+use std::sync::Arc;
+
+use itertools::Itertools;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
-use rspack_core::needs_refactor::WorkerSyntaxList;
-use rspack_core::rspack_sources::{
-  BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions,
-};
-use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
-use rspack_core::tree_shaking::js_module::JsModule;
-use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
+use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
-  Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ParseContext,
-  ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt, TemplateContext,
-  TemplateReplaceSource,
+  Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use swc_core::common::{Span, SyntaxContext};
-use swc_core::ecma::parser::{EsConfig, Syntax};
+use swc_core::common::comments::Comments;
+use swc_core::common::input::SourceFileInput;
+use swc_core::common::{FileName, Span, SyntaxContext};
+use swc_core::ecma::ast;
+use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
+use swc_node_comments::SwcComments;
 
-use crate::ast::CodegenOptions;
 use crate::dependency::HarmonyCompatibilityDependency;
-use crate::inner_graph_plugin::InnerGraphPlugin;
-use crate::visitors::ScanDependenciesResult;
-use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
-use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+use crate::visitors::{scan_dependencies, swc_visitor::resolver};
+use crate::visitors::{semicolon, ScanDependenciesResult};
+use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
-#[derive(Debug)]
-pub struct JavaScriptParserAndGenerator;
+#[derive(Default)]
+pub struct JavaScriptParserAndGenerator {
+  parser_plugins: Vec<BoxJavascriptParserPlugin>,
+}
 
-#[allow(unused)]
+impl std::fmt::Debug for JavaScriptParserAndGenerator {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("JavaScriptParserAndGenerator")
+      .field("parser_plugins", &"...")
+      .finish()
+  }
+}
+
 impl JavaScriptParserAndGenerator {
+  pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
+    self.parser_plugins.push(parser_plugin);
+  }
+
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -77,7 +88,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     SOURCE_TYPES
   }
 
-  fn size(&self, module: &dyn Module, _source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
@@ -85,45 +96,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
-      module_source_map_kind,
       resource_data,
       compiler_options,
       build_info,
       build_meta,
       module_identifier,
       loaders,
-      mut additional_data,
       module_parser_options,
+      additional_data,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
-    let syntax = Syntax::Es(EsConfig {
-      jsx: false,
-      export_default_from: false,
-      decorators: false,
-      fn_bind: true,
-      allow_super_outside_method: true,
-      ..Default::default()
-    });
-    let use_source_map = module_source_map_kind.source_map();
-    let enable_source_map = module_source_map_kind.enabled();
-    let original_map = source.map(&MapOptions::new(use_source_map));
-    let source = source.source();
 
-    let result_with_diagnostics =
-      |source: String, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
+    let default_with_diagnostics =
+      |source: Arc<dyn Source>, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
         Ok(
           ParseResult {
-            source: create_source(
-              source,
-              resource_data.resource_path.to_string_lossy().to_string(),
-              enable_source_map,
-            ),
+            source,
             dependencies: vec![],
             blocks: vec![],
             presentational_dependencies: vec![],
             code_generation_dependencies: vec![],
-            analyze_result: Default::default(),
             side_effects_bailout: None,
           }
           .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
@@ -133,71 +126,76 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         )
       };
 
-    let mut ast =
-      if let Some(RspackAst::JavaScript(loader_ast)) = additional_data.remove::<RspackAst>() {
-        loader_ast
-      } else {
-        match crate::ast::parse(
-          source.to_string(),
-          syntax,
-          &resource_data.resource_path.to_string_lossy(),
+    let source = remove_bom(source);
+    let cm: Arc<swc_core::common::SourceMap> = Default::default();
+    let fm = cm.new_source_file(
+      FileName::Custom(
+        resource_data
+          .resource_path
+          .as_ref()
+          .map(|p| p.to_string_lossy().to_string())
+          .unwrap_or_default(),
+      ),
+      source.source().to_string(),
+    );
+    let comments = SwcComments::default();
+    let target = ast::EsVersion::EsNext;
+    let lexer = Lexer::new(
+      Syntax::Es(EsSyntax {
+        allow_return_outside_function: matches!(
           module_type,
-        ) {
-          Ok(ast) => ast,
-          Err(e) => {
-            diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-            return result_with_diagnostics(source.to_string(), diagnostics);
-          }
-        }
-        .0
-      };
+          ModuleType::JsDynamic | ModuleType::JsAuto
+        ),
+        ..Default::default()
+      }),
+      target,
+      SourceFileInput::from(&*fm),
+      Some(&comments),
+    );
 
-    run_before_pass(&mut ast, compiler_options, &mut diagnostics)?;
-
-    let output: crate::TransformOutput = crate::ast::stringify(
-      &ast,
-      additional_data
-        .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&module_source_map_kind, Some(true))),
-    )?;
-
-    let parse_result = match crate::ast::parse(
-      output.code.clone(),
-      syntax,
-      &resource_data.resource_path.to_string_lossy(),
+    let mut ast = match crate::ast::parse(
+      lexer.clone(),
+      &fm,
+      cm.clone(),
+      Some(comments.clone()),
       module_type,
     ) {
-      Ok(parse_result) => parse_result,
+      Ok(ast) => ast,
       Err(e) => {
         diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-        return result_with_diagnostics(output.code.clone(), diagnostics);
+        return default_with_diagnostics(source, diagnostics);
       }
     };
 
-    ast = parse_result.0;
-
+    let mut semicolons = Default::default();
     ast.transform(|program, context| {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
         false,
       ));
+      // dbg!(&resource_data.resource_path);
+      // dbg!(lexer.clone().collect_vec());
+      program.visit_with(&mut semicolon::InsertedSemicolons {
+        semicolons: &mut semicolons,
+        tokens: &lexer.collect_vec(),
+      });
+      // dbg!(&semicolons);
     });
 
-    let mut worker_syntax_list = WorkerSyntaxList::default();
+    let unresolved_mark = ast.get_context().unresolved_mark;
 
     let ScanDependenciesResult {
-      mut dependencies,
+      dependencies,
       blocks,
       presentational_dependencies,
-      mut usage_span_record,
-      import_map,
       mut warning_diagnostics,
+      ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        &parse_result.1,
+        cm.clone(),
+        &fm,
         program,
-        &mut worker_syntax_list,
         resource_data,
         compiler_options,
         module_type,
@@ -205,41 +203,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         build_meta,
         module_identifier,
         module_parser_options,
+        &mut semicolons,
+        unresolved_mark,
+        &mut self.parser_plugins,
+        additional_data,
       )
     }) {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);
-        return result_with_diagnostics(output.code.clone(), diagnostics);
+        return default_with_diagnostics(source, diagnostics);
       }
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
-    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      let mut all_dependencies = dependencies.clone();
-      for mut block in blocks.clone() {
-        all_dependencies.extend(block.take_dependencies());
-      }
-      JsModule::new(
-        &ast,
-        &worker_syntax_list,
-        &all_dependencies,
-        module_identifier,
-        compiler_options,
-      )
-      .analyze()
-    } else {
-      OptimizeAnalyzeResult::default()
-    };
 
-    if compiler_options.is_new_tree_shaking()
-      && compiler_options.optimization.side_effects.is_true()
-    {
+    if compiler_options.optimization.side_effects.is_true() {
       ast.transform(|program, context| {
         let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
         let mut visitor = SideEffectsFlagPluginVisitor::new(
           SyntaxContextInfo::new(unresolved_ctxt),
-          program.comments.as_ref(),
+          program.comments.as_ref().map(|c| c as &dyn Comments),
         );
         program.visit_with(&mut visitor);
         build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
@@ -248,60 +232,38 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .side_effects_item
           .take()
           .and_then(|item| -> Option<_> {
-            let msg = span_to_location(item.span, &output.code)?;
+            let msg = span_to_location(item.span, &source.source())?;
             Some(SideEffectsBailoutItem { msg, ty: item.ty })
           })
       });
     }
 
-    let inner_graph =
-      if compiler_options.is_new_tree_shaking() && compiler_options.optimization.inner_graph {
-        ast.transform(|program, context| {
-          let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-          let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
-          let mut plugin = InnerGraphPlugin::new(
-            &mut dependencies,
-            unresolved_ctxt,
-            top_level_ctxt,
-            &mut usage_span_record,
-            &import_map,
-            module_identifier,
-            program.comments.take(),
-          );
-          plugin.enable();
-          program.visit_with(&mut plugin);
-          program.comments = plugin.comments.take();
-          Some(plugin)
-        })
-      } else {
-        None
-      };
+    // let inner_graph = if compiler_options.optimization.inner_graph {
+    //   ast.transform(|program, context| {
+    //     let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
+    //     let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
+    //     let mut plugin = InnerGraphPlugin::new(
+    //       &mut dependencies,
+    //       unresolved_ctxt,
+    //       top_level_ctxt,
+    //       &mut usage_span_record,
+    //       &import_map,
+    //       module_identifier,
+    //       program.comments.take(),
+    //       &path_ignored_spans,
+    //     );
+    //     plugin.enable();
+    //     // program.visit_with(&mut plugin);
+    //     program.comments = plugin.comments.take();
+    //     Some(plugin)
+    //   })
+    // } else {
+    //   None
+    // };
 
-    let source = if let Some(map) = output.map {
-      SourceMapSource::new(SourceMapSourceOptions {
-        value: output.code,
-        name: resource_data.resource_path.to_string_lossy().to_string(),
-        source_map: SourceMap::from_json(&map).expect("should be able to generate source-map"),
-        inner_source_map: use_source_map.then_some(original_map).flatten(),
-        remove_original_source: true,
-        ..Default::default()
-      })
-      .boxed()
-    } else if enable_source_map {
-      OriginalSource::new(output.code, resource_data.resource_path.to_string_lossy()).boxed()
-    } else {
-      RawSource::from(output.code).boxed()
-    };
-
-    fn create_source(content: String, resource_path: String, devtool: bool) -> BoxSource {
-      if devtool {
-        return OriginalSource::new(content, resource_path).boxed();
-      }
-      RawSource::from(content).boxed()
-    }
-    if let Some(mut inner_graph) = inner_graph {
-      inner_graph.infer_dependency_usage();
-    }
+    // if let Some(mut inner_graph) = inner_graph {
+    //   inner_graph.infer_dependency_usage();
+    // }
 
     Ok(
       ParseResult {
@@ -310,7 +272,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         blocks,
         presentational_dependencies,
         code_generation_dependencies: vec![],
-        analyze_result,
         side_effects_bailout,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
@@ -320,7 +281,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )
   }
 
-  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,
@@ -341,6 +301,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
+        data: generate_context.data,
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {
@@ -372,7 +333,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module: &dyn rspack_core::Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
-  ) -> Option<String> {
+  ) -> Option<Cow<'static, str>> {
     // Only harmony modules are valid for optimization
     if module.build_meta().is_none()
       || module
@@ -380,7 +341,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .map(|meta| meta.exports_type != BuildMetaExportsType::Namespace)
         .unwrap_or_default()
     {
-      return Some(String::from("Module is not an ECMAScript module"));
+      return Some("Module is not an ECMAScript module".into());
     }
 
     if let Some(deps) = module.get_presentational_dependencies() {
@@ -391,16 +352,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .downcast_ref::<HarmonyCompatibilityDependency>()
           .is_some()
       }) {
-        return Some(String::from("Module is not an ECMAScript module"));
+        return Some("Module is not an ECMAScript module".into());
       }
     } else {
-      return Some(String::from("Module is not an ECMAScript module"));
+      return Some("Module is not an ECMAScript module".into());
     }
 
     if let Some(info) = module.build_info()
       && let Some(bailout) = info.module_concatenation_bailout.as_deref()
     {
-      return Some(format!("Module uses {bailout}",));
+      return Some(format!("Module uses {bailout}").into());
     }
     None
   }
@@ -425,5 +386,15 @@ fn span_to_location(span: Span, source: &str) -> Option<String> {
       start_line + 1,
       end_line + 1
     ))
+  }
+}
+
+fn remove_bom(s: Arc<dyn Source>) -> Arc<dyn Source> {
+  if s.source().starts_with('\u{feff}') {
+    let mut s = ReplaceSource::new(s);
+    s.replace(0, 3, "", None);
+    s.boxed()
+  } else {
+    s
   }
 }

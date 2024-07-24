@@ -1,11 +1,12 @@
 import {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation,
-	TRunnerFactory
+	type ECompilerType,
+	EDocumentType,
+	type ITestContext,
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation,
+	type TRunnerFactory
 } from "../type";
 import { EsmRunner } from "./runner/esm";
 import { WebRunner } from "./runner/web";
@@ -63,10 +64,11 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			return new WebRunner<T>({
 				...runnerOptions,
 				runInNewContext: true,
-				dom: "fake"
+				dom:
+					this.context.getValue(this.name, "documentType") ||
+					EDocumentType.JSDOM
 			});
-		} else {
-			return new EsmRunner<T>(runnerOptions);
 		}
+		return new EsmRunner<T>(runnerOptions);
 	}
 }

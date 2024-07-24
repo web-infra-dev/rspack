@@ -1,6 +1,6 @@
-import path from "path";
+import path from "node:path";
 
-import { BuiltinProcessor, IBuiltinProcessorOptions } from "../processor";
+import { BuiltinProcessor, type IBuiltinProcessorOptions } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType } from "../type";
 
@@ -29,8 +29,7 @@ const creator = new BasicCaseCreator({
 				name,
 				snapshot: "output.snap.txt",
 				snapshotFileFilter: filter,
-				compilerType: ECompilerType.Rspack,
-				configFiles: ["rspack.config.js", "webpack.config.js"]
+				compilerType: ECompilerType.Rspack
 			})
 		];
 	}

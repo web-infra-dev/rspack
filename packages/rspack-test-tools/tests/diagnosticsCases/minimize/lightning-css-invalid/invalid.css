@@ -1,0 +1,14 @@
+@apply {
+}
+
+.a {
+  color: red;
+}
+
+.b {
+  color; blue;
+}
+
+.c<>c {
+  color: green;
+}

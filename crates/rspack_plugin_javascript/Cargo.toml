@@ -6,9 +6,11 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
+anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
+fast-glob = "0.3.2"
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
@@ -19,18 +21,17 @@ rayon = { workspace = true }
 regex = { workspace = true }
 ropey = "1.6.1"
 rspack_ast = { path = "../rspack_ast" }
+rspack_collections = { path = "../rspack_collections" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
-rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+stacker = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",
@@ -47,4 +48,8 @@ swc_core = { workspace = true, features = [
   "base",
 ] }
 swc_node_comments = { workspace = true }
+tracing = { workspace = true }
 url = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

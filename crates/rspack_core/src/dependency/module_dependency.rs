@@ -1,10 +1,7 @@
 use dyn_clone::clone_trait_object;
 
 use super::Dependency;
-use crate::{
-  create_exports_object_referenced, DependencyCondition, ErrorSpan, ExtendedReferencedExport,
-  ModuleGraph, RuntimeSpec,
-};
+use crate::{DependencyCondition, ErrorSpan};
 
 pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
@@ -34,14 +31,6 @@ pub trait ModuleDependency: Dependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     None
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    create_exports_object_referenced()
   }
 
   fn is_export_all(&self) -> Option<bool> {

@@ -8,9 +8,13 @@ __webpack_require__.r(__webpack_exports__);
 Promise.resolve(/* import() */ ).then(__webpack_require__.bind(__webpack_require__, "./index.js"));
 
 console.log("index1");
+
+
 }),
 "./shared.js": (function () {
 console.log("shared");
+
+
 }),
 
 },function(__webpack_require__) {
@@ -30,9 +34,13 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 __webpack_require__.e(/* import() */ "index_js").then(__webpack_require__.bind(__webpack_require__, "./index.js"));
 
 console.log("index2");
+
+
 }),
 "./shared.js": (function () {
 console.log("shared");
+
+
 }),
 
 },function(__webpack_require__) {
@@ -53,6 +61,8 @@ __webpack_require__.r(__webpack_exports__);
 Promise.resolve(/* import() */ ).then(__webpack_require__.bind(__webpack_require__, "./index.js"));
 
 console.log("index1");
+
+
 }),
 
 }]);

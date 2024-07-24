@@ -5,9 +5,4 @@ module.exports = {
 		minimize: false,
 		moduleIds: "named"
 	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	}
 };

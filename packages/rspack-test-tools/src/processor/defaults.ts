@@ -1,7 +1,7 @@
 import { diff as jestDiff } from "jest-diff";
 import stripAnsi from "strip-ansi";
 
-import {
+import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,

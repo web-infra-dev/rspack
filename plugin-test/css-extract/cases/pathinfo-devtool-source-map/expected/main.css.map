@@ -1,1 +1,0 @@
-{"version":3,"file":"main.css","sources":["webpack:///./style.css?86c4","webpack:///./other.css?264c","webpack:///./extra.css?9c40"],"sourcesContent":["body {\n  background: red;\n}\n","body {\n  background: blue;\n}\n","body {\n  background: yellow;\n}\n"],"names":[],"mappings":";;;AAAA;EACE,eAAe;AACjB;;;;;ACFA;EACE,gBAAgB;AAClB;;;;;ACFA;EACE,kBAAkB;AACpB"}

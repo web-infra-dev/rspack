@@ -11,4 +11,4 @@ async function renderInBrowser() {
 }
 renderInBrowser();
 
-it("should only contain a single pure annotation after being minimized", () => {})
+it("should contain both pure annotations", () => {})

@@ -1,22 +1,23 @@
 use std::{hash::Hash, path::PathBuf, sync::Arc};
 
+use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise,
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleFactoryCreateData, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_identifier::Identifiable;
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use rustc_hash::FxHashSet;
 
 use crate::dependency::LazyCompilationDependency;
 
-static MODULE_TYPE: ModuleType = ModuleType::Js;
+static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
 #[derive(Debug)]
@@ -130,7 +131,7 @@ impl Module for LazyCompilationProxyModule {
     &MODULE_TYPE
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     200f64
   }
 
@@ -151,7 +152,7 @@ impl Module for LazyCompilationProxyModule {
     _build_context: BuildContext<'_>,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, false);
+    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, None, false);
     let mut dependencies = vec![];
     let mut blocks = vec![];
 
@@ -160,12 +161,13 @@ impl Module for LazyCompilationProxyModule {
     if self.active {
       let dep = LazyCompilationDependency::new(self.create_data.clone());
 
-      blocks.push(AsyncDependenciesBlock::new(
+      blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
         None,
         None,
         vec![Box::new(dep)],
-      ));
+        None,
+      )));
     }
 
     let mut files = FxHashSet::default();
@@ -179,7 +181,6 @@ impl Module for LazyCompilationProxyModule {
         ..Default::default()
       },
       build_meta: BuildMeta::default(),
-      analyze_result: Default::default(),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
@@ -195,6 +196,7 @@ impl Module for LazyCompilationProxyModule {
     let mut runtime_requirements = RuntimeGlobals::empty();
     runtime_requirements.insert(RuntimeGlobals::MODULE);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    let mut codegen_data = CodeGenerationData::default();
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
@@ -240,6 +242,7 @@ impl Module for LazyCompilationProxyModule {
         init_fragments: &mut vec![],
         runtime: None,
         concatenation_scope: concatenation_scope.as_mut(),
+        data: &mut codegen_data,
       };
 
       RawSource::from(format!(
@@ -266,7 +269,8 @@ impl Module for LazyCompilationProxyModule {
         chunk_graph
           .get_module_id(*module)
           .as_ref()
-          .expect("should have module id"),
+          .expect("should have module id")
+          .replace('"', r#"\""#),
         keep_active,
       ))
     } else {
@@ -288,6 +292,7 @@ impl Module for LazyCompilationProxyModule {
 
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
     codegen_result.runtime_requirements = runtime_requirements;
+    codegen_result.data = codegen_data;
     codegen_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -299,7 +304,7 @@ impl Module for LazyCompilationProxyModule {
 }
 
 impl Identifiable for LazyCompilationProxyModule {
-  fn identifier(&self) -> rspack_identifier::Identifier {
+  fn identifier(&self) -> rspack_collections::Identifier {
     self.identifier
   }
 }

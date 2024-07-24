@@ -18,20 +18,21 @@ plugin = [
 [dependencies]
 anyhow                   = { workspace = true }
 async-trait              = { workspace = true }
+base64                   = { version = "0.22" }
 dashmap                  = { workspace = true }
 either                   = "1"
 jsonc-parser             = { version = "0.23.0", features = ["serde"] }
-once_cell                = { workspace = true }
 rspack_ast               = { path = "../rspack_ast" }
 rspack_core              = { path = "../rspack_core" }
 rspack_error             = { path = "../rspack_error" }
 rspack_loader_runner     = { path = "../rspack_loader_runner" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_swc_visitors      = { path = "../rspack_swc_visitors" }
 rspack_util              = { path = "../rspack_util" }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
+stacker                  = { workspace = true }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
+swc_plugin_import        = { path = "../swc_plugin_import" }
 tokio                    = { workspace = true }
-xxhash-rust              = { workspace = true, features = ["xxh32"] }
+url                      = "2.5.0"

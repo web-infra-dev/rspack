@@ -17,7 +17,27 @@ new rspack.DefinePlugin({
 
 ## Options
 
-- **Type:** `Record<string, string | boolean | undefined>`
+- **Type:**
+
+```ts
+type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
+type CodeValuePrimitive =
+  | null
+  | undefined
+  | RegExp
+  | Function
+  | string
+  | number
+  | boolean
+  | bigint
+  | undefined;
+type RecursiveArrayOrRecord<T> =
+  | { [index: string]: RecursiveArrayOrRecord<T> }
+  | Array<RecursiveArrayOrRecord<T>>
+  | T;
+
+type DefinePluginOptions = Record<string, CodeValue>;
+```
 
 ## Examples
 

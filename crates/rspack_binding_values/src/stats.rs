@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Stats, StatsUsedExports};
+use rspack_core::{Stats, StatsChunk, StatsModule, StatsUsedExports};
 use rspack_napi::napi::bindgen_prelude::Buffer;
 use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
@@ -14,18 +14,38 @@ use super::{JsCompilation, ToJsCompatSource};
 #[derive(Debug)]
 pub struct JsStatsError {
   pub message: String,
-  pub module_identifier: Option<String>,
+  pub chunk_name: Option<String>,
+  pub chunk_entry: Option<bool>,
+  pub chunk_initial: Option<bool>,
+  pub file: Option<String>,
+  pub module_identifier: Option<&'static str>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub chunk_id: Option<String>,
+  pub details: Option<String>,
+  pub stack: Option<String>,
+  pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
-impl From<rspack_core::StatsError> for JsStatsError {
+impl From<rspack_core::StatsError<'_>> for JsStatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
       message: stats.message,
       module_identifier: stats.module_identifier,
-      module_name: stats.module_name,
-      module_id: stats.module_id,
+      module_name: stats.module_name.map(|i| i.into_owned()),
+      module_id: stats.module_id.map(|i| i.to_owned()),
+      file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      chunk_name: stats.chunk_name,
+      chunk_entry: stats.chunk_entry,
+      chunk_initial: stats.chunk_initial,
+      chunk_id: stats.chunk_id,
+      details: stats.details,
+      stack: stats.stack,
+      module_trace: stats
+        .module_trace
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>(),
     }
   }
 }
@@ -33,18 +53,72 @@ impl From<rspack_core::StatsError> for JsStatsError {
 #[napi(object)]
 pub struct JsStatsWarning {
   pub message: String,
-  pub module_identifier: Option<String>,
+  pub chunk_name: Option<String>,
+  pub chunk_entry: Option<bool>,
+  pub chunk_initial: Option<bool>,
+  pub file: Option<String>,
+  pub module_identifier: Option<&'static str>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub chunk_id: Option<String>,
+  pub details: Option<String>,
+  pub stack: Option<String>,
+  pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
-impl From<rspack_core::StatsWarning> for JsStatsWarning {
+impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
   fn from(stats: rspack_core::StatsWarning) -> Self {
     Self {
       message: stats.message,
       module_identifier: stats.module_identifier,
-      module_name: stats.module_name,
-      module_id: stats.module_id,
+      module_name: stats.module_name.map(|i| i.into_owned()),
+      module_id: stats.module_id.map(|i| i.to_owned()),
+      file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      chunk_name: stats.chunk_name,
+      chunk_entry: stats.chunk_entry,
+      chunk_initial: stats.chunk_initial,
+      chunk_id: stats.chunk_id,
+      details: stats.details,
+      stack: stats.stack,
+      module_trace: stats
+        .module_trace
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>(),
+    }
+  }
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct JsStatsModuleTrace {
+  pub origin: JsStatsModuleTraceModule,
+  pub module: JsStatsModuleTraceModule,
+}
+
+impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
+  fn from(stats: rspack_core::StatsModuleTrace) -> Self {
+    Self {
+      origin: stats.origin.into(),
+      module: stats.module.into(),
+    }
+  }
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct JsStatsModuleTraceModule {
+  pub identifier: String,
+  pub name: Option<String>,
+  pub id: Option<String>,
+}
+
+impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule {
+  fn from(stats: rspack_core::StatsErrorModuleTraceModule) -> Self {
+    Self {
+      identifier: stats.identifier,
+      name: stats.name,
+      id: stats.id,
     }
   }
 }
@@ -176,11 +250,15 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
 pub struct JsStatsAsset {
   pub r#type: &'static str,
   pub name: String,
-  pub size: f64,
-  pub chunks: Vec<Option<String>>,
-  pub chunk_names: Vec<String>,
   pub info: JsStatsAssetInfo,
+  pub size: f64,
   pub emitted: bool,
+  pub chunk_names: Vec<String>,
+  pub chunk_id_hints: Vec<String>,
+  pub chunks: Vec<Option<String>>,
+  pub auxiliary_chunk_names: Vec<String>,
+  pub auxiliary_chunk_id_hints: Vec<String>,
+  pub auxiliary_chunks: Vec<Option<String>>,
 }
 
 impl From<rspack_core::StatsAsset> for JsStatsAsset {
@@ -193,57 +271,113 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
       emitted: stats.emitted,
+      chunk_id_hints: stats.chunk_id_hints,
+      auxiliary_chunk_id_hints: stats.auxiliary_chunk_id_hints,
+      auxiliary_chunks: stats.auxiliary_chunks,
+      auxiliary_chunk_names: stats.auxiliary_chunk_names,
     }
   }
 }
 
 #[napi(object)]
 pub struct JsStatsAssetInfo {
+  pub minimized: bool,
   pub development: bool,
   pub hot_module_replacement: bool,
   pub source_filename: Option<String>,
+  pub immutable: bool,
+  pub javascript_module: Option<bool>,
+  pub chunkhash: Vec<String>,
+  pub contenthash: Vec<String>,
+  pub fullhash: Vec<String>,
+  pub related: Vec<JsStatsAssetInfoRelated>,
 }
 
 impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   fn from(stats: rspack_core::StatsAssetInfo) -> Self {
     Self {
+      minimized: stats.minimized,
       development: stats.development,
       hot_module_replacement: stats.hot_module_replacement,
       source_filename: stats.source_filename,
+      immutable: stats.immutable,
+      javascript_module: stats.javascript_module,
+      chunkhash: stats.chunk_hash,
+      contenthash: stats.content_hash,
+      fullhash: stats.full_hash,
+      related: stats
+        .related
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsAssetInfoRelated {
+  pub name: String,
+  pub value: Vec<String>,
+}
+
+impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
+  fn from(stats: rspack_core::StatsAssetInfoRelated) -> Self {
+    Self {
+      name: stats.name,
+      value: stats.value,
     }
   }
 }
 
 type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
-#[napi(object)]
+
+#[napi]
+#[rspack_napi_macros::getters]
+#[derive(Clone)]
 pub struct JsStatsModule {
-  pub r#type: &'static str,
-  pub module_type: String,
-  pub identifier: String,
-  pub name: String,
-  pub id: Option<String>,
-  pub chunks: Vec<Option<String>>,
-  pub size: f64,
-  pub issuer: Option<String>,
-  pub issuer_name: Option<String>,
-  pub issuer_id: Option<String>,
-  pub issuer_path: Vec<JsStatsModuleIssuer>,
-  pub name_for_condition: Option<String>,
-  pub reasons: Option<Vec<JsStatsModuleReason>>,
-  pub assets: Option<Vec<String>>,
-  pub source: Option<Either<String, Buffer>>,
-  pub profile: Option<JsStatsModuleProfile>,
-  pub orphan: bool,
-  pub provided_exports: Option<Vec<String>>,
-  pub used_exports: Option<Either<String, Vec<String>>>,
-  pub optimization_bailout: Option<Vec<String>>,
+  r#type: &'static str,
+  module_type: &'static str,
+  identifier: &'static str,
+  name: String,
+  id: Option<String>,
+  chunks: Vec<Option<String>>,
+  size: f64,
+  depth: Option<u32>,
+  dependent: Option<bool>,
+  issuer: Option<String>,
+  issuer_name: Option<String>,
+  issuer_id: Option<String>,
+  issuer_path: Vec<JsStatsModuleIssuer>,
+  name_for_condition: Option<String>,
+  assets: Option<Vec<String>>,
+  source: Option<Either<String, Buffer>>,
+  orphan: bool,
+  provided_exports: Option<Vec<String>>,
+  used_exports: Option<Either<String, Vec<String>>>,
+  optimization_bailout: Option<Vec<String>>,
+  pre_order_index: Option<u32>,
+  post_order_index: Option<u32>,
+  built: bool,
+  code_generated: bool,
+  build_time_executed: bool,
+  cached: bool,
+  cacheable: bool,
+  optional: bool,
+  failed: bool,
+  errors: u32,
+  warnings: u32,
+  sizes: Vec<JsStatsSize>,
+  profile: Option<JsStatsModuleProfile>,
+  reasons: Option<Vec<JsStatsModuleReason>>,
+  modules: Option<Vec<JsStatsModule>>,
 }
 
-impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
+impl TryFrom<StatsModule<'_>> for JsStatsModule {
   type Error = napi::Error;
-  fn try_from(stats: rspack_core::StatsModule) -> Result<Self> {
-    let source = stats
+
+  fn try_from(stats_module: StatsModule) -> std::result::Result<Self, Self::Error> {
+    let source = stats_module
       .source
       .map(|source| {
         source.to_js_compat_source().map(|js_compat_source| {
@@ -257,41 +391,96 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       })
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    let mut sizes = stats_module
+      .sizes
+      .into_iter()
+      .map(|s| JsStatsSize {
+        source_type: s.source_type.to_string(),
+        size: s.size,
+      })
+      .collect::<Vec<_>>();
+    sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
+    let modules: Option<Vec<JsStatsModule>> = stats_module
+      .modules
+      .map(|modules| -> Result<_> {
+        modules
+          .into_iter()
+          .map(JsStatsModule::try_from)
+          .collect::<Result<_>>()
+      })
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    let reasons = match stats_module.reasons {
+      Some(reasons) => {
+        let js_reasons = reasons
+          .into_iter()
+          .map(JsStatsModuleReason::from)
+          .collect::<Vec<_>>();
+        Some(js_reasons)
+      }
+      None => None,
+    };
+
     Ok(Self {
-      r#type: stats.r#type,
-      name: stats.name,
-      size: stats.size,
-      chunks: stats.chunks,
-      module_type: stats.module_type.as_str().to_string(),
-      identifier: stats.identifier.to_string(),
-      id: stats.id,
-      issuer: stats.issuer,
-      issuer_name: stats.issuer_name,
-      issuer_id: stats.issuer_id,
-      name_for_condition: stats.name_for_condition,
-      issuer_path: stats.issuer_path.into_iter().map(Into::into).collect(),
-      reasons: stats
-        .reasons
-        .map(|i| i.into_iter().map(Into::into).collect()),
-      assets: stats.assets,
+      r#type: stats_module.r#type,
+      name: stats_module.name.into_owned(),
+      size: stats_module.size,
+      sizes,
+      depth: stats_module.depth.map(|d| d as u32),
+      chunks: stats_module.chunks,
+      module_type: stats_module.module_type.as_str(),
+      identifier: stats_module.identifier.as_str(),
+      id: stats_module.id.map(|i| i.to_owned()),
+      dependent: stats_module.dependent,
+      issuer: stats_module.issuer.map(|i| i.to_owned()),
+      issuer_name: stats_module.issuer_name.map(|i| i.into_owned()),
+      issuer_id: stats_module.issuer_id.map(|i| i.to_owned()),
+      name_for_condition: stats_module.name_for_condition,
+      issuer_path: stats_module
+        .issuer_path
+        .into_iter()
+        .map(Into::into)
+        .collect(),
+      reasons,
+      assets: stats_module.assets,
       source,
-      profile: stats.profile.map(|p| p.into()),
-      orphan: stats.orphan,
-      provided_exports: stats.provided_exports,
-      used_exports: stats.used_exports.map(|used_exports| match used_exports {
-        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
-        StatsUsedExports::Vec(v) => JsStatsUsedExports::B(v),
-        StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
-      }),
-      optimization_bailout: Some(stats.optimization_bailout),
+      profile: stats_module.profile.map(|p| p.into()),
+      orphan: stats_module.orphan,
+      provided_exports: stats_module
+        .provided_exports
+        .map(|exports| exports.into_iter().map(|i| i.to_string()).collect()),
+      used_exports: stats_module
+        .used_exports
+        .map(|used_exports| match used_exports {
+          StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
+          StatsUsedExports::Vec(v) => {
+            JsStatsUsedExports::B(v.into_iter().map(|i| i.to_string()).collect())
+          }
+          StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
+        }),
+      optimization_bailout: Some(stats_module.optimization_bailout.to_vec()),
+      modules,
+      pre_order_index: stats_module.pre_order_index,
+      post_order_index: stats_module.post_order_index,
+      built: stats_module.built,
+      code_generated: stats_module.code_generated,
+      build_time_executed: stats_module.build_time_executed,
+      cached: stats_module.cached,
+      cacheable: stats_module.cacheable,
+      optional: stats_module.optional,
+      failed: stats_module.failed,
+      errors: stats_module.errors,
+      warnings: stats_module.warnings,
     })
   }
 }
 
+#[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsModuleProfile {
   pub factory: JsStatsMillisecond,
-  pub integration: JsStatsMillisecond,
   pub building: JsStatsMillisecond,
 }
 
@@ -299,12 +488,12 @@ impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
   fn from(value: rspack_core::StatsModuleProfile) -> Self {
     Self {
       factory: value.factory.into(),
-      integration: value.integration.into(),
       building: value.building.into(),
     }
   }
 }
 
+#[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsMillisecond {
   pub secs: u32,
@@ -320,66 +509,113 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
   }
 }
 
+#[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsModuleIssuer {
-  pub identifier: String,
+  pub identifier: &'static str,
   pub name: String,
   pub id: Option<String>,
 }
 
-impl From<rspack_core::StatsModuleIssuer> for JsStatsModuleIssuer {
+impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
   fn from(stats: rspack_core::StatsModuleIssuer) -> Self {
     Self {
       identifier: stats.identifier,
-      name: stats.name,
-      id: stats.id,
+      name: stats.name.into_owned(),
+      id: stats.id.map(|i| i.to_owned()),
     }
   }
 }
 
-#[napi(object)]
+#[napi]
+#[rspack_napi_macros::getters]
+#[derive(Clone)]
 pub struct JsStatsModuleReason {
-  pub module_identifier: Option<String>,
-  pub module_name: Option<String>,
-  pub module_id: Option<String>,
-  pub r#type: Option<String>,
-  pub user_request: Option<String>,
+  module_identifier: Option<&'static str>,
+  module_name: Option<String>,
+  module_id: Option<String>,
+  r#type: Option<&'static str>,
+  user_request: Option<String>,
 }
 
-impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
+impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
   fn from(stats: rspack_core::StatsModuleReason) -> Self {
     Self {
       module_identifier: stats.module_identifier,
-      module_name: stats.module_name,
-      module_id: stats.module_id,
+      module_name: stats.module_name.map(|i| i.into_owned()),
+      module_id: stats.module_id.map(|i| i.to_owned()),
       r#type: stats.r#type,
-      user_request: stats.user_request,
+      user_request: stats.user_request.map(|i| i.to_owned()),
     }
   }
 }
 
+#[derive(Clone)]
 #[napi(object)]
-pub struct JsStatsChunk {
-  pub r#type: &'static str,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
-  pub id: Option<String>,
-  pub entry: bool,
-  pub initial: bool,
-  pub names: Vec<String>,
-  pub size: f64,
-  pub modules: Option<Vec<JsStatsModule>>,
-  pub parents: Option<Vec<String>>,
-  pub children: Option<Vec<String>>,
-  pub siblings: Option<Vec<String>>,
-  pub children_by_order: HashMap<String, Vec<String>>,
+pub struct JsOriginRecord {
+  pub module: String,
+  pub module_id: String,
+  pub module_identifier: String,
+  pub module_name: String,
+  pub loc: String,
+  pub request: String,
 }
 
-impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
+#[derive(Clone)]
+#[napi]
+pub struct JsStatsSize {
+  pub source_type: String,
+  pub size: f64,
+}
+
+#[napi]
+#[rspack_napi_macros::getters]
+pub struct JsStatsChunk {
+  r#type: String,
+  files: Vec<String>,
+  auxiliary_files: Vec<String>,
+  id: Option<String>,
+  id_hints: Vec<String>,
+  hash: Option<String>,
+  entry: bool,
+  initial: bool,
+  names: Vec<String>,
+  size: f64,
+  parents: Option<Vec<String>>,
+  children: Option<Vec<String>>,
+  siblings: Option<Vec<String>>,
+  children_by_order: HashMap<String, Vec<String>>,
+  runtime: Vec<String>,
+  reason: Option<String>,
+  rendered: bool,
+  sizes: Vec<JsStatsSize>,
+  origins: Vec<JsOriginRecord>,
+  modules: Option<Vec<JsStatsModule>>,
+}
+
+impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
   type Error = napi::Error;
-  fn try_from(stats: rspack_core::StatsChunk) -> Result<Self> {
-    Ok(Self {
-      r#type: stats.r#type,
+
+  fn try_from(stats: StatsChunk<'_>) -> std::result::Result<Self, Self::Error> {
+    let mut runtime = stats
+      .runtime
+      .iter()
+      .map(|r| r.to_string())
+      .collect::<Vec<_>>();
+    runtime.sort();
+
+    let mut sizes = stats
+      .sizes
+      .iter()
+      .map(|(source_type, size)| JsStatsSize {
+        source_type: source_type.to_string(),
+        size: *size,
+      })
+      .collect::<Vec<_>>();
+    sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
+
+    Ok(JsStatsChunk {
+      r#type: stats.r#type.to_string(),
       files: stats.files,
       auxiliary_files: stats.auxiliary_files,
       id: stats.id,
@@ -389,7 +625,11 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       size: stats.size,
       modules: stats
         .modules
-        .map(|i| i.into_iter().map(|m| m.try_into()).collect::<Result<_>>())
+        .map(|i| {
+          i.into_iter()
+            .map(JsStatsModule::try_from)
+            .collect::<Result<_>>()
+        })
         .transpose()?,
       parents: stats.parents,
       children: stats.children,
@@ -399,6 +639,24 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
         .iter()
         .map(|(order, children)| (order.to_string(), children.to_owned()))
         .collect(),
+      runtime,
+      sizes,
+      reason: stats.reason,
+      rendered: stats.rendered,
+      origins: stats
+        .origins
+        .into_iter()
+        .map(|origin| JsOriginRecord {
+          module: origin.module,
+          module_id: origin.module_id,
+          module_identifier: origin.module_identifier,
+          module_name: origin.module_name,
+          loc: origin.loc,
+          request: origin.request,
+        })
+        .collect::<Vec<_>>(),
+      id_hints: stats.id_hints,
+      hash: stats.hash,
     })
   }
 }
@@ -421,18 +679,43 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
 #[napi(object)]
 pub struct JsStatsChunkGroup {
   pub name: String,
-  pub assets: Vec<JsStatsChunkGroupAsset>,
   pub chunks: Vec<Option<String>>,
+  pub assets: Vec<JsStatsChunkGroupAsset>,
   pub assets_size: f64,
+  pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
+  pub auxiliary_assets_size: Option<f64>,
+  pub children: Option<JsStatsChunkGroupChildren>,
 }
 
 impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
   fn from(stats: rspack_core::StatsChunkGroup) -> Self {
     Self {
       name: stats.name,
-      assets: stats.assets.into_iter().map(Into::into).collect(),
       chunks: stats.chunks,
+      assets: stats.assets.into_iter().map(Into::into).collect(),
       assets_size: stats.assets_size,
+      auxiliary_assets: stats
+        .auxiliary_assets
+        .map(|assets| assets.into_iter().map(Into::into).collect()),
+      auxiliary_assets_size: stats.auxiliary_assets_size,
+      children: stats.children.map(|i| i.into()),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsChunkGroupChildren {
+  pub preload: Option<Vec<JsStatsChunkGroup>>,
+  pub prefetch: Option<Vec<JsStatsChunkGroup>>,
+}
+
+impl From<rspack_core::StatsChunkGroupChildren> for JsStatsChunkGroupChildren {
+  fn from(stats: rspack_core::StatsChunkGroupChildren) -> Self {
+    Self {
+      preload: (!stats.preload.is_empty())
+        .then(|| stats.preload.into_iter().map(Into::into).collect()),
+      prefetch: (!stats.prefetch.is_empty())
+        .then(|| stats.prefetch.into_iter().map(Into::into).collect()),
     }
   }
 }
@@ -487,6 +770,7 @@ impl JsStats {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn get_modules(
     &self,
@@ -506,7 +790,7 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
-        |res| res.into_iter().map(TryInto::try_into).collect(),
+        |res| res.into_iter().map(JsStatsModule::try_from).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
@@ -535,26 +819,34 @@ impl JsStats {
         source,
         used_exports,
         provided_exports,
-        |res| res.into_iter().map(TryInto::try_into).collect(),
+        |res| res.into_iter().map(JsStatsChunk::try_from).collect(),
       )
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
   #[napi]
-  pub fn get_entrypoints(&self) -> Vec<JsStatsChunkGroup> {
+  pub fn get_entrypoints(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<JsStatsChunkGroup> {
     self
       .inner
-      .get_entrypoints()
+      .get_entrypoints(chunk_group_auxiliary, chunk_group_children)
       .into_iter()
       .map(Into::into)
       .collect()
   }
 
   #[napi]
-  pub fn get_named_chunk_groups(&self) -> Vec<JsStatsChunkGroup> {
+  pub fn get_named_chunk_groups(
+    &self,
+    chunk_group_auxiliary: bool,
+    chunk_group_children: bool,
+  ) -> Vec<JsStatsChunkGroup> {
     self
       .inner
-      .get_named_chunk_groups()
+      .get_named_chunk_groups(chunk_group_auxiliary, chunk_group_children)
       .into_iter()
       .map(Into::into)
       .collect()

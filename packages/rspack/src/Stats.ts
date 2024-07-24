@@ -9,8 +9,8 @@
  */
 import type * as binding from "@rspack/binding";
 
-import { Compilation, FilterItemTypes } from ".";
-import { StatsOptions, StatsValue } from "./config";
+import type { Compilation } from "./Compilation";
+import type { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
 export type {
@@ -45,6 +45,14 @@ export class Stats {
 
 	get hash() {
 		return this.compilation.hash;
+	}
+
+	get startTime() {
+		return this.compilation.startTime;
+	}
+
+	get endTime() {
+		return this.compilation.endTime;
 	}
 
 	hasErrors() {
@@ -119,12 +127,11 @@ export class Stats {
 export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 	if (typeof options === "boolean" || typeof options === "string")
 		return presetToOptions(options);
-	else if (!options) return {};
-	else {
-		let obj = { ...presetToOptions(options.preset), ...options };
-		delete obj.preset;
-		return obj;
-	}
+	if (!options) return {};
+
+	const obj = { ...presetToOptions(options.preset), ...options };
+	delete obj.preset;
+	return obj;
 }
 
 function presetToOptions(name?: boolean | string): StatsOptions {
@@ -137,15 +144,15 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 		case "verbose":
 			return {
 				all: true,
-				modulesSpace: Infinity
+				modulesSpace: Number.POSITIVE_INFINITY
 			};
 		case "errors-only":
 			return {
 				all: false,
 				errors: true,
 				errorsCount: true,
-				logging: "error"
-				// TODO: moduleTrace: true,
+				logging: "error",
+				moduleTrace: true
 			};
 		case "errors-warnings":
 			return {
@@ -160,34 +167,3 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 			return {};
 	}
 }
-
-export const normalizeFilter = (item: FilterItemTypes) => {
-	if (typeof item === "string") {
-		const regExp = new RegExp(
-			`[\\\\/]${item.replace(
-				// eslint-disable-next-line no-useless-escape
-				/[-[\]{}()*+?.\\^$|]/g,
-				"\\$&"
-			)}([\\\\/]|$|!|\\?)`
-		);
-		return (ident: string) => regExp.test(ident);
-	}
-	if (item && typeof item === "object" && typeof item.test === "function") {
-		return (ident: string) => item.test(ident);
-	}
-	if (typeof item === "function") {
-		return item;
-	}
-	if (typeof item === "boolean") {
-		return () => item;
-	}
-	throw new Error(
-		`unreachable: typeof ${item} should be one of string | RegExp | ((value: string) => boolean)`
-	);
-};
-
-export const optionsOrFallback = (...args: any) => {
-	let optionValues = [];
-	optionValues.push(...args);
-	return optionValues.find(optionValue => optionValue !== undefined);
-};

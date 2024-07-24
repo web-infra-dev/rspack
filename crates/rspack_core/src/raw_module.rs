@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
+use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::Identifiable;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
@@ -87,7 +87,7 @@ impl Module for RawModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Js
+    &ModuleType::JsAuto
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -102,7 +102,7 @@ impl Module for RawModule {
     Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     f64::max(1.0, self.source.size() as f64)
   }
 
@@ -117,6 +117,7 @@ impl Module for RawModule {
       build_info: BuildInfo {
         hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
         cacheable: true,
+        strict: true,
         ..Default::default()
       },
       dependencies: vec![],

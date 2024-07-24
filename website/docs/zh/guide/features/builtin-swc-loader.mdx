@@ -317,7 +317,17 @@ import 'antd/es/button/style';
 
 ### rspackExperiments.relay
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta
+  addedVersion="0.3.4"
+  stability={Stability.Removed}
+  removedVersion="1.0.0-alpha.0"
+/>
+
+:::warning
+请迁移至 [builtin:swc-loader plugin 配置](/guide/features/builtin-swc-loader#jscexperimentalplugins)，并使用 [@swc/plugin-relay](https://github.com/swc-project/plugins/tree/main/packages/relay).
+
+注意：配置可能会因此发生变化，请参考对应文档
+:::
 
 将项目中的 `graphql` 调用转换成相对应的 `require`。
 
@@ -340,7 +350,17 @@ type RelayOptions =
 
 ### rspackExperiments.emotion
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta
+  addedVersion="0.3.4"
+  stability={Stability.Removed}
+  removedVersion="1.0.0-alpha.0"
+/>
+
+:::warning
+请迁移至 [builtin:swc-loader plugin 配置](/guide/features/builtin-swc-loader#jscexperimentalplugins)，并使用 [@swc/plugin-emotion](https://github.com/swc-project/plugins/tree/main/packages/emotion).
+
+注意：配置可能会因此发生变化，请参考对应文档
+:::
 
 用于设置对 emotion 的编译优化。
 
@@ -448,7 +468,17 @@ export type ImportMap =
 
 ### rspackExperiments.styledComponents
 
-<ApiMeta addedVersion="0.3.7" stability={Stability.Experimental} />
+<ApiMeta
+  addedVersion="0.3.7"
+  stability={Stability.Removed}
+  removedVersion="1.0.0-alpha.0"
+/>
+
+:::warning
+请迁移至 [builtin:swc-loader plugin 配置](/guide/features/builtin-swc-loader#jscexperimentalplugins)，并使用 [@swc/plugin-styled-components](https://github.com/swc-project/plugins/tree/main/packages/styled-components).
+
+注意：配置可能会因此发生变化，请参考对应文档
+:::
 
 - **Type:**
 

@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
-import {
+import type {
 	ECompilerType,
 	ITestEnv,
 	ITestRunner,
@@ -9,7 +9,7 @@ import {
 	TCompilerStatsCompilation,
 	TTestConfig
 } from "../../type";
-import {
+import type {
 	IBasicGlobalContext,
 	IBasicModuleScope,
 	TBasicRunnerFile,
@@ -74,13 +74,18 @@ export abstract class BasicRunner<
 		);
 		if (typeof res === "object" && "then" in res) {
 			return res;
-		} else {
-			return Promise.resolve(res);
 		}
+		return Promise.resolve(res);
 	}
 
 	getRequire(): TRunnerRequirer {
-		return this.requirers.get("entry")!;
+		const entryRequire = this.requirers.get("entry")!;
+		return (currentDirectory, modulePath, context = {}) => {
+			const p = Array.isArray(modulePath)
+				? modulePath
+				: modulePath.split("?")[0]!;
+			return entryRequire(currentDirectory, p, context);
+		};
 	}
 
 	getGlobal(name: string): unknown {
@@ -109,16 +114,23 @@ export abstract class BasicRunner<
 					.join(", ")});`,
 				subPath: ""
 			};
-		} else if (isRelativePath(modulePath)) {
+		}
+		if (isRelativePath(modulePath)) {
 			const p = path.join(currentDirectory, modulePath);
 			return {
 				path: p,
 				content: fs.readFileSync(p, "utf-8"),
 				subPath: getSubPath(modulePath)
 			};
-		} else {
-			return null;
 		}
+		if (path.isAbsolute(modulePath)) {
+			return {
+				path: modulePath,
+				content: fs.readFileSync(modulePath, "utf-8"),
+				subPath: "absolute_path"
+			};
+		}
+		return null;
 	}
 
 	protected preExecute(code: string, file: TBasicRunnerFile) {}

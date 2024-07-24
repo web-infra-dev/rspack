@@ -30,9 +30,6 @@ impl Dependency for HarmonyExportHeaderDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportHeaderDependency"
-  }
 }
 
 impl DependencyTemplate for HarmonyExportHeaderDependency {
@@ -43,7 +40,7 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
   ) {
     source.replace(
       self.range_stmt.start(),
-      if let Some(range) = self.range {
+      if let Some(range) = self.range.clone() {
         range.start()
       } else {
         self.range_stmt.end()

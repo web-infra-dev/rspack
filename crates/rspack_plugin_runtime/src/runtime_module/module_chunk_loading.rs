@@ -1,10 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
@@ -13,7 +12,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ModuleChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -21,12 +20,10 @@ pub struct ModuleChunkLoadingRuntimeModule {
 
 impl Default for ModuleChunkLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/module_chunk_loading"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/module_chunk_loading"),
+      None,
+    )
   }
 }
 

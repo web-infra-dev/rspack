@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/webpack-license';
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { PackageManagerTabs } from '@theme';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
@@ -17,14 +18,12 @@ Rspack 提供了一组 JavaScript API，可在 Node.js 或 Bun 等 JavaScript �
 
 开始使用 Rspack 的 JavaScript API 之前，首先你需要安装 `@rspack/core`：
 
-```bash
-npm install --save-dev @rspack/core
-```
+<PackageManagerTabs command="add @rspack/core -D" />
 
 在 JavaScript 文件中，引入 `@rspack/core` 模块：
 
 ```js title="build.js"
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 ```
 
 ## rspack()
@@ -32,7 +31,7 @@ import rspack from '@rspack/core';
 导入的 `rspack` 函数会将`配置对象`传给 Rspack，如果同时传入回调函数会在 Rspack compiler 运行时被执行：
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack({}, (err, stats) => {
   if (err || stats.hasErrors()) {
@@ -72,7 +71,7 @@ rspack({}, (err, stats) => {
 调用 `Compiler` 实例的 `run` 方法跟上文提到的快速执行方法很类似：
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 const compiler = rspack({
   // ...
@@ -100,7 +99,7 @@ watch(watchOptions, callback);
 ```
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 const compiler = rspack({
   // ...
@@ -204,7 +203,7 @@ stats.toString({
 下面是 `stats.toString()` 用法的示例：
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack(
   {
@@ -231,7 +230,7 @@ rspack(
 `MultiCompiler` 模块可以让 Rspack 同时执行多个配置。如果传给 Rspack 的 JavaScript API 的 `options` 参数，该参数由是由多个配置对象构成的数组，Rspack 会相应地创建多个 compiler 实例，并且在所有 compiler 执行完毕后调用 `callback` 方法。
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack(
   [
@@ -259,7 +258,7 @@ rspack(
 下面是一个覆盖这些场景的示例:
 
 ```js
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 rspack(
   {
@@ -303,7 +302,7 @@ rspack(
 
 ```js
 import { createFsFromVolume, Volume } from 'memfs';
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 
 const fs = createFsFromVolume(new Volume());
 const compiler = rspack({

@@ -4,20 +4,81 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
 
-模块联邦（Module Federation）允许 JavaScript 应用在运行时从其他构建中动态加载代码。
+Module Federation 是一种 JavaScript 应用分治的架构模式（类似于服务端的微服务），它允许你在多个 JavaScript 应用程序（或微前端）之间共享代码和资源。
 
-此功能有几个用例，包括：
+Rspack 团队与 Module Federation 的开发团队密切合作，并为 Module Federation 提供一流的支持。
 
-- 独立应用（在微前端架构中称为“微前端”）之间共享模块，无需重新编译整个应用。
+## 使用场景
+
+模块联邦有一些典型的使用场景，包括：
+
+- 允许独立应用（在微前端架构中称为"微前端"）之间共享模块，无需重新编译整个应用。
 - 不同的团队在不需要重新编译整个应用的情况下处理同一应用的不同部分。
 - 应用之间在运行时进行动态代码加载和共享。
 
-Rspack 支持两个版本的模块联邦：模块联邦 1.0 和模块联邦 1.5。
+模块联邦可以帮助你：
 
-- 模块联邦 1.0（Module Federation 1.0）是 Webpack 中 ModuleFederationPlugin 的当前实现。
-- 模块联邦 1.5（Module Federation 1.5）除其他功能外，还为 1.0 添加了运行时插件功能，允许扩展模块联邦的行为、功能，并向用户提供控制反转的能力。
+- 减少代码重复
+- 提高代码可维护性
+- 降低应用程序的整体大小
+- 提高应用程序的性能
 
-详细配置可参考：
+## 如何使用
 
-- [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin)
-- [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1)
+Module Federation 目前有多个主要版本，你可以选择其中一个使用。
+
+### Module Federation v1.0
+
+这是为了兼容 [webpack.container.ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/) 实现的版本。
+
+你可以通过 Rspack 的 [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1) 来使用它。
+
+:::tip
+Module Federation v1.0 已经不再迭代，我们推荐使用 Module Federation v1.5 或 v2.0 版本。
+:::
+
+### Module Federation v1.5
+
+这是 Rspack 内置支持的版本，除了支持 Module Federation v1.0 的模块导出、模块加载、依赖共享等能力之外，还添加了运行时插件功能，允许用户扩展模块联邦的行为、功能。
+
+你可以通过 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 来使用它，无须安装任何插件。
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  output: {
+    // set uniqueName explicitly to make HMR works
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+> 参考：[Module Federation v1.5 示例](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/module-federation-v1.5)。
+
+### Module Federation v2.0
+
+这是 Module Federation 的增强版本。它基于 Module Federation v1.5，并在其基础上，开箱即用的提供了一些额外的功能，比如动态类型提示、manifest 等，这些功能让 Module Federation 更适用于支持大型 Web 应用的微前端架构。
+
+你需要安装额外的 `@module-federation/enhanced` 插件，才能使用 Module Federation v2.0。
+
+```js title="rspack.config.js"
+const {
+  ModuleFederationPlugin,
+} = require('@module-federation/enhanced/rspack');
+
+module.exports = {
+  plugins: [
+    new ModuleFederationPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+请参考 [Module Federation v2.0 官方文档](https://module-federation.io/zh/) 来了解具体的用法。

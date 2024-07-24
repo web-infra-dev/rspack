@@ -3,8 +3,9 @@ import path from 'node:path';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
-import { defineConfig } from 'rspress/config';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
+import pluginSitemap from 'rspress-plugin-sitemap';
+import { defineConfig } from 'rspress/config';
 
 const PUBLISH_URL = 'https://rspack.dev';
 const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
@@ -12,13 +13,12 @@ const COPYRIGHT = '© 2022-present ByteDance Inc. All Rights Reserved.';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Rspack',
-  description: 'A fast Rust-based web bundler',
+  description: 'The fast Rust-based web bundler',
   logo: {
-    light:
-      'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/navbar-logo-2027.png',
-    dark: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/navbar-logo-dark-2027.png',
+    light: 'https://assets.rspack.dev/rspack/navbar-logo-light.png',
+    dark: 'https://assets.rspack.dev/rspack/navbar-logo-dark.png',
   },
-  icon: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/favicon-1714.png',
+  icon: 'https://assets.rspack.dev/rspack/favicon-128x128.png',
   lang: 'en',
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
@@ -29,6 +29,9 @@ export default defineConfig({
     cleanUrls: true,
   },
   plugins: [
+    pluginSitemap({
+      domain: PUBLISH_URL,
+    }),
     pluginFontOpenSans(),
     pluginRss({
       siteUrl: PUBLISH_URL,
@@ -69,7 +72,7 @@ export default defineConfig({
       {
         icon: 'discord',
         mode: 'link',
-        content: 'https://discord.gg/79ZZ66GH9E',
+        content: 'https://discord.gg/sYK4QjyZ4V',
       },
       {
         icon: 'twitter',
@@ -87,14 +90,24 @@ export default defineConfig({
       {
         lang: 'en',
         title: 'Rspack',
-        description: 'A fast Rust-based web bundler',
+        description: 'The fast Rust-based web bundler',
         label: 'English',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 Edit this page on GitHub',
+        },
       },
       {
         lang: 'zh',
         title: 'Rspack',
-        description: '基于 Rust 的高性能 Web 构建工具',
+        description: '基于 Rust 的高性能 web 打包工具',
         label: '简体中文',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 在 GitHub 上编辑此页',
+        },
       },
     ],
   },
@@ -105,7 +118,8 @@ export default defineConfig({
         title: 'Rspack',
         type: 'website',
         url: PUBLISH_URL,
-        image: 'https://assets.rspack.dev/rspack/rspack-banner.png',
+        image:
+          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-0-alpha.png',
         description: 'Fast Rust-based Web Bundler',
         twitter: {
           site: '@rspack_dev',
@@ -114,14 +128,27 @@ export default defineConfig({
       }),
     ],
     source: {
+      preEntry: ['./theme/tailwind.css'],
       alias: {
         '@builtIns': path.join(__dirname, 'components', 'builtIns'),
         '@components': path.join(__dirname, 'components'),
         '@hooks': path.join(__dirname, 'hooks'),
       },
     },
-    dev: {
-      startUrl: true,
+    server: {
+      open: true,
+    },
+    html: {
+      tags: [
+        // for baidu SEO verification
+        {
+          tag: 'meta',
+          attrs: {
+            name: 'baidu-site-verification',
+            content: 'codeva-bE2dFTowhk',
+          },
+        },
+      ],
     },
     output: {
       copy: {

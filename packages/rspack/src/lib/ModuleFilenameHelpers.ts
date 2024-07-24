@@ -25,9 +25,8 @@ export const matchPart = (str: string, test: Matcher) => {
 
 	if (Array.isArray(test)) {
 		return test.map(asRegExp).some(regExp => regExp.test(str));
-	} else {
-		return asRegExp(test).test(str);
 	}
+	return asRegExp(test).test(str);
 };
 
 interface MatchObject {

@@ -1,4 +1,4 @@
-import { Compiler } from "../Compiler";
+import type { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
 import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
 import { ProvideSharedPlugin } from "./ProvideSharedPlugin";

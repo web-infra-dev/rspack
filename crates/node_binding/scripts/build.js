@@ -2,8 +2,13 @@ const { spawn } = require("child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
 
+// Faster release for CI & canary with `thin` LTO
 let release = process.argv.includes("--release");
+// Slower release for production with `fat` LTO
+let releaseProd = process.argv.includes("--release-prod");
+let releaseDebug = process.argv.includes("--release-debug");
 let watch = process.argv.includes("--watch");
+
 build().then((value) => {
   // Regarding cargo's non-zero exit code as an error.
   if (value !== CARGO_SAFELY_EXIT_CODE) {
@@ -30,6 +35,12 @@ async function build() {
 		if (release) {
 			args.push("--release");
 		}
+		if (releaseProd) {
+			args.push('--profile release-prod');
+		}
+		if (releaseDebug) {
+			args.push('--profile release-debug');
+		}
 		if (watch) {
 			args.push("--watch");
 		}
@@ -43,6 +54,8 @@ async function build() {
 			args.push("--no-default-features");
 			args.push("--features plugin");
 		}
+
+		console.log(`Run command: napi ${args.join(' ')}`);
 
 		let cp = spawn("napi", args, {
 			stdio: "inherit",

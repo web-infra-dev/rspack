@@ -1,11 +1,10 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::generate_javascript_hmr_runtime;
 use crate::{
@@ -14,7 +13,7 @@ use crate::{
 };
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -22,12 +21,10 @@ pub struct JsonpChunkLoadingRuntimeModule {
 
 impl Default for JsonpChunkLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(
+      Identifier::from("webpack/runtime/jsonp_chunk_loading"),
+      None,
+    )
   }
 }
 
@@ -61,6 +58,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
     let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+    let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
 
@@ -110,15 +108,28 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
               "else installedChunks[chunkId] = 0;\n"
             },
           )
+          .replace(
+            "$FETCH_PRIORITY$",
+            if with_fetch_priority {
+              ", fetchPriority"
+            } else {
+              ""
+            },
+          )
       };
 
       source.add(RawSource::from(format!(
         r#"
-        {}.j = function (chunkId, promises) {{
+        {}.j = function (chunkId, promises{}) {{
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+        RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+        if with_fetch_priority {
+          ", fetchPriority"
+        } else {
+          ""
+        },
       )));
     }
 

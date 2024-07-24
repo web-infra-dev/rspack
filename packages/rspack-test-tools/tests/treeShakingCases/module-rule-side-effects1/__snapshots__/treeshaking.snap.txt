@@ -6,9 +6,13 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 const a = 3;
+
+
 }),
 "./c.js": (function () {
 const c = 300;
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
@@ -16,7 +20,10 @@ const c = 300;
 
 
 
+
 _a_js__WEBPACK_IMPORTED_MODULE_0__.a;
+
+
 }),
 
 },function(__webpack_require__) {

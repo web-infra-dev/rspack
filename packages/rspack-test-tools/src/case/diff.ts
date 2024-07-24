@@ -1,11 +1,11 @@
+import path from "node:path";
 import fs from "fs-extra";
-import path from "path";
 import rimraf from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
-import { DiffProcessor, IDiffProcessorOptions } from "../processor";
+import { DiffProcessor, type IDiffProcessorOptions } from "../processor";
 import { Tester } from "../test/tester";
-import { ECompareResultType, TModuleCompareResult } from "../type";
+import { ECompareResultType, type TModuleCompareResult } from "../type";
 
 export type TDiffCaseConfig = IDiffProcessorOptions;
 
@@ -14,7 +14,8 @@ const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	rspackPath: require.resolve("@rspack/core"),
 	files: ["bundle.js"],
 	bootstrap: true,
-	detail: true
+	detail: true,
+	errors: false
 };
 
 type TFileCompareResult = {
@@ -64,7 +65,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 				compareMap.clear();
 				await tester.check(env);
 			});
-			for (let file of caseConfig.files!) {
+			for (const file of caseConfig.files!) {
 				describe(`Comparing "${file}"`, () => {
 					let moduleResults: TModuleCompareResult[] = [];
 					let runtimeResults: TModuleCompareResult[] = [];
@@ -123,7 +124,9 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		onCompareModules: createCompareResultHandler("modules"),
 		onCompareRuntimeModules: createCompareResultHandler("runtimeModules"),
 		bootstrap: config.bootstrap ?? true,
-		detail: config.detail ?? true
+		detail: config.detail ?? true,
+		errors: config.errors ?? false,
+		replacements: config.replacements
 	});
 
 	return [processor, fileCompareMap] as [
@@ -134,7 +137,7 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 
 function checkBundleFiles(name: string, dist: string, files: string[]) {
 	describe(`Checking ${name} dist files`, () => {
-		for (let file of files) {
+		for (const file of files) {
 			it(`${name}: ${file} should be generated`, () => {
 				expect(fs.existsSync(path.join(dist, file))).toBeTruthy();
 			});
@@ -154,7 +157,7 @@ function checkCompareResults(
 					.map(i => i.name)
 			).toEqual([]);
 		});
-		it("should not have any respack-only module", () => {
+		it("should not have any rspack-only module", () => {
 			expect(
 				getResults()
 					.filter(i => i.type === ECompareResultType.OnlySource)
@@ -168,8 +171,8 @@ function checkCompareResults(
 					.map(i => i.name)
 			).toEqual([]);
 		});
-		it(`all modules should be the same`, () => {
-			for (let result of getResults().filter(
+		it("all modules should be the same", () => {
+			for (const result of getResults().filter(
 				i => i.type === ECompareResultType.Different
 			)) {
 				console.log(`${result.name}:\n${result.detail}`);

@@ -16,7 +16,7 @@ impl LazyCompilationDependency {
       .dependency
       .as_module_dependency()
       .expect("LazyCompilation: should convert to module dependency");
-    let request = format!("{}?lazy-compilation-proxy-dep", dep.request());
+    let request = dep.request().to_string();
 
     Self {
       id: DependencyId::new(),
@@ -36,10 +36,6 @@ impl AsDependencyTemplate for LazyCompilationDependency {}
 impl AsContextDependency for LazyCompilationDependency {}
 
 impl Dependency for LazyCompilationDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "lazy compilation dependency"
-  }
-
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }

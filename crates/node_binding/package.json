@@ -1,12 +1,13 @@
 {
   "name": "@rspack/binding",
-  "version": "0.7.0-beta.1",
+  "version": "1.0.0-alpha.5",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
   "types": "binding.d.ts",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "binding.js",
@@ -24,6 +25,14 @@
     "build:release:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
     "build:release:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release",
     "build:release:win": "cross-env RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
+    "build:release-prod:all": "run-p build:release-prod:arm64 build:release-prod:x64 build:release-prod:linux && pnpm move-binding",
+    "build:release-prod": "node scripts/build.js --release-prod",
+    "watch:release-prod": "node scripts/build.js --release-prod --watch",
+    "build:release-prod:arm64": "cross-env RUST_TARGET=aarch64-apple-darwin node scripts/build.js --release-prod",
+    "build:release-prod:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release-prod",
+    "build:release-prod:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release-prod",
+    "build:release-prod:win": "cross-env RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release-prod",
+    "build:release-debug": "node scripts/build.js --release-debug",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
@@ -31,7 +40,8 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.45"
+    "@napi-rs/cli": "3.0.0-alpha.45",
+    "typescript": "5.0.2"
   },
   "napi": {
     "binaryName": "rspack"

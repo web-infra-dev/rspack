@@ -4,30 +4,26 @@ pub mod repair;
 
 use std::path::PathBuf;
 
-use rayon::prelude::*;
+use rspack_collections::IdentifierSet;
 use rspack_error::{Diagnostic, Result};
-use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
-use crate::{
-  tree_shaking::{visitor::OptimizeAnalyzeResult, BailoutFlag},
-  BuildDependency, Compilation, DependencyId, DependencyType, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier,
-};
+use crate::{BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial};
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
-  // should be reset when make
-  pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
+  // temporary data, used by subsequent steps of make
+  // should be reset when rebuild
   pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
 
+  // data
+  pub built_modules: IdentifierSet,
+  pub make_failed_dependencies: HashSet<BuildDependency>,
+  pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
   entry_dependencies: HashSet<DependencyId>,
-  pub entry_module_identifiers: IdentifierSet,
-  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
   pub missing_dependencies: FileCounter,
@@ -35,10 +31,10 @@ pub struct MakeArtifact {
 }
 
 impl MakeArtifact {
-  fn get_module_graph(&self) -> ModuleGraph {
+  pub fn get_module_graph(&self) -> ModuleGraph {
     ModuleGraph::new(vec![&self.module_graph_partial], None)
   }
-  fn get_module_graph_mut(&mut self) -> ModuleGraph {
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     ModuleGraph::new(vec![], Some(&mut self.module_graph_partial))
   }
   // TODO remove it
@@ -50,7 +46,15 @@ impl MakeArtifact {
     &mut self.module_graph_partial
   }
 
-  fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
+  pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
+    std::mem::take(&mut self.diagnostics)
+  }
+
+  pub fn take_built_modules(&mut self) -> IdentifierSet {
+    std::mem::take(&mut self.built_modules)
+  }
+
+  fn revoke_modules(&mut self, ids: IdentifierSet) -> Vec<BuildDependency> {
     let mut module_graph = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
     let mut res = vec![];
     for module_identifier in &ids {
@@ -79,21 +83,23 @@ impl MakeArtifact {
 
 #[derive(Debug, Clone)]
 pub enum MakeParam {
-  Entry(HashSet<DependencyId>),
+  BuildEntry(HashSet<DependencyId>),
+  BuildEntryAndClean(HashSet<DependencyId>),
+  CheckNeedBuild,
   ModifiedFiles(HashSet<PathBuf>),
   RemovedFiles(HashSet<PathBuf>),
   ForceBuildDeps(HashSet<BuildDependency>),
-  ForceBuildModules(HashSet<ModuleIdentifier>),
+  ForceBuildModules(IdentifierSet),
 }
 
 pub fn make_module_graph(
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   mut artifact: MakeArtifact,
 ) -> Result<MakeArtifact> {
-  let mut params = Vec::with_capacity(5);
+  let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
-    params.push(MakeParam::Entry(
+    params.push(MakeParam::BuildEntry(
       compilation
         .entries
         .values()
@@ -103,9 +109,10 @@ pub fn make_module_graph(
         .collect(),
     ));
   }
-  // no modified files but rebuild means force build
-  // some module which cacheable is false will need to be rebuilt even if modified files is empty
-  params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+  params.push(MakeParam::CheckNeedBuild);
+  if !compilation.modified_files.is_empty() {
+    params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+  }
   if !compilation.removed_files.is_empty() {
     params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
   }
@@ -118,41 +125,16 @@ pub fn make_module_graph(
     params.push(MakeParam::ForceBuildDeps(make_failed_dependencies));
   }
 
-  // reset diagnostics
+  // reset temporary data
+  artifact.built_modules = Default::default();
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
 
-  artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
-
-  if compilation.options.builtins.tree_shaking.enable() {
-    let module_graph = artifact.get_module_graph();
-    compilation.bailout_module_identifiers = calc_bailout_module_identifiers(&module_graph);
-  }
-
-  compilation.push_batch_diagnostic(std::mem::take(&mut artifact.diagnostics));
+  artifact = update_module_graph(compilation, artifact, params)?;
   Ok(artifact)
 }
 
-pub async fn update_module_graph(
-  compilation: &mut Compilation,
-  params: Vec<MakeParam>,
-) -> Result<()> {
-  let mut artifact = MakeArtifact::default();
-  compilation.swap_make_artifact(&mut artifact);
-
-  artifact = update_module_graph_with_artifact(compilation, artifact, params)?;
-
-  if compilation.options.builtins.tree_shaking.enable() {
-    let module_graph = artifact.get_module_graph();
-    compilation.bailout_module_identifiers = calc_bailout_module_identifiers(&module_graph);
-  }
-
-  compilation.push_batch_diagnostic(std::mem::take(&mut artifact.diagnostics));
-  compilation.swap_make_artifact(&mut artifact);
-  Ok(())
-}
-
-pub fn update_module_graph_with_artifact(
+pub fn update_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,
@@ -162,44 +144,4 @@ pub fn update_module_graph_with_artifact(
   artifact = repair(compilation, artifact, build_dependencies)?;
   cutout.fix_artifact(&mut artifact);
   Ok(artifact)
-}
-
-// TODO remove after remove old_treeshaking
-fn calc_bailout_module_identifiers(module_graph: &ModuleGraph) -> IdentifierMap<BailoutFlag> {
-  // Avoid to introduce too much overhead,
-  // until we find a better way to align with webpack hmr behavior
-
-  // add context module and context element module to bailout_module_identifiers
-  module_graph
-    .dependencies()
-    .values()
-    .par_bridge()
-    .filter_map(|dep| {
-      if dep.as_context_dependency().is_some()
-        && let Some(module) = module_graph.get_module_by_dependency_id(dep.id())
-      {
-        let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
-        if let Some(dependencies) = module_graph.get_module_all_dependencies(&module.identifier()) {
-          for dependency in dependencies {
-            if let Some(dependency_module) =
-              module_graph.module_identifier_by_dependency_id(dependency)
-            {
-              values.push((*dependency_module, BailoutFlag::CONTEXT_MODULE));
-            }
-          }
-        }
-
-        Some(values)
-      } else if matches!(
-        dep.dependency_type(),
-        DependencyType::ContainerExposed | DependencyType::ProvideModuleForShared
-      ) && let Some(module) = module_graph.get_module_by_dependency_id(dep.id())
-      {
-        Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
-      } else {
-        None
-      }
-    })
-    .flatten()
-    .collect()
 }

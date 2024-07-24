@@ -1,5 +1,5 @@
-import { readFile, run } from "../../utils/test-utils";
 import { resolve } from "path";
+import { readFile, run } from "../../utils/test-utils";
 
 it("should not have `process.env.NODE_ENV` when optimization.nodeEnv has been set", async () => {
 	await run(__dirname, ["--mode", "production"]);

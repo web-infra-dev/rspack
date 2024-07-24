@@ -6,6 +6,6 @@ module.exports = {
 		main: "./index.js"
 	},
 	resolve: {
-		tsConfigPath: path.resolve(__dirname, "./tsconfig.json")
+		tsConfig: path.resolve(__dirname, "./tsconfig.json")
 	}
 };

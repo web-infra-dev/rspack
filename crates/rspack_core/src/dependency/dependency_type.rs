@@ -1,21 +1,20 @@
-use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 
-use crate::ErrorSpan;
+use crate::ContextTypePrefix;
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
-#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyType {
   #[default]
   Unknown,
   ExportInfoApi,
   Entry,
   // Harmony import
-  EsmImport(/* HarmonyImportSideEffectDependency.span */ ErrorSpan), /* TODO: remove span after old tree shaking is removed */
+  EsmImport,
   EsmImportSpecifier,
   // Harmony export
-  EsmExport(ErrorSpan),
+  EsmExport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   EsmExportExpression,
@@ -52,11 +51,12 @@ pub enum DependencyType {
   CssImport,
   // css modules compose
   CssCompose,
-  /// css module export
-  /// FIXME: remove after we align css module with webpack
-  CssModuleExport,
+  // css :export
+  CssExport,
+  // css modules local ident
+  CssLocalIdent,
   // context element
-  ContextElement,
+  ContextElement(ContextTypePrefix),
   // import context
   ImportContext,
   // import.meta.webpackContext
@@ -94,63 +94,69 @@ pub enum DependencyType {
   WebpackIsIncluded,
   LoaderImport,
   LazyImport,
-  Custom(Box<str>), // TODO it will increase large layout size
+  ModuleDecorator,
+  Custom(&'static str),
 }
 
 impl DependencyType {
-  pub fn as_str(&self) -> Cow<str> {
+  pub fn as_str(&self) -> &'static str {
     match self {
-      DependencyType::Unknown => Cow::Borrowed("unknown"),
-      DependencyType::Entry => Cow::Borrowed("entry"),
-      DependencyType::EsmImport(_) => Cow::Borrowed("esm import"),
-      DependencyType::EsmExport(_) => Cow::Borrowed("esm export"),
-      DependencyType::EsmExportSpecifier => Cow::Borrowed("esm export specifier"),
-      DependencyType::EsmExportImportedSpecifier => Cow::Borrowed("esm export import specifier"),
-      DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
-      DependencyType::EsmExportExpression => Cow::Borrowed("esm export expression"),
-      DependencyType::EsmExportHeader => Cow::Borrowed("esm export header"),
-      DependencyType::DynamicImport => Cow::Borrowed("import()"),
-      DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
-      DependencyType::CjsFullRequire => Cow::Borrowed("cjs full require"),
-      DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
-      DependencyType::CjsExportRequire => Cow::Borrowed("cjs export require"),
-      DependencyType::CjsSelfReference => Cow::Borrowed("cjs self exports reference"),
-      DependencyType::NewUrl => Cow::Borrowed("new URL()"),
-      DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
-      DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
-      DependencyType::ImportMetaHotDecline => Cow::Borrowed("import.meta.webpackHot.decline"),
-      DependencyType::ModuleHotAccept => Cow::Borrowed("module.hot.accept"),
-      DependencyType::ModuleHotDecline => Cow::Borrowed("module.hot.decline"),
-      DependencyType::CssUrl => Cow::Borrowed("css url"),
-      DependencyType::CssImport => Cow::Borrowed("css import"),
-      DependencyType::CssCompose => Cow::Borrowed("css compose"),
-      DependencyType::CssModuleExport => Cow::Borrowed("css export"),
-      DependencyType::ContextElement => Cow::Borrowed("context element"),
+      DependencyType::Unknown => "unknown",
+      DependencyType::Entry => "entry",
+      DependencyType::EsmImport => "esm import",
+      DependencyType::EsmExport => "esm export",
+      DependencyType::EsmExportSpecifier => "esm export specifier",
+      DependencyType::EsmExportImportedSpecifier => "esm export import specifier",
+      DependencyType::EsmImportSpecifier => "esm import specifier",
+      DependencyType::EsmExportExpression => "esm export expression",
+      DependencyType::EsmExportHeader => "esm export header",
+      DependencyType::DynamicImport => "import()",
+      DependencyType::CjsRequire => "cjs require",
+      DependencyType::CjsFullRequire => "cjs full require",
+      DependencyType::CjsExports => "cjs exports",
+      DependencyType::CjsExportRequire => "cjs export require",
+      DependencyType::CjsSelfReference => "cjs self exports reference",
+      DependencyType::NewUrl => "new URL()",
+      DependencyType::NewWorker => "new Worker()",
+      DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
+      DependencyType::ImportMetaHotDecline => "import.meta.webpackHot.decline",
+      DependencyType::ModuleHotAccept => "module.hot.accept",
+      DependencyType::ModuleHotDecline => "module.hot.decline",
+      DependencyType::CssUrl => "css url",
+      DependencyType::CssImport => "css import",
+      DependencyType::CssCompose => "css compose",
+      DependencyType::CssExport => "css export",
+      DependencyType::CssLocalIdent => "css local ident",
+      DependencyType::ContextElement(type_prefix) => match type_prefix {
+        ContextTypePrefix::Import => "import() context element",
+        ContextTypePrefix::Normal => "context element",
+      },
       // TODO: mode
-      DependencyType::ImportContext => Cow::Borrowed("import context"),
-      DependencyType::DynamicImportEager => Cow::Borrowed("import() eager"),
-      DependencyType::CommonJSRequireContext => Cow::Borrowed("commonjs require context"),
-      DependencyType::RequireContext => Cow::Borrowed("require.context"),
-      DependencyType::RequireResolve => Cow::Borrowed("require.resolve"),
-      DependencyType::WasmImport => Cow::Borrowed("wasm import"),
-      DependencyType::WasmExportImported => Cow::Borrowed("wasm export imported"),
-      DependencyType::StaticExports => Cow::Borrowed("static exports"),
-      DependencyType::LoaderImport => Cow::Borrowed("loader import"),
-      DependencyType::Custom(ty) => Cow::Owned(format!("custom {ty}")),
-      DependencyType::ExportInfoApi => Cow::Borrowed("export info api"),
+      DependencyType::ImportContext => "import context",
+      DependencyType::DynamicImportEager => "import() eager",
+      DependencyType::CommonJSRequireContext => "commonjs require context",
+      DependencyType::RequireContext => "require.context",
+      DependencyType::RequireResolve => "require.resolve",
+      DependencyType::WasmImport => "wasm import",
+      DependencyType::WasmExportImported => "wasm export imported",
+      DependencyType::StaticExports => "static exports",
+      DependencyType::LoaderImport => "loader import",
+      DependencyType::Custom(ty) => ty,
+      DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
-      DependencyType::ImportMetaContext => Cow::Borrowed("import.meta context"),
-      DependencyType::ContainerExposed => Cow::Borrowed("container exposed"),
-      DependencyType::ContainerEntry => Cow::Borrowed("container entry"),
-      DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
-      DependencyType::RemoteToFallback => Cow::Borrowed("fallback"),
-      DependencyType::RemoteToFallbackItem => Cow::Borrowed("fallback item"),
-      DependencyType::Provided => Cow::Borrowed("provided"),
-      DependencyType::ProvideSharedModule => Cow::Borrowed("provide shared module"),
-      DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
-      DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),
-      DependencyType::WebpackIsIncluded => Cow::Borrowed("__webpack_is_included__"),
-      DependencyType::LazyImport => Cow::Borrowed("lazy import()"),
+      DependencyType::ImportMetaContext => "import.meta context",
+      DependencyType::ContainerExposed => "container exposed",
+      DependencyType::ContainerEntry => "container entry",
+      DependencyType::RemoteToExternal => "remote to external",
+      DependencyType::RemoteToFallback => "fallback",
+      DependencyType::RemoteToFallbackItem => "fallback item",
+      DependencyType::Provided => "provided",
+      DependencyType::ProvideSharedModule => "provide shared module",
+      DependencyType::ProvideModuleForShared => "provide module for shared",
+      DependencyType::ConsumeSharedFallback => "consume shared fallback",
+      DependencyType::WebpackIsIncluded => "__webpack_is_included__",
+      DependencyType::LazyImport => "lazy import()",
+      DependencyType::ModuleDecorator => "module decorator",
     }
   }
 }

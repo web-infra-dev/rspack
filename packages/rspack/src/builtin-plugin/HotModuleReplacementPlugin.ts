@@ -1,7 +1,7 @@
-import { BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
 
-import { Compiler } from "../Compiler";
-import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
+import type { Compiler } from "../Compiler";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class HotModuleReplacementPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.HotModuleReplacementPlugin;

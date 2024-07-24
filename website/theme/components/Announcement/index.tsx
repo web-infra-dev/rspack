@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useI18n } from '../../i18n';
 import { usePageData } from 'rspress/runtime';
 import { useLang } from 'rspress/runtime';
+import { useI18n } from '../../i18n';
 import IconCloseCircle from './close';
 
 export function Announcement() {
@@ -26,7 +26,7 @@ export function Announcement() {
       }}
     >
       <a
-        href={`${lang == 'en' ? '' : `/${lang}`}/misc/join-us.html`}
+        href={`${lang === 'en' ? '' : `/${lang}`}/misc/join-us.html`}
         className="hover:underline text-gray-700 font-bold"
       >
         {t('recruit')}
@@ -43,7 +43,7 @@ export function Announcement() {
           position: 'absolute',
           cursor: 'pointer',
         }}
-      ></IconCloseCircle>
+      />
     </div>
   );
 }

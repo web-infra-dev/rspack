@@ -1,10 +1,10 @@
-import path from "path";
-import { fileURLToPath, pathToFileURL } from "url";
-import vm, { SourceTextModule } from "vm";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import vm, { SourceTextModule } from "node:vm";
 
 import asModule from "../../helper/legacy/asModule";
-import { ECompilerType } from "../../type";
-import { EEsmMode, TRunnerRequirer } from "../type";
+import type { ECompilerType } from "../../type";
+import { EEsmMode, type TRunnerRequirer } from "../type";
 import { CommonJsRunner } from "./cjs";
 
 export class EsmRunner<
@@ -15,7 +15,7 @@ export class EsmRunner<
 		this.requirers.set("cjs", this.getRequire());
 		this.requirers.set("esm", this.createEsmRequirer());
 		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
-			let file = this.getFile(modulePath, currentDirectory);
+			const file = this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -28,12 +28,11 @@ export class EsmRunner<
 					...context,
 					file
 				});
-			} else {
-				return this.requirers.get("cjs")!(currentDirectory, modulePath, {
-					...context,
-					file
-				});
 			}
+			return this.requirers.get("cjs")!(currentDirectory, modulePath, {
+				...context,
+				file
+			});
 		});
 	}
 
@@ -50,7 +49,7 @@ export class EsmRunner<
 				);
 			}
 			const _require = this.getRequire();
-			let file = context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -77,7 +76,7 @@ export class EsmRunner<
 				} as any);
 				esmCache.set(file.path, esm);
 			}
-			if (context["esmMode"] === EEsmMode.Unlinked) return esm;
+			if (context.esmMode === EEsmMode.Unlinked) return esm;
 			return (async () => {
 				await esm.link(async (specifier, referencingModule) => {
 					return await asModule(
@@ -98,14 +97,13 @@ export class EsmRunner<
 				});
 				if ((esm as any).instantiate) (esm as any).instantiate();
 				await esm.evaluate();
-				if (context["esmMode"] === EEsmMode.Evaluated) {
+				if (context.esmMode === EEsmMode.Evaluated) {
 					return esm;
-				} else {
-					const ns = esm.namespace as {
-						default: unknown;
-					};
-					return ns.default && ns.default instanceof Promise ? ns.default : ns;
 				}
+				const ns = esm.namespace as {
+					default: unknown;
+				};
+				return ns.default && ns.default instanceof Promise ? ns.default : ns;
 			})();
 		};
 	}

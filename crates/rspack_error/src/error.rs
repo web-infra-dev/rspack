@@ -1,12 +1,14 @@
-use std::{fmt::Display, path::Path};
+use std::{fmt::Display, sync::Arc};
 
-use miette::{
-  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan,
-};
+use miette::{Diagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan};
+use once_cell::sync::Lazy;
 use swc_core::common::SourceFile;
 use thiserror::Error;
 
 use crate::RspackSeverity;
+
+#[allow(clippy::rc_buffer)]
+static EMPTY_STRING: Lazy<Arc<String>> = Lazy::new(|| Arc::new("".to_string()));
 
 #[derive(Debug, Error)]
 #[error(transparent)]
@@ -50,10 +52,12 @@ pub struct TraceableError {
   kind: DiagnosticKind,
   message: String,
   severity: Severity,
-  src: String,
+  #[allow(clippy::rc_buffer)]
+  src: Arc<String>,
   label: SourceSpan,
   help: Option<String>,
   url: Option<String>,
+  hide_stack: Option<bool>,
 }
 
 impl Diagnostic for TraceableError {
@@ -115,6 +119,11 @@ impl TraceableError {
     self
   }
 
+  pub fn with_hide_stack(mut self, hide_stack: Option<bool>) -> Self {
+    self.hide_stack = hide_stack;
+    self
+  }
+
   pub fn from_source_file(
     source_file: &SourceFile,
     start: usize,
@@ -122,19 +131,7 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    let file_src = source_file.src.to_string();
-    let start = if start >= file_src.len() { 0 } else { start };
-    let end = if end >= file_src.len() { 0 } else { end };
-    Self {
-      title,
-      kind: Default::default(),
-      message,
-      severity: Default::default(),
-      src: file_src,
-      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
-      help: None,
-      url: None,
-    }
+    Self::from_arc_string(source_file.src.clone(), start, end, title, message)
   }
 
   pub fn from_file(
@@ -144,42 +141,35 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    Self {
-      title,
-      kind: Default::default(),
-      message,
-      severity: Default::default(),
-      src: file_src,
-      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
-      help: None,
-      url: None,
-    }
+    Self::from_arc_string(Arc::new(file_src), start, end, title, message)
   }
 
   pub fn from_empty_file(start: usize, end: usize, title: String, message: String) -> Self {
-    Self {
-      title,
-      kind: Default::default(),
-      message,
-      severity: Default::default(),
-      src: "".to_string(),
-      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
-      help: None,
-      url: None,
-    }
+    Self::from_arc_string(EMPTY_STRING.clone(), start, end, title, message)
   }
 
-  pub fn from_real_file_path(
-    path: &Path,
+  pub fn from_arc_string(
+    src: Arc<String>,
     start: usize,
     end: usize,
     title: String,
     message: String,
-  ) -> Result<Self, miette::Error> {
-    let file_src = std::fs::read_to_string(path).into_diagnostic()?;
-    let start = if start >= file_src.len() { 0 } else { start };
-    let end = if end >= file_src.len() { 0 } else { end };
-    Ok(Self::from_file(file_src, start, end, title, message))
+  ) -> Self {
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src,
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
+      hide_stack: None,
+    }
+  }
+
+  pub fn hide_stack(&self) -> Option<bool> {
+    self.hide_stack
   }
 }
 
@@ -350,4 +340,15 @@ fn _assert() {
   fn _assert_send_sync<T: Send + Sync>() {}
   _assert_send_sync::<InternalError>();
   _assert_send_sync::<DiagnosticError>();
+}
+
+/// (message, stack, backtrace, hide_stack)
+#[derive(Debug, Error, Diagnostic)]
+#[diagnostic()]
+#[error("{reason}\n{backtrace}")]
+pub struct NodeError {
+  pub reason: String,
+  pub stack: Option<String>,
+  pub backtrace: String,
+  pub hide_stack: Option<bool>,
 }

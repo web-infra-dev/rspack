@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::Path, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -10,33 +10,42 @@ use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
-  diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
-  tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, BoxModule, CompilerContext, CompilerOptions, Context, DependencyCategory, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, NormalModule, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
+  DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
 define_hook!(NormalModuleFactoryFactorize: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule);
-define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData) -> bool);
+define_hook!(NormalModuleFactoryResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult);
+define_hook!(NormalModuleFactoryResolveForScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool);
+define_hook!(NormalModuleFactoryResolveInScheme: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool);
 define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
 define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
+define_hook!(NormalModuleFactoryParser: SyncSeries(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
 define_hook!(NormalModuleFactoryResolveLoader: AsyncSeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
+
+pub enum NormalModuleFactoryResolveResult {
+  Module(BoxModule),
+  Ignored,
+}
 
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
   pub factorize: NormalModuleFactoryFactorizeHook,
+  pub resolve: NormalModuleFactoryResolveHook,
   pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
+  pub resolve_in_scheme: NormalModuleFactoryResolveInSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
   pub create_module: NormalModuleFactoryCreateModuleHook,
   pub module: NormalModuleFactoryModuleHook,
+  pub parser: NormalModuleFactoryParserHook,
   /// Webpack resolves loaders in `NormalModuleFactory`,
   /// Rspack resolves it when normalizing configuration.
   /// So this hook is used to resolve inline loader (inline loader requests).
@@ -75,6 +84,9 @@ static ELEMENT_SPLIT_REGEX: Lazy<Regex> =
 
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';
+const DOT: char = '.';
+const SLASH: char = '/';
+const QUESTION_MARK: char = '?';
 
 impl NormalModuleFactory {
   pub fn new(
@@ -118,7 +130,7 @@ impl NormalModuleFactory {
       })
   }
 
-  pub async fn factorize_normal_module(
+  async fn resolve_normal_module(
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
@@ -126,98 +138,91 @@ impl NormalModuleFactory {
       .dependency
       .as_module_dependency()
       .expect("should be module dependency");
-    let importer = data.issuer_identifier.as_ref();
+    let dependency_type = *dependency.dependency_type();
+    let dependency_category = *dependency.category();
+    let dependency_source_span = dependency.source_span();
+    let dependency_optional = dependency.get_optional();
+
+    let importer = data.issuer_identifier;
     let raw_request = dependency.request().to_owned();
-    let mut request_without_match_resource = dependency.request();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
-    let scheme = get_scheme(request_without_match_resource);
-    let context_scheme = get_scheme(data.context.as_ref());
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
 
-    let mut match_resource_data: Option<ResourceData> = None;
+    let mut match_resource_data = None;
     let mut match_module_type = None;
-    let mut inline_loaders: Vec<ModuleRuleUseLoader> = vec![];
+    let mut inline_loaders = vec![];
     let mut no_pre_auto_loaders = false;
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
 
-    // with scheme, windows absolute path is considered scheme by `url`
-    let resource_data = if scheme != Scheme::None
-      && !Path::is_absolute(Path::new(request_without_match_resource))
-    {
-      let mut resource_data =
-        ResourceData::new(request_without_match_resource.to_string(), "".into());
-      // resource with scheme
-      plugin_driver
-        .normal_module_factory_hooks
-        .resolve_for_scheme
-        .call(data, &mut resource_data)
-        .await?;
-      resource_data
-    }
-    // TODO: resource within scheme, call resolveInScheme hook
-    else {
-      {
-        request_without_match_resource = {
-          let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
-          if let Some(m) = match_resource_match {
-            let mut match_resource: String = m
-              .get(1)
-              .expect("Should have match resource")
-              .as_str()
-              .to_owned();
-            let mut chars = match_resource.chars();
+    let mut scheme = get_scheme(dependency.request());
+    let context_scheme = get_scheme(data.context.as_ref());
+    let mut unresolved_resource = dependency.request();
+    if scheme.is_none() {
+      let mut request_without_match_resource = dependency.request();
+      request_without_match_resource = {
+        if let Some(m) = MATCH_RESOURCE_REGEX.captures(request_without_match_resource) {
+          let match_resource = {
+            let resource = m.get(1).expect("Should have match resource").as_str();
+            let mut chars = resource.chars();
             let first_char = chars.next();
             let second_char = chars.next();
 
-            if matches!(first_char, Some('.'))
-              && (matches!(second_char, Some('/'))
-                || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))))
+            if matches!(first_char, Some(DOT))
+              && (matches!(second_char, Some(SLASH))
+                || (matches!(second_char, Some(DOT)) && matches!(chars.next(), Some(SLASH))))
             {
               // if matchResources startsWith ../ or ./
-              match_resource = data
+              data
                 .context
                 .as_path()
-                .join(match_resource)
+                .join(resource)
                 .absolutize()
                 .to_string_lossy()
-                .to_string();
+                .to_string()
+            } else {
+              resource.to_owned()
             }
+          };
 
-            let ResourceParsedData {
-              path,
-              query,
-              fragment,
-            } = parse_resource(&match_resource).expect("Should parse resource");
-            match_resource_data = Some(
-              ResourceData::new(match_resource, path)
-                .query_optional(query)
-                .fragment_optional(fragment),
-            );
+          let ResourceParsedData {
+            path,
+            query,
+            fragment,
+          } = parse_resource(&match_resource).expect("Should parse resource");
+          match_resource_data = Some(
+            ResourceData::new(match_resource)
+              .path(path)
+              .query_optional(query)
+              .fragment_optional(fragment),
+          );
 
-            // e.g. ./index.js!=!
-            let whole_matched = m.get(0).expect("Whole matched").as_str();
+          // e.g. ./index.js!=!
+          let whole_matched = m
+            .get(0)
+            .expect("should guaranteed to return a non-None value.")
+            .as_str();
 
-            match request_without_match_resource
-              .char_indices()
-              .nth(whole_matched.chars().count())
-            {
-              Some((pos, _)) => &request_without_match_resource[pos..],
-              None => {
-                unreachable!("Invalid dependency: {:?}", &data.dependency)
-              }
+          match request_without_match_resource
+            .char_indices()
+            .nth(whole_matched.chars().count())
+          {
+            Some((pos, _)) => &request_without_match_resource[pos..],
+            None => {
+              unreachable!("Invalid dependency: {:?}", &data.dependency)
             }
-          } else {
-            request_without_match_resource
           }
-        };
+        } else {
+          request_without_match_resource
+        }
+      };
 
-        // dbg!(&match_resource_data);
-
+      scheme = get_scheme(request_without_match_resource);
+      if scheme.is_none() && context_scheme.is_none() {
         let mut request = request_without_match_resource.chars();
         let first_char = request.next();
         let second_char = request.next();
@@ -250,64 +255,95 @@ impl NormalModuleFactory {
           ELEMENT_SPLIT_REGEX.split(s).collect::<Vec<_>>()
         };
 
-        request_without_match_resource = raw_elements
+        unresolved_resource = raw_elements
           .pop()
           .ok_or_else(|| error!("Invalid request: {request_without_match_resource}"))?;
 
-        inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
-          loader: r.to_owned(),
-          options: None,
+        inline_loaders.extend(raw_elements.into_iter().map(|r| {
+          let resource = parse_resource(r);
+          let ident = resource.as_ref().and_then(|r| {
+            r.query
+              .as_ref()
+              .and_then(|q| q.starts_with("??").then(|| &q[2..]))
+          });
+          ModuleRuleUseLoader {
+            loader: r.to_owned(),
+            options: ident.and_then(|ident| {
+              data
+                .options
+                .__references
+                .get(ident)
+                .map(|object| object.to_string())
+            }),
+          }
         }));
-      }
-
-      if request_without_match_resource.is_empty()
-        || request_without_match_resource.starts_with('?')
-      {
-        let ResourceParsedData {
-          path,
-          query,
-          fragment,
-        } = parse_resource(request_without_match_resource).expect("Should parse resource");
-        ResourceData::new(request_without_match_resource.to_string(), path)
-          .query_optional(query)
-          .fragment_optional(fragment)
+        scheme = get_scheme(unresolved_resource);
       } else {
-        let optional = dependency.get_optional();
+        unresolved_resource = request_without_match_resource;
+      }
+    }
 
+    let resource = unresolved_resource.to_owned();
+    let resource_data = if !scheme.is_none() {
+      // resource with scheme
+      let mut resource_data = ResourceData::new(resource);
+      plugin_driver
+        .normal_module_factory_hooks
+        .resolve_for_scheme
+        .call(data, &mut resource_data, &scheme)
+        .await?;
+      resource_data
+    } else if !context_scheme.is_none()
+      // resource within scheme
+      && let Some(resource_data) = {
+        let mut resource_data = ResourceData::new(resource.clone());
+        let handled = plugin_driver
+          .normal_module_factory_hooks
+          .resolve_in_scheme
+          .call(data, &mut resource_data, &context_scheme)
+          .await?
+          .unwrap_or_default();
+        handled.then_some(resource_data)
+      }
+    {
+      resource_data
+    } else {
+      // resource without scheme and without path
+      if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
+        ResourceData::new(resource.to_owned()).path("".into())
+      } else {
+        // resource without scheme and with path
         let resolve_args = ResolveArgs {
-          importer,
+          importer: importer.as_ref(),
           issuer: data.issuer.as_deref(),
           context: if context_scheme != Scheme::None {
             self.options.context.clone()
           } else {
             data.context.clone()
           },
-          specifier: request_without_match_resource,
-          dependency_type: dependency.dependency_type(),
-          dependency_category: dependency.category(),
-          span: dependency.source_span(),
+          specifier: &resource,
+          dependency_type: &dependency_type,
+          dependency_category: &dependency_category,
+          span: dependency_source_span,
           // take the options is safe here, because it
           // is not used in after_resolve hooks
           resolve_options: data.resolve_options.take(),
           resolve_to_context: false,
-          optional,
+          optional: dependency_optional,
           file_dependencies: &mut file_dependencies,
           missing_dependencies: &mut missing_dependencies,
         };
 
-        // default resolve
         let resource_data = resolve(resolve_args, plugin_driver).await;
 
         match resource_data {
-          Ok(ResolveResult::Resource(resource)) => {
-            let uri = resource.full_path().display().to_string();
-            ResourceData::new(uri, resource.path)
-              .query(resource.query)
-              .fragment(resource.fragment)
-              .description_optional(resource.description_data)
-          }
+          Ok(ResolveResult::Resource(resource)) => ResourceData::new(resource.full_path())
+            .path(resource.path)
+            .query(resource.query)
+            .fragment(resource.fragment)
+            .description_optional(resource.description_data),
           Ok(ResolveResult::Ignored) => {
-            let ident = format!("{}/{}", &data.context, request_without_match_resource);
+            let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
             let raw_module = RawModule::new(
@@ -367,7 +403,6 @@ impl NormalModuleFactory {
         suffix.into_owned()
       }
     };
-    let contains_inline = !inline_loaders.is_empty();
 
     let loaders: Vec<BoxLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -447,7 +482,7 @@ impl NormalModuleFactory {
         context: &Context,
         loader_resolver: &Resolver,
         l: &ModuleRuleUseLoader,
-      ) -> Result<Arc<dyn Loader<CompilerContext>>> {
+      ) -> Result<Arc<dyn Loader<RunnerContext>>> {
         plugin_driver
           .normal_module_factory_hooks
           .resolve_loader
@@ -485,7 +520,7 @@ impl NormalModuleFactory {
         resolved_generator_options,
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
-    let resolved_parser_and_generator = self
+    let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
@@ -498,9 +533,11 @@ impl NormalModuleFactory {
       resolved_parser_options.as_ref(),
       resolved_generator_options.as_ref(),
     );
-
-    let resource_path = resource_data.resource_path.clone();
-    let resource_description = resource_data.resource_description.clone();
+    self.plugin_driver.normal_module_factory_hooks.parser.call(
+      &resolved_module_type,
+      resolved_parser_and_generator.as_mut(),
+      resolved_parser_options.as_ref(),
+    )?;
 
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {
@@ -546,10 +583,9 @@ impl NormalModuleFactory {
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        create_data.resource_resolve_data.clone(),
+        Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
         loaders,
-        contains_inline,
       )
       .boxed()
     };
@@ -561,31 +597,11 @@ impl NormalModuleFactory {
       .call(data, &mut create_data, &mut module)
       .await?;
 
-    data.add_file_dependencies(file_dependencies);
-    data.add_file_dependency(file_dependency);
-    data.add_missing_dependencies(missing_dependencies);
-
-    // Compat for old tree shaking
-    if !self.options.is_new_tree_shaking() {
-      if resolved_side_effects.is_some() {
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: None,
-          side_effect_free_old: resolved_side_effects.map(|has_side_effects| !has_side_effects),
-        })
-      } else if let Some(description) = resource_description.as_ref()
-        && let Some(side_effects) = SideEffects::from_description(description.json())
-      {
-        let package_path = description.path();
-        let relative_path = resource_path.relative(package_path);
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: None,
-          side_effect_free_old: Some(!get_side_effects_from_package_json(
-            side_effects,
-            relative_path,
-          )),
-        })
-      }
+    if let Some(file_dependency) = file_dependency {
+      data.add_file_dependency(file_dependency);
     }
+    data.add_file_dependencies(file_dependencies);
+    data.add_missing_dependencies(missing_dependencies);
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
@@ -699,8 +715,7 @@ impl NormalModuleFactory {
     matched_module_type: Option<ModuleType>,
     module_rules: &[&ModuleRule],
   ) -> ModuleType {
-    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::Js);
-
+    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
     module_rules.iter().for_each(|module_rule| {
       if let Some(module_type) = module_rule.r#type {
         resolved_module_type = module_type;
@@ -711,18 +726,46 @@ impl NormalModuleFactory {
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let result = self
+    if let Some(result) = self
       .plugin_driver
       .normal_module_factory_hooks
       .factorize
       .call(data)
-      .await?;
-
-    if let Some(result) = result {
+      .await?
+    {
       return Ok(ModuleFactoryResult::new_with_module(result));
     }
 
-    if let Some(result) = self.factorize_normal_module(data).await? {
+    if let Some(result) = self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .resolve
+      .call(data)
+      .await?
+    {
+      if let NormalModuleFactoryResolveResult::Module(result) = result {
+        return Ok(ModuleFactoryResult::new_with_module(result));
+      } else {
+        let ident = format!(
+          "{}/{}",
+          &data.context,
+          data.request().expect("normal module should have request")
+        );
+        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+
+        let raw_module = RawModule::new(
+          "/* (ignored) */".to_owned(),
+          module_identifier,
+          format!("{ident} (ignored)"),
+          Default::default(),
+        )
+        .boxed();
+
+        return Ok(ModuleFactoryResult::new_with_module(raw_module));
+      }
+    }
+
+    if let Some(result) = self.resolve_normal_module(data).await? {
       return Ok(result);
     }
 
@@ -736,21 +779,7 @@ impl NormalModuleFactory {
 /// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
 /// ## Warning
 /// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
-#[derive(
-  Debug,
-  Hash,
-  PartialEq,
-  Eq,
-  Clone,
-  Copy,
-  Default,
-  PartialOrd,
-  Ord,
-  rkyv::Archive,
-  rkyv::Serialize,
-  rkyv::Deserialize,
-)]
-#[archive(check_bytes)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
 pub struct ErrorSpan {
   pub start: u32,
   pub end: u32,

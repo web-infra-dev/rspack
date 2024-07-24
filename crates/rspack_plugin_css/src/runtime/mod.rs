@@ -1,16 +1,15 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -18,12 +17,7 @@ pub struct CssLoadingRuntimeModule {
 
 impl Default for CssLoadingRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/css_loading"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
   }
 }
 
@@ -39,6 +33,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let unique_name = &compilation.options.output.unique_name;
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+      let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
       let condition_map =
         compilation
@@ -99,12 +94,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         "".to_string()
       };
 
+      let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
+
       source.add(RawSource::from(
         include_str!("./css_loading.js")
           .replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
           )
+          .replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
           .replace("__UNIQUE_NAME__", unique_name),
       ));
 
@@ -117,7 +115,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(
           include_str!("./css_loading_with_loading.js")
             .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .replace("CSS_MATCHER", &has_css_matcher.render("chunkId")),
+            .replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
+            .replace(
+              "$FETCH_PRIORITY$",
+              if with_fetch_priority {
+                ", fetchPriority"
+              } else {
+                ""
+              },
+            ),
         ));
       }
 

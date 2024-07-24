@@ -1,6 +1,6 @@
 // @ts-nocheck
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const getPropertyValue = function (property) {
 	return this[property];
@@ -36,7 +36,7 @@ export default class FakeDocument {
 
 	_onElementRemoved(element) {
 		const type = element._type;
-		let list = this._elementsByTagName.get(type);
+		const list = this._elementsByTagName.get(type);
 		const idx = list.indexOf(element);
 		list.splice(idx, 1);
 	}
@@ -134,25 +134,27 @@ export class FakeElement {
 	getAttribute(name) {
 		if (this._type === "link" && name === "href") {
 			return this.href;
-		} else {
-			return this._attributes[name];
 		}
+		return this._attributes[name];
 	}
 
 	_toRealUrl(value) {
 		if (/^\//.test(value)) {
 			return `https://test.cases${value}`;
-		} else if (/^\.\.\//.test(value)) {
-			return `https://test.cases${value.slice(2)}`;
-		} else if (/^\.\//.test(value)) {
-			return `https://test.cases/path${value.slice(1)}`;
-		} else if (/^\w+:\/\//.test(value)) {
-			return value;
-		} else if (/^\/\//.test(value)) {
-			return `https:${value}`;
-		} else {
-			return `https://test.cases/path/${value}`;
 		}
+		if (/^\.\.\//.test(value)) {
+			return `https://test.cases${value.slice(2)}`;
+		}
+		if (/^\.\//.test(value)) {
+			return `https://test.cases/path${value.slice(1)}`;
+		}
+		if (/^\w+:\/\//.test(value)) {
+			return value;
+		}
+		if (/^\/\//.test(value)) {
+			return `https:${value}`;
+		}
+		return `https://test.cases/path/${value}`;
 	}
 
 	set src(value) {

@@ -1,10 +1,17 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  borrow::Cow,
+  fmt::Display,
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
+use derivative::Derivative;
+use rspack_collections::Identifier;
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use rspack_identifier::Identifier;
+use swc_core::common::{source_map::Pos, BytePos, SourceMap};
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
@@ -25,15 +32,18 @@ pub trait DependenciesBlock {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
 pub struct DependencyLocation {
   start: u32,
   end: u32,
+  #[derivative(Debug = "ignore")]
+  source: Option<Arc<SourceMap>>,
 }
 
 impl DependencyLocation {
-  pub fn new(start: u32, end: u32) -> Self {
-    Self { start, end }
+  pub fn new(start: u32, end: u32, source: Option<Arc<SourceMap>>) -> Self {
+    Self { start, end, source }
   }
 
   #[inline]
@@ -52,6 +62,19 @@ impl From<(u32, u32)> for DependencyLocation {
     Self {
       start: value.0,
       end: value.1,
+      source: None,
+    }
+  }
+}
+
+impl Display for DependencyLocation {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if let Some(source) = &self.source {
+      let pos = source.lookup_char_pos(BytePos::from_u32(self.start + 1));
+      let pos = format!("{}:{}", pos.line, pos.col.to_usize());
+      f.write_str(format!("{}-{}", pos, self.end - self.start).as_str())
+    } else {
+      Ok(())
     }
   }
 }
@@ -69,12 +92,16 @@ impl From<String> for AsyncDependenciesBlockIdentifier {
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  blocks: Vec<AsyncDependenciesBlock>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
+  request: Option<String>,
 }
 
 impl AsyncDependenciesBlock {
@@ -84,15 +111,16 @@ impl AsyncDependenciesBlock {
     loc: Option<DependencyLocation>,
     modifier: Option<&str>,
     dependencies: Vec<BoxDependency>,
+    request: Option<String>,
   ) -> Self {
-    let loc_str = loc.map_or_else(
-      || "".to_string(),
-      |loc| format!("|loc={}:{}", loc.start(), loc.end()),
+    let loc_str: Cow<str> = loc.clone().map_or_else(
+      || "".into(),
+      |loc| format!("|loc={}:{}", loc.start(), loc.end()).into(),
     );
 
-    let modifier_str = modifier.map_or_else(
-      || "".to_string(),
-      |modifier| format!("|modifier={modifier}"),
+    let modifier_str: Cow<str> = modifier.map_or_else(
+      || "".into(),
+      |modifier| format!("|modifier={modifier}").into(),
     );
 
     Self {
@@ -113,11 +141,10 @@ impl AsyncDependenciesBlock {
       dependencies,
       loc,
       parent,
+      request,
     }
   }
-}
 
-impl AsyncDependenciesBlock {
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
   }
@@ -140,7 +167,7 @@ impl AsyncDependenciesBlock {
     // self.blocks.push(block);
   }
 
-  pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
+  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
   }
 
@@ -150,6 +177,10 @@ impl AsyncDependenciesBlock {
 
   pub fn parent(&self) -> &ModuleIdentifier {
     &self.parent
+  }
+
+  pub fn request(&self) -> &Option<String> {
+    &self.request
   }
 }
 

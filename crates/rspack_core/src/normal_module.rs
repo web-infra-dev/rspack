@@ -4,17 +4,17 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Mutex,
+    Arc, Mutex,
   },
 };
 
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, MietteExt, Result, Severity};
+use rspack_collections::{Identifiable, IdentifierSet};
+use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
-use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
@@ -22,7 +22,6 @@ use rspack_sources::{
   SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
-use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;
 
@@ -30,11 +29,11 @@ use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
   impl_module_meta_info, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  CompilerContext, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -78,8 +77,10 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &mut ResourceData) -> Content);
-define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<CompilerContext>));
+define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &ResourceData) -> Content);
+define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
+define_hook!(NormalModuleLoaderShouldYield: SyncSeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
+define_hook!(NormalModuleLoaderStartYielding: AsyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
 define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
 define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut AdditionalData));
 
@@ -87,6 +88,8 @@ define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut Addit
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
+  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
+  pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
   pub additional_data: NormalModuleAdditionalDataHook,
 }
@@ -114,12 +117,10 @@ pub struct NormalModule {
   /// Resource matched with inline match resource, (`!=!` syntax)
   match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
-  resource_data: ResourceData,
+  resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
-  /// Whether loaders list contains inline loader
-  contains_inline_loader: bool,
 
   /// Original content of this module, will be available after module build
   original_source: Option<BoxSource>,
@@ -145,6 +146,7 @@ pub struct NormalModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   parsed: bool,
+  last_successful_build_meta: BuildMeta,
 }
 
 #[derive(Debug, Clone)]
@@ -170,11 +172,11 @@ impl NormalModuleSource {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  fn create_id(module_type: &ModuleType, request: &str) -> String {
-    if *module_type == ModuleType::Js {
-      request.to_string()
+  fn create_id<'request>(module_type: &ModuleType, request: &'request str) -> Cow<'request, str> {
+    if *module_type == ModuleType::JsAuto {
+      request.into()
     } else {
-      format!("{module_type}|{request}")
+      format!("{module_type}|{request}").into()
     }
   }
 
@@ -188,17 +190,16 @@ impl NormalModule {
     parser_options: Option<ParserOptions>,
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
-    resource_data: ResourceData,
+    resource_data: Arc<ResourceData>,
     resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
-    contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, &request);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      id: ModuleIdentifier::from(id),
+      id: ModuleIdentifier::from(id.as_ref()),
       context: Box::new(get_context(&resource_data)),
       request,
       user_request,
@@ -211,7 +212,6 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
-      contains_inline_loader,
       original_source: None,
       source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
@@ -226,6 +226,7 @@ impl NormalModule {
       parsed: false,
 
       source_map_kind: SourceMapKind::empty(),
+      last_successful_build_meta: BuildMeta::default(),
     }
   }
 
@@ -263,14 +264,6 @@ impl NormalModule {
 
   pub fn loaders(&self) -> &[BoxLoader] {
     &self.loaders
-  }
-
-  pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
-    &mut self.loaders
-  }
-
-  pub fn contains_inline_loader(&self) -> bool {
-    self.contains_inline_loader
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
@@ -331,9 +324,6 @@ impl DependenciesBlock for NormalModule {
   }
 }
 
-// to tell builtin:swc-loader to give content instead of ast only even if its index is 0
-pub struct LoadersShouldAlwaysGiveContent;
-
 #[async_trait::async_trait]
 impl Module for NormalModule {
   impl_module_meta_info!();
@@ -359,12 +349,12 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
-  fn size(&self, source_type: &SourceType) -> f64 {
-    if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
+  fn size(&self, source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
       *size_ref
     } else {
       let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
-      self.cached_source_sizes.insert(*source_type, size);
+      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
       size
     }
   }
@@ -394,39 +384,31 @@ impl Module for NormalModule {
       .before_loaders
       .call(self)?;
 
-    let plugin = RspackLoaderRunnerPlugin {
+    let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
       current_loader: Default::default(),
-    };
+    });
 
-    let mut additional_data = AdditionalData::default();
-
-    if no_parse {
-      additional_data.insert(&LoadersShouldAlwaysGiveContent {});
-    }
+    let additional_data = AdditionalData::default();
 
     let loader_result = run_loaders(
-      &self.loaders,
-      &mut self.resource_data,
-      &[&plugin],
-      build_context.compiler_context,
+      self.loaders.clone(),
+      self.resource_data.clone(),
+      Some(plugin.clone()),
+      build_context.runner_context,
       additional_data,
     )
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(e) => {
-        let mut e = ModuleBuildError(e).boxed();
-        {
-          let mut current = plugin
-            .current_loader
-            .lock()
-            .expect("should be able to lock");
-          if let Some(current) = current.take() {
-            e = e.with_help(format!("File was processed with this loader: '{current}'"));
-          }
-        };
-        let d = Diagnostic::from(e);
+      Err(r) => {
+        let node_error = r.downcast_ref::<NodeError>();
+        let stack = node_error.and_then(|e| e.stack.clone());
+        let hide_stack = node_error.and_then(|e| e.hide_stack);
+        let e = ModuleBuildError(r).boxed();
+        let d = Diagnostic::from(e)
+          .with_stack(stack)
+          .with_hide_stack(hide_stack);
         self.source = NormalModuleSource::BuiltFailed(d.clone());
         self.add_diagnostic(d);
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
@@ -438,7 +420,6 @@ impl Module for NormalModule {
           build_meta: Default::default(),
           dependencies: Vec::new(),
           blocks: Vec::new(),
-          analyze_result: Default::default(),
           optimization_bailouts: vec![],
         });
       }
@@ -475,14 +456,12 @@ impl Module for NormalModule {
       build_info.context_dependencies = loader_result.context_dependencies;
       build_info.missing_dependencies = loader_result.missing_dependencies;
       build_info.build_dependencies = loader_result.build_dependencies;
-      build_info.asset_filenames = loader_result.asset_filenames;
 
       return Ok(BuildResult {
         build_info,
         build_meta,
         dependencies: Vec::new(),
         blocks: Vec::new(),
-        analyze_result: Default::default(),
         optimization_bailouts: Vec::new(),
       });
     }
@@ -492,7 +471,6 @@ impl Module for NormalModule {
     build_info.context_dependencies = loader_result.context_dependencies;
     build_info.missing_dependencies = loader_result.missing_dependencies;
     build_info.build_dependencies = loader_result.build_dependencies;
-    build_info.asset_filenames = loader_result.asset_filenames;
 
     let (
       ParseResult {
@@ -501,10 +479,9 @@ impl Module for NormalModule {
         blocks,
         presentational_dependencies,
         code_generation_dependencies,
-        analyze_result,
         side_effects_bailout,
       },
-      ds,
+      diagnostics,
     ) = self
       .parser_and_generator
       .parse(ParseContext {
@@ -523,7 +500,12 @@ impl Module for NormalModule {
         build_meta: &mut build_meta,
       })?
       .split_into_parts();
-    self.add_diagnostics(ds);
+    if !diagnostics.is_empty() {
+      self.add_diagnostics(diagnostics);
+      build_meta = self.last_successful_build_meta.clone();
+    } else {
+      self.last_successful_build_meta = build_meta.clone();
+    }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
       vec![format!(
@@ -551,7 +533,6 @@ impl Module for NormalModule {
       build_meta,
       dependencies,
       blocks,
-      analyze_result,
       optimization_bailouts,
     })
   }
@@ -672,7 +653,7 @@ impl Module for NormalModule {
   fn get_side_effects_connection_state(
     &self,
     module_graph: &ModuleGraph,
-    module_chain: &mut HashSet<ModuleIdentifier>,
+    module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
       return ConnectionState::Bool(!side_effect_free);
@@ -705,7 +686,11 @@ impl Module for NormalModule {
     ConnectionState::Bool(true)
   }
 
-  fn get_concatenation_bailout_reason(&self, mg: &ModuleGraph, cg: &ChunkGraph) -> Option<String> {
+  fn get_concatenation_bailout_reason(
+    &self,
+    mg: &ModuleGraph,
+    cg: &ChunkGraph,
+  ) -> Option<Cow<'static, str>> {
     self
       .parser_and_generator
       .get_concatenation_bailout_reason(self, mg, cg)

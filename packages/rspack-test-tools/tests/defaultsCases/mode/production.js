@@ -11,18 +11,19 @@ module.exports = {
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
-		-     "chunkIds": "named",
-		+     "chunkIds": "deterministic",
-		@@ ... @@
+		-     "chunkIds": "natural",
+		-     "concatenateModules": false,
 		-     "innerGraph": false,
 		-     "mangleExports": false,
+		+     "chunkIds": "deterministic",
+		+     "concatenateModules": true,
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
 		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
-		-     "moduleIds": "named",
+		-     "moduleIds": "natural",
 		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
 		+     "nodeEnv": "production",

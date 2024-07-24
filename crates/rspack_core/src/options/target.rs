@@ -38,6 +38,7 @@ impl Target {
           "browserslist" => TargetEsVersion::BrowsersList,
           "es3" => TargetEsVersion::Esx(EsVersion::Es3),
           "es5" => TargetEsVersion::Esx(EsVersion::Es5),
+          "es6" => TargetEsVersion::Esx(EsVersion::Es2015),
           "es2015" => TargetEsVersion::Esx(EsVersion::Es2015),
           "es2016" => TargetEsVersion::Esx(EsVersion::Es2016),
           "es2017" => TargetEsVersion::Esx(EsVersion::Es2017),

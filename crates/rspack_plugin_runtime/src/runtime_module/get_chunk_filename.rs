@@ -1,16 +1,16 @@
 use std::{cmp::Ordering, fmt};
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
+use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
   RuntimeModule, SourceType,
 };
-use rspack_identifier::Identifier;
-use rspack_util::{infallible::ResultInfallibleExt, source_map::SourceMapKind};
-use rustc_hash::FxHashMap as HashMap;
+use rspack_util::infallible::ResultInfallibleExt;
+use rustc_hash::FxHashMap;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
@@ -44,8 +44,6 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
   }
 }
 
-impl Eq for GetChunkFilenameRuntimeModule {}
-
 // It's render is different with webpack, rspack will only render chunk map<chunkId, chunkName>
 // and search it.
 impl GetChunkFilenameRuntimeModule {
@@ -60,17 +58,15 @@ impl GetChunkFilenameRuntimeModule {
     all_chunks: F,
     filename_for_chunk: T,
   ) -> Self {
-    Self {
-      id: Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
-      chunk: None,
+    Self::with_default(
+      Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
+      None,
       content_type,
       source_type,
       global,
-      all_chunks: Box::new(all_chunks),
-      filename_for_chunk: Box::new(filename_for_chunk),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+      Box::new(all_chunks),
+      Box::new(filename_for_chunk),
+    )
   }
 }
 
@@ -121,8 +117,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let mut dynamic_filename: Option<String> = None;
     let mut max_chunk_set_size = 0;
     let mut chunk_filenames = Vec::<(Filename, &ChunkUkey)>::new();
-    let mut chunk_set_sizes_by_filenames = HashMap::<String, usize>::default();
-    let mut chunk_map = IndexMap::new();
+    let mut chunk_set_sizes_by_filenames = FxHashMap::<String, usize>::default();
+    let mut chunk_map = UkeyIndexMap::default();
 
     if let Some(chunks) = chunks {
       chunks
@@ -176,7 +172,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             None
           }
         })
-        .collect::<IndexSet<&ChunkUkey>>();
+        .collect::<UkeyIndexSet<&ChunkUkey>>();
       let (fake_filename, hash_len_map) =
         get_filename_without_hash_length(&FilenameTemplate::from(dynamic_filename.to_string()));
       let fake_chunk = create_fake_chunk(

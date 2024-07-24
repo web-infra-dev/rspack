@@ -8,6 +8,6 @@ it("should emit source with harmony eval", async () => {
 
 	// devtoolNamespace and devtoolModuleFilenameTemplate
 	expect(source).toMatch(
-		"//# sourceURL=webpack://blackalbum/./index.scss?steins_gaess=god&css|"
+		"//# sourceURL=" + encodeURI("webpack://blackalbum/./index.scss?steins_gaess=god&css|")
 	);
 });

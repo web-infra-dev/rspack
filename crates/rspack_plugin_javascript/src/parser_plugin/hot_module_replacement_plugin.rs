@@ -52,7 +52,7 @@ fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Ve
   dependencies
 }
 
-impl JavascriptParser<'_> {
+impl<'parser> JavascriptParser<'parser> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self

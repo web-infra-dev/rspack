@@ -4,9 +4,7 @@ module.exports = {
 	module: {
 		rules: []
 	},
-	builtins: {
-		treeShaking: true
-	},
+
 	optimization: {
 		sideEffects: true
 	},

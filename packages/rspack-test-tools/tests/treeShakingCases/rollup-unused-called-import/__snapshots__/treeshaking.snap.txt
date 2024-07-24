@@ -3,8 +3,10 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./dead.js": (function () {
 /* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__() {
-    return "dead";
+	return "dead";
 }
+
+
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
@@ -12,17 +14,23 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dead.js");
 
+
 /* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__() {
-    return "foo";
+	return "foo";
 }
+
 function foodead() {
-    return "foo" + dead();
+	return "foo" + dead();
 }
+
+
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 
-assert.equal((0, _foo__WEBPACK_IMPORTED_MODULE_0__["default"])(), "foo");
+assert.equal((0,_foo__WEBPACK_IMPORTED_MODULE_0__["default"])(), "foo");
+
+
 }),
 
 },function(__webpack_require__) {

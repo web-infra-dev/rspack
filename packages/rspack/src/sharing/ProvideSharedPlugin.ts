@@ -1,14 +1,14 @@
 import {
-	BuiltinPlugin,
+	type BuiltinPlugin,
 	BuiltinPluginName,
-	RawProvideOptions
+	type RawProvideOptions
 } from "@rspack/binding";
 
+import type { Compiler } from "../Compiler";
 import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
 } from "../builtin-plugin/base";
-import { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
 

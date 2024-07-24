@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config,
   rspack_sources::{RawSource, Source, SourceExt},
@@ -11,7 +12,6 @@ use rspack_core::{
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -102,7 +102,7 @@ impl DependenciesBlock for RemoteModule {
 impl Module for RemoteModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: &SourceType) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     6.0
   }
 
@@ -162,7 +162,6 @@ impl Module for RemoteModule {
       build_meta: Default::default(),
       dependencies,
       blocks: Vec::new(),
-      analyze_result: Default::default(),
       optimization_bailouts: vec![],
     })
   }

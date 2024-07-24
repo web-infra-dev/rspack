@@ -1,8 +1,25 @@
+use rspack_collections::UkeySet;
 use rspack_core::{Chunk, ChunkUkey, Compilation};
-use rustc_hash::FxHashSet;
 
 use crate::module_group::ModuleGroup;
 use crate::SplitChunksPlugin;
+
+fn put_split_chunk_reason(
+  chunk_reason: &mut Option<String>,
+  is_reuse_existing_chunk_with_all_modules: bool,
+) {
+  let reason = if is_reuse_existing_chunk_with_all_modules {
+    "reused as split chunk".to_string()
+  } else {
+    "split chunk".to_string()
+  };
+  if let Some(chunk_reason) = chunk_reason {
+    chunk_reason.push(',');
+    chunk_reason.push_str(&reason);
+  } else {
+    *chunk_reason = Some(reason);
+  }
+}
 
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
@@ -16,7 +33,7 @@ impl SplitChunksPlugin {
     module_group: &mut ModuleGroup,
   ) -> Option<ChunkUkey> {
     let candidates = module_group.chunks.iter().filter_map(|chunk| {
-      let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
       if compilation
         .chunk_graph
@@ -99,9 +116,12 @@ impl SplitChunksPlugin {
           &mut compilation.named_chunks,
         );
         let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
-        new_chunk
-          .chunk_reasons
-          .push("Create by split chunks".to_string());
+
+        put_split_chunk_reason(
+          &mut new_chunk.chunk_reason,
+          *is_reuse_existing_chunk_with_all_modules,
+        );
+
         compilation.chunk_graph.add_chunk(new_chunk.ukey);
         new_chunk.ukey
       }
@@ -115,9 +135,12 @@ impl SplitChunksPlugin {
     } else {
       let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
       let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
-      new_chunk
-        .chunk_reasons
-        .push("Create by split chunks".to_string());
+
+      put_split_chunk_reason(
+        &mut new_chunk.chunk_reason,
+        *is_reuse_existing_chunk_with_all_modules,
+      );
+
       compilation.chunk_graph.add_chunk(new_chunk.ukey);
       new_chunk.ukey
     }
@@ -129,7 +152,7 @@ impl SplitChunksPlugin {
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
-    original_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     for module_identifier in &item.modules {
@@ -157,7 +180,7 @@ impl SplitChunksPlugin {
   pub(crate) fn split_from_original_chunks(
     &self,
     _item: &ModuleGroup,
-    original_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &UkeySet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,
   ) {

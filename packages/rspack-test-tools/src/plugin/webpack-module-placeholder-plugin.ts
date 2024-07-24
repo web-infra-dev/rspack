@@ -5,7 +5,7 @@ const {
 	CachedSource,
 	PrefixSource
 } = require("webpack-sources");
-const path = require("path");
+const path = require("node:path");
 
 function createRenderRuntimeModulesFn(Template) {
 	return function renderRuntimeModules(runtimeModules, renderContext) {
@@ -32,7 +32,7 @@ function createRenderRuntimeModulesFn(Template) {
 				runtimeSource = codeGenResult.sources.get("runtime");
 			}
 			if (runtimeSource) {
-				let identifier = module.identifier();
+				const identifier = module.identifier();
 				source.add(Template.toNormalComment(`start::${identifier}`) + "\n");
 				if (!module.shouldIsolate()) {
 					source.add(runtimeSource);

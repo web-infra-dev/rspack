@@ -1,7 +1,7 @@
-import { Compiler } from "../Compiler";
-import { ExternalsType, externalsType } from "../config";
+import type { Compiler } from "../Compiler";
+import { type ExternalsType, externalsType } from "../config";
 import { isValidate } from "../util/validate";
-import { type ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
+import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
 
@@ -107,8 +107,8 @@ function getRemoteInfos(options: ModuleFederationPluginOptions): RemoteInfos {
 	);
 
 	const remoteInfos: Record<string, RemoteInfo[]> = {};
-	for (let [key, config] of remotes) {
-		for (let external of config.external) {
+	for (const [key, config] of remotes) {
+		for (const external of config.external) {
 			const [externalType, externalRequest] = getExternal(external);
 			remoteInfos[key] ??= [];
 			if (externalType === "script") {
@@ -185,7 +185,6 @@ function getDefaultEntryRuntime(
 			options.name ?? compiler.options.output.uniqueName
 		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
-	].join("\n");
-	// use "data:text/javascript" to use moduleType "javascript/auto"
-	return `data:text/javascript,${content}`;
+	].join(";");
+	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }

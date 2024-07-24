@@ -1,19 +1,18 @@
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ShareRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -22,13 +21,7 @@ pub struct ShareRuntimeModule {
 
 impl ShareRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/sharing"),
-      chunk: None,
-      enhanced,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/sharing"), None, enhanced)
   }
 }
 
@@ -99,7 +92,7 @@ impl RuntimeModule for ShareRuntimeModule {
       .collect::<Vec<_>>()
       .join(", ");
     let initialize_sharing_impl = if self.enhanced {
-      "__webpack_require__.I = function() { throw new Error(\"should have __webpack_require__.I\") }"
+      "__webpack_require__.I = __webpack_require__.I || function() { throw new Error(\"should have __webpack_require__.I\") }"
     } else {
       include_str!("./initializeSharing.js")
     };

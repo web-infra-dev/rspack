@@ -37,10 +37,6 @@ impl Dependency for StaticExportsDependency {
     &DependencyType::StaticExports
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "StaticExportsDependency"
-  }
-
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: match &self.exports {

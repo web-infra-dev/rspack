@@ -7,6 +7,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
 console.log("a");
+
+
 }),
 
 }]);
@@ -21,9 +23,13 @@ console.log("a");
 
 __webpack_require__.e(/* import() */ "a_js").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
+
+
 }),
 "./shared.js": (function () {
 console.log("shared");
+
+
 }),
 
 },function(__webpack_require__) {

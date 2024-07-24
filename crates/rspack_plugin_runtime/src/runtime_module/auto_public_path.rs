@@ -1,16 +1,15 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::Identifier;
-use rspack_util::source_map::SourceMapKind;
 
 use super::utils::get_undo_path;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct AutoPublicPathRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -18,12 +17,7 @@ pub struct AutoPublicPathRuntimeModule {
 
 impl Default for AutoPublicPathRuntimeModule {
   fn default() -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/auto_public_path"),
-      chunk: None,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
   }
 }
 
@@ -97,7 +91,7 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
           var scripts = document.getElementsByTagName("script");
               if (scripts.length) {{
                 var i = scripts.length - 1;
-                while (i > -1 && !scriptUrl) scriptUrl = scripts[i--].src;
+                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
               }}
         }}
       }}

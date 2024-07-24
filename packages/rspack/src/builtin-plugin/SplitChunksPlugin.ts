@@ -1,18 +1,19 @@
+import assert from "node:assert";
 import {
-	BuiltinPlugin,
+	type BuiltinPlugin,
 	BuiltinPluginName,
-	JsChunk,
-	JsModule,
-	RawCacheGroupOptions,
-	RawSplitChunksOptions
+	type JsChunk,
+	type JsModule,
+	type RawCacheGroupOptions,
+	type RawSplitChunksOptions
 } from "@rspack/binding";
-import assert from "assert";
 
 import { Chunk } from "../Chunk";
-import { Compiler } from "../Compiler";
-import { type OptimizationSplitChunksOptions } from "../config/zod";
+import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
-import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
+import type { OptimizationSplitChunksOptions } from "../config/zod";
+import { JsSplitChunkSizes } from "../util/SplitChunkSize";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class SplitChunksPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.SplitChunksPlugin;
@@ -40,19 +41,23 @@ function toRawSplitChunksOptions(
 	function getName(name: any) {
 		interface Context {
 			module: JsModule;
+			chunks: JsChunk[];
+			cacheGroupKey: string;
 		}
 
 		if (typeof name === "function") {
 			return (ctx: Context) => {
 				if (typeof ctx.module === "undefined") {
 					return name(undefined);
-				} else {
-					return name(Module.__from_binding(ctx.module));
 				}
+				return name(
+					Module.__from_binding(ctx.module, compiler._lastCompilation),
+					getChunks(ctx.chunks),
+					ctx.cacheGroupKey
+				);
 			};
-		} else {
-			return name;
 		}
+		return name;
 	}
 
 	function getTest(test: any) {
@@ -64,13 +69,13 @@ function toRawSplitChunksOptions(
 			return (ctx: Context) => {
 				if (typeof ctx.module === "undefined") {
 					return test(undefined);
-				} else {
-					return test(Module.__from_binding(ctx.module));
 				}
+				return test(
+					Module.__from_binding(ctx.module, compiler._lastCompilation)
+				);
 			};
-		} else {
-			return test;
 		}
+		return test;
 	}
 
 	function getChunks(chunks: any) {
@@ -82,9 +87,8 @@ function toRawSplitChunksOptions(
 						compiler._lastCompilation!.__internal_getInner()
 					)
 				);
-		} else {
-			return chunks;
 		}
+		return chunks;
 	}
 
 	const {
@@ -93,6 +97,10 @@ function toRawSplitChunksOptions(
 		defaultSizeTypes,
 		cacheGroups = {},
 		fallbackCacheGroup,
+		minSize,
+		maxSize,
+		maxAsyncSize,
+		maxInitialSize,
 		...passThrough
 	} = sc;
 
@@ -105,12 +113,25 @@ function toRawSplitChunksOptions(
 			.map(([key, group]) => {
 				group = group as Exclude<typeof group, false>;
 
-				const { test, name, chunks, ...passThrough } = group;
+				const {
+					test,
+					name,
+					chunks,
+					minSize,
+					maxSize,
+					maxAsyncSize,
+					maxInitialSize,
+					...passThrough
+				} = group;
 				const rawGroup: RawCacheGroupOptions = {
 					key,
 					test: getTest(test),
 					name: getName(name),
 					chunks: getChunks(chunks),
+					minSize: JsSplitChunkSizes.__to_binding(minSize),
+					maxSize: JsSplitChunkSizes.__to_binding(maxSize),
+					maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
+					maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
 					...passThrough
 				};
 				return rawGroup;
@@ -119,6 +140,10 @@ function toRawSplitChunksOptions(
 			chunks: getChunks(chunks),
 			...fallbackCacheGroup
 		},
+		minSize: JsSplitChunkSizes.__to_binding(minSize),
+		maxSize: JsSplitChunkSizes.__to_binding(maxSize),
+		maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
+		maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
 		...passThrough
 	};
 }

@@ -6,7 +6,7 @@ use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
 use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-use linked_hash_map::LinkedHashMap as HashMap;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
   CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
@@ -24,7 +24,14 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct ProgressPluginOptions {
   // the prefix name of progress bar
   pub prefix: String,
+  // tells ProgressPlugin to collect profile data for progress steps.
   pub profile: bool,
+  // the template of progress bar, see [`indicatif::ProgressStyle::with_template`]
+  pub template: String,
+  // the tick string sequence for spinners, see [`indicatif::ProgressStyle::tick_strings`]
+  pub tick_strings: Option<Vec<String>>,
+  // the progress characters, see [`indicatif::ProgressStyle::progress_chars`]
+  pub progress_chars: String,
 }
 
 #[derive(Debug)]
@@ -41,7 +48,7 @@ pub struct ProgressPlugin {
   pub progress_bar: ProgressBar,
   pub modules_count: AtomicU32,
   pub modules_done: AtomicU32,
-  pub active_modules: RwLock<HashMap<ModuleIdentifier, Instant>>,
+  pub active_modules: RwLock<IdentifierMap<Instant>>,
   pub last_modules_count: RwLock<Option<u32>>,
   pub last_active_module: RwLock<Option<ModuleIdentifier>>,
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,
@@ -52,13 +59,19 @@ impl ProgressPlugin {
     // default interval is 20, means draw every 1000/20 = 50ms, use 100 to draw every 1000/100 = 10ms
     let progress_bar =
       ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout_with_hz(100));
-    progress_bar.set_style(
-      ProgressStyle::with_template(
-        "● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}",
-      )
+    let mut progress_bar_style = ProgressStyle::with_template(&options.template)
       .expect("TODO:")
-      .progress_chars("━━"),
-    );
+      .progress_chars(&options.progress_chars);
+    if let Some(tick_strings) = &options.tick_strings {
+      progress_bar_style = progress_bar_style.tick_strings(
+        tick_strings
+          .iter()
+          .map(|s| s.as_str())
+          .collect::<Vec<_>>()
+          .as_slice(),
+      );
+    }
+    progress_bar.set_style(progress_bar_style);
 
     Self::new_inner(
       options,

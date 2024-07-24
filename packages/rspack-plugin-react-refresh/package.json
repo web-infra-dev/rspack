@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.7.0-beta.1",
+  "version": "1.0.0-alpha.5",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --colors",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
   },
@@ -25,7 +25,8 @@
     "dist"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -37,7 +38,12 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
-    "react-refresh": "0.14.0"
+    "react-refresh": "^0.14.0",
+    "typescript": "5.0.2"
+  },
+  "dependencies": {
+    "error-stack-parser": "^2.0.6",
+    "html-entities": "^2.1.0"
   },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"

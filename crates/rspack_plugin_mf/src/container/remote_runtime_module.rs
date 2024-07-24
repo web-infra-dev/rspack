@@ -1,10 +1,9 @@
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::{Identifiable, Identifier};
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -12,7 +11,7 @@ use super::remote_module::RemoteModule;
 use crate::utils::json_stringify;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct RemoteRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
@@ -21,13 +20,11 @@ pub struct RemoteRuntimeModule {
 
 impl RemoteRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
-    Self {
-      id: Identifier::from("webpack/runtime/remotes_loading"),
-      chunk: None,
+    Self::with_default(
+      Identifier::from("webpack/runtime/remotes_loading"),
+      None,
       enhanced,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 
@@ -97,7 +94,7 @@ impl RuntimeModule for RemoteRuntimeModule {
       );
     }
     let remotes_loading_impl = if self.enhanced {
-      "__webpack_require__.f.remotes = function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
+      "__webpack_require__.f.remotes = __webpack_require__.f.remotes || function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
     } else {
       include_str!("./remotesLoading.js")
     };

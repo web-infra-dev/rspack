@@ -8,12 +8,13 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.thisCompilation.tap(
 					"ensure-chunk.groupsIterable-and-group.getParents-work",
-					complation => {
-						complation.hooks.processAssets.tap(
+					compilation => {
+						compilation.hooks.processAssets.tap(
 							"ensure-chunk.groupsIterable-and-group.getParents-work",
 							() => {
-								assert(complation.chunks.length > 0);
-								for (const chunk of complation.chunks) {
+								let chunks = [...compilation.chunks];
+								assert(chunks.length > 0);
+								for (const chunk of chunks) {
 									assert(typeof chunk.groupsIterable !== "undefined");
 									for (const group of chunk.groupsIterable) {
 										assert(typeof group.index === "number");

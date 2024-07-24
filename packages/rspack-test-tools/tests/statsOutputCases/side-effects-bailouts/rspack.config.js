@@ -4,10 +4,14 @@ module.exports = {
 		main: "./index.js"
 	},
 	mode: 'production',
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
-	},
-	stats: "verbose"
+	stats: {
+		chunks: true,
+		children: true,
+		modules: true,
+		optimizationBailout: true,
+		reasons: true,
+		ids: true,
+		providedExports: true,
+		usedExports: true
+	}
 };

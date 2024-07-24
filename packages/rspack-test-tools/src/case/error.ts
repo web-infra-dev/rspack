@@ -1,4 +1,4 @@
-import { ErrorProcessor, IErrorProcessorOptions } from "../processor";
+import { ErrorProcessor, type IErrorProcessorOptions } from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
 import { ECompilerType } from "../type";
 

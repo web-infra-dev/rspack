@@ -2,17 +2,33 @@ import { PackageManagerTabs } from '@theme';
 
 # CSS
 
-CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，你无需额外的配置即可使用。
+CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，只需要配置 `experiments.css` 为 `true` 即可。
 
-我们默认会将 `*.css` 结尾的文件视为 CSS 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules) 模块类型。
+我们默认会将 `*.css` 结尾的文件视为 `css/auto` 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules)。
 
-如果你打算从 Webpack 进行迁移，那么你可以去除配置中的 `css-loader` 或 `style-loader` 以使用 Rspack 内置的 CSS 处理能力，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
+你也可以通过配置 `type: 'css/auto'` 自定义哪些模块为 `css` 模块。
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto', // 👈
+        use: ['less-loader'],
+      },
+    ],
+  },
+};
+```
+
+如果你打算从 webpack 进行迁移，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
 
 ## CSS Modules
 
-Rspack 默认将扩展名为 `*.module.css` 的文件视为 CSS Modules，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
+Rspack 默认将扩展名为 `*.module.css` 的文件视为 [CSS Modules](https://github.com/css-modules/css-modules)，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
 
-```ts title="index.module.css"
+```css title="index.module.css"
 .red {
   color: red;
 }
@@ -57,7 +73,9 @@ document.getElementById('element').className = styles.red;
 
 ## PostCSS
 
-Rspack 已经完成了对 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 的兼容，你可以这样配置：
+Rspack 支持使用 [postcss-loader](https://github.com/webpack-contrib/postcss-loader)，你可以这样配置：
+
+<PackageManagerTabs command="add postcss postcss-loader -D" />
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -75,7 +93,8 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto', // 如果你需要将 '*.module.css' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        // 如果你需要将 '*.module.css' 视为 CSS Modules 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        type: 'css/auto',
       },
     ],
   },
@@ -84,9 +103,44 @@ module.exports = {
 
 上述配置会将所有 `*.css` 文件经过 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
+## Sass
+
+Rspack 支持使用 [sass-loader](https://github.com/webpack-contrib/sass-loader)，你可以这样配置：
+
+<PackageManagerTabs command="add sass-embedded sass-loader -D" />
+
+```ts title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(sass|scss)$/,
+        use: [
+          {
+            loader: 'sass-loader',
+            options: {
+              // 同时使用 `modern-compiler` 和 `sass-embedded` 可以显著提升构建性能
+              // 需要 `sass-loader >= 14.2.1`
+              api: 'modern-compiler',
+              implementation: require.resolve('sass-embedded'),
+            },
+          },
+        ],
+        // 如果你需要将 '*.module.(sass|scss)' 视为 CSS Modules 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+上述配置会将所有 `*.sass` 和 `*.scss` 文件经过 [sass-loader](https://github.com/webpack-contrib/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
+
 ## Less
 
-Rspack 已经完成了对 [less-loader](https://github.com/webpack-contrib/less-loader) 的兼容，你可以这样配置：
+Rspack 支持使用 [less-loader](https://github.com/webpack-contrib/less-loader)，你可以这样配置：
+
+<PackageManagerTabs command="add less less-loader -D" />
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -102,7 +156,8 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto', // 如果你需要将 '*.module.less' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        // 如果你需要将 '*.module.less' 视为 CSS Modules 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
+        type: 'css/auto',
       },
     ],
   },
@@ -110,33 +165,6 @@ module.exports = {
 ```
 
 上述配置会将所有 `*.less` 文件经过 [less-loader](https://github.com/webpack-contrib/less-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
-
-## Sass
-
-Rspack 已经完成了对 [sass-loader](https://github.com/webpack-contrib/sass-loader) 的兼容，你可以这样配置：
-
-```ts title="rspack.config.js"
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.sass$/,
-        use: [
-          {
-            loader: 'sass-loader',
-            options: {
-              // ...
-            },
-          },
-        ],
-        type: 'css/auto', // 如果你需要将 '*.module.(sass|scss)' 视为 CSS Module 那么将 'type' 设置为 'css/auto' 否则设置为 'css'
-      },
-    ],
-  },
-};
-```
-
-上述配置会将所有 `*.sass` 文件经过 [sass-loader](https://github.com/webpack-contrib/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
 ## Tailwind CSS
 

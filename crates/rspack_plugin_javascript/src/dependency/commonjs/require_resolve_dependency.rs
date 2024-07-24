@@ -53,8 +53,12 @@ impl Dependency for RequireResolveDependency {
     Some(self.span)
   }
 
-  fn dependency_debug_name(&self) -> &'static str {
-    "RequireResolveDependency"
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
   }
 }
 
@@ -77,14 +81,6 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![]
   }
 }
 

@@ -1,7 +1,7 @@
 import { HotSnapshotProcessor } from "../processor/hot-step";
 import { HotStepRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, TCompilerOptions } from "../type";
+import { ECompilerType, type TCompilerOptions } from "../type";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 

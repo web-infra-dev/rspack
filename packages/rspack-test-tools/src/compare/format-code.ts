@@ -1,12 +1,12 @@
 import generate from "@babel/generator";
 import { parse } from "@babel/parser";
-import traverse, { NodePath } from "@babel/traverse";
+import traverse from "@babel/traverse";
 import * as T from "@babel/types";
 
 import { replaceModuleArgument } from "./replace-module-argument";
 
 export interface IFormatCodeOptions {
-	replacements?: Record<string, string>;
+	replacements?: IFormatCodeReplacement[];
 	ignorePropertyQuotationMark: boolean;
 	ignoreModuleId: boolean;
 	ignoreModuleArguments: boolean;
@@ -15,6 +15,11 @@ export interface IFormatCodeOptions {
 	ignoreObjectPropertySequence: boolean;
 	ignoreCssFilePath: boolean;
 	ignoreIfCertainCondition: boolean;
+}
+
+export interface IFormatCodeReplacement {
+	from: string | RegExp;
+	to: string;
 }
 
 const SWC_HELPER_PATH_REG =
@@ -64,7 +69,7 @@ export function formatCode(
 			}
 			if (options.ignoreSwcHelpersPath) {
 				if (SWC_HELPER_PATH_REG.test(path.node.name)) {
-					path.node.name = `$$SWC_HELPERS$$`;
+					path.node.name = "$$SWC_HELPERS$$";
 				}
 			}
 		},
@@ -158,7 +163,7 @@ export function formatCode(
 		},
 		ObjectExpression(path) {
 			if (options.ignoreObjectPropertySequence) {
-				let result = [];
+				const result = [];
 				let safe = [];
 				while (path.node.properties.length || safe.length) {
 					const cur = path.node.properties.shift()!;
@@ -205,8 +210,8 @@ export function formatCode(
 	}
 
 	if (options.replacements) {
-		for (let [key, value] of Object.entries(options.replacements)) {
-			result = result.split(key).join(value);
+		for (const { from, to } of options.replacements) {
+			result = result.replaceAll(from, to);
 		}
 	}
 

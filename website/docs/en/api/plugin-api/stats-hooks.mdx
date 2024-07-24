@@ -1,0 +1,94 @@
+# Stats Hooks
+
+## StatsFactory
+
+### StatsFactory.hooks.extract
+
+A HookMap, called when generating the specified stats item.
+
+- **Type:** `HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>`
+- **Arguments:**
+  - `Object`: result stats item object which properties should be added.
+  - `Class`: the original data of the stats item
+  - `StatsFactoryContext`: generating context
+
+```ts
+type StatsFactoryContext = {
+  type: string;
+  makePathsRelative?: ((arg0: string) => string) | undefined;
+  compilation?: Compilation | undefined;
+  cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
+  cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+};
+```
+
+For the following example, the `customProperty` attribute is added in the finally generated `stats.compilation` through `MyPlugin`:
+
+```js
+compilation.hooks.statsFactory.tap('MyPlugin', (statsFactory, options) => {
+  statsFactory.hooks.extract
+    .for('compilation')
+    .tap('MyPlugin', (object, compilation) => {
+      object.customProperty = MyPlugin.getCustomValue(compilation);
+    });
+});
+```
+
+### StatsFactory.hooks.result
+
+A HookMap, called after generating the specified stats item.
+
+- **Type:** `HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>`
+- **Arguments:**
+  - `any[]`：generated stats item result
+  - `StatsFactoryContext`：generating context
+
+## StatsPrinter
+
+### StatsPrinter.hooks.print
+
+A HookMap, called
+
+为一个 HookMap, called when generating the printed string of the specified stats item.
+
+- **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
+- **Arguments:**
+  - `Object`：stats item object
+  - `StatsPrinterContext`：printing context
+
+```ts
+type StatsPrinterContext = {
+  type?: string;
+  compilation?: StatsCompilation;
+  chunkGroup?: StatsChunkGroup;
+  asset?: StatsAsset;
+  module?: StatsModule;
+  chunk?: StatsChunk;
+  moduleReason?: StatsModuleReason;
+  bold?: (str: string) => string;
+  yellow?: (str: string) => string;
+  red?: (str: string) => string;
+  green?: (str: string) => string;
+  magenta?: (str: string) => string;
+  cyan?: (str: string) => string;
+  formatFilename?: (file: string, oversize?: boolean) => string;
+  formatModuleId?: (id: string) => string;
+  formatChunkId?:
+    | ((id: string, direction?: 'parent' | 'child' | 'sibling') => string)
+    | undefined;
+  formatSize?: (size: number) => string;
+  formatDateTime?: (dateTime: number) => string;
+  formatFlag?: (flag: string) => string;
+  formatTime?: (time: number, boldQuantity?: boolean) => string;
+  chunkGroupKind?: string;
+};
+```
+
+### StatsPrinter.hooks.result
+
+A HookMap, called after generating the printed string of the specified stats item.
+
+- **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
+- **Arguments:**
+  - `String`: printed string of the stats item
+  - `StatsPrinterContext`: printing context

@@ -3,7 +3,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # CssExtractRspackPlugin
 
-<ApiMeta addedVersion={'0.6.0'} />
+<ApiMeta addedVersion={'0.6.0'} specific={['Rspack']} />
 
 Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代，和 css-loader 搭配使用，将 CSS 提取成单独文件。
 
@@ -15,8 +15,10 @@ Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代�
 
   ```ts
   export interface PluginOptions {
-    filename?: string;
-    chunkFilename?: string;
+    filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+    chunkFilename?:
+      | string
+      | ((pathData: PathData, assetInfo?: AssetInfo) => string);
     ignoreOrder?: boolean;
     insert?: string | ((linkTag: HTMLLinkElement) => void);
     attributes?: Record<string, string>;
@@ -163,8 +165,40 @@ module.exports = {
       {
         test: /\.css$/i,
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
+
+:::info
+请注意当打开内置 CSS 支持（`experiments.css`）时，`.css` 结尾的文件会默认视为 `css/auto` 模块，此时如果想要使用该插件，请确保设置了 `CssExtractRspackPlugin.loader` 的 rule 类型都用 `javascript/auto` 覆盖了默认的 `css/auto` 类型。
+
+例如
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /src\/legacy-project\/.*\.css$/,
+        type: 'javascript/auto', // 覆盖默认的 css 模块类型，视为普通 js 文件
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /src\/new-project\/.*\.css$/,
+        type: 'css/auto', // 使用内置 css 处理
+      },
+    ],
+  },
+  experiments: {
+    css: true,
+  },
+};
+```
+
+:::

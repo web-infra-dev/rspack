@@ -1,12 +1,22 @@
 # 基准测试
 
-如果你想自己运行这个基准测试，请克隆 [web-infra-dev/bundler-benchmark](https://github.com/web-infra-dev/bundler-benchmark)，然后在根目录下使用命令:
+Rspack 提供了两个 benchmark 的仓库，你可以自行克隆它们，并在本地运行：
+
+- [rspack-contrib/performance-compare](https://github.com/rspack-contrib/performance-compare)：Rspack、Rsbuild、webpack、Vite 和 Farm 的性能比较，模块数量为 1000。
+
+```bash
+pnpm run benchmark
+```
+
+- [web-infra-dev/bundler-benchmark](https://github.com/web-infra-dev/bundler-benchmark)：Rspack 和 webpack 的性能比较，模块数量为 50000。
 
 ```bash
 ./scripts/bench-all.sh ${platform} # `platform` 用于唯一地识别生成的基准数据。
 ```
 
 ## 基准测试用例
+
+下面是 `web-infra-dev/bundler-benchmark` 中的一些测试用例介绍。
 
 ### all
 

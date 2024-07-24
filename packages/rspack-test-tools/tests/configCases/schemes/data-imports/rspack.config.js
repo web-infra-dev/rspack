@@ -48,8 +48,5 @@ module.exports = {
 	plugins: [new Plugin()],
 	experiments: {
 		css: true,
-		rspackFuture: {
-			newTreeshaking: true
-		}
 	}
 };

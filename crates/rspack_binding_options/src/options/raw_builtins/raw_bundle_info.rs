@@ -10,6 +10,7 @@ pub struct RawBundlerInfoModeWrapper(pub RawBundlerInfoMode);
 #[napi(object)]
 pub struct RawBundlerInfoPluginOptions {
   pub version: String,
+  pub bundler: String,
   #[napi(ts_type = "boolean | string[]")]
   pub force: RawBundlerInfoMode,
 }

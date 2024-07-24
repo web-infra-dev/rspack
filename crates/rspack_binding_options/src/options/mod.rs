@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
   CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, Target, TreeShaking,
+  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, References, Target,
 };
 
 mod raw_builtins;
@@ -16,7 +16,6 @@ mod raw_module;
 mod raw_node;
 mod raw_optimization;
 mod raw_output;
-mod raw_resolve;
 mod raw_snapshot;
 mod raw_split_chunks;
 mod raw_stats;
@@ -33,10 +32,10 @@ pub use raw_module::*;
 pub use raw_node::*;
 pub use raw_optimization::*;
 pub use raw_output::*;
-pub use raw_resolve::*;
 pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
+pub use rspack_binding_values::raw_resolve::*;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -58,7 +57,8 @@ pub struct RawOptions {
   pub node: Option<RawNodeOption>,
   pub profile: bool,
   pub bail: bool,
-  pub builtins: RawBuiltins,
+  #[napi(js_name = "__references", ts_type = "Record<string, any>")]
+  pub __references: References,
 }
 
 impl TryFrom<RawOptions> for CompilerOptions {
@@ -90,11 +90,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let snapshot = value.snapshot.into();
     let node = value.node.map(|n| n.into());
 
-    let mut builtins = value.builtins.apply()?;
-    if experiments.rspack_future.new_treeshaking {
-      builtins.tree_shaking = TreeShaking::False;
-    }
-
     Ok(CompilerOptions {
       context,
       mode,
@@ -112,7 +107,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
-      builtins,
+      __references: value.__references,
     })
   }
 }

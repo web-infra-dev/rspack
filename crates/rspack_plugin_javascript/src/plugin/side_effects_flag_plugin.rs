@@ -1,9 +1,10 @@
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
-use rspack_core::tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
   ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, MutableModuleGraph,
@@ -12,26 +13,77 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
 use sugar_path::SugarPath;
+use swc_core::common::comments::Comments;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
-use swc_core::common::{comments, Spanned, SyntaxContext, GLOBALS};
+use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-use swc_node_comments::SwcComments;
 
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
 };
 
+#[derive(Clone, Debug)]
+enum SideEffects {
+  Bool(bool),
+  String(String),
+  Array(Vec<String>),
+}
+
+impl SideEffects {
+  pub fn from_description(description: &serde_json::Value) -> Option<Self> {
+    description.get("sideEffects").and_then(|value| {
+      if let Some(b) = value.as_bool() {
+        Some(SideEffects::Bool(b))
+      } else if let Some(s) = value.as_str() {
+        Some(SideEffects::String(s.to_owned()))
+      } else if let Some(vec) = value.as_array() {
+        let mut side_effects = vec![];
+        for value in vec {
+          if let Some(str) = value.as_str() {
+            side_effects.push(str.to_string());
+          } else {
+            return None;
+          }
+        }
+        Some(SideEffects::Array(side_effects))
+      } else {
+        None
+      }
+    })
+  }
+}
+
+fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: PathBuf) -> bool {
+  match side_effects {
+    SideEffects::Bool(s) => s,
+    SideEffects::String(s) => {
+      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy())
+    }
+    SideEffects::Array(patterns) => patterns
+      .iter()
+      .any(|pattern| glob_match_with_normalized_pattern(pattern, &relative_path.to_string_lossy())),
+  }
+}
+
+fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
+  let trim_start = pattern.trim_start_matches("./");
+  let normalized_glob = if trim_start.contains('/') {
+    trim_start.to_string()
+  } else {
+    String::from("**/") + trim_start
+  };
+  fast_glob::glob_match_with_brace(&normalized_glob, string.trim_start_matches("./"))
+}
+
 pub struct SideEffectsFlagPluginVisitor<'a> {
   unresolved_ctxt: SyntaxContext,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   is_top_level: bool,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 }
 
 impl<'a> Debug for SideEffectsFlagPluginVisitor<'a> {
@@ -56,7 +108,7 @@ impl SyntaxContextInfo {
 }
 
 impl<'a> SideEffectsFlagPluginVisitor<'a> {
-  pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a SwcComments>) -> Self {
+  pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a dyn Comments>) -> Self {
     Self {
       unresolved_ctxt: mark_info.unresolved_ctxt,
       side_effects_item: None,
@@ -283,18 +335,26 @@ static PURE_COMMENTS: Lazy<regex::Regex> =
 fn is_pure_call_expr(
   call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&SwcComments>,
+  comments: Option<&dyn Comments>,
+  paren_spans: &mut Vec<Span>,
 ) -> bool {
   let callee = &call_expr.callee;
   let pure_flag = comments
     .and_then(|comments| {
-      // dbg!(&comments.leading);
-      let comment_list = comments.leading.get(&callee.span_lo())?;
-      let last_comment = comment_list.last()?;
-      match last_comment.kind {
-        comments::CommentKind::Line => None,
-        comments::CommentKind::Block => Some(PURE_COMMENTS.is_match(&last_comment.text)),
+      paren_spans.push(callee.span());
+      // dbg!(&comments.leading, &paren_spans);
+      while let Some(span) = paren_spans.pop() {
+        if let Some(comment_list) = comments.get_leading(span.lo)
+          && let Some(last_comment) = comment_list.last()
+          && last_comment.kind == comments::CommentKind::Block
+        {
+          // iterate through the parens and check if it contains pure comment
+          if PURE_COMMENTS.is_match(&last_comment.text) {
+            return Some(true);
+          }
+        }
       }
+      None
     })
     .unwrap_or(false);
   if !pure_flag {
@@ -314,32 +374,78 @@ fn is_pure_call_expr(
   }
 }
 
+pub fn is_pure_pat<'a>(
+  pat: &'a Pat,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
+) -> bool {
+  match pat {
+    Pat::Ident(_) => true,
+    Pat::Array(array_pat) => array_pat.elems.iter().all(|ele| {
+      if let Some(pat) = ele {
+        is_pure_pat(pat, unresolved_ctxt, comments)
+      } else {
+        true
+      }
+    }),
+    Pat::Rest(_) => true,
+    Pat::Invalid(_) | Pat::Assign(_) | Pat::Object(_) => false,
+    Pat::Expr(expr) => is_pure_expression(expr, unresolved_ctxt, comments),
+  }
+}
+
+pub fn is_pure_function<'a>(
+  function: &'a Function,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
+) -> bool {
+  if !function
+    .params
+    .iter()
+    .all(|param| is_pure_pat(&param.pat, unresolved_ctxt, comments))
+  {
+    return false;
+  }
+
+  true
+}
+
 pub fn is_pure_expression<'a>(
   expr: &'a Expr,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
-  match expr {
-    Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments),
-    Expr::Paren(par) => {
-      let mut cur = par.expr.as_ref();
-      while let Expr::Paren(paren) = cur {
-        cur = paren.expr.as_ref();
-      }
+  pub fn _is_pure_expression<'a>(
+    expr: &'a Expr,
+    unresolved_ctxt: SyntaxContext,
+    comments: Option<&'a dyn Comments>,
+    paren_spans: &mut Vec<Span>,
+  ) -> bool {
+    match expr {
+      Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments, paren_spans),
+      Expr::Paren(par) => {
+        paren_spans.push(par.span());
+        let mut cur = par.expr.as_ref();
+        while let Expr::Paren(paren) = cur {
+          paren_spans.push(paren.span());
+          cur = paren.expr.as_ref();
+        }
 
-      is_pure_expression(cur, unresolved_ctxt, comments)
+        _is_pure_expression(cur, unresolved_ctxt, comments, paren_spans)
+      }
+      _ => !expr.may_have_side_effects(&ExprCtx {
+        unresolved_ctxt,
+        is_unresolved_ref_safe: true,
+      }),
     }
-    _ => !expr.may_have_side_effects(&ExprCtx {
-      unresolved_ctxt,
-      is_unresolved_ref_safe: true,
-    }),
   }
+  _is_pure_expression(expr, unresolved_ctxt, comments, &mut vec![])
 }
 
 pub fn is_pure_class_member<'a>(
   member: &'a ClassMember,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
   let is_key_pure = match member.class_key() {
     Some(PropName::Ident(_ident)) => true,
@@ -387,7 +493,7 @@ pub fn is_pure_class_member<'a>(
 pub fn is_pure_decl(
   stmt: &Decl,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&SwcComments>,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   match stmt {
     Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt, comments),
@@ -405,7 +511,7 @@ pub fn is_pure_decl(
 pub fn is_pure_class(
   class: &Class,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&SwcComments>,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   if let Some(ref super_class) = class.super_class {
     if !is_pure_expression(super_class, unresolved_ctxt, comments) {
@@ -462,7 +568,7 @@ pub fn is_pure_class(
 fn is_pure_var_decl<'a>(
   var: &'a VarDecl,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
   var.decls.iter().all(|decl| {
     if let Some(ref init) = decl.init {
@@ -525,12 +631,13 @@ async fn nmf_module(
   if let Some(has_side_effects) = create_data.side_effects {
     module.set_factory_meta(FactoryMeta {
       side_effect_free: Some(!has_side_effects),
-      side_effect_free_old: None,
     });
     return Ok(());
   }
   let resource_data = &create_data.resource_resolve_data;
-  let resource_path = &resource_data.resource_path;
+  let Some(resource_path) = &resource_data.resource_path else {
+    return Ok(());
+  };
   let Some(description) = resource_data.resource_description.as_ref() else {
     return Ok(());
   };
@@ -542,7 +649,6 @@ async fn nmf_module(
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
-    side_effect_free_old: None,
   });
   Ok(())
 }
@@ -554,7 +660,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     get_level_order_module_ids(&compilation.get_module_graph(), entries);
   for module_identifier in level_order_module_identifier {
     let module_graph = compilation.get_module_graph();
-    let mut module_chain = HashSet::default();
+    let mut module_chain = IdentifierSet::default();
     // dbg!(&module_identifier);
     let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
       continue;
@@ -604,7 +710,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
           Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
             mg.module_by_identifier(&target.module)
               .expect("should have module")
-              .get_side_effects_connection_state(mg, &mut HashSet::default())
+              .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
               == ConnectionState::Bool(false)
           }),
           Arc::new(
@@ -641,7 +747,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
             |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
               mg.module_by_identifier(&target.module)
                 .expect("should have module graph")
-                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
                 == ConnectionState::Bool(false)
             },
           )),
@@ -718,4 +824,120 @@ fn get_level_order_module_ids(mg: &ModuleGraph, entries: IdentifierSet) -> Vec<M
     ad.cmp(&bd)
   });
   res
+}
+
+#[cfg(test)]
+mod test_side_effects {
+  use super::*;
+
+  fn get_side_effects_from_package_json_helper(
+    side_effects_config: Vec<&str>,
+    relative_path: &str,
+  ) -> bool {
+    assert!(!side_effects_config.is_empty());
+    let relative_path = PathBuf::from(relative_path);
+    let side_effects = if side_effects_config.len() > 1 {
+      SideEffects::Array(
+        side_effects_config
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      )
+    } else {
+      SideEffects::String((&side_effects_config[0]).to_string())
+    };
+
+    get_side_effects_from_package_json(side_effects, relative_path)
+  }
+
+  #[test]
+  fn cases() {
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*.js"],
+      "./src/x/y/z.js"
+    ));
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/index.js", "./src/selection/index.js"],
+      "./src/selection/index.js"
+    ));
+    assert!(!get_side_effects_from_package_json_helper(
+      vec!["./src/**/*.js"],
+      "./x.js"
+    ));
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./**/src/x/y/z.js"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"./src/**/z.js",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/z.js"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"./**/x/**/z.js",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./**/x/**/z.js"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"./**/src/**",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./**/src/**"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"./**/src/*",
+    assert!(!get_side_effects_from_package_json_helper(
+      vec!["./src/x/y/z.js"],
+      "./**/src/*"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"*.js",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["*.js"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"x/**/z.js",
+    assert!(!get_side_effects_from_package_json_helper(
+      vec!["./src/x/y/z.js"],
+      "x/**/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"src/**/z.js",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/z.js"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"src/**/{x,y,z}.js",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["src/**/{x,y,z}.js"],
+      "./src/x/y/z.js"
+    ));
+    // 				"./src/x/y/z.js",
+    // 				"src/**/[x-z].js",
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/[x-z].js"],
+      "./src/x/y/z.js"
+    ));
+    // 		const array = ["./src/**/*.js", "./dirty.js"];
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*.js", "./dirty.js"],
+      "./src/x/y/z.js"
+    ));
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*.js", "./dirty.js"],
+      "./dirty.js"
+    ));
+    assert!(!get_side_effects_from_package_json_helper(
+      vec!["./src/**/*.js", "./dirty.js"],
+      "./clean.js"
+    ));
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/**/*/z.js"],
+      "./src/x/y/z.js"
+    ));
+  }
 }

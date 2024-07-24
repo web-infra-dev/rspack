@@ -8,13 +8,20 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import assert from "assert";
-import fs from "fs";
-import path from "path";
+import assert from "node:assert";
+import fs from "node:fs";
+import path from "node:path";
 
-import { isNil } from "../util";
-import { cleverMerge } from "../util/cleverMerge";
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { Template } from "../Template";
 import {
+	LightningCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "../builtin-plugin";
+import { isNil } from "../util";
+import { assertNotNill } from "../util/assertNotNil";
+import { cleverMerge } from "../util/cleverMerge";
+import type {
 	EntryDescriptionNormalized,
 	EntryNormalized,
 	ExperimentsNormalized,
@@ -32,6 +39,7 @@ import type {
 	InfrastructureLogging,
 	JavascriptParserOptions,
 	Library,
+	Loader,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -41,11 +49,6 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
-import Template = require("../Template");
-import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
-import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
-import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import { assertNotNill } from "../util/assertNotNil";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -58,7 +61,7 @@ export const applyRspackOptionsDefaults = (
 	const { mode, target } = options;
 	assert(!isNil(target));
 
-	let targetProperties =
+	const targetProperties =
 		target === false
 			? (false as const)
 			: typeof target === "string"
@@ -74,23 +77,23 @@ export const applyRspackOptionsDefaults = (
 		}
 	}
 
-	F(options, "devtool", () => false as const);
+	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
 	D(options, "profile", false);
+	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
-	const futureDefaults = options.experiments.futureDefaults ?? false;
+	// IGNORE(cache): cache is default to { type: "memory" } in webpack when the mode is development,
+	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, {
-		cache: options.cache!
-	});
+	applyExperimentsDefaults(options.experiments);
 
 	applySnapshotDefaults(options.snapshot, { production });
 
 	applyModuleDefaults(options.module, {
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
-		css: options.experiments.css!,
+		css: options.experiments.css,
 		targetProperties
 	});
 
@@ -105,7 +108,7 @@ export const applyRspackOptionsDefaults = (
 		outputModule: options.experiments.outputModule,
 		development,
 		entry: options.entry,
-		futureDefaults
+		futureDefaults: options.experiments.futureDefaults!
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -122,6 +125,11 @@ export const applyRspackOptionsDefaults = (
 	});
 
 	applyNodeDefaults(options.node, { targetProperties });
+
+	applyLoaderDefaults(options.loader, {
+		targetProperties,
+		environment: options.output.environment
+	});
 
 	F(options, "performance", () =>
 		production &&
@@ -175,18 +183,17 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (
-	experiments: ExperimentsNormalized,
-	{ cache }: { cache: boolean }
-) => {
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+	D(experiments, "futureDefaults", false);
+	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
-	D(experiments, "asyncWebAssembly", false);
-	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
+	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "topLevelAwait", true);
 
+	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newTreeshaking", true);
 		D(experiments.rspackFuture, "bundlerInfo", {});
 		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
 			D(
@@ -194,7 +201,8 @@ const applyExperimentsDefaults = (
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "force", false);
+			D(experiments.rspackFuture.bundlerInfo, "bundler", "rspack");
+			D(experiments.rspackFuture.bundlerInfo, "force", true);
 		}
 	}
 };
@@ -230,6 +238,20 @@ const applyJavascriptParserOptionsDefaults = (
 		"wrappedContextCritical",
 		fallback?.wrappedContextCritical ?? false
 	);
+	D(parserOptions, "exportsPresence", fallback?.exportsPresence);
+	D(parserOptions, "importExportsPresence", fallback?.importExportsPresence);
+	D(
+		parserOptions,
+		"reexportExportsPresence",
+		fallback?.reexportExportsPresence
+	);
+	D(
+		parserOptions,
+		"strictExportPresence",
+		fallback?.strictExportPresence ?? false
+	);
+	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
+	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
 };
 
 const applyModuleDefaults = (
@@ -240,13 +262,14 @@ const applyModuleDefaults = (
 		targetProperties
 	}: {
 		asyncWebAssembly: boolean;
-		css: boolean;
+		css?: boolean;
 		targetProperties: any;
 	}
 ) => {
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
 
+	// IGNORE(module.parser): already check to align in 2024.6.27
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser.asset);
 	F(module.parser.asset, "dataUrlCondition", () => ({}));
@@ -292,14 +315,15 @@ const applyModuleDefaults = (
 		assertNotNill(module.parser["css/module"]);
 		D(module.parser["css/module"], "namedExports", true);
 
+		// IGNORE(module.generator): already check to align in 2024.6.27
 		F(module.generator, "css", () => ({}));
 		assertNotNill(module.generator.css);
 		D(
-			module.generator["css"],
+			module.generator.css,
 			"exportsOnly",
 			!targetProperties || !targetProperties.document
 		);
-		D(module.generator["css"], "esModule", true);
+		D(module.generator.css, "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));
 		assertNotNill(module.generator["css/auto"]);
@@ -332,6 +356,8 @@ const applyModuleDefaults = (
 		D(module.generator["css/module"], "esModule", true);
 	}
 
+	// IGNORE(module.defaultRules): Rspack does not support `rule.assert`
+	// https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
 	A(module, "defaultRules", () => {
 		const esm = {
 			type: "javascript/esm",
@@ -435,18 +461,28 @@ const applyModuleDefaults = (
 			});
 		}
 
-		rules.push({
-			dependency: "url",
-			oneOf: [
-				{
-					scheme: /^data$/,
-					type: "asset/inline"
-				},
-				{
-					type: "asset/resource"
-				}
-			]
-		});
+		rules.push(
+			{
+				dependency: "url",
+				oneOf: [
+					{
+						scheme: /^data$/,
+						type: "asset/inline"
+					},
+					{
+						type: "asset/resource"
+					}
+				]
+			}
+			// {
+			// 	assert: { type: "json" },
+			// 	type: "json"
+			// },
+			// {
+			// 	with: { type: "json" },
+			// 	type: "json"
+			// }
+		);
 
 		return rules;
 	});
@@ -482,9 +518,11 @@ const applyOutputDefaults = (
 				: library;
 		if (Array.isArray(libraryName)) {
 			return libraryName.join(".");
-		} else if (typeof libraryName === "object") {
+		}
+		if (typeof libraryName === "object") {
 			return getLibraryName(libraryName.root);
-		} else if (typeof libraryName === "string") {
+		}
+		if (typeof libraryName === "string") {
 			return libraryName;
 		}
 		return "";
@@ -553,9 +591,7 @@ const applyOutputDefaults = (
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 
-	const uniqueNameId = Template.toIdentifier(
-		/** @type {NonNullable<Output["uniqueName"]>} */ output.uniqueName
-	);
+	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
 	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
@@ -589,18 +625,17 @@ const applyOutputDefaults = (
 						"JSONP Array push can be chosen when 'document' is available.\n" +
 						helpMessage
 				);
-			} else {
-				if (tp.document) return "array-push";
-				if (tp.require) return "commonjs";
-				if (tp.nodeBuiltins) return "commonjs";
-				if (tp.importScripts) return "array-push";
-				throw new Error(
-					"For the selected environment is no default script chunk format available:\n" +
-						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-						"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
-						helpMessage
-				);
 			}
+			if (tp.document) return "array-push";
+			if (tp.require) return "commonjs";
+			if (tp.nodeBuiltins) return "commonjs";
+			if (tp.importScripts) return "array-push";
+			throw new Error(
+				"For the selected environment is no default script chunk format available:\n" +
+					"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
+					"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
+					helpMessage
+			);
 		}
 		throw new Error(
 			"Chunk format can't be selected by default when no target is specified"
@@ -677,13 +712,14 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
-	F(output, "sourceMapFilename", () => {
-		return "[file].map";
-	});
+	D(output, "sourceMapFilename", "[file].map[query]");
 	F(output, "scriptType", () => (output.module ? "module" : false));
+	D(output, "charset", true);
+	D(output, "chunkLoadTimeout", 120000);
 
 	const { trustedTypes } = output;
 	if (trustedTypes) {
@@ -813,6 +849,27 @@ const applyExternalsPresetsDefaults = (
 			targetProperties.electron &&
 			targetProperties.electronRenderer
 	);
+	D(externalsPresets, "nwjs", targetProperties && targetProperties.nwjs);
+};
+
+const applyLoaderDefaults = (
+	loader: Loader,
+	{ targetProperties, environment }: { targetProperties: any; environment: any }
+) => {
+	F(loader, "target", () => {
+		if (targetProperties) {
+			if (targetProperties.electron) {
+				if (targetProperties.electronMain) return "electron-main";
+				if (targetProperties.electronPreload) return "electron-preload";
+				if (targetProperties.electronRenderer) return "electron-renderer";
+				return "electron";
+			}
+			if (targetProperties.nwjs) return "nwjs";
+			if (targetProperties.node) return "node";
+			if (targetProperties.web) return "web";
+		}
+	});
+	D(loader, "environment", environment);
 };
 
 const applyNodeDefaults = (
@@ -821,14 +878,17 @@ const applyNodeDefaults = (
 ) => {
 	if (node === false) return;
 
+	// IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";
 	});
+	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
+	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
@@ -853,17 +913,18 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	D(optimization, "removeAvailableModules", true);
+	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
-	F(optimization, "moduleIds", (): "named" | "deterministic" => {
-		if (production) return "deterministic";
-		return "named";
-	});
-	F(optimization, "chunkIds", (): "named" | "deterministic" => {
+	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
 		if (production) return "deterministic";
 		if (development) return "named";
-		return "named"; // we have not implemented 'natural' so use 'named' now
+		return "natural";
+	});
+	F(optimization, "chunkIds", (): "natural" | "named" | "deterministic" => {
+		if (production) return "deterministic";
+		if (development) return "named";
+		return "natural";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
@@ -873,10 +934,11 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	D(optimization, "concatenateModules", false);
+	D(optimization, "concatenateModules", production);
+	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
-		new SwcCssMinimizerRspackPlugin()
+		new LightningCssMinimizerRspackPlugin()
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";
@@ -885,6 +947,7 @@ const applyOptimizationDefaults = (
 	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
+		// IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default currently
 		A(splitChunks, "defaultSizeTypes", () =>
 			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		);
@@ -895,8 +958,12 @@ const applyOptimizationDefaults = (
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
 		// F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
 		// F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
-		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
-		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
+		F(splitChunks, "maxAsyncRequests", () =>
+			production ? 30 : Number.POSITIVE_INFINITY
+		);
+		F(splitChunks, "maxInitialRequests", () =>
+			production ? 30 : Number.POSITIVE_INFINITY
+		);
 		D(splitChunks, "automaticNameDelimiter", "-");
 		const { cacheGroups } = splitChunks;
 		if (cacheGroups) {
@@ -1013,6 +1080,7 @@ const getResolveDefaults = ({
 		styleConditions.push(mode === "development" ? "development" : "production");
 		styleConditions.push("style");
 
+		// IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default currently
 		resolveOptions.byDependency!["css-import"] = {
 			// We avoid using any main files because we have to be consistent with CSS `@import`
 			// and CSS `@import` does not handle `main` files in directories,

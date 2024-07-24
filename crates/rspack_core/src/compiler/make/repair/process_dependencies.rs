@@ -1,10 +1,11 @@
+use std::borrow::Cow;
+
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  ContextDependency, DependencyId, DependencyType, ErrorSpan, Module, ModuleIdentifier,
-  ModuleProfile, NormalModuleSource,
+  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile, NormalModuleSource,
 };
 
 #[derive(Debug)]
@@ -25,7 +26,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
     } = *self;
     let mut sorted_dependencies = HashMap::default();
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     dependencies.into_iter().for_each(|dependency_id| {
       let dependency = module_graph
@@ -37,19 +38,19 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         // TODO need implement more dependency `resource_identifier()`
         // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
         let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
-          resource_identifier.to_string()
+          Cow::Borrowed(resource_identifier)
         } else {
-          format!(
+          Cow::Owned(format!(
             "{}|{}",
             module_dependency.dependency_type(),
             module_dependency.request()
-          )
+          ))
         };
         Some(id)
       } else {
         dependency
           .as_context_dependency()
-          .map(|d| ContextDependency::resource_identifier(d).to_string())
+          .map(|d| Cow::Borrowed(ContextDependency::resource_identifier(d)))
       };
 
       if let Some(resource_identifier) = resource_identifier {
@@ -88,11 +89,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
       // TODO move module_factory calculate to dependency factories
       let module_factory = context
         .dependency_factories
-        .get(&match dependency_type {
-          DependencyType::EsmImport(_) => DependencyType::EsmImport(ErrorSpan::default()),
-          DependencyType::EsmExport(_) => DependencyType::EsmExport(ErrorSpan::default()),
-          _ => dependency_type.clone(),
-        })
+        .get(dependency_type)
         .unwrap_or_else(|| {
           panic!(
             "No module factory available for dependency type: {}, resourceIdentifier: {:?}",
@@ -111,13 +108,8 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
           .and_then(|module| module.name_for_condition()),
         dependency,
         dependencies,
-        is_entry: false,
         resolve_options: module.get_resolve_options(),
-        resolver_factory: context.resolver_factory.clone(),
-        loader_resolver_factory: context.loader_resolver_factory.clone(),
         options: context.compiler_options.clone(),
-        plugin_driver: context.plugin_driver.clone(),
-        cache: context.cache.clone(),
         current_profile,
       }));
     }

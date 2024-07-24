@@ -3,13 +3,13 @@ use std::borrow::Cow;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_collections::UkeyMap;
 use rspack_core::{
   ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
-use rustc_hash::FxHashMap;
 
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
@@ -41,12 +41,12 @@ impl Group {
   }
 }
 
-fn get_size(module: &dyn Module) -> SplitChunkSizes {
+fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
   SplitChunkSizes(
     module
       .source_types()
       .iter()
-      .map(|ty| (*ty, module.size(ty)))
+      .map(|ty| (*ty, module.size(Some(ty), compilation)))
       .collect(),
   )
 }
@@ -88,30 +88,27 @@ fn deterministic_grouping_for_modules(
 
   let context = compilation.options.context.as_ref();
 
-  let nodes: Vec<GroupItem> = items
-    .into_iter()
-    .map(|module| {
-      let module: &dyn Module = &**module;
-      let name: String = if module.name_for_condition().is_some() {
-        make_paths_relative(context, module.identifier().as_str())
-      } else {
-        REPLACE_MODULE_IDENTIFIER_REG
-          .replace_all(&module.identifier(), "")
-          .to_string()
-      };
-      let key = format!(
-        "{}{}{}",
-        name,
-        delimiter,
-        hash_filename(&name, &compilation.options)
-      );
-      GroupItem {
-        module: module.identifier(),
-        size: get_size(module),
-        key: request_to_id(&key),
-      }
-    })
-    .collect::<Vec<_>>();
+  let nodes = items.into_iter().map(|module| {
+    let module: &dyn Module = &**module;
+    let name: String = if module.name_for_condition().is_some() {
+      make_paths_relative(context, module.identifier().as_str())
+    } else {
+      REPLACE_MODULE_IDENTIFIER_REG
+        .replace_all(&module.identifier(), "")
+        .to_string()
+    };
+    let key = format!(
+      "{}{}{}",
+      name,
+      delimiter,
+      hash_filename(&name, &compilation.options)
+    );
+    GroupItem {
+      module: module.identifier(),
+      size: get_size(module, compilation),
+      key: request_to_id(&key),
+    }
+  });
 
   let initial_nodes = nodes
     .into_iter()
@@ -210,7 +207,7 @@ impl SplitChunksPlugin {
   pub(super) fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,
-    max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting>,
+    max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
@@ -227,7 +224,7 @@ impl SplitChunksPlugin {
       if max_size_setting.is_none()
         && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
       {
-        tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reasons.join("~"));
+        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason);
         return Ok(None);
       }
 
@@ -256,8 +253,8 @@ impl SplitChunksPlugin {
       // Fast path
       if allow_max_size.is_empty() {
         tracing::debug!(
-          "Chunk({}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-          chunk.chunk_reasons.join("~")
+          "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
+          chunk.chunk_reason
         );
         return Ok(None);
       }
@@ -329,7 +326,7 @@ impl SplitChunksPlugin {
         } else {
           index.to_string()
         };
-        let chunk = info.chunk.as_mut(&mut compilation.chunk_by_ukey);
+        let chunk = compilation.chunk_by_ukey.expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
           .get(&chunk.ukey)
           .map(|s| s.automatic_name_delimiter.as_str())

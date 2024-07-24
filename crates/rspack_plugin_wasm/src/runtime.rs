@@ -1,17 +1,16 @@
+use rspack_collections::Identifier;
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
   RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt as _;
-use rspack_util::source_map::SourceMapKind;
 
 #[impl_runtime_module]
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct AsyncWasmLoadingRuntimeModule {
-  generate_load_binary_code: String,
   id: Identifier,
+  generate_load_binary_code: String,
   supports_streaming: bool,
   chunk: ChunkUkey,
 }
@@ -22,14 +21,12 @@ impl AsyncWasmLoadingRuntimeModule {
     supports_streaming: bool,
     chunk: ChunkUkey,
   ) -> Self {
-    Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/async_wasm_loading"),
       generate_load_binary_code,
-      id: Identifier::from("webpack/runtime/async_wasm_loading"),
       supports_streaming,
       chunk,
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-    }
+    )
   }
 }
 

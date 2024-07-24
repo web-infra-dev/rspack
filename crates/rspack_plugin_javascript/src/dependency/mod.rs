@@ -1,7 +1,7 @@
 mod commonjs;
 mod context;
 mod esm;
-mod export_info_api_dep;
+mod export_info_dependency;
 mod hmr;
 mod is_included_dependency;
 mod module_argument_dependency;
@@ -12,7 +12,7 @@ mod worker;
 pub use self::commonjs::*;
 pub use self::context::*;
 pub use self::esm::*;
-pub use self::export_info_api_dep::*;
+pub use self::export_info_dependency::*;
 pub use self::hmr::*;
 pub use self::is_included_dependency::*;
 pub use self::module_argument_dependency::*;

@@ -1,14 +1,16 @@
 ```js title=main.js
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-"./a.js": (function (module) {
+"../../normalModuleFactory​#afterResolve/request/a.js": (function (module) {
 module.exports = "a";
+
+
 }),
-"./c.js": (function (module) {
+"../../normalModuleFactory​#afterResolve/request/c.js": (function (module) {
 module.exports = "b";
+
+
 }),
-"fs": (function (module) {
-module.exports = require('fs')}),
 
 });
 /************************************************************************/
@@ -69,24 +71,29 @@ __webpack_require__.o = function (obj, prop) {
 
 })();
 /************************************************************************/
-var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
 "use strict";
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_a__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./c.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("fs");
-/* harmony import */var fs__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_2__);
+
+// EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/request/a.js
+var a_ = __webpack_require__("../../normalModuleFactory​#afterResolve/request/a.js");
+var a_default = /*#__PURE__*/__webpack_require__.n(a_);
+// EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/request/c.js
+var c_ = __webpack_require__("../../normalModuleFactory​#afterResolve/request/c.js");
+var c_default = /*#__PURE__*/__webpack_require__.n(c_);
+;// CONCATENATED MODULE: external "fs"
+var external_fs_namespaceObject = require("fs");
+var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
+;// CONCATENATED MODULE: ../../normalModuleFactory​#afterResolve/request/request.js
 
 
 
-it("should modify request by after resolve hook", ()=>{
-    expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
-    expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("b");
-    const ext = ".js";
-    expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("./c" + ext);
+
+it("should modify request by after resolve hook", () => {
+	expect((a_default())).toBe("a");
+	expect((c_default())).toBe("b");
+	const ext = ".js";
+	expect(external_fs_default().readFileSync(__filename, "utf-8")).toContain("request/c" + ext);
 });
 
 })();

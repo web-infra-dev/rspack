@@ -6,7 +6,8 @@ module.exports = {
 			context: __dirname,
 			entry: "./duplicate.js",
 			optimization: {
-				moduleIds: "named"
+				moduleIds: "named",
+				concatenateModules: false
 			},
 			plugins: [
 				{

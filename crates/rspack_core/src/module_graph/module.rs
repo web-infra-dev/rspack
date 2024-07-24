@@ -3,7 +3,7 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ExportsInfoId;
 use crate::{
   module_graph::ConnectionId, ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer,
-  ModuleProfile, ModuleSyntax, ModuleType,
+  ModuleProfile, ModuleSyntax,
 };
 
 #[derive(Debug, Clone)]
@@ -16,10 +16,9 @@ pub struct ModuleGraphModule {
 
   // pub exec_order: usize,
   pub module_identifier: ModuleIdentifier,
-  // TODO remove this since its included in module
-  pub module_type: ModuleType,
-  // TODO: remove this once we drop old treeshaking
-  pub(crate) __deprecated_all_dependencies: Vec<DependencyId>,
+  // an quick way to get a module's all dependencies (including its blocks' dependencies)
+  // and it is ordered by dependency creation order
+  pub(crate) all_dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
@@ -31,19 +30,14 @@ pub struct ModuleGraphModule {
 }
 
 impl ModuleGraphModule {
-  pub fn new(
-    module_identifier: ModuleIdentifier,
-    module_type: ModuleType,
-    exports_info_id: ExportsInfoId,
-  ) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier, exports_info_id: ExportsInfoId) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
-      __deprecated_all_dependencies: Default::default(),
-      module_type,
+      all_dependencies: Default::default(),
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),

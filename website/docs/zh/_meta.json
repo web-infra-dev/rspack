@@ -12,7 +12,7 @@
   {
     "text": "插件",
     "link": "/plugins/",
-    "activeMatch": "/plugins"
+    "activeMatch": "(?!\\/config\\/).*\\/plugins\\/.*"
   },
   {
     "text": "API",

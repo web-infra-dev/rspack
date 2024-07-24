@@ -1,10 +1,10 @@
-import path from "path";
+import path from "node:path";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import {
 	HookCasesContext,
 	HookTaskProcessor,
-	IHookProcessorOptions
+	type IHookProcessorOptions
 } from "../processor";
 import { BasicRunnerFactory } from "../runner";
 import { getSimpleProcessorRunner } from "../test/simple";
@@ -45,9 +45,7 @@ export function createHookCase(
 			new HookTaskProcessor({
 				name,
 				compilerType: ECompilerType.Rspack,
-				findBundle: function () {
-					return ["main.js"];
-				},
+				findBundle: () => ["main.js"],
 				snapshot: path.join(src, "output.snap.txt"),
 				runable: true,
 				...caseConfig

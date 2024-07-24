@@ -1,5 +1,5 @@
-import { readFile, run, runWatch } from "../../utils/test-utils";
 import { resolve } from "path";
+import { readFile, run, runWatch } from "../../utils/test-utils";
 
 it("should not have `process.env.WEBPACK_SERVE` set on build mode", async () => {
 	await run(__dirname, []);

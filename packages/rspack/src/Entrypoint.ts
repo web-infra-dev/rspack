@@ -1,7 +1,7 @@
 import {
-	__entrypoint_inner_get_runtime_chunk,
 	type JsChunkGroup,
-	type JsCompilation
+	type JsCompilation,
+	__entrypoint_inner_get_runtime_chunk
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
@@ -16,12 +16,12 @@ export class Entrypoint extends ChunkGroup {
 		super(inner, compilation);
 	}
 
-	getRuntimeChunk(): Chunk | null {
+	getRuntimeChunk(): Readonly<Chunk | null> {
 		const c = __entrypoint_inner_get_runtime_chunk(
-			this.__internal_inner_ukey(),
-			this.__internal_inner_compilation()
+			this.__internal__innerUkey(),
+			this.__internal__innerCompilation()
 		);
-		if (c) return Chunk.__from_binding(c, this.__internal_inner_compilation());
+		if (c) return Chunk.__from_binding(c, this.__internal__innerCompilation());
 		return null;
 	}
 }

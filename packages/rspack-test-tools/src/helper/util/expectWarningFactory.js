@@ -1,6 +1,6 @@
 // @ts-nocheck
 module.exports = () => {
-	let warnings = [];
+	const warnings = [];
 	let oldWarn;
 
 	beforeEach(done => {
