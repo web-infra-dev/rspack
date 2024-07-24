@@ -970,7 +970,7 @@ export interface RawEntryOptions {
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
-  filename?: string
+  filename?: string | JsFilename
   library?: RawLibraryOptions
   dependOn?: Array<string>
 }
