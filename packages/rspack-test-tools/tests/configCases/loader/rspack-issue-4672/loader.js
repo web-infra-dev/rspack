@@ -4,7 +4,9 @@ module.exports = function () {
 	const callback = this.async();
 
 	this.resolve(__dirname, "./not-exist", (e1, r1) => {
-		assert(e1 instanceof Error);
+		// Note that e1 is not instanceof Error
+		assert(e1.code === "GenericFailure");
+		assert(typeof e1.message === 'string')
 		assert(typeof r1 === "undefined");
 
 		this.resolve(__dirname, "@/src/index", (e2, r2) => {
