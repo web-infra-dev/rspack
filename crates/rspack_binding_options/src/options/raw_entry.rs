@@ -39,7 +39,6 @@ pub struct RawEntryOptions {
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
   pub base_uri: Option<String>,
-  #[napi(ts_type = "string | JsFilename")]
   pub filename: Option<JsFilename>,
   pub library: Option<RawLibraryOptions>,
   pub depend_on: Option<Vec<String>>,

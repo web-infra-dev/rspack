@@ -4,7 +4,7 @@ const rspack = require("@rspack/core");
 module.exports = {
   plugins: [
     new rspack.EntryPlugin(__dirname, "./a.js", {
-      filename: "pages/[name].js",
+      filename: () => "pages/[name].js",
       name: "a",
     }),
   ],
