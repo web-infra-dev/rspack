@@ -20,13 +20,16 @@ class EnvironmentPlugin {
 	keys: string[];
 	defaultValues: Record<string, string>;
 
-	constructor(keys: string[] | Record<string, string>) {
-		if (Array.isArray(keys)) {
-			this.keys = keys;
+	constructor(...keys: string[] | [Record<string, string> | string]) {
+		if (keys.length === 1 && Array.isArray(keys[0])) {
+			this.keys = keys[0];
 			this.defaultValues = {};
+		} else if (keys.length === 1 && typeof keys[0] === "object") {
+			this.keys = Object.keys(keys[0]);
+			this.defaultValues = keys[0];
 		} else {
-			this.keys = Object.keys(keys);
-			this.defaultValues = keys;
+			this.keys = keys as string[];
+			this.defaultValues = {};
 		}
 	}
 

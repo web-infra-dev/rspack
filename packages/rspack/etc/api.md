@@ -2931,7 +2931,7 @@ const environment: z.ZodObject<{
 
 // @public (undocumented)
 export class EnvironmentPlugin {
-    constructor(keys: string[] | Record<string, string>);
+    constructor(...keys: string[] | [Record<string, string> | string]);
     apply(compiler: Compiler): void;
     // (undocumented)
     defaultValues: Record<string, string>;
