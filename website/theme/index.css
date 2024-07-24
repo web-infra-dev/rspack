@@ -20,6 +20,12 @@ summary {
     var(--rp-c-brand),
     hsl(32.71deg 100% 70%)
   );
+  --rp-home-mask-background-image: conic-gradient(
+    from 180deg at 50%50%,
+    var(--rp-c-brand-light) 0deg,
+    180deg,
+    #eeea8c 0deg
+  );
 }
 
 .dark {
