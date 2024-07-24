@@ -646,9 +646,9 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication 1`] = `
-"asset e1.js 9.58 KiB [emitted] (name: e1)
-asset e2.js 9.58 KiB [emitted] (name: e2)
-asset e3.js 9.58 KiB [emitted] (name: e3)
+"asset e2.js 9.57 KiB [emitted] (name: e2)
+asset e1.js 9.57 KiB [emitted] (name: e1)
+asset e3.js 9.57 KiB [emitted] (name: e3)
 asset 106.js 780 bytes [emitted]
 asset 511.js 780 bytes [emitted]
 asset 637.js 780 bytes [emitted]
@@ -686,8 +686,8 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication-named 1`] = `
-"asset e1.js 9.44 KiB [emitted] (name: e1)
-asset e2.js 9.44 KiB [emitted] (name: e2)
+"asset e2.js 9.43 KiB [emitted] (name: e2)
+asset e1.js 9.43 KiB [emitted] (name: e1)
 asset e3.js 9.43 KiB [emitted] (name: e3)
 asset async1.js 892 bytes [emitted] (name: async1)
 asset async2.js 891 bytes [emitted] (name: async2)
@@ -1583,7 +1583,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
-"asset main.js 9.67 KiB [emitted] (name: main)
+"asset main.js 9.69 KiB [emitted] (name: main)
 asset 0.js 586 bytes [emitted]
 runtime modules 6.94 KiB 9 modules
 cacheable modules 967 bytes
@@ -1633,7 +1633,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-simple-unused 1`] = `
-"asset main.js 299 bytes [emitted] (name: main)
+"asset main.js 297 bytes [emitted] (name: main)
 modules by path ./node_modules/pmodule/*.js 232 bytes
   ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     [only some exports used: default]
