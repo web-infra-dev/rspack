@@ -260,10 +260,10 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 
-import * as lightningcss from "./builtin-loader/lightningcss/index";
-
-export { type LoaderOptions as LightningcssLoaderOptions } from "./builtin-loader/lightningcss/index";
-export { lightningcss };
+export {
+	type LoaderOptions as LightningcssLoaderOptions,
+	type FeatureOptions as LightningcssFeatureOptions
+} from "./builtin-loader/lightningcss/index";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
