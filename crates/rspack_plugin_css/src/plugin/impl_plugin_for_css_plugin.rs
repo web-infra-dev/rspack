@@ -187,8 +187,15 @@ fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
-  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  let is_enabled_for_chunk = is_enabled_for_chunk(
+    chunk_ukey,
+    &ChunkLoading::Enable(ChunkLoadingType::Jsonp),
+    compilation,
+  ) || is_enabled_for_chunk(
+    chunk_ukey,
+    &ChunkLoading::Enable(ChunkLoadingType::Import),
+    compilation,
+  );
 
   if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
