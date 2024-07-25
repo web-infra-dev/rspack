@@ -196,6 +196,7 @@ fn runtime_requirements_in_tree(
     &ChunkLoading::Enable(ChunkLoadingType::Import),
     compilation,
   );
+  dbg!(is_enabled_for_chunk);
 
   if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
