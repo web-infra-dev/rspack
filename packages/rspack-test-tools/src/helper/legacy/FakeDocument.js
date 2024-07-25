@@ -50,6 +50,7 @@ export default class FakeDocument {
 		const links = this.getElementsByTagName("link");
 		for (const link of links) {
 			for (const rule of link.sheet.cssRules) {
+				console.log(rule.selectorText, element._type)
 				if (rule.selectorText === element._type) {
 					Object.assign(style, rule.style);
 				}
@@ -257,7 +258,9 @@ export class FakeSheet {
 				),
 				"utf-8"
 			);
-		});
+		})
+		.replace(/\/\*[\s\S]*\*\//g, '')
+		.replace("//", "");
 		walkCssTokens(css, {
 			isSelector() {
 				return selector === undefined;

@@ -1,5 +1,198 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`config config/builtins/css-modules-composes exported tests css modules composes 1`] = `
+Object {
+  "simple-bar": "-a7200a43b5c2530b1414-simple-bar -f27007fff641a72c371d-imported-simple",
+  "simple-foo": "-a7200a43b5c2530b1414-simple-foo -f27007fff641a72c371d-imported-simple",
+}
+`;
+
+exports[`config config/builtins/css-modules-composes-preprocessers exported tests css modules with css preprocessers 1`] = `
+Object {
+  "class": "-a7200a43b5c2530b1414-class -feb80f2fe6d30-lessClass",
+  "ghi": "-a7200a43b5c2530b1414-ghi",
+  "other": "-a7200a43b5c2530b1414-other -ebd90a48d100efd-scssClass",
+  "otherClassName": "-a7200a43b5c2530b1414-otherClassName globalClassName",
+}
+`;
+
+exports[`config config/builtins/css-modules-composes-sass exported tests css modules in scss 1`] = `
+Object {
+  "bar": "-f1f00e6e62b9a7fadb02-bar -a3b1929b59eeacf15a4-foo",
+}
+`;
+
+exports[`config config/builtins/css-modules-dedupe exported tests css modules dedupe 1`] = `
+Object {
+  "backButton": "-baa5c4d806a1671b-backButton -e683a459bd7b289e1b8d-secondaryButton -d8686a334ddc6bdd0-button",
+  "nextButton": "-baa5c4d806a1671b-nextButton -a510fa2734ece860e70-primaryButton -d8686a334ddc6bdd0-button",
+}
+`;
+
+exports[`config config/builtins/css-modules-exports-only exported tests css modules exportsOnly 1`] = `
+Object {
+  "simple-bar": "-a7200a43b5c2530b1414-simple-bar -f27007fff641a72c371d-imported-simple",
+  "simple-foo": "-a7200a43b5c2530b1414-simple-foo -f27007fff641a72c371d-imported-simple",
+}
+`;
+
+exports[`config config/builtins/css-modules-local-ident-name-hash exported tests css modules localIdentName with hash 1`] = `
+Object {
+  "#": "ccc05d01b5ed91e5a4d",
+  "##": "c16d3dd30b7cca2d412d",
+  "#.#.#": "c6e8935740a6209cd48e",
+  "#fake-id": "c053ba4f7badbc242",
+  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "f5775dd999dc95dd350",
+  "-a-b-c-": "e171381fc62026ffe05b",
+  "-a0-34a___f": "e6419db424263d77191e",
+  ".": "b1061101d3ff1517822",
+  "123": "c6f16686ef1ceab9728",
+  "1a2b3c": "ea6ff32ba4e9ad9e4c71",
+  ":)": "c8ad14da9eacd8206f95",
+  ":\`(": "ab034bce3407ac44d",
+  ":hover": "d64a685363ea14300",
+  ":hover:focus:active": "f1ba6ba717fdcfbecc52",
+  "<><<<>><>": "a8471bf6e63738086bfa",
+  "<p>": "f4a8269a3b7c6f38759d",
+  "?": "d4a79a8d3ea0285a",
+  "@": "dba948edd127566bb",
+  "B&W?": "d26b7b08b3ee0fec8093",
+  "[attr=value]": "cf98e323da83a7ef1",
+  "_": "b21bb2384964fa8226c0",
+  "_test": "acd3c0528ed3c3330",
+  "className": "a20f38af3e2122251",
+  "f!o!o": "a4a2e3c31408bb709fb",
+  "f'o'o": "c1712d83c24d5b7bd9d",
+  "f*o*o": "f5ce693ef2ea116b05",
+  "f+o+o": "e3714c708c213b9e",
+  "f/o/o": "cd9b24dbefa12afeaba5",
+  "f\\\\o\\\\o": "f90fa90fb52121fce923",
+  "foo.bar": "a7554930d53d1d95676",
+  "foo/bar": "e21d87979464d92960b9",
+  "foo/bar/baz": "e26519aba0f8e105eb13",
+  "foo\\\\bar": "f93c23331183aeac60",
+  "foo\\\\bar\\\\baz": "aa79627c6f36d0c8f9",
+  "f~o~o": "f4c89337b4a84e05",
+  "m_x_@": "f106c601eea0160783bb",
+  "someId": "f7dad309581ff59a8c1",
+  "subClass": "f904cf1d95567c868707",
+  "test": "c8e76de9832d60b206c2",
+  "{}": "e73bdae84335b77",
+  "©": "d4c6ea8dbaf492a7e42e",
+  "“‘’”": "d3df6d853c11234b8",
+  "⌘⌥": "bbb74fa7684d2b07",
+  "☺☃": "d09672ed2a23417fa543",
+  "♥": "f5682d5025ab700972a0",
+  "𝄞♪♩♫♬": "b7e928b15b6057d2f8",
+  "💩": "bb34b4e107a01390e3fb",
+  "😍": "e5439193d7906536aeac",
+}
+`;
+
+exports[`config config/builtins/css-modules-local-ident-name-path exported tests css modules localIdentName with path 1`] = `
+Object {
+  "#": "./src/index__#",
+  "##": "./src/index__##",
+  "#.#.#": "./src/index__#.#.#",
+  "#fake-id": "./src/index__#fake-id",
+  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "./src/index__++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.",
+  "-a-b-c-": "./src/index__-a-b-c-",
+  "-a0-34a___f": "./src/index__-a0-34a___f",
+  ".": "./src/index__.",
+  "123": "./src/index__123",
+  "1a2b3c": "./src/index__1a2b3c",
+  ":)": "./src/index__:)",
+  ":\`(": "./src/index__:\`(",
+  ":hover": "./src/index__:hover",
+  ":hover:focus:active": "./src/index__:hover:focus:active",
+  "<><<<>><>": "./src/index__<><<<>><>",
+  "<p>": "./src/index__<p>",
+  "?": "./src/index__?",
+  "@": "./src/index__@",
+  "B&W?": "./src/index__B&W?",
+  "[attr=value]": "./src/index__[attr=value]",
+  "_": "./src/index___",
+  "_test": "./src/index___test",
+  "className": "./src/index__className",
+  "f!o!o": "./src/index__f!o!o",
+  "f'o'o": "./src/index__f'o'o",
+  "f*o*o": "./src/index__f*o*o",
+  "f+o+o": "./src/index__f+o+o",
+  "f/o/o": "./src/index__f/o/o",
+  "f\\\\o\\\\o": "./src/index__f\\\\o\\\\o",
+  "foo.bar": "./src/index__foo.bar",
+  "foo/bar": "./src/index__foo/bar",
+  "foo/bar/baz": "./src/index__foo/bar/baz",
+  "foo\\\\bar": "./src/index__foo\\\\bar",
+  "foo\\\\bar\\\\baz": "./src/index__foo\\\\bar\\\\baz",
+  "f~o~o": "./src/index__f~o~o",
+  "m_x_@": "./src/index__m_x_@",
+  "someId": "./src/index__someId",
+  "subClass": "./src/index__subClass",
+  "test": "./src/index__test",
+  "{}": "./src/index__{}",
+  "©": "./src/index__©",
+  "“‘’”": "./src/index__“‘’”",
+  "⌘⌥": "./src/index__⌘⌥",
+  "☺☃": "./src/index__☺☃",
+  "♥": "./src/index__♥",
+  "𝄞♪♩♫♬": "./src/index__𝄞♪♩♫♬",
+  "💩": "./src/index__💩",
+  "😍": "./src/index__😍",
+}
+`;
+
+exports[`config config/builtins/css-modules-locals-convention-camelCase exported tests css modules localsConvention with camelCase 1`] = `
+Object {
+  "btn--info_is-disabled_1": "-a7200a43b5c2530b1414-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-a7200a43b5c2530b1414-btn-info_is-disabled",
+  "btnInfoIsDisabled": "-a7200a43b5c2530b1414-btn-info_is-disabled",
+  "btnInfoIsDisabled1": "-a7200a43b5c2530b1414-btn--info_is-disabled_1",
+  "fooBar": "-a7200a43b5c2530b1414-foo_bar",
+  "foo_bar": "-a7200a43b5c2530b1414-foo_bar",
+  "simple": "-a7200a43b5c2530b1414-simple",
+}
+`;
+
+exports[`config config/builtins/css-modules-locals-convention-camelCaseOnly exported tests css modules localsConvention with camelCaseOnly 1`] = `
+Object {
+  "btnInfoIsDisabled": "-a7200a43b5c2530b1414-btn-info_is-disabled",
+  "btnInfoIsDisabled1": "-a7200a43b5c2530b1414-btn--info_is-disabled_1",
+  "fooBar": "-a7200a43b5c2530b1414-foo_bar",
+  "simple": "-a7200a43b5c2530b1414-simple",
+}
+`;
+
+exports[`config config/builtins/css-modules-locals-convention-dashes exported tests css modules localsConvention with dashes 1`] = `
+Object {
+  "btn--info_is-disabled_1": "-a7200a43b5c2530b1414-btn--info_is-disabled_1",
+  "btn-info-is-disabled": "-a7200a43b5c2530b1414-btn-info_is-disabled",
+  "btn-info-is-disabled-1": "-a7200a43b5c2530b1414-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-a7200a43b5c2530b1414-btn-info_is-disabled",
+  "foo-bar": "-a7200a43b5c2530b1414-foo_bar",
+  "foo_bar": "-a7200a43b5c2530b1414-foo_bar",
+  "simple": "-a7200a43b5c2530b1414-simple",
+}
+`;
+
+exports[`config config/builtins/css-modules-pseudo exported tests css modules pseudo syntax 1`] = `
+Object {
+  "bar": "-a7200a43b5c2530b1414-bar",
+  "bav": "-a7200a43b5c2530b1414-bav",
+  "foo": "-a7200a43b5c2530b1414-foo",
+  "four": "-a7200a43b5c2530b1414-four",
+  "one": "-a7200a43b5c2530b1414-one",
+  "three": "-a7200a43b5c2530b1414-three",
+  "two": "-a7200a43b5c2530b1414-two",
+}
+`;
+
+exports[`config config/builtins/css-modules-simple exported tests css modules simple test 1`] = `
+Object {
+  "style": "-ca56f23580d7bbb484-style",
+}
+`;
+
 exports[`config config/css/export-selector exported tests should have correct css result 1`] = `
 "/* #region \\"./style.module.css?imported\\" */
 /*
@@ -14,5 +207,66 @@ exports[`config config/css/export-selector exported tests should have correct cs
 
 /* #endregion \\"./style.module.css?imported\\" */
 
-head{--webpack--imported_js:foo:foo/bar:b\\\\ a\\\\ r/local:local/dashName:dashName/\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
+head{--webpack--imported_js:foo:foo/bar:b\\\\ a\\\\ r/local:local/dashName:dashName/&\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
+`;
+
+exports[`config config/optimization/minimizer-esm-asset exported tests minimizing an asset file of esm type should success 1`] = `"console.log(import.meta.url);export const a=1;"`;
+
+exports[`config config/optimization/minimizer-swc-extract-comments exported tests should keep the extracted license file stable 1`] = `
+"/**
+ * bar
+ * @license MIT
+ */
+
+/**
+ * baz
+ * @license MIT
+ */
+
+/**
+ * foo
+ * @license MIT
+ */
+
+/**
+ * relative
+ * @license MIT
+ */"
+`;
+
+exports[`config config/plugins/chunk-modules exported tests chunk-modules 1`] = `
+Object {
+  "515": Object {
+    "entryModules": Array [],
+    "modules": Array [
+      Object {
+        "context": "<COMPILER_CONTEXT>",
+        "identifier": "<COMPILER_CONTEXT>/async.js",
+        "resource": "<COMPILER_CONTEXT>/async.js",
+      },
+    ],
+  },
+  "909": Object {
+    "entryModules": Array [
+      Object {
+        "context": "<COMPILER_CONTEXT>",
+        "identifier": "<COMPILER_CONTEXT>/index.js",
+        "resource": "<COMPILER_CONTEXT>/index.js",
+      },
+    ],
+    "modules": Array [
+      Object {
+        "context": "<COMPILER_CONTEXT>",
+        "identifier": "<COMPILER_CONTEXT>/index.js",
+        "resource": "<COMPILER_CONTEXT>/index.js",
+      },
+      Object {
+        "identifier": "external node-commonjs \\"fs\\"",
+      },
+      Object {
+        "identifier": "external node-commonjs \\"path\\"",
+      },
+    ],
+  },
+}
 `;

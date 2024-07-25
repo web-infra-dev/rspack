@@ -1,8 +1,8 @@
 require("./index.css");
 require("./star.svg");
 
-const fs = require("fs");
-const path = require("path");
+const fs = __non_webpack_require__("fs");
+const path = __non_webpack_require__("path");
 
 it("should both work for `type: 'asset/inline'` svg and `type: 'javascript/auto'` svg", () => {
 	const css = fs.readFileSync(path.resolve(__dirname, "bundle0.css"), "utf-8");

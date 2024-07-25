@@ -1,7 +1,6 @@
 module.exports = {
 	documentType: 'fake',
 	moduleScope(scope) {
-		debugger
 		const link1 = scope.window.document.createElement("link");
 		link1.rel = "stylesheet";
 		link1.href = "imported_js.bundle0.css";

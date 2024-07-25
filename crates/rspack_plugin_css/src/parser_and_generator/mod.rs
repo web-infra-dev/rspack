@@ -389,19 +389,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
           data: generate_context.data,
         };
 
+        let identifier = module.identifier();
+        let module_id = compilation
+          .chunk_graph
+          .get_module_id(identifier)
+          .clone()
+          .unwrap_or_default();
+
         if let Some(exports) = &self.exports {
-          let identifier = module.identifier();
           let mg = compilation.get_module_graph();
           let unused = get_unused_local_ident(exports, identifier, generate_context.runtime, &mg);
           context.data.insert(unused);
 
           let used = get_used_exports(exports, identifier, generate_context.runtime, &mg);
-
-          let module_id = compilation
-            .chunk_graph
-            .get_module_id(identifier)
-            .clone()
-            .unwrap_or_default();
 
           static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\\"#).expect("should compile"));
           let module_id = RE.replace_all(&module_id, "/");
@@ -442,8 +442,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .join("");
 
           context.data.insert(CssUsedExports(format!(
-            "{}{}",
+            "{}{}{}",
             meta_data,
+            if self.es_module { "&" } else { "" },
+            escape_css(&module_id, false)
+          )));
+        } else {
+          context.data.insert(CssUsedExports(format!(
+            "{}{}",
+            if self.es_module { "&" } else { "" },
             escape_css(&module_id, false)
           )));
         }

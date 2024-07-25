@@ -7,7 +7,6 @@ module.exports = {
 				exportsConvention: 'camel-case-only',
 				localIdentName: '[local]',
 				exportsOnly: false,
-				esModule: true
 			}
 		}
 	},

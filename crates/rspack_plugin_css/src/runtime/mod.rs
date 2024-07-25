@@ -124,7 +124,7 @@ for(i = 0; cc; i++) {{
   cc = data.charCodeAt(i);
   if(cc == 58) {{ token2 = token; token = ""; }}
   else if(cc == 47) {{ token = token.replace(/^_/, ""); token2 = token2.replace(/^_/, ""); if (token3) {{ composes.push(token2, token3, token) }} else {{ exports[token2] = token }} token = ""; token2 = ""; token3 = "" }}
-  else if(cc == 38) {{ {} }}
+  else if(cc == 38) {{ {}(exports); }}
   else if(!cc || cc == 44) {{ token = token.replace(/^_/, ""); target[token] = ({}).bind(null, exports, composes); {}token = ""; token2 = ""; exports = {{}}; composes = [] }}
   else if(cc == 92) {{ token += data[++i] }}
   else if(cc == 64) {{ token3 = token; token = ""; }}
