@@ -67,7 +67,7 @@ import WebpackLicense from '@components/webpack-license';
 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin)。当声明了 `optimization.minimizer`，默认压缩器会被禁用。
 
 ```js title=rspack.config.js
-const minifyPlugin = require('@rspack/plugin-minify');
+const terserPlugin = require('terser-webpack-plugin');
 module.exports = {
   context: __dirname,
   target: 'node',
@@ -76,11 +76,7 @@ module.exports = {
   },
   optimization: {
     minimize: true,
-    minimizer: [
-      new minifyPlugin({
-        minifier: 'terser',
-      }),
-    ],
+    minimizer: [new terserPlugin()],
   },
 };
 ```

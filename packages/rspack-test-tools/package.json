@@ -73,7 +73,6 @@
     "@monaco-editor/react": "^4.6.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-minify": "workspace:*",
     "@swc/plugin-remove-console": "^2.0.7",
     "@swc/helpers": "0.5.8",
     "@types/jsdom": "^21.1.7",
