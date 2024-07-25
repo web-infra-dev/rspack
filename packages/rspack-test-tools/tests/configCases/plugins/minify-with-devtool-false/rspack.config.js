@@ -1,4 +1,3 @@
-const minifyPlugin = require("@rspack/plugin-minify");
 const { SourceMapDevToolPlugin } = require('@rspack/core')
 
 /** @type {import("@rspack/core").Configuration} */
@@ -10,7 +9,6 @@ module.exports = {
 	},
 	optimization: {
 		minimize: true,
-		minimizer: [new minifyPlugin({})]
 	},
 	plugins: [
 		new SourceMapDevToolPlugin({})
