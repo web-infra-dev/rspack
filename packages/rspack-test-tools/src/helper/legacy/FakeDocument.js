@@ -1,12 +1,13 @@
-const fs = require("fs");
-const path = require("path");
+// @ts-nocheck
+const fs = require("node:fs");
+const path = require("node:path");
 
 const getPropertyValue = function (property) {
 	return this[property];
 };
 
-module.exports = class FakeDocument {
-	constructor(basePath) {
+export default class FakeDocument {
+	constructor(basePath, options = {}) {
 		this.head = this.createElement("head");
 		this.body = this.createElement("body");
 		this.baseURI = "https://test.cases/path/index.html";
@@ -15,6 +16,8 @@ module.exports = class FakeDocument {
 			["body", [this.body]]
 		]);
 		this._basePath = basePath;
+		this.currentScript = undefined;
+		this._options = options || {};
 	}
 
 	createElement(type) {
@@ -33,7 +36,7 @@ module.exports = class FakeDocument {
 
 	_onElementRemoved(element) {
 		const type = element._type;
-		let list = this._elementsByTagName.get(type);
+		const list = this._elementsByTagName.get(type);
 		const idx = list.indexOf(element);
 		list.splice(idx, 1);
 	}
@@ -54,9 +57,9 @@ module.exports = class FakeDocument {
 		}
 		return style;
 	}
-};
+}
 
-class FakeElement {
+export class FakeElement {
 	constructor(document, type, basePath) {
 		this._document = document;
 		this._type = type;
@@ -64,8 +67,20 @@ class FakeElement {
 		this._attributes = Object.create(null);
 		this._src = undefined;
 		this._href = undefined;
+		this.rel = undefined;
 		this.parentNode = undefined;
 		this.sheet = type === "link" ? new FakeSheet(this, basePath) : undefined;
+	}
+
+	insertBefore(node, before) {
+		this._document._onElementAttached(node);
+		node.parentNode = this;
+		this._children.unshift(node);
+		Promise.resolve().then(() => {
+			if (node.onload) {
+				node.onload({ type: "load", target: node });
+			}
+		});
 	}
 
 	appendChild(node) {
@@ -76,6 +91,22 @@ class FakeElement {
 			setTimeout(() => {
 				if (node.onload) node.onload({ type: "load", target: node });
 			}, 100);
+		} else if (node._type === "script") {
+			Promise.resolve().then(() => {
+				if (typeof this._document._options.onScript === "function") {
+					this._document._options.onScript(node);
+				}
+				if (node.onload) {
+					node.onload({
+						type: "load",
+						target: node
+					});
+				}
+			});
+		} else {
+			if (node.onload) {
+				node.onload({ type: "load", target: node });
+			}
 		}
 	}
 
@@ -103,9 +134,8 @@ class FakeElement {
 	getAttribute(name) {
 		if (this._type === "link" && name === "href") {
 			return this.href;
-		} else {
-			return this._attributes[name];
 		}
+		return this._attributes[name];
 	}
 
 	_toRealUrl(value) {
@@ -130,6 +160,10 @@ class FakeElement {
 		}
 	}
 
+	get children() {
+		return this._children;
+	}
+
 	get src() {
 		return this._src;
 	}
@@ -145,7 +179,7 @@ class FakeElement {
 	}
 }
 
-class FakeSheet {
+export class FakeSheet {
 	constructor(element, basePath) {
 		this._element = element;
 		this._basePath = basePath;
@@ -207,26 +241,23 @@ class FakeSheet {
 						.replace(/^https:\/\/example\.com\//, "")
 				);
 		let css = fs.readFileSync(filepath, "utf-8");
-		css = css
-			.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
-				if (!/^https:\/\/test\.cases\/path\//.test(url)) {
-					return url;
-				}
+		css = css.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
+			if (!/^https:\/\/test\.cases\/path\//.test(url)) {
+				return url;
+			}
 
-				if (url.startsWith("#")) {
-					return url;
-				}
+			if (url.startsWith("#")) {
+				return url;
+			}
 
-				return fs.readFileSync(
-					path.resolve(
-						this._basePath,
-						url.replace(/^https:\/\/test\.cases\/path\//, "")
-					),
-					"utf-8"
-				);
-			})
-			.replace(/\/\*[\s\S]*\*\//g, "")
-			.replace("//", "");
+			return fs.readFileSync(
+				path.resolve(
+					this._basePath,
+					url.replace(/^https:\/\/test\.cases\/path\//, "")
+				),
+				"utf-8"
+			);
+		});
 		walkCssTokens(css, {
 			isSelector() {
 				return selector === undefined;
