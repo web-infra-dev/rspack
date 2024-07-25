@@ -580,7 +580,7 @@ impl IntoJsAst for SwcCompiler {
       ))
       .with_context(JsAstContext {
         globals: self.globals,
-        helpers: self.helpers,
+        helpers: self.helpers.data(),
         source_map: self.cm,
         top_level_mark: self
           .options
