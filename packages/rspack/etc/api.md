@@ -729,9 +729,6 @@ export type BaseUri = z.infer<typeof baseUri>;
 const baseUri: z.ZodString;
 
 // @public (undocumented)
-function browserslistToTargets(browserslist: string[]): Record<string, number>;
-
-// @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[]>;
 
 // @public (undocumented)
@@ -3374,58 +3371,6 @@ export type Falsy = z.infer<typeof falsy>;
 const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
 
 // @public (undocumented)
-enum Features {
-    // (undocumented)
-    ClampFunction = 512,
-    // (undocumented)
-    Color = 64512,
-    // (undocumented)
-    ColorFunction = 1024,
-    // (undocumented)
-    CustomMediaQueries = 256,
-    // (undocumented)
-    DirSelector = 4,
-    // (undocumented)
-    DoublePositionGradients = 131072,
-    // (undocumented)
-    Empty = 0,
-    // (undocumented)
-    FontFamilySystemUi = 65536,
-    // (undocumented)
-    HexAlphaColors = 16384,
-    // (undocumented)
-    IsSelector = 16,
-    // (undocumented)
-    LabColors = 4096,
-    // (undocumented)
-    LangSelectorList = 8,
-    // (undocumented)
-    LogicalProperties = 524288,
-    // (undocumented)
-    MediaIntervalSyntax = 64,
-    // (undocumented)
-    MediaQueries = 448,
-    // (undocumented)
-    MediaRangeSyntax = 128,
-    // (undocumented)
-    Nesting = 1,
-    // (undocumented)
-    NotSelectorList = 2,
-    // (undocumented)
-    OklabColors = 2048,
-    // (undocumented)
-    P3Colors = 8192,
-    // (undocumented)
-    Selectors = 31,
-    // (undocumented)
-    SpaceSeparatedColorNotation = 32768,
-    // (undocumented)
-    TextDecorationThicknessPercent = 32,
-    // (undocumented)
-    VendorPrefixes = 262144
-}
-
-// @public (undocumented)
 const FetchCompileAsyncWasmPlugin: {
     new (): {
         name: BuiltinPluginName;
@@ -4848,25 +4793,39 @@ export type LibraryType = z.infer<typeof libraryType>;
 // @public (undocumented)
 const libraryType: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
 
-declare namespace lightningcss {
-    export {
-        browserslistToTargets,
-        Features,
-        Targets,
-        Drafts,
-        NonStandard,
-        PseudoClasses,
-        LightningcssLoaderOptions as LoaderOptions
-    }
-}
-export { lightningcss }
+// @public (undocumented)
+export type LightningcssFeatureOptions = {
+    nesting?: boolean;
+    notSelectorList?: boolean;
+    dirSelector?: boolean;
+    langSelectorList?: boolean;
+    isSelector?: boolean;
+    textDecorationThicknessPercent?: boolean;
+    mediaIntervalSyntax?: boolean;
+    mediaRangeSyntax?: boolean;
+    customMediaQueries?: boolean;
+    clampFunction?: boolean;
+    colorFunction?: boolean;
+    oklabColors?: boolean;
+    labColors?: boolean;
+    p3Colors?: boolean;
+    hexAlphaColors?: boolean;
+    spaceSeparatedColorNotation?: boolean;
+    fontFamilySystemUi?: boolean;
+    doublePositionGradients?: boolean;
+    vendorPrefixes?: boolean;
+    logicalProperties?: boolean;
+    selectors?: boolean;
+    mediaQueries?: boolean;
+    color?: boolean;
+};
 
 // @public (undocumented)
 export type LightningcssLoaderOptions = {
     errorRecovery?: boolean;
     targets?: Targets | string[] | string;
-    include?: Features;
-    exclude?: Features;
+    include?: LightningcssFeatureOptions;
+    exclude?: LightningcssFeatureOptions;
     draft?: Drafts;
     nonStandard?: NonStandard;
     pseudoClasses?: PseudoClasses;
@@ -8792,7 +8751,7 @@ declare namespace rspackExports {
         SwcLoaderTransformConfig,
         SwcLoaderTsParserConfig,
         LightningcssLoaderOptions,
-        lightningcss,
+        LightningcssFeatureOptions,
         experiments,
         getRawResolve,
         getRawLibrary,
