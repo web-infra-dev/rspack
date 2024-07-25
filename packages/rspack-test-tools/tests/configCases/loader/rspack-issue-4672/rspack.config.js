@@ -1,8 +1,11 @@
 const path = require("path");
 
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	resolve: {
-		tsConfigPath: path.resolve(__dirname, "./tsconfig.json")
+		tsConfig: {
+			configFile: path.resolve(__dirname, "./tsconfig.json")
+		}
 	},
 	module: {
 		rules: [
