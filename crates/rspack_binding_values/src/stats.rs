@@ -332,45 +332,43 @@ impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
 type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
 
-#[napi]
-#[rspack_napi_macros::getters]
-#[derive(Clone)]
+#[napi(object)]
 pub struct JsStatsModule {
-  r#type: &'static str,
-  module_type: &'static str,
-  identifier: &'static str,
-  name: String,
-  id: Option<String>,
-  chunks: Vec<Option<String>>,
-  size: f64,
-  depth: Option<u32>,
-  dependent: Option<bool>,
-  issuer: Option<String>,
-  issuer_name: Option<String>,
-  issuer_id: Option<String>,
-  issuer_path: Vec<JsStatsModuleIssuer>,
-  name_for_condition: Option<String>,
-  assets: Option<Vec<String>>,
-  source: Option<Either<String, Buffer>>,
-  orphan: bool,
-  provided_exports: Option<Vec<String>>,
-  used_exports: Option<Either<String, Vec<String>>>,
-  optimization_bailout: Option<Vec<String>>,
-  pre_order_index: Option<u32>,
-  post_order_index: Option<u32>,
-  built: bool,
-  code_generated: bool,
-  build_time_executed: bool,
-  cached: bool,
-  cacheable: bool,
-  optional: bool,
-  failed: bool,
-  errors: u32,
-  warnings: u32,
-  sizes: Vec<JsStatsSize>,
-  profile: Option<JsStatsModuleProfile>,
-  reasons: Option<Vec<JsStatsModuleReason>>,
-  modules: Option<Vec<JsStatsModule>>,
+  pub r#type: &'static str,
+  pub module_type: &'static str,
+  pub identifier: &'static str,
+  pub name: String,
+  pub id: Option<String>,
+  pub chunks: Vec<Option<String>>,
+  pub size: f64,
+  pub depth: Option<u32>,
+  pub dependent: Option<bool>,
+  pub issuer: Option<String>,
+  pub issuer_name: Option<String>,
+  pub issuer_id: Option<String>,
+  pub issuer_path: Vec<JsStatsModuleIssuer>,
+  pub name_for_condition: Option<String>,
+  pub assets: Option<Vec<String>>,
+  pub source: Option<Either<String, Buffer>>,
+  pub orphan: bool,
+  pub provided_exports: Option<Vec<String>>,
+  pub used_exports: Option<Either<String, Vec<String>>>,
+  pub optimization_bailout: Option<Vec<String>>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub build_time_executed: bool,
+  pub cached: bool,
+  pub cacheable: bool,
+  pub optional: bool,
+  pub failed: bool,
+  pub errors: u32,
+  pub warnings: u32,
+  pub sizes: Vec<JsStatsSize>,
+  pub profile: Option<JsStatsModuleProfile>,
+  pub reasons: Option<Vec<JsStatsModuleReason>>,
+  pub modules: Option<Vec<JsStatsModule>>,
 }
 
 impl TryFrom<StatsModule<'_>> for JsStatsModule {
@@ -477,7 +475,6 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
   }
 }
 
-#[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsModuleProfile {
   pub factory: JsStatsMillisecond,
@@ -493,7 +490,6 @@ impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
   }
 }
 
-#[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsMillisecond {
   pub secs: u32,
@@ -509,7 +505,6 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
   }
 }
 
-#[derive(Clone)]
 #[napi(object)]
 pub struct JsStatsModuleIssuer {
   pub identifier: &'static str,
@@ -527,15 +522,13 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
   }
 }
 
-#[napi]
-#[rspack_napi_macros::getters]
-#[derive(Clone)]
+#[napi(object)]
 pub struct JsStatsModuleReason {
-  module_identifier: Option<&'static str>,
-  module_name: Option<String>,
-  module_id: Option<String>,
-  r#type: Option<&'static str>,
-  user_request: Option<String>,
+  pub module_identifier: Option<&'static str>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
+  pub r#type: Option<&'static str>,
+  pub user_request: Option<String>,
 }
 
 impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
@@ -550,7 +543,6 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
   }
 }
 
-#[derive(Clone)]
 #[napi(object)]
 pub struct JsOriginRecord {
   pub module: String,
@@ -561,36 +553,34 @@ pub struct JsOriginRecord {
   pub request: String,
 }
 
-#[derive(Clone)]
-#[napi]
+#[napi(object)]
 pub struct JsStatsSize {
   pub source_type: String,
   pub size: f64,
 }
 
-#[napi]
-#[rspack_napi_macros::getters]
+#[napi(object)]
 pub struct JsStatsChunk {
-  r#type: String,
-  files: Vec<String>,
-  auxiliary_files: Vec<String>,
-  id: Option<String>,
-  id_hints: Vec<String>,
-  hash: Option<String>,
-  entry: bool,
-  initial: bool,
-  names: Vec<String>,
-  size: f64,
-  parents: Option<Vec<String>>,
-  children: Option<Vec<String>>,
-  siblings: Option<Vec<String>>,
-  children_by_order: HashMap<String, Vec<String>>,
-  runtime: Vec<String>,
-  reason: Option<String>,
-  rendered: bool,
-  sizes: Vec<JsStatsSize>,
-  origins: Vec<JsOriginRecord>,
-  modules: Option<Vec<JsStatsModule>>,
+  pub r#type: String,
+  pub files: Vec<String>,
+  pub auxiliary_files: Vec<String>,
+  pub id: Option<String>,
+  pub id_hints: Vec<String>,
+  pub hash: Option<String>,
+  pub entry: bool,
+  pub initial: bool,
+  pub names: Vec<String>,
+  pub size: f64,
+  pub parents: Option<Vec<String>>,
+  pub children: Option<Vec<String>>,
+  pub siblings: Option<Vec<String>>,
+  pub children_by_order: HashMap<String, Vec<String>>,
+  pub runtime: Vec<String>,
+  pub reason: Option<String>,
+  pub rendered: bool,
+  pub sizes: Vec<JsStatsSize>,
+  pub origins: Vec<JsOriginRecord>,
+  pub modules: Option<Vec<JsStatsModule>>,
 }
 
 impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
