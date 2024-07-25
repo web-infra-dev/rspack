@@ -78,7 +78,6 @@ impl RSCServerReferenceManifest {
     &self,
     compilation: &mut Compilation,
   ) -> Result<()> {
-    println!("guard");
     let now = Instant::now();
     let mut server_manifest = ServerReferenceManifest {
       // client components module map used in server bundler manifest
