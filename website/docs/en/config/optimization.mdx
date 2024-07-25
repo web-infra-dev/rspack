@@ -68,7 +68,7 @@ and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimiz
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
 ```js title=rspack.config.js
-const minifyPlugin = require('@rspack/plugin-minify');
+const terserPlugin = require('terser-webpack-plugin');
 module.exports = {
   context: __dirname,
   target: 'node',
@@ -77,11 +77,7 @@ module.exports = {
   },
   optimization: {
     minimize: true,
-    minimizer: [
-      new minifyPlugin({
-        minifier: 'terser',
-      }),
-    ],
+    minimizer: [new terserPlugin()],
   },
 };
 ```
