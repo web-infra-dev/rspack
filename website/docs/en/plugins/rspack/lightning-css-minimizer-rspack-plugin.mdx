@@ -10,7 +10,7 @@ This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets.
 module.exports = {
   // ...
   optimization: {
-    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin(options)],
   },
 };
 ```
@@ -68,3 +68,24 @@ At this point, the information that class name b is unused will be obtained via 
 - **Default:** `["defaults"]`
 
 Browserslist targets to compile the CSS for.
+
+### include
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to specify which files should be minified.
+
+### exclude
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to specify which files should be excluded from minification.
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to provide a pattern that css files are matched against. If the filename matches the given pattern, it will be minified, otherwise it won't be.

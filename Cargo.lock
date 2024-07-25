@@ -3720,6 +3720,8 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_regex",
+ "rspack_util",
  "tracing",
 ]
 
