@@ -1,11 +1,12 @@
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
@@ -14,13 +15,12 @@ ERROR in ./a.js
 
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[4:1]
        4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
          ╰────
       
   help: 
@@ -29,12 +29,13 @@ ERROR in ./a.js
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
@@ -43,13 +44,12 @@ ERROR in ./b.js
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[4:1]
        4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
          ╰────
       
   help: 
@@ -58,12 +58,13 @@ ERROR in ./b.js
 
 ERROR in ./c.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
@@ -72,13 +73,12 @@ ERROR in ./c.js
 
 ERROR in ./c.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[4:1]
        4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
          ╰────
       
   help: 
@@ -87,12 +87,13 @@ ERROR in ./c.js
 
 ERROR in ./d.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
@@ -101,13 +102,12 @@ ERROR in ./d.js
 
 ERROR in ./d.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[4:1]
        4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
          ╰────
       
   help: 
@@ -116,12 +116,13 @@ ERROR in ./d.js
 
 ERROR in ./e.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
@@ -130,13 +131,12 @@ ERROR in ./e.js
 
 ERROR in ./e.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[4:1]
        4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
          ╰────
       
   help: 
@@ -145,12 +145,13 @@ ERROR in ./e.js
 
 ERROR in ./f.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[1:1]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
@@ -159,21 +160,6 @@ ERROR in ./f.js
 
 ERROR in ./f.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
-       4 │     d = 10
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
- @ ./f.js
-
-ERROR in ./g.js
-  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
          ╭─[4:1]
        4 │     d = 10
@@ -184,7 +170,7 @@ ERROR in ./g.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./g.js
+ @ ./f.js
 
 ERROR in ./g.js
   × Module parse failed:
@@ -195,6 +181,20 @@ ERROR in ./g.js
          ·          ─
        3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+ @ ./g.js
+
+ERROR in ./g.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[4:1]
+       4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
          ╰────
       
   help: 

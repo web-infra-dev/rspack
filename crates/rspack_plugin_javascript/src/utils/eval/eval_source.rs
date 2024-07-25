@@ -18,7 +18,7 @@ pub fn eval_source<T: Display>(
   error_title: T,
 ) -> Option<BasicEvaluatedExpression> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
-  let fm = cm.new_source_file(FileName::Anon, source.clone());
+  let fm = cm.new_source_file(Arc::new(FileName::Anon), source.clone());
   let result = parse_file_as_expr(
     &fm,
     Syntax::Es(EsSyntax::default()),

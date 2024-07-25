@@ -11,7 +11,7 @@ use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use swc_core::common::{source_map::Pos, BytePos, SourceMap};
+use swc_core::common::{BytePos, SourceMap};
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
@@ -70,8 +70,8 @@ impl From<(u32, u32)> for DependencyLocation {
 impl Display for DependencyLocation {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if let Some(source) = &self.source {
-      let pos = source.lookup_char_pos(BytePos::from_u32(self.start + 1));
-      let pos = format!("{}:{}", pos.line, pos.col.to_usize());
+      let pos = source.lookup_char_pos(BytePos(self.start + 1));
+      let pos = format!("{}:{}", pos.line, pos.col.0);
       f.write_str(format!("{}-{}", pos, self.end - self.start).as_str())
     } else {
       Ok(())

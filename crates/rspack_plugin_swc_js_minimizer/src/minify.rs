@@ -114,7 +114,7 @@ pub fn minify(
         DiagnosticKind::JavaScript,
         cm.clone(),
         |handler| {
-          let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
+          let fm = cm.new_source_file(Arc::new(FileName::Custom(filename.to_string())), input);
           let target = opts.ecma.clone().into();
 
           let source_map = opts

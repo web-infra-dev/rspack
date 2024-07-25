@@ -877,7 +877,7 @@ impl JsPlugin {
               if !use_cache {
                 let cm: Arc<swc_core::common::SourceMap> = Default::default();
                 let fm = cm.new_source_file(
-                  FileName::Custom(m.identifier().to_string()),
+                  Arc::new(FileName::Custom(m.identifier().to_string())),
                   code.source().to_string(),
                 );
                 let comments = swc_node_comments::SwcComments::default();
@@ -913,14 +913,14 @@ impl JsPlugin {
                     let mut module_scope_idents = Vec::new();
 
                     for ident in collector.ids {
-                      if ident.id.span.ctxt == global_ctxt
-                        || ident.id.span.ctxt != module_ctxt
+                      if ident.id.ctxt == global_ctxt
+                        || ident.id.ctxt != module_ctxt
                         || ident.is_class_expr_with_ident
                       {
                         acc.all_used_names.insert(ident.id.sym.clone());
                       }
 
-                      if ident.id.span.ctxt == module_ctxt {
+                      if ident.id.ctxt == module_ctxt {
                         acc.all_used_names.insert(ident.id.sym.clone());
                         module_scope_idents.push(Arc::new(ident));
                       }
@@ -948,7 +948,7 @@ impl JsPlugin {
                     let module_ident = m.identifier();
 
                     for ident in collector.ids {
-                      if ident.id.span.ctxt == global_ctxt {
+                      if ident.id.ctxt == global_ctxt {
                         acc.all_used_names.insert(ident.clone().id.sym.clone());
                         idents_vec.push(ident.clone());
                         acc.non_inlined_module_through_idents.push(ident);
@@ -1049,7 +1049,7 @@ impl JsPlugin {
       for module_scope_ident in module_scope_idents.iter() {
         match binding_to_ref.entry((
           module_scope_ident.id.sym.clone(),
-          module_scope_ident.id.span.ctxt,
+          module_scope_ident.id.ctxt,
         )) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().push(module_scope_ident.deref().clone());
