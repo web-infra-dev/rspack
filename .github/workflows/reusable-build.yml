@@ -72,7 +72,7 @@ jobs:
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -273,7 +273,7 @@ jobs:
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
