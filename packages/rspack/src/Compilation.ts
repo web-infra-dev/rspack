@@ -141,6 +141,16 @@ export interface KnownNormalizedStatsOptions {
 	logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
 	loggingDebug: ((value: string) => boolean)[];
 	loggingTrace: boolean;
+	chunkModules: boolean;
+	chunkRelations: boolean;
+	reasons: boolean;
+	moduleAssets: boolean;
+	nestedModules: boolean;
+	source: boolean;
+	usedExports: boolean;
+	providedExports: boolean;
+	optimizationBailout: boolean;
+	depth: boolean;
 }
 
 export type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &

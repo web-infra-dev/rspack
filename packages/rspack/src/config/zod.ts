@@ -1123,7 +1123,9 @@ const statsOptions = z.strictObject({
 	groupReasonsByOrigin: z.boolean().optional(),
 	errorDetails: z.boolean().optional(),
 	errorStack: z.boolean().optional(),
-	moduleTrace: z.boolean().optional()
+	moduleTrace: z.boolean().optional(),
+	cachedModules: z.boolean().optional(),
+	cached: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 

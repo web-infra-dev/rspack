@@ -76,8 +76,8 @@ export class JsResolverFactory {
 
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
+  getModules(jsOptions: JsStatsOptions): Array<JsStatsModule>
+  getChunks(jsOptions: JsStatsOptions): Array<JsStatsChunk>
   getEntrypoints(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
   getNamedChunkGroups(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -631,21 +631,21 @@ export interface JsStatsMillisecond {
 export interface JsStatsModule {
   type: string
   moduleType: string
-  identifier: string
-  name: string
+  identifier?: string
+  name?: string
   id?: string
-  chunks: Array<string | undefined | null>
+  chunks?: Array<string | undefined | null>
   size: number
   depth?: number
   dependent?: boolean
   issuer?: string
   issuerName?: string
   issuerId?: string
-  issuerPath: Array<JsStatsModuleIssuer>
+  issuerPath?: Array<JsStatsModuleIssuer>
   nameForCondition?: string
   assets?: Array<string>
   source?: string | Buffer
-  orphan: boolean
+  orphan?: boolean
   providedExports?: Array<string>
   usedExports?: string | Array<string>
   optimizationBailout?: Array<string>
@@ -655,11 +655,11 @@ export interface JsStatsModule {
   codeGenerated: boolean
   buildTimeExecuted: boolean
   cached: boolean
-  cacheable: boolean
-  optional: boolean
-  failed: boolean
-  errors: number
-  warnings: number
+  cacheable?: boolean
+  optional?: boolean
+  failed?: boolean
+  errors?: number
+  warnings?: number
   sizes: Array<JsStatsSize>
   profile?: JsStatsModuleProfile
   reasons?: Array<JsStatsModuleReason>
@@ -698,6 +698,21 @@ export interface JsStatsModuleTraceModule {
 
 export interface JsStatsOptimizationBailout {
   inner: string
+}
+
+export interface JsStatsOptions {
+  cachedModules: boolean
+  chunkModules: boolean
+  chunkRelations: boolean
+  reasons: boolean
+  moduleAssets: boolean
+  nestedModules: boolean
+  source: boolean
+  usedExports: boolean
+  providedExports: boolean
+  ids: boolean
+  optimizationBailout: boolean
+  depth: boolean
 }
 
 export interface JsStatsSize {

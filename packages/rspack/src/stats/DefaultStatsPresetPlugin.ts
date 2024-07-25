@@ -214,8 +214,8 @@ const DEFAULTS: StatsDefault = {
 			: forToString
 				? all === true
 				: all !== false,
-	// cachedModules: ({ all, cached }, { forToString }) =>
-	// 	cached !== undefined ? cached : forToString ? all === true : all !== false,
+	cachedModules: ({ all, cached }, { forToString }) =>
+		cached !== undefined ? cached : forToString ? all === true : all !== false,
 	moduleAssets: OFF_FOR_TO_STRING,
 	depth: OFF_FOR_TO_STRING,
 	// cachedAssets: OFF_FOR_TO_STRING,

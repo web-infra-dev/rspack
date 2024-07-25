@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Stats, StatsChunk, StatsModule, StatsUsedExports};
+use rspack_core::{ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports};
 use rspack_napi::napi::bindgen_prelude::Buffer;
 use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
@@ -336,21 +336,21 @@ type JsStatsUsedExports = Either<String, Vec<String>>;
 pub struct JsStatsModule {
   pub r#type: &'static str,
   pub module_type: &'static str,
-  pub identifier: &'static str,
-  pub name: String,
+  pub identifier: Option<&'static str>,
+  pub name: Option<String>,
   pub id: Option<String>,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Option<Vec<Option<String>>>,
   pub size: f64,
   pub depth: Option<u32>,
   pub dependent: Option<bool>,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
-  pub issuer_path: Vec<JsStatsModuleIssuer>,
+  pub issuer_path: Option<Vec<JsStatsModuleIssuer>>,
   pub name_for_condition: Option<String>,
   pub assets: Option<Vec<String>>,
   pub source: Option<Either<String, Buffer>>,
-  pub orphan: bool,
+  pub orphan: Option<bool>,
   pub provided_exports: Option<Vec<String>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
   pub optimization_bailout: Option<Vec<String>>,
@@ -360,11 +360,11 @@ pub struct JsStatsModule {
   pub code_generated: bool,
   pub build_time_executed: bool,
   pub cached: bool,
-  pub cacheable: bool,
-  pub optional: bool,
-  pub failed: bool,
-  pub errors: u32,
-  pub warnings: u32,
+  pub cacheable: Option<bool>,
+  pub optional: Option<bool>,
+  pub failed: Option<bool>,
+  pub errors: Option<u32>,
+  pub warnings: Option<u32>,
   pub sizes: Vec<JsStatsSize>,
   pub profile: Option<JsStatsModuleProfile>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
@@ -423,13 +423,13 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
 
     Ok(Self {
       r#type: stats_module.r#type,
-      name: stats_module.name.into_owned(),
+      name: stats_module.name.map(|n| n.to_string()),
       size: stats_module.size,
       sizes,
       depth: stats_module.depth.map(|d| d as u32),
       chunks: stats_module.chunks,
       module_type: stats_module.module_type.as_str(),
-      identifier: stats_module.identifier.as_str(),
+      identifier: stats_module.identifier.map(|id| id.as_str()),
       id: stats_module.id.map(|i| i.to_owned()),
       dependent: stats_module.dependent,
       issuer: stats_module.issuer.map(|i| i.to_owned()),
@@ -438,9 +438,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       name_for_condition: stats_module.name_for_condition,
       issuer_path: stats_module
         .issuer_path
-        .into_iter()
-        .map(Into::into)
-        .collect(),
+        .map(|path| path.into_iter().map(Into::into).collect()),
       reasons,
       assets: stats_module.assets,
       source,
@@ -458,7 +456,9 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
           }
           StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
         }),
-      optimization_bailout: Some(stats_module.optimization_bailout.to_vec()),
+      optimization_bailout: stats_module
+        .optimization_bailout
+        .map(|bailout| bailout.to_vec()),
       modules,
       pre_order_index: stats_module.pre_order_index,
       post_order_index: stats_module.post_order_index,
@@ -730,6 +730,41 @@ impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
   }
 }
 
+#[napi(object, object_to_js = false)]
+pub struct JsStatsOptions {
+  pub cached_modules: bool,
+  pub chunk_modules: bool,
+  pub chunk_relations: bool,
+  pub reasons: bool,
+  pub module_assets: bool,
+  pub nested_modules: bool,
+  pub source: bool,
+  pub used_exports: bool,
+  pub provided_exports: bool,
+  pub ids: bool,
+  pub optimization_bailout: bool,
+  pub depth: bool,
+}
+
+impl From<JsStatsOptions> for ExtendedStatsOptions {
+  fn from(value: JsStatsOptions) -> Self {
+    Self {
+      cached_modules: value.cached_modules,
+      chunk_modules: value.chunk_modules,
+      chunk_relations: value.chunk_relations,
+      reasons: value.reasons,
+      module_assets: value.module_assets,
+      nested_modules: value.nested_modules,
+      source: value.source,
+      used_exports: value.used_exports,
+      provided_exports: value.provided_exports,
+      ids: value.ids,
+      optimization_bailout: value.optimization_bailout,
+      depth: value.depth,
+    }
+  }
+}
+
 #[napi]
 pub struct JsStats {
   inner: SharedReference<JsCompilation, Stats<'static>>,
@@ -760,57 +795,25 @@ impl JsStats {
     }
   }
 
-  #[allow(clippy::too_many_arguments)]
   #[napi]
-  pub fn get_modules(
-    &self,
-    reasons: bool,
-    module_assets: bool,
-    nested_modules: bool,
-    source: bool,
-    used_exports: bool,
-    provided_exports: bool,
-  ) -> Result<Vec<JsStatsModule>> {
+  pub fn get_modules(&self, js_options: JsStatsOptions) -> Result<Vec<JsStatsModule>> {
+    let options = ExtendedStatsOptions::from(js_options);
     self
       .inner
-      .get_modules(
-        reasons,
-        module_assets,
-        nested_modules,
-        source,
-        used_exports,
-        provided_exports,
-        |res| res.into_iter().map(JsStatsModule::try_from).collect(),
-      )
+      .get_modules(&options, |res| {
+        res.into_iter().map(JsStatsModule::try_from).collect()
+      })
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
-  #[allow(clippy::too_many_arguments)]
   #[napi]
-  pub fn get_chunks(
-    &self,
-    chunk_modules: bool,
-    chunks_relations: bool,
-    reasons: bool,
-    module_assets: bool,
-    nested_modules: bool,
-    source: bool,
-    used_exports: bool,
-    provided_exports: bool,
-  ) -> Result<Vec<JsStatsChunk>> {
+  pub fn get_chunks(&self, js_options: JsStatsOptions) -> Result<Vec<JsStatsChunk>> {
+    let options = ExtendedStatsOptions::from(js_options);
     self
       .inner
-      .get_chunks(
-        chunk_modules,
-        chunks_relations,
-        reasons,
-        module_assets,
-        nested_modules,
-        source,
-        used_exports,
-        provided_exports,
-        |res| res.into_iter().map(JsStatsChunk::try_from).collect(),
-      )
+      .get_chunks(&options, |res| {
+        res.into_iter().map(JsStatsChunk::try_from).collect()
+      })
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
