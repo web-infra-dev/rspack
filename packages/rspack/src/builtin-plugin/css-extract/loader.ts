@@ -1,14 +1,14 @@
 import path from "node:path";
 
-import type { Filename, LoaderContext, LoaderDefinition } from "../..";
-import { CssExtractRspackPlugin } from "./index";
 import schema from "./loader-options.json";
+import { CssExtractRspackPlugin } from "./index";
 import { stringifyLocal, stringifyRequest } from "./utils";
+import type { Filename, LoaderContext, LoaderDefinition } from "../..";
 
+export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-export const ABSOLUTE_PUBLIC_PATH = "webpack:///mini-css-extract-plugin/";
-export const BASE_URI = "webpack://";
+export const ABSOLUTE_PUBLIC_PATH = BASE_URI + "/mini-css-extract-plugin/";
 export const SINGLE_DOT_PATH_SEGMENT =
 	"__mini_css_extract_plugin_single_dot_path_segment__";
 
@@ -43,22 +43,32 @@ function hotLoader(
 		options: CssExtractRspackLoaderOptions;
 		locals: Record<string, string>;
 	}
-) {
-	const accept = context.locals
-		? ""
-		: "module.hot.accept(undefined, cssReload);";
+): string {
+	const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
 	return `${content}
     if(module.hot) {
-      // ${Date.now()}
-      var cssReload = require(${stringifyRequest(
-				context.loaderContext,
-				path.join(__dirname, "./hmr/hotModuleReplacement.js")
-			)}).cssReload(module.id, ${JSON.stringify({
-				...context.options,
-				locals: !!context.locals
-			})});
-      module.hot.dispose(cssReload);
-      ${accept}
+      (function() {
+        var localsJsonString = ${localsJsonString};
+        // ${Date.now()}
+        var cssReload = require(${stringifyRequest(
+					context.loaderContext,
+					path.join(__dirname, "hmr/hotModuleReplacement.js")
+				)})(module.id, ${JSON.stringify(context.options)});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   `;
 }
