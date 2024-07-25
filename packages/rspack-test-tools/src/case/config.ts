@@ -11,6 +11,17 @@ export type TConfigCaseConfig = Omit<
 const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
+	testConfig: (testConfig) => {
+		let oldModuleScope = testConfig.moduleScope;
+		testConfig.moduleScope = (ms, stats) => {
+			let res = ms;
+			// TODO: modify runner module scope based on stats here
+			if (typeof oldModuleScope === 'function') {
+				res = oldModuleScope(ms, stats);
+			}
+			return res;
+		};
+	},
 	steps: ({ name }) => [
 		new ConfigProcessor({
 			name,

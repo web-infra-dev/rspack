@@ -52,12 +52,11 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
 
 export abstract class BasicRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> implements ITestRunner
-{
+> implements ITestRunner {
 	protected globalContext: IBasicGlobalContext | null = null;
 	protected baseModuleScope: IBasicModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
-	constructor(protected _options: IBasicRunnerOptions<T>) {}
+	constructor(protected _options: IBasicRunnerOptions<T>) { }
 
 	run(file: string): Promise<unknown> {
 		if (!this.globalContext) {
@@ -65,7 +64,7 @@ export abstract class BasicRunner<
 		}
 		this.baseModuleScope = this.createBaseModuleScope();
 		if (typeof this._options.testConfig.moduleScope === "function") {
-			this._options.testConfig.moduleScope(this.baseModuleScope);
+			this._options.testConfig.moduleScope(this.baseModuleScope, this._options.stats);
 		}
 		this.createRunner();
 		const res = this.getRequire()(
@@ -133,8 +132,8 @@ export abstract class BasicRunner<
 		return null;
 	}
 
-	protected preExecute(code: string, file: TBasicRunnerFile) {}
-	protected postExecute(m: Object, file: TBasicRunnerFile) {}
+	protected preExecute(code: string, file: TBasicRunnerFile) { }
+	protected postExecute(m: Object, file: TBasicRunnerFile) { }
 
 	protected createRunner() {
 		this.requirers.set(

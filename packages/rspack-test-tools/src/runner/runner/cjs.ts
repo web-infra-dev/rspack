@@ -117,7 +117,7 @@ export class CommonJsRunner<
 			);
 
 			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(currentModuleScope);
+				this._options.testConfig.moduleScope(currentModuleScope, this._options.stats);
 			}
 
 			if (!this._options.runInNewContext) {
