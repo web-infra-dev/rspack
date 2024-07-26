@@ -69,6 +69,14 @@ npm install -g speedscope
 speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 ```
 
+### Rsdoctor Timeline
+
+如果我们想要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+
+参考 [Rsdoctor Compilation Analysis](/guide/optimization/profile#rsdoctor-%E7%9A%84%E7%BC%96%E8%AF%91%E5%88%86%E6%9E%90)
+
 ## Mac Xcode Instruments
 
 如果您使用的是 Mac，则 Xcode Instruments 工具可用于生成 CPU profile 文件。

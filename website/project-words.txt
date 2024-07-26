@@ -118,6 +118,8 @@ Rollup
 rome
 rsbuild
 Rsdoctor
+rsdoctor
+rsdoctors
 rsfamily
 Rslib
 rspack
