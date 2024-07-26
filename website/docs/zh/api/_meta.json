@@ -10,6 +10,11 @@
   "hmr",
   {
     "type": "dir",
+    "name": "objects",
+    "label": "对象"
+  },
+  {
+    "type": "dir",
     "name": "loader-api",
     "label": "Loader API"
   },
@@ -17,6 +22,5 @@
     "type": "dir",
     "name": "plugin-api",
     "label": "插件 API"
-  },
-  "stats"
+  }
 ]
