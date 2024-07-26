@@ -5,6 +5,7 @@
 /* eslint-disable no-console */
 
 const hotModuleReplacement = require("../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement").cssReload;
+const hotLoader = require("../../../packages/rspack/dist/builtin-plugin/css-extract/loader").hotLoader;
 
 function getLoadEvent() {
 	const event = document.createEvent("Event");
@@ -361,4 +362,29 @@ describe("HMR", () => {
 			done();
 		}, 100);
 	});
+
+	it("hotLoader works for non-locals", () => {
+    const o = Date.now;
+    Date.now = () => 1;
+    const code = hotLoader("//content;", {
+      loaderContext: {
+        context: __dirname,
+      },
+    });
+    Date.now = o;
+    expect(code).toMatchSnapshot();
+  });
+
+  it("hotLoader works for locals", () => {
+    const o = Date.now;
+    Date.now = () => 1;
+    const code = hotLoader("//content;", {
+      loaderContext: {
+        context: __dirname,
+      },
+      locals: { foo: "bar" },
+    });
+    Date.now = o;
+    expect(code).toMatchSnapshot();
+  });
 });

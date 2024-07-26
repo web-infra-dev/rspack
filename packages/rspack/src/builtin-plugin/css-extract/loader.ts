@@ -1,9 +1,9 @@
 import path from "node:path";
 
-import schema from "./loader-options.json";
-import { CssExtractRspackPlugin } from "./index";
-import { stringifyLocal, stringifyRequest } from "./utils";
 import type { Filename, LoaderContext, LoaderDefinition } from "../..";
+import { CssExtractRspackPlugin } from "./index";
+import schema from "./loader-options.json";
+import { stringifyLocal, stringifyRequest } from "./utils";
 
 export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
@@ -36,12 +36,12 @@ export interface CssExtractRspackLoaderOptions {
 	defaultExport?: boolean;
 }
 
-function hotLoader(
+export function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: CssExtractRspackLoaderOptions;
-		locals: Record<string, string>;
+		options?: CssExtractRspackLoaderOptions;
+		locals?: Record<string, string>;
 	}
 ): string {
 	const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
@@ -53,7 +53,7 @@ function hotLoader(
         var cssReload = require(${stringifyRequest(
 					context.loaderContext,
 					path.join(__dirname, "hmr/hotModuleReplacement.js")
-				)})(module.id, ${JSON.stringify(context.options)});
+				)}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
         // only invalidate when locals change
         if (
           module.hot.data &&
