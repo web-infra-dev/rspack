@@ -8,14 +8,14 @@ import {
 } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
-type Writable<T> = {
-	-readonly [K in keyof T]: T[K];
-};
-
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
-export type KnownStatsChunk = Omit<Writable<binding.JsStatsChunk>, "sizes"> & {
+export type KnownStatsChunk = Omit<
+	binding.JsStatsChunk,
+	"sizes" | "origins"
+> & {
 	sizes: Record<string, number>;
+	origins: StatsChunkOrigin[];
 };
 
 export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related">;
@@ -29,8 +29,12 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
 export type KnownStatsModule = Omit<
-	Writable<binding.JsStatsModule>,
-	"usedExports" | "providedExports" | "optimizationBailout" | "sizes"
+	binding.JsStatsModule,
+	| "usedExports"
+	| "providedExports"
+	| "optimizationBailout"
+	| "sizes"
+	| "identifier"
 > & {
 	profile?: StatsProfile;
 	usedExports?: null | string[] | boolean;
@@ -39,6 +43,7 @@ export type KnownStatsModule = Omit<
 	sizes: Record<string, number>;
 	index?: number; // =preOrderIndex
 	index2?: number; // =postOrderIndex
+	identifier?: string;
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;
@@ -51,12 +56,20 @@ export type KnownStatsProfile = {
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
-export type StatsModuleIssuer = binding.JsStatsModuleIssuer &
-	Record<string, any>;
+export type StatsModuleIssuer = Omit<
+	binding.JsStatsModuleIssuer,
+	"identifier"
+> & {
+	identifier?: string;
+} & Record<string, any>;
 
-export type StatsError = binding.JsStatsError & Record<string, any>;
+export type StatsError = Omit<binding.JsStatsError, "moduleIdentifier"> & {
+	moduleIdentifier?: string;
+} & Record<string, any>;
 
-export type StatsWarnings = binding.JsStatsWarning & Record<string, any>;
+export type StatsWarnings = Omit<binding.JsStatsWarning, "moduleIdentifier"> & {
+	moduleIdentifier?: string;
+} & Record<string, any>;
 
 export type StatsModuleTraceItem = {
 	originIdentifier?: string;
@@ -67,8 +80,20 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = Writable<binding.JsStatsModuleReason> &
-	Record<string, any>;
+export type StatsModuleReason = Omit<
+	binding.JsStatsModuleReason,
+	"moduleIdentifier"
+> & {
+	moduleIdentifier?: string;
+} & Record<string, any>;
+
+export type StatsChunkOrigin = Omit<
+	binding.JsOriginRecord,
+	"module" | "moduleIdentifier"
+> & {
+	module: string;
+	moduleIdentifier: string;
+};
 
 export type KnownStatsCompilation = {
 	/**
@@ -175,7 +200,7 @@ export type SimpleExtractors = {
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	warning: ExtractorsByOption<binding.JsStatsWarning, StatsWarnings>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem

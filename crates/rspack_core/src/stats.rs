@@ -332,10 +332,7 @@ impl Stats<'_> {
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
             chunk_group.origins().iter().map(|origin| {
-              let module_identifier = origin
-                .module_id
-                .map(|id| id.to_string())
-                .unwrap_or_default();
+              let module_identifier = origin.module_id;
 
               let module_name = origin
                 .module_id
@@ -360,7 +357,7 @@ impl Stats<'_> {
                 .unwrap_or_default();
 
               StatsOriginRecord {
-                module: module_identifier.clone(),
+                module: module_identifier,
                 module_id,
                 module_identifier,
                 module_name,
@@ -569,7 +566,7 @@ impl Stats<'_> {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
-          module_identifier: module_identifier.map(|i| i.as_str()),
+          module_identifier,
           module_name,
           module_id: module_id.flatten(),
           file: d.file().map(ToOwned::to_owned),
@@ -614,7 +611,7 @@ impl Stats<'_> {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
-          module_identifier: module_identifier.map(|i| i.as_str()),
+          module_identifier,
           module_name,
           module_id: module_id.flatten(),
           file: d.file().map(ToOwned::to_owned),
@@ -779,7 +776,7 @@ impl Stats<'_> {
           get_stats_module_name_and_id(i, self.compilation)
         };
         issuer_path.push(StatsModuleIssuer {
-          identifier: i.identifier().as_str(),
+          identifier: i.identifier(),
           name,
           id,
         });
@@ -902,7 +899,7 @@ impl Stats<'_> {
               (None, None)
             };
           Some(StatsModuleReason {
-            module_identifier: connection.original_module_identifier.map(|i| i.as_str()),
+            module_identifier: connection.original_module_identifier,
             module_name,
             module_id: module_id.and_then(|i| i),
             r#type,
@@ -1202,7 +1199,7 @@ impl Stats<'_> {
         break;
       };
       let origin_stats_module = StatsErrorModuleTraceModule {
-        identifier: origin_module.identifier().to_string(),
+        identifier: origin_module.identifier(),
         name: Some(
           origin_module
             .readable_identifier(&self.compilation.options.context)
@@ -1216,7 +1213,7 @@ impl Stats<'_> {
       };
 
       let current_stats_module = StatsErrorModuleTraceModule {
-        identifier: current_module.identifier().to_string(),
+        identifier: current_module.identifier(),
         name: Some(
           current_module
             .readable_identifier(&self.compilation.options.context)
@@ -1258,7 +1255,7 @@ fn get_stats_module_name_and_id<'s, 'c>(
 #[derive(Debug)]
 pub struct StatsError<'s> {
   pub message: String,
-  pub module_identifier: Option<&'static str>,
+  pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
   pub file: Option<PathBuf>,
@@ -1275,7 +1272,7 @@ pub struct StatsError<'s> {
 #[derive(Debug)]
 pub struct StatsWarning<'s> {
   pub message: String,
-  pub module_identifier: Option<&'static str>,
+  pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
   pub file: Option<PathBuf>,
@@ -1297,7 +1294,7 @@ pub struct StatsModuleTrace {
 
 #[derive(Debug)]
 pub struct StatsErrorModuleTraceModule {
-  pub identifier: String,
+  pub identifier: ModuleIdentifier,
   pub name: Option<String>,
   pub id: Option<String>,
 }
@@ -1397,9 +1394,9 @@ pub struct StatsModuleProfile {
 
 #[derive(Debug)]
 pub struct StatsOriginRecord {
-  pub module: String,
+  pub module: Option<ModuleIdentifier>,
   pub module_id: String,
-  pub module_identifier: String,
+  pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: String,
   pub loc: String,
   pub request: String,
@@ -1454,14 +1451,14 @@ pub struct StatsChunkGroupChildren {
 
 #[derive(Debug)]
 pub struct StatsModuleIssuer<'s> {
-  pub identifier: &'static str,
+  pub identifier: ModuleIdentifier,
   pub name: Cow<'s, str>,
   pub id: Option<&'s str>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason<'s> {
-  pub module_identifier: Option<&'static str>,
+  pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
   pub r#type: Option<&'static str>,

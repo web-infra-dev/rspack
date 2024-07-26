@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use napi::bindgen_prelude::FromNapiValue;
 use napi_derive::napi;
 use rspack_core::{ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports};
 use rspack_napi::napi::bindgen_prelude::Buffer;
@@ -7,18 +6,20 @@ use rspack_napi::napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompilation, ToJsCompatSource};
+use crate::identifier::JsIdentifier;
 
-#[napi(object)]
-#[derive(Debug)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsError {
   pub message: String,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub file: Option<String>,
-  pub module_identifier: Option<&'static str>,
+  #[napi(ts_type = "Buffer")]
+  pub module_identifier: Option<JsIdentifier>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub chunk_id: Option<String>,
@@ -27,11 +28,20 @@ pub struct JsStatsError {
   pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
+impl FromNapiValue for JsStatsError {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
 impl From<rspack_core::StatsError<'_>> for JsStatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
       message: stats.message,
-      module_identifier: stats.module_identifier,
+      module_identifier: stats.module_identifier.map(JsIdentifier::from),
       module_name: stats.module_name.map(|i| i.into_owned()),
       module_id: stats.module_id.map(|i| i.to_owned()),
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
@@ -50,14 +60,15 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsWarning {
   pub message: String,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub file: Option<String>,
-  pub module_identifier: Option<&'static str>,
+  #[napi(ts_type = "Buffer")]
+  pub module_identifier: Option<JsIdentifier>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub chunk_id: Option<String>,
@@ -66,11 +77,20 @@ pub struct JsStatsWarning {
   pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
+impl FromNapiValue for JsStatsWarning {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
 impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
   fn from(stats: rspack_core::StatsWarning) -> Self {
     Self {
       message: stats.message,
-      module_identifier: stats.module_identifier,
+      module_identifier: stats.module_identifier.map(JsIdentifier::from),
       module_name: stats.module_name.map(|i| i.into_owned()),
       module_id: stats.module_id.map(|i| i.to_owned()),
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
@@ -105,18 +125,28 @@ impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 #[derive(Debug)]
 pub struct JsStatsModuleTraceModule {
-  pub identifier: String,
+  #[napi(ts_type = "Buffer")]
+  pub identifier: JsIdentifier,
   pub name: Option<String>,
   pub id: Option<String>,
+}
+
+impl FromNapiValue for JsStatsModuleTraceModule {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule {
   fn from(stats: rspack_core::StatsErrorModuleTraceModule) -> Self {
     Self {
-      identifier: stats.identifier,
+      identifier: JsIdentifier::from(stats.identifier),
       name: stats.name,
       id: stats.id,
     }
@@ -332,11 +362,12 @@ impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
 type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModule {
   pub r#type: &'static str,
   pub module_type: &'static str,
-  pub identifier: Option<&'static str>,
+  #[napi(ts_type = "Buffer")]
+  pub identifier: Option<JsIdentifier>,
   pub name: Option<String>,
   pub id: Option<String>,
   pub chunks: Option<Vec<Option<String>>>,
@@ -371,11 +402,20 @@ pub struct JsStatsModule {
   pub modules: Option<Vec<JsStatsModule>>,
 }
 
+impl FromNapiValue for JsStatsModule {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
 impl TryFrom<StatsModule<'_>> for JsStatsModule {
   type Error = napi::Error;
 
-  fn try_from(stats_module: StatsModule) -> std::result::Result<Self, Self::Error> {
-    let source = stats_module
+  fn try_from(stats: StatsModule) -> std::result::Result<Self, Self::Error> {
+    let source = stats
       .source
       .map(|source| {
         source.to_js_compat_source().map(|js_compat_source| {
@@ -390,7 +430,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-    let mut sizes = stats_module
+    let mut sizes = stats
       .sizes
       .into_iter()
       .map(|s| JsStatsSize {
@@ -399,7 +439,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       })
       .collect::<Vec<_>>();
     sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
-    let modules: Option<Vec<JsStatsModule>> = stats_module
+    let modules: Option<Vec<JsStatsModule>> = stats
       .modules
       .map(|modules| -> Result<_> {
         modules
@@ -410,7 +450,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-    let reasons = match stats_module.reasons {
+    let reasons = match stats.reasons {
       Some(reasons) => {
         let js_reasons = reasons
           .into_iter()
@@ -422,55 +462,51 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     };
 
     Ok(Self {
-      r#type: stats_module.r#type,
-      name: stats_module.name.map(|n| n.to_string()),
-      size: stats_module.size,
+      r#type: stats.r#type,
+      name: stats.name.map(|n| n.to_string()),
+      size: stats.size,
       sizes,
-      depth: stats_module.depth.map(|d| d as u32),
-      chunks: stats_module.chunks,
-      module_type: stats_module.module_type.as_str(),
-      identifier: stats_module.identifier.map(|id| id.as_str()),
-      id: stats_module.id.map(|i| i.to_owned()),
-      dependent: stats_module.dependent,
-      issuer: stats_module.issuer.map(|i| i.to_owned()),
-      issuer_name: stats_module.issuer_name.map(|i| i.into_owned()),
-      issuer_id: stats_module.issuer_id.map(|i| i.to_owned()),
-      name_for_condition: stats_module.name_for_condition,
-      issuer_path: stats_module
+      depth: stats.depth.map(|d| d as u32),
+      chunks: stats.chunks,
+      module_type: stats.module_type.as_str(),
+      identifier: stats.identifier.map(JsIdentifier::from),
+      id: stats.id.map(|i| i.to_owned()),
+      dependent: stats.dependent,
+      issuer: stats.issuer.map(|i| i.to_owned()),
+      issuer_name: stats.issuer_name.map(|i| i.into_owned()),
+      issuer_id: stats.issuer_id.map(|i| i.to_owned()),
+      name_for_condition: stats.name_for_condition,
+      issuer_path: stats
         .issuer_path
         .map(|path| path.into_iter().map(Into::into).collect()),
       reasons,
-      assets: stats_module.assets,
+      assets: stats.assets,
       source,
-      profile: stats_module.profile.map(|p| p.into()),
-      orphan: stats_module.orphan,
-      provided_exports: stats_module
+      profile: stats.profile.map(|p| p.into()),
+      orphan: stats.orphan,
+      provided_exports: stats
         .provided_exports
         .map(|exports| exports.into_iter().map(|i| i.to_string()).collect()),
-      used_exports: stats_module
-        .used_exports
-        .map(|used_exports| match used_exports {
-          StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
-          StatsUsedExports::Vec(v) => {
-            JsStatsUsedExports::B(v.into_iter().map(|i| i.to_string()).collect())
-          }
-          StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
-        }),
-      optimization_bailout: stats_module
-        .optimization_bailout
-        .map(|bailout| bailout.to_vec()),
+      used_exports: stats.used_exports.map(|used_exports| match used_exports {
+        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
+        StatsUsedExports::Vec(v) => {
+          JsStatsUsedExports::B(v.into_iter().map(|i| i.to_string()).collect())
+        }
+        StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
+      }),
+      optimization_bailout: stats.optimization_bailout.map(|bailout| bailout.to_vec()),
       modules,
-      pre_order_index: stats_module.pre_order_index,
-      post_order_index: stats_module.post_order_index,
-      built: stats_module.built,
-      code_generated: stats_module.code_generated,
-      build_time_executed: stats_module.build_time_executed,
-      cached: stats_module.cached,
-      cacheable: stats_module.cacheable,
-      optional: stats_module.optional,
-      failed: stats_module.failed,
-      errors: stats_module.errors,
-      warnings: stats_module.warnings,
+      pre_order_index: stats.pre_order_index,
+      post_order_index: stats.post_order_index,
+      built: stats.built,
+      code_generated: stats.code_generated,
+      build_time_executed: stats.build_time_executed,
+      cached: stats.cached,
+      cacheable: stats.cacheable,
+      optional: stats.optional,
+      failed: stats.failed,
+      errors: stats.errors,
+      warnings: stats.warnings,
     })
   }
 }
@@ -505,36 +541,56 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleIssuer {
-  pub identifier: &'static str,
+  #[napi(ts_type = "Buffer")]
+  pub identifier: JsIdentifier,
   pub name: String,
   pub id: Option<String>,
+}
+
+impl FromNapiValue for JsStatsModuleIssuer {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
   fn from(stats: rspack_core::StatsModuleIssuer) -> Self {
     Self {
-      identifier: stats.identifier,
+      identifier: JsIdentifier::from(stats.identifier),
       name: stats.name.into_owned(),
       id: stats.id.map(|i| i.to_owned()),
     }
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleReason {
-  pub module_identifier: Option<&'static str>,
+  #[napi(ts_type = "Buffer")]
+  pub module_identifier: Option<JsIdentifier>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub r#type: Option<&'static str>,
   pub user_request: Option<String>,
 }
 
+impl FromNapiValue for JsStatsModuleReason {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
 impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
   fn from(stats: rspack_core::StatsModuleReason) -> Self {
     Self {
-      module_identifier: stats.module_identifier,
+      module_identifier: stats.module_identifier.map(JsIdentifier::from),
       module_name: stats.module_name.map(|i| i.into_owned()),
       module_id: stats.module_id.map(|i| i.to_owned()),
       r#type: stats.r#type,
@@ -543,14 +599,25 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsOriginRecord {
-  pub module: String,
+  #[napi(ts_type = "Buffer")]
+  pub module: JsIdentifier,
   pub module_id: String,
-  pub module_identifier: String,
+  #[napi(ts_type = "Buffer")]
+  pub module_identifier: JsIdentifier,
   pub module_name: String,
   pub loc: String,
   pub request: String,
+}
+
+impl FromNapiValue for JsOriginRecord {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 #[napi(object)]
@@ -637,9 +704,9 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
         .origins
         .into_iter()
         .map(|origin| JsOriginRecord {
-          module: origin.module,
+          module: JsIdentifier::from(origin.module.unwrap_or_default()),
           module_id: origin.module_id,
-          module_identifier: origin.module_identifier,
+          module_identifier: JsIdentifier::from(origin.module_identifier.unwrap_or_default()),
           module_name: origin.module_name,
           loc: origin.loc,
           request: origin.request,

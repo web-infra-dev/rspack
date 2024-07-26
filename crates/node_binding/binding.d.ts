@@ -446,9 +446,9 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 }
 
 export interface JsOriginRecord {
-  module: string
+  module: Buffer
   moduleId: string
-  moduleIdentifier: string
+  moduleIdentifier: Buffer
   moduleName: string
   loc: string
   request: string
@@ -602,7 +602,7 @@ export interface JsStatsError {
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleIdentifier?: string
+  moduleIdentifier?: Buffer
   moduleName?: string
   moduleId?: string
   chunkId?: string
@@ -631,7 +631,7 @@ export interface JsStatsMillisecond {
 export interface JsStatsModule {
   type: string
   moduleType: string
-  identifier?: string
+  identifier?: Buffer
   name?: string
   id?: string
   chunks?: Array<string | undefined | null>
@@ -667,7 +667,7 @@ export interface JsStatsModule {
 }
 
 export interface JsStatsModuleIssuer {
-  identifier: string
+  identifier: Buffer
   name: string
   id?: string
 }
@@ -678,7 +678,7 @@ export interface JsStatsModuleProfile {
 }
 
 export interface JsStatsModuleReason {
-  moduleIdentifier?: string
+  moduleIdentifier?: Buffer
   moduleName?: string
   moduleId?: string
   type?: string
@@ -691,7 +691,7 @@ export interface JsStatsModuleTrace {
 }
 
 export interface JsStatsModuleTraceModule {
-  identifier: string
+  identifier: Buffer
   name?: string
   id?: string
 }
@@ -726,7 +726,7 @@ export interface JsStatsWarning {
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleIdentifier?: string
+  moduleIdentifier?: Buffer
   moduleName?: string
   moduleId?: string
   chunkId?: string
