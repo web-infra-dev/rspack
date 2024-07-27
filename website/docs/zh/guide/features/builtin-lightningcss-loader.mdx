@@ -106,7 +106,7 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
-`targets` 支持多种写法，它可以设置为 `browserslist` 查询字符串、`browserslist` 查询结果，或是 lightningcss 的 `targets`。
+`targets` 选项支持多种写法，它可以设置为 browserslist 查询字符串、browserslist 查询结果，或是 lightningcss 原生的 `targets`。
 
 下面是一些 targets 的用法示例。
 
@@ -148,7 +148,7 @@ const loader = {
 };
 ```
 
-- 设置为 lightningcss 的 `targets`，这依赖 lightningcss 内部的 `browserslistToTargets` 方法，它会将 `browserslist` 查询结果转换为 lightningcss 的 `targets` 格式：
+- 设置为 lightningcss 原生的 `targets`，这依赖 lightningcss 内部的 `browserslistToTargets` 方法，它会将 `browserslist` 查询结果转换为 lightningcss 的 `targets` 格式：
 
 ```js
 const browserslist = require('browserslist');

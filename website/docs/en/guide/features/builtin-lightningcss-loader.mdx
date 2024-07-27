@@ -106,7 +106,7 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
-targets`supports multiple formats, it can be set as a`browserslist`query string, a`browserslist`query result, or the`targets` of lightningcss.
+The `targets` option supports multiple formats, it can be set as a browserslist query string, a browserslist query result, or the native `targets` of lightningcss.
 
 Here are some examples of setting targets.
 
@@ -148,7 +148,7 @@ const loader = {
 };
 ```
 
-- Setting as lightningcss's `targets`, which relies on lightningcss's internal `browserslistToTargets` method to convert a `browserslist` query result to lightningcss's `targets` format:
+- Setting as lightningcss's native `targets`, which relies on lightningcss's internal `browserslistToTargets` method to convert a `browserslist` query result to lightningcss's `targets` format:
 
 ```js
 const browserslist = require('browserslist');
