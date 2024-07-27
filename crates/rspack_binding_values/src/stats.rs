@@ -642,7 +642,6 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
 #[napi(object, object_from_js = false)]
 pub struct JsOriginRecord {
   pub module_descriptor: Option<JsModuleDescriptor>,
-  // pub module: JsIdentifier,
   pub module_id: String,
   pub loc: String,
   pub request: String,
