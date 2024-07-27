@@ -9,6 +9,11 @@ export type JsFilename =
 export type LocalJsFilename = JsFilename;
 
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
+
+export type JsModuleDescriptor = {
+	identifier: string,
+	name: string,
+};
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -446,10 +451,8 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 }
 
 export interface JsOriginRecord {
-  module: Buffer
+  moduleDescriptor?: JsModuleDescriptor
   moduleId: string
-  moduleIdentifier: Buffer
-  moduleName: string
   loc: string
   request: string
 }
@@ -597,13 +600,12 @@ export interface JsStatsChunkGroupChildren {
 }
 
 export interface JsStatsError {
+  moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleIdentifier?: Buffer
-  moduleName?: string
   moduleId?: string
   chunkId?: string
   details?: string
@@ -629,10 +631,9 @@ export interface JsStatsMillisecond {
 }
 
 export interface JsStatsModule {
+  moduleDescriptor?: JsModuleDescriptor
   type: string
   moduleType: string
-  identifier?: Buffer
-  name?: string
   id?: string
   chunks?: Array<string | undefined | null>
   size: number
@@ -667,8 +668,7 @@ export interface JsStatsModule {
 }
 
 export interface JsStatsModuleIssuer {
-  identifier: Buffer
-  name: string
+  moduleDescriptor: JsModuleDescriptor
   id?: string
 }
 
@@ -678,8 +678,7 @@ export interface JsStatsModuleProfile {
 }
 
 export interface JsStatsModuleReason {
-  moduleIdentifier?: Buffer
-  moduleName?: string
+  moduleDescriptor?: JsModuleDescriptor
   moduleId?: string
   type?: string
   userRequest?: string
@@ -691,8 +690,7 @@ export interface JsStatsModuleTrace {
 }
 
 export interface JsStatsModuleTraceModule {
-  identifier: Buffer
-  name?: string
+  moduleDescriptor: JsModuleDescriptor
   id?: string
 }
 
@@ -721,13 +719,12 @@ export interface JsStatsSize {
 }
 
 export interface JsStatsWarning {
+  moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleIdentifier?: Buffer
-  moduleName?: string
   moduleId?: string
   chunkId?: string
   details?: string

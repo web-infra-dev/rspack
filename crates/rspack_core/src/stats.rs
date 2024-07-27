@@ -1200,11 +1200,9 @@ impl Stats<'_> {
       };
       let origin_stats_module = StatsErrorModuleTraceModule {
         identifier: origin_module.identifier(),
-        name: Some(
-          origin_module
-            .readable_identifier(&self.compilation.options.context)
-            .to_string(),
-        ),
+        name: origin_module
+          .readable_identifier(&self.compilation.options.context)
+          .to_string(),
         id: self
           .compilation
           .chunk_graph
@@ -1214,11 +1212,9 @@ impl Stats<'_> {
 
       let current_stats_module = StatsErrorModuleTraceModule {
         identifier: current_module.identifier(),
-        name: Some(
-          current_module
-            .readable_identifier(&self.compilation.options.context)
-            .to_string(),
-        ),
+        name: current_module
+          .readable_identifier(&self.compilation.options.context)
+          .to_string(),
         id: self
           .compilation
           .chunk_graph
@@ -1295,7 +1291,7 @@ pub struct StatsModuleTrace {
 #[derive(Debug)]
 pub struct StatsErrorModuleTraceModule {
   pub identifier: ModuleIdentifier,
-  pub name: Option<String>,
+  pub name: String,
   pub id: Option<String>,
 }
 
