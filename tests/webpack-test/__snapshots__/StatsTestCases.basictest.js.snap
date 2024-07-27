@@ -509,7 +509,7 @@ cacheable modules 559 bytes
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackChunkName\` expected a string, but received: notGoingToCompileChunkName .
-         ╭─[1:1]
+         ╭─[2:5]
        1 │ export default function() {
        2 │     import(/* webpackPrefetch: true, webpackChunkName: notGoingToCompileChunkName */ \\"./chunk-a\\");
          ·     ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -522,7 +522,7 @@ WARNING in ./chunk.js
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackPrefetch\` expected true or a number, but received: nope .
-         ╭─[3:1]
+         ╭─[5:5]
        3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
        5 │     import(/* webpackPrefetch: nope */ /* webpackChunkName: \\"yep\\" */ \\"./chunk-d\\");
@@ -727,7 +727,7 @@ exports[`StatsTestCases should print correct stats for module-not-found-error 1`
 
 ERROR in ./index.js
   × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
-   ╭─[1:1]
+   ╭─[2:1]
  1 │ require('buffer')
  2 │ require('os')
    · ─────────────
@@ -770,7 +770,7 @@ ERROR in ./not-existing.js
 ERROR in ./parse-error.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[1:1]
+         ╭─[3:5]
        1 │ Here
        2 │ could
        3 │ be :)
@@ -807,7 +807,7 @@ ERROR in ./not-existing.js
 ERROR in ./parse-error.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[1:1]
+         ╭─[3:5]
        1 │ Here
        2 │ could
        3 │ be :)
@@ -912,7 +912,7 @@ cacheable modules 85 bytes
 ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
-         ╭─[4:1]
+         ╭─[6:8]
        4 │ includes
        5 │ a
        6 │ parser )
