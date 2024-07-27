@@ -74,6 +74,7 @@ pub struct RawCacheGroupOptions {
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub r#type: Option<Either<JsRegExp, JsString>>,
+  #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub layer: Option<Either<JsRegExp, JsString>>,
   pub automatic_name_delimiter: Option<String>,
