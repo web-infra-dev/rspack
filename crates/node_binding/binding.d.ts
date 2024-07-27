@@ -113,6 +113,7 @@ export class JsStatsModule {
   get type(): string
   get moduleType(): string
   get identifier(): string
+  get layer(): string | undefined
   get name(): string
   get id(): string | undefined
   get chunks(): Array<string | undefined | null>

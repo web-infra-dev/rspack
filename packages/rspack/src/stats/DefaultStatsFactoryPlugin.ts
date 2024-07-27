@@ -1079,7 +1079,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { type } = context;
 			object.type = module.type;
 			object.moduleType = module.moduleType;
-			// TODO: object.layer = module.layer;
+			object.layer = module.layer;
 			object.size = module.size;
 			const sizes = module.sizes.map(({ sourceType, size }) => [
 				sourceType,
