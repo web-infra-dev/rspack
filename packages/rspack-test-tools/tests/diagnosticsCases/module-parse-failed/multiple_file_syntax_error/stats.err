@@ -1,7 +1,7 @@
 ERROR in ./a.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -16,7 +16,7 @@ ERROR in ./a.js
 ERROR in ./a.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -30,7 +30,7 @@ ERROR in ./a.js
 ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -45,7 +45,7 @@ ERROR in ./b.js
 ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -59,7 +59,7 @@ ERROR in ./b.js
 ERROR in ./c.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -74,7 +74,7 @@ ERROR in ./c.js
 ERROR in ./c.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -88,7 +88,7 @@ ERROR in ./c.js
 ERROR in ./d.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -103,7 +103,7 @@ ERROR in ./d.js
 ERROR in ./d.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -117,7 +117,7 @@ ERROR in ./d.js
 ERROR in ./e.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -132,7 +132,7 @@ ERROR in ./e.js
 ERROR in ./e.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -146,7 +146,7 @@ ERROR in ./e.js
 ERROR in ./f.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -161,7 +161,7 @@ ERROR in ./f.js
 ERROR in ./f.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -175,7 +175,7 @@ ERROR in ./f.js
 ERROR in ./g.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:10]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -190,7 +190,7 @@ ERROR in ./g.js
 ERROR in ./g.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:1]
        4 │     d = 10
        5 │     g = CONST
        6 │ }

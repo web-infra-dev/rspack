@@ -1,7 +1,7 @@
 ERROR in ./app.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unterminated regexp literal
-         ╭─[2:1]
+         ╭─[4:32]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -15,7 +15,7 @@ ERROR in ./app.js
 ERROR in ./app.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[2:1]
+         ╭─[4:31]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -29,7 +29,7 @@ ERROR in ./app.js
 ERROR in ./app.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[2:1]
+         ╭─[4:33]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -43,7 +43,7 @@ ERROR in ./app.js
 ERROR in ./app.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[2:1]
+         ╭─[4:26]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -57,7 +57,7 @@ ERROR in ./app.js
 ERROR in ./app.jsx
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unterminated regexp literal
-         ╭─[2:1]
+         ╭─[4:32]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -71,7 +71,7 @@ ERROR in ./app.jsx
 ERROR in ./app.jsx
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[2:1]
+         ╭─[4:31]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -85,7 +85,7 @@ ERROR in ./app.jsx
 ERROR in ./app.jsx
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[2:1]
+         ╭─[4:33]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -99,7 +99,7 @@ ERROR in ./app.jsx
 ERROR in ./app.jsx
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[2:1]
+         ╭─[4:26]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
@@ -113,7 +113,7 @@ ERROR in ./app.jsx
 ERROR in ./app.ts
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ',', got ':'
-         ╭─[1:1]
+         ╭─[2:22]
        1 │ const React = {
        2 │     createElement(elm: any) {}
          ·                      ─
