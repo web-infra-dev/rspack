@@ -104,26 +104,61 @@ type LightningcssLoaderOptions = {
 };
 ```
 
-其中 `targets` 可以直接写 `browserslist` 查询字符串，`browserslist` 查询结果，或是 lightningcss 的 `targets`，例如
+### targets
+
+`targets` 支持多种写法，它可以设置为 `browserslist` 查询字符串、`browserslist` 查询结果，或是 lightningcss 的 `targets`。
+
+下面是一些 targets 的用法示例。
+
+- 设置 browserslist 查询字符串：
 
 ```js
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: '> 0.2%',
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: 'ie 10',
+  },
 };
-// or
+```
+
+- 设置 browserslist 查询字符串数组：
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```
+
+- 设置 browserslist 查询结果：
+
+```js
 const browserslist = require('browserslist');
 
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: browserslist('> 0.2%'),
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: browserslist('> 0.2%'),
+  },
 };
-// or
-const rspack = require('@rspack/core');
-const browserslist = require('browserslist');
+```
 
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+- 设置为 lightningcss 的 `targets`，这依赖 lightningcss 内部的 `browserslistToTargets` 方法，它会将 `browserslist` 查询结果转换为 lightningcss 的 `targets` 格式：
+
+```js
+const browserslist = require('browserslist');
+const lightningcss = require('lightningcss');
+
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+  },
 };
 ```

@@ -104,26 +104,61 @@ type LightningcssLoaderOptions = {
 };
 ```
 
-The `targets` can be directly written as a `browserslist` query string, the result of a `browserslist` query, or the `targets` of lightningcss, for example:
+### targets
+
+targets`supports multiple formats, it can be set as a`browserslist`query string, a`browserslist`query result, or the`targets` of lightningcss.
+
+Here are some examples of setting targets.
+
+- Setting a browserslist query string:
 
 ```js
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: '> 0.2%',
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: 'ie 10',
+  },
 };
-// or
+```
+
+- Setting an array of browserslist query strings:
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```
+
+- Setting the browserslist query result:
+
+```js
 const browserslist = require('browserslist');
 
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: browserslist('> 0.2%'),
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: browserslist('> 0.2%'),
+  },
 };
-// or
-const rspack = require('@rspack/core');
-const browserslist = require('browserslist');
+```
 
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+- Setting as lightningcss's `targets`, which relies on lightningcss's internal `browserslistToTargets` method to convert a `browserslist` query result to lightningcss's `targets` format:
+
+```js
+const browserslist = require('browserslist');
+const lightningcss = require('lightningcss');
+
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+  },
 };
 ```
