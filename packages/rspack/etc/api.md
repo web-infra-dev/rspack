@@ -662,7 +662,6 @@ const baseRuleSetRule: z.ZodObject<{
     issuer?: RuleSetCondition | undefined;
     options?: string | Record<string, any> | undefined;
     resource?: RuleSetCondition | undefined;
-    layer?: string | undefined;
     loader?: string | undefined;
     test?: RuleSetCondition | undefined;
     exclude?: RuleSetCondition | undefined;
@@ -698,7 +697,6 @@ const baseRuleSetRule: z.ZodObject<{
     issuer?: RuleSetCondition | undefined;
     options?: string | Record<string, any> | undefined;
     resource?: RuleSetCondition | undefined;
-    layer?: string | undefined;
     loader?: string | undefined;
     test?: RuleSetCondition | undefined;
     exclude?: RuleSetCondition | undefined;
@@ -1980,7 +1978,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
@@ -2009,7 +2006,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
     import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
     runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -2116,7 +2112,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
@@ -2145,7 +2140,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
     import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
     runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -2252,7 +2246,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
@@ -2281,7 +2274,6 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>]>;
 
 // @public (undocumented)
@@ -2406,7 +2398,6 @@ const entryDescription: z.ZodObject<{
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
@@ -2435,7 +2426,6 @@ const entryDescription: z.ZodObject<{
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }>;
 
 // @public (undocumented)
@@ -2590,7 +2580,6 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
@@ -2619,7 +2608,6 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }>]>>;
 
 // @public (undocumented)
@@ -2782,7 +2770,6 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
@@ -2811,7 +2798,6 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         umdNamedDefine?: boolean | undefined;
     } | undefined;
     dependOn?: string | string[] | undefined;
-    layer?: string | null | undefined;
 }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>;
 
 // @public (undocumented)
@@ -9130,7 +9116,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }, {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -9159,7 +9144,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -9266,7 +9250,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }, {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -9295,7 +9278,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -9402,7 +9384,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }, {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -9431,7 +9412,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>]>>;
     output: z.ZodOptional<z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
@@ -11527,7 +11507,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -11556,7 +11535,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -11585,7 +11563,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }>>) | undefined;
     name?: string | undefined;
     profile?: boolean | undefined;
@@ -12073,7 +12050,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -12102,7 +12078,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
@@ -12131,7 +12106,6 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         dependOn?: string | string[] | undefined;
-        layer?: string | null | undefined;
     }>>) | undefined;
     name?: string | undefined;
     profile?: boolean | undefined;
