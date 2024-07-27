@@ -6,6 +6,7 @@
 #![feature(hash_raw_entry)]
 #![feature(option_get_or_insert_default)]
 #![feature(slice_group_by)]
+
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub mod diagnostics;
@@ -287,6 +288,8 @@ impl From<&str> for ModuleType {
     }
   }
 }
+
+pub type ModuleLayer = String;
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;

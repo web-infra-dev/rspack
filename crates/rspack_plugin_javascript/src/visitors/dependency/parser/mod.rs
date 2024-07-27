@@ -13,7 +13,7 @@ use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
-  JavascriptParserOptions, ModuleIdentifier, ResourceData,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
@@ -223,6 +223,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
+  pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
@@ -257,6 +258,7 @@ impl<'parser> JavascriptParser<'parser> {
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
@@ -377,6 +379,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       module_type,
+      module_layer,
       parser_exports_state,
       enter_call: 0,
       worker_index: 0,

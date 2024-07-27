@@ -96,6 +96,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
+      module_layer,
       resource_data,
       compiler_options,
       build_info,
@@ -199,6 +200,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         resource_data,
         compiler_options,
         module_type,
+        module_layer,
         build_info,
         build_meta,
         module_identifier,

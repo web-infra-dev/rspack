@@ -814,6 +814,7 @@ export interface RawCacheGroupOptions {
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  layer?: JsRegExp | string
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
@@ -973,6 +974,7 @@ export interface RawEntryOptions {
   filename?: JsFilename
   library?: RawLibraryOptions
   dependOn?: Array<string>
+  layer?: string
 }
 
 export interface RawEntryPluginOptions {
@@ -993,6 +995,7 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
+  layers: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -1227,10 +1230,12 @@ export interface RawModuleRule {
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
+  layer?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition

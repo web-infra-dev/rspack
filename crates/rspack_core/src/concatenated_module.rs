@@ -44,8 +44,9 @@ use crate::{
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType,
   ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta,
   IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -66,6 +67,7 @@ pub struct RootModuleContext {
   pub code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   pub presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
   pub context: Option<Context>,
+  pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: Option<FactoryMeta>,
   pub build_meta: Option<BuildMeta>,
@@ -498,6 +500,10 @@ impl Module for ConcatenatedModule {
 
   fn original_source(&self) -> Option<&dyn Source> {
     None
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.root_module_ctxt.layer.as_ref()
   }
 
   fn readable_identifier(&self, _context: &Context) -> Cow<str> {

@@ -29,7 +29,7 @@ use crate::{
   BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
   ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
   DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
-  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
+  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
   RuntimeSpec, SourceType,
 };
@@ -152,6 +152,7 @@ pub struct ContextModuleOptions {
   pub resource_query: String,
   pub resource_fragment: String,
   pub context_options: ContextOptions,
+  pub layer: Option<ModuleLayer>,
   pub resolve_options: Option<Box<Resolve>>,
   pub type_prefix: ContextTypePrefix,
 }
@@ -849,6 +850,7 @@ impl Module for ContextModule {
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
   }
+
   fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
     None
   }
@@ -862,7 +864,13 @@ impl Module for ContextModule {
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    let mut id = contextify(options.context, &self.options.resource);
+    let mut id = String::new();
+    if let Some(layer) = &self.options.layer {
+      id += "(";
+      id += layer;
+      id += ")/";
+    }
+    id += &contextify(options.context, &self.options.resource);
     id.push(' ');
     id.push_str(self.options.context_options.mode.as_str());
     if self.options.context_options.recursive {
@@ -1074,6 +1082,7 @@ impl ContextModule {
             user_request: r.request.to_string(),
             category: options.context_options.category,
             context: options.resource.clone().into(),
+            layer: options.layer.clone(),
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
             referenced_exports: options.context_options.referenced_exports.clone(),
@@ -1251,6 +1260,10 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     ContextNameSpaceObject::Bool(true) => "|namespace object",
     _ => "",
   };
+  if let Some(layer) = &options.layer {
+    id += "|layer: ";
+    id += layer;
+  }
   id.into()
 }
 

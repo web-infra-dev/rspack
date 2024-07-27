@@ -19,8 +19,9 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ImmutableModuleGraph,
-  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutableModuleGraph, NormalModule,
-  RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleLayer, ModuleType, MutableModuleGraph,
+  NormalModule, RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SourceType,
 };
 pub struct BuildContext<'a> {
   pub runner_context: RunnerContext,
@@ -334,6 +335,10 @@ pub trait Module:
   }
 
   fn get_context(&self) -> Option<Box<Context>> {
+    None
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
     None
   }
 

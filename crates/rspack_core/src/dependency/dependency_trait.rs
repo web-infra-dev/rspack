@@ -13,6 +13,7 @@ use super::{DependencyCategory, DependencyId, DependencyType};
 use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
 use crate::ExtendedReferencedExport;
+use crate::ModuleLayer;
 use crate::RuntimeSpec;
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, UsedByExports};
 
@@ -36,7 +37,13 @@ pub trait Dependency:
     &DependencyType::Unknown
   }
 
+  // get issuer context
   fn get_context(&self) -> Option<&Context> {
+    None
+  }
+
+  // get issuer layer
+  fn get_layer(&self) -> Option<&ModuleLayer> {
     None
   }
 

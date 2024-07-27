@@ -880,6 +880,7 @@ impl ModuleConcatenationPlugin {
             context: compilation.options.context.as_str(),
           })
           .map(|id| id.to_string()),
+        layer: box_module.get_layer().cloned(),
         resolve_options: box_module.get_resolve_options().clone(),
         code_generation_dependencies: box_module
           .get_code_generation_dependencies()

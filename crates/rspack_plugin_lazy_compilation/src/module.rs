@@ -7,8 +7,8 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
@@ -129,6 +129,10 @@ impl Module for LazyCompilationProxyModule {
 
   fn module_type(&self) -> &ModuleType {
     &MODULE_TYPE
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.create_data.issuer_layer.as_ref()
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
