@@ -194,6 +194,8 @@ export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: 
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
+export function __module_graph_inner_is_async(jsModuleIdentifier: string, compilation: JsCompilation): boolean | null
+
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown

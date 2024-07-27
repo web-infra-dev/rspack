@@ -1050,6 +1050,8 @@ export class Compilation {
         addAll: (deps: Iterable<string>) => void;
     };
     // (undocumented)
+    moduleGraph: ModuleGraph;
+    // (undocumented)
     get modules(): ReadonlySet<Module>;
     // (undocumented)
     name?: string;
@@ -5303,6 +5305,13 @@ declare namespace ModuleFilenameHelpers {
     }
 }
 export { ModuleFilenameHelpers }
+
+// @public (undocumented)
+class ModuleGraph {
+    constructor(compilation: Compilation);
+    // (undocumented)
+    isAsync(module: Module): boolean;
+}
 
 // @public (undocumented)
 export type ModuleOptions = z.infer<typeof moduleOptions>;
