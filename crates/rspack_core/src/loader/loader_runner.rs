@@ -5,7 +5,8 @@ pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  CompilerOptions, Context, FactoryMeta, Module, ModuleIdentifier, ModuleType, ResolverFactory,
+  CompilerOptions, Context, FactoryMeta, Module, ModuleIdentifier, ModuleLayer, ModuleType,
+  ResolverFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -13,6 +14,7 @@ pub struct CompilerModuleContext {
   pub context: Option<Box<Context>>,
   pub resource_data: Option<ResourceData>,
   pub r#type: ModuleType,
+  pub layer: Option<ModuleLayer>,
   pub module_identifier: ModuleIdentifier,
   pub name_for_condition: Option<String>,
   pub request: Option<String>,
@@ -27,6 +29,7 @@ impl CompilerModuleContext {
     Self {
       context: module.get_context(),
       r#type: *module.module_type(),
+      layer: module.get_layer().cloned(),
       resource_data: normal_module
         .map(|normal_module| normal_module.resource_resolved_data().clone()),
       module_identifier: module.identifier(),

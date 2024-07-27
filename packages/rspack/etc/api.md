@@ -5232,6 +5232,8 @@ export class Module {
     // (undocumented)
     identifier(): string;
     // (undocumented)
+    layer: null | string;
+    // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
     originalSource(): Source | null;
