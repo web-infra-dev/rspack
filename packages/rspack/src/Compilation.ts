@@ -27,6 +27,7 @@ import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
+import { ModuleGraph } from "./ModuleGraph";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
 import { JsDiagnostic, type RspackError } from "./RspackError";
@@ -230,6 +231,7 @@ export class Compilation {
 	logging: Map<string, LogEntry[]>;
 	childrenCounters: Record<string, number>;
 	children: Compilation[];
+	moduleGraph: ModuleGraph;
 	chunkGraph: ChunkGraph;
 	fileSystemInfo = {
 		createSnapshot() {
@@ -358,6 +360,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.logging = new Map();
 		this.childrenCounters = {};
 		this.children = [];
+		this.moduleGraph = new ModuleGraph(this);
 		this.chunkGraph = new ChunkGraph(this);
 	}
 
