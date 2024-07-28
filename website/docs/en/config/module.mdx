@@ -807,6 +807,18 @@ Matches all modules that match this resource, and will match against Resource (t
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment) of the module that issued the current module.
 
+### Rule.issuerLayer
+
+<ApiMeta addedVersion="1.0.0-beta.0" />
+
+:::warning
+This configuration will only take effect when `experiments.layers = true`.
+:::
+
+- **Type:** `string`
+
+Matches all modules that match this resource, and will match against layer of the module that issued the current module.
+
 ### Rule.dependency
 
 - **Type:** [`Condition`](/config/module#condition)
@@ -958,6 +970,18 @@ Used to mark the type of the matching module, which affects how the module is ha
 - `'css/auto'`: CSS Modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
 - `'json'`: JSON data module
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/features/asset-module)
+
+### Rule.layer
+
+<ApiMeta addedVersion="1.0.0-beta.0" />
+
+:::warning
+This configuration will only take effect when `experiments.layers = true`.
+:::
+
+- **Type:** `string`
+
+Used to mark the layer of the matching module.
 
 ### Rule.use
 
