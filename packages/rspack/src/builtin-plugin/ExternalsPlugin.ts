@@ -1,29 +1,44 @@
 import {
+	type BuiltinPlugin,
 	BuiltinPluginName,
 	type RawExternalsPluginOptions
 } from "@rspack/binding";
 
-import type { ExternalItem, ExternalItemValue, Externals } from "..";
-import { create } from "./base";
+import type { Compiler, ExternalItem, ExternalItemValue, Externals } from "..";
+import { Resolver } from "../Resolver";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
-export const ExternalsPlugin = create(
-	BuiltinPluginName.ExternalsPlugin,
-	(type: string, externals: Externals): RawExternalsPluginOptions => {
-		return {
+export class ExternalsPlugin extends RspackBuiltinPlugin {
+	name = BuiltinPluginName.ExternalsPlugin;
+
+	constructor(
+		private type: string,
+		private externals: Externals
+	) {
+		super();
+	}
+
+	raw(compiler: Compiler): BuiltinPlugin | undefined {
+		const { type, externals } = this;
+		const raw: RawExternalsPluginOptions = {
 			type,
 			externals: (Array.isArray(externals) ? externals : [externals])
 				.filter(Boolean)
-				.map(getRawExternalItem)
+				.map(item => getRawExternalItem(compiler, item))
 		};
+		return createBuiltinPlugin(this.name, raw);
 	}
-);
+}
 
 type ArrayType<T> = T extends (infer R)[] ? R : never;
 type RecordValue<T> = T extends Record<any, infer R> ? R : never;
 type RawExternalItem = ArrayType<RawExternalsPluginOptions["externals"]>;
 type RawExternalItemValue = RecordValue<RawExternalItem>;
 
-function getRawExternalItem(item: ExternalItem | undefined): RawExternalItem {
+function getRawExternalItem(
+	compiler: Compiler,
+	item: ExternalItem | undefined
+): RawExternalItem {
 	if (typeof item === "string" || item instanceof RegExp) {
 		return item;
 	}
@@ -31,13 +46,61 @@ function getRawExternalItem(item: ExternalItem | undefined): RawExternalItem {
 	if (typeof item === "function") {
 		return async ctx => {
 			return await new Promise((resolve, reject) => {
-				const promise = item(ctx, (err, result, type) => {
-					if (err) reject(err);
-					resolve({
-						result: getRawExternalItemValueFormFnResult(result),
-						externalType: type
-					});
-				}) as Promise<ExternalItemValue>;
+				const data = ctx.data();
+				const promise = item(
+					{
+						request: data.request,
+						dependencyType: data.dependencyType,
+						context: data.context,
+						contextInfo: {
+							issuer: data.contextInfo.issuer,
+							issuerLayer: data.contextInfo.issuerLayer ?? null
+						},
+						getResolve: function getResolve(options) {
+							const resolver = new Resolver(ctx.getResolver());
+							const getResolveContext = () => ({
+								fileDependencies: compiler._lastCompilation!.fileDependencies,
+								missingDependencies:
+									compiler._lastCompilation!.missingDependencies,
+								contextDependencies:
+									compiler._lastCompilation!.contextDependencies
+							});
+							const child = options ? resolver.withOptions(options) : resolver;
+							return (context, request, callback) => {
+								if (callback) {
+									child.resolve(
+										{},
+										context,
+										request,
+										getResolveContext(),
+										// @ts-expect-error TODO: fix the type
+										callback
+									);
+								} else {
+									return new Promise((resolve, reject) => {
+										child.resolve(
+											{},
+											context,
+											request,
+											getResolveContext(),
+											(err, result) => {
+												if (err) reject(err);
+												else resolve(result);
+											}
+										);
+									});
+								}
+							};
+						}
+					},
+					(err, result, type) => {
+						if (err) reject(err);
+						resolve({
+							result: getRawExternalItemValueFormFnResult(result),
+							externalType: type
+						});
+					}
+				) as Promise<ExternalItemValue>;
 				if (promise?.then) {
 					promise.then(
 						result =>

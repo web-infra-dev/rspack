@@ -863,10 +863,16 @@ const externalItemFunctionData = z.strictObject({
 	request: z.string().optional(),
 	contextInfo: z
 		.strictObject({
-			issuer: z.string()
+			issuer: z.string(),
+			issuerLayer: z.string().or(z.null()).optional()
 		})
+		.optional(),
+	getResolve: z
+		.function()
+		.returns(z.function().args(z.string(), z.string(), z.function().optional()))
 		.optional()
-}) satisfies z.ZodType<t.ExternalItemFunctionData>;
+});
+export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
 
 const externalItem = z
 	.string()

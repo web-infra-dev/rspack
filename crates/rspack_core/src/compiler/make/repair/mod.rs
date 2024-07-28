@@ -142,6 +142,7 @@ pub async fn repair(
         resolve_options: parent_module.and_then(|module| module.get_resolve_options()),
         options: compilation.options.clone(),
         current_profile,
+        resolver_factory: compilation.resolver_factory.clone(),
       }))
     })
     .collect::<Vec<_>>();

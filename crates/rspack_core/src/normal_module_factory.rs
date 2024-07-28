@@ -329,7 +329,7 @@ impl NormalModuleFactory {
           span: dependency_source_span,
           // take the options is safe here, because it
           // is not used in after_resolve hooks
-          resolve_options: data.resolve_options.take(),
+          resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
           file_dependencies: &mut file_dependencies,
@@ -641,7 +641,7 @@ impl NormalModuleFactory {
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Box<Resolve>> {
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
     let mut resolved: Option<Resolve> = None;
     for rule in module_rules {
       if let Some(rule_resolve) = &rule.resolve {
@@ -652,7 +652,7 @@ impl NormalModuleFactory {
         }
       }
     }
-    resolved.map(Box::new)
+    resolved.map(Arc::new)
   }
 
   fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {

@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
-use rspack_core::ExternalItemFnCtx;
+use rspack_binding_values::JsResolver;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
+use rspack_core::{ExternalItemFnCtx, ResolveOptionsWithDependencyType, ResolverFactory};
+// use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 
@@ -68,13 +71,45 @@ pub struct ContextInfo {
   pub issuer: String,
 }
 
-#[derive(Debug, Clone)]
-#[napi(object)]
+#[derive(Debug)]
+#[napi]
 pub struct RawExternalItemFnCtx {
+  request: String,
+  context: String,
+  dependency_type: String,
+  context_info: ContextInfo,
+  resolve_options_with_dependency_type: ResolveOptionsWithDependencyType,
+  resolver_factory: Arc<ResolverFactory>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawExternalItemFnCtxData {
   pub request: String,
   pub context: String,
   pub dependency_type: String,
   pub context_info: ContextInfo,
+}
+
+#[napi]
+impl RawExternalItemFnCtx {
+  #[napi]
+  pub fn data(&self) -> RawExternalItemFnCtxData {
+    RawExternalItemFnCtxData {
+      request: self.request.clone(),
+      context: self.context.clone(),
+      dependency_type: self.dependency_type.clone(),
+      context_info: self.context_info.clone(),
+    }
+  }
+
+  #[napi]
+  pub fn get_resolver(&self) -> JsResolver {
+    JsResolver::new(
+      self.resolver_factory.clone(),
+      self.resolve_options_with_dependency_type.clone(),
+    )
+  }
 }
 
 impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
@@ -86,6 +121,8 @@ impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
       context_info: ContextInfo {
         issuer: value.context_info.issuer,
       },
+      resolve_options_with_dependency_type: value.resolve_options_with_dependency_type,
+      resolver_factory: value.resolver_factory,
     }
   }
 }

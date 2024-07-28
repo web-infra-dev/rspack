@@ -136,7 +136,7 @@ pub struct ContextModuleOptions {
   pub resource_fragment: String,
   pub context_options: ContextOptions,
   pub layer: Option<ModuleLayer>,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Arc<Resolve>>,
   pub type_prefix: ContextTypePrefix,
 }
 

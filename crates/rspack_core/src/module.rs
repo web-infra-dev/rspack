@@ -329,7 +329,7 @@ pub trait Module:
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
+  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
     None
   }
 

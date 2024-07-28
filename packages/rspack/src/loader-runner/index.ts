@@ -599,7 +599,7 @@ export async function runLoaders(
 	};
 
 	loaderContext.getResolve = function getResolve(options) {
-		const child = options ? resolver.withOptions(options as any) : resolver;
+		const child = options ? resolver.withOptions(options) : resolver;
 		return (context, request, callback) => {
 			if (callback) {
 				child.resolve({}, context, request, getResolveContext(), callback);
