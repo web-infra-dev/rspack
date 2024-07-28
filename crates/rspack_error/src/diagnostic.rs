@@ -218,7 +218,7 @@ impl Diagnostic {
       ));
     }
 
-    return None;
+    None
   }
 
   pub fn loc(&self) -> Option<ErrorLocation> {
