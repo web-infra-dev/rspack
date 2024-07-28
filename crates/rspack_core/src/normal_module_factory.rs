@@ -328,7 +328,7 @@ impl NormalModuleFactory {
           span: dependency_source_span,
           // take the options is safe here, because it
           // is not used in after_resolve hooks
-          resolve_options: data.resolve_options.take(),
+          resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
           file_dependencies: &mut file_dependencies,

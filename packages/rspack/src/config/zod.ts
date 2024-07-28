@@ -904,7 +904,6 @@ const externalItemFunctionData = z.strictObject({
 		.optional(),
 	getResolve: z
 		.function()
-		.args(resolveOptions)
 		.returns(z.function().args(z.string(), z.string(), z.function().optional()))
 		.optional()
 });
