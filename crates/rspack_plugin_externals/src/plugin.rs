@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -6,7 +6,7 @@ use rspack_core::{
   ApplyContext, BoxModule, CompilerOptions, ContextInfo, ExternalItem, ExternalItemFnCtx,
   ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
   ModuleDependency, ModuleExt, ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin,
-  PluginContext,
+  PluginContext, ResolveOptionsWithDependencyType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -162,6 +162,15 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .unwrap_or_default(),
             issuer_layer: data.issuer_layer.clone(),
           },
+          resolve_options_with_dependency_type: ResolveOptionsWithDependencyType {
+            resolve_options: data
+              .resolve_options
+              .clone()
+              .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+            resolve_to_context: false,
+            dependency_category: *data.dependency.category(),
+          },
+          resolver_factory: data.resolver_factory.clone(),
         })
         .await?;
         if let Some(r) = result.result {

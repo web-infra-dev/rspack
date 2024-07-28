@@ -63,7 +63,7 @@ pub struct RootModuleContext {
   pub readable_identifier: String,
   pub name_for_condition: Option<Box<str>>,
   pub lib_indent: Option<String>,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Arc<Resolve>>,
   pub code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   pub presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
   pub context: Option<Context>,
@@ -1286,7 +1286,7 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.lib_indent.clone().map(Cow::Owned)
   }
 
-  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
+  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
     self.root_module_ctxt.resolve_options.clone()
   }
 

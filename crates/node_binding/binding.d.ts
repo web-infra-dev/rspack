@@ -161,6 +161,11 @@ export class JsStatsSize {
   size: number
 }
 
+export class RawExternalItemFnCtx {
+  data(): RawExternalItemFnCtxData
+  getResolver(): JsResolver
+}
+
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
@@ -1013,7 +1018,7 @@ export interface RawExposeOptions {
   import: Array<string>
 }
 
-export interface RawExternalItemFnCtx {
+export interface RawExternalItemFnCtxData {
   request: string
   context: string
   dependencyType: string

@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
@@ -330,7 +331,7 @@ pub trait Module:
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
+  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
     None
   }
 

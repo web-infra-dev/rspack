@@ -328,7 +328,7 @@ impl NormalModuleFactory {
           span: dependency_source_span,
           // take the options is safe here, because it
           // is not used in after_resolve hooks
-          resolve_options: data.resolve_options.take(),
+          resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
           file_dependencies: &mut file_dependencies,
@@ -638,11 +638,11 @@ impl NormalModuleFactory {
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Box<Resolve>> {
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Arc<Resolve>> {
     let mut resolved = None;
     module_rules.iter().for_each(|rule| {
       if let Some(resolve) = rule.resolve.as_ref() {
-        resolved = Some(Box::new(resolve.to_owned()));
+        resolved = Some(Arc::new(resolve.to_owned()));
       }
     });
     resolved

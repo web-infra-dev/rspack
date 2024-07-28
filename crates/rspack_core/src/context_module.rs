@@ -149,7 +149,7 @@ pub struct ContextModuleOptions {
   pub resource_fragment: String,
   pub context_options: ContextOptions,
   pub layer: Option<ModuleLayer>,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Arc<Resolve>>,
   pub type_prefix: ContextTypePrefix,
 }
 
@@ -1101,7 +1101,11 @@ impl ContextModule {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: self.options.resolve_options.clone(),
+      resolve_options: self
+        .options
+        .resolve_options
+        .clone()
+        .map(|r| Box::new(Arc::unwrap_or_clone(r))),
       resolve_to_context: false,
       dependency_category: self.options.context_options.category,
     });

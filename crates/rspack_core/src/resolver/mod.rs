@@ -2,6 +2,7 @@ mod factory;
 mod resolver_impl;
 use std::borrow::Borrow;
 use std::fs;
+use std::sync::Arc;
 use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
@@ -37,7 +38,7 @@ pub struct ResolveArgs<'a> {
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Arc<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
   pub file_dependencies: &'a mut FxHashSet<PathBuf>,
@@ -91,7 +92,9 @@ pub fn resolve_for_error_hints(
   plugin_driver: &SharedPluginDriver,
 ) -> Option<String> {
   let dep = ResolveOptionsWithDependencyType {
-    resolve_options: args.resolve_options.clone(),
+    resolve_options: args
+      .resolve_options
+      .map(|r| Box::new(Arc::unwrap_or_clone(r))),
     resolve_to_context: args.resolve_to_context,
     dependency_category: *args.dependency_category,
   };
@@ -281,7 +284,10 @@ pub async fn resolve(
   plugin_driver: &SharedPluginDriver,
 ) -> Result<ResolveResult, Error> {
   let dep = ResolveOptionsWithDependencyType {
-    resolve_options: args.resolve_options.clone(),
+    resolve_options: args
+      .resolve_options
+      .clone()
+      .map(|r| Box::new(Arc::unwrap_or_clone(r))),
     resolve_to_context: args.resolve_to_context,
     dependency_category: *args.dependency_category,
   };
