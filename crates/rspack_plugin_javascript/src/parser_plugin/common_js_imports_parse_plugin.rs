@@ -40,6 +40,7 @@ fn create_commonjs_require_context_dependency(
     start: callee_start,
     end: callee_end,
     referenced_exports: None,
+    attributes: None,
   };
   CommonJsRequireContextDependency::new(
     callee_start,
@@ -229,6 +230,7 @@ impl CommonJsImportsParserPlugin {
         start: ident.span().real_lo(),
         end: ident.span().real_hi(),
         referenced_exports: None,
+        attributes: None,
       },
       Some(ident.span().into()),
       parser.in_try,

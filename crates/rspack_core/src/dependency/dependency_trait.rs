@@ -4,7 +4,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_util::ext::AsAny;
-use swc_core::{common::Span, ecma::atoms::Atom};
+use swc_core::ecma::atoms::Atom;
 
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
@@ -13,6 +13,7 @@ use super::{DependencyCategory, DependencyId, DependencyType};
 use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
 use crate::ExtendedReferencedExport;
+use crate::ImportAttributes;
 use crate::ModuleLayer;
 use crate::RuntimeSpec;
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, UsedByExports};
@@ -47,6 +48,10 @@ pub trait Dependency:
     None
   }
 
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    None
+  }
+
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     None
   }
@@ -67,20 +72,6 @@ pub trait Dependency:
 
   fn source_order(&self) -> Option<i32> {
     None
-  }
-
-  /// `Span` used for Dependency search in `on_usage` in `InnerGraph`
-  fn span_for_on_usage_search(&self) -> Option<ErrorSpan> {
-    self.span()
-  }
-
-  fn is_span_equal(&self, other: &Span) -> bool {
-    if let Some(err_span) = self.span_for_on_usage_search() {
-      let other = ErrorSpan::from(*other);
-      other == err_span
-    } else {
-      false
-    }
   }
 
   // For now only `HarmonyImportSpecifierDependency` and

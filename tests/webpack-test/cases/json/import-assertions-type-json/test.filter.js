@@ -1,4 +1,3 @@
-
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4358"}
-
-							
+module.exports = () => {
+	return "Rspack don't support import assertions since it's deprecated";
+};

@@ -610,6 +610,7 @@ const baseRuleSetRule: z.ZodObject<{
     scheme: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     mimetype: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     descriptionData: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>>;
+    with: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>>;
     type: z.ZodOptional<z.ZodString>;
     layer: z.ZodOptional<z.ZodString>;
     loader: z.ZodOptional<z.ZodString>;
@@ -673,6 +674,7 @@ const baseRuleSetRule: z.ZodObject<{
     scheme?: RuleSetCondition | undefined;
     mimetype?: RuleSetCondition | undefined;
     descriptionData?: Record<string, RuleSetCondition> | undefined;
+    with?: Record<string, RuleSetCondition> | undefined;
     use?: string | {
         loader: string;
         options?: string | Record<string, any> | undefined;
@@ -708,6 +710,7 @@ const baseRuleSetRule: z.ZodObject<{
     scheme?: RuleSetCondition | undefined;
     mimetype?: RuleSetCondition | undefined;
     descriptionData?: Record<string, RuleSetCondition> | undefined;
+    with?: Record<string, RuleSetCondition> | undefined;
     use?: string | {
         loader: string;
         options?: string | Record<string, any> | undefined;

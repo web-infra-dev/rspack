@@ -6,7 +6,6 @@ use std::{
   sync::Arc,
 };
 
-use derivative::Derivative;
 use indoc::formatdoc;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
@@ -29,9 +28,9 @@ use crate::{
   BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
   ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
   DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
-  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  FakeNamespaceObjectMode, GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer,
+  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -123,16 +122,12 @@ pub enum ContextTypePrefix {
   Normal,
 }
 
-#[derive(Derivative, Debug, Clone)]
-#[derivative(Hash, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub reg_exp: Option<RspackRegex>,
-  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub include: Option<RspackRegex>,
-  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
   pub request: String,
@@ -143,9 +138,10 @@ pub struct ContextOptions {
   pub start: u32,
   pub end: u32,
   pub referenced_exports: Option<Vec<Atom>>,
+  pub attributes: Option<ImportAttributes>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
   pub resource: String,
@@ -1084,7 +1080,12 @@ impl ContextModule {
             context: options.resource.clone().into(),
             layer: options.layer.clone(),
             options: options.context_options.clone(),
-            resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
+            resource_identifier: ContextElementDependency::create_resource_identifier(
+              &options.resource,
+              &path,
+              options.context_options.attributes.as_ref(),
+            ),
+            attributes: options.context_options.attributes.clone(),
             referenced_exports: options.context_options.referenced_exports.clone(),
             dependency_type: DependencyType::ContextElement(options.type_prefix),
           });
