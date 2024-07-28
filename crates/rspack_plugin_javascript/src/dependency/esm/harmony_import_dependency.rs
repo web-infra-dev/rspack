@@ -7,8 +7,8 @@ use rspack_core::{
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
   Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ExportInfoProvided, ExportsType, ExtendedReferencedExport,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleIdentifier,
-  ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
@@ -48,6 +48,7 @@ pub struct HarmonyImportSideEffectDependency {
   pub source_span: ErrorSpan,
   pub dependency_type: DependencyType,
   pub export_all: bool,
+  attributes: Option<ImportAttributes>,
   resource_identifier: String,
 }
 
@@ -59,8 +60,10 @@ impl HarmonyImportSideEffectDependency {
     source_span: ErrorSpan,
     dependency_type: DependencyType,
     export_all: bool,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -69,6 +72,7 @@ impl HarmonyImportSideEffectDependency {
       source_span,
       dependency_type,
       export_all,
+      attributes,
       resource_identifier,
     }
   }
@@ -388,6 +392,10 @@ impl Dependency for HarmonyImportSideEffectDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   fn get_module_evaluation_side_effects_state(

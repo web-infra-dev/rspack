@@ -3,7 +3,7 @@ const fs = require("fs");
 const {
 	Compilation,
 	sources: { RawSource }
-} = require("../../../../");
+} = require("@rspack/core");
 
 /** @type {import("../../../../").Configuration} */
 module.exports = {

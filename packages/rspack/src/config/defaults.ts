@@ -474,15 +474,11 @@ const applyModuleDefaults = (
 						type: "asset/resource"
 					}
 				]
+			},
+			{
+				with: { type: "json" },
+				type: "json"
 			}
-			// {
-			// 	assert: { type: "json" },
-			// 	type: "json"
-			// },
-			// {
-			// 	with: { type: "json" },
-			// 	type: "json"
-			// }
 		);
 
 		return rules;

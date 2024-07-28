@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
   dependency::WorkerDependency,
-  utils::get_literal_str_by_obj_prop,
+  utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData},
   webpack_comment::try_extract_webpack_magic_comment,
 };

@@ -1229,6 +1229,7 @@ export interface RawModuleRule {
   resourceQuery?: RawRuleSetCondition
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
+  with?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string

@@ -2,7 +2,7 @@ use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 
-use crate::{DependencyCategory, ModuleRule};
+use crate::{DependencyCategory, ImportAttributes, ModuleRule};
 
 pub async fn module_rules_matcher<'a>(
   rules: &'a [ModuleRule],
@@ -10,6 +10,7 @@ pub async fn module_rules_matcher<'a>(
   issuer: Option<&'a str>,
   issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<()> {
   for rule in rules {
@@ -19,6 +20,7 @@ pub async fn module_rules_matcher<'a>(
       issuer,
       issuer_layer,
       dependency,
+      attributes,
       matched_rules,
     )
     .await?;
@@ -34,6 +36,7 @@ pub async fn module_rule_matcher<'a>(
   issuer: Option<&'a str>,
   issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
@@ -158,6 +161,22 @@ pub async fn module_rule_matcher<'a>(
     }
   }
 
+  if let Some(with) = &module_rule.with {
+    if let Some(attributes) = attributes {
+      for (k, matcher) in with {
+        if let Some(v) = attributes.get(k) {
+          if !matcher.try_match(v).await? {
+            return Ok(false);
+          }
+        } else {
+          return Ok(false);
+        }
+      }
+    } else {
+      return Ok(false);
+    }
+  }
+
   if let Some(rules) = &module_rule.rules {
     module_rules_matcher(
       rules,
@@ -165,6 +184,7 @@ pub async fn module_rule_matcher<'a>(
       issuer,
       issuer_layer,
       dependency,
+      attributes,
       matched_rules,
     )
     .await?;
@@ -179,6 +199,7 @@ pub async fn module_rule_matcher<'a>(
         issuer,
         issuer_layer,
         dependency,
+        attributes,
         matched_rules,
       )
       .await?

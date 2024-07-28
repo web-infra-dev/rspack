@@ -159,6 +159,7 @@ pub struct RawModuleRule {
   pub resource_query: Option<RawRuleSetCondition>,
   pub resource_fragment: Option<RawRuleSetCondition>,
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
+  pub with: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
   #[napi(ts_type = "RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])")]
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
@@ -728,6 +729,16 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       })
       .transpose()?;
 
+    let with = value
+      .with
+      .map(|data| {
+        data
+          .into_iter()
+          .map(|(k, v)| Ok((k, v.try_into()?)))
+          .collect::<rspack_error::Result<DescriptionData>>()
+      })
+      .transpose()?;
+
     let enforce = value
       .enforce
       .map(|enforce| match &*enforce {
@@ -755,6 +766,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         .transpose()?,
       resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
+      with,
       r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
       layer: value.layer,

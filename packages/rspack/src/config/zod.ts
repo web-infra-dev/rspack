@@ -511,6 +511,7 @@ const baseRuleSetRule = z.strictObject({
 	scheme: ruleSetCondition.optional(),
 	mimetype: ruleSetCondition.optional(),
 	descriptionData: z.record(ruleSetCondition).optional(),
+	with: z.record(ruleSetCondition).optional(),
 	type: z.string().optional(),
 	layer: z.string().optional(),
 	loader: ruleSetLoader.optional(),

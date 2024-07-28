@@ -11,7 +11,7 @@ use swc_core::common::Span;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context, Dependency,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRule,
   ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
@@ -387,7 +387,7 @@ impl NormalModuleFactory {
           } else {
             &resource_data
           },
-          data.dependency.category(),
+          data.dependency.as_ref(),
           data.issuer.as_deref(),
           data.issuer_layer.as_deref(),
         )
@@ -620,7 +620,7 @@ impl NormalModuleFactory {
   async fn calculate_module_rules<'a>(
     &'a self,
     resource_data: &ResourceData,
-    dependency: &DependencyCategory,
+    dependency: &dyn Dependency,
     issuer: Option<&'a str>,
     issuer_layer: Option<&'a str>,
   ) -> Result<Vec<&'a ModuleRule>> {
@@ -630,7 +630,8 @@ impl NormalModuleFactory {
       resource_data,
       issuer,
       issuer_layer,
-      dependency,
+      dependency.category(),
+      dependency.get_attributes(),
       &mut rules,
     )
     .await?;
