@@ -1,4 +1,5 @@
 use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
+use rspack_error::ErrorLocation;
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -72,6 +73,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let dependency = HarmonyImportSideEffectDependency::new(
       source.into(),
       parser.last_harmony_import_order,
+      ErrorLocation::new(import_decl.span, &parser.source_map),
       import_decl.span.into(),
       import_decl.src.span.into(),
       DependencyType::EsmImport,

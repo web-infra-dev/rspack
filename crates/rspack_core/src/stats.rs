@@ -609,6 +609,7 @@ impl Stats<'_> {
           module_identifier: module_identifier.map(|i| i.as_str()),
           module_name,
           module_id: module_id.flatten(),
+          loc: d.format_location(),
           file: d.file().map(ToOwned::to_owned),
 
           chunk_name: chunk.and_then(|c| c.name.clone()),
@@ -654,6 +655,7 @@ impl Stats<'_> {
           module_identifier: module_identifier.map(|i| i.as_str()),
           module_name,
           module_id: module_id.flatten(),
+          loc: d.format_location(),
           file: d.file().map(ToOwned::to_owned),
 
           chunk_name: chunk.and_then(|c| c.name.clone()),
@@ -1254,6 +1256,7 @@ pub struct StatsError<'s> {
   pub module_identifier: Option<&'static str>,
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
+  pub loc: Option<String>,
   pub file: Option<PathBuf>,
 
   pub chunk_name: Option<String>,
@@ -1271,6 +1274,7 @@ pub struct StatsWarning<'s> {
   pub module_identifier: Option<&'static str>,
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
+  pub loc: Option<String>,
   pub file: Option<PathBuf>,
 
   pub chunk_name: Option<String>,

@@ -7,6 +7,7 @@ use std::{
 
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_collections::Identifier;
+use swc_core::common::{SourceMap, Span};
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
@@ -62,9 +63,40 @@ impl fmt::Display for RspackSeverity {
 }
 
 #[derive(Debug, Clone)]
+pub struct SourcePosition {
+  pub line: usize,
+  pub column: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct ErrorLocation {
+  pub start: SourcePosition,
+  pub end: SourcePosition,
+}
+
+impl ErrorLocation {
+  pub fn new(span: Span, source_map: &SourceMap) -> Self {
+    let lo = source_map.lookup_char_pos(span.lo());
+    let hi = source_map.lookup_char_pos(span.hi());
+
+    ErrorLocation {
+      start: SourcePosition {
+        line: lo.line,
+        column: lo.col_display,
+      },
+      end: SourcePosition {
+        line: hi.line,
+        column: hi.col_display,
+      },
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
+  loc: Option<ErrorLocation>,
   file: Option<PathBuf>,
   hide_stack: Option<bool>,
   chunk: Option<u32>,
@@ -82,6 +114,7 @@ impl From<miette::Error> for Diagnostic {
     Self {
       inner: Arc::new(value),
       module_identifier: None,
+      loc: None,
       file: None,
       hide_stack: None,
       chunk: None,
@@ -108,6 +141,7 @@ impl Diagnostic {
       )
       .into(),
       module_identifier: None,
+      loc: None,
       file: None,
       hide_stack: None,
       chunk: None,
@@ -124,6 +158,7 @@ impl Diagnostic {
       )
       .into(),
       module_identifier: None,
+      loc: None,
       file: None,
       hide_stack: None,
       chunk: None,
@@ -161,6 +196,37 @@ impl Diagnostic {
 
   pub fn with_module_identifier(mut self, module_identifier: Option<Identifier>) -> Self {
     self.module_identifier = module_identifier;
+    self
+  }
+
+  pub fn format_location(&self) -> Option<String> {
+    if let Some(loc) = &self.loc {
+      if loc.start.line == loc.end.line {
+        if loc.start.column == loc.end.column {
+          return Some(format!("{}:{}", loc.start.line, loc.start.column));
+        }
+
+        return Some(format!(
+          "{}:{}-{}",
+          loc.start.line, loc.start.column, loc.end.column
+        ));
+      }
+
+      return Some(format!(
+        "{}:{}-{}:{}",
+        loc.start.line, loc.start.column, loc.end.line, loc.end.column
+      ));
+    }
+
+    return None;
+  }
+
+  pub fn loc(&self) -> Option<ErrorLocation> {
+    self.loc.clone()
+  }
+
+  pub fn with_loc(mut self, loc: Option<ErrorLocation>) -> Self {
+    self.loc = loc;
     self
   }
 

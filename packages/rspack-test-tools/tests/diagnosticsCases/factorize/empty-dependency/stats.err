@@ -6,7 +6,7 @@ ERROR in ./index.js
  2 │ import ""
    ╰────
 
-ERROR in ./index.js
+ERROR in ./index.js 2:0-9
   × Empty dependency: Expected a non-empty request
    ╭─[2:7]
  1 │ require("")

@@ -12,8 +12,8 @@ use rspack_core::{
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
-use rspack_error::DiagnosticExt;
 use rspack_error::{Diagnostic, TraceableError};
+use rspack_error::{DiagnosticExt, ErrorLocation};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -44,6 +44,7 @@ pub struct HarmonyImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
+  pub loc: ErrorLocation,
   pub span: ErrorSpan,
   pub source_span: ErrorSpan,
   pub dependency_type: DependencyType,
@@ -56,6 +57,7 @@ impl HarmonyImportSideEffectDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
+    loc: ErrorLocation,
     span: ErrorSpan,
     source_span: ErrorSpan,
     dependency_type: DependencyType,
@@ -68,6 +70,7 @@ impl HarmonyImportSideEffectDependency {
       id: DependencyId::new(),
       source_order,
       request,
+      loc,
       span,
       source_span,
       dependency_type,
@@ -376,6 +379,10 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
 impl Dependency for HarmonyImportSideEffectDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc.clone())
   }
 
   fn span(&self) -> Option<ErrorSpan> {
