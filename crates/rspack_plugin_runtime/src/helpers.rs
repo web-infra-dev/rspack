@@ -26,7 +26,7 @@ pub fn update_hash_for_entry_startup(
           .chunk_graph
           .get_module_id(module.module_identifier)
         {
-          Some(id) => id.as_str(),
+          Some(id) => id,
           None => "null",
         }
       })
@@ -156,7 +156,7 @@ pub fn generate_entry_startup(
           .chunk_graph
           .get_module_id(module.module_identifier)
         {
-          Some(id) => id.as_str(),
+          Some(id) => id,
           None => "null",
         }
       })

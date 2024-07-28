@@ -158,7 +158,9 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             issuer: data
               .issuer
               .clone()
-              .map_or("".to_string(), |i| i.to_string()),
+              .map(|i| i.to_string())
+              .unwrap_or_default(),
+            issuer_layer: data.issuer_layer.clone(),
           },
         })
         .await?;

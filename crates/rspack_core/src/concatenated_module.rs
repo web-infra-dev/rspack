@@ -1206,7 +1206,7 @@ impl Module for ConcatenatedModule {
             "var {} = {}({});",
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
-            serde_json::to_string(compilation.chunk_graph.get_module_id(info.module))
+            serde_json::to_string(&compilation.chunk_graph.get_module_id(info.module))
               .expect("should have module id")
           )));
 

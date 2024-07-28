@@ -66,6 +66,7 @@ impl From<RawExternalItemFnResult> for ExternalItemFnResult {
 #[napi(object)]
 pub struct ContextInfo {
   pub issuer: String,
+  pub issuer_layer: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +86,7 @@ impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
       context: value.context,
       context_info: ContextInfo {
         issuer: value.context_info.issuer,
+        issuer_layer: value.context_info.issuer_layer,
       },
     }
   }

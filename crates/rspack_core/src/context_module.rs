@@ -200,7 +200,6 @@ impl ContextModule {
       .get_module_id(self.identifier)
       .as_ref()
       .expect("module id not found")
-      .as_str()
   }
 
   fn get_fake_map(
@@ -225,8 +224,7 @@ impl ContextModule {
         compilation
           .chunk_graph
           .get_module_id(*m)
-          .clone()
-          .map(|id| (id, dep))
+          .map(|id| (id.to_string(), dep))
       })
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
@@ -321,7 +319,8 @@ impl ContextModule {
         });
         let module_id = module_graph
           .module_identifier_by_dependency_id(dep_id)
-          .and_then(|module| compilation.chunk_graph.get_module_id(*module).clone());
+          .and_then(|module| compilation.chunk_graph.get_module_id(*module))
+          .map(|s| s.to_string());
         // module_id could be None in weak mode
         dep.map(|dep| (dep, module_id))
       })
@@ -461,7 +460,7 @@ impl ContextModule {
           })?;
         let module_id = module_graph
           .module_identifier_by_dependency_id(d)
-          .and_then(|m| compilation.chunk_graph.get_module_id(*m).as_ref())?;
+          .and_then(|m| compilation.chunk_graph.get_module_id(*m))?;
         Some((chunks, user_request, module_id.to_string()))
       })
       .collect::<Vec<_>>();

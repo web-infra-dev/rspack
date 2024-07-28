@@ -1,5 +1,6 @@
 import {
 	BuiltinPluginName,
+	type RawExternalItemFnCtx,
 	type RawExternalsPluginOptions
 } from "@rspack/binding";
 
@@ -29,15 +30,26 @@ function getRawExternalItem(item: ExternalItem | undefined): RawExternalItem {
 	}
 
 	if (typeof item === "function") {
-		return async ctx => {
+		return async (ctx: RawExternalItemFnCtx) => {
 			return await new Promise((resolve, reject) => {
-				const promise = item(ctx, (err, result, type) => {
-					if (err) reject(err);
-					resolve({
-						result: getRawExternalItemValueFormFnResult(result),
-						externalType: type
-					});
-				}) as Promise<ExternalItemValue>;
+				const promise = item(
+					{
+						request: ctx.request,
+						dependencyType: ctx.dependencyType,
+						context: ctx.context,
+						contextInfo: {
+							issuer: ctx.contextInfo.issuer,
+							issuerLayer: ctx.contextInfo.issuerLayer ?? null
+						}
+					},
+					(err, result, type) => {
+						if (err) reject(err);
+						resolve({
+							result: getRawExternalItemValueFormFnResult(result),
+							externalType: type
+						});
+					}
+				) as Promise<ExternalItemValue>;
 				if (promise && promise.then) {
 					promise.then(
 						result =>

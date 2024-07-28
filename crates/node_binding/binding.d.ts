@@ -178,6 +178,8 @@ export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compi
 
 export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, compilation: JsCompilation): Array<JsModule>
 
+export function __chunk_graph_inner_get_module_id(module: string, compilation: JsCompilation): string | null
+
 export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
@@ -279,6 +281,7 @@ export function cleanupGlobalTrace(): void
 
 export interface ContextInfo {
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsAdditionalTreeRuntimeRequirementsArg {

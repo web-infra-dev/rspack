@@ -136,9 +136,9 @@ impl ChunkGraph {
     runtimes
   }
 
-  pub fn get_module_id(&self, module_identifier: ModuleIdentifier) -> &Option<String> {
+  pub fn get_module_id(&self, module_identifier: ModuleIdentifier) -> Option<&str> {
     let cgm = self.get_chunk_graph_module(module_identifier);
-    &cgm.id
+    cgm.id.as_deref()
   }
 
   pub fn set_module_id(&mut self, module_identifier: ModuleIdentifier, id: String) {
