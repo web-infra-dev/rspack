@@ -1,9 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
-		parser: {
-			'css/auto': {
-				namedExports: true
+		generator: {
+			"css/auto": {
+				exportsOnly: false,
 			}
 		},
 		rules: [
@@ -14,11 +14,11 @@ module.exports = {
 						loader: "builtin:lightningcss-loader",
 						/** @type {import("@rspack/core").LightningcssLoaderOptions} */
 						options: {
-							unusedSymbols: ['unused'],
-							targets: 'ie 10',
-							include: {
-								nesting: true
-							}
+							targets: [
+								'Edge >= 12',
+								'iOS >= 8',
+								'Android >= 4.0'
+							]
 						}
 					}
 				],

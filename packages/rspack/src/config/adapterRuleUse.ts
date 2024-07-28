@@ -222,7 +222,7 @@ const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 		}
 
 		if (o.targets && Array.isArray(o.targets)) {
-			o.targets = browserslistToTargets(o.targets);
+			o.targets = browserslistToTargets(browserslist(o.targets));
 		}
 
 		if (o.include) {
