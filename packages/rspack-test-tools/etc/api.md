@@ -145,7 +145,7 @@ export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(index: number, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
-    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[] | undefined;
+    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
     // (undocumented)
     static overrideOptions<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): void;
 }
@@ -1434,7 +1434,7 @@ export type TTestConfig<T extends ECompilerType> = {
     noTest?: boolean;
     beforeExecute?: () => void;
     afterExecute?: () => void;
-    moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope;
+    moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
     findBundle?: (index: number, options: TCompilerOptions<T>) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;

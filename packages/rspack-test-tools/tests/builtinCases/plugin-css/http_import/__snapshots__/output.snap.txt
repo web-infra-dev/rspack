@@ -6,5 +6,5 @@ body {
   background: red;
 }
 
-
+head{--webpack-__rspack_test__-main:&\.\/styleācss;}
 ```

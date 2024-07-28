@@ -5,7 +5,11 @@ module.exports = {
 			import: ["./index"]
 		}
 	},
-	target: "node",
+	node: {
+		__dirname: false,
+		__filename: false,
+	},
+	target: "web",
 	output: {
 		filename: "[name].js"
 	},

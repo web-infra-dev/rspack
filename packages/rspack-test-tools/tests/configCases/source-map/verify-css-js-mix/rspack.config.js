@@ -1,12 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		generator: {
-			"css/auto": {
-				exportsOnly: false
-			},
-		},
-	},
+	target: 'web',
+	node: false,
 	devtool: "source-map",
 	externals: ["source-map"],
 	externalsType: "commonjs"

@@ -432,7 +432,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                       escape_css(&v.ident, false)
                     )
                   } else {
-                    format!("{}:{}/", escaped, escape_css(&v.ident, false))
+                    format!("{}:{}/", escaped, &v.ident)
                   }
                 })
                 .collect::<Vec<_>>()

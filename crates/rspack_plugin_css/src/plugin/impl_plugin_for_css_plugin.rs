@@ -256,11 +256,11 @@ fn lzw_encode(input: &str) -> String {
   if input.is_empty() {
     return input.into();
   }
-  let mut map: HashMap<String, u16> = HashMap::default();
-  let mut encoded = Vec::new();
+  let mut map: HashMap<String, char> = HashMap::default();
+  let mut encoded = String::new();
   let mut phrase = input.chars().next().unwrap().to_string();
-  let mut code: u16 = 256;
-  let max_code = 0xffff;
+  let mut code = 256u16;
+  let max_code = 0xFFFF;
 
   for c in input.chars().skip(1) {
     let next_phrase = format!("{}{}", phrase, c);
@@ -268,36 +268,29 @@ fn lzw_encode(input: &str) -> String {
       phrase = next_phrase;
     } else {
       if phrase.len() > 1 {
-        if let Some(&mapped_code) = map.get(&phrase) {
-          encoded.push(mapped_code);
-        }
+        encoded.push(*map.get(&phrase).unwrap());
       } else {
-        encoded.extend_from_slice(&phrase.encode_utf16().collect::<Vec<_>>());
+        encoded += &phrase;
       }
-
       if code <= max_code {
-        map.insert(next_phrase, code);
+        map.insert(next_phrase, std::char::from_u32(code as u32).unwrap());
         code += 1;
       }
-
       if code > max_code {
         code = 256;
         map.clear();
       }
-
       phrase = c.to_string();
     }
   }
 
   if phrase.len() > 1 {
-    if let Some(&mapped_code) = map.get(&phrase) {
-      encoded.push(mapped_code);
-    }
+    encoded.push(*map.get(&phrase).unwrap());
   } else {
-    encoded.extend_from_slice(&phrase.encode_utf16().collect::<Vec<_>>());
+    encoded += &phrase;
   }
 
-  String::from_utf16(&encoded).expect("Invalid UTF-8 sequence")
+  encoded
 }
 
 #[plugin_hook(CompilationRenderManifest for CssPlugin)]

@@ -50,7 +50,6 @@ export default class FakeDocument {
 		const links = this.getElementsByTagName("link");
 		for (const link of links) {
 			for (const rule of link.sheet.cssRules) {
-				console.log(rule.selectorText, element._type)
 				if (rule.selectorText === element._type) {
 					Object.assign(style, rule.style);
 				}

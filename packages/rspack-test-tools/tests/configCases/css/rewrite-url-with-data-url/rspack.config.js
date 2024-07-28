@@ -1,8 +1,14 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	target: 'web',
+node: {
+  __dirname: false,
+  __filename: false
+},
 	output: {
 		cssFilename: "css/[name].css"
 	},
+	node: false,
 	module: {
 		generator: {
 			"css/auto": {

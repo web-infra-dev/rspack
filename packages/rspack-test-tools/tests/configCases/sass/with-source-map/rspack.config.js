@@ -1,6 +1,8 @@
 const rspack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	target: 'web',
+	node: false,
 	module: {
 		rules: [
 			{

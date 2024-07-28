@@ -298,6 +298,7 @@ Object {
     "crossOriginLoading": false,
     "cssChunkFilename": "[name].css",
     "cssFilename": "[name].css",
+    "cssHeadDataCompression": true,
     "devtoolFallbackModuleFilenameTemplate": undefined,
     "devtoolModuleFilenameTemplate": undefined,
     "devtoolNamespace": "@rspack/test-tools",

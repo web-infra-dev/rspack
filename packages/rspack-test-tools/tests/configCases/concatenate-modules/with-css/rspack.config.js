@@ -17,7 +17,7 @@ module.exports = {
 					namedExports: false,
 				},
 				generator: {
-					exportsOnly: false,
+					exportsOnly: true,
 					localIdentName: "[path][name][ext]__[local]"
 				}
 			}

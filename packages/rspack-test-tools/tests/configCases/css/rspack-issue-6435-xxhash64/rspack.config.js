@@ -2,6 +2,11 @@ const path = require("path");
 
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
+	target: 'web',
+node: {
+  __dirname: false,
+  __filename: false
+},
   mode: "development",
   entry: "./index.js",
   output: {
