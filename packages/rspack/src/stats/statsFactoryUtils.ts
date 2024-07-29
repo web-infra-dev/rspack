@@ -87,13 +87,15 @@ export type StatsModuleReason = Omit<
 	moduleIdentifier?: string;
 } & Record<string, any>;
 
-export type StatsChunkOrigin = Omit<
-	binding.JsOriginRecord,
-	"module" | "moduleIdentifier"
-> & {
-	module: string;
-	moduleIdentifier: string;
+export type KnownStatsChunkOrigin = {
+	module: String;
+	moduleIdentifier: String;
+	moduleName: String;
+	loc: String;
+	request: String;
 };
+
+export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
 export type KnownStatsCompilation = {
 	/**
@@ -148,15 +150,6 @@ export type KnownStatsLoggingEntry = {
 	children?: StatsLoggingEntry[] | undefined;
 	args?: any[] | undefined;
 	time?: number | undefined;
-};
-
-export type KnownStatsChunkOrigin = {
-	module?: string | undefined;
-	moduleIdentifier?: string | undefined;
-	moduleName?: string | undefined;
-	loc?: string | undefined;
-	request?: string | undefined;
-	moduleId?: (string | number) | undefined;
 };
 
 type ExtractorsByOption<T, O> = {

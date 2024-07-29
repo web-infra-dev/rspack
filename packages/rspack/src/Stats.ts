@@ -56,11 +56,11 @@ export class Stats {
 	}
 
 	hasErrors() {
-		return this.#inner.getErrors().length > 0;
+		return this.#inner.hasErrors();
 	}
 
 	hasWarnings() {
-		return this.#inner.getWarnings().length > 0;
+		return this.#inner.hasWarnings();
 	}
 
 	toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {
@@ -76,8 +76,11 @@ export class Stats {
 		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {
+			// TODO
+			const statsCompilation = this.#inner.toJson(options as any);
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
+				statsCompilation,
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {

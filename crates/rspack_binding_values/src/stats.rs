@@ -2,7 +2,9 @@ use std::cell::RefCell;
 
 use napi_derive::napi;
 use rspack_collections::Identifier;
-use rspack_core::{ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports};
+use rspack_core::{
+  EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
+};
 use rspack_napi::napi::{
   bindgen_prelude::{Buffer, Env, FromNapiValue, Object, Result, SharedReference, ToNapiValue},
   Either,
@@ -841,9 +843,14 @@ pub struct JsStatsOptions {
   pub assets: bool,
   pub cached_modules: bool,
   pub chunks: bool,
+  pub chunk_group_auxiliary: bool,
+  pub chunk_group_children: bool,
+  pub chunk_groups: bool,
   pub chunk_modules: bool,
   pub chunk_relations: bool,
   pub depth: bool,
+  pub entrypoints: Either<bool, String>,
+  pub errors: bool,
   pub hash: bool,
   pub ids: bool,
   pub modules: bool,
@@ -854,17 +861,28 @@ pub struct JsStatsOptions {
   pub reasons: bool,
   pub source: bool,
   pub used_exports: bool,
+  pub warnings: bool,
 }
 
 impl From<JsStatsOptions> for ExtendedStatsOptions {
   fn from(value: JsStatsOptions) -> Self {
+    let entrypoints = match value.entrypoints {
+      Either::A(b) => EntrypointsStatsOption::Bool(b),
+      Either::B(s) => EntrypointsStatsOption::String(s),
+    };
+
     Self {
       assets: value.assets,
       cached_modules: value.cached_modules,
       chunks: value.chunks,
+      chunk_group_auxiliary: value.chunk_group_auxiliary,
+      chunk_group_children: value.chunk_group_children,
+      chunk_groups: value.chunk_groups,
       chunk_modules: value.chunk_modules,
       chunk_relations: value.chunk_relations,
       depth: value.depth,
+      entrypoints,
+      errors: value.errors,
       hash: value.hash,
       ids: value.ids,
       modules: value.modules,
@@ -875,7 +893,44 @@ impl From<JsStatsOptions> for ExtendedStatsOptions {
       reasons: value.reasons,
       source: value.source,
       used_exports: value.used_exports,
+      warnings: value.warnings,
     }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsGetAssets {
+  pub assets: Vec<JsStatsAsset>,
+  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
+}
+
+#[napi(object)]
+pub struct JsStatsCompilation {
+  pub assets: Option<Vec<JsStatsAsset>>,
+  pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName>>,
+  pub chunks: Option<Vec<JsStatsChunk>>,
+  pub entrypoints: Option<Vec<JsStatsChunkGroup>>,
+  pub errors: Option<Vec<JsStatsError>>,
+  pub hash: Option<String>,
+  pub modules: Option<Vec<JsStatsModule>>,
+  pub named_chunk_groups: Option<Vec<JsStatsChunkGroup>>,
+  pub warnings: Option<Vec<JsStatsWarning>>,
+}
+
+pub struct JsStatsCompilationWrapper(JsStatsCompilation);
+
+impl ToNapiValue for JsStatsCompilationWrapper {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    let napi_value = ToNapiValue::to_napi_value(env, val.0);
+
+    MODULE_DESCRIPTOR_REFS.with(|refs| {
+      let mut refs = refs.borrow_mut();
+      for (_, mut r) in refs.drain() {
+        let _ = r.unref(env);
+      }
+    });
+
+    napi_value
   }
 }
 
@@ -890,24 +945,10 @@ impl JsStats {
   }
 }
 
-#[napi(object)]
-pub struct JsStatsGetAssets {
-  pub assets: Vec<JsStatsAsset>,
-  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
-}
-
-#[napi(object)]
-pub struct StatsCompilation {
-  pub assets: Option<Vec<JsStatsAsset>>,
-  pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName>>,
-  pub hash: Option<String>,
-  pub modules: Option<Vec<JsStatsModule>>,
-  pub chunks: Option<Vec<JsStatsChunk>>,
-}
-
 #[napi]
 impl JsStats {
-  pub fn to_json(&self, js_options: JsStatsOptions) -> Result<StatsCompilation> {
+  #[napi(ts_return_type = "JsStatsCompilation")]
+  pub fn to_json(&self, js_options: JsStatsOptions) -> Result<JsStatsCompilationWrapper> {
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
@@ -933,13 +974,38 @@ impl JsStats {
       None
     };
 
-    Ok(StatsCompilation {
+    let entrypoints = match options.entrypoints {
+      EntrypointsStatsOption::Bool(true) | EntrypointsStatsOption::String(_) => {
+        Some(self.entrypoints(options.chunk_group_auxiliary, options.chunk_group_children))
+      }
+      _ => None,
+    };
+
+    let named_chunk_groups = if options.chunk_groups {
+      Some(self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children))
+    } else {
+      None
+    };
+
+    let errors = if options.errors {
+      Some(self.errors())
+    } else {
+      None
+    };
+
+    let warnings = options.warnings.then(|| self.warnings());
+
+    Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
       assets_by_chunk_name,
       chunks,
+      entrypoints,
+      errors,
       hash,
       modules,
-    })
+      named_chunk_groups,
+      warnings,
+    }))
   }
 
   fn assets(&self) -> JsStatsGetAssets {
@@ -970,8 +1036,7 @@ impl JsStats {
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
-  #[napi]
-  pub fn get_entrypoints(
+  fn entrypoints(
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
@@ -984,8 +1049,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_named_chunk_groups(
+  fn named_chunk_groups(
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
@@ -998,8 +1062,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_errors(&self) -> Vec<JsStatsError> {
+  fn errors(&self) -> Vec<JsStatsError> {
     self
       .inner
       .get_errors()
@@ -1008,14 +1071,23 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_warnings(&self) -> Vec<JsStatsWarning> {
+  fn warnings(&self) -> Vec<JsStatsWarning> {
     self
       .inner
       .get_warnings()
       .into_iter()
       .map(Into::into)
       .collect()
+  }
+
+  #[napi]
+  pub fn has_warnings(&self) -> bool {
+    self.inner.get_warnings().len() > 0
+  }
+
+  #[napi]
+  pub fn has_errors(&self) -> bool {
+    self.inner.get_errors().len() > 0
   }
 
   #[napi]

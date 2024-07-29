@@ -28,13 +28,23 @@ fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
     .unwrap_or(-1f64)
 }
 
+pub enum EntrypointsStatsOption {
+  Bool(bool),
+  String(String),
+}
+
 pub struct ExtendedStatsOptions {
   pub assets: bool,
   pub cached_modules: bool,
   pub chunks: bool,
+  pub chunk_group_auxiliary: bool,
+  pub chunk_group_children: bool,
+  pub chunk_groups: bool,
   pub chunk_modules: bool,
   pub chunk_relations: bool,
   pub depth: bool,
+  pub entrypoints: EntrypointsStatsOption,
+  pub errors: bool,
   pub hash: bool,
   pub ids: bool,
   pub modules: bool,
@@ -45,6 +55,7 @@ pub struct ExtendedStatsOptions {
   pub reasons: bool,
   pub source: bool,
   pub used_exports: bool,
+  pub warnings: bool,
 }
 
 #[derive(Debug, Clone)]

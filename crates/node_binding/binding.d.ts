@@ -80,15 +80,10 @@ export class JsResolverFactory {
 }
 
 export class JsStats {
-  getAssets(): JsStatsGetAssets
-  getModules(jsOptions: JsStatsOptions): Array<JsStatsModule>
-  getChunks(jsOptions: JsStatsOptions): Array<JsStatsChunk>
-  getEntrypoints(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
-  getNamedChunkGroups(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
-  getErrors(): Array<JsStatsError>
-  getWarnings(): Array<JsStatsWarning>
+  toJson(jsOptions: JsStatsOptions): JsStatsCompilation
+  hasWarnings(): boolean
+  hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string | null
 }
 
 export class Rspack {
@@ -599,6 +594,18 @@ export interface JsStatsChunkGroupChildren {
   prefetch?: Array<JsStatsChunkGroup>
 }
 
+export interface JsStatsCompilation {
+  assets?: Array<JsStatsAsset>
+  assetsByChunkName?: Array<JsStatsAssetsByChunkName>
+  chunks?: Array<JsStatsChunk>
+  entrypoints?: Array<JsStatsChunkGroup>
+  errors?: Array<JsStatsError>
+  hash?: string
+  modules?: Array<JsStatsModule>
+  namedChunkGroups?: Array<JsStatsChunkGroup>
+  warnings?: Array<JsStatsWarning>
+}
+
 export interface JsStatsError {
   moduleDescriptor?: JsModuleDescriptor
   message: string
@@ -699,18 +706,28 @@ export interface JsStatsOptimizationBailout {
 }
 
 export interface JsStatsOptions {
+  assets: boolean
   cachedModules: boolean
+  chunks: boolean
+  chunkGroupAuxiliary: boolean
+  chunkGroupChildren: boolean
+  chunkGroups: boolean
   chunkModules: boolean
   chunkRelations: boolean
-  reasons: boolean
+  depth: boolean
+  entrypoints: boolean | string
+  errors: boolean
+  hash: boolean
+  ids: boolean
+  modules: boolean
   moduleAssets: boolean
   nestedModules: boolean
+  optimizationBailout: boolean
+  providedExports: boolean
+  reasons: boolean
   source: boolean
   usedExports: boolean
-  providedExports: boolean
-  ids: boolean
-  optimizationBailout: boolean
-  depth: boolean
+  warnings: boolean
 }
 
 export interface JsStatsSize {
