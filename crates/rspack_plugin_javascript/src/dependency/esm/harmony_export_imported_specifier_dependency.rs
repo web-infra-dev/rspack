@@ -632,7 +632,7 @@ impl HarmonyExportImportedSpecifierDependency {
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency(self.id()) {
-              filter_runtime(ctxt.runtime, |r| connection.is_target_active(&mg, r))
+              filter_runtime(ctxt.runtime, |r| connection.is_target_active(mg, r))
             } else {
               RuntimeCondition::Boolean(true)
             };
