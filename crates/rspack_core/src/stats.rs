@@ -29,18 +29,22 @@ fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
 }
 
 pub struct ExtendedStatsOptions {
+  pub assets: bool,
   pub cached_modules: bool,
+  pub chunks: bool,
   pub chunk_modules: bool,
   pub chunk_relations: bool,
-  pub reasons: bool,
+  pub depth: bool,
+  pub hash: bool,
+  pub ids: bool,
+  pub modules: bool,
   pub module_assets: bool,
   pub nested_modules: bool,
+  pub optimization_bailout: bool,
+  pub provided_exports: bool,
+  pub reasons: bool,
   pub source: bool,
   pub used_exports: bool,
-  pub provided_exports: bool,
-  pub ids: bool,
-  pub optimization_bailout: bool,
-  pub depth: bool,
 }
 
 #[derive(Debug, Clone)]

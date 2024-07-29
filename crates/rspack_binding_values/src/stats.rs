@@ -838,35 +838,43 @@ impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
 
 #[napi(object, object_to_js = false)]
 pub struct JsStatsOptions {
+  pub assets: bool,
   pub cached_modules: bool,
+  pub chunks: bool,
   pub chunk_modules: bool,
   pub chunk_relations: bool,
-  pub reasons: bool,
+  pub depth: bool,
+  pub hash: bool,
+  pub ids: bool,
+  pub modules: bool,
   pub module_assets: bool,
   pub nested_modules: bool,
+  pub optimization_bailout: bool,
+  pub provided_exports: bool,
+  pub reasons: bool,
   pub source: bool,
   pub used_exports: bool,
-  pub provided_exports: bool,
-  pub ids: bool,
-  pub optimization_bailout: bool,
-  pub depth: bool,
 }
 
 impl From<JsStatsOptions> for ExtendedStatsOptions {
   fn from(value: JsStatsOptions) -> Self {
     Self {
+      assets: value.assets,
       cached_modules: value.cached_modules,
+      chunks: value.chunks,
       chunk_modules: value.chunk_modules,
       chunk_relations: value.chunk_relations,
-      reasons: value.reasons,
+      depth: value.depth,
+      hash: value.hash,
+      ids: value.ids,
+      modules: value.modules,
       module_assets: value.module_assets,
       nested_modules: value.nested_modules,
+      optimization_bailout: value.optimization_bailout,
+      provided_exports: value.provided_exports,
+      reasons: value.reasons,
       source: value.source,
       used_exports: value.used_exports,
-      provided_exports: value.provided_exports,
-      ids: value.ids,
-      optimization_bailout: value.optimization_bailout,
-      depth: value.depth,
     }
   }
 }
@@ -888,10 +896,53 @@ pub struct JsStatsGetAssets {
   pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
 }
 
+#[napi(object)]
+pub struct StatsCompilation {
+  pub assets: Option<Vec<JsStatsAsset>>,
+  pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName>>,
+  pub hash: Option<String>,
+  pub modules: Option<Vec<JsStatsModule>>,
+  pub chunks: Option<Vec<JsStatsChunk>>,
+}
+
 #[napi]
 impl JsStats {
-  #[napi]
-  pub fn get_assets(&self) -> JsStatsGetAssets {
+  pub fn to_json(&self, js_options: JsStatsOptions) -> Result<StatsCompilation> {
+    let options = ExtendedStatsOptions::from(js_options);
+
+    let hash = options.hash.then(|| self.hash()).flatten();
+
+    let (assets, assets_by_chunk_name) = if options.assets {
+      let asts = self.assets();
+      (Some(asts.assets), Some(asts.assets_by_chunk_name))
+    } else {
+      (None, None)
+    };
+
+    let modules = if options.modules {
+      let mds = self.modules(&options)?;
+      Some(mds)
+    } else {
+      None
+    };
+
+    let chunks = if options.chunks {
+      let chks = self.chunks(&options)?;
+      Some(chks)
+    } else {
+      None
+    };
+
+    Ok(StatsCompilation {
+      assets,
+      assets_by_chunk_name,
+      chunks,
+      hash,
+      modules,
+    })
+  }
+
+  fn assets(&self) -> JsStatsGetAssets {
     let (assets, assets_by_chunk_name) = self.inner.get_assets();
     let assets = assets.into_iter().map(Into::into).collect();
     let assets_by_chunk_name = assets_by_chunk_name.into_iter().map(Into::into).collect();
@@ -901,9 +952,7 @@ impl JsStats {
     }
   }
 
-  #[napi]
-  pub fn get_modules(&self, js_options: JsStatsOptions) -> Result<Vec<JsStatsModule>> {
-    let options = ExtendedStatsOptions::from(js_options);
+  fn modules(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsModule>> {
     self
       .inner
       .get_modules(&options, |res| {
@@ -912,9 +961,7 @@ impl JsStats {
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
-  #[napi]
-  pub fn get_chunks(&self, js_options: JsStatsOptions) -> Result<Vec<JsStatsChunk>> {
-    let options = ExtendedStatsOptions::from(js_options);
+  fn chunks(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsChunk>> {
     self
       .inner
       .get_chunks(&options, |res| {
@@ -985,8 +1032,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_hash(&self) -> Option<String> {
+  fn hash(&self) -> Option<String> {
     self.inner.get_hash().map(|hash| hash.to_string())
   }
 }
