@@ -2952,9 +2952,9 @@ dependencies = [
 
 [[package]]
 name = "regress"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0eae2a1ebfecc58aff952ef8ccd364329abe627762f5bf09ff42eb9d98522479"
+checksum = "16fe0a24af5daaae947294213d2fd2646fbf5e1fbacc1d4ba3e84b2393854842"
 dependencies = [
  "hashbrown 0.14.5",
  "memchr",
@@ -3169,7 +3169,7 @@ dependencies = [
  "hex",
  "indexmap 2.2.6",
  "indoc",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "json",
  "mime_guess",
  "num-bigint",
@@ -3274,7 +3274,7 @@ dependencies = [
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "once_cell",
  "rayon",
  "regex",
@@ -3534,7 +3534,7 @@ dependencies = [
  "dashmap 5.5.3",
  "derivative",
  "futures",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -3643,7 +3643,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dojang",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "path-clean 1.0.1",
  "rayon",
  "regex",
@@ -3687,7 +3687,7 @@ dependencies = [
  "fast-glob",
  "indexmap 2.2.6",
  "indoc",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
@@ -3806,7 +3806,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "hashlink",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "once_cell",
  "regex",
  "rspack_collections",
@@ -3870,7 +3870,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "indexmap 2.2.6",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "once_cell",
  "rspack_collections",
  "rspack_core",
@@ -6117,9 +6117,9 @@ dependencies = [
 
 [[package]]
 name = "tikv-jemalloc-sys"
-version = "0.5.4+5.3.0-patched"
+version = "0.6.0+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9402443cb8fd499b6f327e40565234ff34dbda27460c5b47db0db77443dd85d1"
+checksum = "cd3c60906412afa9c2b5b5a48ca6a5abe5736aec9eb48ad05037a677e52e4e2d"
 dependencies = [
  "cc",
  "libc",
@@ -6127,9 +6127,9 @@ dependencies = [
 
 [[package]]
 name = "tikv-jemallocator"
-version = "0.5.4"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "965fe0c26be5c56c94e38ba547249074803efd52adfb66de62107d95aab3eaca"
+checksum = "4cec5ff18518d81584f477e9bfdf957f5bb0979b0bac3af4ca30b5b3ae2d2865"
 dependencies = [
  "libc",
  "tikv-jemalloc-sys",
