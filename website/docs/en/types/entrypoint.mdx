@@ -1,0 +1,10 @@
+```ts
+type Entrypoint = {
+      name?: Readonly<string>;
+      index?: Readonly<number>;
+      chunks: ReadonlyArray<Chunk>;
+      getFiles(): ReadonlyArray<string>;
+      getParents(): ReadonlyArray<ChunkGroup>;
+      getRuntimeChunk(): Readonly<Chunk | null>;
+};
+```

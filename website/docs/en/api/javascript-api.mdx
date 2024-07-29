@@ -1,6 +1,10 @@
 import WebpackLicense from '@components/webpack-license';
-import { ApiMeta, Stability } from '@components/ApiMeta';
+import { Collapse, CollapsePanel } from '@components/Collapse';
 import { PackageManagerTabs } from '@theme';
+import { ApiMeta, Stability } from '@components/ApiMeta';
+import CompilerType from '../types/compiler.mdx';
+import WatchingType from '../types/watching.mdx';
+import StatsType from '../types/stats.mdx';
 
 <WebpackLicense from="https://webpack.js.org/api/node/" />
 
@@ -66,6 +70,16 @@ The `run` method is then used to kickstart all compilation work. Upon completion
 The API only supports a single concurrent compilation at a time. When using `run` or `watch`, call `close` and wait for it to finish before calling `run` or `watch` again. Concurrent compilations will corrupt the output files.
 :::
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## Run
 
 Calling the `run` method on the `Compiler` instance is much like the quick run method mentioned above:
@@ -124,6 +138,16 @@ const watching = compiler.watch(
 Filesystem inaccuracies may trigger multiple builds for a single change. In the example above, the `console.log` statement may fire multiple times for a single modification. Users should expect this behavior and may check `stats.hash` to see if the file hash has actually changed.
 :::
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Watching.ts"
+    key="watching"
+  >
+    <WatchingType />
+  </CollapsePanel>
+</Collapse>
+
 ## Close `Watching`
 
 The `watch` method returns a `Watching` instance that exposes `.close(callback)` method. Calling this method will end watching:
@@ -160,6 +184,12 @@ The [Rspack CLI](/api/cli) uses this information to display nicely formatted out
 When using the `MultiCompiler`, a `MultiStats` instance is returned that fulfills the same interface as `stats`, i.e. the methods described below.
 :::
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
 This `stats` object exposes the following methods:
 
 ### stats.hasErrors()
@@ -185,7 +215,7 @@ stats.toJson({
 });
 ```
 
-All available options and presets are described in the stats [documentation](/config/stats).
+All available options and presets are described in the [stats configurations](/config/stats), and the generated data is described in the [stats object](/api/objects/stats).
 
 ### stats.toString(options)
 

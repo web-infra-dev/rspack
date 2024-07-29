@@ -1,3 +1,6 @@
+import ResolveDataType from '../../types/resolve-data.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
 # NormalModuleFactory
 
 ## `beforeResolve`
@@ -5,6 +8,16 @@
 `AsyncSeriesBailHook<[ResolveData]>`
 
 Called when a new dependency request is encountered. A dependency can be ignored by returning `false`. Otherwise, it should return `undefined` to proceed.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
 
 ## `factorize`
 
@@ -16,6 +29,16 @@ Returning module instance is not supported for now.
 
 Called before initiating resolve. It should return undefined to proceed.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `resolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
@@ -26,14 +49,48 @@ Returning module instance or `false` is not supported for now.
 
 Called before the request is resolved. It should return undefined to proceed.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `afterResolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
 Called after the request is resolved.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `resolveForScheme`
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`
 
 Called before a request with scheme (URI) is resolved.
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ResourceDataWithData.ts" key="ResourceDataWithData">
+```ts
+type ResourceDataWithData = {
+	resource: string;
+	path: string;
+	query?: string;
+	fragment?: string;
+  data?: Record<string, any>;
+};
+```
+  </CollapsePanel>
+</Collapse>

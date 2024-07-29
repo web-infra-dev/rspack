@@ -1,4 +1,11 @@
 import { Badge } from '@theme';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import RuntimeModuleType from '../../types/runtime-module.mdx';
+import SourceType from '../../types/source.mdx';
+import HashType from '../../types/hash.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # Compilation 钩子
 
@@ -16,26 +23,15 @@ Rspack 主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构�
 - **参数：**
   - `Module`：模块实例
 
-```ts
-type Module = {
-  context?: string;
-  resource?: string;
-  request?: string;
-  userRequest?: string;
-  rawRequest?: string;
-  factoryMeta?: JsFactoryMeta;
-  buildInfo: Record<string, any>;
-  buildMeta: Record<string, any>;
-  originalSource(): {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  } | null;
-  identifier(): string;
-  nameForCondition(): string | null;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `executeModule`
 
@@ -48,6 +44,8 @@ type Module = {
   - `ExecuteModuleArgument`：模块运行参数
   - `ExecuteModuleContext`：模块运行上下文
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ExecuteModuleArgument.ts" key="ExecuteModuleArgument">
 ```ts
 type ExecuteModuleArgument = {
   codeGenerationResult: {
@@ -60,11 +58,16 @@ type ExecuteModuleArgument = {
     error?: Error;
   };
 };
-
+```
+  </CollapsePanel>
+    <CollapsePanel className="collapse-code-panel" header="ExecuteModuleContext.ts" key="ExecuteModuleContext">
+```ts
 type ExecuteModuleContext = {
   __webpack_require__: (id: string) => any;
 };
 ```
+  </CollapsePanel>
+</Collapse>
 
 ## `succeedModule`
 
@@ -76,6 +79,16 @@ type ExecuteModuleContext = {
 - **参数：**
   - `Module`：模块实例
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `finishModules`
 
 <Badge text="只读" type="info" />
@@ -85,6 +98,16 @@ type ExecuteModuleContext = {
 - **类型：** `AsyncSeriesHook<[Module[]]>`
 - **参数：**
   - `Module[]`：所有模块列表
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeModules`
 
@@ -96,6 +119,16 @@ type ExecuteModuleContext = {
 - **参数：**
   - `Module[]`：所有模块列表
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `afterOptimizeModules`
 
 <Badge text="只读" type="info" />
@@ -105,6 +138,16 @@ type ExecuteModuleContext = {
 - **类型：** `SyncBailHook<[Module[]]>`
 - **参数：**
   - `Module[]`：所有模块列表
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeTree`
 
@@ -117,30 +160,18 @@ type ExecuteModuleContext = {
   - `Chunk[]`：Chunk 列表：
   - `Module[]`：模块列表
 
-```ts
-type Chunk = {
-  name?: string;
-  id?: string;
-  ids: string[];
-  idNameHints: string[];
-  filenameTemplate?: string;
-  cssFilenameTemplate?: string;
-  files: Set<string>;
-  runtime: Set<string>;
-  hash?: string;
-  contentHash: Record<string, string>;
-  renderedHash?: string;
-  chunkReason?: string;
-  auxiliaryFiles: Set<string>;
-  isOnlyInitial(): boolean;
-  canBeInitial(): boolean;
-  hasRuntime(): boolean;
-  groupsIterable: Set<ChunkGroup>;
-  getAllAsyncChunks(): Set<Chunk>;
-  getAllInitialChunks(): Set<Chunk>;
-  getAllReferencedChunks(): Set<Chunk>;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeChunkModules`
 
@@ -153,6 +184,19 @@ type Chunk = {
   - `Chunk[]`：Chunk 列表：
   - `Module[]`：模块列表
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `additionalTreeRuntimeRequirements`
 
 <Badge text="只读" type="info" />
@@ -164,9 +208,16 @@ type Chunk = {
   - `Chunk`：Chunk 实例
   - `Set<RuntimeGlobals>`：运行时依赖
 
-```ts
-enum RuntimeGlobals {}
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeGlobals.ts"
+    key="RuntimeGlobals"
+  >
+    ```ts enum RuntimeGlobals {}
+    ```
+  </CollapsePanel>
+</Collapse>
 
 ## `runtimeModule`
 
@@ -179,19 +230,15 @@ enum RuntimeGlobals {}
   - `RuntimeModule`：运行时模块
   - `Chunk`：Chunk 实例
 
-```ts
-type RuntimeModule = {
-  source?: {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  };
-  moduleIdentifier: string;
-  constructorName: string;
-  name: string;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeModule.ts"
+    key="RuntimeModule"
+  >
+    <RuntimeModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `processAssets`
 
@@ -202,20 +249,17 @@ type RuntimeModule = {
   - `name: string` — 插件的名称
   - `stage: Stage` — 要处理的阶段（参考 [Process assets stages](#process-assets-stages)）
 - **参数：**
-  - `assets: Assets`: 一个对象，其中 key 是 asset 的路径名，值是由 [Source](https://github.com/webpack/webpack-sources#source) 表示的 asset 数据。
+  - `Assets: Record<string, Source>`: 一个对象，其中 key 是 asset 的路径名，值是由 [Source](https://github.com/webpack/webpack-sources#source) 表示的 asset 数据。
 
-```ts
-type Assets = Record<
-  string,
-  {
-    source(): string | ArrayBuffer;
-    buffer(): Buffer;
-    size(): number;
-    map(options?: MapOptions): RawSourceMap | null;
-    sourceAndMap(options?: MapOptions): SourceAndMapResult;
-  }
->;
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
 
 ### Process assets 示例
 
@@ -310,7 +354,17 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 
 - **类型：** `SyncHook<Assets>`
 - **参数：**
-  - `Assets`：产物资源映射表
+  - `Assets: Record<string, Source>`：产物资源映射表
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
 
 ## `afterSeal`
 
@@ -331,12 +385,14 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
   - `Chunk`：Chunk 实例
   - `Hash`：Chunk 哈希实例
 
-```ts
-type Hash = {
-  update(data: string | Buffer, inputEncoding?: string): Hash;
-  digest(encoding?: string): string | Buffer;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="Hash.ts" key="Hash">
+    <HashType />
+  </CollapsePanel>
+</Collapse>
 
 ## `chunkAsset`
 
@@ -348,6 +404,12 @@ type Hash = {
 - **参数：**
   - `Chunk`：Chunk 实例
   - `string`：产物文件名
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
 
 ## `childCompiler`
 
@@ -361,6 +423,16 @@ type Hash = {
   - `string`：子编译名称
   - `number`：子编译索引
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## `statsPreset`
 
 <Badge text="只读" type="info" />
@@ -372,17 +444,6 @@ type Hash = {
   - `Partial<StatsOptions>`：Stats 配置
   - `CreateStatsOptionsContext`：Stats 上下文
 
-```ts
-type StatsOptions = {
-  // 见构建配置中的 stats
-};
-
-type CreateStatsOptionsContext = {
-  forToString?: boolean;
-  [key: string]: any;
-};
-```
-
 以如下插件为例：
 
 ```js
@@ -392,6 +453,20 @@ compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
 ```
 
 该插件确保对于预设 `"my-preset"`，如果 `all` 选项未定义，则默认为 `true`。
+
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
 
 ## `statsNormalize`
 
@@ -416,6 +491,20 @@ compilation.hooks.statsNormalize.tap('MyPlugin', options => {
 
 在这个插件中，如果 `myOption` 缺失，会将其设置为 `[]`。此外，它确保 `myOption` 始终是一个数组，即使它最初被定义为单个值。
 
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
+
 ## `statsFactory`
 
 <Badge text="只读" type="info" />
@@ -427,6 +516,8 @@ compilation.hooks.statsNormalize.tap('MyPlugin', options => {
   - `StatsFactory`：Stats 工厂实例，详见 [Stats Factory 钩子](/api/plugin-api/stats-hooks#statsfactory)
   - `StatsOptions`：Stats 配置
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsFactory.ts" key="StatsFactory">
 ```ts
 type StatsFactory = {
   hooks: StatsFactoryHooks;
@@ -437,6 +528,11 @@ type StatsFactory = {
   ): void;
 };
 ```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+</Collapse>
 
 ## `statsPrinter`
 
@@ -449,6 +545,8 @@ type StatsFactory = {
   - `StatsPrinter`：Stats 打印实例，详见 [Stats Printer 钩子](/api/plugin-api/stats-hooks#statsprinter)
   - `StatsOptions`：Stats 配置
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsPrinter.ts" key="StatsPrinter">
 ```ts
 type StatsPrinter = {
   hooks: StatsPrinterHooks;
@@ -463,3 +561,8 @@ type StatsPrinter = {
   ): string;
 };
 ```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+</Collapse>
