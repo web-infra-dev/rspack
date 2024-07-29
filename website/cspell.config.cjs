@@ -25,4 +25,5 @@ module.exports = {
   caseSensitive: true,
   allowCompoundWords: true,
   enableFiletypes: ['mdx'],
+  words: ['srcăindexāmoduleācss'],
 };

@@ -5293,11 +5293,7 @@ type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 // @public (undocumented)
 type MapOptions = { columns?: boolean; module?: boolean };
 
-<<<<<<< HEAD
 // @public
-=======
-// @public (undocumented)
->>>>>>> e338fc5e7 (feat: add exclude to rspack-test-tools)
 type Matcher = string | RegExp | (string | RegExp)[];
 
 // @public (undocumented)

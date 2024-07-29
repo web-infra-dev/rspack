@@ -27,7 +27,7 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 			temp: string | void;
 		}
 	) => ITestProcessor[];
-	testConfig?: (testConfig: TTestConfig<T>) => void,
+	testConfig?: (testConfig: TTestConfig<T>) => void;
 	description?: (name: string, step: number) => string;
 	runner?: new (
 		name: string,
@@ -37,10 +37,10 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 }
 
 export class BasicCaseCreator<T extends ECompilerType> {
-	constructor(protected _options: IBasicCaseCreatorOptions<T>) { }
+	constructor(protected _options: IBasicCaseCreatorOptions<T>) {}
 
 	create(name: string, src: string, dist: string, temp?: string) {
-		let testConfig = this.readTestConfig(src);
+		const testConfig = this.readTestConfig(src);
 		if (typeof this._options.testConfig === "function") {
 			this._options.testConfig(testConfig);
 		}
@@ -134,7 +134,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		describe.skip(name, () => {
 			it(
 				typeof reason === "string" ? `filtered by ${reason}` : "filtered",
-				() => { }
+				() => {}
 			);
 		});
 	}

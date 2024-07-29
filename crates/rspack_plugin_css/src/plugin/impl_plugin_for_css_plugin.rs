@@ -258,7 +258,7 @@ fn lzw_encode(input: &str) -> String {
   }
   let mut map: HashMap<String, char> = HashMap::default();
   let mut encoded = String::new();
-  let mut phrase = input.chars().next().unwrap().to_string();
+  let mut phrase = input.chars().next().expect("should have value").to_string();
   let mut code = 256u16;
   let max_code = 0xFFFF;
 
@@ -268,12 +268,15 @@ fn lzw_encode(input: &str) -> String {
       phrase = next_phrase;
     } else {
       if phrase.len() > 1 {
-        encoded.push(*map.get(&phrase).unwrap());
+        encoded.push(*map.get(&phrase).expect("should convert to u32 correctly"));
       } else {
         encoded += &phrase;
       }
       if code <= max_code {
-        map.insert(next_phrase, std::char::from_u32(code as u32).unwrap());
+        map.insert(
+          next_phrase,
+          std::char::from_u32(code as u32).expect("should convert to u32 correctly"),
+        );
         code += 1;
       }
       if code > max_code {
@@ -285,7 +288,7 @@ fn lzw_encode(input: &str) -> String {
   }
 
   if phrase.len() > 1 {
-    encoded.push(*map.get(&phrase).unwrap());
+    encoded.push(*map.get(&phrase).expect("should have phrase"));
   } else {
     encoded += &phrase;
   }

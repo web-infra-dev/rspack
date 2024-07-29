@@ -12,8 +12,7 @@ import type { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
 import type EventEmitter from 'node:events';
-import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../type';
-import { IBasicGlobalContext as IBasicGlobalContext_3 } from '../../type';
+import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
 import type { RspackOptions } from '@rspack/core';
@@ -377,7 +376,7 @@ export class FakeDocumentWebRunner<T extends ECompilerType = ECompilerType.Rspac
     // (undocumented)
     protected createBaseModuleScope(): IBasicModuleScope_2;
     // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext_3;
+    protected createGlobalContext(): IBasicGlobalContext_2;
     // (undocumented)
     protected createJsonRequirer(): TRunnerRequirer;
     // (undocumented)
@@ -1010,6 +1009,8 @@ export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiT
 // @public (undocumented)
 interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
     // (undocumented)
+    isWeb: boolean;
+    // (undocumented)
     stepName: string;
 }
 
@@ -1481,12 +1482,12 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
 }
 
 // @public (undocumented)
-export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
+export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends FakeDocumentWebRunner<T> {
     constructor(_watchOptions: IWatchRunnerOptions<T>);
     // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext_2;
-    // (undocumented)
     protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
     // (undocumented)
     protected _watchOptions: IWatchRunnerOptions<T>;
 }

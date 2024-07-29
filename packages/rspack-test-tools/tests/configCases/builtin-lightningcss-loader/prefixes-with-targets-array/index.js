@@ -1,7 +1,7 @@
 import './index.css'
 
-const fs = require("node:fs");
-const path = require("node:path");
+const fs = __non_webpack_require__("node:fs");
+const path = __non_webpack_require__("node:path");
 
 it("should transform CSS and add prefixes correctly", () => {
 	const css = fs.readFileSync(

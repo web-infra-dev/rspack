@@ -1,5 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	target: 'web',
+	node: false,
 	module: {
 		parser: {
 			'css/auto': {
@@ -9,6 +11,9 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
+				generator: {
+					exportsOnly: false,
+				},
 				use: [
 					{
 						loader: "builtin:lightningcss-loader",
@@ -16,7 +21,7 @@ module.exports = {
 						options: {
 							unusedSymbols: ['unused'],
 							targets: 'ie 10',
-							include: {
+							exclude: {
 								nesting: true
 							}
 						}

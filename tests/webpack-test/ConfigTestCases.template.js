@@ -473,7 +473,6 @@ const describeCases = config => {
 												runInNewContext = true;
 											}
 											if (testConfig.moduleScope) {
-												debugger
 												testConfig.moduleScope(baseModuleScope);
 											}
 											const esmContext = vm.createContext(baseModuleScope, {

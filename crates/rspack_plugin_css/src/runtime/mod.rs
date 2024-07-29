@@ -133,7 +133,7 @@ for(i = 0; cc; i++) {{
 {}installedChunks[chunkId] = 0;
 {}
 "#,
-          with_hmr.then(|| "moduleIds = [], ").unwrap_or_default(),
+          with_hmr.then_some("moduleIds = [], ").unwrap_or_default(),
           if with_compression {
             r#"var map = {}, char = data[0], oldPhrase = char, decoded = char, code = 256, maxCode = "\uffff".charCodeAt(0), phrase;
               for (i = 1; i < data.length; i++) {
@@ -156,12 +156,15 @@ for(i = 0; cc; i++) {{
             "handleCssComposes(exports, composes)\nmodule.exports = exports;"
           ),
           with_hmr
-            .then(|| "moduleIds.push(token); ")
+            .then_some("moduleIds.push(token); ")
             .unwrap_or_default(),
           with_hmr
-            .then(|| format!("if(target == {})", RuntimeGlobals::MODULE_FACTORIES))
+            .then_some(format!(
+              "if(target == {})",
+              RuntimeGlobals::MODULE_FACTORIES
+            ))
             .unwrap_or_default(),
-          with_hmr.then(|| "return moduleIds;").unwrap_or_default()
+          with_hmr.then_some("return moduleIds;").unwrap_or_default()
         ),
       );
       let load_initial_chunk_data = if initial_chunk_ids_with_css.len() > 2 {
@@ -174,7 +177,7 @@ for(i = 0; cc; i++) {{
             .join(","),
           RuntimeGlobals::MODULE_FACTORIES
         ))
-      } else if initial_chunk_ids_with_css.len() > 0 {
+      } else if !initial_chunk_ids_with_css.is_empty() {
         Cow::Owned(
           initial_chunk_ids_with_css
             .iter()
