@@ -1,7 +1,7 @@
 ERROR in ./b.css
   × Module parse failed:
   ╰─▶   × CSS parsing error: Any '@import' rules must precede all other rules
-         ╭─[3:1]
+         ╭─[5:0]
        3 │ }
        4 │
        5 │ @import url("https://some/external/css");
@@ -18,7 +18,7 @@ ERROR in ./b.css
 ERROR in ./c.css
   × Module parse failed:
   ╰─▶   × CSS parsing error: Any '@import' rules must precede all other rules
-         ╭─[2:1]
+         ╭─[4:0]
        2 │   background: red;
        3 │ }
        4 │ @import "./a.css";
@@ -35,7 +35,7 @@ ERROR in ./c.css
 ERROR in ./c.css
   × Module parse failed:
   ╰─▶   × CSS parsing error: Any '@import' rules must precede all other rules
-         ╭─[3:1]
+         ╭─[5:0]
        3 │ }
        4 │ @import "./a.css";
        5 │ @import url("https://some/other/external/css");
