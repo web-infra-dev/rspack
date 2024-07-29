@@ -5,10 +5,41 @@
 
 "use strict";
 
-const { forEachBail } = require("enhanced-resolve");
 const asyncLib = require("neo-async");
 const getLazyHashedEtag = require("./cache/getLazyHashedEtag.js");
 const mergeEtags = require("./cache/mergeEtags.js");
+
+/**
+ * @template T
+ * @template Z
+ * @param {T[]} array array
+ * @param {(arg0: T, arg1: (err?: null|Error, result?: null|Z) => void , arg2: number) => void} iterator iterator
+ * @param {(err?: null|Error, result?: null|Z, i?: number) => void} callback callback after all items are iterated
+ * @returns {void}
+ */
+function forEachBail(array, iterator, callback) {
+	if (array.length === 0) return callback();
+
+	let i = 0;
+	const next = () => {
+		/** @type {boolean|undefined} */
+		let loop = undefined;
+		iterator(
+			array[i++],
+			(err, result) => {
+				if (err || result !== undefined || i >= array.length) {
+					return callback(err, result, i);
+				}
+				if (loop === false) while (next());
+				loop = true;
+			},
+			i
+		);
+		if (!loop) loop = false;
+		return loop;
+	};
+	while (next());
+}
 
 /** @typedef {import("./Cache")} Cache */
 /** @typedef {import("./Cache").Etag} Etag */
