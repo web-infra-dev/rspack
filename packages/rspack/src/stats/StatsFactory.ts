@@ -9,9 +9,9 @@
  */
 import type {
 	JsStats,
+	JsStatsCompilation,
 	JsStatsError,
-	JsStatsWarning,
-	JsStatsCompilation
+	JsStatsWarning
 } from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
