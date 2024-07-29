@@ -437,6 +437,11 @@ export interface JsModule {
   type: string
 }
 
+export interface JsModuleDescriptor {
+  identifier: string
+  name: string
+}
+
 export interface JsNormalModuleFactoryCreateModuleArgs {
   dependencyType: string
   rawRequest: string

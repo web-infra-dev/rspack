@@ -9,11 +9,6 @@ export type JsFilename =
 export type LocalJsFilename = JsFilename;
 
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
-
-export type JsModuleDescriptor = {
-	identifier: string,
-	name: string,
-};
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

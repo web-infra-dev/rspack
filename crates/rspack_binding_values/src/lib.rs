@@ -7,6 +7,7 @@ mod codegen_result;
 mod compilation;
 mod context_module_factory;
 mod filename;
+mod identifier;
 mod module;
 mod normal_module_factory;
 mod options;

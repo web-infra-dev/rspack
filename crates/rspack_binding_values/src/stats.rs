@@ -6,27 +6,40 @@ use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
 use rspack_napi::napi::{
-  bindgen_prelude::{Buffer, Env, FromNapiValue, Object, Result, SharedReference, ToNapiValue},
+  bindgen_prelude::{Buffer, FromNapiValue, Result, SharedReference, ToNapiValue},
   Either,
 };
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompilation, ToJsCompatSource};
-use crate::value_ref::Ref;
+use crate::{identifier::JsIdentifier, value_ref::Ref};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
 }
 
+#[napi(object, object_from_js = false)]
 pub struct JsModuleDescriptor {
-  pub identifier: Identifier,
+  #[napi(ts_type = "string")]
+  pub identifier: JsIdentifier,
   pub name: String,
 }
 
-impl ToNapiValue for JsModuleDescriptor {
+impl FromNapiValue for JsModuleDescriptor {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+pub struct JsModuleDescriptorWrapper(JsModuleDescriptor);
+
+impl ToNapiValue for JsModuleDescriptorWrapper {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
     MODULE_DESCRIPTOR_REFS.with(|refs| {
-      let id = val.identifier;
+      let id = val.0.identifier.raw();
       let mut refs = refs.borrow_mut();
       match refs.entry(id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
@@ -34,18 +47,19 @@ impl ToNapiValue for JsModuleDescriptor {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let env_wrapper = Env::from(env);
-          let mut obj = env_wrapper.create_object()?;
-          obj.set("identifier", val.identifier.as_str())?;
-          obj.set("name", val.name)?;
-          let napi_value = Object::to_napi_value(env, obj)?;
-
+          let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
           let r = Ref::new(env, napi_value, 1)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }
       }
     })
+  }
+}
+
+impl From<JsModuleDescriptor> for JsModuleDescriptorWrapper {
+  fn from(value: JsModuleDescriptor) -> Self {
+    Self(value)
   }
 }
 
@@ -79,7 +93,7 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
       module_descriptor: stats
         .module_identifier
         .map(|identifier| JsModuleDescriptor {
-          identifier,
+          identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
         }),
       message: stats.message,
@@ -102,7 +116,8 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsWarning {
-  pub module_descriptor: Option<JsModuleDescriptor>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub message: String,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
@@ -127,12 +142,13 @@ impl FromNapiValue for JsStatsWarning {
 impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
   fn from(stats: rspack_core::StatsWarning) -> Self {
     Self {
-      module_descriptor: stats
-        .module_identifier
-        .map(|identifier| JsModuleDescriptor {
-          identifier,
+      module_descriptor: stats.module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
-        }),
+        }
+        .into()
+      }),
       message: stats.message,
       module_id: stats.module_id.map(|i| i.to_owned()),
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
@@ -185,7 +201,7 @@ impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule
   fn from(stats: rspack_core::StatsErrorModuleTraceModule) -> Self {
     Self {
       module_descriptor: JsModuleDescriptor {
-        identifier: stats.identifier,
+        identifier: stats.identifier.into(),
         name: stats.name,
       },
       id: stats.id,
@@ -404,7 +420,8 @@ type JsStatsUsedExports = Either<String, Vec<String>>;
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsModule {
-  pub module_descriptor: Option<JsModuleDescriptor>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub r#type: &'static str,
   pub module_type: &'static str,
   pub id: Option<String>,
@@ -500,9 +517,12 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     };
 
     Ok(Self {
-      module_descriptor: stats.identifier.map(|identifier| JsModuleDescriptor {
-        identifier,
-        name: stats.name.unwrap_or_default().into_owned(),
+      module_descriptor: stats.identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
+          name: stats.name.unwrap_or_default().into_owned(),
+        }
+        .into()
       }),
       r#type: stats.r#type,
       size: stats.size,
@@ -600,7 +620,7 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
   fn from(stats: rspack_core::StatsModuleIssuer) -> Self {
     Self {
       module_descriptor: JsModuleDescriptor {
-        identifier: stats.identifier,
+        identifier: stats.identifier.into(),
         name: stats.name.into_owned(),
       },
       id: stats.id.map(|i| i.to_owned()),
@@ -610,7 +630,8 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsModuleReason {
-  pub module_descriptor: Option<JsModuleDescriptor>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub module_id: Option<String>,
   pub r#type: Option<&'static str>,
   pub user_request: Option<String>,
@@ -628,12 +649,13 @@ impl FromNapiValue for JsStatsModuleReason {
 impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
   fn from(stats: rspack_core::StatsModuleReason) -> Self {
     Self {
-      module_descriptor: stats
-        .module_identifier
-        .map(|identifier| JsModuleDescriptor {
-          identifier,
+      module_descriptor: stats.module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
-        }),
+        }
+        .into()
+      }),
       module_id: stats.module_id.map(|i| i.to_owned()),
       r#type: stats.r#type,
       user_request: stats.user_request.map(|i| i.to_owned()),
@@ -643,7 +665,8 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
 
 #[napi(object, object_from_js = false)]
 pub struct JsOriginRecord {
-  pub module_descriptor: Option<JsModuleDescriptor>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub module_id: String,
   pub loc: String,
   pub request: String,
@@ -742,12 +765,13 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
         .origins
         .into_iter()
         .map(|origin| JsOriginRecord {
-          module_descriptor: origin
-            .module_identifier
-            .map(|identifier| JsModuleDescriptor {
-              identifier,
+          module_descriptor: origin.module_identifier.map(|identifier| {
+            JsModuleDescriptor {
+              identifier: identifier.into(),
               name: origin.module_name,
-            }),
+            }
+            .into()
+          }),
           module_id: origin.module_id,
           loc: origin.loc,
           request: origin.request,
