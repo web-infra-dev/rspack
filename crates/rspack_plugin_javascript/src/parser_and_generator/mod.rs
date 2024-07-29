@@ -147,6 +147,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto
         ),
+        import_attributes: true,
         ..Default::default()
       }),
       target,

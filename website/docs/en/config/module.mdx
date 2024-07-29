@@ -809,7 +809,7 @@ Matches all modules that match this resource, and will match against Resource (t
 
 ### Rule.issuerLayer
 
-<ApiMeta addedVersion="1.0.0-beta.0" />
+<ApiMeta addedVersion="1.0.0-beta.1" />
 
 :::warning
 This configuration will only take effect when `experiments.layers = true`.
@@ -881,6 +881,37 @@ module.exports = {
     ],
   },
 };
+```
+
+### Rule.with
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **Type:** `{ [key: string]: Condition }`
+- **Default:** `undefined`
+
+`with` can be used in conjunction with [import attributes](https://github.com/tc39/proposal-import-attributes).
+
+For example, the following configuration will match `{ type: "url" }` and will change the [`type`](/config/module#ruletype) of the matched modules to `"asset/resource"`:
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+The following import will match:
+
+```ts
+import url from './data' with { type: 'url' };
+import('./data', { with: { type: 'url' } });
 ```
 
 ### Rule.loaders
@@ -973,7 +1004,7 @@ Used to mark the type of the matching module, which affects how the module is ha
 
 ### Rule.layer
 
-<ApiMeta addedVersion="1.0.0-beta.0" />
+<ApiMeta addedVersion="1.0.0-beta.1" />
 
 :::warning
 This configuration will only take effect when `experiments.layers = true`.

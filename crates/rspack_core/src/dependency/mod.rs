@@ -32,6 +32,8 @@ pub use loader_import::*;
 pub use module_dependency::*;
 pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 pub use runtime_template::*;
+use rustc_hash::FxHashMap;
+use serde::Serialize;
 pub use span::SpanExt;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
@@ -152,5 +154,24 @@ impl std::fmt::Debug for DependencyCondition {
       Self::False => write!(f, "False"),
       Self::Fn(_) => write!(f, "Fn"),
     }
+  }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ImportAttributes(FxHashMap<String, String>);
+
+impl FromIterator<(String, String)> for ImportAttributes {
+  fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
+    Self(FxHashMap::from_iter(iter))
+  }
+}
+
+impl ImportAttributes {
+  pub fn get(&self, k: &str) -> Option<&str> {
+    self.0.get(k).map(|v| v.as_str())
+  }
+
+  pub fn insert(&mut self, k: String, v: String) -> Option<String> {
+    self.0.insert(k, v)
   }
 }

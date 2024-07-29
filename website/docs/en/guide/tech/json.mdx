@@ -1,3 +1,5 @@
+import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+
 # JSON
 
 [JSON](https://en.wikipedia.org/wiki/JSON) is a first-class citizen with Rspack. You can import it directly, for example:
@@ -28,4 +30,15 @@ In non-`.mjs` non-strict ESM files, you can directly import properties from JSON
 ```ts title="index.js"
 import { foo } from './example.json';
 console.log(foo); // "bar"
+```
+
+## Import attributes
+
+<ApiMeta addedVersion={'1.0.0-beta.1'} />
+
+Rspack supports [import attributes](https://github.com/tc39/proposal-import-attributes), and you can use import attributes to import JSON:
+
+```ts title="index.js"
+import json from './example.json' with { type: 'json' };
+import('./example.json', { with: { type: 'json' } });
 ```

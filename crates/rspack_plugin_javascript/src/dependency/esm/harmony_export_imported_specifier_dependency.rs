@@ -9,10 +9,10 @@ use rspack_core::{
   ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
   DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
   ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -43,6 +43,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub export_all: bool,
   export_presence_mode: ExportPresenceMode,
   span: ErrorSpan,
+  attributes: Option<ImportAttributes>,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
@@ -56,8 +57,10 @@ impl HarmonyExportImportedSpecifierDependency {
     other_star_exports: Option<Vec<DependencyId>>,
     span: ErrorSpan,
     export_presence_mode: ExportPresenceMode,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -69,6 +72,7 @@ impl HarmonyExportImportedSpecifierDependency {
       other_star_exports,
       span,
       export_presence_mode,
+      attributes,
     }
   }
 
@@ -1050,6 +1054,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportImportedSpecifier
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   #[allow(clippy::unwrap_in_result)]

@@ -7,8 +7,8 @@ use swc_core::{
     BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
     DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr,
     ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function, Ident, IfStmt, LabeledStmt,
-    NamedExport, ReturnStmt, Stmt, SwitchStmt, ThrowStmt, TryStmt, UsingDecl, VarDecl, WhileStmt,
-    WithStmt,
+    NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt, TryStmt, UsingDecl, VarDecl,
+    WhileStmt, WithStmt,
   },
 };
 
@@ -89,6 +89,13 @@ impl ExportAllDeclaration<'_> {
       ),
     }
   }
+
+  pub fn get_with_obj(&self) -> Option<&ObjectLit> {
+    match self {
+      ExportAllDeclaration::All(e) => e.with.as_deref(),
+      ExportAllDeclaration::NamedAll(e) => e.with.as_deref(),
+    }
+  }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -129,6 +136,13 @@ impl ExportNamedDeclaration<'_> {
     match self {
       ExportNamedDeclaration::Decl(decl) => Some(decl.decl.span()),
       ExportNamedDeclaration::Specifiers(_) => None,
+    }
+  }
+
+  pub fn get_with_obj(&self) -> Option<&ObjectLit> {
+    match self {
+      ExportNamedDeclaration::Decl(_) => None,
+      ExportNamedDeclaration::Specifiers(e) => e.with.as_deref(),
     }
   }
 }
@@ -225,6 +239,13 @@ impl ExportImport<'_> {
       ExportImport::Named(named) => named
         .source_span()
         .expect("ExportImport::Named (export { x } from 'm') should have src"),
+    }
+  }
+
+  pub fn get_with_obj(&self) -> Option<&ObjectLit> {
+    match self {
+      ExportImport::All(e) => e.get_with_obj(),
+      ExportImport::Named(e) => e.get_with_obj(),
     }
   }
 }

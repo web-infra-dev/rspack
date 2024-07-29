@@ -93,6 +93,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             start: expr.span().real_lo(),
             end: expr.span().real_hi(),
             referenced_exports: None,
+            attributes: None,
           },
           Some(expr.span.into()),
           parser.in_try,

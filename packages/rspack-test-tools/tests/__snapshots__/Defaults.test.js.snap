@@ -141,6 +141,12 @@ Object {
           },
         ],
       },
+      Object {
+        "type": "json",
+        "with": Object {
+          "type": "json",
+        },
+      },
     ],
     "generator": Object {},
     "noParse": undefined,
