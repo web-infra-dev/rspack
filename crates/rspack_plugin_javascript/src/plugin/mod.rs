@@ -24,6 +24,7 @@ pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use once_cell::sync::Lazy;
 use rspack_ast::javascript::Ast;
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::concatenated_module::find_new_name;
 use rspack_core::reserved_names::RESERVED_NAMES;
 use rspack_core::rspack_sources::{
@@ -38,7 +39,6 @@ use rspack_core::{BoxModule, IdentCollector};
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
-use rspack_identifier::{Identifier, IdentifierLinkedMap};
 use rspack_util::diff_mode;
 use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
 pub use side_effects_flag_plugin::*;
@@ -61,8 +61,8 @@ struct WithHash<T> {
 
 #[derive(Debug, Default)]
 struct RenameModuleCache {
-  inlined_modules_to_info: FxDashMap<Identifier, WithHash<InlinedModuleInfo>>,
-  non_inlined_modules_through_idents: FxDashMap<Identifier, WithHash<Vec<ConcatenatedModuleIdent>>>,
+  inlined_modules_to_info: IdentifierDashMap<WithHash<InlinedModuleInfo>>,
+  non_inlined_modules_through_idents: IdentifierDashMap<WithHash<Vec<ConcatenatedModuleIdent>>>,
 }
 
 impl RenameModuleCache {
@@ -74,7 +74,7 @@ impl RenameModuleCache {
       '_,
       Identifier,
       WithHash<InlinedModuleInfo>,
-      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+      std::hash::BuildHasherDefault<rspack_collections::IdentifierHasher>,
     >,
   > {
     self.inlined_modules_to_info.get(ident)
@@ -88,7 +88,7 @@ impl RenameModuleCache {
       '_,
       Identifier,
       WithHash<Vec<ConcatenatedModuleIdent>>,
-      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+      std::hash::BuildHasherDefault<rspack_collections::IdentifierHasher>,
     >,
   > {
     self.non_inlined_modules_through_idents.get(ident)
@@ -104,7 +104,7 @@ struct InlinedModuleInfo {
 
 #[derive(Debug)]
 struct RenameInfoPatch {
-  inlined_modules_to_info: HashMap<Identifier, InlinedModuleInfo>,
+  inlined_modules_to_info: IdentifierMap<InlinedModuleInfo>,
   non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent>,
   all_used_names: HashSet<Atom>,
 }
@@ -812,11 +812,11 @@ impl JsPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     all_strict: bool,
-  ) -> Result<HashMap<Identifier, Arc<dyn Source>>> {
-    let mut inlined_modules_to_info: HashMap<Identifier, InlinedModuleInfo> = HashMap::new();
+  ) -> Result<IdentifierMap<Arc<dyn Source>>> {
+    let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
     let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item)));
-    let mut renamed_inline_modules: HashMap<Identifier, Arc<dyn Source>> = HashMap::new();
+    let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
     // make patch in parallel iteration
     let rename_info_patch = all_modules
@@ -824,7 +824,7 @@ impl JsPlugin {
       .fold(
         || {
           Ok(RenameInfoPatch {
-            inlined_modules_to_info: HashMap::new(),
+            inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
             all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
           })
@@ -877,7 +877,7 @@ impl JsPlugin {
               if !use_cache {
                 let cm: Arc<swc_core::common::SourceMap> = Default::default();
                 let fm = cm.new_source_file(
-                  FileName::Custom(m.identifier().to_string()),
+                  Arc::new(FileName::Custom(m.identifier().to_string())),
                   code.source().to_string(),
                 );
                 let comments = swc_node_comments::SwcComments::default();
@@ -913,14 +913,14 @@ impl JsPlugin {
                     let mut module_scope_idents = Vec::new();
 
                     for ident in collector.ids {
-                      if ident.id.span.ctxt == global_ctxt
-                        || ident.id.span.ctxt != module_ctxt
+                      if ident.id.ctxt == global_ctxt
+                        || ident.id.ctxt != module_ctxt
                         || ident.is_class_expr_with_ident
                       {
                         acc.all_used_names.insert(ident.id.sym.clone());
                       }
 
-                      if ident.id.span.ctxt == module_ctxt {
+                      if ident.id.ctxt == module_ctxt {
                         acc.all_used_names.insert(ident.id.sym.clone());
                         module_scope_idents.push(Arc::new(ident));
                       }
@@ -948,7 +948,7 @@ impl JsPlugin {
                     let module_ident = m.identifier();
 
                     for ident in collector.ids {
-                      if ident.id.span.ctxt == global_ctxt {
+                      if ident.id.ctxt == global_ctxt {
                         acc.all_used_names.insert(ident.clone().id.sym.clone());
                         idents_vec.push(ident.clone());
                         acc.non_inlined_module_through_idents.push(ident);
@@ -977,7 +977,7 @@ impl JsPlugin {
       .reduce(
         || {
           Ok(RenameInfoPatch {
-            inlined_modules_to_info: HashMap::new(),
+            inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
             all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
           })
@@ -1049,7 +1049,7 @@ impl JsPlugin {
       for module_scope_ident in module_scope_idents.iter() {
         match binding_to_ref.entry((
           module_scope_ident.id.sym.clone(),
-          module_scope_ident.id.span.ctxt,
+          module_scope_ident.id.ctxt,
         )) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().push(module_scope_ident.deref().clone());

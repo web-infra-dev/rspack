@@ -1,11 +1,11 @@
-use rustc_hash::FxHashMap as HashMap;
+use rspack_collections::IdentifierMap;
 
 use super::super::MakeArtifact;
 use crate::{BuildMeta, Module, ModuleIdentifier, NormalModuleSource};
 
 #[derive(Debug, Default)]
 pub struct FixBuildMeta {
-  origin_module_build_meta: HashMap<ModuleIdentifier, BuildMeta>,
+  origin_module_build_meta: IdentifierMap<BuildMeta>,
 }
 
 impl FixBuildMeta {

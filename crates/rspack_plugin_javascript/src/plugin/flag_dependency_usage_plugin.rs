@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   get_entry_runtime, is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
@@ -10,7 +11,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::IdentifierMap;
 use rspack_util::swc::join_atom;
 use rustc_hash::FxHashMap as HashMap;
 

@@ -1,10 +1,10 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;

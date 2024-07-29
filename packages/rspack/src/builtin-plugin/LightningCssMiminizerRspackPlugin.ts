@@ -5,8 +5,15 @@ import {
 
 import { create } from "./base";
 
+type MinifyCondition = string | RegExp;
+type MinifyConditions = MinifyCondition | MinifyCondition[];
+
 export type LightningCssMinimizerRspackPluginOptions =
-	Partial<RawLightningCssMinimizerRspackPluginOptions>;
+	Partial<RawLightningCssMinimizerRspackPluginOptions> & {
+		test?: MinifyConditions;
+		exclude?: MinifyConditions;
+		include?: MinifyConditions;
+	};
 
 export const LightningCssMinimizerRspackPlugin = create(
 	BuiltinPluginName.LightningCssMinimizerRspackPlugin,
@@ -17,7 +24,10 @@ export const LightningCssMinimizerRspackPlugin = create(
 			errorRecovery: options?.errorRecovery ?? true,
 			unusedSymbols: options?.unusedSymbols ?? [],
 			removeUnusedLocalIdents: options?.removeUnusedLocalIdents ?? true,
-			browserslist: options?.browserslist ?? ["defaults"]
+			browserslist: options?.browserslist ?? ["defaults"],
+			test: options?.test,
+			include: options?.include,
+			exclude: options?.exclude
 		};
 	}
 );

@@ -74,6 +74,9 @@ pub struct RawCacheGroupOptions {
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub r#type: Option<Either<JsRegExp, JsString>>,
+  #[napi(ts_type = "RegExp | string")]
+  #[derivative(Debug = "ignore")]
+  pub layer: Option<Either<JsRegExp, JsString>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -178,6 +181,11 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
             .map(create_module_type_filter)
             .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_type_filter);
 
+          let layer = v
+            .layer
+            .map(create_module_layer_filter)
+            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_layer_filter);
+
           let mut name = v.name.map_or(default_chunk_option_name(), |name| {
             normalize_raw_chunk_name(name)
           });
@@ -211,6 +219,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
             max_async_size,
             max_initial_size,
             r#type,
+            layer,
           }
         }),
     );
@@ -279,6 +288,32 @@ fn create_module_type_filter(
     Either::B(js_str) => {
       let type_str = js_str.into_string();
       Arc::new(move |m| m.module_type().as_str() == type_str.as_str())
+    }
+  }
+}
+
+fn create_module_layer_filter(
+  raw: Either<JsRegExp, JsString>,
+) -> rspack_plugin_split_chunks::ModuleLayerFilter {
+  match raw {
+    Either::A(js_reg) => {
+      let regex = js_reg.to_rspack_regex();
+      Arc::new(move |m| {
+        m.get_layer()
+          .map(|layer| regex.test(layer))
+          .unwrap_or_default()
+      })
+    }
+    Either::B(js_str) => {
+      let test = js_str.into_string();
+      Arc::new(move |m| {
+        let layer = m.get_layer();
+        if let Some(layer) = layer {
+          layer.starts_with(&test)
+        } else {
+          test.is_empty()
+        }
+      })
     }
   }
 }

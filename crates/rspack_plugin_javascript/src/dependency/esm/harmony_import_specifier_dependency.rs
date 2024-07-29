@@ -1,15 +1,16 @@
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportPresenceMode,
-  ExportsType, ExtendedReferencedExport, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  ExportsType, ExtendedReferencedExport, ImportAttributes, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{common::Span, ecma::atoms::Atom};
+use swc_core::ecma::atoms::Atom;
 
 use super::harmony_import_dependency::harmony_import_dependency_get_linking_error;
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -31,8 +32,8 @@ pub struct HarmonyImportSpecifierDependency {
   pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
-  span_for_on_usage_search: Span,
   export_presence_mode: ExportPresenceMode,
+  attributes: Option<ImportAttributes>,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -50,9 +51,10 @@ impl HarmonyImportSpecifierDependency {
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<HashSet<Atom>>,
-    span_for_on_usage_search: Span,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       request,
@@ -69,8 +71,8 @@ impl HarmonyImportSpecifierDependency {
       used_by_exports: None,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
+      attributes,
       resource_identifier,
-      span_for_on_usage_search,
     }
   }
 
@@ -220,6 +222,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
   }
+
   fn span(&self) -> Option<rspack_core::ErrorSpan> {
     Some(rspack_core::ErrorSpan {
       start: self.start,
@@ -227,8 +230,8 @@ impl Dependency for HarmonyImportSpecifierDependency {
     })
   }
 
-  fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(self.span_for_on_usage_search.into())
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
@@ -246,7 +249,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }

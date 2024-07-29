@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
 use linked_hash_set::LinkedHashSet;
+use rspack_collections::Identifier;
 use rspack_core::{
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Plugin,
   PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::Identifier;
 
 #[plugin]
 #[derive(Debug, Default)]

@@ -96,6 +96,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
+      module_layer,
       resource_data,
       compiler_options,
       build_info,
@@ -129,13 +130,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let source = remove_bom(source);
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
-      FileName::Custom(
+      Arc::new(FileName::Custom(
         resource_data
           .resource_path
           .as_ref()
           .map(|p| p.to_string_lossy().to_string())
           .unwrap_or_default(),
-      ),
+      )),
       source.source().to_string(),
     );
     let comments = SwcComments::default();
@@ -146,6 +147,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto
         ),
+        import_attributes: true,
         ..Default::default()
       }),
       target,
@@ -199,6 +201,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         resource_data,
         compiler_options,
         module_type,
+        module_layer,
         build_info,
         build_meta,
         module_identifier,

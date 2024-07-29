@@ -3,9 +3,10 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 
 use dashmap::DashMap;
 use rayon::prelude::*;
+use rspack_collections::UkeySet;
 use rspack_core::{Chunk, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
 use rspack_error::Result;
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHasher};
 
 use super::ModuleGroupMap;
 use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
@@ -89,7 +90,7 @@ impl SplitChunksPlugin {
       { Self::prepare_combination_maps(&module_graph, &compilation.chunk_graph) };
 
     let combinations_cache =
-      DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
+      DashMap::<ChunksKey, Vec<UkeySet<ChunkUkey>>, ChunksKeyHashBuilder>::default();
 
     let get_combination = |chunks_key: ChunksKey| match combinations_cache.entry(chunks_key) {
       dashmap::mapref::entry::Entry::Occupied(entry) => entry.get().clone(),
@@ -146,14 +147,16 @@ impl SplitChunksPlugin {
           CacheGroupTest::Enabled => true,
         };
         let is_match_the_type: bool = (cache_group.r#type)(module);
-        let is_match = is_match_the_test && is_match_the_type;
+        let is_match_the_layer: bool = (cache_group.layer)(module);
+        let is_match = is_match_the_test && is_match_the_type && is_match_the_layer;
         if !is_match {
           tracing::trace!(
-            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
+            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}) && is_match_the_layer({:?}))",
             module.identifier(),
             cache_group.key,
             is_match_the_test,
-            is_match_the_type
+            is_match_the_type,
+            is_match_the_layer
           );
         }
 
@@ -307,7 +310,7 @@ impl SplitChunksPlugin {
     &self,
     current_module_group: &ModuleGroup,
     module_group_map: &mut ModuleGroupMap,
-    used_chunks: &FxHashSet<ChunkUkey>,
+    used_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     // remove all modules from other entries and update size
@@ -390,7 +393,7 @@ impl SplitChunksPlugin {
     let mut sorted_chunk_ukeys = chunks
       .map(|chunk| {
         // Increment each usize by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
-        chunk.as_usize() + 1
+        chunk.as_u32() + 1
       })
       .collect::<Vec<_>>();
     sorted_chunk_ukeys.sort_unstable();
@@ -406,11 +409,11 @@ impl SplitChunksPlugin {
     module_graph: &ModuleGraph,
     chunk_graph: &ChunkGraph,
   ) -> (
-    HashMap<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>,
-    FxHashMap<usize, Vec<FxHashSet<ChunkUkey>>>,
+    HashMap<ChunksKey, UkeySet<ChunkUkey>, ChunksKeyHashBuilder>,
+    FxHashMap<usize, Vec<UkeySet<ChunkUkey>>>,
   ) {
     let mut chunk_sets_in_graph =
-      HashMap::<ChunksKey, FxHashSet<ChunkUkey>, ChunksKeyHashBuilder>::default();
+      HashMap::<ChunksKey, UkeySet<ChunkUkey>, ChunksKeyHashBuilder>::default();
 
     for module in module_graph.modules().keys() {
       let chunks = chunk_graph.get_module_chunks(*module);
@@ -418,7 +421,7 @@ impl SplitChunksPlugin {
       chunk_sets_in_graph.insert(chunk_key, chunks.clone());
     }
 
-    let mut chunk_sets_by_count = FxHashMap::<usize, Vec<FxHashSet<ChunkUkey>>>::default();
+    let mut chunk_sets_by_count = FxHashMap::<usize, Vec<UkeySet<ChunkUkey>>>::default();
 
     for chunks in chunk_sets_in_graph.values() {
       let count = chunks.len();

@@ -9,7 +9,11 @@ import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
-import { browserslistToTargets } from "../builtin-loader/lightningcss";
+import {
+	type FeatureOptions,
+	browserslistToTargets,
+	toFeatures
+} from "../builtin-loader/lightningcss";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import type { Logger } from "../logging/Logger";
 import { isNil } from "../util";
@@ -218,7 +222,15 @@ const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 		}
 
 		if (o.targets && Array.isArray(o.targets)) {
-			o.targets = browserslistToTargets(o.targets);
+			o.targets = browserslistToTargets(browserslist(o.targets));
+		}
+
+		if (o.include) {
+			o.include = toFeatures(o.include as unknown as FeatureOptions);
+		}
+
+		if (o.exclude) {
+			o.exclude = toFeatures(o.exclude as unknown as FeatureOptions);
 		}
 	}
 	return o;

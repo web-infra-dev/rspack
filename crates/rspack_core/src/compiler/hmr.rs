@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
-use rspack_identifier::{Identifier, IdentifierMap};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 

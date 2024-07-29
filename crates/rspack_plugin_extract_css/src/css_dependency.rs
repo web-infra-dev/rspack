@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  DependencyId, ModuleDependency, ModuleGraph,
 };
 use rustc_hash::FxHashSet;
 
@@ -93,7 +94,7 @@ impl Dependency for CssDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut FxHashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::TransitiveOnly
   }

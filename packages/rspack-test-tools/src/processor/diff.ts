@@ -3,8 +3,7 @@ import path from "node:path";
 import {
 	type IFormatCodeOptions,
 	type IFormatCodeReplacement,
-	compareFile,
-	replaceRuntimeModuleName
+	compareFile
 } from "../compare";
 import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import {
@@ -29,6 +28,7 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	detail?: boolean;
 	errors?: boolean;
 	replacements?: IFormatCodeReplacement[];
+	renameModule?: (file: string) => string;
 	onCompareFile?: (file: string, result: TFileCompareResult) => void;
 	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	onCompareRuntimeModules?: (
@@ -105,7 +105,7 @@ export class DiffProcessor implements ITestProcessor {
 				modules: this.options.modules,
 				runtimeModules: this.options.runtimeModules,
 				format: this.createFormatOptions(),
-				renameModule: replaceRuntimeModuleName,
+				renameModule: this.options.renameModule,
 				bootstrap: this.options.bootstrap,
 				detail: this.options.detail
 			});

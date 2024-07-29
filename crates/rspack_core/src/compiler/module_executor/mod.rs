@@ -7,8 +7,8 @@ use dashmap::DashMap;
 use dashmap::{mapref::entry::Entry, DashSet};
 pub use execute::ExecuteModuleId;
 pub use execute::ExecutedRuntimeModule;
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
-use rspack_identifier::Identifier;
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
@@ -34,10 +34,10 @@ pub struct ModuleExecutor {
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
   assets: DashMap<String, CompilationAsset>,
-  module_assets: DashMap<Identifier, DashSet<String>>,
-  code_generated_modules: DashSet<Identifier>,
-  module_code_generated_modules: DashMap<Identifier, DashSet<Identifier>>,
-  pub executed_runtime_modules: DashMap<Identifier, ExecutedRuntimeModule>,
+  module_assets: IdentifierDashMap<DashSet<String>>,
+  code_generated_modules: IdentifierDashSet,
+  module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
+  pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
 }
 
 impl ModuleExecutor {

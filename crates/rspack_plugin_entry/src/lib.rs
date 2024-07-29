@@ -20,6 +20,7 @@ impl EntryPlugin {
     let dependency: BoxDependency = Box::new(EntryDependency::new(
       entry_request,
       context,
+      options.layer.clone(),
       options.name.is_none(),
     ));
     Self::new_inner(dependency, options)

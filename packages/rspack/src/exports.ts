@@ -38,8 +38,7 @@ import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 export { ModuleFilenameHelpers };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
-import Template = require("./Template");
-export { Template };
+export { Template } from "./Template";
 
 export const WebpackError = Error;
 
@@ -261,10 +260,10 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 
-import * as lightningcss from "./builtin-loader/lightningcss/index";
-
-export { type LoaderOptions as LightningcssLoaderOptions } from "./builtin-loader/lightningcss/index";
-export { lightningcss };
+export {
+	type LoaderOptions as LightningcssLoaderOptions,
+	type FeatureOptions as LightningcssFeatureOptions
+} from "./builtin-loader/lightningcss/index";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";

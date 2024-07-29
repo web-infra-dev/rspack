@@ -1,49 +1,33 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 
-/* eslint-env browser */
-/*
-  eslint-disable
-  no-console,
-  func-names
-*/
-/** @typedef {any} TODO */
-const normalizeUrl = __webpack_require__(/*! ./normalize-url */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js");
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.cssReload = void 0;
+const normalizeUrl_1 = __webpack_require__(/*! ./normalizeUrl */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js");
 const srcByModuleId = Object.create(null);
 const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
-/**
- * @param {function} fn
- * @param {number} time
- * @returns {(function(): void)|*}
- */
 function debounce(fn, time) {
     let timeout = 0;
     return function () {
         // @ts-ignore
         const self = this;
-        // eslint-disable-next-line prefer-rest-params
         const args = arguments;
         const functionCall = function functionCall() {
             return fn.apply(self, args);
         };
         clearTimeout(timeout);
-        // @ts-ignore
         timeout = setTimeout(functionCall, time);
     };
 }
 function noop() { }
-/**
- * @param {TODO} moduleId
- * @returns {TODO}
- */
 function getCurrentScriptUrl(moduleId) {
     let src = srcByModuleId[moduleId];
     if (!src) {
         if (document.currentScript) {
-            ({ src } = /** @type {HTMLScriptElement} */ (document.currentScript));
+            ({ src } = document.currentScript);
         }
         else {
             const scripts = document.getElementsByTagName("script");
@@ -54,10 +38,6 @@ function getCurrentScriptUrl(moduleId) {
         }
         srcByModuleId[moduleId] = src;
     }
-    /**
-     * @param {string} fileMap
-     * @returns {null | string[]}
-     */
     return function (fileMap) {
         if (!src) {
             return null;
@@ -72,23 +52,18 @@ function getCurrentScriptUrl(moduleId) {
         }
         return fileMap.split(",").map(mapRule => {
             const reg = new RegExp(`${filename}\\.js$`, "g");
-            return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
+            return (0, normalizeUrl_1.normalizeUrl)(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
         });
     };
 }
-/**
- * @param {TODO} el
- * @param {string} [url]
- */
 function updateCss(el, url) {
     if (!url) {
         if (!el.href) {
             return;
         }
-        // eslint-disable-next-line
         url = el.href.split("?")[0];
     }
-    if (!isUrlRequest(/** @type {string} */ (url))) {
+    if (!isUrlRequest(url)) {
         return;
     }
     if (el.isLoaded === false) {
@@ -99,7 +74,6 @@ function updateCss(el, url) {
     if (!url || !(url.indexOf(".css") > -1)) {
         return;
     }
-    // eslint-disable-next-line no-param-reassign
     el.visited = true;
     const newEl = el.cloneNode();
     newEl.isLoaded = false;
@@ -108,48 +82,33 @@ function updateCss(el, url) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode.removeChild(el);
+        el.parentNode?.removeChild(el);
     });
     newEl.addEventListener("error", () => {
         if (newEl.isLoaded) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode.removeChild(el);
+        el.parentNode?.removeChild(el);
     });
     newEl.href = `${url}?${Date.now()}`;
     if (el.nextSibling) {
-        el.parentNode.insertBefore(newEl, el.nextSibling);
+        el.parentNode?.insertBefore(newEl, el.nextSibling);
     }
     else {
-        el.parentNode.appendChild(newEl);
+        el.parentNode?.appendChild(newEl);
     }
 }
-/**
- * @param {string} href
- * @param {TODO} src
- * @returns {TODO}
- */
 function getReloadUrl(href, src) {
-    let ret;
-    // eslint-disable-next-line no-param-reassign
-    href = normalizeUrl(href);
-    src.some(
-    /**
-     * @param {string} url
-     */
-    // eslint-disable-next-line array-callback-return
-    url => {
+    let ret = "";
+    href = (0, normalizeUrl_1.normalizeUrl)(href);
+    src.some(url => {
         if (href.indexOf(src) > -1) {
             ret = url;
         }
     });
     return ret;
 }
-/**
- * @param {string} [src]
- * @returns {boolean}
- */
 function reloadStyle(src) {
     if (!src) {
         return false;
@@ -183,10 +142,6 @@ function reloadAll() {
         updateCss(el);
     });
 }
-/**
- * @param {string} url
- * @returns {boolean}
- */
 function isUrlRequest(url) {
     // An URL is not an request if
     // It is not http or https
@@ -195,12 +150,7 @@ function isUrlRequest(url) {
     }
     return true;
 }
-/**
- * @param {TODO} moduleId
- * @param {TODO} options
- * @returns {TODO}
- */
-module.exports = function (moduleId, options) {
+function cssReload(moduleId, options) {
     if (noDocument) {
         console.log("no window.document found, will not HMR CSS");
         return noop;
@@ -215,7 +165,7 @@ module.exports = function (moduleId, options) {
             return;
         }
         if (reloaded) {
-            console.log("[HMR] css reload %s", src.join(" "));
+            console.log("[HMR] css reload %s", src?.join(" "));
         }
         else {
             console.log("[HMR] Reload all css");
@@ -223,19 +173,25 @@ module.exports = function (moduleId, options) {
         }
     }
     return debounce(update, 50);
-};
+}
+exports.cssReload = cssReload;
 
 
 }),
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js": (function (module) {
+"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js": (function (__unused_webpack_module, exports) {
 
-/* eslint-disable */
-/**
- * @param {string[]} pathComponents
- * @returns {string}
- */
-function normalizeUrl(pathComponents) {
-    return pathComponents
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.normalizeUrl = void 0;
+function normalizeUrl(urlString) {
+    urlString = urlString.trim();
+    if (/^data:/i.test(urlString)) {
+        return urlString;
+    }
+    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+    var host = components[0].toLowerCase().replace(/\.$/, "");
+    components[0] = "";
+    var path = components
         .reduce(function (accumulator, item) {
         switch (item) {
             case "..":
@@ -247,25 +203,11 @@ function normalizeUrl(pathComponents) {
                 accumulator.push(item);
         }
         return accumulator;
-    }, /** @type {string[]} */ ([]))
+    }, [])
         .join("/");
-}
-/**
- * @param {string} urlString
- * @returns {string}
- */
-module.exports = function (urlString) {
-    urlString = urlString.trim();
-    if (/^data:/i.test(urlString)) {
-        return urlString;
-    }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
-    components[0] = "";
-    var path = normalizeUrl(components);
     return protocol + host + path;
-};
+}
+exports.normalizeUrl = normalizeUrl;
 
 
 }),
@@ -274,11 +216,25 @@ __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
-      // 
-      var cssReload = __webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {"locals":false});
-      module.hot.dispose(cssReload);
-      module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
-(cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
+      (function() {
+        var localsJsonString = undefined;
+        // 
+        var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   
 

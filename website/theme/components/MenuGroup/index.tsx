@@ -12,7 +12,7 @@ function Down() {
       <path
         fill="currentColor"
         d="M16 22L6 12l1.4-1.4l8.6 8.6l8.6-8.6L26 12z"
-      ></path>
+      />
     </svg>
   );
 }
@@ -26,6 +26,7 @@ export function MenuGroup({ children, defaultLabel }: MenuGroupProps) {
       onMouseLeave={() => setIsOpen(false)}
     >
       <button
+        type="button"
         onMouseEnter={() => setIsOpen(true)}
         className="flex-center text-sm text-1 hover:text-text-2 font-medium transition-colors duration-200"
       >

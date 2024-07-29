@@ -4,9 +4,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
 
-use indexmap::IndexSet;
-use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
+use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::concatenated_module::{
   is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
@@ -19,7 +18,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
@@ -36,20 +34,20 @@ enum Warning {
 struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
-  modules: LinkedHashSet<ModuleIdentifier>,
-  warnings: HashMap<ModuleIdentifier, Warning>,
+  modules: IdentifierIndexSet,
+  warnings: IdentifierMap<Warning>,
 }
 
 impl ConcatConfiguration {
   fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
-    let mut modules = LinkedHashSet::default();
+    let mut modules = IdentifierIndexSet::default();
     modules.insert(root_module);
 
     ConcatConfiguration {
       root_module,
       runtime,
       modules,
-      warnings: HashMap::default(),
+      warnings: IdentifierMap::default(),
     }
   }
 
@@ -69,13 +67,13 @@ impl ConcatConfiguration {
     self.warnings.insert(module, problem);
   }
 
-  fn get_warnings_sorted(&self) -> HashMap<ModuleIdentifier, Warning> {
+  fn get_warnings_sorted(&self) -> IdentifierMap<Warning> {
     let mut sorted_warnings: Vec<_> = self.warnings.clone().into_iter().collect();
     sorted_warnings.sort_by(|a, b| a.0.cmp(&b.0));
     sorted_warnings.into_iter().collect()
   }
 
-  fn get_modules(&self) -> &LinkedHashSet<ModuleIdentifier> {
+  fn get_modules(&self) -> &IdentifierIndexSet {
     &self.modules
   }
 
@@ -86,12 +84,8 @@ impl ConcatConfiguration {
   fn rollback(&mut self, snapshot: usize) {
     let modules = &mut self.modules;
     let len = modules.len();
-    let mut i = 0;
-    while i < len {
-      if i >= snapshot {
-        modules.pop_back();
-      }
-      i += 1;
+    for _ in snapshot..len {
+      modules.pop();
     }
   }
 }
@@ -99,7 +93,7 @@ impl ConcatConfiguration {
 #[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleConcatenationPlugin {
-  bailout_reason_map: FxDashMap<ModuleIdentifier, Cow<'static, str>>,
+  bailout_reason_map: IdentifierDashMap<Cow<'static, str>>,
 }
 
 impl ModuleConcatenationPlugin {
@@ -150,9 +144,9 @@ impl ModuleConcatenationPlugin {
   ) -> Option<
     dashmap::mapref::one::Ref<
       '_,
-      rspack_identifier::Identifier,
+      rspack_collections::Identifier,
       Cow<'static, str>,
-      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+      std::hash::BuildHasherDefault<rspack_collections::IdentifierHasher>,
     >,
   > {
     self.bailout_reason_map.get(module_id)
@@ -162,8 +156,8 @@ impl ModuleConcatenationPlugin {
     mg: &ModuleGraph,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> IndexSet<ModuleIdentifier> {
-    let mut set = IndexSet::default();
+  ) -> IdentifierIndexSet {
+    let mut set = IdentifierIndexSet::default();
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
       let dep = mg.dependency_by_id(d).expect("should have dependency");
@@ -199,9 +193,9 @@ impl ModuleConcatenationPlugin {
     module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     active_runtime: Option<&RuntimeSpec>,
-    possible_modules: &HashSet<ModuleIdentifier>,
-    candidates: &mut HashSet<ModuleIdentifier>,
-    failure_cache: &mut HashMap<ModuleIdentifier, Warning>,
+    possible_modules: &IdentifierSet,
+    candidates: &mut IdentifierSet,
+    failure_cache: &mut IdentifierMap<Warning>,
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
   ) -> Option<Warning> {
@@ -225,7 +219,7 @@ impl ModuleConcatenationPlugin {
     let module = module_graph
       .module_by_identifier(module_id)
       .expect("should have module");
-    let module_readable_identifier = module.readable_identifier(&options.context).to_string();
+    let module_readable_identifier = module.readable_identifier(&options.context);
 
     if !possible_modules.contains(module_id) {
       statistics.invalid_module += 1;
@@ -545,7 +539,7 @@ impl ModuleConcatenationPlugin {
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
     let mut relevant_modules = vec![];
-    let mut possible_inners = HashSet::default();
+    let mut possible_inners = IdentifierSet::default();
     let start = logger.time("select relevant modules");
     let module_graph = compilation.get_module_graph();
 
@@ -733,7 +727,7 @@ impl ModuleConcatenationPlugin {
 
     let start = logger.time("find modules to concatenate");
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
-    let mut used_as_inner: HashSet<ModuleIdentifier> = HashSet::default();
+    let mut used_as_inner: IdentifierSet = IdentifierSet::default();
     for current_root in relevant_modules.iter() {
       if used_as_inner.contains(current_root) {
         continue;
@@ -760,7 +754,7 @@ impl ModuleConcatenationPlugin {
       let mut current_configuration =
         ConcatConfiguration::new(*current_root, active_runtime.clone());
 
-      let mut failure_cache = HashMap::default();
+      let mut failure_cache = IdentifierMap::default();
       let mut candidates_visited = HashSet::default();
       let mut candidates = VecDeque::new();
 
@@ -769,13 +763,14 @@ impl ModuleConcatenationPlugin {
         candidates.push_back(import);
       }
 
+      let mut import_candidates = IdentifierSet::default();
       while let Some(imp) = candidates.pop_front() {
         if candidates_visited.contains(&imp) {
           continue;
         } else {
           candidates_visited.insert(imp);
         }
-        let mut import_candidates = HashSet::default();
+        import_candidates.clear();
         match Self::try_to_add(
           compilation,
           &mut current_configuration,
@@ -885,6 +880,7 @@ impl ModuleConcatenationPlugin {
             context: compilation.options.context.as_str(),
           })
           .map(|id| id.to_string()),
+        layer: box_module.get_layer().cloned(),
         resolve_options: box_module.get_resolve_options().clone(),
         code_generation_dependencies: box_module
           .get_code_generation_dependencies()
@@ -894,7 +890,7 @@ impl ModuleConcatenationPlugin {
           .map(|deps| deps.to_vec()),
         context: Some(compilation.options.context.clone()),
         side_effect_connection_state: box_module
-          .get_side_effects_connection_state(&module_graph, &mut HashSet::default()),
+          .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
         factory_meta: box_module.factory_meta().cloned(),
         build_meta: box_module.build_meta().cloned(),
       };

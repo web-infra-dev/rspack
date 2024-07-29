@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
+use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::Identifiable;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;

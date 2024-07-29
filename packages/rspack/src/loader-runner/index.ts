@@ -865,9 +865,8 @@ function utf8BufferToString(buf: Buffer) {
 	const str = buf.toString("utf-8");
 	if (str.charCodeAt(0) === 0xfeff) {
 		return str.slice(1);
-	} else {
-		return str;
 	}
+	return str;
 }
 
 function convertArgs(args: any[], raw: boolean) {

@@ -81,8 +81,8 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl #impl_generics rspack_identifier::Identifiable for #name #ty_generics #where_clause {
-      fn identifier(&self) -> rspack_identifier::Identifier {
+    impl #impl_generics rspack_collections::Identifiable for #name #ty_generics #where_clause {
+      fn identifier(&self) -> rspack_collections::Identifier {
         self.name()
       }
     }

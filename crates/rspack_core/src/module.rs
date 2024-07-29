@@ -5,9 +5,9 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
+use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
@@ -19,8 +19,9 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ImmutableModuleGraph,
-  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutableModuleGraph, NormalModule,
-  RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleLayer, ModuleType, MutableModuleGraph,
+  NormalModule, RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SourceType,
 };
 pub struct BuildContext<'a> {
   pub runner_context: RunnerContext,
@@ -157,7 +158,7 @@ pub struct BuildResult {
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<String>,
 }
 
@@ -337,6 +338,10 @@ pub trait Module:
     None
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    None
+  }
+
   fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> Option<bool> {
     None
   }
@@ -344,7 +349,7 @@ pub trait Module:
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
   }
@@ -596,8 +601,8 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
+  use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{Diagnosable, Diagnostic, Result};
-  use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 

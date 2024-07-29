@@ -2,6 +2,7 @@ const Plugin = require("./plugin");
 
 /** @type {import("webpack").Configuration} */
 module.exports = {
+	mode: "development",
 	entry: {
 		js: "./src/index.js",
 		mjs: "./src/index.mjs",
@@ -12,7 +13,9 @@ module.exports = {
 	},
 	mode: "production",
 	optimization: {
-		minimize: false
+		minimize: false,
+		mangleExports: false,
+		concatenateModules: false,
 	},
 	plugins: [
 		new Plugin(".js"),

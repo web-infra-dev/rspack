@@ -7,10 +7,13 @@ const config = {
 	testMatch: ["<rootDir>/tests/*.test.ts", "<rootDir>/tests/e2e/*.test.ts"],
 	cache: false,
 	testTimeout: process.env.CI ? 120000 : 30000,
-	globals: {
-		"ts-jest": {
-			tsconfig: "<rootDir>/tests/tsconfig.json"
-		}
+	transform: {
+		"(.*)\\.{js,ts}": [
+			"ts-jest",
+			{
+				tsconfig: "<rootDir>/tests/tsconfig.json"
+			}
+		]
 	}
 };
 

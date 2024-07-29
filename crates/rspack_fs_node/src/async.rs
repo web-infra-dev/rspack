@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use futures::future::BoxFuture;
 use rspack_fs::r#async::AsyncWritableFileSystem;
 
@@ -12,8 +14,8 @@ impl AsyncNodeWritableFileSystem {
 }
 
 impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
-  fn create_dir<P: AsRef<std::path::Path>>(&self, dir: P) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let dir = dir.as_ref().to_string_lossy().to_string();
+  fn create_dir(&self, dir: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let dir = dir.to_string_lossy().to_string();
     let fut = async move {
       self.0.mkdir.call(dir).await.map_err(|e| {
         rspack_fs::Error::Io(std::io::Error::new(
@@ -26,11 +28,8 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn create_dir_all<P: AsRef<std::path::Path>>(
-    &self,
-    dir: P,
-  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let dir = dir.as_ref().to_string_lossy().to_string();
+  fn create_dir_all(&self, dir: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let dir = dir.to_string_lossy().to_string();
     let fut = async move {
       self
         .0
@@ -48,13 +47,9 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn write<P: AsRef<std::path::Path>, D: AsRef<[u8]>>(
-    &self,
-    file: P,
-    data: D,
-  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let file = file.as_ref().to_string_lossy().to_string();
-    let data = data.as_ref().to_vec();
+  fn write(&self, file: &Path, data: &[u8]) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let file = file.to_string_lossy().to_string();
+    let data = data.to_vec();
     let fut = async move {
       self
         .0
@@ -71,11 +66,8 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn remove_file<P: AsRef<std::path::Path>>(
-    &self,
-    file: P,
-  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let file = file.as_ref().to_string_lossy().to_string();
+  fn remove_file(&self, file: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let file = file.to_string_lossy().to_string();
     let fut = async move {
       self
         .0
@@ -93,11 +85,8 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn remove_dir_all<P: AsRef<std::path::Path>>(
-    &self,
-    dir: P,
-  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let dir = dir.as_ref().to_string_lossy().to_string();
+  fn remove_dir_all(&self, dir: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let dir = dir.to_string_lossy().to_string();
     let fut = async move {
       self
         .0

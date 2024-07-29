@@ -1,3 +1,6 @@
+import ResolveDataType from '../../types/resolve-data.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
 # NormalModuleFactory 钩子
 
 ## `beforeResolve`
@@ -5,6 +8,16 @@
 `AsyncSeriesBailHook<[ResolveData]>`
 
 当遇到新的依赖请求时调用。可以通过返回 `false` 来忽略依赖项。否则，应该返回 `undefined` 以继续。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
 
 ## `factorize`
 
@@ -16,6 +29,16 @@
 
 在请求开始解析之前调用。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `resolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
@@ -24,7 +47,17 @@
 目前不支持返回模块实例和 `false`
 :::
 
-在请求被解析之前调用，返回 `undefined` 以继续。。
+在请求被解析之前调用，返回 `undefined` 以继续。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
 
 ## `afterResolve`
 
@@ -32,8 +65,32 @@
 
 在请求被解析后调用。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `resolveForScheme`
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`
 
 在带有 scheme 的解析（URI）请求之前调用。
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ResourceDataWithData.ts" key="ResourceDataWithData">
+```ts
+type ResourceDataWithData = {
+	resource: string;
+	path: string;
+	query?: string;
+	fragment?: string;
+  data?: Record<string, any>;
+};
+```
+  </CollapsePanel>
+</Collapse>

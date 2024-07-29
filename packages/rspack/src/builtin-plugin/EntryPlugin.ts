@@ -7,7 +7,8 @@ import {
 import {
 	type ChunkLoading,
 	type EntryRuntime,
-	type FilenameTemplate,
+	type Filename,
+	type Layer,
 	type LibraryOptions,
 	type PublicPath,
 	getRawChunkLoading,
@@ -23,8 +24,9 @@ export type EntryOptions = {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
-	filename?: FilenameTemplate;
+	filename?: Filename;
 	library?: LibraryOptions;
+	layer?: Layer;
 	dependOn?: string[];
 };
 export const EntryPlugin = create(
@@ -59,6 +61,7 @@ export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 		asyncChunks: entry.asyncChunks,
 		filename: entry.filename,
 		library: entry.library && getRawLibrary(entry.library),
+		layer: entry.layer ?? undefined,
 		dependOn: entry.dependOn
 	};
 }

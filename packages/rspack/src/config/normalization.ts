@@ -11,7 +11,9 @@
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
+	AsyncChunks,
 	Bail,
+	BaseUri,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -49,6 +51,7 @@ import type {
 	Iife,
 	ImportFunctionName,
 	InfrastructureLogging,
+	Layer,
 	LazyCompilationOptions,
 	LibraryOptions,
 	Loader,
@@ -93,11 +96,10 @@ export const getNormalizedRspackOptions = (
 				? config.ignoreWarnings.map(ignore => {
 						if (typeof ignore === "function") {
 							return ignore;
-						} else {
-							return (warning: Error) => {
-								return ignore.test(warning.message);
-							};
 						}
+						return (warning: Error) => {
+							return ignore.test(warning.message);
+						};
 					})
 				: undefined,
 		name: config.name,
@@ -350,6 +352,7 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				asyncChunks: value.asyncChunks,
 				filename: value.filename,
 				library: value.library,
+				layer: value.layer,
 				dependOn: Array.isArray(value.dependOn)
 					? value.dependOn
 					: value.dependOn
@@ -440,12 +443,13 @@ export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
 	chunkLoading?: ChunkLoading;
-	asyncChunks?: boolean;
+	asyncChunks?: AsyncChunks;
 	publicPath?: PublicPath;
-	baseUri?: string;
+	baseUri?: BaseUri;
 	filename?: EntryFilename;
 	library?: LibraryOptions;
 	dependOn?: string[];
+	layer?: Layer;
 }
 
 export interface OutputNormalized {
@@ -510,6 +514,7 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
+	layers?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 }

@@ -20,7 +20,7 @@ pub struct JsAssetInfo {
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
-  // pub fullhash:
+  pub fullhash: Vec<String>,
   /// the value(s) of the chunk hash used for this asset
   pub chunkhash: Vec<String>,
   /// the value(s) of the module hash used for this asset
@@ -57,6 +57,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       hot_module_replacement: i.hot_module_replacement,
       chunk_hash: i.chunkhash.into_iter().collect(),
       related: i.related.into(),
+      full_hash: i.fullhash.into_iter().collect(),
       content_hash: i.contenthash.into_iter().collect(),
       version: String::from(""),
       source_filename: i.source_filename,
@@ -90,6 +91,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       hot_module_replacement: info.hot_module_replacement,
       related: info.related.into(),
       chunkhash: info.chunk_hash.into_iter().collect(),
+      fullhash: info.full_hash.into_iter().collect(),
       contenthash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
       javascript_module: info.javascript_module,

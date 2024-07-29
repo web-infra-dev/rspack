@@ -74,9 +74,8 @@ export abstract class BasicRunner<
 		);
 		if (typeof res === "object" && "then" in res) {
 			return res;
-		} else {
-			return Promise.resolve(res);
 		}
+		return Promise.resolve(res);
 	}
 
 	getRequire(): TRunnerRequirer {
@@ -115,22 +114,23 @@ export abstract class BasicRunner<
 					.join(", ")});`,
 				subPath: ""
 			};
-		} else if (isRelativePath(modulePath)) {
+		}
+		if (isRelativePath(modulePath)) {
 			const p = path.join(currentDirectory, modulePath);
 			return {
 				path: p,
 				content: fs.readFileSync(p, "utf-8"),
 				subPath: getSubPath(modulePath)
 			};
-		} else if (path.isAbsolute(modulePath)) {
+		}
+		if (path.isAbsolute(modulePath)) {
 			return {
 				path: modulePath,
 				content: fs.readFileSync(modulePath, "utf-8"),
 				subPath: "absolute_path"
 			};
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	protected preExecute(code: string, file: TBasicRunnerFile) {}

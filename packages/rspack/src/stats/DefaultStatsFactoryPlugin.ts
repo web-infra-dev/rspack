@@ -333,7 +333,8 @@ const MODULES_GROUPERS = (
 					if (!module.moduleType) return;
 					if (groupModulesByType) {
 						return [module.moduleType.split("/", 1)[0]];
-					} else if (module.moduleType === "runtime") {
+					}
+					if (module.moduleType === "runtime") {
 						return ["runtime"];
 					}
 				},
@@ -1078,7 +1079,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { type } = context;
 			object.type = module.type;
 			object.moduleType = module.moduleType;
-			// TODO: object.layer = module.layer;
+			object.layer = module.layer;
 			object.size = module.size;
 			const sizes = module.sizes.map(({ sourceType, size }) => [
 				sourceType,

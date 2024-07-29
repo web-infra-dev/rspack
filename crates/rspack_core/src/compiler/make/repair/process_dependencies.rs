@@ -106,6 +106,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         issuer: module
           .as_normal_module()
           .and_then(|module| module.name_for_condition()),
+        issuer_layer: module.get_layer().cloned(),
         dependency,
         dependencies,
         resolve_options: module.get_resolve_options(),

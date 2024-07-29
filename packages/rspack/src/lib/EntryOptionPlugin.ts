@@ -60,7 +60,7 @@ export default class EntryOptionPlugin {
 			name,
 			filename: desc.filename,
 			runtime: desc.runtime,
-			// layer: desc.layer,
+			layer: desc.layer,
 			dependOn: desc.dependOn,
 			baseUri: desc.baseUri,
 			publicPath: desc.publicPath,
@@ -69,11 +69,11 @@ export default class EntryOptionPlugin {
 			// wasmLoading: desc.wasmLoading,
 			library: desc.library
 		};
-		// if (desc.layer !== undefined && !compiler.options.experiments.layers) {
-		// 	throw new Error(
-		// 		"'entryOptions.layer' is only allowed when 'experiments.layers' is enabled"
-		// 	);
-		// }
+		if (desc.layer !== undefined && !compiler.options.experiments.layers) {
+			throw new Error(
+				"'entryOptions.layer' is only allowed when 'experiments.layers' is enabled"
+			);
+		}
 		// if (desc.chunkLoading) {
 		// 	const EnableChunkLoadingPlugin = require("./javascript/EnableChunkLoadingPlugin");
 		// 	EnableChunkLoadingPlugin.checkEnabled(compiler, desc.chunkLoading);

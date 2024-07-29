@@ -35,6 +35,7 @@
 		"rules": {
 			"recommended": false,
 			"a11y": {
+				"useButtonType": "error",
 				"noSvgWithoutTitle": "error"
 			},
 			"complexity": {
@@ -45,12 +46,14 @@
 			"style": {
 				"noUnusedTemplateLiteral": "error",
 				"useNodejsImportProtocol": "error",
+				"noUselessElse": "error",
 				"noNonNullAssertion": "off",
 				"useNumberNamespace": "error",
 				"useConst": "error",
 				"useImportType": "error",
 				"useExportType": "error",
-				"useEnumInitializers": "error"
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error"
 			},
 			"suspicious": {
 				"noDoubleEquals": "error"

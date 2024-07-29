@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]

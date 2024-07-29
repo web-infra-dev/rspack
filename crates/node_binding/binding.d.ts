@@ -113,6 +113,7 @@ export class JsStatsModule {
   get type(): string
   get moduleType(): string
   get identifier(): string
+  get layer(): string | undefined
   get name(): string
   get id(): string | undefined
   get chunks(): Array<string | undefined | null>
@@ -313,10 +314,9 @@ export interface JsAssetInfo {
   immutable: boolean
   /** whether the asset is minimized */
   minimized: boolean
-  /**
-   * the value(s) of the full hash used for this asset
-   * the value(s) of the chunk hash used for this asset
-   */
+  /** the value(s) of the full hash used for this asset */
+  fullhash: Array<string>
+  /** the value(s) of the chunk hash used for this asset */
   chunkhash: Array<string>
   /**
    * the value(s) of the module hash used for this asset
@@ -510,6 +510,7 @@ export interface JsModule {
   rawRequest?: string
   factoryMeta?: JsFactoryMeta
   type: string
+  layer?: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -614,6 +615,7 @@ export interface JsStatsAssetInfo {
   javascriptModule?: boolean
   chunkhash: Array<string>
   contenthash: Array<string>
+  fullhash: Array<string>
   related: Array<JsStatsAssetInfoRelated>
 }
 
@@ -814,6 +816,7 @@ export interface RawCacheGroupOptions {
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  layer?: RegExp | string
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
@@ -970,9 +973,10 @@ export interface RawEntryOptions {
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
-  filename?: string
+  filename?: JsFilename
   library?: RawLibraryOptions
   dependOn?: Array<string>
+  layer?: string
 }
 
 export interface RawEntryPluginOptions {
@@ -993,6 +997,7 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
+  layers: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -1163,6 +1168,9 @@ export interface RawLightningCssMinimizerRspackPluginOptions {
   unusedSymbols: Array<string>
   removeUnusedLocalIdents: boolean
   browserslist: Array<string>
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawLimitChunkCountPluginOptions {
@@ -1221,13 +1229,16 @@ export interface RawModuleRule {
   resourceQuery?: RawRuleSetCondition
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
+  with?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
+  layer?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition

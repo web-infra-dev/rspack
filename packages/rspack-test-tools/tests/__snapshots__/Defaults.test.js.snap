@@ -19,6 +19,7 @@ Object {
     "asyncWebAssembly": false,
     "css": undefined,
     "futureDefaults": false,
+    "layers": false,
     "lazyCompilation": false,
     "rspackFuture": Object {
       "bundlerInfo": Object {
@@ -139,6 +140,12 @@ Object {
             "type": "asset/resource",
           },
         ],
+      },
+      Object {
+        "type": "json",
+        "with": Object {
+          "type": "json",
+        },
       },
     ],
     "generator": Object {},

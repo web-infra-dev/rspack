@@ -257,7 +257,8 @@ pub fn subtract_runtime_condition(
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
-  let runtime: Vec<Arc<str>> = Vec::from_iter(runtime);
+  let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime);
+  runtime.sort_unstable();
   runtime.join("\n")
 }
 

@@ -4,14 +4,12 @@ pub mod repair;
 
 use std::path::PathBuf;
 
+use rspack_collections::IdentifierSet;
 use rspack_error::{Diagnostic, Result};
-use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
-use crate::{
-  BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-};
+use crate::{BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial};
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
@@ -23,7 +21,7 @@ pub struct MakeArtifact {
   // data
   pub built_modules: IdentifierSet,
   pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
+  pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
   entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
@@ -56,7 +54,7 @@ impl MakeArtifact {
     std::mem::take(&mut self.built_modules)
   }
 
-  fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
+  fn revoke_modules(&mut self, ids: IdentifierSet) -> Vec<BuildDependency> {
     let mut module_graph = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
     let mut res = vec![];
     for module_identifier in &ids {
@@ -91,7 +89,7 @@ pub enum MakeParam {
   ModifiedFiles(HashSet<PathBuf>),
   RemovedFiles(HashSet<PathBuf>),
   ForceBuildDeps(HashSet<BuildDependency>),
-  ForceBuildModules(HashSet<ModuleIdentifier>),
+  ForceBuildModules(IdentifierSet),
 }
 
 pub fn make_module_graph(

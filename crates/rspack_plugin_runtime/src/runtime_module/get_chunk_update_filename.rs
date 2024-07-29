@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt;
 
 // TODO workaround for get_chunk_update_filename

@@ -19,12 +19,12 @@ function createPublicPathGetter(compiler: Compiler) {
 	if (typeof raw === "function") {
 		return (compilation?: Compilation) =>
 			compilation ? compilation.getPath(raw) : raw({ hash: "XXXX" }, undefined);
-	} else if (/\[(hash|fullhash)[:\]]/.test(raw)) {
+	}
+	if (/\[(hash|fullhash)[:\]]/.test(raw)) {
 		return (compilation?: Compilation) =>
 			compilation ? compilation.getPath(raw) : raw.replace(/\/$/, "") + "/";
-	} else {
-		return () => raw.replace(/\/$/, "") + "/";
 	}
+	return () => raw.replace(/\/$/, "") + "/";
 }
 
 export function getRspackMemoryAssets(

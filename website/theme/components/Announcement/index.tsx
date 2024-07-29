@@ -43,7 +43,7 @@ export function Announcement() {
           position: 'absolute',
           cursor: 'pointer',
         }}
-      ></IconCloseCircle>
+      />
     </div>
   );
 }

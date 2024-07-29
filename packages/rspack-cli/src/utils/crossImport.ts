@@ -15,14 +15,13 @@ const crossImport = async <T = any>(
 		const url = pathToFileURL(path).href;
 		const { default: config } = await dynamicImport(url);
 		return config;
-	} else {
-		let result = require(path);
-		// compatible with export default config in common ts config
-		if (result && typeof result === "object" && "default" in result) {
-			result = result.default || {};
-		}
-		return result;
 	}
+	let result = require(path);
+	// compatible with export default config in common ts config
+	if (result && typeof result === "object" && "default" in result) {
+		result = result.default || {};
+	}
+	return result;
 };
 
 export default crossImport;

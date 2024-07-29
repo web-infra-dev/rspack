@@ -2,17 +2,28 @@ use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 
-use crate::{DependencyCategory, ModuleRule};
+use crate::{DependencyCategory, ImportAttributes, ModuleRule};
 
 pub async fn module_rules_matcher<'a>(
   rules: &'a [ModuleRule],
   resource_data: &ResourceData,
   issuer: Option<&'a str>,
+  issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<()> {
   for rule in rules {
-    module_rule_matcher(rule, resource_data, issuer, dependency, matched_rules).await?;
+    module_rule_matcher(
+      rule,
+      resource_data,
+      issuer,
+      issuer_layer,
+      dependency,
+      attributes,
+      matched_rules,
+    )
+    .await?;
   }
   Ok(())
 }
@@ -23,7 +34,9 @@ pub async fn module_rule_matcher<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
   issuer: Option<&'a str>,
+  issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
@@ -116,6 +129,13 @@ pub async fn module_rule_matcher<'a>(
     return Ok(false);
   }
 
+  if let Some(issuer_layer_rule) = &module_rule.issuer_layer
+    && let Some(issuer_layer) = issuer_layer
+    && !issuer_layer_rule.try_match(issuer_layer).await?
+  {
+    return Ok(false);
+  }
+
   if let Some(dependency_rule) = &module_rule.dependency
     && !dependency_rule.try_match(dependency.as_str()).await?
   {
@@ -141,14 +161,49 @@ pub async fn module_rule_matcher<'a>(
     }
   }
 
+  if let Some(with) = &module_rule.with {
+    if let Some(attributes) = attributes {
+      for (k, matcher) in with {
+        if let Some(v) = attributes.get(k) {
+          if !matcher.try_match(v).await? {
+            return Ok(false);
+          }
+        } else {
+          return Ok(false);
+        }
+      }
+    } else {
+      return Ok(false);
+    }
+  }
+
   if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(rules, resource_data, issuer, dependency, matched_rules).await?;
+    module_rules_matcher(
+      rules,
+      resource_data,
+      issuer,
+      issuer_layer,
+      dependency,
+      attributes,
+      matched_rules,
+    )
+    .await?;
   }
 
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      if module_rule_matcher(rule, resource_data, issuer, dependency, matched_rules).await? {
+      if module_rule_matcher(
+        rule,
+        resource_data,
+        issuer,
+        issuer_layer,
+        dependency,
+        attributes,
+        matched_rules,
+      )
+      .await?
+      {
         matched_once = true;
         break;
       }

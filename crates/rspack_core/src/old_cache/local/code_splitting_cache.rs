@@ -1,6 +1,6 @@
 use futures::Future;
 use indexmap::IndexMap;
-use rspack_database::Database;
+use rspack_collections::Database;
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;

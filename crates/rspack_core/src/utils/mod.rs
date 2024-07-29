@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 use rspack_util::comparators::compare_ids;
 use rspack_util::comparators::compare_numbers;
 use rustc_hash::FxHashMap as HashMap;

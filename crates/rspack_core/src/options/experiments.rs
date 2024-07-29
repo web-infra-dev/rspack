@@ -27,6 +27,7 @@ pub struct RspackFuture {}
 
 #[derive(Debug, Default)]
 pub struct Experiments {
+  pub layers: bool,
   pub incremental_rebuild: IncrementalRebuild,
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,

@@ -39,9 +39,10 @@ pub struct RawEntryOptions {
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
   pub base_uri: Option<String>,
-  pub filename: Option<String>,
+  pub filename: Option<JsFilename>,
   pub library: Option<RawLibraryOptions>,
   pub depend_on: Option<Vec<String>>,
+  pub layer: Option<String>,
 }
 
 impl From<RawEntryOptions> for EntryOptions {
@@ -56,6 +57,7 @@ impl From<RawEntryOptions> for EntryOptions {
       filename: value.filename.map(Into::into),
       library: value.library.map(Into::into),
       depend_on: value.depend_on.map(Into::into),
+      layer: value.layer,
     }
   }
 }

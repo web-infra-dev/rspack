@@ -6,7 +6,7 @@ use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
 use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-use linked_hash_map::LinkedHashMap as HashMap;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
   CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
@@ -48,7 +48,7 @@ pub struct ProgressPlugin {
   pub progress_bar: ProgressBar,
   pub modules_count: AtomicU32,
   pub modules_done: AtomicU32,
-  pub active_modules: RwLock<HashMap<ModuleIdentifier, Instant>>,
+  pub active_modules: RwLock<IdentifierMap<Instant>>,
   pub last_modules_count: RwLock<Option<u32>>,
   pub last_active_module: RwLock<Option<ModuleIdentifier>>,
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,

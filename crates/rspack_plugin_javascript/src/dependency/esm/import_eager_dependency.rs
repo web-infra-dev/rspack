@@ -1,11 +1,14 @@
 use rspack_core::{
   module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, DependencyType, ErrorSpan, ImportAttributes, ModuleDependency,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
-use super::import_dependency::create_import_dependency_referenced_exports;
+use super::{
+  create_resource_identifier_for_esm_dependency,
+  import_dependency::create_import_dependency_referenced_exports,
+};
 
 #[derive(Debug, Clone)]
 pub struct ImportEagerDependency {
@@ -15,6 +18,8 @@ pub struct ImportEagerDependency {
   request: Atom,
   span: Option<ErrorSpan>,
   referenced_exports: Option<Vec<Atom>>,
+  attributes: Option<ImportAttributes>,
+  resource_identifier: String,
 }
 
 impl ImportEagerDependency {
@@ -24,7 +29,10 @@ impl ImportEagerDependency {
     request: Atom,
     span: Option<ErrorSpan>,
     referenced_exports: Option<Vec<Atom>>,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
     Self {
       start,
       end,
@@ -32,6 +40,8 @@ impl ImportEagerDependency {
       span,
       id: DependencyId::new(),
       referenced_exports,
+      attributes,
+      resource_identifier,
     }
   }
 }
@@ -41,12 +51,20 @@ impl Dependency for ImportEagerDependency {
     &self.id
   }
 
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::DynamicImportEager
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   fn span(&self) -> Option<ErrorSpan> {

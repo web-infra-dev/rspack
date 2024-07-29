@@ -19,6 +19,7 @@
   "license": "MIT",
   "packageManager": "pnpm@9.3.0",
   "dependencies": {
+    "antd": "5.19.3",
     "axios": "^1.6.1",
     "date-fns": "^2.29.3",
     "markdown-to-jsx": "^7.2.1",

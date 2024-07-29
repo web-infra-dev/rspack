@@ -5,7 +5,7 @@ use swc_core::common::{
   errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
 };
 use swc_core::ecma::ast::{Module, Program as SwcProgram};
-use swc_core::ecma::transforms::base::helpers::{Helpers, HELPERS};
+use swc_core::ecma::transforms::base::helpers::{HelperData, Helpers, HELPERS};
 use swc_core::ecma::visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith};
 use swc_error_reporters::handler::try_with_handler;
 use swc_node_comments::SwcComments;
@@ -70,7 +70,7 @@ impl Take for Program {
 /// Swc transform context
 pub struct Context {
   pub globals: Globals,
-  pub helpers: Helpers,
+  pub helpers: HelperData,
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
   //  comments: swcComments,
@@ -81,8 +81,9 @@ impl Context {
   pub fn new(source_map: Arc<SourceMap>) -> Self {
     let globals: Globals = Default::default();
     // generate preset mark & helpers
-    let (top_level_mark, unresolved_mark, helpers) =
-      GLOBALS.set(&globals, || (Mark::new(), Mark::new(), Helpers::new(true)));
+    let (top_level_mark, unresolved_mark, helpers) = GLOBALS.set(&globals, || {
+      (Mark::new(), Mark::new(), Helpers::new(true).data())
+    });
 
     Self {
       globals,
@@ -170,7 +171,7 @@ impl Ast {
   {
     let Self { program, context } = self;
     GLOBALS.set(&context.globals, || {
-      HELPERS.set(&context.helpers, || f(program, context))
+      HELPERS.set(&Helpers::from_data(context.helpers), || f(program, context))
     })
   }
 
@@ -191,7 +192,7 @@ impl Ast {
   {
     let Self { program, context } = self;
     GLOBALS.set(&context.globals, || {
-      HELPERS.set(&context.helpers, || f(program, context))
+      HELPERS.set(&Helpers::from_data(context.helpers), || f(program, context))
     })
   }
 }

@@ -1,9 +1,9 @@
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 

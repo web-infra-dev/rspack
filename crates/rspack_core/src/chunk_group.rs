@@ -2,15 +2,15 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 use itertools::Itertools;
-use rspack_database::DatabaseItem;
+use rspack_collections::IdentifierMap;
+use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_error::{error, Result};
-use rspack_identifier::IdentifierMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
-  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority,
-  FilenameTemplate,
+  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority, Filename,
+  ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -34,7 +34,9 @@ pub struct OriginRecord {
 }
 
 impl DatabaseItem for ChunkGroup {
-  fn ukey(&self) -> rspack_database::Ukey<Self> {
+  type ItemUkey = ChunkGroupUkey;
+
+  fn ukey(&self) -> Self::ItemUkey {
     self.ukey
   }
 }
@@ -45,11 +47,11 @@ pub struct ChunkGroup {
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
-  pub parents: HashSet<ChunkGroupUkey>,
+  pub parents: UkeySet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) children: HashSet<ChunkGroupUkey>,
-  async_entrypoints: HashSet<ChunkGroupUkey>,
+  pub(crate) children: UkeySet<ChunkGroupUkey>,
+  async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
@@ -171,9 +173,9 @@ impl ChunkGroup {
     self.async_entrypoints.iter()
   }
 
-  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
+  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> UkeySet<ChunkGroupUkey> {
     let mut queue = vec![];
-    let mut ancestors = HashSet::default();
+    let mut ancestors = UkeySet::default();
 
     queue.extend(self.parents.iter().copied());
 
@@ -438,7 +440,7 @@ impl EntryRuntime {
 
 // pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -446,9 +448,10 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub filename: Option<FilenameTemplate>,
+  pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
   pub depend_on: Option<Vec<String>>,
+  pub layer: Option<ModuleLayer>,
 }
 
 impl EntryOptions {
@@ -473,6 +476,7 @@ impl EntryOptions {
     merge_field!(filename);
     merge_field!(library);
     merge_field!(depend_on);
+    merge_field!(layer);
     Ok(())
   }
 
@@ -534,7 +538,7 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),

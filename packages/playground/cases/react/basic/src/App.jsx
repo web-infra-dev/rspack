@@ -1,14 +1,14 @@
 import React from 'react'
-import './index.css'
+import ComponentInNodeModules from "foo"
 import { ContextComponent } from './CountProvider'
 import { ReactRefreshFinder } from './ReactRefreshFinder'
 import { SameExportName as SameExportName1 } from './SameExportName1'
 import { SameExportName as SameExportName2 } from './SameExportName2'
-import ComponentInNodeModules from "foo"
+import './index.css'
 
 const Button = () => {
 	const [count, setCount] = React.useState(10)
-	return <button onClick={() => setCount(count => count + 1)}>{count}</button>
+	return <button type="button" onClick={() => setCount(count => count + 1)}>{count}</button>
 }
 
 const LazyComponent = React.lazy(() => import('./LazyComponent'))
