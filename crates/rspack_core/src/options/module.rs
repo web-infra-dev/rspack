@@ -634,7 +634,7 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Derivative, Default)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
@@ -658,6 +658,14 @@ pub struct ModuleRule {
   pub mimetype: Option<RuleSetCondition>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
+  pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
+  pub effect: ModuleRuleEffect,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
@@ -667,8 +675,6 @@ pub struct ModuleRule {
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
-  pub one_of: Option<Vec<ModuleRule>>,
-  pub rules: Option<Vec<ModuleRule>>,
   pub enforce: ModuleRuleEnforce,
 }
 

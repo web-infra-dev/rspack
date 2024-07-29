@@ -2,7 +2,7 @@ use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 
-use crate::{DependencyCategory, ImportAttributes, ModuleRule};
+use crate::{DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect};
 
 pub async fn module_rules_matcher<'a>(
   rules: &'a [ModuleRule],
@@ -11,7 +11,7 @@ pub async fn module_rules_matcher<'a>(
   issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
   attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRule>,
+  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Result<()> {
   for rule in rules {
     module_rule_matcher(
@@ -37,7 +37,7 @@ pub async fn module_rule_matcher<'a>(
   issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
   attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRule>,
+  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(resource_data.resource.as_str()).await?
@@ -212,6 +212,6 @@ pub async fn module_rule_matcher<'a>(
       return Ok(false);
     }
   }
-  matched_rules.push(module_rule);
+  matched_rules.push(&module_rule.effect);
   Ok(true)
 }

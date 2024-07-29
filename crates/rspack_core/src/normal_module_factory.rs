@@ -13,7 +13,7 @@ use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context, Dependency,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRule,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
   ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
   ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
@@ -521,6 +521,17 @@ impl NormalModuleFactory {
     }
 
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
+
+    if resource_data
+      .resource
+      .contains("next-flight-loader/module-proxy")
+    {
+      dbg!(
+        &resource_data.resource,
+        &resolved_resolve_options,
+        &resolved_module_rules
+      );
+    }
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) = self
@@ -623,7 +634,7 @@ impl NormalModuleFactory {
     dependency: &dyn Dependency,
     issuer: Option<&'a str>,
     issuer_layer: Option<&'a str>,
-  ) -> Result<Vec<&'a ModuleRule>> {
+  ) -> Result<Vec<&'a ModuleRuleEffect>> {
     let mut rules = Vec::new();
     module_rules_matcher(
       &self.options.module.rules,
@@ -638,17 +649,21 @@ impl NormalModuleFactory {
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Arc<Resolve>> {
-    let mut resolved = None;
-    module_rules.iter().for_each(|rule| {
-      if let Some(resolve) = rule.resolve.as_ref() {
-        resolved = Some(Arc::new(resolve.to_owned()));
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
+    let mut resolved: Option<Resolve> = None;
+    for rule in module_rules {
+      if let Some(rule_resolve) = &rule.resolve {
+        if let Some(r) = resolved {
+          resolved = Some(r.merge(rule_resolve.to_owned()));
+        } else {
+          resolved = Some(rule_resolve.to_owned());
+        }
       }
-    });
-    resolved
+    }
+    resolved.map(|r| Arc::new(r))
   }
 
-  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
+  fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
     let mut side_effect_res = None;
     // side_effects from module rule has higher priority
     module_rules.iter().for_each(|rule| {
@@ -661,7 +676,7 @@ impl NormalModuleFactory {
 
   fn calculate_parser_and_generator_options(
     &self,
-    module_rules: &[&ModuleRule],
+    module_rules: &[&ModuleRuleEffect],
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
     let mut resolved_parser = None;
     let mut resolved_generator = None;
@@ -727,7 +742,7 @@ impl NormalModuleFactory {
   fn calculate_module_type(
     &self,
     matched_module_type: Option<ModuleType>,
-    module_rules: &[&ModuleRule],
+    module_rules: &[&ModuleRuleEffect],
   ) -> ModuleType {
     let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
     module_rules.iter().for_each(|module_rule| {
@@ -742,7 +757,7 @@ impl NormalModuleFactory {
   fn calculate_module_layer(
     &self,
     issuer_layer: Option<&ModuleLayer>,
-    module_rules: &[&ModuleRule],
+    module_rules: &[&ModuleRuleEffect],
   ) -> Option<ModuleLayer> {
     let mut resolved_module_layer = issuer_layer;
     module_rules.iter().for_each(|module_rule| {
