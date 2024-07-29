@@ -10,12 +10,13 @@
 
 import type { Compiler } from "../Compiler";
 import NormalModule from "../NormalModule";
+import type { Target } from "../config";
 
 export class LoaderTargetPlugin {
 	/**
 	 * @param target the target
 	 */
-	constructor(public readonly target: string) {}
+	constructor(public readonly target: Target) {}
 
 	/**
 	 * Apply the plugin
@@ -27,7 +28,7 @@ export class LoaderTargetPlugin {
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				"LoaderTargetPlugin",
 				loaderContext => {
-					loaderContext.target = this.target as any;
+					loaderContext.target = this.target;
 				}
 			);
 		});

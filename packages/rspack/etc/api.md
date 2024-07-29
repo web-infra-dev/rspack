@@ -5197,10 +5197,10 @@ type LoaderOptionsPluginOptions = any;
 
 // @public (undocumented)
 export class LoaderTargetPlugin {
-    constructor(target: string);
+    constructor(target: Target);
     apply(compiler: Compiler): void;
     // (undocumented)
-    readonly target: string;
+    readonly target: Target;
 }
 
 // @public (undocumented)

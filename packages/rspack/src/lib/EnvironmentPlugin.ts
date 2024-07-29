@@ -24,7 +24,7 @@ class EnvironmentPlugin {
 		if (keys.length === 1 && Array.isArray(keys[0])) {
 			this.keys = keys[0];
 			this.defaultValues = {};
-		} else if (keys.length === 1 && typeof keys[0] === "object") {
+		} else if (keys.length === 1 && keys[0] && typeof keys[0] === "object") {
 			this.keys = Object.keys(keys[0]);
 			this.defaultValues = keys[0];
 		} else {
