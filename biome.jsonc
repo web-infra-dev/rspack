@@ -33,30 +33,62 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": false,
+			"recommended": true,
 			"a11y": {
-				"useButtonType": "error",
-				"noSvgWithoutTitle": "error"
+				"useKeyWithClickEvents": "off"
 			},
 			"complexity": {
-				"useArrowFunction": "error",
-				"useLiteralKeys": "error",
-				"noForEach": "error"
+				"noMultipleSpacesInRegularExpressionLiterals": "off",
+				"noStaticOnlyClass": "off",
+				"noThisInStatic": "off",
+				"noUselessConstructor": "off",
+				"noUselessTernary": "off",
+				"noBannedTypes": "off",
+				"useOptionalChain": "off",
+				"noUselessEmptyExport": "off",
+				"noExtraBooleanCast": "off"
+			},
+			"correctness": {
+				"noEmptyPattern": "off",
+				"noConstructorReturn": "off",
+				"noSwitchDeclarations": "off",
+				"noInvalidUseBeforeDeclaration": "off",
+				"noInnerDeclarations": "off",
+				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noUnusedTemplateLiteral": "error",
-				"useNodejsImportProtocol": "error",
-				"noUselessElse": "error",
-				"noNonNullAssertion": "off",
-				"useNumberNamespace": "error",
-				"useConst": "error",
-				"useImportType": "error",
-				"useExportType": "error",
-				"useEnumInitializers": "error",
-				"useSelfClosingElements": "error"
+				"noCommaOperator": "off",
+				"useExponentiationOperator": "off",
+				"useShorthandFunctionType": "off",
+				"noArguments": "off",
+				"noInferrableTypes": "off",
+				"noVar": "off",
+				"noParameterAssign": "off",
+				"useTemplate": "off",
+				"useSingleVarDeclarator": "off",
+				"noNonNullAssertion": "off"
+			},
+			"performance": {
+				"noDelete": "off",
+				"noAccumulatingSpread": "off"
+			},
+			"security": {
+				"noGlobalEval": "off"
 			},
 			"suspicious": {
-				"noDoubleEquals": "error"
+				"noEmptyInterface": "off",
+				"noGlobalAssign": "off",
+				"noGlobalIsNan": "off",
+				"noFallthroughSwitchClause": "off",
+				"noConstEnum": "off",
+				"noConfusingVoidType": "off",
+				"noPrototypeBuiltins": "off",
+				"noImplicitAnyLet": "off",
+				"noAssignInExpressions": "off",
+				"noArrayIndexKey": "off",
+				"noRedundantUseStrict": "off",
+				"noControlCharactersInRegex": "off",
+				"noExplicitAny": "off"
 			}
 		},
 		"ignore": [
