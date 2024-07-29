@@ -1,46 +1,50 @@
+<>
+
 ```ts
 type ItemCacheFacade = {
-      get<T>(callback: (err: Error, result: T) => void): void;
-      getPromise<T>(): Promise<T>;
-      store<T>(data: T, callback: (err: Error, result: T) => void): void;
-      storePromise<T>(data: T): Promise<void>;
-      provide<T>(
-        computer: (fn: (err: Error, result: T) => void) => void,
-        callback: (err: Error, result: T) => void,
-      ): void;
-      providePromise<T>(
-        computer: (fn: (err: Error, result: T) => void) => void,
-      ): Promise<T>;
+  get<T>(callback: (err: Error, result: T) => void): void;
+  getPromise<T>(): Promise<T>;
+  store<T>(data: T, callback: (err: Error, result: T) => void): void;
+  storePromise<T>(data: T): Promise<void>;
+  provide<T>(
+    computer: (fn: (err: Error, result: T) => void) => void,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>(
+    computer: (fn: (err: Error, result: T) => void) => void,
+  ): Promise<T>;
 };
 
 type CacheFacade = {
-      getChildCache(name: string): CacheFacade;
-      getItemCache(identifier, etag): ItemCacheFacade;
-      getLazyHashedEtag(obj: HashableObject): Etag;
-      mergeEtags(a: Etag, b: Etag): Etag;
-      get<T>(
-        identifier: string,
-        etag: Etag,
-        callback: (err: Error, result: T) => void,
-      ): void;
-      getPromise<T>(identifier: string, etag: Etag): Promise<T>;
-      store<T>(
-        identifier: string,
-        etag: Etag,
-        data: T,
-        callback: (err: Error, result: T) => void,
-      ): void;
-      storePromise<T>(identifier: string, etag: Etag, data: T): Promise<void>;
-      provide<T>(
-        identifier: string,
-        etag: Etag,
-        computer: (fn: (err: Error, result: T) => void) => void,
-        callback: (err: Error, result: T) => void,
-      ): void;
-      providePromise<T>(
-        identifier: string,
-        etag: Etag,
-        computer: (fn: (err: Error, result: T) => void) => void,
-      ): Promise<T>;
+  getChildCache(name: string): CacheFacade;
+  getItemCache(identifier, etag): ItemCacheFacade;
+  getLazyHashedEtag(obj: HashableObject): Etag;
+  mergeEtags(a: Etag, b: Etag): Etag;
+  get<T>(
+    identifier: string,
+    etag: Etag,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  getPromise<T>(identifier: string, etag: Etag): Promise<T>;
+  store<T>(
+    identifier: string,
+    etag: Etag,
+    data: T,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  storePromise<T>(identifier: string, etag: Etag, data: T): Promise<void>;
+  provide<T>(
+    identifier: string,
+    etag: Etag,
+    computer: (fn: (err: Error, result: T) => void) => void,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>(
+    identifier: string,
+    etag: Etag,
+    computer: (fn: (err: Error, result: T) => void) => void,
+  ): Promise<T>;
 };
 ```
+
+</>

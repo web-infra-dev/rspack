@@ -1,9 +1,13 @@
+<>
+
 ```ts
 type ChunkGroup = {
-      name?: Readonly<string>;
-      index?: Readonly<number>;
-      chunks: ReadonlyArray<Chunk>;
-      getFiles(): ReadonlyArray<string>;
-      getParents(): ReadonlyArray<ChunkGroup>;
+  name?: Readonly<string>;
+  index?: Readonly<number>;
+  chunks: ReadonlyArray<Chunk>;
+  getFiles(): ReadonlyArray<string>;
+  getParents(): ReadonlyArray<ChunkGroup>;
 };
 ```
+
+</>
