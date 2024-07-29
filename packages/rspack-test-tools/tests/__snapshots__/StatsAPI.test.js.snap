@@ -90,7 +90,7 @@ Object {
           "providedExports": Array [],
           "reasons": Array [
             Object {
-              "moduleId": undefined,
+              "moduleId": null,
               "type": "entry",
               "userRequest": "./fixtures/a",
             },
@@ -121,7 +121,7 @@ Object {
         Object {
           "loc": "main",
           "module": "",
-          "moduleId": "",
+          "moduleId": undefined,
           "moduleIdentifier": "",
           "moduleName": "",
           "request": "./fixtures/a",
@@ -204,7 +204,7 @@ Object {
       "providedExports": Array [],
       "reasons": Array [
         Object {
-          "moduleId": undefined,
+          "moduleId": null,
           "type": "entry",
           "userRequest": "./fixtures/a",
         },
@@ -578,7 +578,7 @@ Object {
           "providedExports": Array [],
           "reasons": Array [
             Object {
-              "moduleId": undefined,
+              "moduleId": null,
               "type": "entry",
               "userRequest": "./fixtures/esm/abc",
             },
@@ -599,7 +599,7 @@ Object {
         Object {
           "loc": "main",
           "module": "",
-          "moduleId": "",
+          "moduleId": undefined,
           "moduleIdentifier": "",
           "moduleName": "",
           "request": "./fixtures/esm/abc",
@@ -957,7 +957,7 @@ Object {
       "providedExports": Array [],
       "reasons": Array [
         Object {
-          "moduleId": undefined,
+          "moduleId": null,
           "type": "entry",
           "userRequest": "./fixtures/esm/abc",
         },
@@ -1795,7 +1795,7 @@ Object {
           ],
           "reasons": Array [
             Object {
-              "moduleId": undefined,
+              "moduleId": null,
               "type": "entry",
               "userRequest": "./fixtures/abc-query",
             },
@@ -1889,7 +1889,7 @@ exports.c = require(\\"./c?c=3\\");
         Object {
           "loc": "main",
           "module": "",
-          "moduleId": "",
+          "moduleId": undefined,
           "moduleIdentifier": "",
           "moduleName": "",
           "request": "./fixtures/abc-query",
@@ -1975,7 +1975,7 @@ exports.c = require(\\"./c?c=3\\");
       ],
       "reasons": Array [
         Object {
-          "moduleId": undefined,
+          "moduleId": null,
           "type": "entry",
           "userRequest": "./fixtures/abc-query",
         },

@@ -442,8 +442,7 @@ impl Stats<'_> {
     let chunks: Vec<String> = cg
       .chunks
       .iter()
-      .map(|c| self.compilation.chunk_by_ukey.expect_get(c).id.clone())
-      .flatten()
+      .filter_map(|c| self.compilation.chunk_by_ukey.expect_get(c).id.clone())
       .collect();
 
     let assets = cg
@@ -866,8 +865,7 @@ impl Stats<'_> {
           .get_chunk_graph_module(mgm.module_identifier)
           .chunks
           .iter()
-          .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
-          .flatten()
+          .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
           .collect()
       };
       chunks.sort_unstable();
@@ -1106,8 +1104,7 @@ impl Stats<'_> {
       .get_chunk_graph_module(*identifier)
       .chunks
       .iter()
-      .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
-      .flatten()
+      .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
       .collect();
     chunks.sort_unstable();
 

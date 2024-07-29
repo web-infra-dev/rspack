@@ -177,7 +177,7 @@ module.exports = {
 		        "providedExports": Array [],
 		        "reasons": Array [
 		          Object {
-		            "moduleId": undefined,
+		            "moduleId": null,
 		            "type": "entry",
 		            "userRequest": "./fixtures/chunk-b",
 		          },
@@ -205,7 +205,7 @@ module.exports = {
 		      Object {
 		        "loc": "main",
 		        "module": "",
-		        "moduleId": "",
+		        "moduleId": undefined,
 		        "moduleIdentifier": "",
 		        "moduleName": "",
 		        "request": "./fixtures/chunk-b",

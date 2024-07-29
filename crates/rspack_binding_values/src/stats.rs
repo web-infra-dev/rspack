@@ -1137,7 +1137,7 @@ impl JsStats {
   fn modules(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsModule>> {
     self
       .inner
-      .get_modules(&options, |res| {
+      .get_modules(options, |res| {
         res.into_iter().map(JsStatsModule::try_from).collect()
       })
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
@@ -1146,7 +1146,7 @@ impl JsStats {
   fn chunks(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsChunk>> {
     self
       .inner
-      .get_chunks(&options, |res| {
+      .get_chunks(options, |res| {
         res.into_iter().map(JsStatsChunk::try_from).collect()
       })
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
@@ -1198,12 +1198,12 @@ impl JsStats {
 
   #[napi]
   pub fn has_warnings(&self) -> bool {
-    self.inner.get_warnings().len() > 0
+    !self.inner.get_warnings().is_empty()
   }
 
   #[napi]
   pub fn has_errors(&self) -> bool {
-    self.inner.get_errors().len() > 0
+    !self.inner.get_errors().is_empty()
   }
 
   #[napi]
