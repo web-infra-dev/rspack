@@ -1,5 +1,57 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`HMR hotLoader works for locals 1`] = `
+"//content;
+    if(module.hot) {
+      (function() {
+        var localsJsonString = \\"{\\\\\\"foo\\\\\\":\\\\\\"bar\\\\\\"}\\";
+        // 1
+        var cssReload = require(\\"../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js\\").cssReload(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  "
+`;
+
+exports[`HMR hotLoader works for non-locals 1`] = `
+"//content;
+    if(module.hot) {
+      (function() {
+        var localsJsonString = undefined;
+        // 1
+        var cssReload = require(\\"../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js\\").cssReload(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  "
+`;
+
 exports[`HMR should handle error event 1`] = `"[HMR] css reload %s"`;
 
 exports[`HMR should handle error event 2`] = `"<link rel=\\"stylesheet\\" href=\\"/dist/main.css\\"><link rel=\\"stylesheet\\" href=\\"http://localhost/dist/main.css?1479427200000\\">"`;

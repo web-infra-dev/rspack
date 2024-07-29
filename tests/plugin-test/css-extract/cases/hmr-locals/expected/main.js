@@ -211,13 +211,16 @@ exports.normalizeUrl = normalizeUrl;
 
 
 }),
-"./index.css?f410": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css?a5a1": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 // extracted by css-extract-rspack-plugin
-
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"x":"VoofDB21D_QzDbRdwMiY"});
     if(true) {
       (function() {
-        var localsJsonString = undefined;
+        var localsJsonString = "{\"x\":\"VoofDB21D_QzDbRdwMiY\"}";
         // 
         var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {});
         // only invalidate when locals change
@@ -289,6 +292,16 @@ __webpack_require__.c = __webpack_module_cache__;
 __webpack_require__.i = [];
 
 /************************************************************************/
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
 // webpack/runtime/get mini-css chunk filename
 (() => {
 // This function allow to reference chunks
@@ -1423,6 +1436,6 @@ __webpack_require__.hmrM = function () {
 // module cache are used so entry inlining is disabled
 // startup
 // Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.css?f410");
+var __webpack_exports__ = __webpack_require__("./index.css?a5a1");
 })()
 ;
