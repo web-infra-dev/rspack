@@ -9,59 +9,61 @@
  */
 import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-import type Watchpack from "watchpack";
-import { Compilation, type CompilationParams } from "./Compilation";
-import { ContextModuleFactory } from "./ContextModuleFactory";
-import { ThreadsafeWritableNodeFS } from "./FileSystem";
-import { RuleSetCompiler } from "./RuleSetCompiler";
-import { Stats } from "./Stats";
-import {
-	type EntryNormalized,
-	type OutputNormalized,
-	type RspackOptionsNormalized,
-	type RspackPluginInstance,
-	getRawOptions
-} from "./config";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import { rspack } from "./index";
-import Cache = require("./lib/Cache");
-import CacheFacade = require("./lib/CacheFacade");
-import type { Source } from "webpack-sources";
 
-import { Chunk } from "./Chunk";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
-import type { FileSystemInfoEntry } from "./FileSystemInfo";
-import {
-	CodeGenerationResult,
-	type ContextModuleFactoryAfterResolveResult,
-	Module,
-	type ResolveData
-} from "./Module";
-import {
-	type NormalModuleCreateData,
-	NormalModuleFactory
-} from "./NormalModuleFactory";
-import { ResolverFactory } from "./ResolverFactory";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import Cache from "./lib/Cache";
+import CacheFacade from "./lib/CacheFacade";
+
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
-import { Watching } from "./Watching";
 import {
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin
 } from "./builtin-plugin";
+
+import { Chunk } from "./Chunk";
+import { Compilation } from "./Compilation";
+import { ContextModuleFactory } from "./ContextModuleFactory";
+import { ThreadsafeWritableNodeFS } from "./FileSystem";
+import { CodeGenerationResult, Module } from "./Module";
+import { NormalModuleFactory } from "./NormalModuleFactory";
+import { ResolverFactory } from "./ResolverFactory";
+import { RuleSetCompiler } from "./RuleSetCompiler";
+import { Stats } from "./Stats";
+import { Watching } from "./Watching";
+import { getRawOptions } from "./config";
+import { rspack } from "./index";
+import { unsupported } from "./util";
+
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { Logger } from "./logging/Logger";
-import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
-import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
+
+import type Watchpack from "watchpack";
+import type { Source } from "webpack-sources";
+import type { CompilationParams } from "./Compilation";
+import type { FileSystemInfoEntry } from "./FileSystemInfo";
+import type {
+	ContextModuleFactoryAfterResolveResult,
+	ResolveData
+} from "./Module";
+import type { NormalModuleCreateData } from "./NormalModuleFactory";
+import type {
+	EntryNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized,
+	RspackPluginInstance
+} from "./config";
+import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -279,7 +281,7 @@ class Compiler {
 		return new CacheFacade(
 			this.cache,
 			`${this.compilerPath}${name}`,
-			this.options.output.hashFunction
+			this.options.output.hashFunction as string
 		);
 	}
 

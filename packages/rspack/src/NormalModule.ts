@@ -103,3 +103,5 @@ export class NormalModule {
 		return hooks;
 	}
 }
+
+export default NormalModule;

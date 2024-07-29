@@ -1,22 +1,26 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Authors Simen Brekken @simenbrekken, Einar Löve @einarlove
-*/
-
-"use strict";
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/EnvironmentPlugin.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 
 import { DefinePlugin } from "../builtin-plugin";
+import WebpackError from "./WebpackError";
 
-const WebpackError = require("./WebpackError");
+import type { Compiler } from "../Compiler";
 
-// /** @typedef {import("./Compiler")} Compiler */
-// /** @typedef {import("./DefinePlugin").CodeValue} CodeValue */
-/** @typedef {any} Compiler */
-/** @typedef {any} CodeValue */
+// Waiting to adapt > import("./DefinePlugin").CodeValue
+type CodeValue = any;
 
 class EnvironmentPlugin {
-	// @ts-expect-error
-	constructor(...keys) {
+	keys: string[];
+	defaultValues: Record<string, string>;
+
+	constructor(...keys: string[] | [Record<string, string> | string]) {
 		if (keys.length === 1 && Array.isArray(keys[0])) {
 			this.keys = keys[0];
 			this.defaultValues = {};
@@ -24,19 +28,18 @@ class EnvironmentPlugin {
 			this.keys = Object.keys(keys[0]);
 			this.defaultValues = keys[0];
 		} else {
-			this.keys = keys;
+			this.keys = keys as string[];
 			this.defaultValues = {};
 		}
 	}
 
 	/**
 	 * Apply the plugin
-	 * @param {Compiler} compiler the compiler instance
-	 * @returns {void}
+	 * @param compiler the compiler instance
+	 * @returns
 	 */
-	apply(compiler) {
-		/** @type {Record<string, CodeValue>} */
-		const definitions = {};
+	apply(compiler: Compiler) {
+		const definitions: Record<string, CodeValue> = {};
 		for (const key of this.keys) {
 			const value =
 				process.env[key] !== undefined
@@ -44,7 +47,6 @@ class EnvironmentPlugin {
 					: this.defaultValues[key];
 
 			if (value === undefined) {
-				// @ts-expect-error
 				compiler.hooks.thisCompilation.tap("EnvironmentPlugin", compilation => {
 					const error = new WebpackError(
 						`EnvironmentPlugin - ${key} environment variable is undefined.\n\n` +
