@@ -1,5 +1,5 @@
 // @ts-check
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,6 +53,10 @@ export default {
 					join(depPath, "lib/CachedInputFileSystem.js"),
 					join(distPath, "CachedInputFileSystem.js")
 				);
+
+				// Rspack only depend on the `CachedInputFileSystem` module of enhanced-resolve
+				// so we can remove the index chunk because it is not used
+				unlinkSync(join(distPath, "index.js"));
 
 				// ResolveRequest type is used by Rspack but not exported
 				const dtsFile = join(distPath, "index.d.ts");
