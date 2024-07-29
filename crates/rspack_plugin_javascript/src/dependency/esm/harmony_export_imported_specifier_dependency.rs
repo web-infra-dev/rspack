@@ -4,15 +4,15 @@ use std::sync::Arc;
 use indexmap::{IndexMap, IndexSet};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, get_exports_type,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
+  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
   ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
   ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -626,6 +626,16 @@ impl HarmonyExportImportedSpecifierDependency {
           let key = string_of_used_name(used_name.as_ref());
 
           if checked {
+            let key = InitFragmentKey::HarmonyImport(format!(
+              "harmony reexport (checked) {import_var} {name}"
+            ));
+            let runtime_condition = if self.weak() {
+              RuntimeCondition::Boolean(false)
+            } else if let Some(connection) = mg.connection_by_dependency(self.id()) {
+              filter_runtime(ctxt.runtime, |r| connection.is_target_active(&mg, r))
+            } else {
+              RuntimeCondition::Boolean(true)
+            };
             let is_async = mg.is_async(&module_identifier).unwrap_or_default();
             let stmt = self.get_conditional_reexport_statement(
               ctxt,
@@ -634,7 +644,7 @@ impl HarmonyExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::Vec(ids),
             );
-            fragments.push(Box::new(NormalInitFragment::new(
+            fragments.push(Box::new(ConditionalInitFragment::new(
               stmt,
               if is_async {
                 InitFragmentStage::StageAsyncHarmonyImports
@@ -642,8 +652,9 @@ impl HarmonyExportImportedSpecifierDependency {
                 InitFragmentStage::StageHarmonyImports
               },
               self.source_order,
-              InitFragmentKey::unique(),
+              key,
               None,
+              runtime_condition,
             )));
           } else {
             let used_name =
