@@ -73,7 +73,8 @@ impl From<JsModuleDescriptor> for JsModuleDescriptorWrapper {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsError {
-  pub module_descriptor: Option<JsModuleDescriptor>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub message: String,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
@@ -97,13 +98,14 @@ impl FromNapiValue for JsStatsError {
 impl From<rspack_core::StatsError<'_>> for JsStatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
-      module_descriptor: stats
-        .module_identifier
-        .map(|identifier| JsModuleDescriptor {
+      module_descriptor: stats.module_identifier.map(|identifier| {
+        JsModuleDescriptor {
           identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
           id: stats.module_id.map(|s| s.to_string()),
-        }),
+        }
+        .into()
+      }),
       message: stats.message,
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
       chunk_name: stats.chunk_name,
@@ -190,7 +192,8 @@ impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsModuleTraceModule {
-  pub module_descriptor: JsModuleDescriptor,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: JsModuleDescriptorWrapper,
 }
 
 impl FromNapiValue for JsStatsModuleTraceModule {
@@ -209,7 +212,8 @@ impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule
         identifier: stats.identifier.into(),
         name: stats.name,
         id: stats.id,
-      },
+      }
+      .into(),
     }
   }
 }
@@ -691,7 +695,8 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsModuleIssuer {
-  pub module_descriptor: JsModuleDescriptor,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: JsModuleDescriptorWrapper,
 }
 
 impl FromNapiValue for JsStatsModuleIssuer {
@@ -710,7 +715,8 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
         identifier: stats.identifier.into(),
         name: stats.name.into_owned(),
         id: stats.id.map(|s| s.to_string()),
-      },
+      }
+      .into(),
     }
   }
 }
