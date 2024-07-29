@@ -563,18 +563,30 @@ const EXTRACT_ERROR: Record<
 > = {
 	_: (object, error) => {
 		object.message = error.message;
-		object.chunkName = error.chunkName;
-		object.chunkEntry = error.chunkEntry;
-		object.chunkInitial = error.chunkInitial;
-		object.file = error.file;
+		if (error.chunkName) {
+			object.chunkName = error.chunkName;
+		}
+		if (error.chunkEntry) {
+			object.chunkEntry = error.chunkEntry;
+		}
+		if (error.chunkInitial) {
+			object.chunkInitial = error.chunkInitial;
+		}
+		if (error.file) {
+			object.file = error.file;
+		}
 		if (error.moduleDescriptor) {
 			object.moduleIdentifier = error.moduleDescriptor.identifier;
 			object.moduleName = error.moduleDescriptor.name;
 		}
 	},
 	ids: (object, error) => {
-		object.chunkId = error.chunkId;
-		object.moduleId = error.moduleDescriptor?.id;
+		if (error.chunkId) {
+			object.chunkId = error.chunkId;
+		}
+		if (error.moduleDescriptor) {
+			object.moduleId = error.moduleDescriptor.id;
+		}
 	},
 	moduleTrace: (object, error, context, _, factory) => {
 		const { type } = context;
@@ -1279,7 +1291,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.userRequest = reason.userRequest;
 		},
 		ids: (object, reason) => {
-			object.moduleId = reason.moduleDescriptor?.id;
+			object.moduleId = reason.moduleDescriptor
+				? reason.moduleDescriptor.id
+				: null;
 		}
 	},
 	chunk: {
@@ -1324,7 +1338,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					module: moduleDescriptor ? moduleDescriptor.identifier : "",
 					moduleIdentifier: moduleDescriptor ? moduleDescriptor.identifier : "",
 					moduleName: moduleDescriptor ? moduleDescriptor.name : "",
-					moduleId: moduleDescriptor ? moduleDescriptor.id : "",
+					moduleId: moduleDescriptor ? moduleDescriptor.id : undefined,
 					loc,
 					request
 				};
