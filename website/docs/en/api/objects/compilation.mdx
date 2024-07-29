@@ -1,4 +1,19 @@
 import WebpackLicense from '@components/webpack-license';
+import AssetInfoType from '../../types/asset-info.mdx';
+import SourceType from '../../types/source.mdx';
+import ChunkGroupType from '../../types/chunk-group.mdx';
+import EntrypointType from '../../types/entrypoint.mdx';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import FilenameType from '../../types/filename.mdx';
+import PathDataType from '../../types/path-data.mdx';
+import StatsType from '../../types/stats.mdx';
+import LoggerType from '../../types/logger.mdx';
+import CacheType from '../../types/cache.mdx';
+import CompilerType from '../../types/cache.mdx';
+import RspackErrorType from '../../types/rspack-error.mdx';
+import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
 
 <WebpackLicense from="https://webpack.docschina.org/api/compilation-object/" />
 
@@ -43,6 +58,23 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### updateAsset
 
 Update an existing asset, throw an error if the asset does not exist.
@@ -72,6 +104,23 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
   });
 });
 ```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
 
 ### renameAsset
 
@@ -141,6 +190,23 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### getAsset
 
 Get the asset object with the specified name.
@@ -166,6 +232,23 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### getPath
 
 Generate path string based on the Filename template, see [Template String](/config/output#template-string) for the template rules.
@@ -175,18 +258,6 @@ getPath(
   filename: Filename, // filename template
   data: PathData = {} // generating path data
 ): string;
-
-type Filename = string | (data: PathData, info: AssetInfo) => string;
-
-type PathData = {
-  filename?: string // Will be parsed and filled into [query]/[fragment]/[file]/[path]/[base]/[name]/[ext] and so on
-  hash?: string // Hash of the compilation, will be filled into [fullhash]
-  contentHash?: string // Hash of chunk content, will be filled into [contenthash]
-  runtime?: string // Associated runtime, will be filled into [runtime]
-  url?: string // URI path, will be filled into [url]
-  id?: string // ID of the asset, will be filled into [id]
-  chunk?: JsChunkPathData // Associated chunk, will be filled into [chunkhash]
-};
 ```
 
 The following code will replace the placeholder in the template to generate the path:
@@ -198,6 +269,23 @@ const path = compilation.getPath('[contenthash]-[fullhash].js', {
 });
 console.log(path); // "some1-some2.js"
 ```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+</Collapse>
 
 ### getPathWithInfo
 
@@ -238,6 +326,30 @@ console.log(info);
 } */
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### getStats
 
 Get the stats object of current compilation:
@@ -254,6 +366,12 @@ compiler.hooks.emit.tapAsync('MyPlugin', compilation => {
   console.log(`Total modules: ${modules.length}`);
 });
 ```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
 
 ### createChildCompiler
 
@@ -282,6 +400,16 @@ compiler.hooks.make.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ### rebuildModule
 
 Triggers a re-build of the module.
@@ -308,6 +436,16 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ### getLogger
 
 Get a log output utility object with the specified name, which can be used to print logs with unified format in the plugin.
@@ -330,6 +468,16 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
   });
 });
 ```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
 
 ### getCache
 
@@ -360,6 +508,12 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
+    <CacheType />
+  </CollapsePanel>
+</Collapse>
+
 ## Compilation Properties
 
 ### options
@@ -373,6 +527,16 @@ The normalized options used by this Compilation, see [Configure Rspack](/config/
 **Type**: `Compiler`
 
 Current [compiler object](/api/javascript-api).
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
 
 ### hooks
 
@@ -390,21 +554,31 @@ The hash of this compilation.
 
 The mapping from asset filenames and content sources.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
 ### chunkGroups
 
 **Type**: `ReadonlyArray<ChunkGroup>`
 
 The list of chunk group objects, with the structure as follows:
 
-```ts
-type ChunkGroup = {
-  name?: Readonly<string>; // Name
-  index?: Readonly<number>; // Pre-order index
-  chunks: ReadonlyArray<Chunk>; // List of included chunks
-  getFiles(): ReadonlyArray<string>; // Associated file list
-  getParents(): ReadonlyArray<ChunkGroup>; // List of parent chunk groups
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
 
 ### entrypoints
 
@@ -412,11 +586,15 @@ type ChunkGroup = {
 
 The mapping from name to entrypoint, which is a special chunk group and include a runtime chunk.
 
-```ts
-type Entrypoint = {
-  getRuntimeChunk(): Readonly<Chunk | null>;
-} & ChunkGroup;
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Entrypoint.ts"
+    key="entrypoint"
+  >
+    <EntrypointType />
+  </CollapsePanel>
+</Collapse>
 
 ### namedChunkGroups
 
@@ -424,32 +602,31 @@ type Entrypoint = {
 
 The mapping from names to chunk groups.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
+
 ### modules
 
 **Type:** `ReadonlySet<Module>`
 
 List of all modules, with the structure as follows:
 
-```ts
-type Module = {
-  context?: string;
-  resource?: string;
-  request?: string;
-  userRequest?: string;
-  rawRequest?: string;
-  factoryMeta?: JsFactoryMeta;
-  buildInfo: Record<string, any>;
-  buildMeta: Record<string, any>;
-  originalSource(): {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  } | null;
-  identifier(): string;
-  nameForCondition(): string | null;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ### chunks
 
@@ -457,30 +634,11 @@ type Module = {
 
 List of all chunks, with the structure as follows:
 
-```ts
-type Chunk = {
-  name?: string;
-  id?: string;
-  ids: string[];
-  idNameHints: string[];
-  filenameTemplate?: string;
-  cssFilenameTemplate?: string;
-  files: Set<string>;
-  runtime: Set<string>;
-  hash?: string;
-  contentHash: Record<string, string>;
-  renderedHash?: string;
-  chunkReason?: string;
-  auxiliaryFiles: Set<string>;
-  isOnlyInitial(): boolean;
-  canBeInitial(): boolean;
-  hasRuntime(): boolean;
-  groupsIterable: Set<ChunkGroup>;
-  getAllAsyncChunks(): Set<Chunk>;
-  getAllInitialChunks(): Set<Chunk>;
-  getAllReferencedChunks(): Set<Chunk>;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
 
 ### namedChunks
 
@@ -488,19 +646,27 @@ type Chunk = {
 
 The mapping from names to chunks.
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
 ### fileDependencies
 
 **Type:** `CompilationDependencies`
 
 List of files this compilation depends on.
 
-```ts
-type CompilationDependencies = {
-  has(dep: string): boolean;
-  add(dep: string): void;
-  addAll(deps: Iterable<string>): void;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
 
 ### contextDependencies
 
@@ -508,11 +674,31 @@ type CompilationDependencies = {
 
 List of directories this compilation depends on.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
 ### missingDependencies
 
 **Type:** `CompilationDependencies`
 
 List of not existing files this compilation depends on.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
 
 ### buildDependencies
 
@@ -520,25 +706,44 @@ List of not existing files this compilation depends on.
 
 List of build dependencies this compilation depends on.
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
 ### errors
 
 **Type:** `RspackError[]`
 
 List of emitted errors during this compilation, with the structure as follows:
 
-```ts
-type RspackError = {
-  name: string;
-  message: string;
-  moduleIdentifier?: string;
-  file?: string;
-  stack?: string;
-  hideStack?: boolean;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>
 
 ### warnings
 
 **Type:** `RspackError[]`
 
 List of emitted warnings during this compilation.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>

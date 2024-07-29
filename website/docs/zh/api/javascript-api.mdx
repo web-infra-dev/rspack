@@ -1,6 +1,10 @@
 import WebpackLicense from '@components/webpack-license';
+import { Collapse, CollapsePanel } from '@components/Collapse';
 import { PackageManagerTabs } from '@theme';
 import { ApiMeta, Stability } from '@components/ApiMeta';
+import CompilerType from '../types/compiler.mdx';
+import WatchingType from '../types/watching.mdx';
+import StatsType from '../types/stats.mdx';
 
 <WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
@@ -66,6 +70,16 @@ rspack({}, (err, stats) => {
 这个 API 一次仅支持一个编译。当使用 `run` 或者 `watch` 时，调用 `close`，并等待它完成后再次执行 `run` 或者 `watch`。并发编译将破坏输出文件。
 :::
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## 执行
 
 调用 `Compiler` 实例的 `run` 方法跟上文提到的快速执行方法很类似：
@@ -124,6 +138,16 @@ const watching = compiler.watch(
 文件系统不正确的问题，可能会对单次修改触发多次构建。因此，在上面的示例中，一次修改可能会多次触发 `console.log` 语句。用户应该预知此行为，并且可能需要检查 `stats.hash` 来查看文件哈希是否确实变更。
 :::
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Watching.ts"
+    key="watching"
+  >
+    <WatchingType />
+  </CollapsePanel>
+</Collapse>
+
 ## 关闭 `Watching`
 
 `watch` 方法返回一个 `Watching` 实例，该实例会暴露一个 `.close(callback)` 方法。调用该方法将会结束监听：
@@ -160,6 +184,12 @@ watching.invalidate();
 当使用 `MultiCompiler` 时，会返回一个 `MultiStats` 实例，它实现与 `stats` 相同的接口，也就是下面描述的方法。
 :::
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
 `stats` 对象暴露了以下方法：
 
 ### stats.hasErrors()
@@ -185,7 +215,7 @@ stats.toJson({
 });
 ```
 
-所有可用的配置选项和预设值都可查询 stats [文档](/config/stats)。
+所有可用的配置选项和预设值都可查询 [Stats 配置](/config/stats)，生成的 Stats 对象结构可查询 [Stats 对象](/api/objects/stats)。
 
 ### stats.toString(options)
 

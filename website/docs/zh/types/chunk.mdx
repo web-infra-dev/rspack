@@ -1,0 +1,24 @@
+```ts
+type Chunk = {
+  name?: string;
+  id?: string;
+  ids: string[];
+  idNameHints: string[];
+  filenameTemplate?: string;
+  cssFilenameTemplate?: string;
+  files: Set<string>;
+  runtime: Set<string>;
+  hash?: string;
+  contentHash: Record<string, string>;
+  renderedHash?: string;
+  chunkReason?: string;
+  auxiliaryFiles: Set<string>;
+  isOnlyInitial(): boolean;
+  canBeInitial(): boolean;
+  hasRuntime(): boolean;
+  groupsIterable: Set<ChunkGroup>;
+  getAllAsyncChunks(): Set<Chunk>;
+  getAllInitialChunks(): Set<Chunk>;
+  getAllReferencedChunks(): Set<Chunk>;
+};
+```

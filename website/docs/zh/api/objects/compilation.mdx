@@ -1,4 +1,19 @@
 import WebpackLicense from '@components/webpack-license';
+import AssetInfoType from '../../types/asset-info.mdx';
+import SourceType from '../../types/source.mdx';
+import ChunkGroupType from '../../types/chunk-group.mdx';
+import EntrypointType from '../../types/entrypoint.mdx';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import FilenameType from '../../types/filename.mdx';
+import PathDataType from '../../types/path-data.mdx';
+import StatsType from '../../types/stats.mdx';
+import LoggerType from '../../types/logger.mdx';
+import CacheType from '../../types/cache.mdx';
+import CompilerType from '../../types/cache.mdx';
+import RspackErrorType from '../../types/rspack-error.mdx';
+import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
 
 <WebpackLicense from="https://webpack.docschina.org/api/compilation-object/" />
 
@@ -43,6 +58,23 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### updateAsset
 
 变更一个已经存在的产物的内容，如果产物不存在则会抛错。
@@ -72,6 +104,23 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
   });
 });
 ```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
 
 ### renameAsset
 
@@ -141,6 +190,23 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### getAsset
 
 获取指定名称的产物对象。
@@ -166,6 +232,23 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### getPath
 
 基于模板生成路径字符串，模板规则见 [Template String](/config/output#template-string)。
@@ -175,18 +258,6 @@ getPath(
   filename: Filename, // 路径模板
   data: PathData = {} // 生成数据
 ): string;
-
-type Filename = string | (data: PathData, info: AssetInfo) => string;
-
-type PathData = {
-  filename?: string // 文件名，会解析并填充到 [query]/[fragment]/[file]/[path]/[base]/[name]/[ext] 等中
-  hash?: string // 编译哈希，对应 [fullhash]
-  contentHash?: string // 内容哈希，对应 [contenthash]
-  runtime?: string // 关联 runtime，对应 [runtime]
-  url?: string // 路径信息，对应 [url]
-  id?: string // 产物的ID，对应 [id]
-  chunk?: JsChunkPathData // 关联 chunk 信息，对应 [chunkhash]
-};
 ```
 
 以下示例将替换模板中的占位符生成对应的路径：
@@ -198,6 +269,23 @@ const path = compilation.getPath('[contenthash]-[fullhash].js', {
 });
 console.log(path); // "some1-some2.js"
 ```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+</Collapse>
 
 ### getPathWithInfo
 
@@ -238,6 +326,30 @@ console.log(info);
 } */
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
 ### getStats
 
 返回当前编译的 Stats 对象。
@@ -254,6 +366,12 @@ compiler.hooks.emit.tapAsync('MyPlugin', compilation => {
   console.log(`Total modules: ${modules.length}`);
 });
 ```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
 
 ### createChildCompiler
 
@@ -282,6 +400,16 @@ compiler.hooks.make.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ### rebuildModule
 
 重新构建指定模块。
@@ -305,6 +433,16 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ### getLogger
 
 以指定名称创建日志输出工具对象，以用于在插件中以统一的格式打印日志。
@@ -327,6 +465,16 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
   });
 });
 ```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
 
 ### getCache
 
@@ -357,6 +505,12 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 });
 ```
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
+    <CacheType />
+  </CollapsePanel>
+</Collapse>
+
 ## Compilation 对象属性
 
 ### options
@@ -370,6 +524,16 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 **类型：** `Compiler`
 
 获取所属的[编译器对象](/api/javascript-api)。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
 
 ### hooks
 
@@ -387,21 +551,31 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 
 获取产物映射表。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
 ### chunkGroups
 
 **类型：** `ReadonlyArray<ChunkGroup>`
 
 获取 Chunk Group 对象列表，结构如下：
 
-```ts
-type ChunkGroup = {
-  name?: Readonly<string>; // 名称
-  index?: Readonly<number>; // 索引序
-  chunks: ReadonlyArray<Chunk>; // 包含的 chunk 列表
-  getFiles(): ReadonlyArray<string>; // 关联的文件列表
-  getParents(): ReadonlyArray<ChunkGroup>; // 父 chunk group 列表
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
 
 ### entrypoints
 
@@ -409,11 +583,15 @@ type ChunkGroup = {
 
 获取 Entry 对象映射表，其为作为入口的特殊的 Chunk Group，会额外包含一个 Runtime Chunk。
 
-```ts
-type Entrypoint = {
-  getRuntimeChunk(): Readonly<Chunk | null>;
-} & ChunkGroup;
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Entrypoint.ts"
+    key="entrypoint"
+  >
+    <EntrypointType />
+  </CollapsePanel>
+</Collapse>
 
 ### namedChunkGroups
 
@@ -421,32 +599,31 @@ type Entrypoint = {
 
 获取名称与 Chunk Group 对象映射表。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
+
 ### modules
 
 **类型：** `ReadonlySet<Module>`
 
 获取所有模块，其结构如下：
 
-```ts
-type Module = {
-  context?: string;
-  resource?: string;
-  request?: string;
-  userRequest?: string;
-  rawRequest?: string;
-  factoryMeta?: JsFactoryMeta;
-  buildInfo: Record<string, any>;
-  buildMeta: Record<string, any>;
-  originalSource(): {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  } | null;
-  identifier(): string;
-  nameForCondition(): string | null;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ### chunks
 
@@ -454,30 +631,11 @@ type Module = {
 
 获取所有 Chunk，其结构如下：
 
-```ts
-type Chunk = {
-  name?: string;
-  id?: string;
-  ids: string[];
-  idNameHints: string[];
-  filenameTemplate?: string;
-  cssFilenameTemplate?: string;
-  files: Set<string>;
-  runtime: Set<string>;
-  hash?: string;
-  contentHash: Record<string, string>;
-  renderedHash?: string;
-  chunkReason?: string;
-  auxiliaryFiles: Set<string>;
-  isOnlyInitial(): boolean;
-  canBeInitial(): boolean;
-  hasRuntime(): boolean;
-  groupsIterable: Set<ChunkGroup>;
-  getAllAsyncChunks(): Set<Chunk>;
-  getAllInitialChunks(): Set<Chunk>;
-  getAllReferencedChunks(): Set<Chunk>;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
 
 ### namedChunks
 
@@ -485,19 +643,27 @@ type Chunk = {
 
 获取名称与 Chunk 对象的映射表。
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
 ### fileDependencies
 
 **类型：** `CompilationDependencies`
 
 获取此 Compilation 对资源文件的依赖信息，其结构如下：
 
-```ts
-type CompilationDependencies = {
-  has(dep: string): boolean;
-  add(dep: string): void;
-  addAll(deps: Iterable<string>): void;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
 
 ### contextDependencies
 
@@ -505,11 +671,31 @@ type CompilationDependencies = {
 
 获取此 Compilation 对目录的依赖信息。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
 ### missingDependencies
 
 **类型：** `CompilationDependencies`
 
 获取此 Compilation 对缺失文件的依赖信息。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
 
 ### buildDependencies
 
@@ -517,25 +703,44 @@ type CompilationDependencies = {
 
 获取此 Compilation 对构建文件的依赖信息。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
 ### errors
 
 **类型：** `RspackError[]`
 
 获取构建期间产生的错误对象列表，其结构如下：
 
-```ts
-type RspackError = {
-  name: string;
-  message: string;
-  moduleIdentifier?: string;
-  file?: string;
-  stack?: string;
-  hideStack?: boolean;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>
 
 ### warnings
 
 **类型：** `RspackError[]`
 
 获取构建期间产生的警告对象列表。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>

@@ -1,0 +1,10 @@
+```ts
+type Entrypoint = {
+  name?: Readonly<string>; // 名称
+  index?: Readonly<number>; // 索引序
+  chunks: ReadonlyArray<Chunk>; // 包含的 chunk 列表
+  getFiles(): ReadonlyArray<string>; // 关联的文件列表
+  getParents(): ReadonlyArray<ChunkGroup>; // 父 chunk group 列表
+  getRuntimeChunk(): Readonly<Chunk | null>;
+};
+```
