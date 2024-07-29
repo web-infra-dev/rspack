@@ -13,19 +13,27 @@ import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
 import { mergeEtags } from "./cache/mergeEtags.js";
 
 import type { Cache, CallbackCache, Etag } from "./Cache";
+import type WebpackError from "./WebpackError";
 import type {
 	HashConstructor,
 	HashableObject
 } from "./cache/getLazyHashedEtag";
 
+type CallbackNormalErrorCache<T> = (
+	err?: WebpackError | null,
+	result?: T
+) => void;
+
+type CallbackNormalErrorCacheWithIndex<T> = (
+	err?: WebpackError | null,
+	result?: T,
+	i?: number
+) => void;
+
 function forEachBail<T, Z>(
 	array: T[],
-	iterator: (
-		arg0: T,
-		arg1: (err?: null | Error, result?: null | Z) => void,
-		arg2: number
-	) => void,
-	callback: (err?: null | Error, result?: null | Z, i?: number) => void
+	iterator: (arg0: T, arg1: CallbackNormalErrorCache<Z>, arg2: number) => void,
+	callback: CallbackNormalErrorCacheWithIndex<Z>
 ): void {
 	if (array.length === 0) {
 		callback();
@@ -52,8 +60,6 @@ function forEachBail<T, Z>(
 	};
 	while (next());
 }
-
-type CallbackNormalErrorCache<T> = (err?: Error | null, result?: T) => void;
 
 abstract class BaseCache {
 	abstract get<T>(callback: CallbackCache<T>): void;
