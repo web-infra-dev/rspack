@@ -9,11 +9,6 @@ export type JsFilename =
 export type LocalJsFilename = JsFilename;
 
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
-
-export type JsModuleDescriptor = {
-	identifier: string,
-	name: string,
-};
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -440,6 +435,7 @@ export interface JsModule {
 export interface JsModuleDescriptor {
   identifier: string
   name: string
+  id?: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -452,7 +448,6 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 
 export interface JsOriginRecord {
   moduleDescriptor?: JsModuleDescriptor
-  moduleId: string
   loc: string
   request: string
 }
@@ -618,7 +613,6 @@ export interface JsStatsError {
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleId?: string
   chunkId?: string
   details?: string
   stack?: string
@@ -643,45 +637,48 @@ export interface JsStatsMillisecond {
 }
 
 export interface JsStatsModule {
-  moduleDescriptor?: JsModuleDescriptor
+  commonAttributes: JsStatsModuleCommonAttributes
+  id?: string
+  dependent?: boolean
+  usedExports?: string | Array<string>
+  modules?: Array<JsStatsModule>
+}
+
+export interface JsStatsModuleCommonAttributes {
   type: string
   moduleType: string
-  id?: string
-  chunks?: Array<string | undefined | null>
   size: number
-  depth?: number
-  dependent?: boolean
-  issuer?: string
-  issuerName?: string
-  issuerId?: string
-  issuerPath?: Array<JsStatsModuleIssuer>
-  nameForCondition?: string
-  assets?: Array<string>
-  source?: string | Buffer
-  orphan?: boolean
-  providedExports?: Array<string>
-  usedExports?: string | Array<string>
-  optimizationBailout?: Array<string>
-  preOrderIndex?: number
-  postOrderIndex?: number
+  sizes: Array<JsStatsSize>
   built: boolean
   codeGenerated: boolean
   buildTimeExecuted: boolean
   cached: boolean
+  moduleDescriptor?: JsModuleDescriptor
+  nameForCondition?: string
+  preOrderIndex?: number
+  postOrderIndex?: number
   cacheable?: boolean
   optional?: boolean
+  orphan?: boolean
+  issuer?: string
+  issuerName?: string
+  issuerPath?: Array<JsStatsModuleIssuer>
   failed?: boolean
   errors?: number
   warnings?: number
-  sizes: Array<JsStatsSize>
   profile?: JsStatsModuleProfile
+  issuerId?: string
+  chunks?: Array<string | undefined | null>
+  assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
-  modules?: Array<JsStatsModule>
+  providedExports?: Array<string>
+  optimizationBailout?: Array<string>
+  depth?: number
+  source?: string | Buffer
 }
 
 export interface JsStatsModuleIssuer {
   moduleDescriptor: JsModuleDescriptor
-  id?: string
 }
 
 export interface JsStatsModuleProfile {
@@ -691,7 +688,6 @@ export interface JsStatsModuleProfile {
 
 export interface JsStatsModuleReason {
   moduleDescriptor?: JsModuleDescriptor
-  moduleId?: string
   type?: string
   userRequest?: string
 }
@@ -703,7 +699,6 @@ export interface JsStatsModuleTrace {
 
 export interface JsStatsModuleTraceModule {
   moduleDescriptor: JsModuleDescriptor
-  id?: string
 }
 
 export interface JsStatsOptimizationBailout {
@@ -747,7 +742,6 @@ export interface JsStatsWarning {
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleId?: string
   chunkId?: string
   details?: string
   stack?: string

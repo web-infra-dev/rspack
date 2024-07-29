@@ -331,11 +331,12 @@ const MODULES_GROUPERS = (
 		if (groupModulesByType || !options.runtimeModules) {
 			groupConfigs.push({
 				getKeys: (module: KnownStatsModule) => {
-					if (!module.moduleType) return;
+					const moduleType = module.moduleType;
+					if (!moduleType) return;
 					if (groupModulesByType) {
-						return [module.moduleType.split("/", 1)[0]];
+						return [moduleType.split("/", 1)[0]];
 					}
-					if (module.moduleType === "runtime") {
+					if (moduleType === "runtime") {
 						return ["runtime"];
 					}
 				},
@@ -503,15 +504,15 @@ const MODULES_SORTER: Record<
 	_: comparators => {
 		comparators.push(
 			compareSelect(
-				(m: JsStatsModule) => m.depth,
+				(m: JsStatsModule) => m.commonAttributes.depth,
 				compareNumbers as Comparator
 			),
 			compareSelect(
-				(m: JsStatsModule) => m.preOrderIndex,
+				(m: JsStatsModule) => m.commonAttributes.preOrderIndex,
 				compareNumbers as Comparator
 			),
 			compareSelect(
-				(m: JsStatsModule) => m.moduleDescriptor?.identifier,
+				(m: JsStatsModule) => m.commonAttributes.moduleDescriptor?.identifier,
 				compareIds as Comparator
 			)
 		);
@@ -573,7 +574,7 @@ const EXTRACT_ERROR: Record<
 	},
 	ids: (object, error) => {
 		object.chunkId = error.chunkId;
-		object.moduleId = error.moduleId;
+		object.moduleId = error.moduleDescriptor?.id;
 	},
 	moduleTrace: (object, error, context, _, factory) => {
 		const { type } = context;
@@ -1114,21 +1115,26 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			factory
 		) => {
 			const { type } = context;
-			object.type = module.type;
-			object.moduleType = module.moduleType;
+			const { commonAttributes } = module;
+			object.type = commonAttributes.type;
+			object.moduleType = commonAttributes.moduleType;
 			// TODO: object.layer = module.layer;
-			object.size = module.size;
-			const sizes = module.sizes.map(({ sourceType, size }) => [
+			object.size = commonAttributes.size;
+			const sizes = commonAttributes.sizes.map(({ sourceType, size }) => [
 				sourceType,
 				size
 			]);
 			sizes.sort((a, b) => -compareIds(a, b));
 			object.sizes = Object.fromEntries(sizes);
-			object.built = module.built;
-			object.codeGenerated = module.codeGenerated;
-			object.buildTimeExecuted = module.buildTimeExecuted;
-			object.cached = module.cached;
-			if (module.built || module.codeGenerated || options.cachedModules) {
+			object.built = commonAttributes.built;
+			object.codeGenerated = commonAttributes.codeGenerated;
+			object.buildTimeExecuted = commonAttributes.buildTimeExecuted;
+			object.cached = commonAttributes.cached;
+			if (
+				commonAttributes.built ||
+				commonAttributes.codeGenerated ||
+				options.cachedModules
+			) {
 				Object.assign(
 					object,
 					factory.create(`${type}$visible`, module, context)
@@ -1139,55 +1145,59 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	module$visible: {
 		_: (object, module, context, options, factory) => {
 			const { type } = context;
-			if (module.moduleDescriptor) {
-				object.identifier = module.moduleDescriptor.identifier;
-				object.name = module.moduleDescriptor.name;
+			const { commonAttributes } = module;
+			if (commonAttributes.moduleDescriptor) {
+				object.identifier = commonAttributes.moduleDescriptor.identifier;
+				object.name = commonAttributes.moduleDescriptor.name;
 			}
-			object.nameForCondition = module.nameForCondition;
-			object.index = module.preOrderIndex;
-			object.preOrderIndex = module.preOrderIndex;
-			object.index2 = module.postOrderIndex;
-			object.postOrderIndex = module.postOrderIndex;
-			object.cacheable = module.cacheable;
-			object.optional = module.optional;
-			object.orphan = module.orphan;
+			object.nameForCondition = commonAttributes.nameForCondition;
+			object.index = commonAttributes.preOrderIndex;
+			object.preOrderIndex = commonAttributes.preOrderIndex;
+			object.index2 = commonAttributes.postOrderIndex;
+			object.postOrderIndex = commonAttributes.postOrderIndex;
+			object.cacheable = commonAttributes.cacheable;
+			object.optional = commonAttributes.optional;
+			object.orphan = commonAttributes.orphan;
 			object.dependent = module.dependent;
-			object.issuer = module.issuer;
-			object.issuerName = module.issuerName;
+			object.issuer = commonAttributes.issuer;
+			object.issuerName = commonAttributes.issuerName;
 			object.issuerPath =
-				module.issuer &&
+				commonAttributes.issuer &&
 				factory.create(
 					`${type.slice(0, -8)}.issuerPath`,
-					module.issuerPath,
+					commonAttributes.issuerPath,
 					context
 				);
-			object.failed = module.failed;
-			object.errors = module.errors;
-			object.warnings = module.warnings;
-			const profile = module.profile;
+			object.failed = commonAttributes.failed;
+			object.errors = commonAttributes.errors;
+			object.warnings = commonAttributes.warnings;
+			const profile = commonAttributes.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);
 			}
 		},
 		ids: (object, module) => {
+			const { commonAttributes } = module;
 			object.id = module.id;
-			object.issuerId = module.issuerId;
-			object.chunks = module.chunks;
+			object.issuerId = commonAttributes.issuerId;
+			// TODO
+			object.chunks = commonAttributes.chunks as any;
 		},
 		moduleAssets: (object, module) => {
-			object.assets = module.assets;
+			object.assets = module.commonAttributes.assets;
 		},
 		reasons: (object, module, context, options, factory) => {
 			const { type } = context;
 			object.reasons = factory.create(
 				`${type.slice(0, -8)}.reasons`,
-				module.reasons,
+				module.commonAttributes.reasons,
 				context
 			);
 			// object.filteredReasons
 		},
 		source: (object, module) => {
-			object.source = module.source;
+			const { commonAttributes } = module;
+			object.source = commonAttributes.source;
 		},
 		usedExports: (object, module) => {
 			if (typeof module.usedExports === "string") {
@@ -1203,17 +1213,19 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		providedExports: (object, module) => {
-			if (Array.isArray(module.providedExports)) {
-				object.providedExports = module.providedExports;
+			const { commonAttributes } = module;
+			if (Array.isArray(commonAttributes.providedExports)) {
+				object.providedExports = commonAttributes.providedExports;
 			} else {
 				object.providedExports = null;
 			}
 		},
 		optimizationBailout: (object, module) => {
-			object.optimizationBailout = module.optimizationBailout || null;
+			object.optimizationBailout =
+				module.commonAttributes.optimizationBailout || null;
 		},
 		depth: (object, module) => {
-			object.depth = module.depth;
+			object.depth = module.commonAttributes.depth;
 		},
 		nestedModules: (object, module, context, options, factory) => {
 			const { type } = context;
@@ -1254,7 +1266,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		ids: (object, module) => {
-			object.id = module.id;
+			object.id = module.moduleDescriptor.id;
 		}
 	},
 	moduleReason: {
@@ -1267,7 +1279,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.userRequest = reason.userRequest;
 		},
 		ids: (object, reason) => {
-			object.moduleId = reason.moduleId;
+			object.moduleId = reason.moduleDescriptor?.id;
 		}
 	},
 	chunk: {
@@ -1307,12 +1319,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunkOrigins: (object, chunk, context, options, factory) => {
 			object.origins = chunk.origins.map<StatsChunkOrigin>(origin => {
-				const { moduleDescriptor, ...rest } = origin;
+				const { moduleDescriptor, loc, request } = origin;
 				const statsChunkOrigin: StatsChunkOrigin = {
 					module: moduleDescriptor ? moduleDescriptor.identifier : "",
 					moduleIdentifier: moduleDescriptor ? moduleDescriptor.identifier : "",
 					moduleName: moduleDescriptor ? moduleDescriptor.name : "",
-					...rest
+					moduleId: moduleDescriptor ? moduleDescriptor.id : "",
+					loc,
+					request
 				};
 				return statsChunkOrigin;
 			});
@@ -1333,8 +1347,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		ids: (object, { origin, module }) => {
-			object.originId = origin.id;
-			object.moduleId = module.id;
+			object.originId = origin.moduleDescriptor.id;
+			object.moduleId = module.moduleDescriptor.id;
 		}
 	}
 	// moduleTraceDependency

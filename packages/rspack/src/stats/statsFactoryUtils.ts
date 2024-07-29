@@ -28,22 +28,46 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = Omit<
-	binding.JsStatsModule,
-	| "usedExports"
-	| "providedExports"
-	| "optimizationBailout"
-	| "sizes"
-	| "identifier"
-> & {
-	profile?: StatsProfile;
-	usedExports?: null | string[] | boolean;
-	providedExports?: null | string[];
-	optimizationBailout?: null | string[];
-	sizes: Record<string, number>;
+export type KnownStatsModule = {
+	type: string;
+	moduleType: string;
+	layer?: string;
+	identifier?: string;
+	name?: string;
+	nameForCondition?: string;
 	index?: number; // =preOrderIndex
 	index2?: number; // =postOrderIndex
-	identifier?: string;
+	preOrderIndex?: number;
+	postOrderIndex?: number;
+	size: number;
+	sizes: Record<string, number>;
+	cacheable?: boolean;
+	built: boolean;
+	codeGenerated: boolean;
+	buildTimeExecuted: boolean;
+	cached: boolean;
+	optional?: boolean;
+	orphan?: boolean;
+	id?: string;
+	issuerId?: string;
+	chunks?: string[];
+	assets?: string[];
+	dependent?: boolean;
+	issuer?: string;
+	issuerName?: string;
+	issuerPath?: StatsModuleIssuer[];
+	failed?: boolean;
+	errors?: number;
+	warnings?: number;
+	profile?: StatsProfile;
+	reasons?: StatsModuleReason[];
+	usedExports?: boolean | string[] | null;
+	providedExports?: string[] | null;
+	optimizationBailout?: string[] | null;
+	depth?: number;
+	modules?: StatsModule[];
+	filteredModules?: number;
+	source?: string | Buffer;
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;
@@ -88,11 +112,12 @@ export type StatsModuleReason = Omit<
 } & Record<string, any>;
 
 export type KnownStatsChunkOrigin = {
-	module: String;
-	moduleIdentifier: String;
-	moduleName: String;
-	loc: String;
-	request: String;
+	module: string;
+	moduleIdentifier: string;
+	moduleName: string;
+	loc: string;
+	request: string;
+	moduleId?: string;
 };
 
 export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
