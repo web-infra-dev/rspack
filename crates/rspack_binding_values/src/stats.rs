@@ -1097,17 +1097,11 @@ impl JsStats {
       _ => None,
     };
 
-    let named_chunk_groups = if options.chunk_groups {
-      Some(self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children))
-    } else {
-      None
-    };
+    let named_chunk_groups = options.chunk_groups.then(|| {
+      self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children)
+    });
 
-    let errors = if options.errors {
-      Some(self.errors())
-    } else {
-      None
-    };
+    let errors = options.errors.then(|| self.errors());
 
     let warnings = options.warnings.then(|| self.warnings());
 
