@@ -521,17 +521,6 @@ impl NormalModuleFactory {
     }
 
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
-
-    if resource_data
-      .resource
-      .contains("next-flight-loader/module-proxy")
-    {
-      dbg!(
-        &resource_data.resource,
-        &resolved_resolve_options,
-        &resolved_module_rules
-      );
-    }
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) = self
