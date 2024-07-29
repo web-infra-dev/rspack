@@ -1,6 +1,6 @@
 WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/missing-module'
-   ╭─[4:9]
+   ╭─[4:8]
  2 │     let errored = false;
  3 │     try {
  4 │         require("./missing-module");

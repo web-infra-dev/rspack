@@ -1,12 +1,12 @@
 ERROR in × HTML parsing error: Start tag seen without seeing a doctype first, expected "<!DOCTYPE html>"
-   ╭─[1:1]
+   ╭─[1:0]
  1 │ <head>
    · ──────
  2 │   </something>
    ╰────
 
 ERROR in × HTML parsing error: Stray end tag "something"
-   ╭─[2:3]
+   ╭─[2:2]
  1 │ <head>
  2 │   </something>
    ·   ────────────

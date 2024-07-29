@@ -437,9 +437,9 @@ impl GraphicalReportHandler {
         lines
           .iter()
           .find(|line| line.span_applies(hl) && line.span_line_only(hl))
-          .map(|line| (line.line_number, self.visual_offset(line, hl.offset()) + 1))
+          .map(|line| (line.line_number, self.visual_offset(line, hl.offset())))
       })
-      .unwrap_or_else(|| (contents.line() + 1, contents.column() + 1));
+      .unwrap_or_else(|| (contents.line() + 1, contents.column()));
 
     if let Some(source_name) = contents.name() {
       let source_name = source_name.style(self.theme.styles.link);

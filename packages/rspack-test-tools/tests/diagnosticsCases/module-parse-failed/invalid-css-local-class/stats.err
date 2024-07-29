@@ -1,7 +1,7 @@
 WARNING in ./index.module.css
   ⚠ Module parse warning:
   ╰─▶   ⚠ CSS parsing warning: Missing leading whitespace
-         ╭─[1:26]
+         ╭─[1:25]
        1 │ .a:not(.b:not(:global .c):local .d) {
          ·                          ──────
        2 │   color: red;
