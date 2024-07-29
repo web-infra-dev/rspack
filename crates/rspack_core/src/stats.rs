@@ -439,10 +439,11 @@ impl Stats<'_> {
     chunk_group_children: bool,
   ) -> StatsChunkGroup {
     let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
-    let chunks: Vec<Option<String>> = cg
+    let chunks: Vec<String> = cg
       .chunks
       .iter()
       .map(|c| self.compilation.chunk_by_ukey.expect_get(c).id.clone())
+      .flatten()
       .collect();
 
     let assets = cg
@@ -856,7 +857,7 @@ impl Stats<'_> {
       };
       stats.issuer_id = issuer_id.and_then(|i| i);
 
-      let mut chunks: Vec<Option<String>> = if executed {
+      let mut chunks: Vec<String> = if executed {
         vec![]
       } else {
         self
@@ -866,6 +867,7 @@ impl Stats<'_> {
           .chunks
           .iter()
           .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
+          .flatten()
           .collect()
       };
       chunks.sort_unstable();
@@ -1098,13 +1100,14 @@ impl Stats<'_> {
     module: &'a BoxRuntimeModule,
     options: &'a ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
-    let mut chunks: Vec<Option<String>> = self
+    let mut chunks: Vec<String> = self
       .compilation
       .chunk_graph
       .get_chunk_graph_module(*identifier)
       .chunks
       .iter()
       .map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
+      .flatten()
       .collect();
     chunks.sort_unstable();
 
@@ -1426,7 +1429,7 @@ pub struct StatsModule<'s> {
   pub name: Option<Cow<'s, str>>,
   pub name_for_condition: Option<String>,
   pub id: Option<&'s str>,
-  pub chunks: Option<Vec<Option<String>>>, // has id after the call of chunkIds hook
+  pub chunks: Option<Vec<String>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
   pub dependent: Option<bool>,
@@ -1513,7 +1516,7 @@ pub struct StatsChunkGroupAsset {
 #[derive(Debug)]
 pub struct StatsChunkGroup {
   pub name: String,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Vec<String>,
   pub assets: Vec<StatsChunkGroupAsset>,
   pub assets_size: f64,
   pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,

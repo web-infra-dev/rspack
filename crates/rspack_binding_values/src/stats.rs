@@ -454,7 +454,7 @@ pub struct JsStatsModuleCommonAttributes {
 
   // ids
   pub issuer_id: Option<String>,
-  pub chunks: Option<Vec<Option<String>>>,
+  pub chunks: Option<Vec<String>>,
 
   // moduleAssets
   pub assets: Option<Vec<String>>,
@@ -886,7 +886,7 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
 #[napi(object)]
 pub struct JsStatsChunkGroup {
   pub name: String,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Vec<String>,
   pub assets: Vec<JsStatsChunkGroupAsset>,
   pub assets_size: f64,
   pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,

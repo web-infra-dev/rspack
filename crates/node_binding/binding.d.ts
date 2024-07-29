@@ -577,7 +577,7 @@ export interface JsStatsChunk {
 
 export interface JsStatsChunkGroup {
   name: string
-  chunks: Array<string | undefined | null>
+  chunks: Array<string>
   assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
@@ -670,7 +670,7 @@ export interface JsStatsModuleCommonAttributes {
   warnings?: number
   profile?: JsStatsModuleProfile
   issuerId?: string
-  chunks?: Array<string | undefined | null>
+  chunks?: Array<string>
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
   providedExports?: Array<string>

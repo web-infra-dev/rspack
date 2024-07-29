@@ -1192,8 +1192,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { commonAttributes } = module;
 			object.id = module.id;
 			object.issuerId = commonAttributes.issuerId;
-			// TODO
-			object.chunks = commonAttributes.chunks as any;
+			object.chunks = commonAttributes.chunks;
 		},
 		moduleAssets: (object, module) => {
 			object.assets = module.commonAttributes.assets;
