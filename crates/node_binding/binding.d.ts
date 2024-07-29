@@ -150,7 +150,11 @@ export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(js
 
 export function __chunk_graph_inner_get_module_id(module: string, compilation: JsCompilation): string | null
 
+export function __chunk_group_inner_children_iterable(ukey: number, compilation: JsCompilation): Array<JsChunkGroup>
+
 export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
+
+export function __chunk_group_inner_parents_iterable(ukey: number, compilation: JsCompilation): Array<JsChunkGroup>
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
@@ -360,7 +364,6 @@ export interface JsChunkAssetArgs {
 }
 
 export interface JsChunkGroup {
-  __inner_parents: Array<number>
   __inner_ukey: number
   chunks: Array<JsChunk>
   index?: number

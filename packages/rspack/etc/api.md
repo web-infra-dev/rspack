@@ -930,7 +930,11 @@ export class ChunkGroup {
     // @internal
     __internal__innerUkey(): number;
     // (undocumented)
+    get childrenIterable(): Iterable<ChunkGroup>;
+    // (undocumented)
     get chunks(): ReadonlyArray<Chunk>;
+    // (undocumented)
+    getChildren(): ReadonlyArray<ChunkGroup>;
     // (undocumented)
     getFiles(): ReadonlyArray<string>;
     // (undocumented)
