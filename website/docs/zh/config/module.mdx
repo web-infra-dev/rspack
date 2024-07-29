@@ -805,6 +805,19 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 
 匹配所有符合这个资源的模块，会和引入当前模块的模块的 Resource（不包含 query 和 fragment 的绝对路径）进行匹配。
 
+### Rule.issuerLayer
+
+<ApiMeta addedVersion="1.0.0-beta.0" />
+
+:::warning
+只有在 `experiments.layers = true` 时该配置才会生效
+:::
+
+- **类型：** [`Condition`](/config/module#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和引入当前模块的模块的 layer 进行匹配。
+
 ### Rule.dependency
 
 - **类型：** [`Condition`](/config/module#condition)
@@ -958,6 +971,18 @@ module.exports = {
 - `'css/auto'`：基于文件名判断，若匹配`/\.module(s)?\.[^.]+$/`则为 CSS Modules 模块，否则为 CSS 模块。
 - `'json'`：JSON data 模块。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：参考[资源模块](/guide/features/asset-module)。
+
+### Rule.layer
+
+<ApiMeta addedVersion="1.0.0-beta.0" />
+
+:::warning
+只有在 `experiments.layers = true` 时该配置才会生效
+:::
+
+- **类型：** `string`
+
+用于标识匹配的模块的 layer。
 
 ### Rule.use
 

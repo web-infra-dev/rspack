@@ -189,6 +189,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
+	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration

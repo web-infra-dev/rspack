@@ -118,6 +118,7 @@ fn add_dependencies(
     filename: None,
     library: None,
     depend_on: None,
+    layer: None,
   })));
 
   parser.blocks.push(Box::new(block));

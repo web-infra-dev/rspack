@@ -13,7 +13,8 @@ use swc_core::common::Span;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
   Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -24,6 +25,7 @@ pub struct ParseContext<'a> {
   pub module_context: &'a Context,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
+  pub module_layer: Option<&'a ModuleLayer>,
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub module_source_map_kind: SourceMapKind,

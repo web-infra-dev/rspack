@@ -602,6 +602,7 @@ const baseRuleSetRule: z.ZodObject<{
     exclude: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     include: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     issuer: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
+    issuerLayer: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     dependency: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     resource: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     resourceFragment: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
@@ -610,6 +611,7 @@ const baseRuleSetRule: z.ZodObject<{
     mimetype: z.ZodOptional<z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>;
     descriptionData: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodType<RuleSetCondition, z.ZodTypeDef, RuleSetCondition>>>;
     type: z.ZodOptional<z.ZodString>;
+    layer: z.ZodOptional<z.ZodString>;
     loader: z.ZodOptional<z.ZodString>;
     options: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>]>>;
     use: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -656,6 +658,7 @@ const baseRuleSetRule: z.ZodObject<{
     enforce: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"pre">, z.ZodLiteral<"post">]>>;
 }, "strict", z.ZodTypeAny, {
     type?: string | undefined;
+    layer?: string | undefined;
     issuer?: RuleSetCondition | undefined;
     options?: string | Record<string, any> | undefined;
     resource?: RuleSetCondition | undefined;
@@ -663,6 +666,7 @@ const baseRuleSetRule: z.ZodObject<{
     test?: RuleSetCondition | undefined;
     exclude?: RuleSetCondition | undefined;
     include?: RuleSetCondition | undefined;
+    issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
@@ -689,6 +693,7 @@ const baseRuleSetRule: z.ZodObject<{
     enforce?: "pre" | "post" | undefined;
 }, {
     type?: string | undefined;
+    layer?: string | undefined;
     issuer?: RuleSetCondition | undefined;
     options?: string | Record<string, any> | undefined;
     resource?: RuleSetCondition | undefined;
@@ -696,6 +701,7 @@ const baseRuleSetRule: z.ZodObject<{
     test?: RuleSetCondition | undefined;
     exclude?: RuleSetCondition | undefined;
     include?: RuleSetCondition | undefined;
+    issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
@@ -1943,9 +1949,11 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     }>>;
     dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
 }, "strict", z.ZodTypeAny, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -1973,6 +1981,7 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2074,9 +2083,11 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     }>>;
     dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
 }, "strict", z.ZodTypeAny, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2104,6 +2115,7 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2205,9 +2217,11 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         umdNamedDefine?: boolean | undefined;
     }>>;
     dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
 }, "strict", z.ZodTypeAny, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2235,6 +2249,7 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2354,9 +2369,11 @@ const entryDescription: z.ZodObject<{
         umdNamedDefine?: boolean | undefined;
     }>>;
     dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
 }, "strict", z.ZodTypeAny, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2384,6 +2401,7 @@ const entryDescription: z.ZodObject<{
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2413,9 +2431,9 @@ const entryDescription: z.ZodObject<{
 // @public (undocumented)
 export interface EntryDescriptionNormalized {
     // (undocumented)
-    asyncChunks?: boolean;
+    asyncChunks?: AsyncChunks;
     // (undocumented)
-    baseUri?: string;
+    baseUri?: BaseUri;
     // (undocumented)
     chunkLoading?: ChunkLoading;
     // (undocumented)
@@ -2424,6 +2442,8 @@ export interface EntryDescriptionNormalized {
     filename?: EntryFilename;
     // (undocumented)
     import?: string[];
+    // (undocumented)
+    layer?: Layer;
     // (undocumented)
     library?: LibraryOptions;
     // (undocumented)
@@ -2531,9 +2551,11 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         umdNamedDefine?: boolean | undefined;
     }>>;
     dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
 }, "strict", z.ZodTypeAny, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2561,6 +2583,7 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2607,6 +2630,7 @@ export type EntryOptions = {
     baseUri?: string;
     filename?: Filename;
     library?: LibraryOptions;
+    layer?: Layer;
     dependOn?: string[];
 };
 
@@ -2717,9 +2741,11 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         umdNamedDefine?: boolean | undefined;
     }>>;
     dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
 }, "strict", z.ZodTypeAny, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2747,6 +2773,7 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
 }, {
     import: string | string[];
     runtime?: string | false | undefined;
+    layer?: string | null | undefined;
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     baseUri?: string | undefined;
     chunkLoading?: string | false | undefined;
@@ -2934,6 +2961,7 @@ const experiments_2: z.ZodObject<{
     outputModule: z.ZodOptional<z.ZodBoolean>;
     topLevelAwait: z.ZodOptional<z.ZodBoolean>;
     css: z.ZodOptional<z.ZodBoolean>;
+    layers: z.ZodOptional<z.ZodBoolean>;
     futureDefaults: z.ZodOptional<z.ZodBoolean>;
     rspackFuture: z.ZodOptional<z.ZodObject<{
         bundlerInfo: z.ZodOptional<z.ZodObject<{
@@ -2972,6 +3000,7 @@ const experiments_2: z.ZodObject<{
     asyncWebAssembly?: boolean | undefined;
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
+    layers?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
         bundlerInfo?: {
@@ -2990,6 +3019,7 @@ const experiments_2: z.ZodObject<{
     asyncWebAssembly?: boolean | undefined;
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
+    layers?: boolean | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
         bundlerInfo?: {
@@ -3008,6 +3038,8 @@ export interface ExperimentsNormalized {
     css?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
+    // (undocumented)
+    layers?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
@@ -4542,6 +4574,12 @@ type KnownStatsProfile = {
 };
 
 // @public (undocumented)
+export type Layer = z.infer<typeof layer>;
+
+// @public (undocumented)
+const layer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
+
+// @public (undocumented)
 export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
 
 // @public (undocumented)
@@ -5193,6 +5231,8 @@ export class Module {
     factoryMeta?: Readonly<JsFactoryMeta>;
     // (undocumented)
     identifier(): string;
+    // (undocumented)
+    layer: null | string;
     // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
@@ -8798,6 +8838,7 @@ declare namespace rspackExports {
         UmdNamedDefine,
         LibraryOptions,
         Library,
+        Layer,
         EntryFilename,
         EntryRuntime,
         EntryItem,
@@ -9046,9 +9087,11 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         }>>;
         dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -9076,6 +9119,7 @@ export const rspackOptions: z.ZodObject<{
     }, {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -9177,9 +9221,11 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         }>>;
         dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -9207,6 +9253,7 @@ export const rspackOptions: z.ZodObject<{
     }, {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -9308,9 +9355,11 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         }>>;
         dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -9338,6 +9387,7 @@ export const rspackOptions: z.ZodObject<{
     }, {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -9765,6 +9815,7 @@ export const rspackOptions: z.ZodObject<{
         outputModule: z.ZodOptional<z.ZodBoolean>;
         topLevelAwait: z.ZodOptional<z.ZodBoolean>;
         css: z.ZodOptional<z.ZodBoolean>;
+        layers: z.ZodOptional<z.ZodBoolean>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
             bundlerInfo: z.ZodOptional<z.ZodObject<{
@@ -9803,6 +9854,7 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
+        layers?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -9821,6 +9873,7 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
+        layers?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -11429,6 +11482,7 @@ export const rspackOptions: z.ZodObject<{
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -11456,6 +11510,7 @@ export const rspackOptions: z.ZodObject<{
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -11483,6 +11538,7 @@ export const rspackOptions: z.ZodObject<{
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -11756,6 +11812,7 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
+        layers?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -11968,6 +12025,7 @@ export const rspackOptions: z.ZodObject<{
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -11995,6 +12053,7 @@ export const rspackOptions: z.ZodObject<{
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -12022,6 +12081,7 @@ export const rspackOptions: z.ZodObject<{
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
         runtime?: string | false | undefined;
+        layer?: string | null | undefined;
         publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -12295,6 +12355,7 @@ export const rspackOptions: z.ZodObject<{
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
+        layers?: boolean | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {

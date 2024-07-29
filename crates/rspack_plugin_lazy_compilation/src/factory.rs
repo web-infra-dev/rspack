@@ -39,6 +39,7 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
       context: proxy_data.context.clone(),
       dependency: Box::new(dep),
       issuer: proxy_data.issuer.clone(),
+      issuer_layer: proxy_data.issuer_layer.clone(),
       issuer_identifier: proxy_data.issuer_identifier,
       file_dependencies: proxy_data.file_dependencies.clone(),
       context_dependencies: proxy_data.context_dependencies.clone(),

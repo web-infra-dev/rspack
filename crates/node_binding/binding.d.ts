@@ -113,6 +113,7 @@ export class JsStatsModule {
   get type(): string
   get moduleType(): string
   get identifier(): string
+  get layer(): string | undefined
   get name(): string
   get id(): string | undefined
   get chunks(): Array<string | undefined | null>
@@ -509,6 +510,7 @@ export interface JsModule {
   rawRequest?: string
   factoryMeta?: JsFactoryMeta
   type: string
+  layer?: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -814,6 +816,7 @@ export interface RawCacheGroupOptions {
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  layer?: RegExp | string
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
@@ -973,6 +976,7 @@ export interface RawEntryOptions {
   filename?: JsFilename
   library?: RawLibraryOptions
   dependOn?: Array<string>
+  layer?: string
 }
 
 export interface RawEntryPluginOptions {
@@ -993,6 +997,7 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
+  layers: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -1227,10 +1232,12 @@ export interface RawModuleRule {
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
+  layer?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition

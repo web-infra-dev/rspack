@@ -1,7 +1,9 @@
 use itertools::Itertools;
 use swc_core::ecma::atoms::Atom;
 
-use crate::{create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context};
+use crate::{
+  create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context, ModuleLayer,
+};
 use crate::{ContextMode, ContextOptions, Dependency};
 use crate::{DependencyCategory, DependencyId, DependencyType};
 use crate::{ExtendedReferencedExport, ModuleDependency};
@@ -16,6 +18,7 @@ pub struct ContextElementDependency {
   pub user_request: String,
   pub category: DependencyCategory,
   pub context: Context,
+  pub layer: Option<ModuleLayer>,
   pub resource_identifier: String,
   pub referenced_exports: Option<Vec<Atom>>,
   pub dependency_type: DependencyType,
@@ -36,6 +39,10 @@ impl Dependency for ContextElementDependency {
 
   fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {

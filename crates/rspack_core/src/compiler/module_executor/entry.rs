@@ -56,6 +56,7 @@ impl Task<MakeTaskContext> for EntryTask {
           original_module_identifier: None,
           original_module_source: None,
           issuer: None,
+          issuer_layer: None,
           original_module_context: None,
           dependency: dep,
           dependencies: vec![dep_id],

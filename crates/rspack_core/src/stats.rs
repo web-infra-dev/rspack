@@ -942,6 +942,7 @@ impl Stats<'_> {
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
+      layer: module.get_layer().map(|layer| layer.into()),
       identifier,
       depth: module_graph.get_depth(&identifier),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
@@ -1008,6 +1009,7 @@ impl Stats<'_> {
       r#type: "module",
       depth: None,
       module_type: module.module_type,
+      layer: None,
       identifier: module.identifier,
       name_for_condition: module.name_for_condition.clone(),
       name: module.name.clone().into(),
@@ -1076,6 +1078,7 @@ impl Stats<'_> {
       r#type: "module",
       depth: None,
       module_type: *module.module_type(),
+      layer: module.get_layer().map(|layer| layer.into()),
       identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module.name().as_str().into(),
@@ -1337,6 +1340,7 @@ pub struct StatsAssetInfoRelated {
 pub struct StatsModule<'s> {
   pub r#type: &'static str,
   pub module_type: ModuleType,
+  pub layer: Option<Cow<'s, str>>,
   pub identifier: ModuleIdentifier,
   pub name: Cow<'s, str>,
   pub name_for_condition: Option<String>,
