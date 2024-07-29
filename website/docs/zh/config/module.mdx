@@ -807,7 +807,7 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 
 ### Rule.issuerLayer
 
-<ApiMeta addedVersion="1.0.0-beta.0" />
+<ApiMeta addedVersion="1.0.0-beta.1" />
 
 :::warning
 只有在 `experiments.layers = true` 时该配置才会生效
@@ -880,6 +880,37 @@ module.exports = {
     ],
   },
 };
+```
+
+### Rule.with
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **类型：** `{ [key: string]: Condition }`
+- **默认值：** `undefined`
+
+`with` 能够与 [import attributes](https://github.com/tc39/proposal-import-attributes) 进行匹配。
+
+例如，以下配置会与 `{ type: "url" }` 匹配，会将匹配到的模块的 [`type`](/config/module#ruletype) 修改为 `"asset/resource"`：
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+以下引入会命中匹配：
+
+```ts
+import url from './data' with { type: 'url' };
+import('./data', { with: { type: 'url' } });
 ```
 
 ### Rule.loaders
@@ -974,7 +1005,7 @@ module.exports = {
 
 ### Rule.layer
 
-<ApiMeta addedVersion="1.0.0-beta.0" />
+<ApiMeta addedVersion="1.0.0-beta.1" />
 
 :::warning
 只有在 `experiments.layers = true` 时该配置才会生效
