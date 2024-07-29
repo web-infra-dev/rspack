@@ -430,6 +430,7 @@ export interface JsModule {
   rawRequest?: string
   factoryMeta?: JsFactoryMeta
   type: string
+  layer?: string
 }
 
 export interface JsModuleDescriptor {
@@ -647,6 +648,7 @@ export interface JsStatsModule {
 export interface JsStatsModuleCommonAttributes {
   type: string
   moduleType: string
+  layer?: string
   size: number
   sizes: Array<JsStatsSize>
   built: boolean
@@ -842,6 +844,7 @@ export interface RawCacheGroupOptions {
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  layer?: RegExp | string
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
@@ -1001,6 +1004,7 @@ export interface RawEntryOptions {
   filename?: JsFilename
   library?: RawLibraryOptions
   dependOn?: Array<string>
+  layer?: string
 }
 
 export interface RawEntryPluginOptions {
@@ -1021,6 +1025,7 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
+  layers: boolean
   topLevelAwait: boolean
   rspackFuture: RawRspackFuture
 }
@@ -1191,6 +1196,9 @@ export interface RawLightningCssMinimizerRspackPluginOptions {
   unusedSymbols: Array<string>
   removeUnusedLocalIdents: boolean
   browserslist: Array<string>
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawLimitChunkCountPluginOptions {
@@ -1249,13 +1257,16 @@ export interface RawModuleRule {
   resourceQuery?: RawRuleSetCondition
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
+  with?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
+  layer?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition

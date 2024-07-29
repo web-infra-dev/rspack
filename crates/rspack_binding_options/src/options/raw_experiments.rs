@@ -9,6 +9,7 @@ pub struct RawRspackFuture {}
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawExperiments {
+  pub layers: bool,
   pub top_level_await: bool,
   pub rspack_future: RawRspackFuture,
 }

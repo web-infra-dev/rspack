@@ -1,4 +1,11 @@
 import { Badge } from '@theme';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import RuntimeModuleType from '../../types/runtime-module.mdx';
+import SourceType from '../../types/source.mdx';
+import HashType from '../../types/hash.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # Compilation Hooks
 
@@ -10,32 +17,21 @@ The main compilation logic of Rspack runs on the Rust side. For factors such as 
 
 <Badge text="Read-only" type="info" />
 
-Triggered before a module build has started。
+Triggered before a module build has started.
 
 - **Type:** `SyncHook<[Module]>`
 - **Arguments:**
   - `Module`: module instance
 
-```ts
-type Module = {
-  context?: string;
-  resource?: string;
-  request?: string;
-  userRequest?: string;
-  rawRequest?: string;
-  factoryMeta?: JsFactoryMeta;
-  buildInfo: Record<string, any>;
-  buildMeta: Record<string, any>;
-  originalSource(): {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  } | null;
-  identifier(): string;
-  nameForCondition(): string | null;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `executeModule`
 
@@ -48,6 +44,8 @@ If there exists compiled-time execution modules, this hook will be called when t
   - `ExecuteModuleArgument`: arguments of compiled-time execution module
   - `ExecuteModuleContext`: context of compiled-time execution module
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ExecuteModuleArgument.ts" key="ExecuteModuleArgument">
 ```ts
 type ExecuteModuleArgument = {
   codeGenerationResult: {
@@ -60,11 +58,16 @@ type ExecuteModuleArgument = {
     error?: Error;
   };
 };
-
+```
+  </CollapsePanel>
+    <CollapsePanel className="collapse-code-panel" header="ExecuteModuleContext.ts" key="ExecuteModuleContext">
+```ts
 type ExecuteModuleContext = {
   __webpack_require__: (id: string) => any;
 };
 ```
+  </CollapsePanel>
+</Collapse>
 
 ## `succeedModule`
 
@@ -76,6 +79,16 @@ Executed when a module has been built successfully.
 - **Arguments:**
   - `Module`: module instance
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `finishModules`
 
 <Badge text="Read-only" type="info" />
@@ -85,6 +98,16 @@ Called when all modules have been built without errors.
 - **Type:** `AsyncSeriesHook<[Module[]]>`
 - **Arguments:**
   - `Module[]`: List of module instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeModules`
 
@@ -96,6 +119,16 @@ Called at the beginning of the module optimization phase.
 - **Arguments:**
   - `Module[]`: list of module instances
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `afterOptimizeModules`
 
 <Badge text="Read-only" type="info" />
@@ -105,6 +138,16 @@ Called after modules optimization has completed.
 - **Type:** `SyncBailHook<[Module[]]>`
 - **Arguments:**
   - `Module[]`: list of module instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeTree`
 
@@ -117,30 +160,18 @@ Called before optimizing the dependency tree.
   - `Chunk[]`: list of chunk instances
   - `Module[]`: list of module instances
 
-```ts
-type Chunk = {
-  name?: string;
-  id?: string;
-  ids: string[];
-  idNameHints: string[];
-  filenameTemplate?: string;
-  cssFilenameTemplate?: string;
-  files: Set<string>;
-  runtime: Set<string>;
-  hash?: string;
-  contentHash: Record<string, string>;
-  renderedHash?: string;
-  chunkReason?: string;
-  auxiliaryFiles: Set<string>;
-  isOnlyInitial(): boolean;
-  canBeInitial(): boolean;
-  hasRuntime(): boolean;
-  groupsIterable: Set<ChunkGroup>;
-  getAllAsyncChunks(): Set<Chunk>;
-  getAllInitialChunks(): Set<Chunk>;
-  getAllReferencedChunks(): Set<Chunk>;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeChunkModules`
 
@@ -153,6 +184,19 @@ Called after the tree optimization, at the beginning of the chunk modules optimi
   - `Chunk[]`: list of chunk instances
   - `Module[]`: list of module instances
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `additionalTreeRuntimeRequirements`
 
 <Badge text="Read-only" type="info" />
@@ -164,9 +208,16 @@ Called after the tree runtime requirements collection.
   - `Chunk`: chunk instance
   - `Set<RuntimeGlobals>`: runtime requirements
 
-```ts
-enum RuntimeGlobals {}
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeGlobals.ts"
+    key="RuntimeGlobals"
+  >
+    ```ts enum RuntimeGlobals {}
+    ```
+  </CollapsePanel>
+</Collapse>
 
 ## `runtimeModule`
 
@@ -179,19 +230,15 @@ Called after a runtime module is added into the compilation.
   - `RuntimeModule`: runtime module instance
   - `Chunk`: chunk instance
 
-```ts
-type RuntimeModule = {
-  source?: {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  };
-  moduleIdentifier: string;
-  constructorName: string;
-  name: string;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeModule.ts"
+    key="RuntimeModule"
+  >
+    <RuntimeModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `processAssets`
 
@@ -202,20 +249,17 @@ Process the assets before emit.
   - `name: string` — a name of the plugin
   - `stage: Stage` — a stage to tap into (see the [process assets stages](#process-assets-stages) below)
 - **Arguments:**
-  - `assets: Assets`: a plain object, where key is the asset's pathname, and the value is data of the asset represented by the [Source](https://github.com/webpack/webpack-sources#source).
+  - `Assets: Record<string, Source>`: a plain object, where key is the asset's pathname, and the value is data of the asset represented by the [Source](https://github.com/webpack/webpack-sources#source).
 
-```ts
-type Assets = Record<
-  string,
-  {
-    source(): string | ArrayBuffer;
-    buffer(): Buffer;
-    size(): number;
-    map(options?: MapOptions): RawSourceMap | null;
-    sourceAndMap(options?: MapOptions): SourceAndMapResult;
-  }
->;
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
 
 ### Process assets examples
 
@@ -310,7 +354,17 @@ Called after the [processAssets](#processAssets) hook had finished without error
 
 - **Type:** `SyncHook<Assets>`
 - **Arguments:**
-  - `Assets`: list of asset instances
+  - `Assets: Record<string, Source>`: list of asset instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
 
 ## `afterSeal`
 
@@ -331,12 +385,14 @@ Triggered to emit the hash for each chunk.
   - `Chunk`: chunk instance
   - `Hash`: chunk hash instance
 
-```ts
-type Hash = {
-  update(data: string | Buffer, inputEncoding?: string): Hash;
-  digest(encoding?: string): string | Buffer;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="Hash.ts" key="Hash">
+    <HashType />
+  </CollapsePanel>
+</Collapse>
 
 ## `chunkAsset`
 
@@ -348,6 +404,12 @@ Triggered when an asset from a chunk was added to the compilation.
 - **Arguments:**
   - `Chunk`: chunk instance
   - `string`: asset filename
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
 
 ## `childCompiler`
 
@@ -361,6 +423,16 @@ Executed after setting up a child compiler.
   - `string`: child compiler name
   - `number`: child compiler index
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## `statsPreset`
 
 <Badge text="Read-only" type="info" />
@@ -372,17 +444,6 @@ This hook is like a list of actions that gets triggered when a preset is used. I
   - `Partial<StatsOptions>`: stats options
   - `CreateStatsOptionsContext`: stats context
 
-```ts
-type StatsOptions = {
-  // `stats` in compiler options
-};
-
-type CreateStatsOptionsContext = {
-  forToString?: boolean;
-  [key: string]: any;
-};
-```
-
 Here's an illustrative plugin example:
 
 ```js
@@ -392,6 +453,20 @@ compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
 ```
 
 This plugin ensures that for the preset `"my-preset"`, if the `all` option is undefined, it defaults to `true`.
+
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
 
 ## `statsNormalize`
 
@@ -416,6 +491,20 @@ compilation.hooks.statsNormalize.tap('MyPlugin', options => {
 
 In this plugin, if the `myOption` is missing, it sets it to `[]`. Additionally, it ensures that `myOption` is always an array even if it was originally defined as a single value.
 
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
+
 ## `statsFactory`
 
 <Badge text="Read-only" type="info" />
@@ -427,6 +516,8 @@ This hook provides access to the StatsFactory class for specific options.
   - `StatsFactory`: stats factory instance, see [Stats Factory Hooks](/api/plugin-api/stats-hooks#statsfactory) for more details
   - `StatsOptions`: stats options
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsFactory.ts" key="StatsFactory">
 ```ts
 type StatsFactory = {
   hooks: StatsFactoryHooks;
@@ -437,6 +528,11 @@ type StatsFactory = {
   ): void;
 };
 ```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+</Collapse>
 
 ## `statsPrinter`
 
@@ -449,6 +545,8 @@ This hook provides access to the StatsPrinter class for specific options.
   - `StatsPrinter`: stats printer instance, see [Stats Printer Hooks](/api/plugin-api/stats-hooks#statsprinter) for more details.
   - `StatsOptions`: stats options
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsPrinter.ts" key="StatsPrinter">
 ```ts
 type StatsPrinter = {
   hooks: StatsPrinterHooks;
@@ -463,3 +561,8 @@ type StatsPrinter = {
   ): string;
 };
 ```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+</Collapse>

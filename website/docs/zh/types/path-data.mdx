@@ -1,0 +1,15 @@
+<>
+
+```ts
+type PathData = {
+  filename?: string; // 文件名，会解析并填充到 [query]/[fragment]/[file]/[path]/[base]/[name]/[ext] 等中
+  hash?: string; // 编译哈希，对应 [fullhash]
+  contentHash?: string; // 内容哈希，对应 [contenthash]
+  runtime?: string; // 关联 runtime，对应 [runtime]
+  url?: string; // 路径信息，对应 [url]
+  id?: string; // 产物的ID，对应 [id]
+  chunk?: JsChunkPathData; // 关联 chunk 信息，对应 [chunkhash]
+};
+```
+
+</>

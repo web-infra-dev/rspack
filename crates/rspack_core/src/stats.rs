@@ -725,6 +725,7 @@ impl Stats<'_> {
     let mut stats = StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
+      layer: module.get_layer().map(|layer| layer.into()),
       size: module.size(None, self.compilation),
       sizes,
       built,
@@ -1008,6 +1009,7 @@ impl Stats<'_> {
     let mut stats = StatsModule {
       r#type: "module",
       module_type: module.module_type,
+      layer: None,
       size: module.size,
       sizes: vec![StatsSourceTypeSize {
         source_type: SourceType::Custom("runtime".into()),
@@ -1118,6 +1120,7 @@ impl Stats<'_> {
     let mut stats = StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
+      layer: module.get_layer().map(|layer| layer.into()),
       size,
       sizes: vec![StatsSourceTypeSize {
         source_type: SourceType::Custom("runtime".into()),
@@ -1418,6 +1421,7 @@ pub struct StatsAssetInfoRelated {
 pub struct StatsModule<'s> {
   pub r#type: &'static str,
   pub module_type: ModuleType,
+  pub layer: Option<Cow<'s, str>>,
   pub identifier: Option<ModuleIdentifier>,
   pub name: Option<Cow<'s, str>>,
   pub name_for_condition: Option<String>,

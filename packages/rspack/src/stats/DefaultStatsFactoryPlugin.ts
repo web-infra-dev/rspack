@@ -1118,7 +1118,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { commonAttributes } = module;
 			object.type = commonAttributes.type;
 			object.moduleType = commonAttributes.moduleType;
-			// TODO: object.layer = module.layer;
+			object.layer = commonAttributes.layer;
 			object.size = commonAttributes.size;
 			const sizes = commonAttributes.sizes.map(({ sourceType, size }) => [
 				sourceType,

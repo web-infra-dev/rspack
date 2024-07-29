@@ -12,6 +12,7 @@ use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency,
   HarmonyImportSideEffectDependency,
 };
+use crate::utils::object_properties::get_attributes;
 use crate::visitors::{
   ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
   TagInfoData,
@@ -57,6 +58,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       statement.source_span().into(),
       DependencyType::EsmExport,
       matches!(statement, ExportImport::All(_)),
+      statement.get_with_obj().map(get_attributes),
     );
     parser.dependencies.push(Box::new(side_effect_dep));
     Some(true)
@@ -91,6 +93,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
+        settings.attributes,
       )) as BoxDependency
     } else {
       Box::new(HarmonyExportSpecifierDependency::new(
@@ -130,6 +133,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
         parser.javascript_options,
       ),
+      None,
     );
     if export_name.is_none() {
       parser.build_info.all_star_exports.push(dep.id);

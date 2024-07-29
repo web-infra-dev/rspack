@@ -1,14 +1,12 @@
 pub mod eval;
-mod get_prop_from_obj;
 pub mod mangle_exports;
+pub mod object_properties;
 pub(crate) mod queue;
 
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
-
-pub use self::get_prop_from_obj::*;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct EcmaError(String, Span);

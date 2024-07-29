@@ -4,15 +4,15 @@ use std::sync::Arc;
 use indexmap::{IndexMap, IndexSet};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, get_exports_type,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
+  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
   ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -43,6 +43,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub export_all: bool,
   export_presence_mode: ExportPresenceMode,
   span: ErrorSpan,
+  attributes: Option<ImportAttributes>,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
@@ -56,8 +57,10 @@ impl HarmonyExportImportedSpecifierDependency {
     other_star_exports: Option<Vec<DependencyId>>,
     span: ErrorSpan,
     export_presence_mode: ExportPresenceMode,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -69,6 +72,7 @@ impl HarmonyExportImportedSpecifierDependency {
       other_star_exports,
       span,
       export_presence_mode,
+      attributes,
     }
   }
 
@@ -622,6 +626,16 @@ impl HarmonyExportImportedSpecifierDependency {
           let key = string_of_used_name(used_name.as_ref());
 
           if checked {
+            let key = InitFragmentKey::HarmonyImport(format!(
+              "harmony reexport (checked) {import_var} {name}"
+            ));
+            let runtime_condition = if self.weak() {
+              RuntimeCondition::Boolean(false)
+            } else if let Some(connection) = mg.connection_by_dependency(self.id()) {
+              filter_runtime(ctxt.runtime, |r| connection.is_target_active(mg, r))
+            } else {
+              RuntimeCondition::Boolean(true)
+            };
             let is_async = mg.is_async(&module_identifier).unwrap_or_default();
             let stmt = self.get_conditional_reexport_statement(
               ctxt,
@@ -630,7 +644,7 @@ impl HarmonyExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::Vec(ids),
             );
-            fragments.push(Box::new(NormalInitFragment::new(
+            fragments.push(Box::new(ConditionalInitFragment::new(
               stmt,
               if is_async {
                 InitFragmentStage::StageAsyncHarmonyImports
@@ -638,8 +652,9 @@ impl HarmonyExportImportedSpecifierDependency {
                 InitFragmentStage::StageHarmonyImports
               },
               self.source_order,
-              InitFragmentKey::unique(),
+              key,
               None,
+              runtime_condition,
             )));
           } else {
             let used_name =
@@ -1050,6 +1065,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportImportedSpecifier
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   #[allow(clippy::unwrap_in_result)]

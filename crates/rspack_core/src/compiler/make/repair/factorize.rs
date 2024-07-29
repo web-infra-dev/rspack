@@ -10,8 +10,8 @@ use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilerOptions, Context, DependencyId, ExportInfo, ExportsInfo, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleProfile, Resolve,
-  UsageState,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleProfile,
+  Resolve, UsageState,
 };
 
 #[derive(Debug)]
@@ -21,6 +21,7 @@ pub struct FactorizeTask {
   pub original_module_source: Option<BoxSource>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
+  pub issuer_layer: Option<ModuleLayer>,
   pub dependency: BoxDependency,
   pub dependencies: Vec<DependencyId>,
   pub resolve_options: Option<Box<Resolve>>,
@@ -38,7 +39,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
       current_profile.mark_factory_start();
     }
     let dependency = self.dependency;
-    //    let dep_id = *dependency.id();
 
     let context = if let Some(context) = dependency.get_context()
       && !context.is_empty()
@@ -52,6 +52,11 @@ impl Task<MakeTaskContext> for FactorizeTask {
       &self.options.context
     }
     .clone();
+
+    let issuer_layer = dependency
+      .get_layer()
+      .or(self.issuer_layer.as_ref())
+      .cloned();
 
     let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
     let side_effects_only_info = ExportInfo::new(
@@ -86,6 +91,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       dependency,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
+      issuer_layer,
 
       file_dependencies: Default::default(),
       missing_dependencies: Default::default(),

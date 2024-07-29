@@ -44,8 +44,9 @@ use crate::{
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType,
   ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta,
   IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -66,6 +67,7 @@ pub struct RootModuleContext {
   pub code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   pub presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
   pub context: Option<Context>,
+  pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: Option<FactoryMeta>,
   pub build_meta: Option<BuildMeta>,
@@ -500,6 +502,10 @@ impl Module for ConcatenatedModule {
     None
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.root_module_ctxt.layer.as_ref()
+  }
+
   fn readable_identifier(&self, _context: &Context) -> Cow<str> {
     Cow::Owned(format!(
       "{} + {} modules",
@@ -670,7 +676,7 @@ impl Module for ConcatenatedModule {
           program.visit_with(&mut collector);
         });
         for ident in collector.ids {
-          if ident.id.span.ctxt == info.global_ctxt {
+          if ident.id.ctxt == info.global_ctxt {
             info.global_scope_ident.push(ident.clone());
             all_used_names.insert(ident.id.sym.clone());
           }
@@ -681,7 +687,7 @@ impl Module for ConcatenatedModule {
           // deconflict naming from inner scope, the module level deconflict will be finished
           // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
           // during module eval phase.
-          if ident.id.span.ctxt != info.module_ctxt {
+          if ident.id.ctxt != info.module_ctxt {
             all_used_names.insert(ident.id.sym.clone());
           }
           info.idents.push(ident);
@@ -690,7 +696,7 @@ impl Module for ConcatenatedModule {
           HashMap::default();
 
         for ident in info.idents.iter() {
-          match binding_to_ref.entry((ident.id.sym.clone(), ident.id.span.ctxt)) {
+          match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
             Entry::Occupied(mut occ) => {
               occ.get_mut().push(ident.clone());
             }
@@ -1650,10 +1656,10 @@ impl ConcatenatedModule {
 
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
-        FileName::Custom(format!(
+        Arc::new(FileName::Custom(format!(
           "{}",
           self.readable_identifier(&compilation.options.context),
-        )),
+        ))),
         source_code.into(),
       );
       let comments = SwcComments::default();

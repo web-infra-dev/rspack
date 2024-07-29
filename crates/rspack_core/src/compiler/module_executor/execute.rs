@@ -118,6 +118,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         filename: None,
         library: None,
         depend_on: None,
+        layer: None,
       }),
     });
 

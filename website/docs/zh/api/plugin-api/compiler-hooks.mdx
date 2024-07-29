@@ -1,3 +1,7 @@
+import CompilerType from '../../types/compiler.mdx';
+import StatsType from '../../types/stats.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
 # Compiler 钩子
 
 ## `environment`
@@ -16,6 +20,16 @@
 
 `SyncHook<[Compiler]>`
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 在初始化内部插件完成之后调用。
 
 ## `afterResolvers`
@@ -24,11 +38,27 @@
 
 resolver 设置完成之后触发。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## `entryOption`
 
 `SyncBailHook<[string, EntryNormalized]>`
 
 在处理完入口配置后调用。
+
+<Collapse>
+  <CollapsePanel header="EntryNormalized.ts" key="EntryNormalized">
+    详见 [Entry 配置](/config/entry)
+  </CollapsePanel>
+</Collapse>
 
 ## `initialize`
 
@@ -42,11 +72,31 @@ resolver 设置完成之后触发。
 
 在开始执行一次构建之前调用。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## `run`
 
 `AsyncSeriesHook<[Compiler]>`
 
 在开始执行一次构建时调用。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
 
 ## `childCompiler`
 
@@ -56,11 +106,31 @@ resolver 设置完成之后触发。
 
 当创建好一个 childCompiler 后执行。
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## `watchRun`
 
 `AsyncSeriesHook<[Compiler]>`
 
 在监听模式下，开始执行一次构建时调用。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
 
 ## `compile`
 
@@ -80,11 +150,23 @@ resolver 设置完成之后触发。
 
 在完成并封闭(seal)编译后调用。
 
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
+
 ## `thisCompilation`
 
 `SyncHook<[Compilation]>`
 
 创建 compilation 时调用，在触发 compilation 钩子之前调用。
+
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
 
 ## `compilation`
 
@@ -92,11 +174,23 @@ resolver 设置完成之后触发。
 
 compilation 创建之后执行。
 
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
+
 ## `make`
 
 `AsyncParallelHook<[Compilation]>`
 
 make 阶段之前调用。
+
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
 
 ## `shouldEmit`
 
@@ -106,11 +200,23 @@ make 阶段之前调用。
 
 返回值为一个布尔值，用于决定是否将资源写入到磁盘中。
 
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
+
 ## `emit`
 
 `AsyncSeriesHook<[Compilation]>`
 
 输出产物之前执行。
+
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
 
 ## `afterEmit`
 
@@ -118,9 +224,21 @@ make 阶段之前调用。
 
 输出产物之后执行。
 
+<Collapse>
+  <CollapsePanel header="Compilation.ts" key="Compilation">
+    详见 [Compilation 对象](/api/objects/compilation)
+  </CollapsePanel>
+</Collapse>
+
 ## `done`
 
 `AsyncSeriesHook<Stats>`
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
 
 在构建完成时执行。
 
@@ -129,6 +247,12 @@ make 阶段之前调用。
 `AsyncSeriesHook<Stats>`
 
 在构建完成后，`done` 钩子调用之后执行。
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
 
 ## `watchClose`
 

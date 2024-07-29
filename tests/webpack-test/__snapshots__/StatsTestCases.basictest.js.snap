@@ -509,7 +509,7 @@ cacheable modules 559 bytes
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackChunkName\` expected a string, but received: notGoingToCompileChunkName .
-         ╭─[1:1]
+         ╭─[2:4]
        1 │ export default function() {
        2 │     import(/* webpackPrefetch: true, webpackChunkName: notGoingToCompileChunkName */ \\"./chunk-a\\");
          ·     ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -522,7 +522,7 @@ WARNING in ./chunk.js
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackPrefetch\` expected true or a number, but received: nope .
-         ╭─[3:1]
+         ╭─[5:4]
        3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
        5 │     import(/* webpackPrefetch: nope */ /* webpackChunkName: \\"yep\\" */ \\"./chunk-d\\");
@@ -646,8 +646,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication 1`] = `
-"asset e2.js 9.57 KiB [emitted] (name: e2)
-asset e1.js 9.57 KiB [emitted] (name: e1)
+"asset e1.js 9.57 KiB [emitted] (name: e1)
+asset e2.js 9.57 KiB [emitted] (name: e2)
 asset e3.js 9.57 KiB [emitted] (name: e3)
 asset 106.js 780 bytes [emitted]
 asset 511.js 780 bytes [emitted]
@@ -686,8 +686,8 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication-named 1`] = `
-"asset e2.js 9.43 KiB [emitted] (name: e2)
-asset e1.js 9.43 KiB [emitted] (name: e1)
+"asset e1.js 9.43 KiB [emitted] (name: e1)
+asset e2.js 9.43 KiB [emitted] (name: e2)
 asset e3.js 9.43 KiB [emitted] (name: e3)
 asset async1.js 892 bytes [emitted] (name: async1)
 asset async2.js 891 bytes [emitted] (name: async2)
@@ -719,7 +719,7 @@ Rspack x.x.x compiled successfully"
 exports[`StatsTestCases should print correct stats for module-not-found-error 1`] = `
 "ERROR in ./index.js
   × Module not found: Can't resolve 'buffer' in 'Xdir/module-not-found-error'
-   ╭─[1:1]
+   ╭─[1:0]
  1 │ require('buffer')
    · ─────────────────
  2 │ require('os')
@@ -727,7 +727,7 @@ exports[`StatsTestCases should print correct stats for module-not-found-error 1`
 
 ERROR in ./index.js
   × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
-   ╭─[1:1]
+   ╭─[2:0]
  1 │ require('buffer')
  2 │ require('os')
    · ─────────────
@@ -770,7 +770,7 @@ ERROR in ./not-existing.js
 ERROR in ./parse-error.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[1:1]
+         ╭─[3:4]
        1 │ Here
        2 │ could
        3 │ be :)
@@ -807,7 +807,7 @@ ERROR in ./not-existing.js
 ERROR in ./parse-error.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[1:1]
+         ╭─[3:4]
        1 │ Here
        2 │ could
        3 │ be :)
@@ -912,7 +912,7 @@ cacheable modules 85 bytes
 ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
-         ╭─[4:1]
+         ╭─[6:7]
        4 │ includes
        5 │ a
        6 │ parser )
@@ -1583,7 +1583,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
-"asset main.js 9.69 KiB [emitted] (name: main)
+"asset main.js 9.66 KiB [emitted] (name: main)
 asset 0.js 586 bytes [emitted]
 runtime modules 6.94 KiB 9 modules
 cacheable modules 967 bytes

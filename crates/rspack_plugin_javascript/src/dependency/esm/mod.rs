@@ -10,6 +10,8 @@ mod import_eager_dependency;
 mod provide_dependency;
 
 use rspack_core::DependencyCategory;
+use rspack_core::ImportAttributes;
+use rspack_util::json_stringify;
 
 pub use self::harmony_compatibility_dependency::HarmonyCompatibilityDependency;
 pub use self::harmony_export_expression_dependency::*;
@@ -24,6 +26,13 @@ pub use self::import_dependency::ImportDependency;
 pub use self::import_eager_dependency::ImportEagerDependency;
 pub use self::provide_dependency::ProvideDependency;
 
-pub fn create_resource_identifier_for_esm_dependency(request: &str) -> String {
-  format!("{}|{}", DependencyCategory::Esm, &request)
+pub fn create_resource_identifier_for_esm_dependency(
+  request: &str,
+  attributes: Option<&ImportAttributes>,
+) -> String {
+  let mut ident = format!("{}|{}", DependencyCategory::Esm, &request);
+  if let Some(attributes) = attributes {
+    ident += &json_stringify(&attributes);
+  }
+  ident
 }

@@ -67,6 +67,13 @@ fn render_startup(
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
   let mut exports = vec![];
+  if let Some(is_async) = module_graph.is_async(module)
+    && is_async
+  {
+    source.add(RawSource::from(
+      "__webpack_exports__ = await __webpack_exports__;\n",
+    ));
+  }
   let exports_info = module_graph.get_exports_info(module);
   for id in exports_info.get_ordered_exports() {
     let info = id.get_export_info(&module_graph);

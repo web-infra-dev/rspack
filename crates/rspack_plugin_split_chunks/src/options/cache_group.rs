@@ -3,7 +3,7 @@ use rspack_core::Filename;
 
 use super::cache_group_test::CacheGroupTest;
 use super::chunk_name::ChunkNameGetter;
-use crate::common::{ChunkFilter, ModuleTypeFilter, SplitChunkSizes};
+use crate::common::{ChunkFilter, ModuleLayerFilter, ModuleTypeFilter, SplitChunkSizes};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -25,6 +25,8 @@ pub struct CacheGroup {
   pub test: CacheGroupTest,
   #[derivative(Debug = "ignore")]
   pub r#type: ModuleTypeFilter,
+  #[derivative(Debug = "ignore")]
+  pub layer: ModuleLayerFilter,
   /// `name` is used to create chunk
   #[derivative(Debug = "ignore")]
   pub name: ChunkNameGetter,

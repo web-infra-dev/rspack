@@ -209,7 +209,7 @@ exports[`statsOutput statsOutput/logging-loader should print correct stats for 1
 
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
 "ERROR in × JavaScript parsing error: Expected a semicolon
-   ╭─[1:1]
+   ╭─[1:8]
  1 │ const a {}
    ·         ─
  2 │ (() => { // webpackBootstrap
@@ -284,7 +284,7 @@ exports[`statsOutput statsOutput/parse-error should print correct stats for 1`] 
 "ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
-         ╭─[4:1]
+         ╭─[6:7]
        4 │ includes
        5 │ a
        6 │ parser )
@@ -385,7 +385,7 @@ exports[`statsOutput statsOutput/resolve-overflow-error should print correct sta
 
 ERROR in ./index.js
   × Module not found: Can't resolve 'cycle-alias/a' in 'Xdir/resolve-overflow-error'
-   ╭─[1:1]
+   ╭─[1:18]
  1 │ import { a } from \\"cycle-alias/a\\";
    ·                   ───────────────
  2 │ console.log(a);
@@ -465,7 +465,7 @@ Rspack compiled successfully"
 exports[`statsOutput statsOutput/try-require-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-module'
-   ╭─[1:1]
+   ╭─[2:4]
  1 │ try {
  2 │     require('./missing-module')
    ·     ───────────────────────────
@@ -479,7 +479,7 @@ Rspack compiled with 1 warning"
 exports[`statsOutput statsOutput/try-require-resolve-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
-   ╭─[1:1]
+   ╭─[2:4]
  1 │ try {
  2 │     require.resolve('./missing-module')
    ·     ───────────────────────────────────
@@ -493,7 +493,7 @@ Rspack compiled with 1 warning"
 exports[`statsOutput statsOutput/try-require-resolve-weak-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
-   ╭─[1:1]
+   ╭─[2:4]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')
    ·     ───────────────────────────────────────

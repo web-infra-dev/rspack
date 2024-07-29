@@ -60,6 +60,87 @@ export function browserslistToTargets(
 	return targets;
 }
 
+export function toFeatures(featureOptions: FeatureOptions): Features {
+	let feature = 0;
+	for (const key of Reflect.ownKeys(featureOptions)) {
+		if (featureOptions[key as keyof FeatureOptions] !== true) {
+			continue;
+		}
+		switch (key as keyof FeatureOptions) {
+			case "nesting":
+				feature |= Features.Nesting;
+				break;
+			case "notSelectorList":
+				feature |= Features.NotSelectorList;
+				break;
+			case "dirSelector":
+				feature |= Features.DirSelector;
+				break;
+			case "langSelectorList":
+				feature |= Features.LangSelectorList;
+				break;
+			case "isSelector":
+				feature |= Features.IsSelector;
+				break;
+			case "textDecorationThicknessPercent":
+				feature |= Features.TextDecorationThicknessPercent;
+				break;
+			case "mediaIntervalSyntax":
+				feature |= Features.MediaIntervalSyntax;
+				break;
+			case "mediaRangeSyntax":
+				feature |= Features.MediaRangeSyntax;
+				break;
+			case "customMediaQueries":
+				feature |= Features.CustomMediaQueries;
+				break;
+			case "clampFunction":
+				feature |= Features.ClampFunction;
+				break;
+			case "colorFunction":
+				feature |= Features.ColorFunction;
+				break;
+			case "oklabColors":
+				feature |= Features.OklabColors;
+				break;
+			case "labColors":
+				feature |= Features.LabColors;
+				break;
+			case "p3Colors":
+				feature |= Features.P3Colors;
+				break;
+			case "hexAlphaColors":
+				feature |= Features.HexAlphaColors;
+				break;
+			case "spaceSeparatedColorNotation":
+				feature |= Features.SpaceSeparatedColorNotation;
+				break;
+			case "fontFamilySystemUi":
+				feature |= Features.FontFamilySystemUi;
+				break;
+			case "doublePositionGradients":
+				feature |= Features.DoublePositionGradients;
+				break;
+			case "vendorPrefixes":
+				feature |= Features.VendorPrefixes;
+				break;
+			case "logicalProperties":
+				feature |= Features.LogicalProperties;
+				break;
+			case "selectors":
+				feature |= Features.Selectors;
+				break;
+			case "mediaQueries":
+				feature |= Features.MediaQueries;
+				break;
+			case "color":
+				feature |= Features.Color;
+				break;
+		}
+	}
+	return feature;
+}
+
 function parseVersion(version: string) {
 	const [major, minor = 0, patch = 0] = version
 		.split("-")[0]
@@ -141,11 +222,37 @@ export interface PseudoClasses {
 	focusWithin?: string;
 }
 
+export type FeatureOptions = {
+	nesting?: boolean;
+	notSelectorList?: boolean;
+	dirSelector?: boolean;
+	langSelectorList?: boolean;
+	isSelector?: boolean;
+	textDecorationThicknessPercent?: boolean;
+	mediaIntervalSyntax?: boolean;
+	mediaRangeSyntax?: boolean;
+	customMediaQueries?: boolean;
+	clampFunction?: boolean;
+	colorFunction?: boolean;
+	oklabColors?: boolean;
+	labColors?: boolean;
+	p3Colors?: boolean;
+	hexAlphaColors?: boolean;
+	spaceSeparatedColorNotation?: boolean;
+	fontFamilySystemUi?: boolean;
+	doublePositionGradients?: boolean;
+	vendorPrefixes?: boolean;
+	logicalProperties?: boolean;
+	selectors?: boolean;
+	mediaQueries?: boolean;
+	color?: boolean;
+};
+
 export type LoaderOptions = {
 	errorRecovery?: boolean;
 	targets?: Targets | string[] | string;
-	include?: Features;
-	exclude?: Features;
+	include?: FeatureOptions;
+	exclude?: FeatureOptions;
 	draft?: Drafts;
 	nonStandard?: NonStandard;
 	pseudoClasses?: PseudoClasses;

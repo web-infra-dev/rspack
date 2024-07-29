@@ -409,12 +409,23 @@ const getRawModuleRule = (
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
 		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
+		issuerLayer: rule.issuerLayer
+			? getRawRuleSetCondition(rule.issuerLayer)
+			: undefined,
 		dependency: rule.dependency
 			? getRawRuleSetCondition(rule.dependency)
 			: undefined,
 		descriptionData: rule.descriptionData
 			? Object.fromEntries(
 					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+				)
+			: undefined,
+		with: rule.with
+			? Object.fromEntries(
+					Object.entries(rule.with).map(([k, v]) => [
 						k,
 						getRawRuleSetCondition(v)
 					])
@@ -435,6 +446,7 @@ const getRawModuleRule = (
 				? funcUse
 				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
+		layer: rule.layer,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? upperType)
 			: undefined,
@@ -871,10 +883,11 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, rspackFuture } = experiments;
-	assert(!isNil(topLevelAwait) && !isNil(rspackFuture));
+	const { topLevelAwait, layers, rspackFuture } = experiments;
+	assert(!isNil(topLevelAwait) && !isNil(rspackFuture) && !isNil(layers));
 
 	return {
+		layers,
 		topLevelAwait,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};

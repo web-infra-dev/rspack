@@ -66,11 +66,37 @@ module.exports = {
 Below are the configurations supported by `builtin:lightningcss-loader`. For detailed configuration, please refer to [lightningcss document](https://lightningcss.dev/transpilation.html)
 
 ```ts
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+
 type LightningcssLoaderOptions = {
   errorRecovery?: boolean;
   targets?: Targets | string[] | string;
-  include?: Features;
-  exclude?: Features;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
   draft?: Drafts;
   nonStandard?: NonStandard;
   pseudoClasses?: PseudoClasses;
@@ -78,33 +104,61 @@ type LightningcssLoaderOptions = {
 };
 ```
 
-You can find the necessary `lightningcss` exports from the `lightningcss` property in the `@rspack/core` package, such as `Features`:
+### targets
 
-```ts
-const rspack = require('@rspack/core');
-const { Features } = rspack.lightningcss;
-```
+The `targets` option supports multiple formats, it can be set as a browserslist query string, a browserslist query result, or the native `targets` of lightningcss.
 
-The `targets` can be directly written as a `browserslist` query string, the result of a `browserslist` query, or the `targets` of lightningcss, for example:
+Here are some examples of setting targets.
+
+- Setting a browserslist query string:
 
 ```js
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: '> 0.2%',
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: 'ie 10',
+  },
 };
-// or
+```
+
+- Setting an array of browserslist query strings:
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```
+
+- Setting the browserslist query result:
+
+```js
 const browserslist = require('browserslist');
 
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: browserslist('> 0.2%'),
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: browserslist('> 0.2%'),
+  },
 };
-// or
-const rspack = require('@rspack/core');
-const browserslist = require('browserslist');
+```
 
-/** @type {import('@rspack/core').LightningcssLoaderOptions} */
-const options = {
-  targets: rspack.lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+- Setting as lightningcss's native `targets`, which relies on lightningcss's internal `browserslistToTargets` method to convert a `browserslist` query result to lightningcss's `targets` format:
+
+```js
+const browserslist = require('browserslist');
+const lightningcss = require('lightningcss');
+
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: lightningcss.browserslistToTargets(browserslist('> 0.2%')),
+  },
 };
 ```

@@ -1,0 +1,17 @@
+<>
+
+```ts
+type Watching = {
+  watch(
+    files: Iterable<string>,
+    dirs: Iterable<string>,
+    missing: Iterable<string>,
+  ): void;
+  suspend(): void;
+  resume(): void;
+  invalidate(callback?: Callback<Error, void>): void;
+  close(callback?: () => void): void;
+};
+```
+
+</>

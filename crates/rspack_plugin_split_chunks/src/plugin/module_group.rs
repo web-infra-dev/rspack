@@ -147,14 +147,16 @@ impl SplitChunksPlugin {
           CacheGroupTest::Enabled => true,
         };
         let is_match_the_type: bool = (cache_group.r#type)(module);
-        let is_match = is_match_the_test && is_match_the_type;
+        let is_match_the_layer: bool = (cache_group.layer)(module);
+        let is_match = is_match_the_test && is_match_the_type && is_match_the_layer;
         if !is_match {
           tracing::trace!(
-            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
+            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}) && is_match_the_layer({:?}))",
             module.identifier(),
             cache_group.key,
             is_match_the_test,
-            is_match_the_type
+            is_match_the_type,
+            is_match_the_layer
           );
         }
 

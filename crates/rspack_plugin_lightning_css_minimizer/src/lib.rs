@@ -23,9 +23,43 @@ use rspack_core::{
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_regex::RspackRegex;
+use rspack_util::try_any_sync;
 
 static CSS_ASSET_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
+
+#[derive(Debug, Clone, Hash)]
+pub enum LightningCssMinimizerRule {
+  String(String),
+  Regexp(RspackRegex),
+}
+
+impl LightningCssMinimizerRule {
+  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum LightningCssMinimizerRules {
+  String(String),
+  Regexp(RspackRegex),
+  Array(Vec<LightningCssMinimizerRule>),
+}
+
+impl LightningCssMinimizerRules {
+  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+      Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
+    }
+  }
+}
 
 #[derive(Debug, Hash)]
 pub struct LightningCssMinimizerOptions {
@@ -33,12 +67,34 @@ pub struct LightningCssMinimizerOptions {
   pub unused_symbols: Vec<String>,
   pub remove_unused_local_idents: bool,
   pub browserlist: Vec<String>,
+  pub test: Option<LightningCssMinimizerRules>,
+  pub include: Option<LightningCssMinimizerRules>,
+  pub exclude: Option<LightningCssMinimizerRules>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct LightningCssMinimizerRspackPlugin {
   options: LightningCssMinimizerOptions,
+}
+
+pub fn match_object(obj: &LightningCssMinimizerOptions, str: &str) -> Result<bool> {
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str)? {
+      return Ok(false);
+    }
+  }
+  if let Some(condition) = &obj.include {
+    if !condition.try_match(str)? {
+      return Ok(false);
+    }
+  }
+  if let Some(condition) = &obj.exclude {
+    if condition.try_match(str)? {
+      return Ok(false);
+    }
+  }
+  Ok(true)
 }
 
 impl LightningCssMinimizerRspackPlugin {
@@ -60,11 +116,24 @@ async fn chunk_hash(
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let minify_options = &self.options;
   let all_warnings: RwLock<Vec<_>> = Default::default();
   compilation
     .assets_mut()
     .par_iter_mut()
-    .filter(|(filename, _)| CSS_ASSET_REGEXP.is_match(filename))
+    .filter(|(filename, original)| {
+      if !CSS_ASSET_REGEXP.is_match(filename) {
+        return false;
+      }
+
+      let is_matched = match_object(minify_options, filename).unwrap_or(false);
+
+      if !is_matched || original.get_info().minimized {
+        return false;
+      }
+
+      true
+    })
     .try_for_each(|(filename, original)| -> Result<()> {
       if original.get_info().minimized {
         return Ok(());

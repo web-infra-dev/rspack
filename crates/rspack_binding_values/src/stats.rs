@@ -427,6 +427,7 @@ type JsStatsUsedExports = Either<String, Vec<String>>;
 pub struct JsStatsModuleCommonAttributes {
   pub r#type: &'static str,
   pub module_type: &'static str,
+  pub layer: Option<String>,
   pub size: f64,
   pub sizes: Vec<JsStatsSize>,
   pub built: bool,
@@ -606,6 +607,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     let common_attributes: JsStatsModuleCommonAttributesWrapper = JsStatsModuleCommonAttributes {
       r#type: stats.r#type,
       module_type: stats.module_type.as_str(),
+      layer: stats.layer.map(|i| i.into_owned()),
       size: stats.size,
       sizes,
       built: stats.built,

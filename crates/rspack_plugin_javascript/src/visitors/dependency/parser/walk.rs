@@ -754,6 +754,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_opt_call(&mut self, expr: &OptCall) {
     // TODO: remove clone
     self.walk_call_expression(&CallExpr {
+      ctxt: expr.ctxt,
       span: expr.span,
       callee: Callee::Expr(expr.callee.clone()),
       args: expr.args.clone(),
@@ -1077,7 +1078,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       self.walk_expression(&expr.right);
       self.enter_pattern(
-        Cow::Owned(warp_ident_to_pat(ident.clone())),
+        Cow::Owned(warp_ident_to_pat(ident.clone().into())),
         |this, ident| {
           // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
           // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
@@ -1450,7 +1451,7 @@ impl<'parser> JavascriptParser<'parser> {
 fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
   match member_prop {
     MemberProp::Ident(ident) => Some(ident.sym.len()),
-    MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
+    MemberProp::PrivateName(name) => Some(name.name.len() + 1),
     MemberProp::Computed(_) => None,
   }
 }

@@ -159,14 +159,17 @@ pub struct RawModuleRule {
   pub resource_query: Option<RawRuleSetCondition>,
   pub resource_fragment: Option<RawRuleSetCondition>,
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
+  pub with: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
   #[napi(ts_type = "RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])")]
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
+  pub layer: Option<String>,
   pub parser: Option<RawParserOptions>,
   pub generator: Option<RawGeneratorOptions>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
+  pub issuer_layer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
   pub scheme: Option<RawRuleSetCondition>,
   pub mimetype: Option<RawRuleSetCondition>,
@@ -726,6 +729,16 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       })
       .transpose()?;
 
+    let with = value
+      .with
+      .map(|data| {
+        data
+          .into_iter()
+          .map(|(k, v)| Ok((k, v.try_into()?)))
+          .collect::<rspack_error::Result<DescriptionData>>()
+      })
+      .transpose()?;
+
     let enforce = value
       .enforce
       .map(|enforce| match &*enforce {
@@ -753,13 +766,16 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         .transpose()?,
       resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
+      with,
       r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
+      layer: value.layer,
       parser: value.parser.map(|raw| raw.into()),
       generator: value.generator.map(|raw| raw.into()),
       resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
       side_effects: value.side_effects,
       issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
+      issuer_layer: value.issuer_layer.map(|raw| raw.try_into()).transpose()?,
       dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
       scheme: value.scheme.map(|raw| raw.try_into()).transpose()?,
       mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,

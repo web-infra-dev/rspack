@@ -10,6 +10,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
   ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority, Filename,
+  ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -439,7 +440,7 @@ impl EntryRuntime {
 
 // pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -450,6 +451,7 @@ pub struct EntryOptions {
   pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
   pub depend_on: Option<Vec<String>>,
+  pub layer: Option<ModuleLayer>,
 }
 
 impl EntryOptions {
@@ -474,6 +476,7 @@ impl EntryOptions {
     merge_field!(filename);
     merge_field!(library);
     merge_field!(depend_on);
+    merge_field!(layer);
     Ok(())
   }
 
@@ -535,7 +538,7 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),

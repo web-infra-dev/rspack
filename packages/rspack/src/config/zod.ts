@@ -151,6 +151,9 @@ export type LibraryOptions = z.infer<typeof libraryOptions>;
 const library = libraryName.or(libraryOptions).optional();
 export type Library = z.infer<typeof library>;
 
+const layer = z.string().or(z.null());
+export type Layer = z.infer<typeof layer>;
+
 const entryFilename = filename;
 export type EntryFilename = z.infer<typeof entryFilename>;
 
@@ -173,7 +176,8 @@ const entryDescription = z.strictObject({
 	wasmLoading: wasmLoading.optional(),
 	filename: entryFilename.optional(),
 	library: libraryOptions.optional(),
-	dependOn: entryDependOn.optional()
+	dependOn: entryDependOn.optional(),
+	layer: layer.optional()
 });
 export type EntryDescription = z.infer<typeof entryDescription>;
 
@@ -499,6 +503,7 @@ const baseRuleSetRule = z.strictObject({
 	exclude: ruleSetCondition.optional(),
 	include: ruleSetCondition.optional(),
 	issuer: ruleSetCondition.optional(),
+	issuerLayer: ruleSetCondition.optional(),
 	dependency: ruleSetCondition.optional(),
 	resource: ruleSetCondition.optional(),
 	resourceFragment: ruleSetCondition.optional(),
@@ -506,7 +511,9 @@ const baseRuleSetRule = z.strictObject({
 	scheme: ruleSetCondition.optional(),
 	mimetype: ruleSetCondition.optional(),
 	descriptionData: z.record(ruleSetCondition).optional(),
+	with: z.record(ruleSetCondition).optional(),
 	type: z.string().optional(),
+	layer: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
 	use: ruleSetUse.optional(),
@@ -1303,6 +1310,7 @@ const experiments = z.strictObject({
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
 	css: z.boolean().optional(),
+	layers: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
 });

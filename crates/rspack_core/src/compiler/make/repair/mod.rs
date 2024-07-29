@@ -122,6 +122,7 @@ pub fn repair(
         issuer: parent_module
           .and_then(|m| m.as_normal_module())
           .and_then(|module| module.name_for_condition()),
+        issuer_layer: parent_module.and_then(|m| m.get_layer()).cloned(),
         original_module_context: parent_module.and_then(|m| m.get_context()),
         dependency: dependency.clone(),
         dependencies: vec![id],
