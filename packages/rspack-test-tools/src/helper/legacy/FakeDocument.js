@@ -183,9 +183,15 @@ export class FakeSheet {
 	constructor(element, basePath) {
 		this._element = element;
 		this._basePath = basePath;
+		this.cachedCss = undefined
+		this.cachedCssRules = undefined
 	}
 
 	get css() {
+		if (this.cachedCss) {
+			return this.cachedCss
+		}
+
 		let css = fs.readFileSync(
 			path.resolve(
 				this._basePath,
@@ -214,10 +220,14 @@ export class FakeSheet {
 			);
 		});
 
+		this.cachedCss = css
 		return css;
 	}
 
 	get cssRules() {
+		if (this.cachedCssRules) {
+			return this.cachedCssRules
+		}
 		const walkCssTokens = require("./walkCssTokens");
 		const rules = [];
 		let currentRule = { getPropertyValue };
@@ -240,7 +250,7 @@ export class FakeSheet {
 						.replace(/^https:\/\/example\.com\/public\/path\//, "")
 						.replace(/^https:\/\/example\.com\//, "")
 				);
-		let css = fs.readFileSync(filepath, "utf-8");
+		let css = fs.readFileSync(filepath.replace(/\?hmr=\d*/, ""), "utf-8");
 		css = css.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
 			if (!/^https:\/\/test\.cases\/path\//.test(url)) {
 				return url;
@@ -258,7 +268,7 @@ export class FakeSheet {
 				"utf-8"
 			);
 		})
-		.replace(/\/\*[\s\S]*\*\//g, '')
+		.replace(/\/\*[\s\S]*?\*\//g, '')
 		.replace("//", "");
 		walkCssTokens(css, {
 			isSelector() {
@@ -273,8 +283,13 @@ export class FakeSheet {
 			},
 			rightCurlyBracket(source, start, end) {
 				processDeclaration(source.slice(last, start));
+				rules.push({
+					selectorText: selector,
+					style: currentRule,
+					// hack cssText, css hmr needs this fields to detect changes
+					cssText: css
+				});
 				last = end;
-				rules.push({ selectorText: selector, style: currentRule });
 				selector = undefined;
 				currentRule = { getPropertyValue };
 				return end;
@@ -285,6 +300,7 @@ export class FakeSheet {
 				return end;
 			}
 		});
+		this.cachedCssRules = rules
 		return rules;
 	}
 }

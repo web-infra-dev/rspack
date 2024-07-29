@@ -235,6 +235,7 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
     dist?: string;
     absoluteDist?: boolean;
     describe?: jest.Describe;
+    exclude?: RegExp[];
 }): void;
 
 // @public (undocumented)
