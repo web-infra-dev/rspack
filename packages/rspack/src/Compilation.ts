@@ -21,6 +21,7 @@ import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
 import { Chunk } from "./Chunk";
 import { ChunkGraph } from "./ChunkGraph";
+import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
@@ -69,6 +70,11 @@ export interface LogEntry {
 	time?: number;
 	trace?: string[];
 }
+
+export type RuntimeModule = liteTapable.SyncHook<
+	[JsRuntimeModule, Chunk],
+	void
+>;
 
 export interface CompilationParams {
 	normalModuleFactory: NormalModuleFactory;
@@ -146,8 +152,6 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
 
 export class Compilation {
 	#inner: JsCompilation;
-	#cachedAssets?: Record<string, Source>;
-	#cachedEntrypoints?: ReadonlyMap<string, Entrypoint>;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -192,7 +196,7 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
+		runtimeModule: RuntimeModule;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
 	name?: string;
@@ -346,25 +350,50 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Get a map of all assets.
 	 */
 	get assets(): Record<string, Source> {
-		if (!this.#cachedAssets) {
-			this.#cachedAssets = this.#createCachedAssets();
-		}
-		return this.#cachedAssets;
+		return memoizeValue(() => this.#createCachedAssets());
 	}
 
 	/**
 	 * Get a map of all entrypoints.
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
-		if (!this.#cachedEntrypoints) {
-			this.#cachedEntrypoints = new Map(
-				Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-					n,
-					Entrypoint.__from_binding(e, this.#inner)
-				])
-			);
-		}
-		return this.#cachedEntrypoints;
+		return memoizeValue(
+			() =>
+				new Map(
+					Object.entries(this.#inner.entrypoints).map(([n, e]) => [
+						n,
+						Entrypoint.__from_binding(e, this.#inner)
+					])
+				)
+		);
+	}
+
+	get chunkGroups(): ReadonlyArray<ChunkGroup> {
+		return memoizeValue(() =>
+			this.#inner.chunkGroups.map(cg =>
+				ChunkGroup.__from_binding(cg, this.#inner)
+			)
+		);
+	}
+
+	/**
+	 * Get the named chunk groups.
+	 *
+	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` are supported now.
+	 */
+	get namedChunkGroups(): ReadonlyMap<string, Readonly<ChunkGroup>> {
+		return {
+			keys: (): IterableIterator<string> => {
+				const names = this.#inner.getNamedChunkGroupKeys();
+				return names[Symbol.iterator]();
+			},
+			get: (property: unknown) => {
+				if (typeof property === "string") {
+					const chunk = this.#inner.getNamedChunkGroup(property) || undefined;
+					return chunk && ChunkGroup.__from_binding(chunk, this.#inner);
+				}
+			}
+		} as Map<string, Readonly<ChunkGroup>>;
 	}
 
 	get modules(): ReadonlySet<Module> {
@@ -489,11 +518,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			}
 			this.hooks.statsNormalize.call(options, context);
 			return options as NormalizedStatsOptions;
-		} else {
-			const options: Partial<NormalizedStatsOptions> = {};
-			this.hooks.statsNormalize.call(options, context);
-			return options as NormalizedStatsOptions;
 		}
+		const options: Partial<NormalizedStatsOptions> = {};
+		this.hooks.statsNormalize.call(options, context);
+		return options as NormalizedStatsOptions;
 	}
 
 	createStatsFactory(options: StatsOptions) {
@@ -714,12 +742,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		];
-		proxyMethod.forEach(item => {
+
+		for (const item of proxyMethod) {
 			const proxyedMethod = new Proxy(errors[item.method as any], {
 				apply: item.handler as any
 			});
 			errors[item.method as any] = proxyedMethod;
-		});
+		}
 		return errors;
 	}
 
@@ -798,12 +827,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		];
-		proxyMethod.forEach(item => {
+
+		for (const item of proxyMethod) {
 			const proxyedMethod = new Proxy(warnings[item.method as any], {
 				apply: item.handler as any
 			});
 			warnings[item.method as any] = proxyedMethod;
-		});
+		}
 		return warnings;
 	}
 
@@ -897,36 +927,33 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 							}
 							return `${name}/${childName}`;
 						});
-					} else {
-						return this.getLogger(() => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
-									throw new TypeError(
-										"Compilation.getLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							return `${name}/${childName}`;
-						});
 					}
-				} else {
-					if (typeof childName === "function") {
-						return this.getLogger(() => {
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
-									throw new TypeError(
-										"Logger.getChildLogger(name) called with a function not returning a name"
-									);
-								}
+					return this.getLogger(() => {
+						if (typeof name === "function") {
+							name = name();
+							if (!name) {
+								throw new TypeError(
+									"Compilation.getLogger(name) called with a function not returning a name"
+								);
 							}
-							return `${name}/${childName}`;
-						});
-					} else {
-						return this.getLogger(`${name}/${childName}`);
-					}
+						}
+						return `${name}/${childName}`;
+					});
 				}
+				if (typeof childName === "function") {
+					return this.getLogger(() => {
+						if (typeof childName === "function") {
+							childName = childName();
+							if (!childName) {
+								throw new TypeError(
+									"Logger.getChildLogger(name) called with a function not returning a name"
+								);
+							}
+						}
+						return `${name}/${childName}`;
+					});
+				}
+				return this.getLogger(`${name}/${childName}`);
 			}
 		);
 	}

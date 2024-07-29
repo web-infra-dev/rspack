@@ -3,7 +3,7 @@ import { useLang } from 'rspress/runtime';
 
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
   const links = Array.isArray(from) ? from : [from];
-  const isEn = useLang() == 'en';
+  const isEn = useLang() === 'en';
   if (isEn) {
     return (
       <details>
@@ -28,30 +28,29 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
         </blockquote>
       </details>
     );
-  } else {
-    return (
-      <details>
-        <summary style={{ display: 'list-item' }}>CC 4.0 协议声明</summary>
-        <blockquote>
-          <p>
-            本节内容派生于以下链接指向的内容 ，并遵守 CC BY 4.0 许可证的规定。
-          </p>
-          <ul>
-            {links.map(link => (
-              <li key={link}>
-                <a key={link} href={link}>
-                  {link}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <p>
-            以下内容如果没有特殊声明，可以认为都是基于原内容的修改和删减后的结果。
-          </p>
-        </blockquote>
-      </details>
-    );
   }
+  return (
+    <details>
+      <summary style={{ display: 'list-item' }}>CC 4.0 协议声明</summary>
+      <blockquote>
+        <p>
+          本节内容派生于以下链接指向的内容 ，并遵守 CC BY 4.0 许可证的规定。
+        </p>
+        <ul>
+          {links.map(link => (
+            <li key={link}>
+              <a key={link} href={link}>
+                {link}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p>
+          以下内容如果没有特殊声明，可以认为都是基于原内容的修改和删减后的结果。
+        </p>
+      </blockquote>
+    </details>
+  );
 };
 
 export default WebpackLicense;

@@ -144,7 +144,7 @@ class FakeSheet {
 	}
 
 	get cssRules() {
-		const walkCssTokens = require("../../lib/css/walkCssTokens");
+		const walkCssTokens = require("../lib/css/walkCssTokens");
 		const rules = [];
 		let currentRule = { getPropertyValue };
 		let selector = undefined;

@@ -49,9 +49,8 @@ if (process.env.DEBUG_INFO) {
 										throw e;
 									}
 								);
-							} else {
-								process.stdout.write(`DONE OK ${name}\n`);
 							}
+							process.stdout.write(`DONE OK ${name}\n`);
 						} catch (e) {
 							process.stdout.write(`DONE FAIL ${name}\n`);
 							throw e;

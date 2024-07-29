@@ -83,68 +83,62 @@ export function toMatchFileSnapshot(content, filepath, options = {}) {
 			if (!isEqual(content, output)) {
 				// The value of `pass` is reversed when used with `.not`
 				return { pass: false, message: () => "" };
-			} else {
-				snapshotState.unmatched++;
-
-				return {
-					pass: true,
-					message: () =>
-						`Expected received content ${chalk.red(
-							"to not match"
-						)} the file ${chalk.blue(path.basename(filename))}.`
-				};
 			}
-		} else {
-			if (isEqual(content, output)) {
-				return { pass: true, message: () => "" };
-			} else {
-				if (snapshotState._updateSnapshot === "all") {
-					mkdirp.sync(path.dirname(filename));
-					fs.writeFileSync(filename, content);
-
-					snapshotState.updated++;
-
-					return { pass: true, message: () => "" };
-				} else {
-					snapshotState.unmatched++;
-
-					const difference =
-						Buffer.isBuffer(content) || Buffer.isBuffer(output)
-							? ""
-							: `\n\n${diff(output, content, options.diff)}`;
-
-					return {
-						pass: false,
-						message: () =>
-							`Received content ${chalk.red(
-								"doesn't match"
-							)} the file ${chalk.blue(path.basename(filename))}.${difference}`
-					};
-				}
-			}
-		}
-	} else {
-		if (
-			!isNot &&
-			(snapshotState._updateSnapshot === "new" ||
-				snapshotState._updateSnapshot === "all")
-		) {
-			mkdirp.sync(path.dirname(filename));
-			fs.writeFileSync(filename, content);
-
-			snapshotState.added++;
-
-			return { pass: true, message: () => "" };
-		} else {
 			snapshotState.unmatched++;
 
 			return {
 				pass: true,
 				message: () =>
-					`The output file ${chalk.blue(
-						path.basename(filename)
-					)} ${chalk.bold.red("doesn't exist")}.`
+					`Expected received content ${chalk.red(
+						"to not match"
+					)} the file ${chalk.blue(path.basename(filename))}.`
 			};
 		}
+		if (isEqual(content, output)) {
+			return { pass: true, message: () => "" };
+		}
+		if (snapshotState._updateSnapshot === "all") {
+			mkdirp.sync(path.dirname(filename));
+			fs.writeFileSync(filename, content);
+
+			snapshotState.updated++;
+
+			return { pass: true, message: () => "" };
+		}
+		snapshotState.unmatched++;
+
+		const difference =
+			Buffer.isBuffer(content) || Buffer.isBuffer(output)
+				? ""
+				: `\n\n${diff(output, content, options.diff)}`;
+
+		return {
+			pass: false,
+			message: () =>
+				`Received content ${chalk.red(
+					"doesn't match"
+				)} the file ${chalk.blue(path.basename(filename))}.${difference}`
+		};
 	}
+	if (
+		!isNot &&
+		(snapshotState._updateSnapshot === "new" ||
+			snapshotState._updateSnapshot === "all")
+	) {
+		mkdirp.sync(path.dirname(filename));
+		fs.writeFileSync(filename, content);
+
+		snapshotState.added++;
+
+		return { pass: true, message: () => "" };
+	}
+	snapshotState.unmatched++;
+
+	return {
+		pass: true,
+		message: () =>
+			`The output file ${chalk.blue(
+				path.basename(filename)
+			)} ${chalk.bold.red("doesn't exist")}.`
+	};
 }

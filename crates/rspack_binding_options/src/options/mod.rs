@@ -82,6 +82,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
         },
         emit_asset: true,
       },
+      layers: value.experiments.layers,
       top_level_await: value.experiments.top_level_await,
       rspack_future: value.experiments.rspack_future.into(),
     };

@@ -66,9 +66,8 @@ export class Tester implements ITester {
 		if (this.steps[this.step + 1]) {
 			this.step++;
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	}
 
 	async resume() {

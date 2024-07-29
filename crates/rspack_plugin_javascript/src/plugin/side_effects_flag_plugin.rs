@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
   ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, MutableModuleGraph,
@@ -12,8 +13,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
 use sugar_path::SugarPath;
 use swc_core::common::comments::Comments;
 // use rspack_core::Plugin;
@@ -661,7 +660,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     get_level_order_module_ids(&compilation.get_module_graph(), entries);
   for module_identifier in level_order_module_identifier {
     let module_graph = compilation.get_module_graph();
-    let mut module_chain = HashSet::default();
+    let mut module_chain = IdentifierSet::default();
     // dbg!(&module_identifier);
     let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
       continue;
@@ -711,7 +710,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
           Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
             mg.module_by_identifier(&target.module)
               .expect("should have module")
-              .get_side_effects_connection_state(mg, &mut HashSet::default())
+              .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
               == ConnectionState::Bool(false)
           }),
           Arc::new(
@@ -748,7 +747,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
             |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
               mg.module_by_identifier(&target.module)
                 .expect("should have module graph")
-                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
                 == ConnectionState::Bool(false)
             },
           )),

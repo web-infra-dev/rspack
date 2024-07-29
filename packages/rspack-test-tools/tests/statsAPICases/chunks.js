@@ -26,7 +26,7 @@ module.exports = {
 		    "files": Array [
 		      "chunkB.js",
 		    ],
-		    "hash": "e9b9cfaf734ee7b137b7",
+		    "hash": "c5b5ebf5a1a8e08296a9",
 		    "id": "250",
 		    "idHints": Array [],
 		    "initial": false,
@@ -59,6 +59,7 @@ module.exports = {
 		            "name": "./fixtures/chunk-b.js",
 		          },
 		        ],
+		        "layer": undefined,
 		        "moduleType": "javascript/auto",
 		        "name": "./fixtures/b.js",
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/b.js",
@@ -134,7 +135,7 @@ module.exports = {
 		    "files": Array [
 		      "main.js",
 		    ],
-		    "hash": "d38a996f51bebe958d5c",
+		    "hash": "f42d32afe239ff7620e2",
 		    "id": "909",
 		    "idHints": Array [],
 		    "initial": true,
@@ -161,6 +162,7 @@ module.exports = {
 		        "issuerId": undefined,
 		        "issuerName": undefined,
 		        "issuerPath": Array [],
+		        "layer": undefined,
 		        "moduleType": "javascript/auto",
 		        "name": "./fixtures/chunk-b.js",
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",

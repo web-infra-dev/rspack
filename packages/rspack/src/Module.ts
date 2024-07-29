@@ -60,6 +60,7 @@ export class Module {
 	userRequest?: Readonly<string>;
 	rawRequest?: Readonly<string>;
 	type: string;
+	layer: null | string;
 
 	factoryMeta?: Readonly<JsFactoryMeta>;
 	/**
@@ -83,6 +84,7 @@ export class Module {
 	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
 		this.type = module.type;
+		this.layer = module.layer ?? null;
 		this.context = module.context;
 		this.resource = module.resource;
 		this.request = module.request;
@@ -104,9 +106,8 @@ export class Module {
 				this.#inner.originalSource
 			);
 			return this.#originalSource;
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	identifier(): string {
@@ -116,9 +117,8 @@ export class Module {
 	nameForCondition(): string | null {
 		if (typeof this.#inner.nameForCondition === "string") {
 			return this.#inner.nameForCondition;
-		} else {
-			return null;
 		}
+		return null;
 	}
 }
 

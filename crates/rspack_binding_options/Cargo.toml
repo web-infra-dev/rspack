@@ -19,10 +19,10 @@ glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
 rspack_binding_values                 = { path = "../rspack_binding_values" }
+rspack_collections                    = { path = "../rspack_collections" }
 rspack_core                           = { path = "../rspack_core" }
 rspack_error                          = { path = "../rspack_error" }
 rspack_hook                           = { path = "../rspack_hook" }
-rspack_identifier                     = { path = "../rspack_identifier" }
 rspack_ids                            = { path = "../rspack_ids" }
 rspack_loader_lightningcss            = { path = "../rspack_loader_lightningcss" }
 rspack_loader_preact_refresh          = { path = "../rspack_loader_preact_refresh" }

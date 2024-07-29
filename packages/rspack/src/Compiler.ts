@@ -335,36 +335,33 @@ class Compiler {
 							}
 							return `${name}/${childName}`;
 						});
-					} else {
-						return this.getInfrastructureLogger(() => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
-									throw new TypeError(
-										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
-									);
-								}
-							}
-							return `${name}/${childName}`;
-						});
 					}
-				} else {
-					if (typeof childName === "function") {
-						return this.getInfrastructureLogger(() => {
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
-									throw new TypeError(
-										"Logger.getChildLogger(name) called with a function not returning a name"
-									);
-								}
+					return this.getInfrastructureLogger(() => {
+						if (typeof name === "function") {
+							name = name();
+							if (!name) {
+								throw new TypeError(
+									"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
+								);
 							}
-							return `${name}/${childName}`;
-						});
-					} else {
-						return this.getInfrastructureLogger(`${name}/${childName}`);
-					}
+						}
+						return `${name}/${childName}`;
+					});
 				}
+				if (typeof childName === "function") {
+					return this.getInfrastructureLogger(() => {
+						if (typeof childName === "function") {
+							childName = childName();
+							if (!childName) {
+								throw new TypeError(
+									"Logger.getChildLogger(name) called with a function not returning a name"
+								);
+							}
+						}
+						return `${name}/${childName}`;
+					});
+				}
+				return this.getInfrastructureLogger(`${name}/${childName}`);
 			}
 		);
 	}
@@ -432,9 +429,8 @@ class Compiler {
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
 								return finalCallback(err);
-							} else {
-								return finalCallback(null, stats);
 							}
+							return finalCallback(null, stats);
 						});
 					});
 				});
@@ -891,9 +887,9 @@ class Compiler {
 								require: __webpack_require__
 							};
 
-							interceptModuleExecution.forEach(
-								(handler: (execOptions: any) => void) => handler(execOptions)
-							);
+							for (const handler of interceptModuleExecution) {
+								handler(execOptions);
+							}
 
 							const result = codegenResults.map[id]["build time"];
 							const moduleObject = execOptions.module;
@@ -921,12 +917,13 @@ class Compiler {
 								""
 							)
 						] = {});
-						const interceptModuleExecution = (__webpack_require__[
-							RuntimeGlobals.interceptModuleExecution.replace(
-								`${RuntimeGlobals.require}.`,
-								""
-							)
-						] = []);
+						const interceptModuleExecution: ((execOptions: any) => void)[] =
+							(__webpack_require__[
+								RuntimeGlobals.interceptModuleExecution.replace(
+									`${RuntimeGlobals.require}.`,
+									""
+								)
+							] = []);
 
 						for (const runtimeModule of runtimeModules) {
 							__webpack_require__(runtimeModule);

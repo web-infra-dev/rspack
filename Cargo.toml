@@ -22,7 +22,7 @@ heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
 indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
-itertools          = { version = "0.12.1" }
+itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.57" }
 linked_hash_set    = { version = "0.1.4" }
@@ -58,17 +58,17 @@ xxhash-rust        = { version = "0.8.10" }
 napi              = { package = "napi-h", version = "=2.16.1" }
 napi-build        = { version = "2" }
 napi-derive       = { version = "2" }
-tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
+tikv-jemallocator = { version = "=0.6.0", features = ["disable_initial_exec_tls"] }
 
 # Must be pinned with the same swc versions
 #rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
 swc_config          = { version = "=0.1.14" }
-swc_core            = { version = "0.96.9", default-features = false }
-swc_ecma_minifier   = { version = "=0.197.3", default-features = false }
-swc_error_reporters = { version = "=0.18.1" }
-swc_html            = { version = "=0.142.0" }
-swc_html_minifier   = { version = "=0.139.1" }
-swc_node_comments   = { version = "=0.21.0" }
+swc_core            = { version = "0.99.5", default-features = false }
+swc_ecma_minifier   = { version = "=0.200.3", default-features = false }
+swc_error_reporters = { version = "=0.20.0" }
+swc_html            = { version = "=0.145.0" }
+swc_html_minifier   = { version = "=0.142.2" }
+swc_node_comments   = { version = "=0.23.0" }
 
 [profile.dev]
 codegen-units = 16

@@ -4,6 +4,7 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
+use rspack_collections::{IdentifierSet, UkeyMap};
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
@@ -16,7 +17,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::IdentifierSet;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -82,7 +82,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut updated_modules: IdentifierSet = Default::default();
   let mut updated_runtime_modules: IdentifierSet = Default::default();
   let mut completely_removed_modules: HashSet<String> = Default::default();
-  let mut updated_chunks: HashMap<ChunkUkey, HashSet<String>> = Default::default();
+  let mut updated_chunks: UkeyMap<ChunkUkey, HashSet<String>> = Default::default();
 
   for (old_uri, (old_hash, old_module_id)) in &old_all_modules {
     if let Some((now_hash, _)) = now_all_modules.get(old_uri) {

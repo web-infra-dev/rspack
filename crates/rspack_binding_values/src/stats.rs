@@ -289,6 +289,7 @@ pub struct JsStatsAssetInfo {
   pub javascript_module: Option<bool>,
   pub chunkhash: Vec<String>,
   pub contenthash: Vec<String>,
+  pub fullhash: Vec<String>,
   pub related: Vec<JsStatsAssetInfoRelated>,
 }
 
@@ -303,6 +304,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
       javascript_module: stats.javascript_module,
       chunkhash: stats.chunk_hash,
       contenthash: stats.content_hash,
+      fullhash: stats.full_hash,
       related: stats
         .related
         .into_iter()
@@ -337,6 +339,7 @@ pub struct JsStatsModule {
   r#type: &'static str,
   module_type: &'static str,
   identifier: &'static str,
+  layer: Option<String>,
   name: String,
   id: Option<String>,
   chunks: Vec<Option<String>>,
@@ -429,6 +432,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       depth: stats_module.depth.map(|d| d as u32),
       chunks: stats_module.chunks,
       module_type: stats_module.module_type.as_str(),
+      layer: stats_module.layer.map(|i| i.into_owned()),
       identifier: stats_module.identifier.as_str(),
       id: stats_module.id.map(|i| i.to_owned()),
       dependent: stats_module.dependent,

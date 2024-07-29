@@ -11,12 +11,13 @@ use swc_core::common::Span;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context, Dependency,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRule,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -386,8 +387,9 @@ impl NormalModuleFactory {
           } else {
             &resource_data
           },
-          data.dependency.category(),
+          data.dependency.as_ref(),
           data.issuer.as_deref(),
+          data.issuer_layer.as_deref(),
         )
         .await?
     };
@@ -510,6 +512,14 @@ impl NormalModuleFactory {
 
     let resolved_module_type =
       self.calculate_module_type(match_module_type, &resolved_module_rules);
+    let resolved_module_layer =
+      self.calculate_module_layer(data.issuer_layer.as_ref(), &resolved_module_rules);
+    if resolved_module_layer.is_some() && !self.options.experiments.layers {
+      return Err(error!(
+        "'Rule.layer' is only allowed when 'experiments.layers' is enabled"
+      ));
+    }
+
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
@@ -579,6 +589,7 @@ impl NormalModuleFactory {
         create_data.user_request.clone(),
         create_data.raw_request.clone(),
         resolved_module_type,
+        resolved_module_layer,
         resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
@@ -609,15 +620,18 @@ impl NormalModuleFactory {
   async fn calculate_module_rules<'a>(
     &'a self,
     resource_data: &ResourceData,
-    dependency: &DependencyCategory,
+    dependency: &dyn Dependency,
     issuer: Option<&'a str>,
+    issuer_layer: Option<&'a str>,
   ) -> Result<Vec<&'a ModuleRule>> {
     let mut rules = Vec::new();
     module_rules_matcher(
       &self.options.module.rules,
       resource_data,
       issuer,
-      dependency,
+      issuer_layer,
+      dependency.category(),
+      dependency.get_attributes(),
       &mut rules,
     )
     .await?;
@@ -723,6 +737,21 @@ impl NormalModuleFactory {
     });
 
     resolved_module_type
+  }
+
+  fn calculate_module_layer(
+    &self,
+    issuer_layer: Option<&ModuleLayer>,
+    module_rules: &[&ModuleRule],
+  ) -> Option<ModuleLayer> {
+    let mut resolved_module_layer = issuer_layer;
+    module_rules.iter().for_each(|module_rule| {
+      if let Some(module_layer) = &module_rule.layer {
+        resolved_module_layer = Some(module_layer);
+      };
+    });
+
+    resolved_module_layer.cloned()
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {

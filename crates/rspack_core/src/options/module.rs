@@ -504,6 +504,7 @@ impl Default for CssExportsConvention {
 }
 
 pub type DescriptionData = HashMap<String, RuleSetCondition>;
+pub type With = HashMap<String, RuleSetCondition>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -653,12 +654,15 @@ pub struct ModuleRule {
   pub resource_fragment: Option<RuleSetCondition>,
   pub dependency: Option<RuleSetCondition>,
   pub issuer: Option<RuleSetCondition>,
+  pub issuer_layer: Option<RuleSetCondition>,
   pub scheme: Option<RuleSetCondition>,
   pub mimetype: Option<RuleSetCondition>,
   pub description_data: Option<DescriptionData>,
+  pub with: Option<With>,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
+  pub layer: Option<String>,
   #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,

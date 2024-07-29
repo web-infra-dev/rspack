@@ -10,7 +10,7 @@ pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec
   let module_graph = compilation.get_module_graph();
   let modules = compilation
     .chunk_graph
-    .get_chunk_modules(&ChunkUkey::from(js_chunk_ukey as usize), &module_graph);
+    .get_chunk_modules(&ChunkUkey::from(js_chunk_ukey), &module_graph);
 
   return modules
     .iter()
@@ -23,7 +23,7 @@ pub fn get_chunk_entry_modules(js_chunk_ukey: u32, compilation: &JsCompilation) 
   let compilation = &compilation.0;
   let modules = compilation
     .chunk_graph
-    .get_chunk_entry_modules(&ChunkUkey::from(js_chunk_ukey as usize));
+    .get_chunk_entry_modules(&ChunkUkey::from(js_chunk_ukey));
   let module_graph = compilation.get_module_graph();
   return modules
     .iter()
@@ -41,7 +41,7 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
   let chunks = compilation
     .chunk_graph
     .get_chunk_entry_dependent_chunks_iterable(
-      &ChunkUkey::from(js_chunk_ukey as usize),
+      &ChunkUkey::from(js_chunk_ukey),
       &compilation.chunk_by_ukey,
       &compilation.chunk_group_by_ukey,
     );
@@ -63,7 +63,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
     compilation
       .chunk_graph
       .get_chunk_modules_iterable_by_source_type(
-        &ChunkUkey::from(js_chunk_ukey as usize),
+        &ChunkUkey::from(js_chunk_ukey),
         SourceType::from(source_type.as_str()),
         &compilation.get_module_graph(),
       )

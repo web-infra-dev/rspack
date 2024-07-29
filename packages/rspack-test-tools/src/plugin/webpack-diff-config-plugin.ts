@@ -13,6 +13,7 @@ export class WebpackDiffConfigPlugin {
 	) {}
 	apply(compiler: Compiler) {
 		const { options } = compiler;
+
 		options.mode = "development";
 		options.devtool = false;
 
@@ -20,11 +21,11 @@ export class WebpackDiffConfigPlugin {
 		options.optimization.minimize = false;
 		options.optimization.chunkIds = "named";
 		options.optimization.moduleIds = "named";
-		options.optimization.mangleExports = false;
-		options.optimization.concatenateModules = false;
+		options.optimization.mangleExports ??= false;
+		options.optimization.concatenateModules ??= false;
 
 		options.output ??= {};
-		options.output.pathinfo = false;
+		options.output.pathinfo ??= false;
 
 		options.output.environment ??= {};
 		options.output.environment.arrowFunction ??= false;

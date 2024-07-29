@@ -4,7 +4,9 @@ use std::ops::DerefMut;
 use std::path::PathBuf;
 
 use napi_derive::napi;
+use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
+use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
@@ -190,6 +192,24 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_named_chunk_group_keys(&self) -> Vec<String> {
+    self
+      .0
+      .named_chunk_groups
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>()
+  }
+
+  #[napi]
+  pub fn get_named_chunk_group(&self, name: String) -> Option<JsChunkGroup> {
+    self.0.named_chunk_groups.get(&name).and_then(|c| {
+      get_chunk_group_from_ukey(c, &self.0.chunk_group_by_ukey)
+        .map(|cg| JsChunkGroup::from_chunk_group(cg, self.0))
+    })
+  }
+
+  #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
     let source = CompatSource::from(source).boxed();
     match self.0.assets_mut().entry(name) {
@@ -275,6 +295,16 @@ impl JsCompilation {
         )
       })
       .collect()
+  }
+
+  #[napi(getter)]
+  pub fn chunk_groups(&self) -> Vec<JsChunkGroup> {
+    self
+      .0
+      .chunk_group_by_ukey
+      .values()
+      .map(|cg| JsChunkGroup::from_chunk_group(cg, self.0))
+      .collect::<Vec<JsChunkGroup>>()
   }
 
   #[napi(getter)]
@@ -459,9 +489,7 @@ impl JsCompilation {
       let modules = self
         .0
         .rebuild_module(
-          rustc_hash::FxHashSet::from_iter(
-            module_identifiers.into_iter().map(ModuleIdentifier::from),
-          ),
+          IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()

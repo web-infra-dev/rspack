@@ -441,10 +441,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         };
         if let Some(ref mut scope) = generate_context.concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-          // TODO: inspect supportConst https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/asset/AssetGenerator.js#L382-L386
+          let supports_const = compilation.options.output.environment.supports_const();
+          let declaration_kind = if supports_const { "const" } else { "var" };
           Ok(
             RawSource::from(format!(
-              r#"const {NAMESPACE_OBJECT_EXPORT} = {exported_content};"#
+              r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = {exported_content};"#
             ))
             .boxed(),
           )

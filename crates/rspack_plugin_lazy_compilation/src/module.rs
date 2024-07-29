@@ -1,16 +1,16 @@
 use std::{hash::Hash, path::PathBuf, sync::Arc};
 
+use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise,
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_identifier::Identifiable;
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use rustc_hash::FxHashSet;
@@ -131,6 +131,10 @@ impl Module for LazyCompilationProxyModule {
     &MODULE_TYPE
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.create_data.issuer_layer.as_ref()
+  }
+
   fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
     200f64
   }
@@ -161,13 +165,13 @@ impl Module for LazyCompilationProxyModule {
     if self.active {
       let dep = LazyCompilationDependency::new(self.create_data.clone());
 
-      blocks.push(AsyncDependenciesBlock::new(
+      blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
         None,
         None,
         vec![Box::new(dep)],
         None,
-      ));
+      )));
     }
 
     let mut files = FxHashSet::default();
@@ -304,7 +308,7 @@ impl Module for LazyCompilationProxyModule {
 }
 
 impl Identifiable for LazyCompilationProxyModule {
-  fn identifier(&self) -> rspack_identifier::Identifier {
+  fn identifier(&self) -> rspack_collections::Identifier {
     self.identifier
   }
 }

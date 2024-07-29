@@ -6,6 +6,7 @@
 #![feature(hash_raw_entry)]
 #![feature(option_get_or_insert_default)]
 #![feature(slice_group_by)]
+
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub mod diagnostics;
@@ -19,7 +20,7 @@ pub use fake_namespace_object::*;
 pub use template::Template;
 mod module_profile;
 pub use module_profile::*;
-use rspack_database::Database;
+use rspack_collections::Database;
 pub mod external_module;
 pub use external_module::*;
 mod logger;
@@ -287,6 +288,8 @@ impl From<&str> for ModuleType {
     }
   }
 }
+
+pub type ModuleLayer = String;
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;

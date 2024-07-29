@@ -18,7 +18,7 @@ const BENCHMARK_DATA: BenchmarkData = {
       },
       {
         time: 0.36,
-        desc: 'bold',
+        desc: 'build',
       },
       {
         time: 0.09,
@@ -35,7 +35,7 @@ const BENCHMARK_DATA: BenchmarkData = {
       },
       {
         time: 1.37,
-        desc: 'bold',
+        desc: 'build',
       },
       {
         time: 0.05,
@@ -52,7 +52,7 @@ const BENCHMARK_DATA: BenchmarkData = {
       },
       {
         time: 2.12,
-        desc: 'bold',
+        desc: 'build',
       },
       {
         time: 0.22,
@@ -69,7 +69,7 @@ const BENCHMARK_DATA: BenchmarkData = {
       },
       {
         time: 6.47,
-        desc: 'bold',
+        desc: 'build',
       },
       {
         time: 0.22,

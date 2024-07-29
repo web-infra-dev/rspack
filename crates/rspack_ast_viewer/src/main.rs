@@ -40,7 +40,7 @@ fn from_str_fn(ty: &str) -> ModuleType {
 
 fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
-  let fm = cm.new_source_file(FileName::Anon, input);
+  let fm = cm.new_source_file(Arc::new(FileName::Anon), input);
   let mut errors = Default::default();
 
   let ast = try_with_handler(cm, Default::default(), |handler| {

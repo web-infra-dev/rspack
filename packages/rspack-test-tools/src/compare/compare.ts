@@ -39,10 +39,12 @@ export function compareFile(
 	if (!sourceExists && !distExists) {
 		result.type = ECompareResultType.Missing;
 		return result;
-	} else if (!sourceExists && distExists) {
+	}
+	if (!sourceExists && distExists) {
 		result.type = ECompareResultType.OnlyDist;
 		return result;
-	} else if (sourceExists && !distExists) {
+	}
+	if (sourceExists && !distExists) {
 		result.type = ECompareResultType.OnlySource;
 		return result;
 	}
@@ -60,10 +62,12 @@ export function compareFile(
 	result.type = ECompareResultType.Different;
 
 	const sourceModules = parseModules(sourceContent, {
-		bootstrap: compareOptions.bootstrap
+		bootstrap: compareOptions.bootstrap,
+		renameModule: compareOptions.renameModule
 	});
 	const distModules = parseModules(distContent, {
-		bootstrap: compareOptions.bootstrap
+		bootstrap: compareOptions.bootstrap,
+		renameModule: compareOptions.renameModule
 	});
 
 	for (const type of ["modules", "runtimeModules"]) {
@@ -78,9 +82,6 @@ export function compareFile(
 			moduleList = compareOptions[t] as string[];
 		} else {
 			continue;
-		}
-		if (typeof compareOptions.renameModule === "function") {
-			moduleList = moduleList.map(compareOptions.renameModule);
 		}
 		result.modules[t] = compareModules(
 			moduleList,
@@ -135,57 +136,53 @@ export function compareContent(
 						dist: 0
 					}
 				};
-			} else {
-				const difference = compareOptions.detail
-					? diffStringsUnified(sourceContent.trim(), distContent.trim())
-					: undefined;
-				const diffLines = diffLinesRaw(
-					sourceContent.trim().split("\n"),
-					distContent.trim().split("\n")
-				);
-				return {
-					type: ECompareResultType.Different,
-					detail: difference,
-					source: sourceContent,
-					dist: distContent,
-					lines: {
-						source: diffLines.filter(l => l[0] < 0).length,
-						common: diffLines.filter(l => l[0] === 0).length,
-						dist: diffLines.filter(l => l[0] > 0).length
-					}
-				};
 			}
-		} else {
+			const difference = compareOptions.detail
+				? diffStringsUnified(sourceContent.trim(), distContent.trim())
+				: undefined;
+			const diffLines = diffLinesRaw(
+				sourceContent.trim().split("\n"),
+				distContent.trim().split("\n")
+			);
 			return {
-				type: ECompareResultType.OnlySource,
+				type: ECompareResultType.Different,
+				detail: difference,
 				source: sourceContent,
-				lines: {
-					source: sourceContent.trim().split("\n").length,
-					common: 0,
-					dist: 0
-				}
-			};
-		}
-	} else {
-		if (distContent) {
-			return {
-				type: ECompareResultType.OnlyDist,
 				dist: distContent,
 				lines: {
-					source: 0,
-					common: 0,
-					dist: distContent.trim().split("\n").length
-				}
-			};
-		} else {
-			return {
-				type: ECompareResultType.Missing,
-				lines: {
-					source: 0,
-					common: 0,
-					dist: 0
+					source: diffLines.filter(l => l[0] < 0).length,
+					common: diffLines.filter(l => l[0] === 0).length,
+					dist: diffLines.filter(l => l[0] > 0).length
 				}
 			};
 		}
+		return {
+			type: ECompareResultType.OnlySource,
+			source: sourceContent,
+			lines: {
+				source: sourceContent.trim().split("\n").length,
+				common: 0,
+				dist: 0
+			}
+		};
 	}
+	if (distContent) {
+		return {
+			type: ECompareResultType.OnlyDist,
+			dist: distContent,
+			lines: {
+				source: 0,
+				common: 0,
+				dist: distContent.trim().split("\n").length
+			}
+		};
+	}
+	return {
+		type: ECompareResultType.Missing,
+		lines: {
+			source: 0,
+			common: 0,
+			dist: 0
+		}
+	};
 }

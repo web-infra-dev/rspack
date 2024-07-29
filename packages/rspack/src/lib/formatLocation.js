@@ -18,7 +18,8 @@ const formatPosition = pos => {
 	if (pos && typeof pos === "object") {
 		if ("line" in pos && "column" in pos) {
 			return `${pos.line}:${pos.column}`;
-		} else if ("line" in pos) {
+		}
+		if ("line" in pos) {
 			return `${pos.line}:?`;
 		}
 	}
@@ -41,7 +42,8 @@ const formatLocation = loc => {
 				loc.start.line === loc.end.line
 			) {
 				return `${formatPosition(loc.start)}-${loc.end.column}`;
-			} else if (
+			}
+			if (
 				typeof loc.start === "object" &&
 				typeof loc.start.line === "number" &&
 				typeof loc.start.column !== "number" &&
@@ -50,9 +52,8 @@ const formatLocation = loc => {
 				typeof loc.end.column !== "number"
 			) {
 				return `${loc.start.line}-${loc.end.line}`;
-			} else {
-				return `${formatPosition(loc.start)}-${formatPosition(loc.end)}`;
 			}
+			return `${formatPosition(loc.start)}-${formatPosition(loc.end)}`;
 		}
 		if ("start" in loc && loc.start) {
 			return formatPosition(loc.start);

@@ -1,12 +1,12 @@
 use std::{path::Path, sync::Arc};
 
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
   Resolver, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_loader_lightningcss::LIGHTNINGCSS_LOADER_IDENTIFIER;
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;

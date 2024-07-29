@@ -169,8 +169,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     url: '/plugins/webpack/entry-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
-      en: '`layer` and `wasmLoading` options are not supported, and `filename` cannot accept a function as a value',
-      zh: '不支持 `layer`、`wasmLoading` 选项，`filename` 无法接受函数作为值',
+      en: '`layer` and `wasmLoading` options are not supported',
+      zh: '不支持 `layer`、`wasmLoading` 选项',
     },
   },
   {
@@ -325,8 +325,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     name: 'DynamicEntryPlugin',
     status: SupportStatus.PartiallySupported,
     notes: {
-      en: '`layer` and `wasmLoading` options are not supported, and `filename` cannot accept a function as a value',
-      zh: '不支持 `layer`、`wasmLoading` 选项，`filename` 无法接受函数作为值',
+      en: '`layer` and `wasmLoading` options are not supported',
+      zh: '不支持 `layer`、`wasmLoading` 选项',
     },
   },
   {

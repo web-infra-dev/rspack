@@ -13,7 +13,7 @@ use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
-  JavascriptParserOptions, ModuleIdentifier, ResourceData,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
@@ -207,7 +207,10 @@ pub struct JavascriptParser<'parser> {
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub(crate) blocks: Vec<AsyncDependenciesBlock>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  pub(crate) blocks: Vec<Box<AsyncDependenciesBlock>>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
   pub additional_data: AdditionalData,
   pub(crate) comments: Option<&'parser dyn Comments>,
@@ -220,6 +223,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
+  pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
@@ -254,6 +258,7 @@ impl<'parser> JavascriptParser<'parser> {
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
@@ -262,11 +267,11 @@ impl<'parser> JavascriptParser<'parser> {
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     additional_data: AdditionalData,
   ) -> Self {
-    let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
-    let errors = Vec::with_capacity(32);
-    let dependencies = Vec::with_capacity(256);
-    let blocks = Vec::with_capacity(256);
-    let presentational_dependencies = Vec::with_capacity(256);
+    let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
+    let errors = Vec::with_capacity(4);
+    let dependencies = Vec::with_capacity(64);
+    let blocks = Vec::with_capacity(64);
+    let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
@@ -379,6 +384,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       module_type,
+      module_layer,
       parser_exports_state,
       enter_call: 0,
       worker_index: 0,
@@ -960,6 +966,7 @@ impl<'parser> JavascriptParser<'parser> {
           eval::eval_call_expression(
             parser,
             &CallExpr {
+              ctxt: call.ctxt,
               span: call.span,
               callee: call.callee.clone().as_callee(),
               args: call.args.clone(),

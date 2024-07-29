@@ -6,15 +6,17 @@ use std::{
   sync::{atomic::AtomicU32, Arc},
 };
 
-use dashmap::{DashMap, DashSet};
+use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
+use rspack_collections::{
+  Identifiable, Identifier, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet,
+};
 use rspack_error::{error, Diagnostic, Result, Severity};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_identifier::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
@@ -155,7 +157,7 @@ pub struct Compilation {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
-  pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
   pub code_generation_results: CodeGenerationResults,
   pub built_modules: IdentifierSet,
@@ -173,7 +175,7 @@ pub struct Compilation {
 
   pub value_cache_versions: ValueCacheVersions,
 
-  import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
+  import_var_map: IdentifierDashMap<ImportVarMap>,
 
   pub module_executor: Option<ModuleExecutor>,
 
@@ -258,7 +260,7 @@ impl Compilation {
 
       value_cache_versions: ValueCacheVersions::default(),
 
-      import_var_map: DashMap::new(),
+      import_var_map: IdentifierDashMap::default(),
 
       module_executor,
 
@@ -695,7 +697,7 @@ impl Compilation {
 
   pub async fn rebuild_module<T>(
     &mut self,
-    module_identifiers: HashSet<ModuleIdentifier>,
+    module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
@@ -1229,7 +1231,7 @@ impl Compilation {
     }
   }
 
-  pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
+  pub fn get_chunk_graph_entries(&self) -> UkeySet<ChunkUkey> {
     let entries = self.entrypoints.values().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
@@ -1238,7 +1240,7 @@ impl Compilation {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
-    HashSet::from_iter(entries.chain(async_entries))
+    UkeySet::from_iter(entries.chain(async_entries))
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -1759,7 +1761,7 @@ pub struct AssetInfo {
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
-  // pub full_hash:
+  pub full_hash: HashSet<String>,
   /// the value(s) of the chunk hash used for this asset
   pub chunk_hash: HashSet<String>,
   /// the value(s) of the module hash used for this asset
@@ -1821,6 +1823,10 @@ impl AssetInfo {
     self
   }
 
+  pub fn set_full_hash(&mut self, v: String) {
+    self.full_hash.insert(v);
+  }
+
   pub fn set_content_hash(&mut self, v: String) {
     self.content_hash.insert(v);
   }
@@ -1878,7 +1884,7 @@ pub struct AssetInfoRelated {
 /// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
 /// the same time.
 pub fn assign_depths(
-  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+  assign_map: &mut IdentifierMap<usize>,
   mg: &ModuleGraph,
   modules: Vec<&ModuleIdentifier>,
 ) {
@@ -1903,7 +1909,7 @@ pub fn assign_depths(
 }
 
 pub fn assign_depth(
-  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+  assign_map: &mut IdentifierMap<usize>,
   mg: &ModuleGraph,
   module_id: ModuleIdentifier,
 ) {
@@ -1912,16 +1918,15 @@ pub fn assign_depth(
   q.push_back(module_id);
   let mut depth;
   assign_map.insert(module_id, 0);
-  let process_module =
-    |m: ModuleIdentifier,
-     depth: usize,
-     q: &mut VecDeque<ModuleIdentifier>,
-     assign_map: &mut HashMap<rspack_identifier::Identifier, usize>| {
-      if !set_depth_if_lower(m, depth, assign_map) {
-        return;
-      }
-      q.push_back(m);
-    };
+  let process_module = |m: ModuleIdentifier,
+                        depth: usize,
+                        q: &mut VecDeque<ModuleIdentifier>,
+                        assign_map: &mut IdentifierMap<usize>| {
+    if !set_depth_if_lower(m, depth, assign_map) {
+      return;
+    }
+    q.push_back(m);
+  };
   while let Some(item) = q.pop_front() {
     depth = assign_map.get(&item).expect("should have depth") + 1;
 
@@ -1934,7 +1939,7 @@ pub fn assign_depth(
 pub fn set_depth_if_lower(
   module_id: ModuleIdentifier,
   depth: usize,
-  assign_map: &mut HashMap<ModuleIdentifier, usize>,
+  assign_map: &mut IdentifierMap<usize>,
 ) -> bool {
   let Some(&cur_depth) = assign_map.get(&module_id) else {
     assign_map.insert(module_id, depth);

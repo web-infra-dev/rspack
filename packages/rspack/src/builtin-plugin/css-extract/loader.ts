@@ -5,10 +5,10 @@ import { CssExtractRspackPlugin } from "./index";
 import schema from "./loader-options.json";
 import { stringifyLocal, stringifyRequest } from "./utils";
 
+export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-export const ABSOLUTE_PUBLIC_PATH = "webpack:///mini-css-extract-plugin/";
-export const BASE_URI = "webpack://";
+export const ABSOLUTE_PUBLIC_PATH = BASE_URI + "/mini-css-extract-plugin/";
 export const SINGLE_DOT_PATH_SEGMENT =
 	"__mini_css_extract_plugin_single_dot_path_segment__";
 
@@ -36,29 +36,39 @@ export interface CssExtractRspackLoaderOptions {
 	defaultExport?: boolean;
 }
 
-function hotLoader(
+export function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: CssExtractRspackLoaderOptions;
-		locals: Record<string, string>;
+		options?: CssExtractRspackLoaderOptions;
+		locals?: Record<string, string>;
 	}
-) {
-	const accept = context.locals
-		? ""
-		: "module.hot.accept(undefined, cssReload);";
+): string {
+	const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
 	return `${content}
     if(module.hot) {
-      // ${Date.now()}
-      var cssReload = require(${stringifyRequest(
-				context.loaderContext,
-				path.join(__dirname, "./hmr/hotModuleReplacement.js")
-			)})(module.id, ${JSON.stringify({
-				...context.options,
-				locals: !!context.locals
-			})});
-      module.hot.dispose(cssReload);
-      ${accept}
+      (function() {
+        var localsJsonString = ${localsJsonString};
+        // ${Date.now()}
+        var cssReload = require(${stringifyRequest(
+					context.loaderContext,
+					path.join(__dirname, "hmr/hotModuleReplacement.js")
+				)}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   `;
 }
@@ -141,7 +151,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			| Record<string, any>
 	) => {
 		/** @type {Locals | undefined} */
-		let locals: Record<string, string>;
+		let locals: Record<string, string> | undefined;
 		let namedExport;
 
 		const esModule =
@@ -160,7 +170,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				(!originalExports.default || !("locals" in originalExports.default));
 
 			if (namedExport) {
-				Object.keys(originalExports).forEach(key => {
+				for (const key of Object.keys(originalExports)) {
 					if (key !== "default") {
 						if (!locals) {
 							locals = {};
@@ -170,7 +180,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 							originalExports as Record<string, string>
 						)[key];
 					}
-				});
+				}
 			} else {
 				locals = exports && exports.locals;
 			}
@@ -211,7 +221,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		}
 
 		const result = (function makeResult() {
-			if (locals!) {
+			if (locals) {
 				if (namedExport) {
 					const identifiers = Array.from(
 						(function* generateIdentifiers() {
@@ -229,7 +239,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 						.map(
 							([id, key]) =>
 								`\nvar ${id} = ${stringifyLocal(
-									/** @type {Locals} */ locals[key]
+									/** @type {Locals} */ locals![key]
 								)};`
 						)
 						.join("");
@@ -252,7 +262,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				return `\n${
 					esModule ? "export default" : "module.exports = "
 				} ${JSON.stringify(locals)};`;
-			} else if (esModule) {
+			}
+			if (esModule) {
 				return "\nexport {};";
 			}
 			return "";

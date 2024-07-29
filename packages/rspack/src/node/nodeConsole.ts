@@ -29,9 +29,8 @@ export = ({ colors, appendOnly, stream }) => {
 				str.replace(/\n/g, colorSuffix + "\n" + prefix + colorPrefix) +
 				colorSuffix
 			);
-		} else {
-			return prefix + str.replace(/\n/g, "\n" + prefix);
 		}
+		return prefix + str.replace(/\n/g, "\n" + prefix);
 	};
 
 	const clearStatusMessage = () => {

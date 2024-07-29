@@ -237,6 +237,7 @@ impl ContextModuleFactory {
           resource: resource.path.to_string_lossy().to_string(),
           resource_query: resource.query,
           resource_fragment: resource.fragment,
+          layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
           type_prefix: dependency.type_prefix(),

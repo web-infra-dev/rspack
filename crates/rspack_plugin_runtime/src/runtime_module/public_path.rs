@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   has_hash_placeholder, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, Filename, PublicPath, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]

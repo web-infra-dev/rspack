@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 use rspack_sources::{BoxSource, Source};
 
 use crate::{ChunkUkey, Compilation, Module};

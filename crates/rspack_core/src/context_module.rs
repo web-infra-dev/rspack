@@ -6,14 +6,13 @@ use std::{
   sync::Arc,
 };
 
-use derivative::Derivative;
 use indoc::formatdoc;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_macros::impl_source_map_config;
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
@@ -29,9 +28,9 @@ use crate::{
   BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
   ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
   DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
-  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  FakeNamespaceObjectMode, GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer,
+  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -123,16 +122,12 @@ pub enum ContextTypePrefix {
   Normal,
 }
 
-#[derive(Derivative, Debug, Clone)]
-#[derivative(Hash, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub reg_exp: Option<RspackRegex>,
-  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub include: Option<RspackRegex>,
-  #[derivative(Hash = "ignore", PartialEq = "ignore")]
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
   pub request: String,
@@ -143,15 +138,17 @@ pub struct ContextOptions {
   pub start: u32,
   pub end: u32,
   pub referenced_exports: Option<Vec<Atom>>,
+  pub attributes: Option<ImportAttributes>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
   pub resource: String,
   pub resource_query: String,
   pub resource_fragment: String,
   pub context_options: ContextOptions,
+  pub layer: Option<ModuleLayer>,
   pub resolve_options: Option<Box<Resolve>>,
   pub type_prefix: ContextTypePrefix,
 }
@@ -849,6 +846,7 @@ impl Module for ContextModule {
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
   }
+
   fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
     None
   }
@@ -862,7 +860,13 @@ impl Module for ContextModule {
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    let mut id = contextify(options.context, &self.options.resource);
+    let mut id = String::new();
+    if let Some(layer) = &self.options.layer {
+      id += "(";
+      id += layer;
+      id += ")/";
+    }
+    id += &contextify(options.context, &self.options.resource);
     id.push(' ');
     id.push_str(self.options.context_options.mode.as_str());
     if self.options.context_options.recursive {
@@ -1074,8 +1078,14 @@ impl ContextModule {
             user_request: r.request.to_string(),
             category: options.context_options.category,
             context: options.resource.clone().into(),
+            layer: options.layer.clone(),
             options: options.context_options.clone(),
-            resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
+            resource_identifier: ContextElementDependency::create_resource_identifier(
+              &options.resource,
+              &path,
+              options.context_options.attributes.as_ref(),
+            ),
+            attributes: options.context_options.attributes.clone(),
             referenced_exports: options.context_options.referenced_exports.clone(),
             dependency_type: DependencyType::ContextElement(options.type_prefix),
           });
@@ -1085,7 +1095,10 @@ impl ContextModule {
     Ok(())
   }
 
-  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<AsyncDependenciesBlock>)> {
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -1133,7 +1146,7 @@ impl ContextModule {
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
       }
-      blocks.push(block);
+      blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
@@ -1175,7 +1188,7 @@ impl ContextModule {
           prefetch_order,
           fetch_priority,
         )));
-        blocks.push(block);
+        blocks.push(Box::new(block));
       }
     } else {
       dependencies = context_element_dependencies
@@ -1248,6 +1261,10 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     ContextNameSpaceObject::Bool(true) => "|namespace object",
     _ => "",
   };
+  if let Some(layer) = &options.layer {
+    id += "|layer: ";
+    id += layer;
+  }
   id.into()
 }
 

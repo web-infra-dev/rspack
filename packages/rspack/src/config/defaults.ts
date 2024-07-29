@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { Template } from "../Template";
 import {
 	LightningCssMinimizerRspackPlugin,
 	SwcJsMinimizerRspackPlugin
@@ -48,7 +49,6 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
-import Template = require("../Template");
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -189,6 +189,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
+	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
@@ -320,11 +321,11 @@ const applyModuleDefaults = (
 		F(module.generator, "css", () => ({}));
 		assertNotNill(module.generator.css);
 		D(
-			module.generator["css"],
+			module.generator.css,
 			"exportsOnly",
 			!targetProperties || !targetProperties.document
 		);
-		D(module.generator["css"], "esModule", true);
+		D(module.generator.css, "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));
 		assertNotNill(module.generator["css/auto"]);
@@ -474,15 +475,11 @@ const applyModuleDefaults = (
 						type: "asset/resource"
 					}
 				]
+			},
+			{
+				with: { type: "json" },
+				type: "json"
 			}
-			// {
-			// 	assert: { type: "json" },
-			// 	type: "json"
-			// },
-			// {
-			// 	with: { type: "json" },
-			// 	type: "json"
-			// }
 		);
 
 		return rules;
@@ -519,9 +516,11 @@ const applyOutputDefaults = (
 				: library;
 		if (Array.isArray(libraryName)) {
 			return libraryName.join(".");
-		} else if (typeof libraryName === "object") {
+		}
+		if (typeof libraryName === "object") {
 			return getLibraryName(libraryName.root);
-		} else if (typeof libraryName === "string") {
+		}
+		if (typeof libraryName === "string") {
 			return libraryName;
 		}
 		return "";
@@ -590,9 +589,7 @@ const applyOutputDefaults = (
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 
-	const uniqueNameId = Template.toIdentifier(
-		/** @type {NonNullable<Output["uniqueName"]>} */ output.uniqueName
-	);
+	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
 	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
@@ -626,18 +623,17 @@ const applyOutputDefaults = (
 						"JSONP Array push can be chosen when 'document' is available.\n" +
 						helpMessage
 				);
-			} else {
-				if (tp.document) return "array-push";
-				if (tp.require) return "commonjs";
-				if (tp.nodeBuiltins) return "commonjs";
-				if (tp.importScripts) return "array-push";
-				throw new Error(
-					"For the selected environment is no default script chunk format available:\n" +
-						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-						"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
-						helpMessage
-				);
 			}
+			if (tp.document) return "array-push";
+			if (tp.require) return "commonjs";
+			if (tp.nodeBuiltins) return "commonjs";
+			if (tp.importScripts) return "array-push";
+			throw new Error(
+				"For the selected environment is no default script chunk format available:\n" +
+					"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
+					"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
+					helpMessage
+			);
 		}
 		throw new Error(
 			"Chunk format can't be selected by default when no target is specified"

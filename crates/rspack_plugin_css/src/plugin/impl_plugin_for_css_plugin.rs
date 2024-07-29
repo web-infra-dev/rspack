@@ -228,7 +228,7 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = chunk_ukey.as_ref(&compilation.chunk_by_ukey);
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   if matches!(chunk.kind, ChunkKind::HotUpdate) {
     return Ok(());
   }
@@ -284,7 +284,7 @@ async fn render_manifest(
   };
   if let Some(conflicts) = conflicts {
     diagnostics.extend(conflicts.into_iter().map(|conflict| {
-      let chunk = conflict.chunk.as_ref(&compilation.chunk_by_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
       let mg = compilation.get_module_graph();
 
       let failed_module = mg
@@ -307,7 +307,7 @@ async fn render_manifest(
         ),
       )
       .with_file(Some(PathBuf::from(&output_path)))
-      .with_chunk(Some(chunk_ukey.as_usize()))
+      .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }
   manifest.push(RenderManifestEntry::new(

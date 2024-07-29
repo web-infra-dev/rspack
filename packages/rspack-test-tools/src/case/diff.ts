@@ -113,6 +113,7 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		files: config.files,
 		modules: config.modules,
 		runtimeModules: config.runtimeModules,
+		renameModule: config.renameModule,
 		ignoreModuleId: config.ignoreModuleId ?? true,
 		ignoreModuleArguments: config.ignoreModuleArguments ?? true,
 		ignorePropertyQuotationMark: config.ignorePropertyQuotationMark ?? true,

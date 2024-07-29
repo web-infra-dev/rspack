@@ -6,7 +6,7 @@ use std::{
 };
 
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
@@ -67,7 +67,7 @@ pub struct Diagnostic {
   module_identifier: Option<Identifier>,
   file: Option<PathBuf>,
   hide_stack: Option<bool>,
-  chunk: Option<usize>,
+  chunk: Option<u32>,
   stack: Option<String>,
 }
 
@@ -182,11 +182,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn chunk(&self) -> Option<usize> {
+  pub fn chunk(&self) -> Option<u32> {
     self.chunk
   }
 
-  pub fn with_chunk(mut self, chunk: Option<usize>) -> Self {
+  pub fn with_chunk(mut self, chunk: Option<u32>) -> Self {
     self.chunk = chunk;
     self
   }

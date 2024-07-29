@@ -116,9 +116,9 @@ var _closeTags: Record<
 	29: "</del>" // reset delete
 };
 
-[21, 22, 27, 28, 39, 49].forEach(n => {
+for (const n of [21, 22, 27, 28, 39, 49]) {
 	_closeTags[n] = "</span>";
-});
+}
 
 /**
  * Normalize ';<seq>' | '<seq>' -> '<seq>'
@@ -188,7 +188,8 @@ export default function ansiHTML(text: string) {
 			var ct = _closeTags[seq];
 			if (typeof ct === "function") {
 				return ct(ansiCodes);
-			} else if (ct) {
+			}
+			if (ct) {
 				// Pop sequence
 				ansiCodes.pop();
 				return ct;

@@ -1,13 +1,11 @@
-use std::hash::BuildHasherDefault;
-
 use dashmap::DashMap;
-use rspack_identifier::{Identifier, IdentifierHasher};
+use rspack_collections::{Identifier, IdentifierDashMap};
 
 use super::Storage;
 
 #[derive(Debug)]
 pub struct MemoryStorage<Item> {
-  data: DashMap<Identifier, Item, BuildHasherDefault<IdentifierHasher>>,
+  data: IdentifierDashMap<Item>,
 }
 
 impl<Item> MemoryStorage<Item> {

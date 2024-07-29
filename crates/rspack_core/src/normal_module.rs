@@ -11,10 +11,10 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
-use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
@@ -22,7 +22,6 @@ use rspack_sources::{
   SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
-use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;
 
@@ -32,8 +31,8 @@ use crate::{
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
   ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
   RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
@@ -113,6 +112,8 @@ pub struct NormalModule {
   raw_request: String,
   /// The resolved module type of a module
   module_type: ModuleType,
+  /// Layer of the module
+  layer: Option<ModuleLayer>,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
@@ -173,8 +174,14 @@ impl NormalModuleSource {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  fn create_id<'request>(module_type: &ModuleType, request: &'request str) -> Cow<'request, str> {
-    if *module_type == ModuleType::JsAuto {
+  fn create_id<'request>(
+    module_type: &ModuleType,
+    layer: Option<&ModuleLayer>,
+    request: &'request str,
+  ) -> Cow<'request, str> {
+    if let Some(layer) = layer {
+      format!("{module_type}|{request}|{layer}").into()
+    } else if *module_type == ModuleType::JsAuto {
       request.into()
     } else {
       format!("{module_type}|{request}").into()
@@ -187,6 +194,7 @@ impl NormalModule {
     user_request: String,
     raw_request: String,
     module_type: impl Into<ModuleType>,
+    layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<ParserOptions>,
     generator_options: Option<GeneratorOptions>,
@@ -196,7 +204,7 @@ impl NormalModule {
     loaders: Vec<BoxLoader>,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, &request);
+    let id = Self::create_id(&module_type, layer.as_ref(), &request);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -206,6 +214,7 @@ impl NormalModule {
       user_request,
       raw_request,
       module_type,
+      layer,
       parser_and_generator,
       parser_options,
       generator_options,
@@ -491,6 +500,7 @@ impl Module for NormalModule {
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
+        module_layer: self.layer.as_ref(),
         module_user_request: &self.user_request,
         module_source_map_kind: *self.get_source_map_kind(),
         loaders: &self.loaders,
@@ -618,8 +628,14 @@ impl Module for NormalModule {
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/NormalModule.js#L362
-    Some(Cow::Owned(contextify(options.context, self.user_request())))
+    let mut ident = String::new();
+    if let Some(layer) = &self.layer {
+      ident += "(";
+      ident += layer;
+      ident += ")/";
+    }
+    ident += &contextify(options.context, self.user_request());
+    Some(Cow::Owned(ident))
   }
 
   fn get_resolve_options(&self) -> Option<Box<Resolve>> {
@@ -650,11 +666,15 @@ impl Module for NormalModule {
     Some(self.context.clone())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
+  }
+
   // Port from https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1120
   fn get_side_effects_connection_state(
     &self,
     module_graph: &ModuleGraph,
-    module_chain: &mut HashSet<ModuleIdentifier>,
+    module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
       return ConnectionState::Bool(!side_effect_free);

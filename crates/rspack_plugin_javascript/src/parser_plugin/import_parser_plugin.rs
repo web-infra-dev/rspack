@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan, GroupOptions,
+  ImportAttributes,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -11,6 +12,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
+use crate::utils::object_properties::{get_attributes, get_value_by_obj_prop};
 use crate::visitors::{
   context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
   ContextModuleScanResult, JavascriptParser,
@@ -103,6 +105,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       );
     }
 
+    let attributes = get_attributes_from_call_expr(node);
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
     if param.is_string() {
@@ -114,6 +117,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           param.string().as_str().into(),
           Some(span),
           exports,
+          attributes,
         );
         parser.dependencies.push(Box::new(dep));
         return Some(true);
@@ -124,6 +128,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         param.string().as_str().into(),
         Some(span),
         exports,
+        attributes,
       ));
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
@@ -142,7 +147,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         chunk_prefetch,
         fetch_priority,
       )));
-      parser.blocks.push(block);
+      parser.blocks.push(Box::new(block));
       Some(true)
     } else {
       let ContextModuleScanResult {
@@ -183,6 +188,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             start: node.span().real_lo(),
             end: node.span().real_hi(),
             referenced_exports: exports,
+            attributes,
           },
           Some(node.span.into()),
           parser.in_try,
@@ -190,4 +196,14 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       Some(true)
     }
   }
+}
+
+fn get_attributes_from_call_expr(node: &CallExpr) -> Option<ImportAttributes> {
+  node
+    .args
+    .get(1)
+    .and_then(|arg| arg.expr.as_object())
+    .and_then(|obj| get_value_by_obj_prop(obj, "with"))
+    .and_then(|expr| expr.as_object())
+    .map(get_attributes)
 }

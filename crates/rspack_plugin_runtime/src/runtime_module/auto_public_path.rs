@@ -1,10 +1,10 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
 

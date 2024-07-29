@@ -1,10 +1,10 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;
 

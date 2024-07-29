@@ -1,9 +1,9 @@
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 
-use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_collections::IdentifierIndexMap;
 use swc_core::atoms::Atom;
 
 use crate::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
@@ -31,13 +31,13 @@ pub struct ModuleReferenceOptions {
 #[derive(Debug, Clone)]
 pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
-  pub modules_map: Arc<IndexMap<ModuleIdentifier, ModuleInfo>>,
+  pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
 }
 
 #[allow(unused)]
 impl ConcatenationScope {
   pub fn new(
-    modules_map: Arc<IndexMap<ModuleIdentifier, ModuleInfo>>,
+    modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     current_module: ConcatenatedModuleInfo,
   ) -> Self {
     ConcatenationScope {

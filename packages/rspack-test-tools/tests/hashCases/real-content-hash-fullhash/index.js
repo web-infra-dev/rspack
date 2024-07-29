@@ -1,0 +1,1 @@
+window.aaa = 1;

@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, SpanExt};
+use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -8,6 +8,7 @@ use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::dependency::{HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency};
+use crate::utils::object_properties::get_attributes;
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
 
 fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
@@ -56,6 +57,7 @@ pub struct HarmonySpecifierData {
   pub source: Atom,
   pub ids: Vec<Atom>,
   pub source_order: i32,
+  pub attributes: Option<ImportAttributes>,
 }
 
 impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
@@ -66,6 +68,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
+    let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
     let dependency = HarmonyImportSideEffectDependency::new(
       source.into(),
       parser.last_harmony_import_order,
@@ -73,6 +76,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       import_decl.src.span.into(),
       DependencyType::EsmImport,
       false,
+      attributes,
     );
     parser.dependencies.push(Box::new(dependency));
 
@@ -95,7 +99,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
   fn import_specifier(
     &self,
     parser: &mut JavascriptParser,
-    _statement: &ImportDecl,
+    statement: &ImportDecl,
     source: &Atom,
     id: Option<&Atom>,
     name: &Atom,
@@ -108,6 +112,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
         source: source.clone(),
         ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
         source_order: parser.last_harmony_import_order,
+        attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
       }),
     );
     Some(true)
@@ -140,7 +145,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       true,
       HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       parser.properties_in_destructuring.remove(&ident.sym),
-      ident.span,
+      settings.attributes,
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));
@@ -207,7 +212,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       direct_import,
       HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
-      callee.span(),
+      settings.attributes,
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));
@@ -271,7 +276,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       false, // x.xx()
       HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
-      member_expr.span,
+      settings.attributes,
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));

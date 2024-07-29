@@ -10,7 +10,6 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-minify": "workspace:*",
     "css-loader": "^6.11.0",
     "file-loader": "^6.2.0",
     "sass-loader": "14.2.1",

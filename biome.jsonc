@@ -34,17 +34,29 @@
 		"enabled": true,
 		"rules": {
 			"recommended": false,
+			"a11y": {
+				"useButtonType": "error",
+				"noSvgWithoutTitle": "error"
+			},
 			"complexity": {
-				"useArrowFunction": "error"
+				"useArrowFunction": "error",
+				"useLiteralKeys": "error",
+				"noForEach": "error"
 			},
 			"style": {
 				"noUnusedTemplateLiteral": "error",
 				"useNodejsImportProtocol": "error",
+				"noUselessElse": "error",
 				"noNonNullAssertion": "off",
 				"useNumberNamespace": "error",
 				"useConst": "error",
 				"useImportType": "error",
-				"useExportType": "error"
+				"useExportType": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error"
+			},
+			"suspicious": {
+				"noDoubleEquals": "error"
 			}
 		},
 		"ignore": [

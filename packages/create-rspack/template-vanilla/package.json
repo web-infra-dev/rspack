@@ -7,7 +7,6 @@
     "build": "cross-env NODE_ENV=production rspack build"
   },
   "devDependencies": {
-    "browserify": "latest",
     "cross-env": "^7.0.3",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*"

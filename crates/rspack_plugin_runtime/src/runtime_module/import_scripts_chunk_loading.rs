@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 
 use super::{
   generate_javascript_hmr_runtime,

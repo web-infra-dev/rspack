@@ -28,12 +28,11 @@ export class EsmRunner<
 					...context,
 					file
 				});
-			} else {
-				return this.requirers.get("cjs")!(currentDirectory, modulePath, {
-					...context,
-					file
-				});
 			}
+			return this.requirers.get("cjs")!(currentDirectory, modulePath, {
+				...context,
+				file
+			});
 		});
 	}
 
@@ -50,8 +49,7 @@ export class EsmRunner<
 				);
 			}
 			const _require = this.getRequire();
-			const file =
-				context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -78,7 +76,7 @@ export class EsmRunner<
 				} as any);
 				esmCache.set(file.path, esm);
 			}
-			if (context["esmMode"] === EEsmMode.Unlinked) return esm;
+			if (context.esmMode === EEsmMode.Unlinked) return esm;
 			return (async () => {
 				await esm.link(async (specifier, referencingModule) => {
 					return await asModule(
@@ -99,14 +97,13 @@ export class EsmRunner<
 				});
 				if ((esm as any).instantiate) (esm as any).instantiate();
 				await esm.evaluate();
-				if (context["esmMode"] === EEsmMode.Evaluated) {
+				if (context.esmMode === EEsmMode.Evaluated) {
 					return esm;
-				} else {
-					const ns = esm.namespace as {
-						default: unknown;
-					};
-					return ns.default && ns.default instanceof Promise ? ns.default : ns;
 				}
+				const ns = esm.namespace as {
+					default: unknown;
+				};
+				return ns.default && ns.default instanceof Promise ? ns.default : ns;
 			})();
 		};
 	}

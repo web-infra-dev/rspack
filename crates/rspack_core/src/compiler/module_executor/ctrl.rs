@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+use rspack_collections::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
@@ -64,7 +65,7 @@ pub enum Event {
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
   execute_task_map: HashMap<DependencyId, ExecuteTask>,
-  running_module_map: HashMap<ModuleIdentifier, UnfinishCounter>,
+  running_module_map: IdentifierMap<UnfinishCounter>,
 }
 
 impl CtrlTask {

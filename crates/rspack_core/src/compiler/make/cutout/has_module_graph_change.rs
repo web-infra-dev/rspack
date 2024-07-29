@@ -1,4 +1,5 @@
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_collections::IdentifierMap;
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::atoms::Atom;
 
 use super::super::MakeArtifact;
@@ -9,7 +10,7 @@ use crate::{
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 struct ModuleDeps {
   // child module identifier of current module
-  child_modules: HashMap<ModuleIdentifier, HashSet<Atom>>,
+  child_modules: IdentifierMap<HashSet<Atom>>,
   // blocks in current module
   module_blocks: Vec<(AsyncDependenciesBlockIdentifier, Option<GroupOptions>)>,
 }
@@ -22,7 +23,7 @@ impl ModuleDeps {
       .expect("should have module");
 
     let deps = module.get_dependencies();
-    let mut child_deps: HashMap<ModuleIdentifier, HashSet<Atom>> = Default::default();
+    let mut child_deps: IdentifierMap<HashSet<Atom>> = Default::default();
 
     for dep_id in deps {
       let dep = module_graph
@@ -61,7 +62,7 @@ impl ModuleDeps {
 #[derive(Debug, Default)]
 pub struct HasModuleGraphChange {
   disabled: bool,
-  origin_module_deps: HashMap<ModuleIdentifier, ModuleDeps>,
+  origin_module_deps: IdentifierMap<ModuleDeps>,
 }
 
 impl HasModuleGraphChange {
@@ -118,8 +119,8 @@ mod t {
   use std::borrow::Cow;
 
   use itertools::Itertools;
+  use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-  use rspack_identifier::Identifiable;
   use rspack_macros::impl_source_map_config;
   use rspack_sources::Source;
   use rspack_util::source_map::SourceMapKind;
@@ -223,7 +224,7 @@ mod t {
   }
 
   impl Identifiable for TestModule {
-    fn identifier(&self) -> rspack_identifier::Identifier {
+    fn identifier(&self) -> rspack_collections::Identifier {
       self.id
     }
   }

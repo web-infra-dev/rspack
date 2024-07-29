@@ -1,6 +1,7 @@
 #![feature(option_get_or_insert_default)]
 #![feature(let_chains)]
 
+use rspack_collections::UkeySet;
 use rspack_core::{
   is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin, PluginContext,
 };
@@ -29,7 +30,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
       // already remove by duplicates
       continue;
     }
-    let mut possible_duplicates: Option<HashSet<ChunkUkey>> = None;
+    let mut possible_duplicates: Option<UkeySet<ChunkUkey>> = None;
     for module in compilation
       .chunk_graph
       .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())

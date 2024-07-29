@@ -44,6 +44,7 @@ export function parseModules(
 	content: string,
 	options: {
 		bootstrap?: boolean;
+		renameModule?: (name: string) => string;
 	} = {}
 ) {
 	const modules: Map<string, string> = new Map();
@@ -80,11 +81,15 @@ export function parseModules(
 		if (!moduleContent.result) {
 			throw new Error(`Module code parsed error: ${moduleName}`);
 		}
+		const renamedModuleName =
+			typeof options.renameModule === "function"
+				? options.renameModule(moduleName)
+				: moduleName;
 		if (moduleName.startsWith("webpack/runtime")) {
-			runtimeModules.set(moduleName, moduleContent.result);
+			runtimeModules.set(renamedModuleName, moduleContent.result);
 		} else {
 			if (isValidModule(moduleName)) {
-				modules.set(moduleName, moduleContent.result);
+				modules.set(renamedModuleName, moduleContent.result);
 			}
 		}
 		currentPosition = moduleContent.remain;

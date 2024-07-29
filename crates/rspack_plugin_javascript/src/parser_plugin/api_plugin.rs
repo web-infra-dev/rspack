@@ -9,6 +9,7 @@ use crate::visitors::{expr_matcher, JavascriptParser};
 use crate::visitors::{expression_not_supported, extract_member_root};
 
 const WEBPACK_HASH: &str = "__webpack_hash__";
+const WEBPACK_LAYER: &str = "__webpack_layer__";
 const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 const WEBPACK_MODULES: &str = "__webpack_modules__";
 const WEBPACK_MODULE: &str = "__webpack_module__";
@@ -45,6 +46,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
     WEBPACK_REQUIRE => Some("function"),
     WEBPACK_HASH => Some("string"),
+    WEBPACK_LAYER => Some("string"),
     WEBPACK_PUBLIC_PATH => Some("string"),
     WEBPACK_MODULES => Some("object"),
     WEBPACK_MODULE => Some("object"),
@@ -102,6 +104,19 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
             Some(RuntimeGlobals::GET_FULL_HASH),
+          )));
+        Some(true)
+      }
+      WEBPACK_LAYER => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(&parser.module_layer)
+              .expect("should stringify JSON")
+              .into(),
+            None,
           )));
         Some(true)
       }

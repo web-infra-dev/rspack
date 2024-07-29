@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
   dependency::WorkerDependency,
-  utils::get_literal_str_by_obj_prop,
+  utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData},
   webpack_comment::try_extract_webpack_magic_comment,
 };
@@ -118,9 +118,10 @@ fn add_dependencies(
     filename: None,
     library: None,
     depend_on: None,
+    layer: None,
   })));
 
-  parser.blocks.push(block);
+  parser.blocks.push(Box::new(block));
   if let Some(range) = range {
     parser
       .presentational_dependencies

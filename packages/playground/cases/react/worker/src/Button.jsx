@@ -1,7 +1,7 @@
 import React from "react";
 
 export default function Button({ onClick }) {
-	return <button onClick={onClick}>+</button>;
+	return <button type="button" onClick={onClick}>+</button>;
 };
 
 Button.count = 0;

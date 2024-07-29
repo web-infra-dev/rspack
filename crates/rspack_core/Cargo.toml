@@ -28,13 +28,12 @@ paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
-rspack_database = { path = "../rspack_database", features = ["rayon"] }
+rspack_collections = { path = "../rspack_collections" }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
-rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_macros = { path = "../rspack_macros" }
 rspack_regex = { path = "../rspack_regex" }
@@ -67,7 +66,6 @@ swc_core = { workspace = true, features = [
   "css_parser",
   "css_utils",
   "css_visit",
-  "css_visit_path",
   "css_compat",
   "css_modules",
 ] }

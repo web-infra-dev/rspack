@@ -6,12 +6,12 @@ use std::{
 };
 
 use derivative::Derivative;
+use rspack_collections::Identifier;
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use rspack_identifier::Identifier;
-use swc_core::common::{source_map::Pos, BytePos, SourceMap};
+use swc_core::common::{BytePos, SourceMap};
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
@@ -70,8 +70,8 @@ impl From<(u32, u32)> for DependencyLocation {
 impl Display for DependencyLocation {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if let Some(source) = &self.source {
-      let pos = source.lookup_char_pos(BytePos::from_u32(self.start + 1));
-      let pos = format!("{}:{}", pos.line, pos.col.to_usize());
+      let pos = source.lookup_char_pos(BytePos(self.start + 1));
+      let pos = format!("{}:{}", pos.line, pos.col.0);
       f.write_str(format!("{}-{}", pos, self.end - self.start).as_str())
     } else {
       Ok(())
@@ -92,7 +92,10 @@ impl From<String> for AsyncDependenciesBlockIdentifier {
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  blocks: Vec<AsyncDependenciesBlock>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
@@ -164,7 +167,7 @@ impl AsyncDependenciesBlock {
     // self.blocks.push(block);
   }
 
-  pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
+  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
   }
 

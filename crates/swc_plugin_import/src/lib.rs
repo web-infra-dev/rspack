@@ -479,7 +479,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
                 let as_name: Option<String> = imported.is_some().then(|| s.local.sym.to_string());
                 let ident: String = imported.unwrap_or_else(|| s.local.sym.to_string());
 
-                let mark = s.local.span.ctxt.as_u32();
+                let mark = s.local.ctxt.as_u32();
 
                 if ident_referenced(&s.local) {
                   let use_default_import = child_config.transform_to_default_import.unwrap_or(true);
@@ -548,11 +548,8 @@ impl<'a> VisitMut for ImportPlugin<'a> {
           vec![ImportSpecifier::Default(ImportDefaultSpecifier {
             span: DUMMY_SP,
             local: Ident {
-              span: Span::new(
-                BytePos::DUMMY,
-                BytePos::DUMMY,
-                SyntaxContext::from_u32(js_source.mark),
-              ),
+              ctxt: SyntaxContext::from_u32(js_source.mark),
+              span: Span::new(BytePos::DUMMY, BytePos::DUMMY),
               sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
@@ -563,6 +560,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
             imported: if js_source.as_name.is_some() {
               Some(ModuleExportName::Ident(Ident {
                 span: DUMMY_SP,
+                ctxt: Default::default(),
                 sym: Atom::from(js_source.default_spec.as_str()),
                 optional: false,
               }))
@@ -570,11 +568,8 @@ impl<'a> VisitMut for ImportPlugin<'a> {
               None
             },
             local: Ident {
-              span: Span::new(
-                BytePos::DUMMY,
-                BytePos::DUMMY,
-                SyntaxContext::from_u32(js_source.mark),
-              ),
+              ctxt: SyntaxContext::from_u32(js_source.mark),
+              span: Span::new(BytePos::DUMMY, BytePos::DUMMY),
               sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
