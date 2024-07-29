@@ -45,8 +45,7 @@ import type {
 	StatsChunk,
 	StatsChunkOrigin,
 	StatsError,
-	StatsProfile,
-	StatsWarnings
+	StatsProfile
 } from "./statsFactoryUtils";
 import {
 	assetGroup,
@@ -600,7 +599,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			context: KnownStatsFactoryContext,
 			options: StatsOptions
 		) => {
-			const { statsCompilation } = context;
+			const statsCompilation = context.getStatsCompilation(compilation);
 
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
@@ -762,7 +761,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		hash: (object, compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context.statsCompilation.hash;
+			const statsCompilation = context.getStatsCompilation(compilation);
+			object.hash = statsCompilation.hash;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");
@@ -793,7 +793,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options,
 			factory
 		) => {
-			const { type, statsCompilation } = context;
+			const { type, getStatsCompilation } = context;
+
+			const statsCompilation = getStatsCompilation(compilation);
 
 			const compilationAssets = statsCompilation.assets!;
 			const assetsByChunkName = statsCompilation.assetsByChunkName!;
@@ -859,7 +861,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options: NormalizedStatsOptions,
 			factory
 		) => {
-			const { type, statsCompilation } = context;
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
 			const chunks = statsCompilation.chunks;
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
@@ -870,7 +873,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options: NormalizedStatsOptions,
 			factory
 		) => {
-			const { type, statsCompilation } = context;
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
 			const array = statsCompilation.modules;
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace!);
@@ -884,7 +888,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			{ entrypoints, chunkGroups, chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
-			const { type, statsCompilation } = context;
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
 			const array = statsCompilation.entrypoints!.map(entrypoint => ({
 				name: entrypoint.name,
 				chunkGroup: entrypoint
@@ -928,7 +933,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			{ chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
-			const { type, statsCompilation } = context;
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
 			const namedChunkGroups = statsCompilation.namedChunkGroups!.map(cg => ({
 				name: cg.name,
 				chunkGroup: cg
@@ -944,18 +950,36 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
-			_factory
+			options,
+			factory
 		) => {
-			const { cachedGetErrors } = context;
-			object.errors = cachedGetErrors!(compilation).map(error => {
-				const { moduleDescriptor, ...rest } = error;
-				const result: StatsError = rest;
-				if (moduleDescriptor) {
-					result.moduleIdentifier = moduleDescriptor.identifier;
-				}
-				return result;
-			});
+			const { type, cachedGetErrors } = context;
+			// const rawErrors = cachedGetErrors!(compilation);
+			const factorizedErrors = factory.create(
+				`${type}.errors`,
+				cachedGetErrors!(compilation),
+				context
+			);
+			// let filtered = 0;
+			// if (options.errorDetails === "auto" && rawErrors.length >= 3) {
+			// 	filtered = rawErrors
+			// 		.map(e => typeof e !== "string" && e.details)
+			// 		.filter(Boolean).length;
+			// }
+			// if (
+			// 	options.errorDetails === true ||
+			// 	!Number.isFinite(options.errorsSpace)
+			// ) {
+			// 	object.errors = factorizedErrors;
+			// 	if (filtered) object.filteredErrorDetailsCount = filtered;
+			// 	return;
+			// }
+			// const [errors, filteredBySpace] = errorsSpaceLimit(
+			// 	factorizedErrors,
+			// 	options.errorsSpace
+			// );
+			// object.filteredErrorDetailsCount = filtered + filteredBySpace;
+			object.errors = factorizedErrors;
 		},
 		errorsCount: (
 			object,
@@ -970,18 +994,35 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
-			_factory
+			options,
+			factory
 		) => {
-			const { cachedGetWarnings } = context;
-			object.warnings = cachedGetWarnings!(compilation).map(warning => {
-				const { moduleDescriptor, ...rest } = warning;
-				const result: StatsWarnings = rest;
-				if (moduleDescriptor) {
-					result.moduleIdentifier = moduleDescriptor.identifier;
-				}
-				return result;
-			});
+			const { type, cachedGetWarnings } = context;
+			const rawWarnings = factory.create(
+				`${type}.warnings`,
+				cachedGetWarnings!(compilation),
+				context
+			);
+			// let filtered = 0;
+			// if (options.errorDetails === "auto") {
+			// 	filtered = cachedGetWarnings!(compilation)
+			// 		.map(e => typeof e !== "string" && e.details)
+			// 		.filter(Boolean).length;
+			// }
+			// if (
+			// 	options.errorDetails === true ||
+			// 	!Number.isFinite(options.warningsSpace)
+			// ) {
+			// 	object.warnings = rawWarnings;
+			// 	if (filtered) object.filteredWarningDetailsCount = filtered;
+			// 	return;
+			// }
+			// const [warnings, filteredBySpace] = errorsSpaceLimit(
+			// 	rawWarnings,
+			// 	options.warningsSpace
+			// );
+			// object.filteredWarningDetailsCount = filtered + filteredBySpace;
+			object.warnings = rawWarnings;
 		},
 		warningsCount: (object, compilation, context: KnownStatsFactoryContext) => {
 			const { cachedGetWarnings } = context;
@@ -991,6 +1032,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		children: (object, compilation, context, _options, factory) => {
 			const { type } = context;
+
 			object.children = factory.create(
 				`${type}.children`,
 				compilation.children,
@@ -1112,11 +1154,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.dependent = module.dependent;
 			object.issuer = module.issuer;
 			object.issuerName = module.issuerName;
-			object.issuerPath = factory.create(
-				`${type.slice(0, -8)}.issuerPath`,
-				module.issuerPath,
-				context
-			);
+			object.issuerPath =
+				module.issuer &&
+				factory.create(
+					`${type.slice(0, -8)}.issuerPath`,
+					module.issuerPath,
+					context
+				);
 			object.failed = module.failed;
 			object.errors = module.errors;
 			object.warnings = module.warnings;

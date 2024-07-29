@@ -34,9 +34,9 @@ export class Stats {
 	}
 
 	// use correct JsStats for child compilation
-	#getInnerByCompilation(compilation: Compilation) {
+	#getInnerByCompilation(compilation: Compilation): binding.JsStats {
 		if (this.#innerMap.has(compilation)) {
-			return this.#innerMap.get(compilation);
+			return this.#innerMap.get(compilation)!;
 		}
 		const inner = compilation.__internal_getInner().getStats();
 		this.#innerMap.set(compilation, inner);
@@ -70,17 +70,30 @@ export class Stats {
 
 		const statsFactory = this.compilation.createStatsFactory(options);
 
+		const statsCompilationMap = new Map<
+			Compilation,
+			binding.JsStatsCompilation
+		>();
+
 		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
 		// Modern.js dev server will detect whether the returned stats is available.
 		// So this does not do harm to these frameworks.
 		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {
-			// TODO
-			const statsCompilation = this.#inner.toJson(options as any);
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
-				statsCompilation,
+				getStatsCompilation: (
+					compilation: Compilation
+				): binding.JsStatsCompilation => {
+					if (statsCompilationMap.has(compilation)) {
+						return statsCompilationMap.get(compilation)!;
+					}
+					const innerStats = this.#getInnerByCompilation(compilation);
+					const innerStatsCompilation = innerStats.toJson(options);
+					statsCompilationMap.set(compilation, innerStatsCompilation);
+					return innerStatsCompilation;
+				},
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
@@ -100,14 +113,32 @@ export class Stats {
 
 		const statsPrinter = this.compilation.createStatsPrinter(options);
 
+		const statsCompilationMap = new Map<
+			Compilation,
+			binding.JsStatsCompilation
+		>();
+
 		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
 		// Modern.js dev server will detect whether the returned stats is available.
 		// So this does not do harm to these frameworks.
 		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {
+			const statsCompilation = this.#inner.toJson(options);
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
+				statsCompilation,
+				getStatsCompilation: (
+					compilation: Compilation
+				): binding.JsStatsCompilation => {
+					if (statsCompilationMap.has(compilation)) {
+						return statsCompilationMap.get(compilation)!;
+					}
+					const innerStats = this.#getInnerByCompilation(compilation);
+					const innerStatsCompilation = innerStats.toJson(options);
+					statsCompilationMap.set(compilation, innerStatsCompilation);
+					return innerStatsCompilation;
+				},
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {

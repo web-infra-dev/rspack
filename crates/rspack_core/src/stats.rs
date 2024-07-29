@@ -760,6 +760,7 @@ impl Stats<'_> {
       warnings: None,
     };
 
+    // module$visible
     if stats.built || stats.code_generated || options.cached_modules {
       let orphan = if executed {
         true
@@ -835,8 +836,10 @@ impl Stats<'_> {
       stats.issuer = issuer.map(|i| i.identifier().as_str());
       stats.issuer_name = issuer_name;
       stats.issuer_path = Some(issuer_path);
+      stats.failed = Some(errors > 0);
       stats.errors = Some(errors);
       stats.warnings = Some(warnings);
+
       stats.profile = profile;
     }
 
@@ -1043,6 +1046,7 @@ impl Stats<'_> {
       warnings: None,
     };
 
+    // module$visible
     if stats.built || stats.code_generated || options.cached_modules {
       stats.identifier = Some(module.identifier);
       stats.name = Some(module.name.clone().into());
@@ -1050,6 +1054,37 @@ impl Stats<'_> {
       stats.cacheable = Some(module.cacheable);
       stats.optional = Some(false);
       stats.orphan = Some(true);
+      stats.issuer = None;
+      stats.issuer_name = None;
+      stats.issuer_path = None;
+      stats.failed = Some(false);
+      stats.errors = Some(0);
+      stats.warnings = Some(0);
+    }
+
+    if options.ids {
+      stats.id = Some("");
+      stats.chunks = Some(vec![]);
+    }
+
+    if options.reasons {
+      stats.reasons = Some(vec![]);
+    }
+
+    if options.module_assets {
+      stats.assets = Some(vec![]);
+    }
+
+    if options.used_exports {
+      stats.used_exports = Some(StatsUsedExports::Null)
+    }
+
+    if options.provided_exports {
+      stats.provided_exports = Some(vec![]);
+    }
+
+    if options.optimization_bailout {
+      stats.optimization_bailout = Some(Default::default());
     }
 
     Ok(stats)
@@ -1131,10 +1166,38 @@ impl Stats<'_> {
       stats.identifier = Some(module.identifier());
       stats.name = Some(module.name().as_str().into());
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
-      stats.cacheable = module.build_info().map(|i| i.cacheable);
+      stats.cacheable = Some(module.cacheable());
       stats.optional = Some(false);
       stats.orphan = Some(orphan);
       stats.dependent = Some(false);
+      stats.failed = Some(false);
+      stats.errors = Some(0);
+      stats.warnings = Some(0);
+    }
+
+    if options.ids {
+      stats.id = Some("");
+      stats.chunks = Some(chunks);
+    }
+
+    if options.reasons {
+      stats.reasons = Some(vec![]);
+    }
+
+    if options.module_assets {
+      stats.assets = Some(vec![]);
+    }
+
+    if options.used_exports {
+      stats.used_exports = Some(StatsUsedExports::Null)
+    }
+
+    if options.provided_exports {
+      stats.provided_exports = Some(vec![]);
+    }
+
+    if options.optimization_bailout {
+      stats.optimization_bailout = Some(Default::default());
     }
 
     Ok(stats)

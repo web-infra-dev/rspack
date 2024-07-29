@@ -10,7 +10,6 @@ ERROR in ./a.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./a.js
 
 ERROR in ./a.js
   × Module parse failed:
@@ -25,7 +24,6 @@ ERROR in ./a.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./a.js
 
 ERROR in ./b.js
   × Module parse failed:
@@ -39,7 +37,6 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.js
 
 ERROR in ./b.js
   × Module parse failed:
@@ -54,7 +51,6 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.js
 
 ERROR in ./c.js
   × Module parse failed:
@@ -68,7 +64,6 @@ ERROR in ./c.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./c.js
 
 ERROR in ./c.js
   × Module parse failed:
@@ -83,7 +78,6 @@ ERROR in ./c.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./c.js
 
 ERROR in ./d.js
   × Module parse failed:
@@ -97,7 +91,6 @@ ERROR in ./d.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./d.js
 
 ERROR in ./d.js
   × Module parse failed:
@@ -112,7 +105,6 @@ ERROR in ./d.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./d.js
 
 ERROR in ./e.js
   × Module parse failed:
@@ -126,7 +118,6 @@ ERROR in ./e.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./e.js
 
 ERROR in ./e.js
   × Module parse failed:
@@ -141,7 +132,6 @@ ERROR in ./e.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./e.js
 
 ERROR in ./f.js
   × Module parse failed:
@@ -155,7 +145,6 @@ ERROR in ./f.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./f.js
 
 ERROR in ./f.js
   × Module parse failed:
@@ -170,7 +159,6 @@ ERROR in ./f.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./f.js
 
 ERROR in ./g.js
   × Module parse failed:
@@ -184,7 +172,6 @@ ERROR in ./g.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./g.js
 
 ERROR in ./g.js
   × Module parse failed:
@@ -199,4 +186,3 @@ ERROR in ./g.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./g.js

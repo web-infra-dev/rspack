@@ -151,6 +151,12 @@ export interface KnownNormalizedStatsOptions {
 	providedExports: boolean;
 	optimizationBailout: boolean;
 	depth: boolean;
+	assets: boolean;
+	chunks: boolean;
+	errors: boolean;
+	hash: boolean;
+	modules: boolean;
+	warnings: boolean;
 }
 
 export type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &

@@ -160,7 +160,7 @@ module.exports = {
 		        "issuer": undefined,
 		        "issuerId": undefined,
 		        "issuerName": undefined,
-		        "issuerPath": Array [],
+		        "issuerPath": undefined,
 		        "moduleType": "javascript/auto",
 		        "name": "./fixtures/chunk-b.js",
 		        "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
@@ -176,8 +176,6 @@ module.exports = {
 		        "reasons": Array [
 		          Object {
 		            "moduleId": undefined,
-		            "moduleIdentifier": undefined,
-		            "moduleName": undefined,
 		            "type": "entry",
 		            "userRequest": "./fixtures/chunk-b",
 		          },

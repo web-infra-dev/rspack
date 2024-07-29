@@ -74,7 +74,7 @@ Object {
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": Array [],
+          "issuerPath": undefined,
           "moduleType": "javascript/auto",
           "name": "./fixtures/a.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -90,8 +90,6 @@ Object {
           "reasons": Array [
             Object {
               "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./fixtures/a",
             },
@@ -189,7 +187,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -205,8 +203,6 @@ Object {
       "reasons": Array [
         Object {
           "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./fixtures/a",
         },
@@ -331,7 +327,7 @@ Object {
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": Array [],
+          "issuerPath": undefined,
           "moduleType": "javascript/esm",
           "modules": Array [
             Object {
@@ -353,7 +349,7 @@ Object {
               "issuer": undefined,
               "issuerId": undefined,
               "issuerName": undefined,
-              "issuerPath": Array [],
+              "issuerPath": undefined,
               "moduleType": "javascript/auto",
               "name": "./fixtures/esm/abc.js",
               "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -576,8 +572,6 @@ Object {
           "reasons": Array [
             Object {
               "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./fixtures/esm/abc",
             },
@@ -663,7 +657,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "javascript/auto",
       "name": "./fixtures/esm/abc.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -706,7 +700,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "javascript/esm",
       "modules": Array [
         Object {
@@ -728,7 +722,7 @@ Object {
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": Array [],
+          "issuerPath": undefined,
           "moduleType": "javascript/auto",
           "name": "./fixtures/esm/abc.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/esm/abc.js",
@@ -951,8 +945,6 @@ Object {
       "reasons": Array [
         Object {
           "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./fixtures/esm/abc",
         },
@@ -1176,7 +1168,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "runtime",
       "name": "webpack/runtime/define_property_getters",
       "nameForCondition": undefined,
@@ -1216,7 +1208,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "runtime",
       "name": "webpack/runtime/has_own_property",
       "nameForCondition": undefined,
@@ -1256,7 +1248,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "runtime",
       "name": "webpack/runtime/make_namespace_object",
       "nameForCondition": undefined,
@@ -1387,7 +1379,7 @@ Object {
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
@@ -1619,7 +1611,7 @@ Object {
           "issuer": undefined,
           "issuerId": undefined,
           "issuerName": undefined,
-          "issuerPath": Array [],
+          "issuerPath": undefined,
           "moduleType": "javascript/auto",
           "name": "./fixtures/abc-query.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1638,8 +1630,6 @@ Object {
           "reasons": Array [
             Object {
               "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./fixtures/abc-query",
             },
@@ -1799,7 +1789,7 @@ exports.c = require(\\"./c?c=3\\");
       "issuer": undefined,
       "issuerId": undefined,
       "issuerName": undefined,
-      "issuerPath": Array [],
+      "issuerPath": undefined,
       "moduleType": "javascript/auto",
       "name": "./fixtures/abc-query.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
@@ -1818,8 +1808,6 @@ exports.c = require(\\"./c?c=3\\");
       "reasons": Array [
         Object {
           "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./fixtures/abc-query",
         },

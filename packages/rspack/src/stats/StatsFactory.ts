@@ -23,13 +23,13 @@ export type KnownStatsFactoryContext = {
 	type: string;
 	makePathsRelative?: ((arg0: string) => string) | undefined;
 	compilation?: Compilation | undefined;
-	statsCompilation: JsStatsCompilation;
 	// rootModules?: Set<Module> | undefined;
 	// compilationFileToChunks?: Map<string, Chunk[]> | undefined;
 	// compilationAuxiliaryFileToChunks?: Map<string, Chunk[]> | undefined;
 	// runtime?: RuntimeSpec | undefined;
 	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
 	cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+	getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
 	getInner: (compilation: Compilation) => JsStats;
 };
 
