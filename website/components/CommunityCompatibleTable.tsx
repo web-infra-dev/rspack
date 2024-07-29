@@ -234,6 +234,11 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
       description: i18n[lang]['sentry_webpack-plugin-desc'],
     },
+    {
+      name: 'serwist',
+      url: 'https://github.com/serwist/serwist',
+      status: CompatibleStatus.Compatible,
+    },
   ];
 
   return (
