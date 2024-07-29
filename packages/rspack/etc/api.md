@@ -5199,12 +5199,9 @@ const LogType: Readonly<{
 type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 
 // @public (undocumented)
-<<<<<<< HEAD
 type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public
-=======
->>>>>>> 84a6d81ba (test: fix some css tests)
 type Matcher = string | RegExp | (string | RegExp)[];
 
 // @public (undocumented)
