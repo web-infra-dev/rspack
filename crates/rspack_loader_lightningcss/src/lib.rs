@@ -29,9 +29,13 @@ pub struct LightningCssLoader {
 }
 
 impl LightningCssLoader {
-  pub fn new(visitors: Option<Vec<LightningcssLoaderVisitor>>, config: Config) -> Self {
+  pub fn new(
+    visitors: Option<Vec<LightningcssLoaderVisitor>>,
+    config: Config,
+    ident: &str,
+  ) -> Self {
     Self {
-      id: LIGHTNINGCSS_LOADER_IDENTIFIER.into(),
+      id: ident.into(),
       visitors: visitors.map(|v| Mutex::new(v)),
       config,
     }
