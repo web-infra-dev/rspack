@@ -30,13 +30,13 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  prepare_get_exports_type, to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
-  ChunkUkey, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
-  DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
+  to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
+  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, DependencyId,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
+  ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
+  RuntimeSpec, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -751,13 +751,6 @@ impl Compilation {
 
       Ok(())
     }
-
-    // FIXME:
-    // Webpack may modify the moduleGraph in module.getExportsType()
-    // and it is widely called after compilation.finish()
-    // so add this method to trigger moduleGraph modification and
-    // then make sure that moduleGraph is immutable
-    prepare_get_exports_type(&mut self.get_module_graph_mut());
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()

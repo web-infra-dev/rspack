@@ -214,6 +214,7 @@ tests/webpack-test/browsertest/js
 tests/webpack-test/fixtures/temp-*
 tests/webpack-test/temp
 tests/webpack-test/ChangesAndRemovals
+tests/webpack-test/__snapshots__/*.snap.*
 tests/webpack-test/**/dev-defaults.webpack.lock
 !tests/webpack-test/**/target
 !tests/webpack-test/cases/**/node_modules

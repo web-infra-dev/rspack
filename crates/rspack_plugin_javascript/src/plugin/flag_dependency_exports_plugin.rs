@@ -6,8 +6,8 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  MutableModuleGraph, Plugin, PluginContext,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -322,8 +322,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       // Recalculate target exportsInfo
-      let mut mga = MutableModuleGraph::new(self.mg);
-      let target = export_info_id.get_target(&mut mga, None);
+      let target = export_info_id.get_target(self.mg, None);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;
       if let Some(target) = target {
