@@ -62,7 +62,7 @@ exports[`StatsTestCases should print correct stats for async-commons-chunk-auto 
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) disabled/async-g.js (async-g) 65 bytes [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   disabled (Rspack x.x.x) compiled successfully
@@ -93,7 +93,7 @@ default:
   chunk (runtime: a, main) default/581.js (id hint: ) 20 bytes [rendered] split chunk (cache group: default)
     > ./b [10] ./index.js 2:0-47
     > ./c [10] ./index.js 3:0-47
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) default/a.js (a) 165 bytes (javascript) 6.98 KiB (runtime) [entry] [rendered]
     > ./a a
@@ -113,7 +113,7 @@ default:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) default/async-g.js (async-g) 45 bytes [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
   default (Rspack x.x.x) compiled successfully
 
@@ -143,7 +143,7 @@ vendors:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) vendors/async-g.js (async-g) 65 bytes [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   vendors (Rspack x.x.x) compiled successfully
@@ -311,16 +311,16 @@ exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`
   | ./node_modules/pmodule/a.js 49 bytes [orphan] [built]
   | ./node_modules/pmodule/aa.js 24 bytes [orphan] [built]
 ./node_modules/pmodule/a.js 49 bytes [orphan] [built]
-./node_modules/pmodule/index.js 63 bytes [orphan] [built]
-  ModuleConcatenation bailout: Module is not in any chunk
 ./node_modules/pmodule/aa.js 24 bytes [orphan] [built]
 ./node_modules/pmodule/b.js 49 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
-./node_modules/pmodule/c.js 49 bytes [orphan] [built]
-  ModuleConcatenation bailout: Module is not in any chunk
 ./node_modules/pmodule/bb.js 24 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/c.js 49 bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
 ./node_modules/pmodule/cc.js 24 bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/index.js 63 bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk"
 `;
 
@@ -517,7 +517,7 @@ WARNING in ./chunk.js
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
          ╰────
       
- @ ./chunk.js [52]
+ @ ./index.js
 
 WARNING in ./chunk.js
   ⚠ Module parse warning:
@@ -530,7 +530,7 @@ WARNING in ./chunk.js
        6 │ }
          ╰────
       
- @ ./chunk.js [52]
+ @ ./index.js
 
 Rspack x.x.x compiled with 2 warnings"
 `;
@@ -578,23 +578,23 @@ exports[`StatsTestCases should print correct stats for max-modules 1`] = `
 "asset main.js 4.63 KiB [emitted] (name: main)
 ./index.js 181 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
-./a.js?2 33 bytes [built] [code generated]
-./a.js?3 33 bytes [built] [code generated]
-./a.js?4 33 bytes [built] [code generated]
-./a.js?5 33 bytes [built] [code generated]
-./a.js?6 33 bytes [built] [code generated]
-./a.js?7 33 bytes [built] [code generated]
-./a.js?8 33 bytes [built] [code generated]
-./a.js?9 33 bytes [built] [code generated]
-./a.js?10 33 bytes [built] [code generated]
 ./c.js?1 33 bytes [built] [code generated]
+./b.js?1 34 bytes [built] [code generated]
+./a.js?2 33 bytes [built] [code generated]
 ./c.js?2 33 bytes [built] [code generated]
+./b.js?2 34 bytes [built] [code generated]
+./a.js?3 33 bytes [built] [code generated]
 ./c.js?3 33 bytes [built] [code generated]
+./b.js?3 34 bytes [built] [code generated]
+./a.js?4 33 bytes [built] [code generated]
 ./c.js?4 33 bytes [built] [code generated]
+./b.js?4 34 bytes [built] [code generated]
+./a.js?5 33 bytes [built] [code generated]
 ./c.js?5 33 bytes [built] [code generated]
+./b.js?5 34 bytes [built] [code generated]
+./a.js?6 33 bytes [built] [code generated]
 ./c.js?6 33 bytes [built] [code generated]
-./c.js?7 33 bytes [built] [code generated]
-./c.js?8 33 bytes [built] [code generated]
+./b.js?6 34 bytes [built] [code generated]
 + 12 modules
 Rspack x.x.x compiled successfully in X.23"
 `;
@@ -603,18 +603,18 @@ exports[`StatsTestCases should print correct stats for max-modules-default 1`] =
 "asset main.js 4.63 KiB [emitted] (name: main)
 ./index.js 181 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
-./a.js?2 33 bytes [built] [code generated]
-./a.js?3 33 bytes [built] [code generated]
-./a.js?4 33 bytes [built] [code generated]
-./a.js?5 33 bytes [built] [code generated]
-./a.js?6 33 bytes [built] [code generated]
-./a.js?7 33 bytes [built] [code generated]
-./a.js?8 33 bytes [built] [code generated]
-./a.js?9 33 bytes [built] [code generated]
-./a.js?10 33 bytes [built] [code generated]
 ./c.js?1 33 bytes [built] [code generated]
+./b.js?1 34 bytes [built] [code generated]
+./a.js?2 33 bytes [built] [code generated]
 ./c.js?2 33 bytes [built] [code generated]
+./b.js?2 34 bytes [built] [code generated]
+./a.js?3 33 bytes [built] [code generated]
 ./c.js?3 33 bytes [built] [code generated]
+./b.js?3 34 bytes [built] [code generated]
+./a.js?4 33 bytes [built] [code generated]
+./c.js?4 33 bytes [built] [code generated]
+./b.js?4 34 bytes [built] [code generated]
+./a.js?5 33 bytes [built] [code generated]
 + 17 modules
 Rspack x.x.x compiled successfully in X.23"
 `;
@@ -764,8 +764,6 @@ ERROR in ./not-existing.js
  1 │ require('does-not-exist')
    · ─────────────────────────
    ╰────
- @ ./not-existing.js [195]
- @ ./inner.js [587]
 
 ERROR in ./parse-error.js
   × Module parse failed:
@@ -781,8 +779,6 @@ ERROR in ./parse-error.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./parse-error.js [636]
- @ ./inner.js [587]
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
@@ -801,8 +797,8 @@ ERROR in ./not-existing.js
  1 │ require('does-not-exist')
    · ─────────────────────────
    ╰────
- @ ./not-existing.js [195]
- @ ./inner.js [587]
+ @ ./inner.js
+ @ ./index.js
 
 ERROR in ./parse-error.js
   × Module parse failed:
@@ -818,8 +814,8 @@ ERROR in ./parse-error.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./parse-error.js [636]
- @ ./inner.js [587]
+ @ ./inner.js
+ @ ./index.js
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
@@ -923,8 +919,8 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.js [996]
  @ ./a.js
+ @ ./index.js
 
 Rspack x.x.x compiled with 1 error"
 `;
@@ -998,9 +994,9 @@ asset <CLR=32,BOLD>sec.js</CLR> 1.01 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec
 Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> 1.01 KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=BOLD>./index.js</CLR> 32 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
-<CLR=BOLD>./index2.js</CLR> 48 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./a.js</CLR> 293 KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./b.js</CLR> 22 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./index2.js</CLR> 48 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./c.js</CLR> 22 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./d.js</CLR> 22 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 
@@ -1029,8 +1025,8 @@ asset <CLR=32,BOLD>sec.js</CLR> 294 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=BOLD>./index.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
-<CLR=BOLD>./index2.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./a.js</CLR> 293 KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./index2.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=31>│<CLR=0> Assets:
@@ -1168,7 +1164,7 @@ exports[`StatsTestCases should print correct stats for preset-summary 1`] = `
 "<e> [LogTestPlugin] Error
 <w> [LogTestPlugin] Warning
 <i> [LogTestPlugin] Info
-Rspack x.x.x compiled successfully"
+"
 `;
 
 exports[`StatsTestCases should print correct stats for related-assets 1`] = `
@@ -1370,24 +1366,24 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
   cacheable modules 1.15 KiB
     ./a.js 261 bytes [built] [code generated]
       [no exports used]
-    ./b.js 261 bytes [built] [code generated]
-      [no exports used]
-    ./c.js 9 bytes [built] [code generated]
-      [no exports used]
     ./module.js 122 bytes [built] [code generated]
       [only some exports used: x, y]
     ./reexport.js 37 bytes [built] [code generated]
       [only some exports used: x, y]
-    ./dx-importer.js 63 bytes [built] [code generated]
-      [only some exports used: default]
-    ./dy.js 46 bytes [built] [code generated]
-    ./dw.js 46 bytes [built] [code generated]
-    ./dz.js 46 bytes [built] [code generated]
     ./module.js?reexported 122 bytes [built] [code generated]
       [only some exports used: x, y]
+    ./dx-importer.js 63 bytes [built] [code generated]
+      [only some exports used: default]
+    ./b.js 261 bytes [built] [code generated]
+      [no exports used]
+    ./c.js 9 bytes [built] [code generated]
+      [no exports used]
+    ./dy.js 46 bytes [built] [code generated]
     ./module.js?chunk 122 bytes [built] [code generated]
       [only some exports used: identity, w, x, y, z]
+    ./dw.js 46 bytes [built] [code generated]
     ./dx.js 46 bytes [built] [code generated]
+    ./dz.js 46 bytes [built] [code generated]
   production (Rspack x.x.x) compiled successfully in X.23
 
 development:
@@ -1447,27 +1443,27 @@ development:
   cacheable modules 1.15 KiB
     ./a.js 261 bytes [built] [code generated]
       [used exports unknown]
-    ./b.js 261 bytes [built] [code generated]
-      [used exports unknown]
-    ./c.js 9 bytes [built] [code generated]
-      [used exports unknown]
     ./module.js 122 bytes [built] [code generated]
       [used exports unknown]
     ./reexport.js 37 bytes [built] [code generated]
       [used exports unknown]
+    ./module.js?reexported 122 bytes [built] [code generated]
+      [used exports unknown]
     ./dx-importer.js 63 bytes [built] [code generated]
+      [used exports unknown]
+    ./b.js 261 bytes [built] [code generated]
+      [used exports unknown]
+    ./c.js 9 bytes [built] [code generated]
       [used exports unknown]
     ./dy.js 46 bytes [built] [code generated]
       [used exports unknown]
-    ./dw.js 46 bytes [built] [code generated]
-      [used exports unknown]
-    ./dz.js 46 bytes [built] [code generated]
-      [used exports unknown]
-    ./module.js?reexported 122 bytes [built] [code generated]
-      [used exports unknown]
     ./module.js?chunk 122 bytes [built] [code generated]
       [used exports unknown]
+    ./dw.js 46 bytes [built] [code generated]
+      [used exports unknown]
     ./dx.js 46 bytes [built] [code generated]
+      [used exports unknown]
+    ./dz.js 46 bytes [built] [code generated]
       [used exports unknown]
   development (Rspack x.x.x) compiled successfully in X.23
 
@@ -1524,24 +1520,24 @@ global:
   cacheable modules 1.15 KiB
     ./a.js 261 bytes [built] [code generated]
       [no exports used]
-    ./b.js 261 bytes [built] [code generated]
-      [no exports used]
-    ./c.js 9 bytes [built] [code generated]
-      [no exports used]
     ./module.js 122 bytes [built] [code generated]
       [only some exports used: x, y]
     ./reexport.js 37 bytes [built] [code generated]
       [only some exports used: x, y]
-    ./dx-importer.js 63 bytes [built] [code generated]
-      [only some exports used: default]
-    ./dy.js 46 bytes [built] [code generated]
-    ./dw.js 46 bytes [built] [code generated]
-    ./dz.js 46 bytes [built] [code generated]
     ./module.js?reexported 122 bytes [built] [code generated]
       [only some exports used: x, y]
+    ./dx-importer.js 63 bytes [built] [code generated]
+      [only some exports used: default]
+    ./b.js 261 bytes [built] [code generated]
+      [no exports used]
+    ./c.js 9 bytes [built] [code generated]
+      [no exports used]
+    ./dy.js 46 bytes [built] [code generated]
     ./module.js?chunk 122 bytes [built] [code generated]
       [only some exports used: identity, w, x, y, z]
+    ./dw.js 46 bytes [built] [code generated]
     ./dx.js 46 bytes [built] [code generated]
+    ./dz.js 46 bytes [built] [code generated]
   global (Rspack x.x.x) compiled successfully in X.23"
 `;
 
@@ -1552,10 +1548,10 @@ cacheable modules 726 bytes
   ./first.js 236 bytes [built] [code generated]
   ./second.js 202 bytes [built] [code generated]
   ./lazy_first.js 91 bytes [built] [code generated]
-  ./lazy_shared.js 56 bytes [built] [code generated]
-  ./lazy_second.js 91 bytes [built] [code generated]
   ./common_lazy.js 25 bytes [built] [code generated]
   ./common_lazy_shared.js 25 bytes [built] [code generated]
+  ./lazy_shared.js 56 bytes [built] [code generated]
+  ./lazy_second.js 91 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
 runtime modules 14 KiB 18 modules
@@ -1563,9 +1559,8 @@ cacheable modules 1.05 KiB
   built modules 844 bytes [built]
     orphan modules 325 bytes [orphan]
       ./lazy_first.js 91 bytes [orphan] [built]
+      ./common_lazy.js 25 bytes [orphan] [built]
       ./lazy_second.js 91 bytes [orphan] [built]
-      ./common.js 37 bytes [orphan] [built]
-        ModuleConcatenation bailout: Module is not in any chunk
       + 4 modules
     code generated modules 519 bytes [code generated]
       ./first.js 236 bytes [built] [code generated]
@@ -1574,9 +1569,9 @@ cacheable modules 1.05 KiB
       ./second.js 202 bytes [built] [code generated]
         Statement with side_effects in source code at ./second.js:4:0-62
         ModuleConcatenation bailout: Module is an entry point
+      ./common_lazy_shared.js 25 bytes [built] [code generated]
       ./lazy_shared.js 56 bytes [built] [code generated]
         ModuleConcatenation bailout: Cannot concat with Xdir/scope-hoisting-multi/common_lazy_shared.js: Module ./common_lazy_shared.js is referenced from different chunks by these modules: ./lazy_first.js, ./lazy_second.js
-      ./common_lazy_shared.js 25 bytes [built] [code generated]
   ./lazy_first.js + 1 modules 116 bytes [code generated]
   ./lazy_second.js + 1 modules 116 bytes [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -1713,7 +1708,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
   chunk (runtime: a, main) default/581.js (id hint: ) 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     > ./b [10] ./index.js 2:0-47
     > ./c [10] ./index.js 3:0-47
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) default/a.js (a) 165 bytes (javascript) 6.98 KiB (runtime) >{581}< >{912}< [entry] [rendered]
     > ./a a
@@ -1733,7 +1728,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) default/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
   default (Rspack x.x.x) compiled successfully
 
@@ -1944,7 +1939,7 @@ custom-chunks-filter:
   chunk (runtime: a, main) custom-chunks-filter/581.js (id hint: ) 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     > ./b [10] ./index.js 2:0-47
     > ./c [10] ./index.js 3:0-47
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) custom-chunks-filter/a.js (a) 165 bytes (javascript) 7 KiB (runtime) >{581}< >{912}< [entry] [rendered]
     > ./a a
@@ -1962,7 +1957,7 @@ custom-chunks-filter:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
   custom-chunks-filter (Rspack x.x.x) compiled successfully
 
@@ -2023,7 +2018,7 @@ custom-chunks-filter-in-cache-groups:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   custom-chunks-filter-in-cache-groups (Rspack x.x.x) compiled successfully"
