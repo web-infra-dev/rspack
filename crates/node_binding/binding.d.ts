@@ -639,7 +639,6 @@ export interface JsStatsMillisecond {
 
 export interface JsStatsModule {
   commonAttributes: JsStatsModuleCommonAttributes
-  id?: string
   dependent?: boolean
   usedExports?: string | Array<string>
   modules?: Array<JsStatsModule>

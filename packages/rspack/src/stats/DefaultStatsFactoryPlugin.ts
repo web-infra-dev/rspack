@@ -1190,7 +1190,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		ids: (object, module) => {
 			const { commonAttributes } = module;
-			object.id = module.id;
+			if (commonAttributes.moduleDescriptor) {
+				object.id = commonAttributes.moduleDescriptor.id;
+			}
 			object.issuerId = commonAttributes.issuerId;
 			object.chunks = commonAttributes.chunks;
 		},

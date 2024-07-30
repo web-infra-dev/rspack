@@ -534,7 +534,6 @@ impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
 pub struct JsStatsModule {
   #[napi(ts_type = "JsStatsModuleCommonAttributes")]
   pub common_attributes: JsStatsModuleCommonAttributesWrapper,
-  pub id: Option<String>,
   pub dependent: Option<bool>,
   pub used_exports: Option<Either<String, Vec<String>>>,
   pub modules: Option<Vec<JsStatsModule>>,
@@ -649,7 +648,6 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
 
     Ok(Self {
       common_attributes,
-      id: stats.id.map(|i| i.to_owned()),
       dependent: stats.dependent,
       used_exports: stats.used_exports.map(|used_exports| match used_exports {
         StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
