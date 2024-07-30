@@ -16,7 +16,7 @@ use rspack_core::{
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
-  Diagnostic, DiagnosticExt, TraceableError,
+  Diagnostic, DiagnosticExt, ErrorLocation, TraceableError,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -34,16 +34,17 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
-  pub source_order: i32,
-  pub request: Atom,
   pub ids: Vec<Atom>,
   pub name: Option<Atom>,
-  resource_identifier: String,
-  pub other_star_exports: Option<Vec<DependencyId>>,
+  pub request: Atom,
   pub export_all: bool,
-  export_presence_mode: ExportPresenceMode,
+  pub source_order: i32,
+  pub other_star_exports: Option<Vec<DependencyId>>,
+  loc: ErrorLocation,
   span: ErrorSpan,
   attributes: Option<ImportAttributes>,
+  resource_identifier: String,
+  export_presence_mode: ExportPresenceMode,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
@@ -55,6 +56,7 @@ impl HarmonyExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
+    loc: ErrorLocation,
     span: ErrorSpan,
     export_presence_mode: ExportPresenceMode,
     attributes: Option<ImportAttributes>,
@@ -70,6 +72,7 @@ impl HarmonyExportImportedSpecifierDependency {
       resource_identifier,
       export_all,
       other_star_exports,
+      loc,
       span,
       export_presence_mode,
       attributes,
@@ -1053,6 +1056,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc)
   }
 
   fn span(&self) -> Option<ErrorSpan> {

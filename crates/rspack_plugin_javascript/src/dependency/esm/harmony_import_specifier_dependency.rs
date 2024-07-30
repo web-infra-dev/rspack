@@ -2,13 +2,13 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportPresenceMode,
-  ExportsType, ExtendedReferencedExport, ImportAttributes, JavascriptParserOptions,
-  ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
-use rspack_error::Diagnostic;
+use rspack_error::{Diagnostic, ErrorLocation};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
@@ -23,17 +23,17 @@ pub struct HarmonyImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  start: u32,
-  end: u32,
+  loc: ErrorLocation,
+  span: ErrorSpan,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
-  pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
+  pub namespace_object_as_context: bool,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -44,8 +44,8 @@ impl HarmonyImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    start: u32,
-    end: u32,
+    loc: ErrorLocation,
+    span: ErrorSpan,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
@@ -62,8 +62,8 @@ impl HarmonyImportSpecifierDependency {
       source_order,
       shorthand,
       asi_safe,
-      start,
-      end,
+      loc,
+      span,
       ids,
       call,
       direct_import,
@@ -144,9 +144,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       // TODO do this by PureExpressionDependency.
       let value = format!("/* \"{}\" unused */null", self.request);
       if self.shorthand {
-        source.insert(self.end, &format!(": {value}"), None);
+        source.insert(self.span.end, &format!(": {value}"), None);
       } else {
-        source.replace(self.start, self.end, &value, None)
+        source.replace(self.span.start, self.span.end, &value, None)
       }
       return;
     }
@@ -203,9 +203,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     };
 
     if self.shorthand {
-      source.insert(self.end, format!(": {export_expr}").as_str(), None);
+      source.insert(self.span.end, format!(": {export_expr}").as_str(), None);
     } else {
-      source.replace(self.start, self.end, export_expr.as_str(), None);
+      source.replace(self.span.start, self.span.end, export_expr.as_str(), None);
     }
   }
 
@@ -219,15 +219,16 @@ impl Dependency for HarmonyImportSpecifierDependency {
     &self.id
   }
 
-  fn source_order(&self) -> Option<i32> {
-    Some(self.source_order)
+  fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc)
   }
 
   fn span(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(rspack_core::ErrorSpan {
-      start: self.start,
-      end: self.end,
-    })
+    Some(self.span)
+  }
+
+  fn source_order(&self) -> Option<i32> {
+    Some(self.source_order)
   }
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {

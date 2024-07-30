@@ -225,7 +225,7 @@ Chunk Group cimanyd 337 bytes = cimanyd.js"
 `;
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
-"ERROR in ./index.js
+"ERROR in ./index.js 1:0-19
   × Module not found: Can't resolve 'not-exist' in 'Xdir/nonexistent-import-source-error'
    ╭────
  1 │ import \\"not-exist\\";
@@ -385,7 +385,7 @@ exports[`statsOutput statsOutput/resolve-overflow-error should print correct sta
 "asset main.js 348 bytes [emitted] (name: main)
 ./index.js 51 bytes [built] [code generated] [1 error]
 
-ERROR in ./index.js
+ERROR in ./index.js 1:0-34
   × Module not found: Can't resolve 'cycle-alias/a' in 'Xdir/resolve-overflow-error'
    ╭─[1:18]
  1 │ import { a } from \\"cycle-alias/a\\";
@@ -402,7 +402,7 @@ exports[`statsOutput statsOutput/resolve-unexpected-exports-in-pkg-error should 
 runtime modules 280 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
 
-ERROR in ./index.js
+ERROR in ./index.js 1:0-22
   × Invalid \\"exports\\" target \\"../../index.js\\" defined for '.' in the package config Xdir/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
 Rspack x.x.x compiled with 1 error in X s"
