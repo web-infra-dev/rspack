@@ -448,16 +448,12 @@ pub struct JsStatsModuleCommonAttributes {
   pub cacheable: Option<bool>,
   pub optional: Option<bool>,
   pub orphan: Option<bool>,
-  pub issuer: Option<String>,
-  pub issuer_name: Option<String>,
-  pub issuer_path: Option<Vec<JsStatsModuleIssuer>>,
   pub failed: Option<bool>,
   pub errors: Option<u32>,
   pub warnings: Option<u32>,
   pub profile: Option<JsStatsModuleProfile>,
 
   // ids
-  pub issuer_id: Option<String>,
   pub chunks: Option<Vec<String>>,
 
   // moduleAssets
@@ -474,9 +470,6 @@ pub struct JsStatsModuleCommonAttributes {
 
   // depth
   pub depth: Option<u32>,
-
-  // nestedModules
-  // pub modules: Option<Vec<JsStatsModule>>,
 
   // source
   pub source: Option<Either<String, Buffer>>,
@@ -535,6 +528,10 @@ pub struct JsStatsModule {
   #[napi(ts_type = "JsStatsModuleCommonAttributes")]
   pub common_attributes: JsStatsModuleCommonAttributesWrapper,
   pub dependent: Option<bool>,
+  pub issuer: Option<String>,
+  pub issuer_name: Option<String>,
+  pub issuer_id: Option<String>,
+  pub issuer_path: Option<Vec<JsStatsModuleIssuer>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
   pub modules: Option<Vec<JsStatsModule>>,
 }
@@ -619,13 +616,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       module_descriptor,
       depth: stats.depth.map(|d| d as u32),
       chunks: stats.chunks,
-      issuer: stats.issuer.map(|i| i.to_owned()),
-      issuer_name: stats.issuer_name.map(|i| i.into_owned()),
-      issuer_id: stats.issuer_id.map(|i| i.to_owned()),
       name_for_condition: stats.name_for_condition,
-      issuer_path: stats
-        .issuer_path
-        .map(|path| path.into_iter().map(Into::into).collect()),
       reasons,
       assets: stats.assets,
       source,
@@ -649,6 +640,12 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     Ok(Self {
       common_attributes,
       dependent: stats.dependent,
+      issuer: stats.issuer.map(|i| i.to_owned()),
+      issuer_name: stats.issuer_name.map(|i| i.into_owned()),
+      issuer_id: stats.issuer_id.map(|i| i.to_owned()),
+      issuer_path: stats
+        .issuer_path
+        .map(|path| path.into_iter().map(Into::into).collect()),
       used_exports: stats.used_exports.map(|used_exports| match used_exports {
         StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
         StatsUsedExports::Vec(v) => {

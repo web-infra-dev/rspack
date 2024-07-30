@@ -640,6 +640,10 @@ export interface JsStatsMillisecond {
 export interface JsStatsModule {
   commonAttributes: JsStatsModuleCommonAttributes
   dependent?: boolean
+  issuer?: string
+  issuerName?: string
+  issuerId?: string
+  issuerPath?: Array<JsStatsModuleIssuer>
   usedExports?: string | Array<string>
   modules?: Array<JsStatsModule>
 }
@@ -661,14 +665,10 @@ export interface JsStatsModuleCommonAttributes {
   cacheable?: boolean
   optional?: boolean
   orphan?: boolean
-  issuer?: string
-  issuerName?: string
-  issuerPath?: Array<JsStatsModuleIssuer>
   failed?: boolean
   errors?: number
   warnings?: number
   profile?: JsStatsModuleProfile
-  issuerId?: string
   chunks?: Array<string>
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
