@@ -8,11 +8,8 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-mimalloc-rust = { workspace = true }
-
 [target.'cfg(all(target_os = "linux", target_env = "musl"))'.dependencies]
-mimalloc-rust = { workspace = true, features = ["local-dynamic-tls"] }
+mimalloc = { workspace = true, features = ["local_dynamic_tls"] }
 
-[target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
-tikv-jemallocator = { workspace = true }
+[target.'cfg(not(all(target_os = "linux", target_env = "musl")))'.dependencies]
+mimalloc = { workspace = true }
