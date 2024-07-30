@@ -489,6 +489,7 @@ export interface JsRspackError {
   name: string
   message: string
   moduleIdentifier?: string
+  loc?: string
   file?: string
   stack?: string
   hideStack?: boolean
@@ -613,6 +614,7 @@ export interface JsStatsError {
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
+  loc?: string
   file?: string
   chunkId?: string
   details?: string

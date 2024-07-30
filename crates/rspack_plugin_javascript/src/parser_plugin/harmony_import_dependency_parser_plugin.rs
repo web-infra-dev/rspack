@@ -1,4 +1,5 @@
 use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
+use rspack_error::ErrorLocation;
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -72,6 +73,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let dependency = HarmonyImportSideEffectDependency::new(
       source.into(),
       parser.last_harmony_import_order,
+      ErrorLocation::new(import_decl.span, &parser.source_map),
       import_decl.span.into(),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
@@ -138,8 +140,8 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       settings.source_order,
       parser.in_short_hand,
       !parser.is_asi_position(ident.span_lo()),
-      ident.span.real_lo(),
-      ident.span.real_hi(),
+      ErrorLocation::new(ident.span(), &parser.source_map),
+      ident.span.into(),
       settings.ids,
       parser.in_tagged_template_tag,
       true,
@@ -187,14 +189,14 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
-    let (start, end) = if members.len() > non_optional_members.len() {
+    let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_expr(
         callee,
         (members.len() - non_optional_members.len()) as i32,
       );
-      (expr.span().real_lo(), expr.span().real_hi())
+      expr.span()
     } else {
-      (callee.span().real_lo(), callee.span().real_hi())
+      callee.span()
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
@@ -205,8 +207,8 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       settings.source_order,
       false,
       !parser.is_asi_position(call_expr.span_lo()),
-      start,
-      end,
+      ErrorLocation::new(span, &parser.source_map),
+      span.into(),
       ids,
       true,
       direct_import,
@@ -252,14 +254,14 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
-    let (start, end) = if members.len() > non_optional_members.len() {
+    let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_member(
         member_expr,
         (members.len() - non_optional_members.len()) as i32,
       );
-      (expr.span().real_lo(), expr.span().real_hi())
+      expr.span()
     } else {
-      (member_expr.span.real_lo(), member_expr.span.real_hi())
+      member_expr.span()
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
@@ -269,8 +271,8 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       settings.source_order,
       false,
       !parser.is_asi_position(member_expr.span_lo()),
-      start,
-      end,
+      ErrorLocation::new(span, &parser.source_map),
+      span.into(),
       ids,
       false,
       false, // x.xx()

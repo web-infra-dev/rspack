@@ -79,6 +79,7 @@ pub struct JsStatsError {
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
+  pub loc: Option<String>,
   pub file: Option<String>,
   pub chunk_id: Option<String>,
   pub details: Option<String>,
@@ -107,6 +108,7 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
         .into()
       }),
       message: stats.message,
+      loc: stats.loc,
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
