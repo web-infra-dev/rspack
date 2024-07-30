@@ -207,10 +207,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   additional_msg: String,
   should_error: bool,
 ) -> Option<Diagnostic> {
-  let Some(imported_module) = module_graph.get_module_by_dependency_id(module_dependency.id())
-  else {
-    return None;
-  };
+  let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if !imported_module.get_diagnostics().is_empty() {
     return None;
   }

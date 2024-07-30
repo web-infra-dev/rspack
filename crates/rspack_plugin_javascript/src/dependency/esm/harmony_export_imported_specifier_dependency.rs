@@ -921,9 +921,7 @@ impl HarmonyExportImportedSpecifierDependency {
         &potential_conflicts.names[potential_conflicts.names_slice
           ..potential_conflicts.dependency_indices[potential_conflicts.dependency_index]],
       );
-      let Some(imported_module) = module_graph.get_module_by_dependency_id(&self.id) else {
-        return None;
-      };
+      let imported_module = module_graph.get_module_by_dependency_id(&self.id)?;
       let exports_info = module_graph.get_exports_info(&imported_module.identifier());
       let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
         IndexMap::default();

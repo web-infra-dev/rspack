@@ -10,9 +10,7 @@ pub fn eval_new_expression(
   scanner: &mut JavascriptParser,
   expr: &NewExpr,
 ) -> Option<BasicEvaluatedExpression> {
-  let Some(ident) = expr.callee.as_ident() else {
-    return None;
-  };
+  let ident = expr.callee.as_ident()?;
   if ident.sym.as_str() != "RegExp" {
     // FIXME: call hooks
     return None;
@@ -35,9 +33,7 @@ pub fn eval_new_expression(
   }
 
   let evaluated_reg_exp = scanner.evaluate_expression(&arg1.expr);
-  let Some(reg_exp) = evaluated_reg_exp.as_string() else {
-    return None;
-  };
+  let reg_exp = evaluated_reg_exp.as_string()?;
 
   let flags = if let Some(arg2) = args.get(1) {
     if arg2.spread.is_some() {

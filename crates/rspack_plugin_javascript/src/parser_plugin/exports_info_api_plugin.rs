@@ -17,7 +17,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     member_expr: &swc_core::ecma::ast::MemberExpr,
     _name: &str,
   ) -> Option<bool> {
-    let Some((members, root)) = parser
+    let (members, root) = parser
       .get_member_expression_info(member_expr, AllowedMemberTypes::Expression)
       .and_then(|info| match info {
         MemberExpressionInfo::Call(_) => None,
@@ -28,10 +28,8 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
             None
           }
         }
-      })
-    else {
-      return None;
-    };
+      })?;
+
     let len = members.len();
     if len >= 1 && root == WEBPACK_EXPORTS_INFO && parser.is_unresolved_ident(WEBPACK_EXPORTS_INFO)
     {

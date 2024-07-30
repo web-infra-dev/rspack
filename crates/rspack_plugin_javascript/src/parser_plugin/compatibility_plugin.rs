@@ -117,12 +117,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   }
 
   fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
-    let Some(fn_decl) = stmt.as_function_decl() else {
-      return None;
-    };
-    let Some(ident) = fn_decl.ident() else {
-      return None;
-    };
+    let fn_decl = stmt.as_function_decl()?;
+    let ident = fn_decl.ident()?;
     let name = ident.sym.as_str();
     if name != RuntimeGlobals::REQUIRE.name() {
       None

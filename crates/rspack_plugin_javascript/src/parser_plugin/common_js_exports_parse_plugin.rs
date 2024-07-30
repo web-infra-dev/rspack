@@ -32,7 +32,7 @@ fn get_member_expression_info<E: ExprLike>(
     None => is_module_exports_member_expr_start(expr),
   };
   expr.as_member().and_then(|expr: &MemberExpr| {
-    let Some(members) = parser
+    let members = parser
       .get_member_expression_info(expr, AllowedMemberTypes::Expression)
       .and_then(|info| match info {
         MemberExpressionInfo::Call(_) => None,
@@ -44,10 +44,7 @@ fn get_member_expression_info<E: ExprLike>(
           .skip(if is_module_exports_start { 1 } else { 0 })
           .map(|n| n.to_owned())
           .collect::<Vec<_>>()
-      })
-    else {
-      return None;
-    };
+      })?;
     match expr.obj {
       box Expr::Call(_) => Some(members),
       box Expr::Ident(_) => Some(members),
@@ -378,11 +375,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      let Some(remaining) =
-        get_member_expression_info(parser, left_expr, Some(is_module_exports_start))
-      else {
-        return None;
-      };
+      let remaining = get_member_expression_info(parser, left_expr, Some(is_module_exports_start))?;
 
       if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
         && parser.is_require_call_expr(&assign_expr.right)
