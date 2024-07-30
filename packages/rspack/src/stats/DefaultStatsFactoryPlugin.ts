@@ -579,6 +579,9 @@ const EXTRACT_ERROR: Record<
 			object.moduleIdentifier = error.moduleDescriptor.identifier;
 			object.moduleName = error.moduleDescriptor.name;
 		}
+		if ("loc" in error) {
+			object.loc = error.loc;
+		}
 	},
 	ids: (object, error) => {
 		if (error.chunkId) {
