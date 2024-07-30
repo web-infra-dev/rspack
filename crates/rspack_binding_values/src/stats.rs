@@ -530,9 +530,8 @@ pub struct JsStatsModule {
   #[napi(ts_type = "JsStatsModuleCommonAttributes")]
   pub common_attributes: JsStatsModuleCommonAttributesWrapper,
   pub dependent: Option<bool>,
-  pub issuer: Option<String>,
-  pub issuer_name: Option<String>,
-  pub issuer_id: Option<String>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub issuer_descriptor: Option<JsModuleDescriptorWrapper>,
   pub issuer_path: Option<Vec<JsStatsModuleIssuer>>,
   pub used_exports: Option<Either<String, Vec<String>>>,
   pub modules: Option<Vec<JsStatsModule>>,
@@ -639,12 +638,19 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     }
     .into();
 
+    let issuer_descriptor: Option<JsModuleDescriptorWrapper> = stats.issuer.map(|identifier| {
+      JsModuleDescriptor {
+        identifier: identifier.into(),
+        name: stats.issuer_name.unwrap_or_default().into_owned(),
+        id: stats.issuer_id.map(|s| s.to_string()),
+      }
+      .into()
+    });
+
     Ok(Self {
       common_attributes,
       dependent: stats.dependent,
-      issuer: stats.issuer.map(|i| i.to_owned()),
-      issuer_name: stats.issuer_name.map(|i| i.into_owned()),
-      issuer_id: stats.issuer_id.map(|i| i.to_owned()),
+      issuer_descriptor,
       issuer_path: stats
         .issuer_path
         .map(|path| path.into_iter().map(Into::into).collect()),

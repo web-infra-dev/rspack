@@ -642,9 +642,7 @@ export interface JsStatsMillisecond {
 export interface JsStatsModule {
   commonAttributes: JsStatsModuleCommonAttributes
   dependent?: boolean
-  issuer?: string
-  issuerName?: string
-  issuerId?: string
+  issuerDescriptor?: JsModuleDescriptor
   issuerPath?: Array<JsStatsModuleIssuer>
   usedExports?: string | Array<string>
   modules?: Array<JsStatsModule>

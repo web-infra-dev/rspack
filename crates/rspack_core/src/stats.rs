@@ -836,7 +836,7 @@ impl Stats<'_> {
       stats.optional = Some(module_graph.is_optional(&identifier));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;
-      stats.issuer = issuer.map(|i| i.identifier().as_str());
+      stats.issuer = issuer.map(|i| i.identifier());
       stats.issuer_name = issuer_name;
       stats.issuer_path = Some(issuer_path);
       stats.failed = Some(errors > 0);
@@ -1433,7 +1433,7 @@ pub struct StatsModule<'s> {
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
   pub dependent: Option<bool>,
-  pub issuer: Option<&'static str>,
+  pub issuer: Option<ModuleIdentifier>,
   pub issuer_name: Option<Cow<'s, str>>,
   pub issuer_id: Option<&'s str>,
   pub issuer_path: Option<Vec<StatsModuleIssuer<'s>>>,

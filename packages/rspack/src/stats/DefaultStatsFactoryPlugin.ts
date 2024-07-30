@@ -1171,10 +1171,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.optional = commonAttributes.optional;
 			object.orphan = commonAttributes.orphan;
 			object.dependent = module.dependent;
-			object.issuer = module.issuer;
-			object.issuerName = module.issuerName;
+			object.issuer = module.issuerDescriptor?.identifier;
+			object.issuerName = module.issuerDescriptor?.name;
 			object.issuerPath =
-				module.issuer &&
+				module.issuerDescriptor &&
 				factory.create(
 					`${type.slice(0, -8)}.issuerPath`,
 					module.issuerPath,
@@ -1193,7 +1193,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			if (commonAttributes.moduleDescriptor) {
 				object.id = commonAttributes.moduleDescriptor.id;
 			}
-			object.issuerId = module.issuerId;
+			object.issuerId = module.issuerDescriptor?.id;
 			object.chunks = commonAttributes.chunks;
 		},
 		moduleAssets: (object, module) => {
