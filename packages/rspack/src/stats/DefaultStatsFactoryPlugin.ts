@@ -625,12 +625,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetErrors) {
 				context.cachedGetErrors = _compilation => {
-					return statsCompilation.errors!;
+					return statsCompilation.errors;
 				};
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					const warnings = statsCompilation.warnings!;
+					const warnings = statsCompilation.warnings;
 
 					return compilation.hooks.processWarnings.call(
 						warnings as any

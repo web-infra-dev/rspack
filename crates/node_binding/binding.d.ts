@@ -601,11 +601,11 @@ export interface JsStatsCompilation {
   assetsByChunkName?: Array<JsStatsAssetsByChunkName>
   chunks?: Array<JsStatsChunk>
   entrypoints?: Array<JsStatsChunkGroup>
-  errors?: Array<JsStatsError>
+  errors: Array<JsStatsError>
   hash?: string
   modules?: Array<JsStatsModule>
   namedChunkGroups?: Array<JsStatsChunkGroup>
-  warnings?: Array<JsStatsWarning>
+  warnings: Array<JsStatsWarning>
 }
 
 export interface JsStatsError {

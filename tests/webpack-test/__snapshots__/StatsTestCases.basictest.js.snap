@@ -1164,7 +1164,7 @@ exports[`StatsTestCases should print correct stats for preset-summary 1`] = `
 "<e> [LogTestPlugin] Error
 <w> [LogTestPlugin] Warning
 <i> [LogTestPlugin] Info
-"
+Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for related-assets 1`] = `

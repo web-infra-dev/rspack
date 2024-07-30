@@ -1028,11 +1028,11 @@ pub struct JsStatsCompilation {
   pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName>>,
   pub chunks: Option<Vec<JsStatsChunk>>,
   pub entrypoints: Option<Vec<JsStatsChunkGroup>>,
-  pub errors: Option<Vec<JsStatsError>>,
+  pub errors: Vec<JsStatsError>,
   pub hash: Option<String>,
   pub modules: Option<Vec<JsStatsModule>>,
   pub named_chunk_groups: Option<Vec<JsStatsChunkGroup>>,
-  pub warnings: Option<Vec<JsStatsWarning>>,
+  pub warnings: Vec<JsStatsWarning>,
 }
 
 pub struct JsStatsCompilationWrapper(JsStatsCompilation);
@@ -1110,9 +1110,9 @@ impl JsStats {
       self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children)
     });
 
-    let errors = options.errors.then(|| self.errors());
+    let errors = self.errors();
 
-    let warnings = options.warnings.then(|| self.warnings());
+    let warnings = self.warnings();
 
     Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
