@@ -4560,6 +4560,8 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     errors: boolean;
     // (undocumented)
+    errorsCount: boolean;
+    // (undocumented)
     excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
     // (undocumented)
     excludeModules: ((name: string, module: StatsModule, type: "module" | "chunk" | "root-of-chunk" | "nested") => boolean)[];
@@ -4621,6 +4623,8 @@ interface KnownNormalizedStatsOptions {
     usedExports: boolean;
     // (undocumented)
     warnings: boolean;
+    // (undocumented)
+    warningsCount: boolean;
     // (undocumented)
     warningsFilter: ((warning: StatsError, textValue: string) => boolean)[];
 }
