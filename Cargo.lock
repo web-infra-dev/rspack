@@ -3133,7 +3133,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_napi",
- "rspack_napi_macros",
  "rspack_regex",
  "rustc-hash 1.1.0",
  "serde",
