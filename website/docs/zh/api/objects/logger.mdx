@@ -23,7 +23,7 @@ Rspack logger 可以在 [loaders](/guide/features/loader) 和 [plugins](/guide/f
 
 通过引入 Rspack 的 Logger API。我们希望能够统一 Plugin 和 Loader 输出日志的方式以更方便地排查问题和提升开发体验。同时为非 CLI 的集成 Rspack 提供解决方案，如 dashboard 和其他 UI 工具。
 
-:::warning
+:::warning 避免输出过多日志
 **避免在输出过多日志!**
 
 由于构建过程中使用多个 Plugin 和 Loader，一个 Loader 通常也会处理许多文件。尽量选择一个低等级的日志展示等级来保证日志的信息有效性。
