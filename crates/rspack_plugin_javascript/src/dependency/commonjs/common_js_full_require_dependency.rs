@@ -69,7 +69,7 @@ impl Dependency for CommonJsFullRequireDependency {
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type_readonly(module_graph, false))
+        .map(|m| m.get_exports_type(module_graph, false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {

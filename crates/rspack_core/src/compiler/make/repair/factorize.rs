@@ -11,7 +11,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilerOptions, Context, DependencyId, ExportInfo, ExportsInfo, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleProfile,
-  Resolve, UsageState,
+  Resolve,
 };
 
 #[derive(Debug)]
@@ -58,12 +58,8 @@ impl Task<MakeTaskContext> for FactorizeTask {
       .or(self.issuer_layer.as_ref())
       .cloned();
 
-    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
-    let side_effects_only_info = ExportInfo::new(
-      Some("*side effects only*".into()),
-      UsageState::Unknown,
-      None,
-    );
+    let other_exports_info = ExportInfo::new(None, None);
+    let side_effects_only_info = ExportInfo::new(Some("*side effects only*".into()), None);
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let factorize_result_task = FactorizeResultTask {
       //      dependency: dep_id,

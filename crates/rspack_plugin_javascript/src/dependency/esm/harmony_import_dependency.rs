@@ -220,7 +220,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type = imported_module.get_exports_type_readonly(
+  let exports_type = imported_module.get_exports_type(
     module_graph,
     parent_module
       .build_meta()

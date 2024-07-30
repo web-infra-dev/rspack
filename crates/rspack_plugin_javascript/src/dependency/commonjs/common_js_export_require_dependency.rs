@@ -104,7 +104,7 @@ impl CommonJsExportRequireDependency {
     let is_namespace_import = matches!(
       mg.module_by_identifier(imported_module)
         .expect("Should get imported module")
-        .get_exports_type_readonly(mg, false),
+        .get_exports_type(mg, false),
       ExportsType::Namespace
     );
 

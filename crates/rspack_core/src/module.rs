@@ -18,10 +18,9 @@ use crate::concatenated_module::ConcatenatedModule;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
-  DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ImmutableModuleGraph,
-  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleLayer, ModuleType, MutableModuleGraph,
-  NormalModule, RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ModuleDependency,
+  ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, RunnerContext,
+  RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 pub struct BuildContext<'a> {
   pub runner_context: RunnerContext,
@@ -250,18 +249,8 @@ pub trait Module:
       .unwrap_or_default()
   }
 
-  fn get_exports_type_readonly(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
-    let mut mga = ImmutableModuleGraph::new(module_graph);
-    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
-  }
-
-  fn get_exports_type<'a>(
-    &self,
-    module_graph: &'a mut ModuleGraph<'a>,
-    strict: bool,
-  ) -> ExportsType {
-    let mut mga = MutableModuleGraph::new(module_graph);
-    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+  fn get_exports_type(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
+    get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
   }
 
   fn get_strict_harmony_module(&self) -> bool {
@@ -383,7 +372,7 @@ pub trait Module:
 fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: Option<&BuildMeta>,
-  mga: &mut dyn ModuleGraphAccessor,
+  mg: &ModuleGraph,
   strict: bool,
 ) -> ExportsType {
   if let Some((export_type, default_object)) = build_meta
@@ -423,13 +412,13 @@ fn get_exports_type_impl(
           }
 
           if let Some(export_info) =
-            mga.get_read_only_export_info(&Atom::from("__esModule"), &identifier)
+            mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
           {
             let export_info_id = export_info.id;
             if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
               handle_default(default_object)
             } else {
-              let Some(target) = export_info_id.get_target(mga, None) else {
+              let Some(target) = export_info_id.get_target(mg, None) else {
                 return ExportsType::Dynamic;
               };
               if target
@@ -443,7 +432,10 @@ fn get_exports_type_impl(
                 })
                 .is_some_and(|v| v == "__esModule")
               {
-                let Some(target_exports_type) = mga.get_module_meta_exports_type(&target.module)
+                let Some(target_exports_type) = mg
+                  .module_by_identifier(&target.module)
+                  .and_then(|m| m.build_meta())
+                  .map(|meta| meta.exports_type)
                 else {
                   return ExportsType::Dynamic;
                 };

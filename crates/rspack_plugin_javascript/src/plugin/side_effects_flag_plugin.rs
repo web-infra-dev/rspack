@@ -7,9 +7,8 @@ use once_cell::sync::Lazy;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, MutableModuleGraph,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget,
-  SideEffectsBailoutItemWithSpan,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -740,9 +739,8 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
       if !ids.is_empty() {
         let export_info_id = cur_exports_info_id.get_export_info(&ids[0], &mut module_graph);
 
-        let mut mga = MutableModuleGraph::new(&mut module_graph);
         let target = export_info_id.get_target(
-          &mut mga,
+          &module_graph,
           Some(Arc::new(
             |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
               mg.module_by_identifier(&target.module)
