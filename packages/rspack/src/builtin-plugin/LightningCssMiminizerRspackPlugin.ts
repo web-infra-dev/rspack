@@ -5,15 +5,8 @@ import {
 
 import { create } from "./base";
 
-type MinifyCondition = string | RegExp;
-type MinifyConditions = MinifyCondition | MinifyCondition[];
-
 export type LightningCssMinimizerRspackPluginOptions =
-	Partial<RawLightningCssMinimizerRspackPluginOptions> & {
-		test?: MinifyConditions;
-		exclude?: MinifyConditions;
-		include?: MinifyConditions;
-	};
+	Partial<RawLightningCssMinimizerRspackPluginOptions>;
 
 export const LightningCssMinimizerRspackPlugin = create(
 	BuiltinPluginName.LightningCssMinimizerRspackPlugin,
