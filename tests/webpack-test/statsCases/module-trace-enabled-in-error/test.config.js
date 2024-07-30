@@ -23,8 +23,8 @@ module.exports = {
 			- XX │ require('does-not-exist')
 			- · ─────────────────────────
 			- ╰────
-			- @ ./not-existing.js [XX]
-			- @ ./inner.js [XX]
+			- @ ./inner.js
+			- @ ./index.js
 			+ ./not-existing.js XX bytes [built] [code generated]
 			+ ./parse-error.js XX bytes [built] [code generated] [XX error]
 			@@ -17,11 +7,4 @@
@@ -46,8 +46,8 @@ module.exports = {
 			@@ -29,4 +12,10 @@
 			- help:
 			- You may need an appropriate loader to handle this file type.
-			- @ ./parse-error.js [XX]
-			- @ ./inner.js [XX]
+			- @ ./inner.js
+			- @ ./index.js
 			+ ERROR in ./parse-error.js XX:XX
 			+ Module parse failed: Unexpected token (XX:XX)
 			+ You may need an appropriate loader to handle this file type, currently no loaders are configured to process this file. See https://webpack.js.org/concepts#loaders

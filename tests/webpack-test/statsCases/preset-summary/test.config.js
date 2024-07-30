@@ -9,8 +9,7 @@ module.exports = {
 			"- Expected
 			+ Received
 
-			@@ -4,1 +4,1 @@
-			- Rspack x.x.x compiled successfully
+			@@ -4,0 +4,1 @@
 			+ webpack x.x.x compiled successfully"
 		`);
 

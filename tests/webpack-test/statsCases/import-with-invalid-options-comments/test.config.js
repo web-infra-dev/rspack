@@ -24,7 +24,7 @@ module.exports = {
 			+ Compilation error while processing magic comment(-s): /* webpackPrefetch: true, webpackChunkName: notGoingToCompileChunkName */: notGoingToCompileChunkName is not defined
 			+ @ ./index.js XX:XX-XX
 			@@ -21,12 +14,3 @@
-			- @ ./chunk.js [XX]
+			- @ ./index.js
 			-
 			- WARNING in ./chunk.js
 			- ⚠ Module parse warning:
@@ -40,7 +40,7 @@ module.exports = {
 			+ Compilation error while processing magic comment(-s): /* webpack Prefetch: XX, webpackChunkName: \\\\notGoingToCompile-c\\\\ */: Unexpected identifier
 			+ @ ./index.js XX:XX-XX
 			@@ -34,1 +18,3 @@
-			- @ ./chunk.js [XX]
+			- @ ./index.js
 			+ WARNING in ./chunk.js XX:XX-XX
 			+ Compilation error while processing magic comment(-s): /* webpackPrefetch: nope */: nope is not defined
 			+ @ ./index.js XX:XX-XX
