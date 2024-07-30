@@ -81,11 +81,11 @@ impl<'parser> JavascriptParser<'parser> {
     if self.build_meta.esm && !call_expr.args.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
       if let Some(callback_arg) = call_expr.args.get(1) {
+        let span = callback_arg.span();
         self
           .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
-            callback_arg.span().real_lo(),
-            callback_arg.span().real_hi(),
+            span.into(),
             true,
             dependency_ids,
           )));
@@ -93,8 +93,7 @@ impl<'parser> JavascriptParser<'parser> {
         self
           .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
-            call_expr.span().real_hi() - 1,
-            0,
+            ErrorSpan::new(call_expr.span().real_hi() - 1, 0),
             false,
             dependency_ids,
           )));

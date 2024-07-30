@@ -54,6 +54,7 @@ pub struct HarmonyImportSideEffectDependency {
 }
 
 impl HarmonyImportSideEffectDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
     source_order: i32,
@@ -382,7 +383,7 @@ impl Dependency for HarmonyImportSideEffectDependency {
   }
 
   fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc.clone())
+    Some(self.loc)
   }
 
   fn span(&self) -> Option<ErrorSpan> {

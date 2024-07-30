@@ -62,13 +62,13 @@ impl fmt::Display for RspackSeverity {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {
   pub line: usize,
   pub column: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ErrorLocation {
   pub start: SourcePosition,
   pub end: SourcePosition,
