@@ -23,7 +23,7 @@ Benefits of custom logging API in Rspack:
 
 By introducing Rspack logging API we hope to unify the way Rspack plugins and loaders emit logs and allow better ways to inspect build problems. Integrated logging solution supports plugins and loaders developers by improving their development experience. Paves the way for non-CLI Rspack solutions like dashboards or other UIs.
 
-:::warning
+:::warning Avoid noise in the log
 **Avoid noise in the log!**
 
 Keep in mind that multiple plugins and loaders are used together. Loaders are usually processing multiple files and are invoked for every file. Choose a logging level as low as possible to keep the log output informative.
