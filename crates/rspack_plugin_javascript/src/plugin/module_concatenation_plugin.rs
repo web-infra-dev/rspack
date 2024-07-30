@@ -237,14 +237,16 @@ impl ModuleConcatenationPlugin {
 
     if !missing_chunks.is_empty() {
       let problem_string = {
-        let missing_chunks_list = missing_chunks
+        let mut missing_chunks_list = missing_chunks
           .iter()
           .map(|&chunk| {
             let chunk = chunk_by_ukey.expect_get(&chunk);
             chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
           })
           .collect::<Vec<_>>();
-        let chunks = chunk_graph
+        missing_chunks_list.sort_unstable();
+
+        let mut chunks = chunk_graph
           .get_module_chunks(*module_id)
           .iter()
           .map(|&chunk| {
@@ -252,7 +254,14 @@ impl ModuleConcatenationPlugin {
             chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
           })
           .collect::<Vec<_>>();
-        format!("Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",module_readable_identifier,missing_chunks_list.join(", "),chunks.join(", "))
+        chunks.sort_unstable();
+
+        format!(
+          "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
+          module_readable_identifier,
+          missing_chunks_list.join(", "),
+          chunks.join(", ")
+        )
       };
 
       statistics.incorrect_chunks += 1;
