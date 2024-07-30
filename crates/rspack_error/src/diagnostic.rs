@@ -222,7 +222,7 @@ impl Diagnostic {
   }
 
   pub fn loc(&self) -> Option<ErrorLocation> {
-    self.loc.clone()
+    self.loc
   }
 
   pub fn with_loc(mut self, loc: Option<ErrorLocation>) -> Self {

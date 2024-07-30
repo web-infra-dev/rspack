@@ -48,7 +48,7 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
   ) {
     source.replace(
       self.range_stmt.start,
-      if let Some(range) = self.range.clone() {
+      if let Some(range) = self.range {
         range.start
       } else {
         self.range_stmt.end
