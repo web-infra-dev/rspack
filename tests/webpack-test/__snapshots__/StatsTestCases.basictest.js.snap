@@ -62,7 +62,7 @@ exports[`StatsTestCases should print correct stats for async-commons-chunk-auto 
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) disabled/async-g.js (async-g) 65 bytes [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   disabled (Rspack x.x.x) compiled successfully
@@ -93,7 +93,7 @@ default:
   chunk (runtime: a, main) default/581.js (id hint: ) 20 bytes [rendered] split chunk (cache group: default)
     > ./b [10] ./index.js 2:0-47
     > ./c [10] ./index.js 3:0-47
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) default/a.js (a) 165 bytes (javascript) 6.98 KiB (runtime) [entry] [rendered]
     > ./a a
@@ -113,7 +113,7 @@ default:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) default/async-g.js (async-g) 45 bytes [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
   default (Rspack x.x.x) compiled successfully
 
@@ -143,7 +143,7 @@ vendors:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) vendors/async-g.js (async-g) 65 bytes [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   vendors (Rspack x.x.x) compiled successfully
@@ -517,7 +517,7 @@ WARNING in ./chunk.js
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
          ╰────
       
- @ ./chunk.js [52]
+ @ ./index.js
 
 WARNING in ./chunk.js
   ⚠ Module parse warning:
@@ -530,7 +530,7 @@ WARNING in ./chunk.js
        6 │ }
          ╰────
       
- @ ./chunk.js [52]
+ @ ./index.js
 
 Rspack x.x.x compiled with 2 warnings"
 `;
@@ -764,8 +764,6 @@ ERROR in ./not-existing.js
  1 │ require('does-not-exist')
    · ─────────────────────────
    ╰────
- @ ./not-existing.js [195]
- @ ./inner.js [587]
 
 ERROR in ./parse-error.js
   × Module parse failed:
@@ -781,8 +779,6 @@ ERROR in ./parse-error.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./parse-error.js [636]
- @ ./inner.js [587]
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
@@ -801,8 +797,8 @@ ERROR in ./not-existing.js
  1 │ require('does-not-exist')
    · ─────────────────────────
    ╰────
- @ ./not-existing.js [195]
- @ ./inner.js [587]
+ @ ./inner.js
+ @ ./index.js
 
 ERROR in ./parse-error.js
   × Module parse failed:
@@ -818,8 +814,8 @@ ERROR in ./parse-error.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./parse-error.js [636]
- @ ./inner.js [587]
+ @ ./inner.js
+ @ ./index.js
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
@@ -923,8 +919,8 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.js [996]
  @ ./a.js
+ @ ./index.js
 
 Rspack x.x.x compiled with 1 error"
 `;
@@ -1168,7 +1164,7 @@ exports[`StatsTestCases should print correct stats for preset-summary 1`] = `
 "<e> [LogTestPlugin] Error
 <w> [LogTestPlugin] Warning
 <i> [LogTestPlugin] Info
-Rspack x.x.x compiled successfully"
+"
 `;
 
 exports[`StatsTestCases should print correct stats for related-assets 1`] = `
@@ -1713,7 +1709,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
   chunk (runtime: a, main) default/581.js (id hint: ) 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     > ./b [10] ./index.js 2:0-47
     > ./c [10] ./index.js 3:0-47
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) default/a.js (a) 165 bytes (javascript) 6.98 KiB (runtime) >{581}< >{912}< [entry] [rendered]
     > ./a a
@@ -1733,7 +1729,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) default/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
   default (Rspack x.x.x) compiled successfully
 
@@ -1851,7 +1847,7 @@ manual:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) manual/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   manual (Rspack x.x.x) compiled successfully
@@ -1944,7 +1940,7 @@ custom-chunks-filter:
   chunk (runtime: a, main) custom-chunks-filter/581.js (id hint: ) 20 bytes <{250}> <{310}> <{418}> <{74}> <{753}> <{909}> ={172}= ={262}= ={310}= ={416}= ={418}= ={753}= ={912}= [rendered] split chunk (cache group: default)
     > ./b [10] ./index.js 2:0-47
     > ./c [10] ./index.js 3:0-47
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./f.js 20 bytes [built] [code generated]
   chunk (runtime: a) custom-chunks-filter/a.js (a) 165 bytes (javascript) 7 KiB (runtime) >{581}< >{912}< [entry] [rendered]
     > ./a a
@@ -1962,7 +1958,7 @@ custom-chunks-filter:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter/async-g.js (async-g) 45 bytes <{250}> <{310}> <{418}> <{74}> <{753}> ={581}= [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
   custom-chunks-filter (Rspack x.x.x) compiled successfully
 
@@ -2023,7 +2019,7 @@ custom-chunks-filter-in-cache-groups:
     > ./ main
     ./index.js 147 bytes [built] [code generated]
   chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) 65 bytes <{192}> <{250}> <{74}> [rendered]
-    > ./g [847] ./a.js 6:0-47
+    > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
     ./g.js 45 bytes [built] [code generated]
   custom-chunks-filter-in-cache-groups (Rspack x.x.x) compiled successfully"

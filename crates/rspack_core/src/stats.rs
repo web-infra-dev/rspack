@@ -973,9 +973,8 @@ impl Stats<'_> {
       stats.optimization_bailout = Some(&mgm.optimization_bailout);
     }
 
-    if options.depth {
-      stats.depth = module_graph.get_depth(&identifier);
-    }
+    // 'depth' is used for sorting in the JavaScript side, so it should always be computed.
+    stats.depth = module_graph.get_depth(&identifier);
 
     if options.nested_modules {
       if let Some(module) = module.as_concatenated_module() {
