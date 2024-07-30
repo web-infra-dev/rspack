@@ -62,7 +62,11 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       RawSource::from(get_async_wasm_loading(
         &self
           .generate_load_binary_code
-          .replace("$PATH", &format!("\"{}\"", path)),
+          .replace("$PATH", &format!("\"{}\"", path))
+          .replace(
+            "$IMPORT_META_NAME",
+            compilation.options.output.import_meta_name.as_str(),
+          ),
         self.supports_streaming,
       ))
       .boxed(),

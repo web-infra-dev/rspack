@@ -293,7 +293,12 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      if javascript_options.import_meta {
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      } else {
+        plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
+      }
+
       plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
       plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
     }
