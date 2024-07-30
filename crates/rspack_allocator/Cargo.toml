@@ -7,9 +7,9 @@ version    = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-
-[target.'cfg(all(target_os = "linux", target_env = "musl"))'.dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
+# Turned on `local_dynamic_tls` to avoid issue: https://github.com/microsoft/mimalloc/issues/147
 mimalloc = { workspace = true, features = ["local_dynamic_tls"] }
 
-[target.'cfg(not(all(target_os = "linux", target_env = "musl")))'.dependencies]
+[target.'cfg(not(target_os = "linux"))'.dependencies]
 mimalloc = { workspace = true }
