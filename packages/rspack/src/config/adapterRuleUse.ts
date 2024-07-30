@@ -225,14 +225,15 @@ const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 			o.targets = browserslistToTargets(browserslist(o.targets));
 		}
 
-		if (o.include) {
+		if (o.include && typeof o.include === "object") {
 			o.include = toFeatures(o.include as unknown as FeatureOptions);
 		}
 
-		if (o.exclude) {
+		if (o.exclude && typeof o.exclude === "object") {
 			o.exclude = toFeatures(o.exclude as unknown as FeatureOptions);
 		}
 	}
+
 	return o;
 };
 
