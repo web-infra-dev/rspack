@@ -1,27 +1,29 @@
 <>
 
+> 详见 [Logger API](/api/objects/logger)
+
 ```ts
 export type Logger = {
-  getChildLogger: (name: string | (() => string)) => Logger;
-  error(...args: any[]): void;
-  warn(...args: any[]): void;
-  info(...args: any[]): void;
-  log(...args: any[]): void;
-  debug(...args: string[]): void;
-  assert(assertion: any, ...args: any[]): void;
-  trace(): void;
-  clear(): void;
-  status(...args: any[]): void;
-  group(...args: any[]): void;
-  groupCollapsed(...args: any[]): void;
-  groupEnd(...args: any[]): void;
-  profile(label: any): void;
-  profileEnd(label: any): void;
-  time(label: any): void;
-  timeLog(label: any): void;
-  timeEnd(label: any): void;
-  timeAggregate(label: any): void;
-  timeAggregateEnd(label: any): void;
+  getChildLogger: (name: string | (() => string)) => Logger; // 创建子 Logger
+  error(...args: any[]): void; // 展示错误日志
+  warn(...args: any[]): void; //  展示警告日志
+  info(...args: any[]): void; // 展示重要日志
+  log(...args: any[]): void; // 展示非重要日志
+  debug(...args: string[]): void; // 展示调试日志
+  assert(assertion: any, ...args: any[]): void; // 根据断言结果展示错误日志
+  trace(): void; // 展示当前堆栈
+  clear(): void; // 清除历史日志
+  status(...args: any[]): void; // 展示状态信息
+  group(...args: any[]): void; // 创建日志分组
+  groupEnd(...args: any[]): void; // 结束日志分组
+  groupCollapsed(...args: any[]): void; // 将消息分组
+  profile(label: any): void; // 启动 Profile 捕获
+  profileEnd(label: any): void; // 结束 Profile 捕获
+  time(label: any): void; // 启动一个计时器
+  timeLog(label: any): void; // 展示时间差但不停止计时器
+  timeEnd(label: any): void; // 展示时间差并停止计时器
+  timeAggregate(label: any): void; // 叠加计算时间差
+  timeAggregateEnd(label: any): void; // 结束叠加时间差并展示总和
 };
 ```
 
