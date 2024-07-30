@@ -4994,9 +4994,9 @@ export type LightningcssLoaderOptions = {
 
 // @public (undocumented)
 export const LightningCssMinimizerRspackPlugin: {
-    new (options?: LightningCssMinimizerRspackPluginOptions | undefined): {
+    new (options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: LightningCssMinimizerRspackPluginOptions | undefined];
+        _args: [options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -5004,11 +5004,7 @@ export const LightningCssMinimizerRspackPlugin: {
 };
 
 // @public (undocumented)
-export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions> & {
-    test?: MinifyConditions_2;
-    exclude?: MinifyConditions_2;
-    include?: MinifyConditions_2;
-};
+export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions>;
 
 // @public (undocumented)
 type LimitChunkCountOptions = {
@@ -5323,16 +5319,10 @@ type MinifyCondition = string | RegExp;
 type MinifyCondition_2 = string | RegExp;
 
 // @public (undocumented)
-type MinifyCondition_3 = string | RegExp;
-
-// @public (undocumented)
 type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 // @public (undocumented)
 type MinifyConditions_2 = MinifyCondition_2 | MinifyCondition_2[];
-
-// @public (undocumented)
-type MinifyConditions_3 = MinifyCondition_3 | MinifyCondition_3[];
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -13729,9 +13719,9 @@ export const SwcCssMinimizerRspackPlugin: {
 
 // @public (undocumented)
 type SwcCssMinimizerRspackPluginOptions = {
-    test?: MinifyConditions_3;
-    exclude?: MinifyConditions_3;
-    include?: MinifyConditions_3;
+    test?: MinifyConditions_2;
+    exclude?: MinifyConditions_2;
+    include?: MinifyConditions_2;
 };
 
 // @public (undocumented)

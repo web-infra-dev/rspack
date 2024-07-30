@@ -127,7 +127,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
           return Err(e);
         }
         let mut diagnostics = Vec::with_capacity(create_data.diagnostics.len() + 1);
-        diagnostics.push(e.into());
+        diagnostics.push(Into::<Diagnostic>::into(e).with_loc(create_data.dependency.loc()));
         diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(vec![Box::new(

@@ -18,7 +18,7 @@ impl ReactRefreshLoader {
   /// Panics:
   /// Panics if `identifier` passed in is not starting with `builtin:react-refresh-loader`.
   pub fn with_identifier(mut self, identifier: Identifier) -> Self {
-    assert!(identifier.starts_with(REACT_REFRESH_LOADER_IDENTIFIER));
+    debug_assert!(identifier.starts_with(REACT_REFRESH_LOADER_IDENTIFIER));
     self.identifier = identifier;
     self
   }

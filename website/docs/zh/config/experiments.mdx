@@ -46,6 +46,9 @@ module.exports = {
 
 ## experiments.css
 
+- **类型：** `boolean`
+- **默认值：** `Rspack 1.x 默认为 false，Rspack 0.x 默认为 true`
+
 启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
 
 - [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
@@ -55,8 +58,18 @@ module.exports = {
 - [`module.generator.css`](/config/module#modulegeneratorcss)
 - [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
 
+基本示例：
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    css: true,
+  },
+};
+```
+
 :::warning
-如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
+如果你在使用 `style-loader` 或 `css-loader`，请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
 :::
 
 ## experiments.futureDefaults
