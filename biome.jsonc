@@ -49,7 +49,6 @@
 			},
 			"correctness": {
 				"noConstructorReturn": "off",
-				"noInvalidUseBeforeDeclaration": "off",
 				"noInnerDeclarations": "off",
 				"noVoidTypeReturn": "off"
 			},
