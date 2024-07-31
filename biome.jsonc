@@ -47,7 +47,6 @@
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noArguments": "off",
 				"noInferrableTypes": "off",
 				"noParameterAssign": "off",
 				"useSingleVarDeclarator": "off",

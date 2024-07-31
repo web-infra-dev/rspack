@@ -1,5 +1,3 @@
-/* eslint-disable no-control-regex */
-
 import fs from "node:fs";
 import path from "node:path";
 import type { Compiler, Stats } from "@rspack/core";
@@ -51,8 +49,7 @@ export class StatsProcessor<
 		for (const compiler of compilers) {
 			const ifs = compiler.inputFileSystem;
 			compiler.inputFileSystem = Object.create(ifs);
-			compiler.inputFileSystem.readFile = () => {
-				const args = Array.prototype.slice.call(arguments);
+			compiler.inputFileSystem.readFile = (...args: any[]) => {
 				const callback = args.pop();
 				ifs.readFile.apply(
 					ifs,
