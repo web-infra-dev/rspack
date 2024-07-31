@@ -171,7 +171,7 @@ export class StatsProcessor<
 		actual = actual
 			.replace(/\r\n?/g, "\n")
 			// CHANGE: Remove potential line break and "|" caused by long text
-			.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n  │ )/g, "$1")
+			.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n {2}│ )/g, "$1")
 			// CHANGE: Update the regular expression to replace the 'Rspack' version string
 			.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 			.replace(
