@@ -21,3 +21,6 @@ rspack_napi = { path = "../rspack_napi" }
 
 [build-dependencies]
 napi-build = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(node)'] }

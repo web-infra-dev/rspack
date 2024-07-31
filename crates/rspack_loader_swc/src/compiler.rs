@@ -525,13 +525,7 @@ impl SwcCompiler {
         Ok(r) => r,
         Err(_err) => {
           // Load original source map if possible
-          match read_file_sourcemap(data_url) {
-            Ok(v) => v,
-            Err(_) => {
-              // tracing::error!("failed to read input source map: {:?}", err);
-              None
-            }
-          }
+          read_file_sourcemap(data_url).unwrap_or(None)
         }
       }
     };

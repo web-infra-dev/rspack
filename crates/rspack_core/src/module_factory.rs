@@ -39,7 +39,7 @@ impl ModuleFactoryCreateData {
   }
 
   pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {
-    self.file_dependencies.extend(files.into_iter());
+    self.file_dependencies.extend(files);
   }
 
   pub fn add_context_dependency(&mut self, context: PathBuf) {
@@ -47,7 +47,7 @@ impl ModuleFactoryCreateData {
   }
 
   pub fn add_context_dependencies(&mut self, contexts: impl IntoIterator<Item = PathBuf>) {
-    self.context_dependencies.extend(contexts.into_iter());
+    self.context_dependencies.extend(contexts);
   }
 
   pub fn add_missing_dependency(&mut self, missing: PathBuf) {

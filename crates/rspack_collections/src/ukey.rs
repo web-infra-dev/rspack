@@ -226,7 +226,7 @@ where
   <Item as DatabaseItem>::ItemUkey: Eq + Hash + Debug,
 {
   pub fn add(&mut self, item: Item) -> &mut Item {
-    debug_assert!(self.inner.get(&item.ukey()).is_none());
+    debug_assert!(!self.inner.contains_key(&item.ukey()));
     let ukey = item.ukey();
     self.inner.entry(ukey).or_insert(item)
   }

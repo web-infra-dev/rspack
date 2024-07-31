@@ -367,7 +367,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
       return on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.hi.0);
-    } else if self.walk_data.object_define_record.get(for_name).is_some() {
+    } else if self.walk_data.object_define_record.contains_key(for_name) {
       return Some(evaluate_to_string(
         "object".to_string(),
         expr.span.real_lo(),
@@ -406,7 +406,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       && let Some(on_typeof) = &record.on_typeof
     {
       return on_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
-    } else if self.walk_data.object_define_record.get(for_name).is_some() {
+    } else if self.walk_data.object_define_record.contains_key(for_name) {
       debug_assert!(!parser.in_short_hand);
       parser.presentational_dependencies.push(Box::new(dep(
         parser,

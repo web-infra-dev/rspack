@@ -16,9 +16,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
   if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
     let param = scanner.evaluate_expression(&expr.left);
     let boolean = param.as_bool();
-    let Some(boolean) = boolean else {
-      return None;
-    };
+    let boolean = boolean?;
     let keep_right = if boolean {
       expr.op == BinaryOp::LogicalAnd
     } else {
