@@ -46,20 +46,16 @@ const concatComparatorsCache: TwoKeyWeakMap<
 	Comparator
 > = new TwoKeyWeakMap();
 
-export type AtLeastTwo<T> = [T, T, ...T[]];
-
-export const concatComparators = (
-	...comps: AtLeastTwo<Comparator>
-): Comparator => {
+export const concatComparators = (...comps: Array<Comparator>): Comparator => {
 	const [c1, c2, ...cRest] = comps;
+
+	if (c2 === undefined) {
+		return c1;
+	}
 
 	if (cRest.length > 0) {
 		const [c3, ...cRest2] = cRest;
 		return concatComparators(c1, concatComparators(c2, c3, ...cRest2));
-	}
-
-	if (c2 === undefined) {
-		return c1;
 	}
 
 	const cacheEntry = concatComparatorsCache.get(c1, c2);
