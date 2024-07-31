@@ -11,7 +11,11 @@ import type { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
-import { type Comparator, concatComparators } from "../util/comparators";
+import {
+	type AtLeastTwo,
+	type Comparator,
+	concatComparators
+} from "../util/comparators";
 import { type GroupConfig, smartGrouping } from "../util/smartGrouping";
 
 export type KnownStatsFactoryContext = {
@@ -285,7 +289,9 @@ export class StatsFactory {
 				h.call(comparators, context)
 			);
 			if (comparators.length > 0) {
-				items.sort(concatComparators(...comparators));
+				items.sort(
+					concatComparators(...(comparators as AtLeastTwo<Comparator>))
+				);
 			}
 
 			// run filter on sorted items
@@ -341,7 +347,9 @@ export class StatsFactory {
 				h => h.call(comparators2, context)
 			);
 			if (comparators2.length > 0) {
-				resultItems.sort(concatComparators(...comparators2));
+				resultItems.sort(
+					concatComparators(...(comparators2 as AtLeastTwo<Comparator>))
+				);
 			}
 
 			// group result items
