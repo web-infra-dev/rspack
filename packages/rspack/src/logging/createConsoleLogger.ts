@@ -8,44 +8,13 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-// @ts-nocheck
+import type { FilterItemTypes } from "../config";
+import { LogType, type LogTypeEnum } from "./Logger";
+import type { FilterFunction, LoggerOptions } from "./type";
 
-const { LogType } = require("./Logger");
-
-/** @typedef {import("./Logger").LogTypeEnum} LogTypeEnum */
-
-/** @typedef {function(string): boolean} FilterFunction */
-
-/**
- * @typedef {Object} LoggerConsole
- * @property {function(): void} clear
- * @property {function(): void} trace
- * @property {(...args: any[]) => void} info
- * @property {(...args: any[]) => void} log
- * @property {(...args: any[]) => void} warn
- * @property {(...args: any[]) => void} error
- * @property {(...args: any[]) => void=} debug
- * @property {(...args: any[]) => void=} group
- * @property {(...args: any[]) => void=} groupCollapsed
- * @property {(...args: any[]) => void=} groupEnd
- * @property {(...args: any[]) => void=} status
- * @property {(...args: any[]) => void=} profile
- * @property {(...args: any[]) => void=} profileEnd
- * @property {(...args: any[]) => void=} logTime
- */
-
-/**
- * @typedef {Object} LoggerOptions
- * @property {false|true|"none"|"error"|"warn"|"info"|"log"|"verbose"} level loglevel
- * @property {FilterTypes|boolean} debug filter for debug logging
- * @property {LoggerConsole} console the console to log to
- */
-
-/**
- * @param {FilterItemTypes} item an input item
- * @returns {FilterFunction} filter function
- */
-const filterToFunction = item => {
+const filterToFunction = (
+	item: FilterItemTypes
+): FilterFunction | undefined => {
 	if (typeof item === "string") {
 		const regExp = new RegExp(
 			`[\\\\/]${item.replace(
@@ -67,9 +36,6 @@ const filterToFunction = item => {
 	}
 };
 
-/**
- * @enum {number}
- */
 const LogLevel = {
 	none: 6,
 	false: 6,
@@ -81,25 +47,14 @@ const LogLevel = {
 	verbose: 1
 };
 
-/**
- * @param {LoggerOptions} options options object
- * @returns {function(string, LogTypeEnum, any[]): void} logging function
- */
-export = ({ level = "info", debug = false, console }: any) => {
+export = ({ level = "info", debug = false, console }: LoggerOptions) => {
 	const debugFilters =
 		typeof debug === "boolean"
 			? [() => debug]
-			: /** @type {FilterItemTypes[]} */ [].concat(debug).map(filterToFunction);
-	/** @type {number} */
+			: ([] as FilterItemTypes[]).concat(debug).map(filterToFunction);
 	const loglevel = LogLevel[`${level}`] || 0;
 
-	/**
-	 * @param {string} name name of the logger
-	 * @param {LogTypeEnum} type type of the log entry
-	 * @param {any[]} args arguments of the log entry
-	 * @returns {void}
-	 */
-	const logger = (name, type, args) => {
+	const logger = (name: string, type: LogTypeEnum, args: any[]): void => {
 		const labeledArgs = () => {
 			if (Array.isArray(args)) {
 				if (args.length > 0 && typeof args[0] === "string") {
@@ -109,7 +64,7 @@ export = ({ level = "info", debug = false, console }: any) => {
 			}
 			return [];
 		};
-		const debug = debugFilters.some(f => f(name));
+		const debug = debugFilters.some(f => f!(name));
 		switch (type) {
 			case LogType.debug:
 				if (!debug) return;
