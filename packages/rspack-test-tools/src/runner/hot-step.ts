@@ -15,7 +15,7 @@ import { HotRunnerFactory } from "./hot";
 import { WebRunner } from "./runner/web";
 import type { THotStepRuntimeData } from "./type";
 
-declare var global: {
+declare let global: {
 	__CHANGED_FILES__: Map<string, number>;
 };
 

@@ -125,7 +125,6 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_exports_info(module_identifier)
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
     }
 

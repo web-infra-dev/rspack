@@ -7,9 +7,9 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
-  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportInfoProvided,
+  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
+  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
   ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
   Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
@@ -129,10 +129,10 @@ impl HarmonyExportImportedSpecifierDependency {
     let exports_info = module_graph.get_exports_info(parent_module);
 
     let is_name_unused = if let Some(ref name) = name {
-      exports_info.get_used(UsedName::Str(name.clone()), runtime, module_graph)
+      exports_info.get_used(module_graph, UsedName::Str(name.clone()), runtime)
         == UsageState::Unused
     } else {
-      !exports_info.is_used(runtime, module_graph)
+      !exports_info.is_used(module_graph, runtime)
     };
     if is_name_unused {
       let mut mode = ExportMode::new(ExportModeType::Unused);
@@ -154,13 +154,10 @@ impl HarmonyExportImportedSpecifierDependency {
           return export_mode;
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          let export_info_id = exports_info
-            .id
-            .get_read_only_export_info(name, module_graph)
-            .id;
+          let export_info = exports_info.get_read_only_export_info(module_graph, name);
           let mut export_mode = ExportMode::new(ExportModeType::ReexportNamedDefault);
           export_mode.name = Some(name.clone());
-          export_mode.partial_namespace_export_info = Some(export_info_id);
+          export_mode.partial_namespace_export_info = Some(export_info);
           return export_mode;
         }
         _ => {}
@@ -169,10 +166,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
     // reexporting with a fixed name
     if let Some(name) = name {
-      let export_info = exports_info
-        .id
-        .get_read_only_export_info(&name, module_graph)
-        .id;
+      let export_info = exports_info.get_read_only_export_info(module_graph, &name);
       if !ids.is_empty() {
         // export { name as name }
         match imported_exports_type {
@@ -228,7 +222,7 @@ impl HarmonyExportImportedSpecifierDependency {
     } = self.get_star_reexports(
       module_graph,
       runtime,
-      Some(exports_info.id),
+      Some(exports_info),
       imported_module_identifier,
     );
     // dbg!(
@@ -257,10 +251,7 @@ impl HarmonyExportImportedSpecifierDependency {
             .as_ref()
             .map(|c| c.contains(&export_name))
             .unwrap_or_default(),
-          export_info: exports_info
-            .id
-            .get_read_only_export_info(&export_name, module_graph)
-            .id,
+          export_info: exports_info.get_read_only_export_info(module_graph, &export_name),
         })
         .collect::<Vec<_>>();
 
@@ -271,10 +262,7 @@ impl HarmonyExportImportedSpecifierDependency {
             ids: vec![export_name.clone()],
             hidden: true,
             checked: false,
-            export_info: exports_info
-              .id
-              .get_read_only_export_info(export_name, module_graph)
-              .id,
+            export_info: exports_info.get_read_only_export_info(module_graph, export_name),
           });
         }
       }
@@ -293,34 +281,28 @@ impl HarmonyExportImportedSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    exports_info_id: Option<ExportsInfoId>,
+    exports_info: Option<ExportsInfo>,
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
-    let exports_info = exports_info_id
-      .unwrap_or_else(|| {
-        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
-        let parent_module = module_graph
-          .get_parent_module(&self.id)
-          .expect("should have parent module");
-        module_graph.get_exports_info(parent_module).id
-      })
-      .get_exports_info(module_graph);
-
+    let exports_info = exports_info.unwrap_or_else(|| {
+      // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
+      let parent_module = module_graph
+        .get_parent_module(&self.id)
+        .expect("should have parent module");
+      module_graph.get_exports_info(parent_module)
+    });
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
-    // dbg!(&imported_exports_info);
-    let other_export_info_of_imported =
-      module_graph.get_export_info_by_id(&imported_exports_info.other_exports_info);
-
-    let other_exports_info_of_exports_info =
-      module_graph.get_export_info_by_id(&exports_info.other_exports_info);
 
     let no_extra_exports = matches!(
-      other_export_info_of_imported.provided,
+      imported_exports_info
+        .other_exports_info(module_graph)
+        .provided(module_graph),
       Some(ExportInfoProvided::False)
     );
-
     let no_extra_imports = matches!(
-      other_exports_info_of_exports_info.get_used(runtime),
+      exports_info
+        .other_exports_info(module_graph)
+        .get_used(module_graph, runtime),
       UsageState::Unused
     );
 
@@ -358,20 +340,21 @@ impl HarmonyExportImportedSpecifierDependency {
     };
 
     if no_extra_imports {
-      for export_info_id in exports_info.get_ordered_exports() {
-        let export_info = module_graph.get_export_info_by_id(export_info_id);
-        let export_name = export_info.name.clone().unwrap_or_default();
+      for export_info in exports_info.ordered_exports(module_graph) {
+        let export_name = export_info.name(module_graph).cloned().unwrap_or_default();
         if ignored_exports.contains(&export_name)
-          || matches!(export_info.get_used(runtime), UsageState::Unused)
+          || matches!(
+            export_info.get_used(module_graph, runtime),
+            UsageState::Unused
+          )
         {
           continue;
         }
 
-        let imported_export_info = imported_exports_info
-          .id
-          .get_read_only_export_info(&export_name, module_graph);
+        let imported_export_info =
+          imported_exports_info.get_read_only_export_info(module_graph, &export_name);
         if matches!(
-          imported_export_info.provided,
+          imported_export_info.provided(module_graph),
           Some(ExportInfoProvided::False)
         ) {
           continue;
@@ -388,7 +371,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
         exports.insert(export_name.clone());
         if matches!(
-          imported_export_info.provided,
+          imported_export_info.provided(module_graph),
           Some(ExportInfoProvided::True)
         ) {
           continue;
@@ -396,21 +379,25 @@ impl HarmonyExportImportedSpecifierDependency {
         checked.insert(export_name);
       }
     } else if no_extra_exports {
-      for imported_export_info_id in imported_exports_info.get_ordered_exports() {
-        let imported_export_info = module_graph.get_export_info_by_id(imported_export_info_id);
-        let imported_export_info_name = imported_export_info.name.clone().unwrap_or_default();
+      for imported_export_info in imported_exports_info.ordered_exports(module_graph) {
+        let imported_export_info_name = imported_export_info
+          .name(module_graph)
+          .cloned()
+          .unwrap_or_default();
         if ignored_exports.contains(&imported_export_info_name)
           || matches!(
-            imported_export_info.provided,
+            imported_export_info.provided(module_graph),
             Some(ExportInfoProvided::False)
           )
         {
           continue;
         }
-        let export_info = exports_info
-          .id
-          .get_read_only_export_info(&imported_export_info_name, module_graph);
-        if matches!(export_info.get_used(runtime), UsageState::Unused) {
+        let export_info =
+          exports_info.get_read_only_export_info(module_graph, &imported_export_info_name);
+        if matches!(
+          export_info.get_used(module_graph, runtime),
+          UsageState::Unused
+        ) {
           continue;
         }
         if let Some(hidden) = hidden.as_mut()
@@ -425,7 +412,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
         exports.insert(imported_export_info_name.clone());
         if matches!(
-          imported_export_info.provided,
+          imported_export_info.provided(module_graph),
           Some(ExportInfoProvided::True)
         ) {
           continue;
@@ -520,7 +507,7 @@ impl HarmonyExportImportedSpecifierDependency {
         .boxed(),
       ),
       ExportModeType::ReexportDynamicDefault => {
-        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
           UsedName::Str(mode.name.expect("should have name")),
@@ -539,7 +526,7 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::ReexportNamedDefault => {
-        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
           UsedName::Str(mode.name.expect("should have name")),
@@ -557,7 +544,7 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::ReexportNamespaceObject => {
-        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
           UsedName::Str(mode.name.expect("should have name")),
@@ -577,7 +564,7 @@ impl HarmonyExportImportedSpecifierDependency {
       }
       ExportModeType::ReexportFakeNamespaceObject => {
         // TODO: reexport fake namespace object
-        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
           UsedName::Str(mode.name.expect("should have name")),
@@ -586,7 +573,7 @@ impl HarmonyExportImportedSpecifierDependency {
         self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
       }
       ExportModeType::ReexportUndefined => {
-        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
           UsedName::Str(mode.name.expect("should have name")),
@@ -621,7 +608,7 @@ impl HarmonyExportImportedSpecifierDependency {
             continue;
           }
 
-          let used_name = mg.get_exports_info(&module_identifier).id.get_used_name(
+          let used_name = mg.get_exports_info(&module_identifier).get_used_name(
             mg,
             None,
             UsedName::Str(name.clone()),
@@ -662,7 +649,6 @@ impl HarmonyExportImportedSpecifierDependency {
           } else {
             let used_name =
               mg.get_exports_info(imported_module)
-                .id
                 .get_used_name(mg, None, UsedName::Vec(ids));
             let init_fragment = self
               .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
@@ -925,12 +911,14 @@ impl HarmonyExportImportedSpecifierDependency {
       let exports_info = module_graph.get_exports_info(&imported_module.identifier());
       let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
         IndexMap::default();
-      for export_info_id in exports_info.get_ordered_exports() {
-        let export_info = export_info_id.get_export_info(module_graph);
-        if !matches!(export_info.provided, Some(ExportInfoProvided::True)) {
+      for export_info in exports_info.ordered_exports(module_graph) {
+        if !matches!(
+          export_info.provided(module_graph),
+          Some(ExportInfoProvided::True)
+        ) {
           continue;
         }
-        let Some(name) = &export_info.name else {
+        let Some(name) = export_info.name(module_graph) else {
           continue;
         };
         if name == "default" {
@@ -1430,7 +1418,7 @@ pub struct NormalReexportItem {
   pub ids: Vec<Atom>,
   pub hidden: bool,
   pub checked: bool,
-  pub export_info: ExportInfoId,
+  pub export_info: ExportInfo,
 }
 
 #[derive(Debug)]
@@ -1440,7 +1428,7 @@ pub struct ExportMode {
   pub items: Option<Vec<NormalReexportItem>>,
   pub name: Option<Atom>,
   pub fake_type: u8,
-  pub partial_namespace_export_info: Option<ExportInfoId>,
+  pub partial_namespace_export_info: Option<ExportInfo>,
   pub ignored: Option<HashSet<Atom>>,
   pub hidden: Option<HashSet<Atom>>,
 }
@@ -1482,12 +1470,15 @@ fn determine_export_assignments<'a>(
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
       let exports_info = module_graph.get_exports_info(module_identifier);
-      for export_info_id in exports_info.exports.values() {
-        let export_info = module_graph.get_export_info_by_id(export_info_id);
+      for export_info in exports_info.ordered_exports(module_graph) {
         // SAFETY: This is safe because a real export can't export empty string
-        let export_info_name = export_info.name.as_ref().expect("export name is empty");
-        if matches!(export_info.provided, Some(ExportInfoProvided::True))
-          && export_info_name != "default"
+        let export_info_name = export_info
+          .name(module_graph)
+          .expect("export name is empty");
+        if matches!(
+          export_info.provided(module_graph),
+          Some(ExportInfoProvided::True)
+        ) && export_info_name != "default"
           && !names.contains(export_info_name)
         {
           names.insert(export_info_name);

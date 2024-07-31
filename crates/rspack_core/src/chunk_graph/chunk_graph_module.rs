@@ -4,7 +4,7 @@ use std::hash::Hasher;
 
 use rspack_collections::{IdentifierMap, UkeySet};
 use rspack_util::ext::DynHash;
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHasher;
 
 use crate::update_hash::{UpdateHashContext, UpdateRspackHash};
 use crate::ChunkGraph;
@@ -186,7 +186,7 @@ impl ChunkGraph {
 
       module_graph
         .get_exports_info(&module.identifier())
-        .export_info_hash(&mut hasher, module_graph, &mut HashSet::default());
+        .export_info_hash(&mut hasher, module_graph, &mut UkeySet::default());
 
       module
         .get_blocks()

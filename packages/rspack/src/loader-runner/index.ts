@@ -58,7 +58,7 @@ function createLoaderObject(
 	loader: JsLoaderItem,
 	compiler: Compiler
 ): LoaderObject {
-	var obj: any = {
+	const obj: any = {
 		path: null,
 		query: null,
 		fragment: null,

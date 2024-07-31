@@ -85,9 +85,9 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       .expect("should have module graph module");
 
     let used_name = {
-      let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
+      let exports_info = module_graph.get_exports_info(&module.identifier());
       let used_name =
-        exports_info_id.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
+        exports_info.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
       used_name.map(|item| match item {
         UsedName::Str(name) => name,
         UsedName::Vec(vec) => {

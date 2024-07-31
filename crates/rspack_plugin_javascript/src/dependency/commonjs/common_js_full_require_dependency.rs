@@ -126,7 +126,6 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
     if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&self.id) {
       let used = module_graph
         .get_exports_info(&imported_module.module_identifier)
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
       if let Some(used) = used {

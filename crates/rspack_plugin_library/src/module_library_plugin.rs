@@ -75,12 +75,11 @@ fn render_startup(
     ));
   }
   let exports_info = module_graph.get_exports_info(module);
-  for id in exports_info.get_ordered_exports() {
-    let info = id.get_export_info(&module_graph);
+  for export_info in exports_info.ordered_exports(&module_graph) {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let info_name = info.name.as_ref().expect("should have name");
-    let used_name = info
-      .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
+    let info_name = export_info.name(&module_graph).expect("should have name");
+    let used_name = export_info
+      .get_used_name(&module_graph, Some(info_name), Some(&chunk.runtime))
       .expect("name can't be empty");
     let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
     source.add(RawSource::from(format!(
