@@ -45,6 +45,7 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
+  pub css_head_data_compression: bool,
   pub hot_update_main_filename: FilenameTemplate,
   pub hot_update_chunk_filename: FilenameTemplate,
   pub hot_update_global: String,

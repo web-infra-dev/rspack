@@ -3,7 +3,7 @@
   background: blue;
 }
 
-
+head{--webpack-__rspack_test__-async_css:&\.\/asyncācss;}
 ```
 
 ```css title=async_js.css
@@ -11,7 +11,7 @@
   background: green;
 }
 
-
+head{--webpack-__rspack_test__-async_js:&\.\/in-asyncācss;}
 ```
 
 ```css title=main.css
@@ -19,5 +19,5 @@ body {
   background: red;
 }
 
-
+head{--webpack-__rspack_test__-main:&\.\/mainācss;}
 ```

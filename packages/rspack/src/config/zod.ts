@@ -346,6 +346,7 @@ const output = z.strictObject({
 	chunkFilename: chunkFilename.optional(),
 	crossOriginLoading: crossOriginLoading.optional(),
 	cssFilename: cssFilename.optional(),
+	cssHeadDataCompression: z.boolean().optional(),
 	cssChunkFilename: cssChunkFilename.optional(),
 	hotUpdateMainFilename: hotUpdateMainFilename.optional(),
 	hotUpdateChunkFilename: hotUpdateChunkFilename.optional(),

@@ -11,7 +11,7 @@ module.exports = {
 				generator: {
 					exportsConvention: "camel-case",
 					localIdentName: "[path][name][ext]__[local]",
-					exportsOnly: false,
+					exportsOnly: true
 				},
 			}
 		]

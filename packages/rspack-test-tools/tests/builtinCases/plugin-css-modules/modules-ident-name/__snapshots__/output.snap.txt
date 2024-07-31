@@ -2,7 +2,7 @@
 .\.\/_style\.module_\.\/_foo--\/__d8ad836b5119c8e8\<d8a {
     color: hotpink;
 }
-
+head{--webpack-__rspack_test__-main:foo:\.\/_styleĄmoduČ_ĄĆ_Āo--Ė_d8aĞ36b5119c8e8\<Ğa/&ĕ/ĉċč.ďđČĄcss;}
 ```
 
 ```js title=main.js
@@ -14,13 +14,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0__);
-
-
-}),
-"./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.r(module.exports = {
-  "foo": "./_style.module_./_foo--/__d8ad836b5119c8e8<d8a",
-});
 
 
 }),

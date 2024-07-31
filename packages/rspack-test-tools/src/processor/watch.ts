@@ -9,6 +9,7 @@ import type {
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
+import { ConfigProcessor } from "./config";
 import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 // This file is used to port step number to rspack.config.js/webpack.config.js
@@ -37,7 +38,7 @@ export class WatchProcessor<
 	constructor(protected _watchOptions: IWatchProcessorOptions<T>) {
 		super({
 			overrideOptions: WatchProcessor.overrideOptions<T>(_watchOptions),
-			findBundle: () => "bundle.js",
+			findBundle: ConfigProcessor.findBundle<T>,
 			..._watchOptions
 		});
 	}

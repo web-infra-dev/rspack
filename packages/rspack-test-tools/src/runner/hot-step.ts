@@ -120,9 +120,9 @@ export class HotStepRunnerFactory<
 			runInNewContext: false,
 			testConfig: {
 				...testConfig,
-				moduleScope(ms) {
+				moduleScope(ms, stats) {
 					if (typeof testConfig.moduleScope === "function") {
-						ms = testConfig.moduleScope(ms);
+						ms = testConfig.moduleScope(ms, stats);
 					}
 					ms.NEXT = next;
 					return ms;

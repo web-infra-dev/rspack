@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Rspack App</title>
-<script src="/runtime.js" crossorigin="anonymous" integrity="sha512-Y9Gr33Q9gK8yKd5uOgXarPnzV2KN6matDbOQ468eRp3d6ykTchhZEqDlN348OytDJEE26nzPUr3azHJZ9BrSAA=="></script><script src="/index.js" crossorigin="anonymous" integrity="sha512-p3/IkQjby+xOnLIp3pdIlecsz+i9tvwaftR3996dLVbVlv+rUsW6RO86lQ/544NsWpQt4bzRL3z/5EErZmHclQ=="></script><link href="/index.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-vjhejkvTX8D8jzzC5Lc9ToCtcEDb0/NqtYmEHOid+ycq64hvW+JTG7Dw/ACFP6rApgiYwVMbEt6Zfb8j4EoZTA==" /></head>
+<script src="/runtime.js" crossorigin="anonymous" integrity="sha512-kDo61EPSNLg9Wx+HBfbwZ65YIb8vn08kq+4fLWmM5GNJZpwkCFhqHYikoRwXwU9guJc3S1DMHyW5GpvHloLqGw=="></script><script src="/index.js" crossorigin="anonymous" integrity="sha512-J01E4uoMbdYMH16mabUDwjqw/QWyCWGYTRNoT/5VOXK/+dLtm7h9B4KUgillt7GTUxQiIyLh4gtv7ICMF06YaA=="></script><link href="/index.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-NDDyIqkYQDfMwMNIUaCRfUwfeS0YqfkkvdFaWECGNXVRn0jmwUqlFGOm4fV7YXHoM7GP1rvE6zLAZOXi03rjBw==" /></head>
 
 <body>
 
