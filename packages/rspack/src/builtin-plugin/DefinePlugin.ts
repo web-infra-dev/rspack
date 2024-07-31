@@ -30,7 +30,7 @@ const normalizeValue = (
 			return p.toString();
 		}
 		if (typeof p === "function") {
-			return "(" + p.toString() + ")";
+			return `(${p.toString()})`;
 		}
 		if (typeof p === "bigint") {
 			return supportsBigIntLiteral ? `${p}n` : `BigInt("${p}")`;

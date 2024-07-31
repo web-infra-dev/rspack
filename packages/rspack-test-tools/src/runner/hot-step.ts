@@ -84,7 +84,7 @@ export class HotStepRunnerFactory<
 								source,
 								jsonStats,
 								"error",
-								"errors" + hotUpdateContext.updateIndex,
+								`errors${hotUpdateContext.updateIndex}`,
 								"Error",
 								callback
 							)
@@ -96,7 +96,7 @@ export class HotStepRunnerFactory<
 								source,
 								jsonStats,
 								"warning",
-								"warnings" + hotUpdateContext.updateIndex,
+								`warnings${hotUpdateContext.updateIndex}`,
 								"Warning",
 								callback
 							)

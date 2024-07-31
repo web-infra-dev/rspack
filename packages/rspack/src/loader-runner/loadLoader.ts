@@ -32,7 +32,7 @@ export default function loadLoader(
 			if (url === undefined) url = require("node:url");
 			const loaderUrl = url!.pathToFileURL(loader.path);
 			const modulePromise = eval(
-				"import(" + JSON.stringify(loaderUrl.toString()) + ")"
+				`import(${JSON.stringify(loaderUrl.toString())})`
 			);
 			modulePromise.then((module: LoaderModule) => {
 				handleResult(loader, module, callback);
@@ -74,9 +74,7 @@ function handleResult(
 	if (typeof module !== "function" && typeof module !== "object") {
 		return callback(
 			new LoaderLoadingError(
-				"Module '" +
-					loader.path +
-					"' is not a loader (export function or es6 module)"
+				`Module '${loader.path}' is not a loader (export function or es6 module)`
 			)
 		);
 	}
@@ -89,9 +87,7 @@ function handleResult(
 	) {
 		return callback(
 			new LoaderLoadingError(
-				"Module '" +
-					loader.path +
-					"' is not a loader (must have normal or pitch function)"
+				`Module '${loader.path}' is not a loader (must have normal or pitch function)`
 			)
 		);
 	}

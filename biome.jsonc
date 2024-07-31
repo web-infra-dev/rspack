@@ -61,7 +61,6 @@
 				"noArguments": "off",
 				"noInferrableTypes": "off",
 				"noParameterAssign": "off",
-				"useTemplate": "off",
 				"useSingleVarDeclarator": "off",
 				"noNonNullAssertion": "off"
 			},

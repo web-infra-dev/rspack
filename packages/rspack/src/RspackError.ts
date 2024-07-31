@@ -19,6 +19,6 @@ export class NonErrorEmittedError extends Error {
 	constructor(error: Error) {
 		super();
 		this.name = "NonErrorEmittedError";
-		this.message = "(Emitted value instead of an instance of Error) " + error;
+		this.message = `(Emitted value instead of an instance of Error) ${error}`;
 	}
 }

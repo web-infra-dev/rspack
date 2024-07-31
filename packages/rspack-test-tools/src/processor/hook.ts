@@ -161,8 +161,8 @@ export class HookCasesContext extends TestContext {
 			const block = this.snapshots[group || index].reduce(
 				(acc, [content, name]) => {
 					name = `## ${name || `test: ${index}`}\n\n`;
-					const block = "```javascript\n" + content + "\n```\n";
-					return (acc += name + block + "\n");
+					const block = `\`\`\`javascript\n${content}\n\`\`\`\n`;
+					return (acc += `${name + block}\n`);
 				},
 				""
 			);

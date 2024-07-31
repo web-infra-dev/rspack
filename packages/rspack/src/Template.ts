@@ -172,7 +172,7 @@ class Template {
 		const str = Template.asString(s).trim();
 		if (!str) return "";
 		const ind = str[0] === "\n" ? "" : prefix;
-		return ind + str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
+		return ind + str.replace(/\n([^\n])/g, `\n${prefix}$1`);
 	}
 
 	/**
@@ -203,7 +203,7 @@ class Template {
 			if (maxId < moduleId) maxId = moduleId;
 			if (minId > moduleId) minId = moduleId;
 		}
-		if (minId < 16 + ("" + minId).length) {
+		if (minId < 16 + `${minId}`.length) {
 			// add minId x ',' instead of 'Array(minId).concat(…)'
 			minId = 0;
 		}

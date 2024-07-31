@@ -33,7 +33,7 @@ function createRenderRuntimeModulesFn(Template) {
 			}
 			if (runtimeSource) {
 				const identifier = module.identifier();
-				source.add(Template.toNormalComment(`start::${identifier}`) + "\n");
+				source.add(`${Template.toNormalComment(`start::${identifier}`)}\n`);
 				if (!module.shouldIsolate()) {
 					source.add(runtimeSource);
 					source.add("\n\n");
@@ -46,7 +46,7 @@ function createRenderRuntimeModulesFn(Template) {
 					source.add(new PrefixSource("\t", runtimeSource));
 					source.add("\n}();\n\n");
 				}
-				source.add(Template.toNormalComment(`end::${identifier}`) + "\n");
+				source.add(`${Template.toNormalComment(`end::${identifier}`)}\n`);
 			}
 		}
 		return source;

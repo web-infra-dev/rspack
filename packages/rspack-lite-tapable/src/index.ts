@@ -652,9 +652,7 @@ export class AsyncParallelHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(
@@ -734,9 +732,7 @@ export class AsyncSeriesHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(
@@ -831,9 +827,7 @@ export class AsyncSeriesBailHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(
@@ -939,9 +933,7 @@ export class AsyncSeriesWaterfallHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(

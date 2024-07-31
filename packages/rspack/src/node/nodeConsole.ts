@@ -38,11 +38,11 @@ export default function ({
 			return (
 				prefix +
 				colorPrefix +
-				str.replace(/\n/g, colorSuffix + "\n" + prefix + colorPrefix) +
+				str.replace(/\n/g, `${colorSuffix}\n${prefix}${colorPrefix}`) +
 				colorSuffix
 			);
 		}
-		return prefix + str.replace(/\n/g, "\n" + prefix);
+		return prefix + str.replace(/\n/g, `\n${prefix}`);
 	};
 
 	const clearStatusMessage = () => {
@@ -78,7 +78,7 @@ export default function ({
 				colorPrefix,
 				colorSuffix
 			);
-			stream.write(str + "\n");
+			stream.write(`${str}\n`);
 			writeStatusMessage();
 		};
 	};

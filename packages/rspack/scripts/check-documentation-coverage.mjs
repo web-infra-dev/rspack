@@ -157,10 +157,10 @@ function checkConfigsDocumentationCoverage() {
 				for (const [key, schema] of Object.entries(zod.shape)) {
 					const next = (() => {
 						if (key.includes("/")) {
-							return path + `["${key}"]`;
+							return `${path}["${key}"]`;
 						}
 						if (path) {
-							return path + "." + key;
+							return `${path}.${key}`;
 						}
 						return key;
 					})();
