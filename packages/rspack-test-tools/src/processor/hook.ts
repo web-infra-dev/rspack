@@ -78,7 +78,7 @@ const serialize = (val: unknown, indent = 2, formatOverrides = {}) =>
 
 export class HookCasesContext extends TestContext {
 	protected promises: Promise<void>[] = [];
-	protected count: number = 0;
+	protected count = 0;
 	protected snapshots: Record<
 		string | number,
 		Array<[string | Buffer, string]>

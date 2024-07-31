@@ -79,7 +79,7 @@ export class TestCompilerManager<T extends ECompilerType>
 		});
 	}
 
-	watch(timeout: number = 1000) {
+	watch(timeout = 1000) {
 		if (!this.compilerInstance)
 			throw new Error("Compiler should be created before watch");
 		this.compilerInstance!.watch(
