@@ -38,7 +38,7 @@ if (process.env.DEBUG_INFO) {
 						process.stdout.write(`START1 ${name}\n`);
 						try {
 							const promise = fn();
-							if (promise && promise.then) {
+							if (promise?.then) {
 								return promise.then(
 									r => {
 										process.stdout.write(`DONE OK ${name}\n`);

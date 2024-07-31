@@ -95,8 +95,7 @@ export function getAdditionalEntries({
 
 	const overlayEntries = [
 		// Error overlay runtime
-		options.overlay &&
-			options.overlay.entry &&
+		options.overlay?.entry &&
 			`${require.resolve(options.overlay.entry)}${queryString ? `?${queryString}` : ""}`
 	].filter(Boolean) as string[];
 

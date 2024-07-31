@@ -369,7 +369,7 @@ const SIMPLE_PRINTERS: Record<
 	"module.cached": (cached, { formatFlag, green }) =>
 		cached ? green(formatFlag("cached")) : undefined,
 	"module.assets": (assets, { formatFlag, magenta }) =>
-		assets && assets.length
+		assets?.length
 			? magenta(
 					formatFlag(
 						`${assets.length} ${plural(assets.length, "asset", "assets")}`

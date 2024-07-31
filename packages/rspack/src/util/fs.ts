@@ -154,7 +154,7 @@ export function rmrf(
 }
 
 const join = (fs: OutputFileSystem, rootPath: string, filename: string) => {
-	if (fs && fs.join) {
+	if (fs?.join) {
 		return fs.join(rootPath, filename);
 	}
 	if (path.posix.isAbsolute(rootPath)) {
@@ -169,7 +169,7 @@ const join = (fs: OutputFileSystem, rootPath: string, filename: string) => {
 };
 
 const dirname = (fs: OutputFileSystem, absPath: string) => {
-	if (fs && fs.dirname) {
+	if (fs?.dirname) {
 		return fs.dirname(absPath);
 	}
 	if (path.posix.isAbsolute(absPath)) {
