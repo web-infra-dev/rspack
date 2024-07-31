@@ -5,6 +5,7 @@ use rspack_core::{rspack_sources::Source, Compilation};
 use rspack_error::Result;
 use rspack_macros::impl_runtime_module;
 
+#[allow(dead_code)]
 #[test]
 fn with_generic() {
   #[impl_runtime_module]

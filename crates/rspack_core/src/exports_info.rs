@@ -79,9 +79,7 @@ impl ExportsInfoId {
   }
 
   pub fn is_export_provided(&self, names: &[Atom], mg: &ModuleGraph) -> Option<ExportProvided> {
-    let Some(name) = names.first() else {
-      return None;
-    };
+    let name = names.first()?;
     let info = self.get_read_only_export_info(name, mg);
     if let Some(exports_info) = info.exports_info
       && names.len() > 1
@@ -256,9 +254,7 @@ impl ExportsInfoId {
     if names.len() == 1 {
       return Some(export_info);
     }
-    let Some(exports_info) = export_info.exports_info else {
-      return None;
-    };
+    let exports_info = export_info.exports_info?;
     exports_info.get_read_only_export_info_recursive(&names[1..], mg)
   }
 
@@ -456,10 +452,7 @@ impl ExportsInfoId {
           return Some(UsedName::Vec(names));
         }
         let export_info = self.get_read_only_export_info(&names[0], mg);
-        let x = export_info.get_used_name(Some(&names[0]), runtime);
-        let Some(x) = x else {
-          return None;
-        };
+        let x = export_info.get_used_name(Some(&names[0]), runtime)?;
         let names_len = names.len();
         let mut arr = if x == names[0] && names.len() == 1 {
           names.clone()
@@ -473,9 +466,7 @@ impl ExportsInfoId {
           && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
         {
           let nested = exports_info.get_used_name(mg, runtime, UsedName::Vec(names[1..].to_vec()));
-          let Some(nested) = nested else {
-            return None;
-          };
+          let nested = nested?;
           arr.extend(match nested {
             UsedName::Str(name) => vec![name],
             UsedName::Vec(names) => names,

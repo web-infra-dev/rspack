@@ -6,6 +6,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::WasmNode;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct WasmImportDependency {
   id: DependencyId,

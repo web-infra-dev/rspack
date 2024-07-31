@@ -498,7 +498,7 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
     props_so_far.push(accessor[i].clone());
     current = format!(
       "({current}{} = {base}{} || {{}})",
-      property_access(&vec![&accessor[i]], 0),
+      property_access(vec![&accessor[i]], 0),
       property_access(&props_so_far, 0)
     );
     i += 1;

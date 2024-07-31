@@ -190,7 +190,6 @@ jobs:
       - name: Check Dependency Version
         if: steps.changes.outputs.src == 'true'
         run: pnpm run check-dependency-version
-  
 
   lint-website:
     name: Lint and format website
@@ -316,7 +315,8 @@ jobs:
           echo 'debug = false' >> Cargo.toml
 
       - name: Run test
-        run: cargo test --workspace -- --nocapture
+        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
+        run: cargo test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
 
   run_benchmark:
     name: Run benchmark

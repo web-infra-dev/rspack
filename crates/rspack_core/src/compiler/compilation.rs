@@ -602,9 +602,9 @@ impl Compilation {
   /// Get sorted errors based on the factors as follows in order:
   /// - module identifier
   /// - error offset
-  /// Rspack assumes for each offset, there is only one error.
-  /// However, when it comes to the case that there are multiple errors with the same offset,
-  /// the order of these errors will not be guaranteed.
+  ///   Rspack assumes for each offset, there is only one error.
+  ///   However, when it comes to the case that there are multiple errors with the same offset,
+  ///   the order of these errors will not be guaranteed.
   pub fn get_errors_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
     let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
       d.labels()
@@ -630,9 +630,9 @@ impl Compilation {
   /// Get sorted warnings based on the factors as follows in order:
   /// - module identifier
   /// - error offset
-  /// Rspack assumes for each offset, there is only one error.
-  /// However, when it comes to the case that there are multiple errors with the same offset,
-  /// the order of these errors will not be guaranteed.
+  ///   Rspack assumes for each offset, there is only one error.
+  ///   However, when it comes to the case that there are multiple errors with the same offset,
+  ///   the order of these errors will not be guaranteed.
   pub fn get_warnings_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
     let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
       d.labels()

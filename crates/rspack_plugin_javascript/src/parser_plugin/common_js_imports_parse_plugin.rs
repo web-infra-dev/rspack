@@ -88,9 +88,7 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let Some((members, first_arg, loc)) = extract_require_call_info(parser, mem_expr) else {
-      return None;
-    };
+    let (members, first_arg, loc) = extract_require_call_info(parser, mem_expr)?;
 
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {

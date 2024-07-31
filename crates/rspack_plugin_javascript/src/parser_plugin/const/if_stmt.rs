@@ -132,9 +132,7 @@ fn get_hoisted_declarations<'a>(
 
 pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
   let param = scanner.evaluate_expression(&stmt.test);
-  let Some(boolean) = param.as_bool() else {
-    return None;
-  };
+  let boolean = param.as_bool()?;
   if !param.could_have_side_effects() {
     scanner
       .presentational_dependencies

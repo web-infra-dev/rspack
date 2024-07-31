@@ -233,6 +233,7 @@ pub(crate) mod test {
 
   use super::{Loader, LoaderItem};
 
+  #[allow(dead_code)]
   pub(crate) struct Custom;
 
   #[async_trait::async_trait]
@@ -243,6 +244,7 @@ pub(crate) mod test {
     }
   }
 
+  #[allow(dead_code)]
   pub(crate) struct Custom2;
   #[async_trait::async_trait]
   impl Loader<()> for Custom2 {}
@@ -252,6 +254,7 @@ pub(crate) mod test {
     }
   }
 
+  #[allow(dead_code)]
   pub(crate) struct Builtin;
   #[async_trait::async_trait]
   impl Loader<()> for Builtin {}
