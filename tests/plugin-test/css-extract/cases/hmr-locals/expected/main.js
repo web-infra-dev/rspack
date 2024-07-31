@@ -43,7 +43,7 @@ function getCurrentScriptUrl(moduleId) {
             return null;
         }
         const splitResult = src.split(/([^\\/]+)\.js$/);
-        const filename = splitResult && splitResult[1];
+        const filename = splitResult?.[1];
         if (!filename) {
             return [src.replace(".js", ".css")];
         }
