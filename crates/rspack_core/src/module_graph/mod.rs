@@ -1121,7 +1121,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
     self
       .loop_partials_mut(
-        |p| p.exports_info_map.get(id).is_some(),
+        |p| p.exports_info_map.contains_key(id),
         |p, search_result| {
           p.exports_info_map.insert(*id, search_result);
         },
@@ -1151,7 +1151,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfo) -> &mut ExportInfoData {
     self
       .loop_partials_mut(
-        |p| p.export_info_map.get(id).is_some(),
+        |p| p.export_info_map.contains_key(id),
         |p, search_result| {
           p.export_info_map.insert(*id, search_result);
         },
