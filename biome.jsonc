@@ -64,7 +64,6 @@
 				"noImplicitAnyLet": "off",
 				"noAssignInExpressions": "off",
 				"noArrayIndexKey": "off",
-				"noRedundantUseStrict": "off",
 				"noControlCharactersInRegex": "off",
 				"noExplicitAny": "off"
 			}
