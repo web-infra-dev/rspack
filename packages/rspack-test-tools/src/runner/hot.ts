@@ -13,7 +13,7 @@ import {
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
 
-declare var global: {
+declare let global: {
 	__CHANGED_FILES__: Map<string, number>;
 };
 

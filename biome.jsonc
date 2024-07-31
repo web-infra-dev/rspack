@@ -25,7 +25,6 @@
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
 			"packages/rspack-plugin-react-refresh/client",
 			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
@@ -63,7 +62,6 @@
 				"useShorthandFunctionType": "off",
 				"noArguments": "off",
 				"noInferrableTypes": "off",
-				"noVar": "off",
 				"noParameterAssign": "off",
 				"useTemplate": "off",
 				"useSingleVarDeclarator": "off",
@@ -97,10 +95,10 @@
 			"crates/**/*",
 			"packages/rspack-test-tools/template",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
+			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
 			"packages/rspack-plugin-react-refresh/client",
 			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
