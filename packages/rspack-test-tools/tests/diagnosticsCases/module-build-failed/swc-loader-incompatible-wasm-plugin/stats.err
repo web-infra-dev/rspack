@@ -1,0 +1,16 @@
+ERROR in ./src/index.jsx
+  × Module build failed:
+  ╰─▶   × Builtin swc-loader error: failed to invoke plugin: failed to invoke plugin on 'Some("<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/swc-loader-incompatible-wasm-plugin/src/index.jsx")'
+        │
+        │ Caused by:
+        │     0: failed to invoke `<PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/swc-loader-incompatible-wasm-plugin/node_modules/swc-wasm-plugin` as js transform plugin at xxx
+        │     1: failed to run Wasm plugin transform. Please ensure the version of `swc_core` used by the plugin is compatible with the host runtime. See https://swc.rs/docs/plugin/selecting-swc-core for compatibility information. If you are an author of the plugin, please update `swc_core` to the compatible version.
+        │
+        │                         Note that if you want to use the os features like filesystem, you need to use `wasi`. Wasm itself does not have concept of filesystem.
+        │     2: RuntimeError: unreachable
+        │
+        │ Help:
+        │     1. The version of the SWC WASM plugin you're using might not be compatible with `builtin:swc-loader`.
+        │     2. The `swc_core` version of the current `rspack_core` is 0.99.5. Please check the `swc_core` version of SWC WASM plugin to make sure these versions are within the compatible range.
+        │     3. Versions of `swc_core` are more likely to be located in the `Cargo.toml` file in the root directory of these plugin repositories.
+        │     4. Check out this guide as a reference for selecting the versions of SWC WASM plugins: https://swc.rs/docs/plugin/selecting-swc-core

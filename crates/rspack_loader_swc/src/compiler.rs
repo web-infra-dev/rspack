@@ -15,6 +15,8 @@ use base64::prelude::*;
 use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
+use rspack_error::miette::MietteDiagnostic;
+use rspack_error::DiagnosticExt;
 use serde_json::error::Category;
 use swc_config::config_types::BoolOr;
 use swc_config::merge::Merge;
@@ -241,6 +243,8 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
   res.with_context(|| format!("failed to read .swcrc file for input file at `{}`", name))
 }
 
+const CARGO_TOML: &str = include_str!("../../../Cargo.toml");
+
 pub(crate) struct SwcCompiler {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
@@ -386,8 +390,42 @@ impl SwcCompiler {
       helpers::HELPERS.set(&self.helpers, || {
         try_with_handler(self.cm.clone(), Default::default(), |handler| {
           HANDLER.set(handler, || {
+            let workspace_toml = cargo_toml::Manifest::from_str(CARGO_TOML)
+              .expect("Should parse cargo toml")
+              .workspace;
+            let swc_core_version = workspace_toml.as_ref().and_then(|ws| {
+              ws.dependencies.get("swc_core").and_then(|dep| match dep {
+                cargo_toml::Dependency::Simple(s) => Some(&**s),
+                cargo_toml::Dependency::Inherited(_) => unreachable!(),
+                cargo_toml::Dependency::Detailed(d) => d.version.as_deref(),
+              })
+            }).expect("Should have `swc_core` version");
+            macro_rules! swc_error {
+              ($tt:tt) => {
+                MietteDiagnostic::new(format!("Builtin swc-loader error: {}
+                
+Help:
+    1. The version of the SWC WASM plugin you're using might not be compatible with `builtin:swc-loader`.
+    2. The `swc_core` version of the current `rspack_core` is {swc_core_version}. Please check the `swc_core` version of SWC WASM plugin to make sure these versions are within the compatible range.
+    3. Versions of `swc_core` are more likely to be located in the `Cargo.toml` file in the root directory of these plugin repositories.
+    4. Check out this guide as a reference for selecting the versions of SWC WASM plugins: https://swc.rs/docs/plugin/selecting-swc-core", $tt))
+                .boxed()
+                .into()
+              };
+            }
             // Fold module
-            Ok(program.fold_with(&mut pass))
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+              program.fold_with(&mut pass)
+            })) {
+              Ok(v) => Ok(v),
+              Err(err) => {
+                if let Some(err) = err.downcast_ref::<String>() {
+                  Err(swc_error!(err))
+                } else {
+                  Err(swc_error!("unknown error"))
+                }
+              }
+            }
           })
         })
       })
