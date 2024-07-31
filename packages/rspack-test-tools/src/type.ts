@@ -180,7 +180,7 @@ export interface ITestEnv {
 	[key: string]: unknown;
 }
 
-export const enum EDocumentType {
+export enum EDocumentType {
 	Fake = "fake",
 	JSDOM = "jsdom"
 }

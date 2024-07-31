@@ -11,7 +11,7 @@ import {
 	type TCompilerStats
 } from "./type";
 
-export const enum ECompilerEvent {
+export enum ECompilerEvent {
 	Build = "build",
 	Option = "option",
 	Create = "create",

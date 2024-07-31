@@ -324,7 +324,7 @@ export enum ECompilerType {
 }
 
 // @public (undocumented)
-export const enum EDocumentType {
+export enum EDocumentType {
     // (undocumented)
     Fake = "fake",
     // (undocumented)

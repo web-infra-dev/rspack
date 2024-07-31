@@ -109,7 +109,7 @@ declare namespace Rspack {
 		onErrored?: (event: ErroredEvent) => void;
 	}
 
-	const enum HotUpdateStatus {
+	enum HotUpdateStatus {
 		idle = "idle",
 		check = "check",
 		prepare = "prepare",
