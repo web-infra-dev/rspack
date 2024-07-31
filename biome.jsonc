@@ -73,7 +73,6 @@
 			},
 			"suspicious": {
 				"noEmptyInterface": "off",
-				"noGlobalAssign": "off",
 				"noGlobalIsNan": "off",
 				"noFallthroughSwitchClause": "off",
 				"noConfusingVoidType": "off",
