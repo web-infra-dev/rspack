@@ -81,7 +81,6 @@
 				"noGlobalAssign": "off",
 				"noGlobalIsNan": "off",
 				"noFallthroughSwitchClause": "off",
-				"noConstEnum": "off",
 				"noConfusingVoidType": "off",
 				"noPrototypeBuiltins": "off",
 				"noImplicitAnyLet": "off",
