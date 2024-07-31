@@ -2,6 +2,8 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # Build performance profile
 
+## Rspack Profile
+
 <ApiMeta addedVersion={'0.3.0'} />
 
 The Rspack CLI supports the use of the `RSPACK_PROFILE` environment variable for build performance profile.
@@ -15,3 +17,36 @@ This command will generate a `.rspack-profile-${timestamp}-${pid}` folder in the
 - `trace.json`: The time spent on each phase of the Rust side is recorded at a granular level using [tracing](https://github.com/tokio-rs/tracing) and can be viewed using [ui.perfetto.dev](https://ui.perfetto.dev/)
 - `jscpuprofile.json`: The time spent at each stage on the JavaScript side is recorded at a granular level using [Node.js inspector](https://nodejs.org/dist/latest-v18.x/docs/api/inspector.html) and can be viewed using [speedscope.app](https://www.speedscope.app/)
 - `logging.json`: Includes some logging information that keeps a coarse-grained record of how long each phase of the build took
+
+## Rsdoctor's Compilation Analysis
+
+Rsdoctor is a build analyser that can visually display the compilation time of each loaders and plugins.
+
+#### Loader Timeline
+
+If you need to analyze the time cost of loaders and plugins, or the compilation behavior of loaders, you can use Rsdoctor to view:
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+
+You can view the execution time of each loader and the files that were compiled, as well as the time taken for each file, in the timeline.
+
+Refer to [Loader Timeline](https://rsdoctor.dev/guide/usage/loaders-timeline).
+
+#### Loader Details
+
+If you want to view the compilation process of loaders, you can use the [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis):
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-analyze-code.png)
+
+On this report page, you can see the code changes made by the loaders for each file before and after compilation.
+
+Refer to [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis).
+
+#### Enable Compilation Analysis
+
+To enable `RsdoctorRspackPlugin`, you can refer to the documentation: [Use Rsdoctor](/guide/optimization/use-rsdoctor).
+
+- The `RsdoctorRspackPlugin` requires the `features.loader` and `features.plugins` parameters to be set to `true`. By default, `features.loader` and `features.plugins` are enabled. Refer to the parameter documentation [Rsdoctor options](https://rsdoctor.dev/config/options/options#features).
+- Usage documentation:
+  - For Loader Analysis, refer to [Loader Timeline](https://rsdoctor.dev/guide/usage/loaders-timeline) and [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis).
+  - For Plugins Analysis, refer to [Plugin Analysis](https://rsdoctor.dev/guide/usage/plugins-analysis).
