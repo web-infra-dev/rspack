@@ -9,17 +9,29 @@
  */
 
 import * as util from "node:util";
+import type { LoggerConsole } from "../logging/createConsoleLogger";
 import { truncateArgs } from "../logging/truncateArgs";
 
-// @ts-expect-error
-export = ({ colors, appendOnly, stream }) => {
-	// @ts-expect-error
-	let currentStatusMessage = undefined;
+export default function ({
+	colors,
+	appendOnly,
+	stream
+}: {
+	colors?: boolean;
+	appendOnly?: boolean;
+	stream: NodeJS.WritableStream;
+}): LoggerConsole {
+	let currentStatusMessage: string[] | undefined = undefined;
 	let hasStatusMessage = false;
 	let currentIndent = "";
 	let currentCollapsed = 0;
-	// @ts-expect-error
-	const indent = (str, prefix, colorPrefix, colorSuffix) => {
+
+	const indent = (
+		str: string,
+		prefix: string,
+		colorPrefix: string,
+		colorSuffix: string
+	): string => {
 		if (str === "") return str;
 		prefix = currentIndent + prefix;
 		if (colors) {
@@ -41,8 +53,8 @@ export = ({ colors, appendOnly, stream }) => {
 	};
 
 	const writeStatusMessage = () => {
-		// @ts-expect-error
 		if (!currentStatusMessage) return;
+		//@ts-expect-error Property 'columns' does not exist on type 'WritableStream'.ts(2339)
 		const l = stream.columns;
 		const args = l
 			? truncateArgs(currentStatusMessage, l - 1)
@@ -52,9 +64,11 @@ export = ({ colors, appendOnly, stream }) => {
 		stream.write(`\x1b[2K\r${coloredStr}`);
 		hasStatusMessage = true;
 	};
-	// @ts-expect-error
-	const writeColored = (prefix, colorPrefix, colorSuffix) => {
-		// @ts-expect-error
+	const writeColored = (
+		prefix: string,
+		colorPrefix: string,
+		colorSuffix: string
+	): ((...args: any[]) => void) => {
 		return (...args) => {
 			if (currentCollapsed > 0) return;
 			clearStatusMessage();
@@ -84,7 +98,7 @@ export = ({ colors, appendOnly, stream }) => {
 	return {
 		log: writeColored("    ", "\u001b[1m", "\u001b[22m"),
 		debug: writeColored("    ", "", ""),
-		trace: writeColored("    ", "", ""),
+		trace: writeColored("    ", "", "") as () => void,
 		info: writeColored("<i> ", "\u001b[1m\u001b[32m", "\u001b[39m\u001b[22m"),
 		warn: writeColored("<w> ", "\u001b[1m\u001b[33m", "\u001b[39m\u001b[22m"),
 		error: writeColored("<e> ", "\u001b[1m\u001b[31m", "\u001b[39m\u001b[22m"),
@@ -93,7 +107,6 @@ export = ({ colors, appendOnly, stream }) => {
 			"\u001b[1m\u001b[35m",
 			"\u001b[39m\u001b[22m"
 		),
-		// @ts-expect-error
 		group: (...args) => {
 			writeGroupMessage(...args);
 			if (currentCollapsed > 0) {
@@ -102,7 +115,6 @@ export = ({ colors, appendOnly, stream }) => {
 				currentIndent += "  ";
 			}
 		},
-		// @ts-expect-error
 		groupCollapsed: (...args) => {
 			writeGroupCollapsedMessage(...args);
 			currentCollapsed++;
@@ -113,24 +125,20 @@ export = ({ colors, appendOnly, stream }) => {
 				currentIndent = currentIndent.slice(0, currentIndent.length - 2);
 		},
 
-		// @ts-expect-error
 		profile: console.profile && (name => console.profile(name)),
 
-		// @ts-expect-error
 		profileEnd: console.profileEnd && (name => console.profileEnd(name)),
-		clear:
-			!appendOnly &&
+		clear: (!appendOnly &&
 			console.clear &&
 			(() => {
 				clearStatusMessage();
 
 				console.clear();
 				writeStatusMessage();
-			}),
+			})) as () => void,
 		status: appendOnly
 			? writeColored("<s> ", "", "")
-			: // @ts-expect-error
-				(name, ...args) => {
+			: (name, ...args) => {
 					args = args.filter(Boolean);
 					if (name === undefined && args.length === 0) {
 						clearStatusMessage();
@@ -150,4 +158,4 @@ export = ({ colors, appendOnly, stream }) => {
 					}
 				}
 	};
-};
+}

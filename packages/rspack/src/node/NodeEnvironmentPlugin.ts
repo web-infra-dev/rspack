@@ -41,7 +41,7 @@ export default class NodeEnvironmentPlugin {
 				(nodeConsole({
 					colors: infrastructureLogging.colors,
 					appendOnly: infrastructureLogging.appendOnly,
-					stream: infrastructureLogging.stream
+					stream: infrastructureLogging.stream!
 				}) as LoggerConsole)
 		});
 		compiler.inputFileSystem = new CachedInputFileSystem(fs, 60000);
