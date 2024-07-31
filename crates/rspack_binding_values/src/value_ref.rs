@@ -1,3 +1,6 @@
+// Copied from https://github.com/napi-rs/napi-rs/blob/main/crates/napi/src/js_values/value_ref.rs
+// Added implementation for &Ref and &mut Ref to ToNapiValue.
+
 use std::ptr;
 
 use napi::sys::{napi_env, napi_value};
