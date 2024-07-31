@@ -1,0 +1,42 @@
+# HTML
+
+使用以下插件来简化 HTML 文件的创建，并自动将生成的 CSS 和 JavaScript 文件注入到 HTML 中。对于包含哈希值的输出文件尤为有用，因为 Rspack 每次编译时哈希值都会变化。
+
+## HtmlWebpackPlugin
+
+Rspack 完全支持 [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin)。
+
+```js title="rspack.config.js"
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require('path');
+
+module.exports = {
+  entry: 'index.js',
+  output: {
+    path: path.resolve(__dirname, './dist'),
+    filename: 'index_bundle.js',
+  },
+  plugins: [new HtmlWebpackPlugin()],
+};
+```
+
+有关所有配置选项，请参阅[插件文档](https://github.com/jantimon/html-webpack-plugin#options)。
+
+## HtmlRspackPlugin
+
+[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  entry: 'index.js',
+  output: {
+    path: path.resolve(__dirname, './dist'),
+    filename: 'index_bundle.js',
+  },
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+有关所有配置选项，请参阅[插件文档](/plugins/rspack/html-rspack-plugin)。

@@ -1,0 +1,43 @@
+# HTML
+
+Use the following plugins to simplify the creation of HTML files and automatically inject the generated CSS and JavaScript files into the HTML.
+This is especially useful for `Rspack` bundles that include a hash in the filename which changes every compilation.
+
+## HtmlWebpackPlugin
+
+Rspack fully supports [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin).
+
+```js title="rspack.config.js"
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require('path');
+
+module.exports = {
+  entry: 'index.js',
+  output: {
+    path: path.resolve(__dirname, './dist'),
+    filename: 'index_bundle.js',
+  },
+  plugins: [new HtmlWebpackPlugin()],
+};
+```
+
+For all configuration options, see the [plugin documentation](https://github.com/jantimon/html-webpack-plugin#options).
+
+## HtmlRspackPlugin
+
+[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) is a high-performance HTML plugin implemented in Rust, offering significantly better build performance than the `HtmlWebpackPlugin`, especially when building a large number of HTML files.
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  entry: 'index.js',
+  output: {
+    path: path.resolve(__dirname, './dist'),
+    filename: 'index_bundle.js',
+  },
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+For all configuration options, see the [plugin documentation](/plugins/rspack/html-rspack-plugin).
