@@ -28,6 +28,8 @@ pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
 pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
+pub static PREFIX_UNDERSCORE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^[0-9_-]").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
@@ -116,6 +118,28 @@ pub fn escape_css_ident(s: &str) -> String {
   UNESCAPE_CSS_IDENT_REGEX.replace_all(s, "\\$1").into_owned()
 }
 
+pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
+  let escaped = UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]));
+  if !omit_optional_underscore
+    && !escaped.starts_with("--")
+    && PREFIX_UNDERSCORE_REGEX.is_match(&escaped)
+  {
+    format!("_{}", escaped).into()
+  } else {
+    escaped
+  }
+}
+// const escapeCss = (str, omitOptionalUnderscore) => {
+// 	const escaped = `${str}`.replace(
+// 		// cspell:word uffff
+// 		/[^a-zA-Z0-9_\u0081-\uffff-]/g,
+// 		s => `\\${s}`
+// 	);
+// 	return !omitOptionalUnderscore && /^(?!--)[0-9_-]/.test(escaped)
+// 		? `_${escaped}`
+// 		: escaped;
+// };
+
 pub(crate) fn export_locals_convention(
   key: &str,
   locals_convention: &CssExportsConvention,
@@ -147,7 +171,7 @@ pub fn css_modules_exports_to_string<'a>(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport { ident, from }| match from {
+      .map(|CssExport { ident, from, id: _ }| match from {
         None => json_stringify(&unescape(ident)),
         Some(from_name) => {
           let from = module
@@ -210,7 +234,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport { ident, from }| match from {
+      .map(|CssExport { ident, from, id: _ }| match from {
         None => json_stringify(&unescape(ident)),
         Some(from_name) => {
           let from = module

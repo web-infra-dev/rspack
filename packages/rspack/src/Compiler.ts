@@ -878,7 +878,7 @@ class Compiler {
 								return cached.exports;
 							}
 
-							var execOptions = {
+							const execOptions = {
 								id,
 								module: {
 									id,

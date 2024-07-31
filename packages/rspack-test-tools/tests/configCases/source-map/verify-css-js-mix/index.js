@@ -1,6 +1,6 @@
-const checkMap = require("../../../../dist/helper/util/checkSourceMap").default;
-const fs = require("fs");
-const path = require("path");
+const checkMap = __non_webpack_require__("../../../../../dist/helper/util/checkSourceMap.js").default;
+const fs = __non_webpack_require__("fs");
+const path = __non_webpack_require__("path");
 
 try {
 	require("./a.js");
@@ -12,7 +12,6 @@ it("verify importing css js source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
-		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
 		"webpack:///./a.js",
 		"webpack:///./index.js",
 	]);

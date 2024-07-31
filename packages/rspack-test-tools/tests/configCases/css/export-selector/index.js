@@ -1,8 +1,8 @@
-const fs = require('fs')
-const path = require('path')
+const fs = __non_webpack_require__('fs')
+const path = __non_webpack_require__('path')
 
 it('should have correct css result', async () => {
-	const css = await fs.promises.readFile(path.resolve(__dirname, './imported_js.bundle0.css'))
+	const css = await fs.promises.readFile(path.resolve(eval('__dirname'), './imported_js.bundle0.css'))
 	expect(css.toString()).toMatchSnapshot()
 })
 

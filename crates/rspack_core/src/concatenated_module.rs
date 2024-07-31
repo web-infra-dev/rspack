@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{
-  Identifiable, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
@@ -42,7 +42,7 @@ use crate::{
   ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
   ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportInfoId, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta,
+  ErrorSpan, ExportInfo, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta,
   IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
   ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
@@ -923,13 +923,18 @@ impl Module for ConcatenatedModule {
     let exports_info = module_graph.get_exports_info(&root_module_id);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
-    for (_, export_info_id) in exports_info.exports.iter() {
-      let export_info = export_info_id.get_export_info(&module_graph);
-      let name = export_info.name.clone().unwrap_or("".into());
-      if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+    for export_info in exports_info.ordered_exports(&module_graph) {
+      let name = export_info
+        .name(&module_graph)
+        .cloned()
+        .unwrap_or("".into());
+      if matches!(
+        export_info.provided(&module_graph),
+        Some(ExportInfoProvided::False)
+      ) {
         continue;
       }
-      let used_name = export_info.get_used_name(None, runtime);
+      let used_name = export_info.get_used_name(&module_graph, None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -952,7 +957,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.clone()));
         format!(
           "/* {} */ {}",
-          if export_info.is_reexport() {
+          if export_info.is_reexport(&module_graph) {
             "reexport"
           } else {
             "binding"
@@ -969,8 +974,8 @@ impl Module for ConcatenatedModule {
     if compilation
       .get_module_graph()
       .get_exports_info(&self.id())
-      .other_exports_info
-      .get_used(&compilation.get_module_graph(), runtime)
+      .other_exports_info(&module_graph)
+      .get_used(&module_graph, runtime)
       != UsageState::Unused
     {
       should_add_harmony_flag = true
@@ -1071,17 +1076,22 @@ impl Module for ConcatenatedModule {
 
         let mut ns_obj = Vec::new();
         let exports_info = module_graph.get_exports_info(module_info_id);
-        for (_name, export_info_id) in exports_info.exports.iter() {
-          let export_info = export_info_id.get_export_info(&module_graph);
-          if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+        for export_info in exports_info.ordered_exports(&module_graph) {
+          if matches!(
+            export_info.provided(&module_graph),
+            Some(ExportInfoProvided::False)
+          ) {
             continue;
           }
 
-          if let Some(used_name) = export_info.get_used_name(None, runtime) {
+          if let Some(used_name) = export_info.get_used_name(&module_graph, None, runtime) {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,
-              vec![export_info.name.clone().unwrap_or("".into())],
+              vec![export_info
+                .name(&module_graph)
+                .cloned()
+                .unwrap_or("".into())],
               &mut module_to_info_map,
               runtime,
               &mut needed_namespace_objects,
@@ -1601,7 +1611,9 @@ impl ConcatenatedModule {
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }
-      let module = reference.connection.module_identifier();
+
+      let module: &Identifier = reference.connection.module_identifier();
+
       match references_map.entry(*module) {
         indexmap::map::Entry::Occupied(mut occ) => {
           let entry: &ConnectionWithRuntimeCondition = occ.get();
@@ -1820,7 +1832,7 @@ impl ConcatenatedModule {
     as_call: bool,
     strict_harmony_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut HashSet<ExportInfoId>,
+    already_visited: &mut HashSet<ExportInfo>,
   ) -> Binding {
     let info = module_to_info_map
       .get(info_id)
@@ -1982,12 +1994,9 @@ impl ConcatenatedModule {
     let exports_info = mg.get_exports_info(&info.id());
     // webpack use get_exports_info here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase
-    let export_info_id = exports_info
-      .id
-      .get_read_only_export_info(&export_name[0], mg)
-      .id;
+    let export_info = exports_info.get_read_only_export_info(mg, &export_name[0]);
 
-    if already_visited.contains(&export_info_id) {
+    if already_visited.contains(&export_info) {
       return Binding::Raw(RawBinding {
         raw_name: "/* circular reexport */ Object(function x() { x() }())".into(),
         ids: Vec::new(),
@@ -1997,13 +2006,15 @@ impl ConcatenatedModule {
       });
     }
 
-    already_visited.insert(export_info_id);
+    already_visited.insert(export_info);
 
     match info {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
-        let export_info = export_info_id.get_export_info(mg);
-        if matches!(export_info.provided, Some(crate::ExportInfoProvided::False)) {
+        if matches!(
+          export_info.provided(mg),
+          Some(crate::ExportInfoProvided::False)
+        ) {
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
             raw_name: info
@@ -2022,9 +2033,7 @@ impl ConcatenatedModule {
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
           if let Some(used_name) =
-            exports_info
-              .id
-              .get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
+            exports_info.get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
           {
             // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
             let used_name = used_name.to_used_name_vec();
@@ -2062,7 +2071,7 @@ impl ConcatenatedModule {
           });
         }
 
-        let reexport = export_info_id.find_target(
+        let reexport = export_info.find_target(
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
         );
@@ -2104,7 +2113,6 @@ impl ConcatenatedModule {
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info
-            .id
             .get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
             .expect("should have export name");
           let used_name = used_name.to_used_name_vec();
@@ -2129,9 +2137,7 @@ impl ConcatenatedModule {
       }
       ModuleInfo::External(info) => {
         if let Some(used_name) =
-          exports_info
-            .id
-            .get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
+          exports_info.get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
         {
           let used_name = used_name.to_used_name_vec();
           let comment = if used_name == export_name {

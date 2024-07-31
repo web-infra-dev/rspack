@@ -52,7 +52,7 @@ function getCurrentScriptUrl(moduleId: string) {
 		srcByModuleId[moduleId] = src;
 	}
 
-	return function (fileMap: string): Option<Array<string>> {
+	return (fileMap: string): Option<Array<string>> => {
 		if (!src) {
 			return null;
 		}

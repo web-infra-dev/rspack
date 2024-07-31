@@ -766,26 +766,24 @@ impl ModuleConcatenationPlugin {
         }
 
         let exports_info = module_graph.get_exports_info(&module_id);
-        let relevant_exports = exports_info.get_relevant_exports(None, &module_graph);
+        let relevant_exports = exports_info.get_relevant_exports(&module_graph, None);
         let unknown_exports = relevant_exports
           .iter()
-          .filter(|id| {
-            let export_info = id.get_export_info(&module_graph).clone();
-            export_info.is_reexport() && export_info.id.get_target(&module_graph, None).is_none()
+          .filter(|export_info| {
+            export_info.is_reexport(&module_graph)
+              && export_info.get_target(&module_graph, None).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
         if !unknown_exports.is_empty() {
           let cur_bailout_reason = unknown_exports
             .into_iter()
-            .map(|id| {
-              let export_info = id.get_export_info(&module_graph);
+            .map(|export_info| {
               let name = export_info
-                .name
-                .as_ref()
+                .name(&module_graph)
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
-              format!("{} : {}", name, export_info.id.get_used_info(&module_graph))
+              format!("{} : {}", name, export_info.get_used_info(&module_graph))
             })
             .collect::<Vec<String>>()
             .join(", ");
@@ -804,9 +802,11 @@ impl ModuleConcatenationPlugin {
         }
         let unknown_provided_exports = relevant_exports
           .iter()
-          .filter(|id| {
-            let export_info = id.get_export_info(&module_graph);
-            !matches!(export_info.provided, Some(ExportInfoProvided::True))
+          .filter(|export_info| {
+            !matches!(
+              export_info.provided(&module_graph),
+              Some(ExportInfoProvided::True)
+            )
           })
           .copied()
           .collect::<Vec<_>>();
@@ -814,18 +814,16 @@ impl ModuleConcatenationPlugin {
         if !unknown_provided_exports.is_empty() {
           let cur_bailout_reason = unknown_provided_exports
             .into_iter()
-            .map(|id| {
-              let export_info = id.get_export_info(&module_graph);
+            .map(|export_info| {
               let name = export_info
-                .name
-                .as_ref()
+                .name(&module_graph)
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
                 "{} : {} and {}",
                 name,
-                export_info.id.get_provided_info(&module_graph),
-                export_info.id.get_used_info(&module_graph)
+                export_info.get_provided_info(&module_graph),
+                export_info.get_used_info(&module_graph),
               )
             })
             .collect::<Vec<String>>()
@@ -910,9 +908,9 @@ impl ModuleConcatenationPlugin {
         chunk_runtime = merge_runtime(&chunk_runtime, &r);
       }
       let module_graph = compilation.get_module_graph();
-      let exports_info_id = module_graph.get_exports_info(current_root).id;
+      let exports_info = module_graph.get_exports_info(current_root);
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        exports_info_id.is_module_used(&module_graph, r)
+        exports_info.is_module_used(&module_graph, r)
       });
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),

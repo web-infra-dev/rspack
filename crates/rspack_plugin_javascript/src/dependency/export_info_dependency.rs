@@ -77,27 +77,25 @@ impl ExportInfoDependency {
 
     match prop.to_string().as_str() {
       "canMangle" => {
-        let can_mangle = if let Some(export_info) = exports_info
-          .id
-          .get_read_only_export_info_recursive(export_name, &module_graph)
+        let can_mangle = if let Some(export_info) =
+          exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
         {
-          export_info.can_mangle()
+          export_info.can_mangle(&module_graph)
         } else {
           exports_info
-            .other_exports_info
-            .get_export_info(&module_graph)
-            .can_mangle()
+            .other_exports_info(&module_graph)
+            .can_mangle(&module_graph)
         };
         can_mangle.map(|v| v.to_string())
       }
       "used" => {
         let used =
-          exports_info.get_used(UsedName::Vec(export_name.clone()), *runtime, &module_graph);
+          exports_info.get_used(&module_graph, UsedName::Vec(export_name.clone()), *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
         let used_state =
-          exports_info.get_used(UsedName::Vec(export_name.clone()), *runtime, &module_graph);
+          exports_info.get_used(&module_graph, UsedName::Vec(export_name.clone()), *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",
@@ -110,8 +108,7 @@ impl ExportInfoDependency {
         )
       }
       "provideInfo" => exports_info
-        .id
-        .is_export_provided(export_name, &module_graph)
+        .is_export_provided(&module_graph, export_name)
         .map(|provided| {
           (match provided {
             ExportProvided::True => "true",

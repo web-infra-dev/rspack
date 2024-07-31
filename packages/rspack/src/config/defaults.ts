@@ -592,6 +592,7 @@ const applyOutputDefaults = (
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
 	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
+	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));

@@ -38,7 +38,7 @@ function getCurrentScriptUrl(moduleId) {
         }
         srcByModuleId[moduleId] = src;
     }
-    return function (fileMap) {
+    return (fileMap) => {
         if (!src) {
             return null;
         }
@@ -187,12 +187,14 @@ function normalizeUrl(urlString) {
     if (/^data:/i.test(urlString)) {
         return urlString;
     }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
+    const protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+    const components = urlString
+        .replace(new RegExp(protocol, "i"), "")
+        .split("/");
+    const host = components[0].toLowerCase().replace(/\.$/, "");
     components[0] = "";
-    var path = components
-        .reduce(function (accumulator, item) {
+    const path = components
+        .reduce((accumulator, item) => {
         switch (item) {
             case "..":
                 accumulator.pop();

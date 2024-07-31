@@ -1,11 +1,11 @@
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   get_entry_runtime, is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
-  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfoId,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
   UsageState,
 };
@@ -25,7 +25,7 @@ enum ModuleOrAsyncDependenciesBlock {
 pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
   compilation: &'a mut Compilation,
-  exports_info_module_map: HashMap<ExportsInfoId, ModuleIdentifier>,
+  exports_info_module_map: UkeyMap<ExportsInfo, ModuleIdentifier>,
 }
 
 #[allow(unused)]
@@ -34,7 +34,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     Self {
       global,
       compilation,
-      exports_info_module_map: HashMap::default(),
+      exports_info_module_map: UkeyMap::default(),
     }
   }
 
@@ -48,8 +48,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let mut q = Queue::new();
     let mg = &mut module_graph;
     // debug_exports_info!(mg);
-    for exports_info_id in self.exports_info_module_map.keys() {
-      exports_info_id.set_has_use_info(mg);
+    for exports_info in self.exports_info_module_map.keys() {
+      exports_info.set_has_use_info(mg);
     }
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
@@ -304,14 +304,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
-    let mgm_exports_info_id = mgm.exports;
+    let mgm_exports_info = mgm.exports;
     if !used_exports.is_empty() {
       let need_insert = match module.build_meta() {
         Some(build_meta) => matches!(build_meta.exports_type, BuildMetaExportsType::Unset),
         None => true,
       };
       if need_insert {
-        let flag = mgm_exports_info_id.set_used_without_info(&mut module_graph, runtime.as_ref());
+        let flag = mgm_exports_info.set_used_without_info(&mut module_graph, runtime.as_ref());
         if flag {
           queue.enqueue((module_id, None));
         }
@@ -324,70 +324,61 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
         };
         if used_exports.is_empty() {
-          let flag =
-            mgm_exports_info_id.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
+          let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
 
           if flag {
             queue.enqueue((module_id, runtime.clone()));
           }
         } else {
-          let mut current_exports_info_id = mgm_exports_info_id;
-          // dbg!(&current_exports_info_id.get_exports_info(&self.compilation.get_module_graph()));
+          let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
-            let export_info_id =
-              current_exports_info_id.get_export_info(&used_export, &mut module_graph);
-            // dbg!(&export_info_id.get_export_info(&self.compilation.get_module_graph()));
-            let export_info = module_graph.get_export_info_mut_by_id(&export_info_id);
+            let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
             if !can_mangle {
-              export_info.can_mangle_use = Some(false);
+              export_info.set_can_mangle_use(&mut module_graph, Some(false));
             }
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info = export_info_id.get_nested_exports_info(&module_graph);
+              let nested_info = export_info.get_nested_exports_info(&module_graph);
               // dbg!(&nested_info);
               if let Some(nested_info) = nested_info {
-                let changed_flag = export_info_id.set_used_conditionally(
+                let changed_flag = export_info.set_used_conditionally(
                   &mut module_graph,
                   Box::new(|used| used == &UsageState::Unused),
                   UsageState::OnlyPropertiesUsed,
                   runtime.as_ref(),
                 );
                 if changed_flag {
-                  let current_module = if current_exports_info_id == mgm_exports_info_id {
+                  let current_module = if current_exports_info == mgm_exports_info {
                     Some(module_id)
                   } else {
                     self
                       .exports_info_module_map
-                      .get(&current_exports_info_id)
+                      .get(&current_exports_info)
                       .cloned()
                   };
                   if let Some(current_module) = current_module {
                     queue.enqueue((current_module, runtime.clone()));
                   }
                 }
-                current_exports_info_id = nested_info;
+                current_exports_info = nested_info;
                 continue;
               }
             }
 
-            let changed_flag = export_info_id.set_used_conditionally(
+            let changed_flag = export_info.set_used_conditionally(
               &mut module_graph,
               Box::new(|v| v != &UsageState::Used),
               UsageState::Used,
               runtime.as_ref(),
             );
-            // dbg!(
-            //   &export_info_id.get_export_info(&self.compilation.get_module_graph()),
-            //   changed_flag
-            // );
             if changed_flag {
-              let current_module = if current_exports_info_id == mgm_exports_info_id {
+              let current_module = if current_exports_info == mgm_exports_info {
                 Some(module_id)
               } else {
                 self
                   .exports_info_module_map
-                  .get(&current_exports_info_id)
+                  .get(&current_exports_info)
                   .cloned()
               };
               if let Some(current_module) = current_module {
@@ -408,7 +399,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         return;
       }
       let changed_flag =
-        mgm_exports_info_id.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
+        mgm_exports_info.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
       if changed_flag {
         queue.enqueue((module_id, runtime));
       }

@@ -9,8 +9,6 @@
  * Author @Tjatse
  * https://github.com/mahdyar/ansi-html-community/blob/master/LICENSE
  */
-"use strict";
-
 interface AnsiHtmlTags {
 	open: typeof _openTags;
 	close: typeof _closeTags;
@@ -23,10 +21,10 @@ type Match = {
 } & Array<string>;
 
 // Reference to https://github.com/sindresorhus/ansi-regex
-var _regANSI =
+const _regANSI =
 	/(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/;
 
-var _defColors: Record<string, string | Array<string>> = {
+const _defColors: Record<string, string | Array<string>> = {
 	reset: ["fff", "000"], // [FOREGROUND_COLOR, BACKGROUND_COLOR]
 	black: "000",
 	red: "ff0000",
@@ -38,7 +36,7 @@ var _defColors: Record<string, string | Array<string>> = {
 	lightgrey: "f0f0f0",
 	darkgrey: "888"
 };
-var _styles: Record<string, string> = {
+const _styles: Record<string, string> = {
 	30: "black",
 	31: "red",
 	32: "green",
@@ -49,11 +47,11 @@ var _styles: Record<string, string> = {
 	37: "lightgrey"
 };
 
-var _colorMode: Record<string, string> = {
+const _colorMode: Record<string, string> = {
 	2: "rgb"
 };
 
-var _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
+const _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
 	1: "font-weight:bold", // bold
 	2: "opacity:0.5", // dim
 	3: "<i>", // italic
@@ -62,47 +60,45 @@ var _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
 	9: "<del>", // delete
 	38: (match: Match) => {
 		// color
-		var mode = _colorMode[match[0]];
+		const mode = _colorMode[match[0]];
 		if (mode === "rgb") {
-			var r, g, b;
-			r = match[1];
-			g = match[2];
-			b = match[3];
+			const r = match[1],
+				g = match[2],
+				b = match[3];
 			match.advance(4);
 			return "color: rgb(" + r + "," + g + "," + b + ")";
 		}
 	},
 	48: (match: Match) => {
 		// background color
-		var mode = _colorMode[match[0]];
+		const mode = _colorMode[match[0]];
 		if (mode === "rgb") {
-			var r, g, b;
-			r = match[1];
-			g = match[2];
-			b = match[3];
+			const r = match[1],
+				g = match[2],
+				b = match[3];
 			match.advance(4);
 			return "background-color: rgb(" + r + "," + g + "," + b + ")";
 		}
 	}
 };
 
-var _openTagToCloseTag: Record<string, string> = {
+const _openTagToCloseTag: Record<string, string> = {
 	3: "23",
 	4: "24",
 	9: "29"
 };
 
-var _closeTags: Record<
+const _closeTags: Record<
 	string,
 	string | ((ansiCodes: Option<Array<string>>) => string)
 > = {
 	0: ansiCodes => {
 		if (!ansiCodes) return "</span>";
 		if (!ansiCodes.length) return "";
-		var code: Option<string>,
+		let code: Option<string>,
 			ret = "";
 		while ((code = ansiCodes.pop())) {
-			var closeTag = _openTagToCloseTag[code];
+			const closeTag = _openTagToCloseTag[code];
 			if (closeTag) {
 				ret += _closeTags[closeTag];
 				continue;
@@ -141,17 +137,17 @@ export default function ansiHTML(text: string) {
 	}
 
 	// Cache opened sequence.
-	var ansiCodes: string[] = [];
+	const ansiCodes: string[] = [];
 	// Replace with markup.
 	//@ts-ignore TS1487 error
-	var ret = text.replace(/\033\[(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?m/g, m => {
-		var match = m.match(/(;?\d+)/g)?.map(normalizeSeq) as unknown as Match;
+	let ret = text.replace(/\033\[(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?m/g, m => {
+		const match = m.match(/(;?\d+)/g)?.map(normalizeSeq) as unknown as Match;
 		Object.defineProperty(match, "advance", {
 			value: function (count: number) {
 				this.splice(0, count);
 			}
 		});
-		var seq,
+		let seq,
 			rep = "";
 		while ((seq = match[0])) {
 			match.advance(1);
@@ -160,13 +156,13 @@ export default function ansiHTML(text: string) {
 		return rep;
 
 		function applySeq(seq: string) {
-			var other = _openTags[seq];
+			let other = _openTags[seq];
 			if (
 				other &&
 				(other = typeof other === "function" ? (other(match) as string) : other)
 			) {
 				// If reset signal is encountered, we have to reset everything.
-				var ret = "";
+				let ret = "";
 				if (seq === "0") {
 					ret += (
 						_closeTags[seq] as (ansiCodes: Option<Array<string>>) => string
@@ -185,7 +181,7 @@ export default function ansiHTML(text: string) {
 				);
 			}
 
-			var ct = _closeTags[seq];
+			const ct = _closeTags[seq];
 			if (typeof ct === "function") {
 				return ct(ansiCodes);
 			}
@@ -199,7 +195,7 @@ export default function ansiHTML(text: string) {
 	});
 
 	// Make sure tags are closed.
-	var l = ansiCodes.length;
+	const l = ansiCodes.length;
 	l > 0 && (ret += Array(l + 1).join("</span>"));
 
 	return ret;
@@ -214,9 +210,9 @@ ansiHTML.setColors = (colors: typeof _defColors) => {
 		throw new Error("`colors` parameter must be an Object.");
 	}
 
-	var _finalColors: typeof _defColors = {};
-	for (var key in _defColors) {
-		var hex = colors.hasOwnProperty(key) ? colors[key] : null;
+	const _finalColors: typeof _defColors = {};
+	for (const key in _defColors) {
+		let hex = colors.hasOwnProperty(key) ? colors[key] : null;
 		if (!hex) {
 			_finalColors[key] = _defColors[key];
 			continue;
@@ -236,7 +232,7 @@ ansiHTML.setColors = (colors: typeof _defColors) => {
 						"` property must be an Array and each item could only be a hex string, e.g.: FF0000"
 				);
 			}
-			var defHexColor = _defColors[key];
+			const defHexColor = _defColors[key];
 			if (!hex[0]) {
 				hex[0] = defHexColor[0];
 			}
@@ -294,9 +290,9 @@ function _setTags(colors: typeof _defColors) {
 	// dark grey
 	_openTags["90"] = "color:#" + colors.darkgrey;
 
-	for (var code in _styles) {
-		var color = _styles[code];
-		var oriColor = colors[color] || "000";
+	for (const code in _styles) {
+		const color = _styles[code];
+		const oriColor = colors[color] || "000";
 		_openTags[code] = "color:#" + oriColor;
 		const codeInt = Number.parseInt(code);
 		_openTags[(codeInt + 10).toString()] = "background:#" + oriColor;

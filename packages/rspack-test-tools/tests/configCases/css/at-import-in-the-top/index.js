@@ -1,7 +1,7 @@
 require("./a.css");
 require("./b.css");
-const fs = require("fs");
-const path = require("path");
+const fs = __non_webpack_require__("fs");
+const path = __non_webpack_require__("path");
 
 it("at-import-in-the-top", async () => {
 	const css = await fs.promises.readFile(

@@ -1,6 +1,8 @@
 const path = require("path");
 
 const config = {
+	target: "web",
+	node: false,
 	module: {
 		generator: {
 			"css/auto": {

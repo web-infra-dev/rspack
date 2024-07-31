@@ -5,7 +5,7 @@ use itertools::Itertools;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
   ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
   PluginContext,
 };
@@ -41,7 +41,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .mg
         .module_graph_module_by_identifier(&module_id)
         .expect("mgm should exist");
-      let exports_id = mgm.exports;
+      let exports_info = mgm.exports;
 
       let module = self
         .mg
@@ -53,12 +53,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         true
       };
       if is_module_without_exports {
-        let exports_info = self.mg.get_exports_info_by_id(&exports_id);
-        let other_exports_info_id = exports_info.other_exports_info;
-        let other_exports_info = self.mg.get_export_info_by_id(&other_exports_info_id);
-        if !matches!(other_exports_info.provided, Some(ExportInfoProvided::Null)) {
-          exports_id.set_has_provide_info(self.mg);
-          exports_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+        let other_exports_info = exports_info.other_exports_info(self.mg);
+        if !matches!(
+          other_exports_info.provided(self.mg),
+          Some(ExportInfoProvided::Null)
+        ) {
+          exports_info.set_has_provide_info(self.mg);
+          exports_info.set_unknown_exports_provided(self.mg, false, None, None, None, None);
           continue;
         }
       }
@@ -69,12 +70,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .map(|item| item.hash.is_some())
         .unwrap_or_default()
       {
-        exports_id.set_has_provide_info(self.mg);
+        exports_info.set_has_provide_info(self.mg);
         q.enqueue(module_id);
         continue;
       }
 
-      exports_id.set_has_provide_info(self.mg);
+      exports_info.set_has_provide_info(self.mg);
       q.enqueue(module_id);
       // TODO: mem cache
     }
@@ -85,9 +86,9 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
         IndexMap::default();
       self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
-      let exports_info_id = self.mg.get_exports_info(&module_id).id;
+      let exports_info = self.mg.get_exports_info(&module_id);
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
-        self.process_exports_spec(dep_id, exports_spec, exports_info_id);
+        self.process_exports_spec(dep_id, exports_spec, exports_info);
       }
       if self.changed {
         self.notify_dependencies(&mut q);
@@ -163,7 +164,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     &mut self,
     dep_id: DependencyId,
     export_desc: ExportsSpec,
-    exports_info_id: ExportsInfoId,
+    exports_info: ExportsInfo,
   ) {
     let exports = &export_desc.exports;
     // dbg!(&exports);
@@ -174,14 +175,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
-        let from_exports_info_id = exports_info_id.get_export_info(name, self.mg);
-        let export_info = self.mg.get_export_info_mut_by_id(&from_exports_info_id);
-        export_info.unset_target(&dep_id);
+        let from_exports_info = exports_info.get_export_info(self.mg, name);
+        from_exports_info.unset_target(self.mg, &dep_id);
       }
     }
     match exports {
       ExportsOfExportsSpec::True => {
-        if exports_info_id.set_unknown_exports_provided(
+        if exports_info.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
           export_desc.exclude_exports,
@@ -195,7 +195,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
         self.merge_exports(
-          exports_info_id,
+          exports_info,
           ele,
           DefaultExportInfo {
             can_mangle: *global_can_mangle,
@@ -224,7 +224,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
   pub fn merge_exports(
     &mut self,
-    exports_info: ExportsInfoId,
+    exports_info: ExportsInfo,
     exports: &Vec<ExportNameOrSpec>,
     global_export_info: DefaultExportInfo,
     dep_id: DependencyId,
@@ -265,31 +265,29 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             spec.hidden.unwrap_or(false),
           ),
         };
-      let export_info_id = exports_info.get_export_info(&name, self.mg);
-
-      let export_info_mut = export_info_id.get_export_info_mut(self.mg);
-      if let Some(ref mut provided) = export_info_mut.provided
+      let export_info = exports_info.get_export_info(self.mg, &name);
+      if let Some(provided) = export_info.provided(self.mg)
         && matches!(
           provided,
           ExportInfoProvided::False | ExportInfoProvided::Null
         )
       {
-        *provided = ExportInfoProvided::True;
+        export_info.set_provided(self.mg, Some(ExportInfoProvided::True));
         self.changed = true;
       }
 
-      if Some(false) != export_info_mut.can_mangle_provide && can_mangle == Some(false) {
-        export_info_mut.can_mangle_provide = Some(false);
+      if Some(false) != export_info.can_mangle_provide(self.mg) && can_mangle == Some(false) {
+        export_info.set_can_mangle_provide(self.mg, Some(false));
         self.changed = true;
       }
 
-      if terminal_binding && !export_info_mut.terminal_binding {
-        export_info_mut.terminal_binding = true;
+      if terminal_binding && !export_info.terminal_binding(self.mg) {
+        export_info.set_terminal_binding(self.mg, true);
         self.changed = true;
       }
 
       if let Some(exports) = exports {
-        let nested_exports_info = export_info_id.create_nested_exports_info(self.mg);
+        let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
           exports,
@@ -300,10 +298,9 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
       // because `create_nested_exports_info` needs `&mut ModuleGraph`
-      let export_info_mut = export_info_id.get_export_info_mut(self.mg);
       if let Some(from) = from {
         let changed = if hidden {
-          export_info_mut.unset_target(&dep_id)
+          export_info.unset_target(self.mg, &dep_id)
         } else {
           let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
@@ -311,7 +308,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info_mut.set_target(
+          export_info.set_target(
+            self.mg,
             Some(dep_id),
             Some(from.dependency_id),
             export_name,
@@ -322,14 +320,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       // Recalculate target exportsInfo
-      let target = export_info_id.get_target(self.mg, None);
+      let target = export_info.get_target(self.mg, None);
 
-      let mut target_exports_info: Option<ExportsInfoId> = None;
+      let mut target_exports_info: Option<ExportsInfo> = None;
       if let Some(target) = target {
         let target_module_exports_info = self.mg.get_exports_info(&target.module);
-        target_exports_info = target_module_exports_info
-          .id
-          .get_nested_exports_info(target.export, self.mg);
+        target_exports_info =
+          target_module_exports_info.get_nested_exports_info(self.mg, target.export);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
@@ -340,17 +337,16 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         }
       }
 
-      let export_info = self.mg.get_export_info_mut_by_id(&export_info_id);
-      if export_info.exports_info_owned {
+      if export_info.exports_info_owned(self.mg) {
         let changed = export_info
-          .exports_info
+          .exports_info(self.mg)
           .expect("should have exports_info when exports_info_owned is true")
           .set_redirect_name_to(self.mg, target_exports_info);
         if changed {
           self.changed = true;
         }
-      } else if export_info.exports_info != target_exports_info {
-        export_info.exports_info = target_exports_info;
+      } else if export_info.exports_info(self.mg) != target_exports_info {
+        export_info.set_exports_info(self.mg, target_exports_info);
         self.changed = true;
       }
     }

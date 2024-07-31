@@ -32,14 +32,21 @@ export class WatchRunnerFactory<
 		if (!stepName) {
 			throw new Error("Can not get watch step name from context");
 		}
+
+		const isWeb = Array.isArray(compilerOptions)
+			? compilerOptions.some(option => {
+					return option.target === "web" || option.target === "webworker";
+				})
+			: compilerOptions.target === "web" ||
+				compilerOptions.target === "webworker";
+
 		return new WatchRunner({
 			env,
 			stats,
 			name: this.name,
 			stepName,
-			runInNewContext:
-				compilerOptions.target === "web" ||
-				compilerOptions.target === "webworker",
+			runInNewContext: isWeb,
+			isWeb,
 			testConfig: this.context.getTestConfig(),
 			source: this.context.getSource(),
 			dist: this.context.getDist(),

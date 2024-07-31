@@ -411,12 +411,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         Some(&runtime),
       );
     } else {
-      let exports_info_id = compilation
+      let exports_info = compilation
         .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
-      exports_info_id
-        .set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
+        .get_exports_info(&module_identifier);
+      exports_info.set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
     }
   }
   Ok(())

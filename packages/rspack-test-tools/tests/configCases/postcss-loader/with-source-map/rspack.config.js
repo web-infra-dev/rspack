@@ -2,6 +2,8 @@ const rspack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	devtool: "source-map",
+	target: 'web',
+	node: false,
 	module: {
 		rules: [
 			{

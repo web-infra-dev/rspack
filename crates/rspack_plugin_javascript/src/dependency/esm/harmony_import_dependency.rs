@@ -272,21 +272,18 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(
-        module_graph
-          .get_exports_info(&imported_module_identifier)
-          .id,
-      );
+      let mut maybe_exports_info = Some(module_graph.get_exports_info(&imported_module_identifier));
       while pos < ids.len()
         && let Some(exports_info) = maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(id, module_graph);
-        if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
-          let provided_exports = exports_info
-            .get_exports_info(module_graph)
-            .get_provided_exports(module_graph);
+        let export_info = exports_info.get_read_only_export_info(module_graph, id);
+        if matches!(
+          export_info.provided(module_graph),
+          Some(ExportInfoProvided::False)
+        ) {
+          let provided_exports = exports_info.get_provided_exports(module_graph);
           let more_info = if let ProvidedExports::Vec(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -316,7 +313,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = export_info.id.get_nested_exports_info(module_graph);
+        maybe_exports_info = export_info.get_nested_exports_info(module_graph);
       }
       let msg = format!(
         "export {} {} was not found in '{}'",
