@@ -123,9 +123,9 @@ const makeCacheable = <T extends ParsedResourceWithoutFragment>(
 	return fn;
 };
 
-const makeCacheableWithContext = (fn: {
-	(context: string, identifier: string): string;
-}) => {
+const makeCacheableWithContext = (
+	fn: (context: string, identifier: string) => string
+) => {
 	const cache: WeakMap<
 		object,
 		Map<string, Map<string, string>>

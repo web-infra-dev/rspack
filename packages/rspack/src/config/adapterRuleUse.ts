@@ -153,29 +153,25 @@ export interface LoaderContext<OptionsType = {}> {
 	_module: Module;
 }
 
-export interface LoaderDefinitionFunction<
+export type LoaderDefinitionFunction<
 	OptionsType = {},
 	ContextAdditions = {}
-> {
-	(
-		this: LoaderContext<OptionsType> & ContextAdditions,
-		content: string,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	): string | void | Buffer | Promise<string | Buffer>;
-}
+> = (
+	this: LoaderContext<OptionsType> & ContextAdditions,
+	content: string,
+	sourceMap?: string | SourceMap,
+	additionalData?: AdditionalData
+) => string | void | Buffer | Promise<string | Buffer>;
 
-export interface PitchLoaderDefinitionFunction<
+export type PitchLoaderDefinitionFunction<
 	OptionsType = {},
 	ContextAdditions = {}
-> {
-	(
-		this: LoaderContext<OptionsType> & ContextAdditions,
-		remainingRequest: string,
-		previousRequest: string,
-		data: object
-	): string | void | Buffer | Promise<string | Buffer>;
-}
+> = (
+	this: LoaderContext<OptionsType> & ContextAdditions,
+	remainingRequest: string,
+	previousRequest: string,
+	data: object
+) => string | void | Buffer | Promise<string | Buffer>;
 
 export type LoaderDefinition<
 	OptionsType = {},

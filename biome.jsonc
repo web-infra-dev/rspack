@@ -47,7 +47,6 @@
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"useShorthandFunctionType": "off",
 				"noArguments": "off",
 				"noInferrableTypes": "off",
 				"noParameterAssign": "off",
