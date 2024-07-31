@@ -56,7 +56,6 @@ function createRenderRuntimeModulesFn(Template) {
 const caches = new WeakMap();
 
 export class WebpackModulePlaceholderPlugin {
-	constructor() {}
 	apply(compiler) {
 		const { webpack } = compiler;
 		const {

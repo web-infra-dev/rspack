@@ -4,8 +4,6 @@ import { RuntimeGlobals } from ".";
 import type { Compiler } from "./Compiler";
 
 export default class ExecuteModulePlugin {
-	constructor() {}
-
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("executeModule", compilation => {
 			compilation.hooks.executeModule.tap(

@@ -134,6 +134,4 @@ export class CodeGenerationResult {
 	}
 }
 
-export class CodeGenerationResults {
-	constructor(_result: JsCodegenerationResults) {}
-}
+export class CodeGenerationResults {}

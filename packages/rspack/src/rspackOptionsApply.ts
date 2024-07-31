@@ -74,7 +74,6 @@ import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
 
 export class RspackOptionsApply {
-	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,

@@ -41,9 +41,7 @@
 				"noMultipleSpacesInRegularExpressionLiterals": "off",
 				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
-				"noUselessConstructor": "off",
-				"noBannedTypes": "off",
-				"useOptionalChain": "off"
+				"noBannedTypes": "off"
 			},
 			"correctness": {
 				"noConstructorReturn": "off",
