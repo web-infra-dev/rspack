@@ -71,7 +71,7 @@ pub fn print(
   comments: Option<&dyn Comments>,
   format: &JsMinifyFormatOptions,
 ) -> Result<TransformOutput> {
-  let mut src_map_buf = vec![];
+  let mut src_map_buf = Default::default();
 
   let src = {
     let mut buf = vec![];
