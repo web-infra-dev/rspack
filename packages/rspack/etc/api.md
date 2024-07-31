@@ -4428,7 +4428,6 @@ export const javascript: JavaScript;
 
 // @public (undocumented)
 class JavascriptModulesPlugin extends RspackBuiltinPlugin {
-    constructor();
     // (undocumented)
     affectedHooks: "compilation";
     // (undocumented)
@@ -12813,7 +12812,6 @@ export const rspackOptions: z.ZodObject<{
 
 // @public (undocumented)
 class RspackOptionsApply {
-    constructor();
     // (undocumented)
     process(options: RspackOptionsNormalized, compiler: Compiler): void;
 }
@@ -14523,7 +14521,6 @@ export const WebpackError: ErrorConstructor;
 class WebpackError_2 extends Error {
     // (undocumented)
     [inspect.custom](): string;
-    constructor(message?: string);
     // (undocumented)
     chunk?: Chunk;
     // (undocumented)

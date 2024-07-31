@@ -122,15 +122,16 @@ export const smartGrouping = <T, R>(
 						) || false;
 				}
 
-				const force = options?.force;
+				const force = options !== false && options.force;
 				if (!force) {
-					if (bestGroupOptions?.force) continue;
+					if (bestGroupOptions !== false && bestGroupOptions?.force) continue;
 					if (used) continue;
 					if (items.size <= 1 || totalSize - items.size <= 1) {
 						continue;
 					}
 				}
-				const targetGroupCount = options?.targetGroupCount || 4;
+				const targetGroupCount =
+					(options !== false && options.targetGroupCount) || 4;
 				const sizeValue = force
 					? items.size
 					: Math.min(

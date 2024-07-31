@@ -1,6 +1,5 @@
 import type {
 	JsCodegenerationResult,
-	JsCodegenerationResults,
 	JsCreateData,
 	JsFactoryMeta,
 	JsModule

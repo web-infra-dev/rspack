@@ -1522,7 +1522,6 @@ export class WebpackDiffConfigPlugin {
 
 // @public (undocumented)
 export class WebpackModulePlaceholderPlugin {
-    constructor();
     // (undocumented)
     apply(compiler: any): void;
 }
