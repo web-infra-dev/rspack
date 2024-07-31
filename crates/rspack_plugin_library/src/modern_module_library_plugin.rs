@@ -129,11 +129,10 @@ fn render_startup(
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
     let exports_info = module_graph.get_exports_info(module_id);
-    for id in exports_info.get_ordered_exports() {
-      let info = id.get_export_info(&module_graph);
-      let info_name = info.name.as_ref().expect("should have name");
-      let used_name = info
-        .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
+    for export_info in exports_info.ordered_exports(&module_graph) {
+      let info_name = export_info.name(&module_graph).expect("should have name");
+      let used_name = export_info
+        .get_used_name(&module_graph, Some(info_name), Some(&chunk.runtime))
         .expect("name can't be empty");
 
       let final_name = exports_final_names.get(used_name.as_str());

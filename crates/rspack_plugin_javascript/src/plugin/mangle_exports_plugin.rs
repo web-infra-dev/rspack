@@ -2,31 +2,25 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
-  CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfoId, ModuleGraph, Plugin,
-  PluginContext, UsageState,
+  CompilerOptions, ExportInfoProvided, ExportsInfo, ModuleGraph, Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
+use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::utils::mangle_exports::{
   number_to_identifier, NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS,
 };
 
-fn can_mangle(exports_info_id: ExportsInfoId, mg: &ModuleGraph) -> bool {
-  let exports_info = exports_info_id.get_exports_info(mg);
-  if exports_info
-    .other_exports_info
-    .get_export_info(mg)
-    .get_used(None)
-    != UsageState::Unused
-  {
+fn can_mangle(exports_info: ExportsInfo, mg: &ModuleGraph) -> bool {
+  if exports_info.other_exports_info(mg).get_used(mg, None) != UsageState::Unused {
     return false;
   }
   let mut has_something_to_mangle = false;
-  for export_info_id in exports_info.exports.values() {
-    if export_info_id.get_export_info(mg).can_mangle() == Some(true) {
+  for export_info in exports_info.exports(mg) {
+    if export_info.can_mangle(mg) == Some(true) {
       has_something_to_mangle = true;
     }
   }
@@ -64,8 +58,8 @@ fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> 
       .as_ref()
       .map(|meta| matches!(meta.exports_type, BuildMetaExportsType::Namespace))
       .unwrap_or_default();
-    let exports_info_id = mgm.exports;
-    mangle_exports_info(&mut mg, self.deterministic, exports_info_id, is_namespace);
+    let exports_info = mgm.exports;
+    mangle_exports_info(&mut mg, self.deterministic, exports_info, is_namespace);
   }
   Ok(())
 }
@@ -86,8 +80,8 @@ impl Plugin for MangleExportsPlugin {
 }
 
 /// Compare function for sorting exports by name.
-fn compare_strings_numeric(a: &ExportInfo, b: &ExportInfo) -> std::cmp::Ordering {
-  a.name.cmp(&b.name)
+fn compare_strings_numeric(a: Option<&Atom>, b: Option<&Atom>) -> std::cmp::Ordering {
+  a.cmp(&b)
 }
 static MANGLE_NAME_NORMAL_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new("^[a-zA-Z0-9_$]").expect("should construct regex"));
@@ -98,10 +92,10 @@ static MANGLE_NAME_DETERMINISTIC_REG: Lazy<Regex> =
 fn mangle_exports_info(
   mg: &mut ModuleGraph,
   deterministic: bool,
-  exports_info_id: ExportsInfoId,
+  exports_info: ExportsInfo,
   is_namespace: bool,
 ) {
-  if !can_mangle(exports_info_id, mg) {
+  if !can_mangle(exports_info, mg) {
     return;
   }
 
@@ -110,57 +104,45 @@ fn mangle_exports_info(
   let mut avoid_mangle_non_provided = !is_namespace;
 
   if !avoid_mangle_non_provided && deterministic {
-    let exports_info = exports_info_id.get_exports_info(mg);
-    for export_info_id in exports_info.exports.values() {
-      let export_info = export_info_id.get_export_info(mg);
-      if !matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+    for export_info in exports_info.owned_exports(mg) {
+      if !matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
         avoid_mangle_non_provided = true;
         break;
       }
     }
   }
 
-  let export_info_id_list = exports_info_id
-    .get_exports_info(mg)
-    .exports
-    .values()
-    .cloned()
-    .collect::<Vec<_>>();
-  for export_info_id in export_info_id_list {
-    let export_info = export_info_id.get_export_info(mg);
-    if !export_info.has_used_name() {
+  for export_info in exports_info.owned_exports(mg).collect::<Vec<_>>() {
+    if !export_info.has_used_name(mg) {
       let name = export_info
-        .name
-        .as_ref()
+        .name(mg)
         .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
-      let can_not_mangle = export_info.can_mangle() != Some(true)
+      let can_not_mangle = export_info.can_mangle(mg) != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
         || (deterministic
           && name.len() == 2
           && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
         || (avoid_mangle_non_provided
-          && !matches!(export_info.provided, Some(ExportInfoProvided::True)));
+          && !matches!(export_info.provided(mg), Some(ExportInfoProvided::True)));
 
-      let export_info_mut = export_info_id.get_export_info_mut(mg);
       if can_not_mangle {
-        export_info_mut.set_used_name(name.clone());
+        export_info.set_used_name(mg, name.clone());
         used_names.insert(name.to_string());
       } else {
-        mangleable_exports.push(export_info_mut.id);
+        mangleable_exports.push(export_info);
       };
     }
 
     // we need to re get export info to avoid extending immutable borrow lifetime
-    let export_info = export_info_id.get_export_info(mg);
-    if export_info.exports_info_owned {
-      let used = export_info.get_used(None);
+    if export_info.exports_info_owned(mg) {
+      let used = export_info.get_used(mg, None);
       if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
         mangle_exports_info(
           mg,
           deterministic,
           export_info
-            .exports_info
+            .exports_info(mg)
             .expect("should have exports info id"),
           false,
         );
@@ -170,22 +152,11 @@ fn mangle_exports_info(
 
   if deterministic {
     let used_names_len = used_names.len();
-    let mut export_info_id_used_name = FxHashMap::default();
+    let mut export_info_used_name = FxHashMap::default();
     assign_deterministic_ids(
       mangleable_exports,
-      |e| {
-        let export_info = e.get_export_info(mg);
-        export_info
-          .name
-          .as_ref()
-          .expect("should have name")
-          .to_string()
-      },
-      |a, b| {
-        let a_info = a.get_export_info(mg);
-        let b_info = b.get_export_info(mg);
-        compare_strings_numeric(a_info, b_info)
-      },
+      |e| e.name(mg).expect("should have name").to_string(),
+      |a, b| compare_strings_numeric(a.name(mg), b.name(mg)),
       |e, id| {
         let name = number_to_identifier(id as u32);
         let size = used_names.len();
@@ -193,7 +164,7 @@ fn mangle_exports_info(
         if size == used_names.len() {
           false
         } else {
-          export_info_id_used_name.insert(e, name);
+          export_info_used_name.insert(e, name);
           true
         }
       },
@@ -205,10 +176,8 @@ fn mangle_exports_info(
       used_names_len,
       0,
     );
-    for (export_info_id, name) in export_info_id_used_name {
-      export_info_id
-        .get_export_info_mut(mg)
-        .set_used_name(name.into());
+    for (export_info, name) in export_info_used_name {
+      export_info.set_used_name(mg, name.into());
     }
   } else {
     let mut used_exports = Vec::new();
@@ -222,20 +191,12 @@ fn mangle_exports_info(
       }
     }
 
-    used_exports.sort_by(|a, b| {
-      let export_info_a = a.get_export_info(mg);
-      let export_info_b = b.get_export_info(mg);
-      compare_strings_numeric(export_info_a, export_info_b)
-    });
-    unused_exports.sort_by(|a, b| {
-      let export_info_a = a.get_export_info(mg);
-      let export_info_b = b.get_export_info(mg);
-      compare_strings_numeric(export_info_a, export_info_b)
-    });
+    used_exports.sort_by(|a, b| compare_strings_numeric(a.name(mg), b.name(mg)));
+    unused_exports.sort_by(|a, b| compare_strings_numeric(a.name(mg), b.name(mg)));
 
     let mut i = 0;
     for list in [used_exports, unused_exports] {
-      for export_info_id in list {
+      for export_info in list {
         let mut name;
         loop {
           name = number_to_identifier(i);
@@ -244,7 +205,7 @@ fn mangle_exports_info(
           }
           i += 1;
         }
-        export_info_id.set_used_name(mg, name.into());
+        export_info.set_used_name(mg, name.into());
       }
     }
   }
