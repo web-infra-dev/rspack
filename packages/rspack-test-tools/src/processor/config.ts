@@ -37,7 +37,7 @@ export class ConfigProcessor<
 			options.output?.path &&
 			fs.existsSync(path.join(options.output.path!, `bundle${index}${ext}`))
 		) {
-			if (options.experiments && options.experiments.css) {
+			if (options.experiments?.css) {
 				const cssOutputPath = path.join(
 					options.output.path!,
 					(typeof options.output?.cssFilename === "string" &&
