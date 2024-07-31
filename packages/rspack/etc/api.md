@@ -8731,8 +8731,7 @@ export type ResolveAlias = z.infer<typeof resolveAlias>;
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
 
 // @public (undocumented)
-interface ResolveContext {
-}
+type ResolveContext = {};
 
 // @public (undocumented)
 type ResolveData = {
@@ -14189,8 +14188,7 @@ interface TerserMangleOptions {
 }
 
 // @public (undocumented)
-interface TerserManglePropertiesOptions {
-}
+type TerserManglePropertiesOptions = {};
 
 // @public (undocumented)
 const TIMERS_AGGREGATES_SYMBOL: unique symbol;

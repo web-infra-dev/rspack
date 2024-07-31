@@ -58,7 +58,6 @@
 				"noGlobalEval": "off"
 			},
 			"suspicious": {
-				"noEmptyInterface": "off",
 				"noGlobalIsNan": "off",
 				"noFallthroughSwitchClause": "off",
 				"noConfusingVoidType": "off",
