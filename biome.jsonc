@@ -47,7 +47,6 @@
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"useExponentiationOperator": "off",
 				"useShorthandFunctionType": "off",
 				"noArguments": "off",
 				"noInferrableTypes": "off",
