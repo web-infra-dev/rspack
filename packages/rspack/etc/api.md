@@ -1898,9 +1898,9 @@ const ElectronTargetPlugin: {
 
 // @public (undocumented)
 const EnableChunkLoadingPlugin: {
-    new (type: any): {
+    new (type: string): {
         name: BuiltinPluginName;
-        _args: [type: any];
+        _args: [type: string];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -1940,9 +1940,9 @@ class EnableLibraryPlugin extends RspackBuiltinPlugin {
 
 // @public (undocumented)
 const EnableWasmLoadingPlugin: {
-    new (type: any): {
+    new (type: string): {
         name: BuiltinPluginName;
-        _args: [type: any];
+        _args: [type: string];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
