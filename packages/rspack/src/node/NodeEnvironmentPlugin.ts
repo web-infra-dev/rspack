@@ -13,7 +13,10 @@ import fs from "graceful-fs";
 
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
-import createConsoleLogger from "../logging/createConsoleLogger";
+import {
+	type LoggerConsole,
+	createConsoleLogger
+} from "../logging/createConsoleLogger";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
 
@@ -35,11 +38,11 @@ export default class NodeEnvironmentPlugin {
 			debug: infrastructureLogging.debug || false,
 			console:
 				infrastructureLogging.console ||
-				nodeConsole({
+				(nodeConsole({
 					colors: infrastructureLogging.colors,
 					appendOnly: infrastructureLogging.appendOnly,
 					stream: infrastructureLogging.stream
-				})
+				}) as LoggerConsole)
 		});
 		compiler.inputFileSystem = new CachedInputFileSystem(fs, 60000);
 		const inputFileSystem = compiler.inputFileSystem;
