@@ -44,7 +44,6 @@
 			},
 			"correctness": {
 				"noConstructorReturn": "off",
-				"noInnerDeclarations": "off",
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
