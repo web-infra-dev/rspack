@@ -13,8 +13,10 @@ import fs from "graceful-fs";
 
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
-import createConsoleLogger from "../logging/createConsoleLogger";
-import type { LoggerConsole } from "../logging/type";
+import {
+	type LoggerConsole,
+	createConsoleLogger
+} from "../logging/createConsoleLogger";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
 

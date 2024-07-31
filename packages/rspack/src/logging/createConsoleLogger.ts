@@ -8,9 +8,33 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { FilterItemTypes } from "../config";
+import type { FilterItemTypes, FilterTypes } from "../config";
 import { LogType, type LogTypeEnum } from "./Logger";
-import type { FilterFunction, LoggerOptions } from "./type";
+
+export type FilterFunction = (ident: string) => boolean;
+
+export type LoggerConsole = {
+	clear: () => void;
+	trace: () => void;
+	info: (...args: any[]) => void;
+	log: (...args: any[]) => void;
+	warn: (...args: any[]) => void;
+	error: (...args: any[]) => void;
+	debug?: (...args: any[]) => void;
+	group?: (...args: any[]) => void;
+	groupCollapsed?: (...args: any[]) => void;
+	groupEnd?: (...args: any[]) => void;
+	status?: (...args: any[]) => void;
+	profile?: (...args: any[]) => void;
+	profileEnd?: (...args: any[]) => void;
+	logTime?: (...args: any[]) => void;
+};
+
+export type LoggerOptions = {
+	level: "none" | "error" | "warn" | "info" | "log" | "verbose" | boolean;
+	debug: FilterTypes | boolean;
+	console: LoggerConsole;
+};
 
 const filterToFunction = (
 	item: FilterItemTypes
@@ -47,7 +71,11 @@ const LogLevel = {
 	verbose: 1
 };
 
-export = ({ level = "info", debug = false, console }: LoggerOptions) => {
+const createConsoleLogger = ({
+	level = "info",
+	debug = false,
+	console
+}: LoggerOptions) => {
 	const debugFilters =
 		typeof debug === "boolean"
 			? [() => debug]
@@ -170,3 +198,5 @@ export = ({ level = "info", debug = false, console }: LoggerOptions) => {
 	};
 	return logger;
 };
+
+export { createConsoleLogger };

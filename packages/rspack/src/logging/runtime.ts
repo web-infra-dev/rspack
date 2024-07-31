@@ -10,8 +10,7 @@
 
 const SyncBailHook = require("tapable/lib/SyncBailHook");
 import { Logger } from "./Logger";
-import createConsoleLogger from "./createConsoleLogger";
-import type { LoggerOptions } from "./type";
+import { type LoggerOptions, createConsoleLogger } from "./createConsoleLogger";
 
 const currentDefaultLoggerOptions: LoggerOptions = {
 	level: "info",
