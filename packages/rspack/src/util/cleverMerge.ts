@@ -375,7 +375,7 @@ const mergeEntries = (
 			// second value override everything
 			// = second.base + second.byProperty
 			return secondEntry;
-		case VALUE_TYPE_UNDEFINED:
+		case VALUE_TYPE_UNDEFINED: {
 			if (!firstEntry.byProperty) {
 				// = first.base + second.byProperty
 				return {
@@ -404,6 +404,7 @@ const mergeEntries = (
 				byProperty: firstEntry.byProperty,
 				byValues: newByValues
 			};
+		}
 		default: {
 			if (!firstEntry.byProperty) {
 				// The simple case
