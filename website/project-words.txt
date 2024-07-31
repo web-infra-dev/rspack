@@ -32,6 +32,8 @@ disabletransformbydefault
 ecma
 edusperoni
 esbuild
+etag
+etags
 evanw
 experimentscss
 experimentsrspackfuture
