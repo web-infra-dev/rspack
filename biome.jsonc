@@ -48,7 +48,6 @@
 			},
 			"style": {
 				"noParameterAssign": "off",
-				"useSingleVarDeclarator": "off",
 				"noNonNullAssertion": "off"
 			},
 			"performance": {

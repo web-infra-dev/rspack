@@ -259,8 +259,8 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		let o,
-			isBuiltin = false;
+		let o;
+		let isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
 			o = getBuiltinLoaderOptions(use.loader, use.options, options);
 			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);

@@ -62,9 +62,9 @@ const _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
 		// color
 		const mode = _colorMode[match[0]];
 		if (mode === "rgb") {
-			const r = match[1],
-				g = match[2],
-				b = match[3];
+			const r = match[1];
+			const g = match[2];
+			const b = match[3];
 			match.advance(4);
 			return `color: rgb(${r},${g},${b})`;
 		}
@@ -73,9 +73,9 @@ const _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
 		// background color
 		const mode = _colorMode[match[0]];
 		if (mode === "rgb") {
-			const r = match[1],
-				g = match[2],
-				b = match[3];
+			const r = match[1];
+			const g = match[2];
+			const b = match[3];
 			match.advance(4);
 			return `background-color: rgb(${r},${g},${b})`;
 		}
@@ -95,8 +95,8 @@ const _closeTags: Record<
 	0: ansiCodes => {
 		if (!ansiCodes) return "</span>";
 		if (!ansiCodes.length) return "";
-		let code: Option<string>,
-			ret = "";
+		let code: Option<string>;
+		let ret = "";
 		while ((code = ansiCodes.pop())) {
 			const closeTag = _openTagToCloseTag[code];
 			if (closeTag) {
@@ -147,8 +147,8 @@ export default function ansiHTML(text: string) {
 				this.splice(0, count);
 			}
 		});
-		let seq,
-			rep = "";
+		let seq;
+		let rep = "";
 		while ((seq = match[0])) {
 			match.advance(1);
 			rep += applySeq(seq);

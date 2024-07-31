@@ -441,7 +441,8 @@ export class SyncHook<
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: AsArray<T>
 	): R {
-		let result, error;
+		let result;
+		let error;
 		this.callAsyncStageRange(
 			queried,
 			// @ts-expect-error
@@ -514,7 +515,8 @@ export class SyncBailHook<
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: AsArray<T>
 	): R {
-		let result, error;
+		let result;
+		let error;
 		this.callAsyncStageRange(
 			queried,
 			// @ts-expect-error
@@ -593,7 +595,8 @@ export class SyncWaterfallHook<
 		queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>,
 		...args: AsArray<T>
 	): AsArray<T>[0] {
-		let result, error;
+		let result;
+		let error;
 		this.callAsyncStageRange(
 			queried,
 			// @ts-expect-error
