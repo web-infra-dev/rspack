@@ -5143,10 +5143,7 @@ export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDe
 };
 
 // @public (undocumented)
-export interface LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> {
-    // (undocumented)
-    (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData): string | void | Buffer | Promise<string | Buffer>;
-}
+export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer>;
 
 // @public (undocumented)
 class LoaderObject {
@@ -8542,10 +8539,7 @@ const performance_2: z.ZodUnion<[z.ZodObject<{
 }>, z.ZodLiteral<false>]>;
 
 // @public (undocumented)
-interface PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> {
-    // (undocumented)
-    (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object): string | void | Buffer | Promise<string | Buffer>;
-}
+type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
 
 // @public (undocumented)
 type PluginImportConfig = {
