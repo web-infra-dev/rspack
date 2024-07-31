@@ -186,7 +186,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
               let used_name = module_graph
                 .get_exports_info(&mgm.module_identifier)
-                .id
                 .get_used_name(module_graph, *runtime, UsedName::Str(dep.name().into()));
               let Some(UsedName::Str(used_name)) = used_name else {
                 return;

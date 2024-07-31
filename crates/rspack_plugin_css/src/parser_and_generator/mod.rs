@@ -498,7 +498,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let (ns_obj, left, right) = if self.es_module
             && mg
               .get_exports_info(&module.identifier())
-              .other_exports_info
+              .other_exports_info(&mg)
               .get_used(&mg, generate_context.runtime)
               != UsageState::Unused
           {
@@ -569,7 +569,7 @@ fn get_used_exports<'a>(
       let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
       if let Some(export_info) = export_info {
-        !matches!(export_info.get_used(runtime), UsageState::Unused)
+        !matches!(export_info.get_used(mg, runtime), UsageState::Unused)
       } else {
         true
       }
@@ -596,7 +596,7 @@ fn get_unused_local_ident(
         let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
         if let Some(export_info) = export_info {
-          matches!(export_info.get_used(runtime), UsageState::Unused)
+          matches!(export_info.get_used(mg, runtime), UsageState::Unused)
         } else {
           false
         }

@@ -206,11 +206,10 @@ pub fn export_from_import(
 
   if !export_name.is_empty() {
     let used_name: Cow<Vec<Atom>> = {
-      let exports_info_id = compilation
+      let exports_info = compilation
         .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
-      let used = exports_info_id.get_used_name(
+        .get_exports_info(&module_identifier);
+      let used = exports_info.get_used_name(
         &compilation.get_module_graph(),
         *runtime,
         crate::UsedName::Vec(export_name.clone()),
