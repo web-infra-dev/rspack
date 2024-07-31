@@ -125,13 +125,8 @@ Setting it to `'single'` will extract the runtime code of all entry points into 
 
 ## optimization.sideEffects
 
-<PropertyType
-  type="boolean | 'flag'"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
+- **Type:** `boolean | 'flag'`
+- **Default:** [production mode](config/mode#production) is `true`，[development mode](config/mode#development) is `'flag'`
 
 ```json
 {

@@ -124,13 +124,8 @@ module.exports = {
 
 ## optimization.sideEffects
 
-<PropertyType.CN
-  type="boolean | 'flag'"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
+- **类型：** `boolean | 'flag'`
+- **默认值：** [production 模式](config/mode#production) 为 `true`，[development 模式](config/mode#development) 为 `'flag'`
 
 ```json
 {
