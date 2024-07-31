@@ -43,8 +43,7 @@
 				"noThisInStatic": "off",
 				"noUselessConstructor": "off",
 				"noBannedTypes": "off",
-				"useOptionalChain": "off",
-				"noUselessEmptyExport": "off"
+				"useOptionalChain": "off"
 			},
 			"correctness": {
 				"noConstructorReturn": "off",
