@@ -257,17 +257,11 @@ pub fn get_exports_type(
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
 ) -> ExportsType {
-  let module = module_graph
-    .module_identifier_by_dependency_id(id)
-    .expect("should have module");
   let strict = module_graph
     .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_harmony_module();
-  module_graph
-    .module_by_identifier(module)
-    .expect("should have mgm")
-    .get_exports_type_readonly(module_graph, strict)
+  get_exports_type_with_strict(module_graph, id, strict)
 }
 
 pub fn get_exports_type_with_strict(
@@ -281,7 +275,7 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type_readonly(module_graph, strict)
+    .get_exports_type(module_graph, strict)
 }
 
 // information content of the comment

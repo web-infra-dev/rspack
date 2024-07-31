@@ -253,6 +253,7 @@ pub struct RawJavascriptParserOptions {
   pub strict_export_presence: bool,
   pub worker: Vec<String>,
   pub override_strict: Option<String>,
+  pub import_meta: bool,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -281,6 +282,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       override_strict: value
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
+      import_meta: value.import_meta,
     }
   }
 }

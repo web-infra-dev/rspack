@@ -272,9 +272,7 @@ impl<'a> ModuleGraph<'a> {
     connection_id: &ConnectionId,
     force: bool,
   ) -> Option<BuildDependency> {
-    let Some(connection) = self.connection_by_connection_id(connection_id) else {
-      return None;
-    };
+    let connection = self.connection_by_connection_id(connection_id)?;
     let module_identifier = *connection.module_identifier();
     let original_module_identifier = connection.original_module_identifier;
     let dependency_id = connection.dependency_id;

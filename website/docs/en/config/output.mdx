@@ -718,6 +718,22 @@ module.exports = {
 };
 ```
 
+## output.importMetaName
+
+- **Type:** `string`
+- **Default:** `'import.meta'`
+
+The name of the native `import.meta` object (can be exchanged for a polyfill).
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    importMetaName: 'pseudoImport.meta',
+  },
+};
+```
+
 ## output.library
 
 Output a library exposing the exports of your entry point.

@@ -182,7 +182,11 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             if self.options.module {
               parser.build_info.need_create_require = true;
-              "__WEBPACK_EXTERNAL_createRequire(import.meta.url)".into()
+              format!(
+                "__WEBPACK_EXTERNAL_createRequire({}.url)",
+                parser.compiler_options.output.import_meta_name
+              )
+              .into()
             } else {
               "require".into()
             },

@@ -50,6 +50,7 @@ import type {
 	HotUpdateMainFilename,
 	Iife,
 	ImportFunctionName,
+	ImportMetaName,
 	InfrastructureLogging,
 	Layer,
 	LazyCompilationOptions,
@@ -161,6 +162,7 @@ export const getNormalizedRspackOptions = (
 					: ["..."],
 				globalObject: output.globalObject,
 				importFunctionName: output.importFunctionName,
+				importMetaName: output.importMetaName,
 				iife: output.iife,
 				module: output.module,
 				sourceMapFilename: output.sourceMapFilename,
@@ -475,6 +477,7 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	importMetaName?: ImportMetaName;
 	iife?: Iife;
 	wasmLoading?: WasmLoading;
 	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;

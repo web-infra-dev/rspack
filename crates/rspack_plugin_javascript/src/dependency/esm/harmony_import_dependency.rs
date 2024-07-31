@@ -207,10 +207,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   additional_msg: String,
   should_error: bool,
 ) -> Option<Diagnostic> {
-  let Some(imported_module) = module_graph.get_module_by_dependency_id(module_dependency.id())
-  else {
-    return None;
-  };
+  let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if !imported_module.get_diagnostics().is_empty() {
     return None;
   }
@@ -220,7 +217,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type = imported_module.get_exports_type_readonly(
+  let exports_type = imported_module.get_exports_type(
     module_graph,
     parent_module
       .build_meta()

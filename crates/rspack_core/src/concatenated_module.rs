@@ -1831,7 +1831,7 @@ impl ConcatenatedModule {
     let module = mg
       .module_by_identifier(&info.id())
       .expect("should have module");
-    let exports_type = module.get_exports_type_readonly(mg, strict_harmony_module);
+    let exports_type = module.get_exports_type(mg, strict_harmony_module);
 
     if export_name.is_empty() {
       match exports_type {

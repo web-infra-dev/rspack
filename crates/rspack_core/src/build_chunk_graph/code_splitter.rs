@@ -1014,10 +1014,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_group_by_ukey
       .expect_get_mut(&cgi.chunk_group);
 
-    if chunk_group
+    #[allow(clippy::map_entry)]
+    if !chunk_group
       .module_pre_order_indices
-      .get(&item.module)
-      .is_none()
+      .contains_key(&item.module)
     {
       chunk_group
         .module_pre_order_indices
@@ -1058,10 +1058,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_group_by_ukey
       .expect_get_mut(&cgi.chunk_group);
 
-    if chunk_group
+    #[allow(clippy::map_entry)]
+    if !chunk_group
       .module_post_order_indices
-      .get(&item.module)
-      .is_none()
+      .contains_key(&item.module)
     {
       chunk_group
         .module_post_order_indices

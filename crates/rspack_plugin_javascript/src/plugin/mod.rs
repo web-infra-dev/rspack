@@ -683,7 +683,7 @@ impl JsPlugin {
           continue;
         };
 
-        if renamed_inline_modules.get(m_identifier).is_some() {
+        if renamed_inline_modules.contains_key(m_identifier) {
           if let Some(source) = renamed_inline_modules.get(m_identifier) {
             rendered_module = source.clone();
           };
