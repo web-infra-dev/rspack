@@ -1,7 +1,7 @@
 # HTML
 
-Use the following plugins to simplify the creation of HTML files and automatically inject the generated CSS and JavaScript files into the HTML.
-This is especially useful for `Rspack` bundles that include a hash in the filename which changes every compilation.
+Rspack supports generating HTML files using the following plugins, and automatically injecting the generated CSS and JavaScript files into the HTML.
+This is particularly useful for Rspack bundles that contain filename hashes, as the hashes can change with each Rspack build.
 
 ## HtmlWebpackPlugin
 
@@ -23,7 +23,7 @@ module.exports = {
 
 For all configuration options, see the [plugin documentation](https://github.com/jantimon/html-webpack-plugin#options).
 
-## HtmlRspackPlugin
+## Built-in HtmlRspackPlugin
 
 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) is a high-performance HTML plugin implemented in Rust, offering significantly better build performance than the `HtmlWebpackPlugin`, especially when building a large number of HTML files.
 

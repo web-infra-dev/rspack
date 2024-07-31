@@ -1,6 +1,6 @@
 # HTML
 
-使用以下插件来简化 HTML 文件的创建，并自动将生成的 CSS 和 JavaScript 文件注入到 HTML 中。对于包含哈希值的输出文件尤为有用，因为 Rspack 每次编译时哈希值都会变化。
+Rspack 支持通过以下插件来生成 HTML 文件，并自动将生成的 CSS 和 JavaScript 文件注入到 HTML 中。这对于文件名包含哈希值的输出文件尤为有用，因为 Rspack 每次构建时哈希值都可能会变化。
 
 ## HtmlWebpackPlugin
 
@@ -22,7 +22,7 @@ module.exports = {
 
 有关所有配置选项，请参阅[插件文档](https://github.com/jantimon/html-webpack-plugin#options)。
 
-## HtmlRspackPlugin
+## 内置 HtmlRspackPlugin
 
 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
 
