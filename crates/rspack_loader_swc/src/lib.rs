@@ -2,7 +2,6 @@
 
 mod compiler;
 mod options;
-mod result;
 mod transformer;
 
 use std::default::Default;
@@ -166,16 +165,16 @@ impl Loader<RunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     #[allow(unused_mut)]
     let mut inner = || self.loader_impl(loader_context);
-    // #[cfg(debug_assertions)]
-    // {
-    //   // Adjust stack to avoid stack overflow.
-    //   stacker::maybe_grow(
-    //     2 * 1024 * 1024, /* 2mb */
-    //     4 * 1024 * 1024, /* 4mb */
-    //     inner,
-    //   )
-    // }
-    // #[cfg(not(debug_assertions))]
+    #[cfg(debug_assertions)]
+    {
+      // Adjust stack to avoid stack overflow.
+      stacker::maybe_grow(
+        2 * 1024 * 1024, /* 2mb */
+        4 * 1024 * 1024, /* 4mb */
+        inner,
+      )
+    }
+    #[cfg(not(debug_assertions))]
     inner()
   }
 }
