@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-const arraySum = (array: any) => {
+const arraySum = (array: number[]) => {
 	let sum = 0;
 	for (const item of array) sum += item;
 	return sum;
