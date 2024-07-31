@@ -163,10 +163,6 @@ module.exports = {
 };
 ```
 
-:::info Tip
-`optimization.sideEffects` 为 `true` 时，Rspack 会在一个模块中所有的语句（statement）都没有副作用时标记该模块为无副作用。
-:::
-
 :::tip
 当 `optimization.sideEffects` 为 `true` 时，如果模块中只包含无副作用的语句，Rspack 也会将它们标记为无副作用。
 :::
