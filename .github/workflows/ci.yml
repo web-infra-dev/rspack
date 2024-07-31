@@ -315,7 +315,8 @@ jobs:
           echo 'debug = false' >> Cargo.toml
 
       - name: Run test
-        run: cargo test --workspace --exclude rspack_binding_options -- --nocapture
+        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
+        run: cargo test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
 
   run_benchmark:
     name: Run benchmark
