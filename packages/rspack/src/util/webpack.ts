@@ -3,9 +3,11 @@
 // const { NormalModuleReplacementPlugin, WebpackError, util } = compiler.webpack;
 // ```
 
+import * as createHash from "./createHash";
+
 export default {
 	get createHash() {
-		return require("./createHash");
+		return createHash;
 	}
 	// get comparators() {
 	// 	return require("./comparators");
