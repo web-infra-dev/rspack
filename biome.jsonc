@@ -48,7 +48,6 @@
 				"noExtraBooleanCast": "off"
 			},
 			"correctness": {
-				"noEmptyPattern": "off",
 				"noConstructorReturn": "off",
 				"noSwitchDeclarations": "off",
 				"noInvalidUseBeforeDeclaration": "off",
