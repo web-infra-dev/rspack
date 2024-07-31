@@ -44,8 +44,7 @@
 				"noUselessConstructor": "off",
 				"noBannedTypes": "off",
 				"useOptionalChain": "off",
-				"noUselessEmptyExport": "off",
-				"noExtraBooleanCast": "off"
+				"noUselessEmptyExport": "off"
 			},
 			"correctness": {
 				"noConstructorReturn": "off",

@@ -169,7 +169,7 @@ export default function ansiHTML(text: string) {
 					)(ansiCodes);
 				}
 				// If current sequence has been opened, close it.
-				if (!!~ansiCodes.indexOf(seq)) {
+				if (~ansiCodes.indexOf(seq)) {
 					// eslint-disable-line no-extra-boolean-cast
 					ansiCodes.pop();
 					return "</span>";
