@@ -192,8 +192,8 @@ export class RspackOptionsApply {
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
 					append: hidden ? false : undefined,
-					module: moduleMaps ? true : cheap ? false : true,
-					columns: cheap ? false : true,
+					module: moduleMaps ? true : !cheap,
+					columns: !cheap,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace
 				}).apply(compiler);

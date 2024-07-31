@@ -43,7 +43,6 @@
 				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
 				"noUselessConstructor": "off",
-				"noUselessTernary": "off",
 				"noBannedTypes": "off",
 				"useOptionalChain": "off",
 				"noUselessEmptyExport": "off",
