@@ -92,7 +92,11 @@ impl<'parser> JavascriptParser<'parser> {
             dependency_ids,
           )));
       } else {
-        let span = Span::new(BytePos(call_expr.span().real_lo()), BytePos(1));
+        let span = Span {
+          lo: BytePos(call_expr.span().real_hi()),
+          hi: BytePos(1),
+        };
+
         self
           .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
