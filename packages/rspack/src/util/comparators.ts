@@ -46,11 +46,12 @@ const concatComparatorsCache: TwoKeyWeakMap<
 	Comparator
 > = new TwoKeyWeakMap();
 
-export const concatComparators = (
+export function concatComparators(...comparators: Comparator[]): Comparator;
+export function concatComparators(
 	c1: Comparator,
 	c2: Comparator,
 	...cRest: Comparator[]
-): Comparator => {
+): Comparator {
 	if (cRest.length > 0) {
 		const [c3, ...cRest2] = cRest;
 		return concatComparators(c1, concatComparators(c2, c3, ...cRest2));
@@ -70,7 +71,7 @@ export const concatComparators = (
 	};
 	concatComparatorsCache.set(c1, c2, result);
 	return result;
-};
+}
 
 export const compareIds = (
 	a: string | number,
