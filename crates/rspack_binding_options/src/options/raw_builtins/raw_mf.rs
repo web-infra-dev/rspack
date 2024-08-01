@@ -105,6 +105,10 @@ pub struct RawProvideOptions {
   #[napi(ts_type = "string | false | undefined")]
   pub version: Option<RawVersion>,
   pub eager: bool,
+  pub singleton: Option<bool>,
+  #[napi(ts_type = "string | false | undefined")]
+  pub required_version: Option<RawVersion>,
+  pub strict_version: Option<bool>,
 }
 
 impl From<RawProvideOptions> for (String, ProvideOptions) {
@@ -116,6 +120,9 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
         share_scope: value.share_scope,
         version: value.version.map(|v| RawVersionWrapper(v).into()),
         eager: value.eager,
+        singleton: value.singleton,
+        required_version: value.required_version.map(|v| RawVersionWrapper(v).into()),
+        strict_version: value.strict_version,
       },
     )
   }

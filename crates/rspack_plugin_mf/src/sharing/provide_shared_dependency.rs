@@ -4,6 +4,7 @@ use rspack_core::{
 };
 
 use super::provide_shared_plugin::ProvideVersion;
+use crate::ConsumeVersion;
 
 #[derive(Debug, Clone)]
 pub struct ProvideSharedDependency {
@@ -13,6 +14,9 @@ pub struct ProvideSharedDependency {
   pub name: String,
   pub version: ProvideVersion,
   pub eager: bool,
+  pub singleton: Option<bool>,
+  pub required_version: Option<ConsumeVersion>,
+  pub strict_version: Option<bool>,
   resource_identifier: String,
 }
 
@@ -23,6 +27,9 @@ impl ProvideSharedDependency {
     version: ProvideVersion,
     request: String,
     eager: bool,
+    singleton: Option<bool>,
+    required_version: Option<ConsumeVersion>,
+    strict_version: Option<bool>,
   ) -> Self {
     let resource_identifier = format!(
       "provide module ({}) {} as {} @ {} {}",
@@ -30,7 +37,7 @@ impl ProvideSharedDependency {
       &request,
       &name,
       &version,
-      eager.then_some("eager").unwrap_or_default()
+      eager.then_some("eager").unwrap_or_default(),
     );
     Self {
       id: DependencyId::new(),
@@ -39,6 +46,9 @@ impl ProvideSharedDependency {
       name,
       version,
       eager,
+      singleton,
+      required_version,
+      strict_version,
       resource_identifier,
     }
   }

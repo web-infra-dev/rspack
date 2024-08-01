@@ -18,6 +18,7 @@ use super::{
   provide_shared_dependency::ProvideSharedDependency,
   provide_shared_module_factory::ProvideSharedModuleFactory,
 };
+use crate::ConsumeVersion;
 
 static RELATIVE_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
@@ -30,6 +31,9 @@ pub struct ProvideOptions {
   pub share_scope: String,
   pub version: Option<ProvideVersion>,
   pub eager: bool,
+  pub singleton: Option<bool>,
+  pub required_version: Option<ConsumeVersion>,
+  pub strict_version: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +42,9 @@ pub struct VersionedProvideOptions {
   pub share_scope: String,
   pub version: ProvideVersion,
   pub eager: bool,
+  pub singleton: Option<bool>,
+  pub required_version: Option<ConsumeVersion>,
+  pub strict_version: Option<bool>,
 }
 
 impl ProvideOptions {
@@ -47,6 +54,9 @@ impl ProvideOptions {
       share_scope: self.share_scope.clone(),
       version: self.version.clone().unwrap_or_default(),
       eager: self.eager,
+      singleton: self.singleton,
+      required_version: self.required_version.clone(),
+      strict_version: self.strict_version,
     }
   }
 }
@@ -94,6 +104,9 @@ impl ProvideSharedPlugin {
     share_scope: &str,
     version: Option<&ProvideVersion>,
     eager: bool,
+    singleton: Option<bool>,
+    required_version: Option<ConsumeVersion>,
+    strict_version: Option<bool>,
     resource: &str,
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
@@ -108,6 +121,9 @@ impl ProvideSharedPlugin {
           share_scope: share_scope.to_string(),
           version: version.to_owned(),
           eager,
+          singleton,
+          strict_version,
+          required_version,
         },
       );
     } else if let Some(description) = &resource_data.resource_description {
@@ -122,6 +138,9 @@ impl ProvideSharedPlugin {
             share_scope: share_scope.to_string(),
             version: ProvideVersion::Version(version.to_string()),
             eager,
+            singleton,
+            strict_version,
+            required_version,
           },
         );
       } else {
@@ -174,6 +193,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           config.version.clone(),
           resource.to_string(),
           config.eager,
+          config.singleton,
+          config.required_version.clone(),
+          config.strict_version,
         )),
         EntryOptions {
           name: None,
@@ -213,6 +235,9 @@ async fn normal_module_factory_module(
           &config.share_scope,
           config.version.as_ref(),
           config.eager,
+          config.singleton,
+          config.required_version.clone(),
+          config.strict_version,
           resource,
           resource_data,
           |d| data.diagnostics.push(d),
@@ -230,6 +255,9 @@ async fn normal_module_factory_module(
           &config.share_scope,
           config.version.as_ref(),
           config.eager,
+          config.singleton,
+          config.required_version.clone(),
+          config.strict_version,
           resource,
           resource_data,
           |d| data.diagnostics.push(d),

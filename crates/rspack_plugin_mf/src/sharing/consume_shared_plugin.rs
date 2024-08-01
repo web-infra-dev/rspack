@@ -34,7 +34,7 @@ pub struct ConsumeOptions {
   pub eager: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ConsumeVersion {
   Version(String),
   False,
