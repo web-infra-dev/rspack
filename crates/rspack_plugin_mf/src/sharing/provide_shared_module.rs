@@ -44,6 +44,7 @@ pub struct ProvideSharedModule {
 }
 
 impl ProvideSharedModule {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     share_scope: String,
     name: String,

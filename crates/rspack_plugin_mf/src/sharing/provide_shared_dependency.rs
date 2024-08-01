@@ -21,6 +21,7 @@ pub struct ProvideSharedDependency {
 }
 
 impl ProvideSharedDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     share_scope: String,
     name: String,
