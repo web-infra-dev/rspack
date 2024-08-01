@@ -1,6 +1,6 @@
+use std::sync::LazyLock;
 use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
@@ -28,28 +28,30 @@ use crate::{
 };
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
-pub static MODULE_TYPE_STR: Lazy<Ustr> = Lazy::new(|| Ustr::from("css/mini-extract"));
-pub static MODULE_TYPE: Lazy<ModuleType> = Lazy::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
-pub static SOURCE_TYPE: Lazy<[SourceType; 1]> =
-  Lazy::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
+pub static MODULE_TYPE_STR: LazyLock<Ustr> = LazyLock::new(|| Ustr::from("css/mini-extract"));
+pub static MODULE_TYPE: LazyLock<ModuleType> =
+  LazyLock::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
+pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
+  LazyLock::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
 
 pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
-pub static AUTO_PUBLIC_PATH_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH).expect("should compile"));
+pub static AUTO_PUBLIC_PATH_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(AUTO_PUBLIC_PATH).expect("should compile"));
 
 pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
-pub static ABSOLUTE_PUBLIC_PATH_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(ABSOLUTE_PUBLIC_PATH).expect("should compile"));
+pub static ABSOLUTE_PUBLIC_PATH_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(ABSOLUTE_PUBLIC_PATH).expect("should compile"));
 
 pub static BASE_URI: &str = "webpack://";
-pub static BASE_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(BASE_URI).expect("should compile"));
+pub static BASE_URI_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(BASE_URI).expect("should compile"));
 
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__mini_css_extract_plugin_single_dot_path_segment__";
-pub static SINGLE_DOT_PATH_SEGMENT_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(SINGLE_DOT_PATH_SEGMENT).expect("should compile"));
+pub static SINGLE_DOT_PATH_SEGMENT_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(SINGLE_DOT_PATH_SEGMENT).expect("should compile"));
 
-static STARTS_WITH_AT_IMPORT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^@import url").expect("should compile"));
+static STARTS_WITH_AT_IMPORT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("^@import url").expect("should compile"));
 
 struct CssOrderConflicts {
   chunk: ChunkUkey,
@@ -343,8 +345,8 @@ impl PluginCssExtract {
           external_source.add(header);
         }
         if !module.media.is_empty() {
-          static MEDIA_RE: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
+          static MEDIA_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
           let new_content = MEDIA_RE.replace_all(content.as_ref(), &module.media);
           external_source.add(RawSource::from(new_content.to_string() + "\n"));
         } else {
@@ -719,7 +721,8 @@ fn get_undo_path(filename: &str, output_path: &str, enforce_relative: bool) -> S
     .unwrap_or(output_path)
     .to_string();
 
-  static PATH_SEP: Lazy<Regex> = Lazy::new(|| Regex::new(r#"[\\/]+"#).expect("should compile"));
+  static PATH_SEP: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"[\\/]+"#).expect("should compile"));
 
   for part in PATH_SEP.split(filename) {
     if part == ".." {

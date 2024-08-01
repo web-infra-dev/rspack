@@ -3,7 +3,7 @@ use std::{
   collections::hash_map::{DefaultHasher, Entry},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
-  sync::{Arc, Mutex},
+  sync::{Arc, LazyLock, Mutex},
 };
 
 use dashmap::DashMap;
@@ -140,7 +140,7 @@ impl ConnectionOrModuleIdent {
   }
 }
 
-pub static REGEX: once_cell::sync::Lazy<Regex> = once_cell::sync::Lazy::new(|| {
+pub static REGEX: LazyLock<Regex> = LazyLock::new(|| {
   let pattern = r"\.+\/|(\/index)?\.([a-zA-Z0-9]{1,4})($|\s|\?)|\s*\+\s*\d+\s*modules";
   Regex::new(pattern).expect("should construct the regex")
 });

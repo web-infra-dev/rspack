@@ -3,9 +3,9 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use once_cell::sync::Lazy;
 use regex::{Captures, NoExpand, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
@@ -15,37 +15,37 @@ use rspack_util::MergeFrom;
 
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
-pub static FILE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
-pub static BASE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
-pub static NAME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
-pub static PATH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
-pub static EXT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
-pub static QUERY_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
-pub static FRAGMENT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
-pub static ID_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
-pub static RUNTIME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
-pub static URL_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
-pub static HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
-pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
-pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
-pub static FULL_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
+pub static FILE_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
+pub static BASE_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
+pub static NAME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
+pub static PATH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
+pub static EXT_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
+pub static QUERY_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
+pub static FRAGMENT_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
+pub static ID_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
+pub static RUNTIME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
+pub static URL_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
+pub static HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
+pub static CHUNK_HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
+pub static CONTENT_HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
+pub static FULL_HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
 
-static DATA_URI_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
+static DATA_URI_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {

@@ -2,10 +2,10 @@ use std::borrow::Cow;
 use std::fmt::Write;
 use std::hash::Hasher;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::rspack_sources::{ConcatSource, RawSource};
 use rspack_core::{
@@ -24,12 +24,12 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
-pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
-pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
-pub static PREFIX_UNDERSCORE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[0-9_-]").expect("Invalid regexp"));
+pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
+pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
+pub static PREFIX_UNDERSCORE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^[0-9_-]").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
@@ -111,8 +111,8 @@ impl LocalIdentNameRenderOptions<'_> {
   }
 }
 
-static UNESCAPE_CSS_IDENT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
+static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
 
 pub fn escape_css_ident(s: &str) -> String {
   UNESCAPE_CSS_IDENT_REGEX.replace_all(s, "\\$1").into_owned()
@@ -282,16 +282,16 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   Ok(())
 }
 
-static STRING_MULTILINE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
+static STRING_MULTILINE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
 
-static TRIM_WHITE_SPACES: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
+static TRIM_WHITE_SPACES: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
 
-static UNESCAPE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
+static UNESCAPE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
 
-static DATA: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
+static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
 pub fn unescape(s: &str) -> Cow<str> {
   UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
@@ -314,12 +314,12 @@ pub fn unescape(s: &str) -> Cow<str> {
   })
 }
 
-static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
-static QUOTATION_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
-static APOSTROPHE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
+static WHITE_OR_BRACKET_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
+static QUOTATION_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
+static APOSTROPHE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
 
 pub fn css_escape_string(s: &str) -> String {
   let mut count_white_or_bracket = 0;

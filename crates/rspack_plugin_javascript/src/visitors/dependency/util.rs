@@ -141,14 +141,14 @@ pub(crate) mod expr_like {
 
 pub(crate) mod expr_matcher {
   use std::sync::Arc;
+  use std::sync::LazyLock;
 
-  use once_cell::sync::Lazy;
   use swc_core::common::SourceMap;
   use swc_core::ecma::{ast::Ident, parser::parse_file_as_expr};
 
   use super::expr_like::*;
 
-  static PARSED_MEMBER_EXPR_CM: Lazy<Arc<SourceMap>> = Lazy::new(Default::default);
+  static PARSED_MEMBER_EXPR_CM: LazyLock<Arc<SourceMap>> = LazyLock::new(Default::default);
 
   // The usage of define_member_expr_matchers is limited in `member_expr_matcher`.
   // Do not extends it's usage out of this mod.
@@ -157,7 +157,7 @@ pub(crate) mod expr_matcher {
       $($fn_name:ident: $first:expr,)*
     }) => {
           $(pub(crate) fn $fn_name<E: ExprLike>(expr: &E) -> bool {
-            static TARGET: Lazy<Box<dyn ExprLike>> = Lazy::new(|| {
+            static TARGET: LazyLock<Box<dyn ExprLike>> = LazyLock::new(|| {
               let mut errors = vec![];
               let fm =
                  PARSED_MEMBER_EXPR_CM.new_source_file(Arc::new(swc_core::common::FileName::Anon), $first.to_string());

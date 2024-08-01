@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -273,8 +273,8 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   }
 }
 
-static QUOTE_META_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
+static QUOTE_META_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
 
 fn quote_meta(str: &str) -> String {
   QUOTE_META_REG.replace_all(str, "\\$0").to_string()

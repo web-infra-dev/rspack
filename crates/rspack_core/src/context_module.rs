@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   fs,
@@ -8,7 +9,6 @@ use std::{
 
 use indoc::formatdoc;
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
@@ -990,12 +990,12 @@ impl Hash for ContextModule {
   }
 }
 
-static WEBPACK_CHUNK_NAME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
-static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
-static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
 
 impl ContextModule {
   fn visit_dirs(

@@ -1,5 +1,6 @@
+use std::sync::LazyLock;
+
 use indexmap::IndexMap;
-use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -47,7 +48,7 @@ pub fn get_entry_runtime(
   }
 }
 
-static HASH_REPLACERS: Lazy<Vec<(&Lazy<Regex>, &str)>> = Lazy::new(|| {
+static HASH_REPLACERS: LazyLock<Vec<(&LazyLock<Regex>, &str)>> = LazyLock::new(|| {
   vec![
     (&HASH_PLACEHOLDER, "[hash]"),
     (&FULL_HASH_PLACEHOLDER, "[fullhash]"),

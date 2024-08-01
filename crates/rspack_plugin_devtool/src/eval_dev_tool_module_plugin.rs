@@ -1,8 +1,8 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
 use dashmap::DashMap;
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
@@ -189,7 +189,7 @@ fn encode_uri(uri: &str) -> String {
   encode(uri, ";/?:@&=+$,#")
 }
 
-static ALWAYS_UNESCAPED: Lazy<HashSet<char>> = Lazy::new(|| {
+static ALWAYS_UNESCAPED: LazyLock<HashSet<char>> = LazyLock::new(|| {
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!*'()"
     .chars()
     .collect()

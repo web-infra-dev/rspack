@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 
+use std::sync::LazyLock;
 use std::{
   collections::HashSet,
   hash::Hash,
@@ -11,7 +12,6 @@ use lightningcss::{
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Browsers, Targets},
 };
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
@@ -26,8 +26,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 
-static CSS_ASSET_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
+static CSS_ASSET_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, Clone, Hash)]
 pub enum LightningCssMinimizerRule {

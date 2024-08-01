@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
@@ -18,8 +18,8 @@ use rustc_hash::FxHashSet;
 use crate::css_dependency::CssDependency;
 use crate::plugin::{MODULE_TYPE, SOURCE_TYPE};
 
-pub(crate) static DEPENDENCY_TYPE: Lazy<DependencyType> =
-  Lazy::new(|| DependencyType::Custom("mini-extract-dep"));
+pub(crate) static DEPENDENCY_TYPE: LazyLock<DependencyType> =
+  LazyLock::new(|| DependencyType::Custom("mini-extract-dep"));
 
 #[impl_source_map_config]
 #[derive(Debug)]

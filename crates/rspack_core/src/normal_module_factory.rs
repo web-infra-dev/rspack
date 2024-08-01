@@ -1,6 +1,6 @@
+use std::sync::LazyLock;
 use std::{borrow::Cow, sync::Arc};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
@@ -73,15 +73,15 @@ impl ModuleFactory for NormalModuleFactory {
   }
 }
 
-static MATCH_RESOURCE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
+static MATCH_RESOURCE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
 
-static MATCH_WEBPACK_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
+static MATCH_WEBPACK_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r#"\.webpack\[([^\]]+)\]$"#).expect("Failed to initialize `MATCH_WEBPACK_EXT_REGEX`")
 });
 
-static ELEMENT_SPLIT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
+static ELEMENT_SPLIT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
 
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';

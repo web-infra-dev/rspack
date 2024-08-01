@@ -3041,7 +3041,6 @@ name = "rspack_base64"
 version = "0.1.0"
 dependencies = [
  "base64-simd 0.8.0",
- "once_cell",
  "regex",
 ]
 
@@ -3120,7 +3119,6 @@ dependencies = [
  "heck 0.5.0",
  "napi-derive",
  "napi-h",
- "once_cell",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3266,7 +3264,6 @@ name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
  "itertools 0.13.0",
- "once_cell",
  "rayon",
  "regex",
  "rspack_core",
@@ -3460,7 +3457,6 @@ version = "0.1.0"
 dependencies = [
  "async-recursion",
  "futures",
- "once_cell",
  "regex",
  "rspack_core",
  "rspack_error",
@@ -3526,7 +3522,6 @@ dependencies = [
  "derivative",
  "futures",
  "itertools 0.13.0",
- "once_cell",
  "pathdiff",
  "rayon",
  "regex",
@@ -3581,7 +3576,6 @@ dependencies = [
 name = "rspack_plugin_externals"
 version = "0.1.0"
 dependencies = [
- "once_cell",
  "regex",
  "rspack_core",
  "rspack_error",
@@ -3595,7 +3589,6 @@ name = "rspack_plugin_extract_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "once_cell",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3719,7 +3712,6 @@ name = "rspack_plugin_lazy_compilation"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "once_cell",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3737,7 +3729,6 @@ name = "rspack_plugin_library"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "once_cell",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3756,7 +3747,6 @@ name = "rspack_plugin_lightning_css_minimizer"
 version = "0.1.0"
 dependencies = [
  "lightningcss",
- "once_cell",
  "parcel_sourcemap",
  "rayon",
  "regex",
@@ -3799,7 +3789,6 @@ dependencies = [
  "async-trait",
  "hashlink",
  "itertools 0.13.0",
- "once_cell",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3863,7 +3852,6 @@ dependencies = [
  "async-trait",
  "indexmap 2.2.6",
  "itertools 0.13.0",
- "once_cell",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3892,7 +3880,6 @@ name = "rspack_plugin_schemes"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "once_cell",
  "regex",
  "rspack_base64",
  "rspack_core",
@@ -3922,7 +3909,6 @@ version = "0.1.0"
 dependencies = [
  "dashmap 5.5.3",
  "derivative",
- "once_cell",
  "rayon",
  "regex",
  "rspack_collections",
@@ -3940,7 +3926,6 @@ dependencies = [
 name = "rspack_plugin_swc_css_minimizer"
 version = "0.1.0"
 dependencies = [
- "once_cell",
  "rayon",
  "regex",
  "rspack_core",
@@ -4082,7 +4067,6 @@ dependencies = [
  "concat-string",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
- "once_cell",
  "regex",
  "rustc-hash 1.1.0",
  "serde",

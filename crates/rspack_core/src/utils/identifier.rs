@@ -1,6 +1,6 @@
+use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_util::identifier::absolute_to_request;
 
@@ -15,10 +15,10 @@ pub fn contextify(context: impl AsRef<Path>, request: &str) -> String {
     .join("!")
 }
 
-static IDENTIFIER_NAME_REPLACE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^([^a-zA-Z$_])").expect("should init regex"));
-static IDENTIFIER_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("should init regex"));
+static IDENTIFIER_NAME_REPLACE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^([^a-zA-Z$_])").expect("should init regex"));
+static IDENTIFIER_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("should init regex"));
 
 #[inline]
 pub fn to_identifier(v: &str) -> Cow<str> {

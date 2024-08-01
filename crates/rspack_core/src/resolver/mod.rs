@@ -2,9 +2,9 @@ mod factory;
 mod resolver_impl;
 use std::borrow::Borrow;
 use std::fs;
+use std::sync::LazyLock;
 use std::{fmt, path::PathBuf};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
@@ -19,14 +19,14 @@ use crate::{
   SharedPluginDriver,
 };
 
-static RELATIVE_PATH_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
+static RELATIVE_PATH_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
 
-static PARENT_PATH_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.\.[\/]").expect("should init regex"));
+static PARENT_PATH_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.\.[\/]").expect("should init regex"));
 
-static CURRENT_DIR_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
+static CURRENT_DIR_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
 
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {

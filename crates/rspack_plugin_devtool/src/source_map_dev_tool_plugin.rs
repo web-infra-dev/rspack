@@ -1,9 +1,9 @@
+use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
@@ -24,10 +24,12 @@ use crate::{
   ModuleFilenameTemplateFn, ModuleOrSource,
 };
 
-static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.css($|\?)").expect("failed to compile CSS_EXTENSION_DETECT_REGEXP"));
-static URL_FORMATTING_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex"));
+static CSS_EXTENSION_DETECT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"\.css($|\?)").expect("failed to compile CSS_EXTENSION_DETECT_REGEXP")
+});
+static URL_FORMATTING_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex")
+});
 
 #[derive(Clone)]
 pub enum ModuleFilenameTemplate {

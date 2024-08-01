@@ -1,15 +1,16 @@
+use std::sync::LazyLock;
+
 use heck::{ToLowerCamelCase, ToSnakeCase};
 use napi_derive::napi;
-use once_cell::sync::Lazy;
 use rspack_core::RuntimeGlobals;
 use rustc_hash::FxHashMap;
 
 use crate::JsChunk;
 
-static RUNTIME_GLOBAL_MAP: Lazy<(
+static RUNTIME_GLOBAL_MAP: LazyLock<(
   FxHashMap<RuntimeGlobals, String>,
   FxHashMap<String, RuntimeGlobals>,
-)> = Lazy::new(|| {
+)> = LazyLock::new(|| {
   let mut to_js_map = FxHashMap::default();
   let mut from_js_map = FxHashMap::default();
 
