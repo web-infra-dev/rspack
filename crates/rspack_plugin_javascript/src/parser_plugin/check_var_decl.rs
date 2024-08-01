@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use rustc_hash::FxHashSet;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind};
@@ -6,7 +7,7 @@ use swc_core::ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind};
 use super::JavascriptParserPlugin;
 use crate::visitors::{create_traceable_error, JavascriptParser};
 
-static STRICT_MODE_RESERVED_WORDS: Lazy<FxHashSet<String>> = Lazy::new(|| {
+static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<String>> = LazyLock::new(|| {
   [
     "implements",
     "interface",

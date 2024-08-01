@@ -5,9 +5,9 @@ mod minify;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::Path;
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, LazyLock, Mutex};
 
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
@@ -32,8 +32,8 @@ use self::minify::{match_object, minify};
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
-static JAVASCRIPT_ASSET_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
+static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, Default)]
 pub struct SwcJsMinimizerRspackPluginOptions {

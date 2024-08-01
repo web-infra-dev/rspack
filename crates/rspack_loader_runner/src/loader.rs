@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   fmt::Display,
   ops::Deref,
@@ -10,7 +11,6 @@ use std::{
 
 use async_trait::async_trait;
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
@@ -220,7 +220,7 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static PATH_QUERY_FRAGMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("^((?:\u{200b}.|[^?#\u{200b}])*)(\\?(?:\u{200b}.|[^#\u{200b}])*)?(#.*)?$")
     .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
 });

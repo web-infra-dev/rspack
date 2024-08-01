@@ -1,13 +1,13 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-static RSPACK_HOT_TEST: Lazy<String> =
-  Lazy::new(|| std::env::var("RSPACK_HOT_TEST").ok().unwrap_or_default());
+static RSPACK_HOT_TEST: LazyLock<String> =
+  LazyLock::new(|| std::env::var("RSPACK_HOT_TEST").ok().unwrap_or_default());
 
 pub fn is_hot_test() -> bool {
   *RSPACK_HOT_TEST == "true"
 }
 
-pub static HOT_TEST_DEFINE_GLOBAL: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_DEFINE_GLOBAL: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"
@@ -29,7 +29,7 @@ pub static HOT_TEST_DEFINE_GLOBAL: Lazy<String> = Lazy::new(|| {
     .unwrap_or_default()
 });
 
-pub static HOT_TEST_STATUS_CHANGE: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_STATUS_CHANGE: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"
@@ -40,7 +40,7 @@ pub static HOT_TEST_STATUS_CHANGE: Lazy<String> = Lazy::new(|| {
     .unwrap_or_default()
 });
 
-pub static HOT_TEST_OUTDATED: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_OUTDATED: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"
@@ -52,7 +52,7 @@ pub static HOT_TEST_OUTDATED: Lazy<String> = Lazy::new(|| {
     .unwrap_or_default()
 });
 
-pub static HOT_TEST_DISPOSE: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_DISPOSE: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"
@@ -65,7 +65,7 @@ pub static HOT_TEST_DISPOSE: Lazy<String> = Lazy::new(|| {
     .unwrap_or_default()
 });
 
-pub static HOT_TEST_UPDATED: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_UPDATED: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"
@@ -76,7 +76,7 @@ pub static HOT_TEST_UPDATED: Lazy<String> = Lazy::new(|| {
     .unwrap_or_default()
 });
 
-pub static HOT_TEST_RUNTIME: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_RUNTIME: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"
@@ -92,7 +92,7 @@ pub static HOT_TEST_RUNTIME: Lazy<String> = Lazy::new(|| {
     .unwrap_or_else(|| "currentUpdateRuntime[i](__webpack_require__);".to_string())
 });
 
-pub static HOT_TEST_ACCEPT: Lazy<String> = Lazy::new(|| {
+pub static HOT_TEST_ACCEPT: LazyLock<String> = LazyLock::new(|| {
   is_hot_test()
     .then(|| {
       r#"

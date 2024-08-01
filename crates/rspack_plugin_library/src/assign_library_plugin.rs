@@ -1,6 +1,6 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
@@ -512,11 +512,11 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
   current
 }
 
-static KEYWORD_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static KEYWORD_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|super|switch|static|this|throw|try|true|typeof|var|void|while|with|yield)$").expect("should init regex")
 });
 
-static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static IDENTIFIER_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[\p{L}\p{Nl}$_][\p{L}\p{Nl}$\p{Mn}\p{Mc}\p{Nd}\p{Pc}]*$")
     .expect("should init regex")
 });

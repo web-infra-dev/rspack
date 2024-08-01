@@ -9,7 +9,6 @@ version    = "0.1.0"
 
 [dependencies]
 itertools    = { workspace = true }
-once_cell    = { workspace = true }
 rayon        = { workspace = true }
 regex        = { workspace = true }
 rspack_core  = { path = "../rspack_core" }

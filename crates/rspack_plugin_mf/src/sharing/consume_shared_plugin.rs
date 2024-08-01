@@ -1,9 +1,9 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::{fmt, path::Path, sync::Arc};
 
 use async_trait::async_trait;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
@@ -49,12 +49,12 @@ impl fmt::Display for ConsumeVersion {
   }
 }
 
-static RELATIVE_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
-static ABSOLUTE_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
-static PACKAGE_NAME: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
+static RELATIVE_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
+static ABSOLUTE_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
+static PACKAGE_NAME: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
 
 #[derive(Debug)]
 struct MatchedConsumes {

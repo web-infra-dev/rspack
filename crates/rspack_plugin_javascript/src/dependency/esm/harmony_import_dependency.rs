@@ -1,6 +1,6 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
@@ -22,8 +22,8 @@ use super::create_resource_identifier_for_esm_dependency;
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-static IMPORT_EMITTED_MAP: Lazy<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
-  Lazy::new(Default::default);
+static IMPORT_EMITTED_MAP: LazyLock<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
+  LazyLock::new(Default::default);
 
 pub fn get_import_emitted_runtime(
   module: &ModuleIdentifier,

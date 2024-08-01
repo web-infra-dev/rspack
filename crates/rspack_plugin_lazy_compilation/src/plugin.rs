@@ -1,6 +1,6 @@
+use std::sync::LazyLock;
 use std::{fmt::Debug, sync::Arc};
 
-use once_cell::sync::Lazy;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
   DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
@@ -15,7 +15,7 @@ use crate::{
   backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
 };
 
-static WEBPACK_DEV_SERVER_CLIENT_RE: Lazy<RspackRegex> = Lazy::new(|| {
+static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
   RspackRegex::new(
     r#"(webpack|rspack)[/\\]hot[/\\]|(webpack|rspack)-dev-server[/\\]client|(webpack|rspack)-hot-middleware[/\\]client"#,
   )

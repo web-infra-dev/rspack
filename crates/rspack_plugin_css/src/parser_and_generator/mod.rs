@@ -1,7 +1,10 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
@@ -30,8 +33,8 @@ use crate::{
   },
 };
 
-static REGEX_IS_MODULES: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
+static REGEX_IS_MODULES: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
 
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
 
@@ -403,7 +406,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
           let used = get_used_exports(exports, identifier, generate_context.runtime, &mg);
 
-          static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\\"#).expect("should compile"));
+          static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#"\\"#).expect("should compile"));
           let module_id = RE.replace_all(&module_id, "/");
 
           let meta_data = used

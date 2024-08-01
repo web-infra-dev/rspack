@@ -1,7 +1,7 @@
+use std::sync::LazyLock;
 use std::{fmt, sync::Arc};
 
 use async_trait::async_trait;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerFinishMake,
@@ -19,10 +19,10 @@ use super::{
   provide_shared_module_factory::ProvideSharedModuleFactory,
 };
 
-static RELATIVE_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
-static ABSOLUTE_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
+static RELATIVE_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
+static ABSOLUTE_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
 
 #[derive(Debug, Clone)]
 pub struct ProvideOptions {

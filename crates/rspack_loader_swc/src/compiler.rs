@@ -8,6 +8,7 @@
 use std::env;
 use std::fs::File;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, bail, Context, Error};
@@ -24,7 +25,6 @@ use swc_core::base::config::{
 use swc_core::base::{sourcemap, SwcComments};
 use swc_core::common::comments::{Comment, CommentKind, Comments};
 use swc_core::common::errors::{Handler, HANDLER};
-use swc_core::common::sync::Lazy;
 use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
 };
@@ -137,7 +137,7 @@ fn load_swcrc(path: &Path) -> Result<Rc, Error> {
 }
 
 fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error> {
-  static CUR_DIR: Lazy<PathBuf> = Lazy::new(|| {
+  static CUR_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     if cfg!(target_arch = "wasm32") {
       PathBuf::new()
     } else {

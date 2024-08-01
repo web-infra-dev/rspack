@@ -3,10 +3,11 @@
 use std::{
   borrow::Cow,
   hash::{BuildHasherDefault, Hasher},
+  sync::LazyLock,
 };
 
 use derivative::Derivative;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
@@ -20,8 +21,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
-pub static QUOTE_META: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
+pub static QUOTE_META: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug, Default)]

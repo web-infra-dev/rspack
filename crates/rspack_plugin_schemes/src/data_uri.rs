@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 use rspack_core::{
   ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
@@ -8,7 +9,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
+static URI_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"(?i)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
 });
 

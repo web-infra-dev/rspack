@@ -1,5 +1,6 @@
+use std::sync::LazyLock;
+
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Captures;
 use rspack_error::miette::{Diagnostic, Severity};
 use rspack_regex::RspackRegex;
@@ -147,13 +148,13 @@ fn add_magic_comment_warning(
 // _6 for regexp
 // _7 for array
 // _8 for identifier
-static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
+static WEBPACK_MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
   regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
     .expect("invalid regex")
 });
 
-static WEBAPCK_EXPORT_NAME_REGEXP: Lazy<regex::Regex> =
-  Lazy::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
+static WEBAPCK_EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
+  LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
 pub fn try_extract_webpack_magic_comment(
   source_file: &SourceFile,

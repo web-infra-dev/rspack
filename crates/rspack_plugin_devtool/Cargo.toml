@@ -13,7 +13,6 @@ dashmap                  = { workspace = true }
 derivative               = { workspace = true }
 futures                  = { workspace = true }
 itertools                = { workspace = true }
-once_cell                = { workspace = true }
 pathdiff                 = { workspace = true }
 rayon                    = { workspace = true }
 regex                    = { workspace = true }

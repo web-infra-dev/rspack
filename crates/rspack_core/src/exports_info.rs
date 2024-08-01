@@ -5,9 +5,9 @@ use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use rspack_collections::impl_item_ukey;
 use rspack_collections::Ukey;
 use rspack_collections::UkeyDashMap;
@@ -33,7 +33,8 @@ pub trait ExportsHash {
   );
 }
 
-static EXPORTS_INFO_HASH: Lazy<UkeyDashMap<ExportsInfo, u64>> = Lazy::new(UkeyDashMap::default);
+static EXPORTS_INFO_HASH: LazyLock<UkeyDashMap<ExportsInfo, u64>> =
+  LazyLock::new(UkeyDashMap::default);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfo(Ukey);
