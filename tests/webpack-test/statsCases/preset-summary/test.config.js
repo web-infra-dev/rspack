@@ -13,6 +13,6 @@ module.exports = {
 			- Rspack x.x.x compiled successfully
 			+ webpack x.x.x compiled successfully"
 		`);
-
 	}
+
 };

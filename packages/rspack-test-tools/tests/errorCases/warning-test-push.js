@@ -29,6 +29,7 @@ module.exports = {
 		      "moduleIdentifier": "<cwd>packages/rspack-test-tools/tests/fixtures/errors/require.main.require.js",
 		      "moduleName": "./require.main.require.js",
 		      "moduleTrace": Array [],
+		      "stack": undefined,
 		    },
 		  ],
 		}

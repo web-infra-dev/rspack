@@ -56,7 +56,6 @@ module.exports = {
 		    "errors": 0,
 		    "failed": false,
 		    "identifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
-		    "issuerPath": Array [],
 		    "moduleType": "javascript/auto",
 		    "name": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
 		    "nameForCondition": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
@@ -68,6 +67,7 @@ module.exports = {
 		    "providedExports": null,
 		    "reasons": Array [
 		      Object {
+		        "moduleId": null,
 		        "type": "loader import",
 		        "userRequest": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css.webpack[javascript/auto]!=!!!<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		      },

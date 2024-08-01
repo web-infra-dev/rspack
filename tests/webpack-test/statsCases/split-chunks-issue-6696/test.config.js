@@ -16,12 +16,9 @@ module.exports = {
 			+ dependent modules XX bytes [dependent] XX module
 			+ ./b.js XX bytes [built] [code generated]
 			+ chunk (runtime: main) vendors.js (vendors) (id hint: vendors) XX bytes ={XX}= >{XX}< >{XX}< [initial] [rendered] split chunk (cache group: vendors) (name: vendors)
-			@@ -6,1 +10,1 @@
-			- > ./a [XX] ./index.js XX:XX-XX
-			+ > ./a ./index.js XX:XX-XX
 			@@ -9,4 +13,0 @@
 			- chunk (runtime: main) async-b.js (async-b) XX bytes <{XX}> <{XX}> [rendered]
-			- > ./b [XX] ./index.js XX:XX-XX
+			- > ./b ./index.js XX:XX-XX
 			- dependent modules XX bytes [dependent] XX module
 			- ./b.js XX bytes [built] [code generated]
 			@@ -15,0 +15,1 @@

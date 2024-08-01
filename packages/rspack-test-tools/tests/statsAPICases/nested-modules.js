@@ -45,7 +45,7 @@ module.exports = {
 		    "issuer": undefined,
 		    "issuerId": undefined,
 		    "issuerName": undefined,
-		    "issuerPath": Array [],
+		    "issuerPath": undefined,
 		    "layer": undefined,
 		    "moduleType": "javascript/auto",
 		    "name": "./fixtures/esm/abc.js",

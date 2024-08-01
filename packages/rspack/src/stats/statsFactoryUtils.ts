@@ -8,14 +8,14 @@ import {
 } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
-type Writable<T> = {
-	-readonly [K in keyof T]: T[K];
-};
-
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
-export type KnownStatsChunk = Omit<Writable<binding.JsStatsChunk>, "sizes"> & {
+export type KnownStatsChunk = Omit<
+	binding.JsStatsChunk,
+	"sizes" | "origins"
+> & {
 	sizes: Record<string, number>;
+	origins: StatsChunkOrigin[];
 };
 
 export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related">;
@@ -28,17 +28,46 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = Omit<
-	Writable<binding.JsStatsModule>,
-	"usedExports" | "providedExports" | "optimizationBailout" | "sizes"
-> & {
-	profile?: StatsProfile;
-	usedExports?: null | string[] | boolean;
-	providedExports?: null | string[];
-	optimizationBailout?: null | string[];
-	sizes: Record<string, number>;
+export type KnownStatsModule = {
+	type: string;
+	moduleType: string;
+	layer?: string;
+	identifier?: string;
+	name?: string;
+	nameForCondition?: string;
 	index?: number; // =preOrderIndex
 	index2?: number; // =postOrderIndex
+	preOrderIndex?: number;
+	postOrderIndex?: number;
+	size: number;
+	sizes: Record<string, number>;
+	cacheable?: boolean;
+	built: boolean;
+	codeGenerated: boolean;
+	buildTimeExecuted: boolean;
+	cached: boolean;
+	optional?: boolean;
+	orphan?: boolean;
+	id?: string;
+	issuerId?: string;
+	chunks?: string[];
+	assets?: string[];
+	dependent?: boolean;
+	issuer?: string;
+	issuerName?: string;
+	issuerPath?: StatsModuleIssuer[];
+	failed?: boolean;
+	errors?: number;
+	warnings?: number;
+	profile?: StatsProfile;
+	reasons?: StatsModuleReason[];
+	usedExports?: boolean | string[] | null;
+	providedExports?: string[] | null;
+	optimizationBailout?: string[] | null;
+	depth?: number;
+	modules?: StatsModule[];
+	filteredModules?: number;
+	source?: string | Buffer;
 };
 
 export type StatsProfile = KnownStatsProfile & Record<string, any>;
@@ -51,12 +80,20 @@ export type KnownStatsProfile = {
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
-export type StatsModuleIssuer = binding.JsStatsModuleIssuer &
-	Record<string, any>;
+export type StatsModuleIssuer = Omit<
+	binding.JsStatsModuleIssuer,
+	"identifier"
+> & {
+	identifier?: string;
+} & Record<string, any>;
 
-export type StatsError = binding.JsStatsError & Record<string, any>;
+export type StatsError = Omit<binding.JsStatsError, "moduleIdentifier"> & {
+	moduleIdentifier?: string;
+} & Record<string, any>;
 
-export type StatsWarnings = binding.JsStatsWarning & Record<string, any>;
+export type StatsWarnings = Omit<binding.JsStatsWarning, "moduleIdentifier"> & {
+	moduleIdentifier?: string;
+} & Record<string, any>;
 
 export type StatsModuleTraceItem = {
 	originIdentifier?: string;
@@ -67,8 +104,23 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = Writable<binding.JsStatsModuleReason> &
-	Record<string, any>;
+export type StatsModuleReason = Omit<
+	binding.JsStatsModuleReason,
+	"moduleIdentifier"
+> & {
+	moduleIdentifier?: string;
+} & Record<string, any>;
+
+export type KnownStatsChunkOrigin = {
+	module: string;
+	moduleIdentifier: string;
+	moduleName: string;
+	loc: string;
+	request: string;
+	moduleId?: string;
+};
+
+export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
 export type KnownStatsCompilation = {
 	/**
@@ -125,15 +177,6 @@ export type KnownStatsLoggingEntry = {
 	time?: number | undefined;
 };
 
-export type KnownStatsChunkOrigin = {
-	module?: string | undefined;
-	moduleIdentifier?: string | undefined;
-	moduleName?: string | undefined;
-	loc?: string | undefined;
-	request?: string | undefined;
-	moduleId?: (string | number) | undefined;
-};
-
 type ExtractorsByOption<T, O> = {
 	[x: string]: (
 		object: O,
@@ -175,7 +218,7 @@ export type SimpleExtractors = {
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	warning: ExtractorsByOption<binding.JsStatsWarning, StatsWarnings>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
