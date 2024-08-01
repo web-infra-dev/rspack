@@ -124,10 +124,8 @@ export class Stats {
 		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {
-			const statsCompilation = this.#inner.toJson(options);
 			stats = statsFactory.create("compilation", this.compilation, {
 				compilation: this.compilation,
-				statsCompilation,
 				getStatsCompilation: (
 					compilation: Compilation
 				): binding.JsStatsCompilation => {
