@@ -70,7 +70,10 @@ export class SharePlugin {
 					shareKey: options.shareKey || key,
 					shareScope: options.shareScope,
 					version: options.version,
-					eager: options.eager
+					eager: options.eager,
+					singleton: options.singleton,
+					requiredVersion: options.requiredVersion,
+					strictVersion: options.strictVersion
 				}
 			}));
 		this._shareScope = options.shareScope;

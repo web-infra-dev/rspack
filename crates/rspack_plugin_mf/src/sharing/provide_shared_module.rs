@@ -20,6 +20,7 @@ use super::{
     CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
   },
 };
+use crate::ConsumeVersion;
 
 #[impl_source_map_config]
 #[derive(Debug)]
@@ -34,18 +35,25 @@ pub struct ProvideSharedModule {
   version: ProvideVersion,
   request: String,
   eager: bool,
+  singleton: Option<bool>,
+  required_version: Option<ConsumeVersion>,
+  strict_version: Option<bool>,
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
 
 impl ProvideSharedModule {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     share_scope: String,
     name: String,
     version: ProvideVersion,
     request: String,
     eager: bool,
+    singleton: Option<bool>,
+    required_version: Option<ConsumeVersion>,
+    strict_version: Option<bool>,
   ) -> Self {
     let identifier = format!(
       "provide shared module ({}) {}@{} = {}",
@@ -62,6 +70,9 @@ impl ProvideSharedModule {
       version,
       request,
       eager,
+      singleton,
+      required_version,
+      strict_version,
       factory_meta: None,
       build_info: None,
       build_meta: None,
@@ -195,6 +206,9 @@ impl Module for ProvideSharedModule {
             version: self.version.clone(),
             factory,
             eager: self.eager,
+            singleton: self.singleton,
+            strict_version: self.strict_version,
+            required_version: self.required_version.clone(),
           }),
         }],
       });

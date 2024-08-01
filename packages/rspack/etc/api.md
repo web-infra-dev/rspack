@@ -48,6 +48,7 @@ import { RawLibraryOptions } from '@rspack/binding';
 import { RawLightningCssMinimizerRspackPluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
+import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
@@ -8888,48 +8889,55 @@ export const ProvidePlugin: {
 export type ProvidePluginOptions = Record<string, string | string[]>;
 
 // @public (undocumented)
-export type Provides = (ProvidesItem | ProvidesObject)[] | ProvidesObject;
+export type Provides<Enhanced extends boolean> = (ProvidesItem | ProvidesObject<Enhanced>)[] | ProvidesObject<Enhanced>;
 
 // @public (undocumented)
-export type ProvidesConfig = {
-    eager?: boolean;
-    shareKey: string;
-    shareScope?: string;
-    version?: false | string;
+export type ProvidesConfig<Enhanced extends boolean> = Enhanced extends true ? ProvidesEnhancedConfig : ProvidesV1Config;
+
+// @public (undocumented)
+type ProvidesEnhancedConfig = ProvidesV1Config & ProvidesEnhancedExtraConfig;
+
+// @public (undocumented)
+type ProvidesEnhancedExtraConfig = {
+    singleton?: boolean;
+    strictVersion?: boolean;
+    requiredVersion?: false | string;
 };
 
 // @public (undocumented)
-class ProvideSharedPlugin extends RspackBuiltinPlugin {
-    constructor(options: ProvideSharedPluginOptions);
+class ProvideSharedPlugin<Enhanced extends boolean = false> extends RspackBuiltinPlugin {
+    constructor(options: ProvideSharedPluginOptions<Enhanced>);
+    // (undocumented)
+    _enhanced?: Enhanced;
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
-    _options: {
-        provides: [string, {
-            shareKey: string;
-            version: string | false | undefined;
-            shareScope: string;
-            eager: boolean;
-        }][];
-        enhanced: boolean;
-    };
+    _provides: [string, Omit<RawProvideOptions, "key">][];
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin;
 }
 
 // @public (undocumented)
-export type ProvideSharedPluginOptions = {
-    provides: Provides;
+export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
+    provides: Provides<Enhanced>;
     shareScope?: string;
-    enhanced?: boolean;
+    enhanced?: Enhanced;
 };
 
 // @public (undocumented)
 export type ProvidesItem = string;
 
 // @public (undocumented)
-export type ProvidesObject = {
-    [k: string]: ProvidesConfig | ProvidesItem;
+export type ProvidesObject<Enhanced extends boolean> = {
+    [k: string]: ProvidesConfig<Enhanced> | ProvidesItem;
+};
+
+// @public (undocumented)
+type ProvidesV1Config = {
+    eager?: boolean;
+    shareKey: string;
+    shareScope?: string;
+    version?: false | string;
 };
 
 // @public (undocumented)
@@ -13604,6 +13612,9 @@ class SharePlugin {
             shareScope: string | undefined;
             version: string | false | undefined;
             eager: boolean | undefined;
+            singleton: boolean | undefined;
+            requiredVersion: string | false | undefined;
+            strictVersion: boolean | undefined;
         };
     }[];
     // (undocumented)

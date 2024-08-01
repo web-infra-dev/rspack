@@ -1402,6 +1402,9 @@ export interface RawProvideOptions {
   shareScope: string
   version?: string | false | undefined
   eager: boolean
+  singleton?: boolean
+  requiredVersion?: string | false | undefined
+  strictVersion?: boolean
 }
 
 export interface RawRegex {
