@@ -5,8 +5,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
+use itertools::Itertools;
 use once_cell::sync::Lazy;
-use regex::{Captures, Regex};
+use regex::{Captures, NoExpand, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
@@ -215,6 +216,10 @@ impl<F: LocalFilenameFn> Filename<F> {
   }
 }
 
+fn replace_all<'a>(regex: &Lazy<Regex>, haystack: &'a str, rep: &str) -> Cow<'a, str> {
+  regex.replace_all(haystack, NoExpand(rep))
+}
+
 fn render_template(
   template: Cow<str>,
   options: PathData,
@@ -231,14 +236,18 @@ fn render_template(
       )
       .map(|exts| exts[0]);
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| PATH_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| BASE_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| NAME_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| replace_all(&FILE_PLACEHOLDER, t, ""))
+        .map(|t| replace_all(&QUERY_PLACEHOLDER, t, ""))
+        .map(|t| replace_all(&FRAGMENT_PLACEHOLDER, t, ""))
+        .map(|t| replace_all(&PATH_PLACEHOLDER, t, ""))
+        .map(|t| replace_all(&BASE_PLACEHOLDER, t, ""))
+        .map(|t| replace_all(&NAME_PLACEHOLDER, t, ""))
         .map(|t| {
-          EXT_PLACEHOLDER.replace_all(t, &ext.map(|ext| format!(".{}", ext)).unwrap_or_default())
+          replace_all(
+            &EXT_PLACEHOLDER,
+            t,
+            &ext.map(|ext| format!(".{}", ext)).unwrap_or_default(),
+          )
         });
     } else if let Some(ResourceParsedData {
       path: file,
@@ -247,7 +256,7 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, file.to_string_lossy()))
+        .map(|t| replace_all(&FILE_PLACEHOLDER, t, &file.to_string_lossy()))
         .map(|t| {
           EXT_PLACEHOLDER.replace_all(
             t,
@@ -259,14 +268,15 @@ fn render_template(
         });
 
       if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, &base));
+        t = t.map(|t| replace_all(&BASE_PLACEHOLDER, t, &base));
       }
       if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, &name));
+        t = t.map(|t| replace_all(&NAME_PLACEHOLDER, t, &name));
       }
       t = t
         .map(|t| {
-          PATH_PLACEHOLDER.replace_all(
+          replace_all(
+            &PATH_PLACEHOLDER,
             t,
             &file
               .parent()
@@ -277,8 +287,8 @@ fn render_template(
               .unwrap_or_default(),
           )
         })
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, &query.unwrap_or_default()))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, &fragment.unwrap_or_default()));
+        .map(|t| replace_all(&QUERY_PLACEHOLDER, t, &query.unwrap_or_default()))
+        .map(|t| replace_all(&FRAGMENT_PLACEHOLDER, t, &fragment.unwrap_or_default()));
     }
   }
   if let Some(content_hash) = options.content_hash {
@@ -313,12 +323,12 @@ fn render_template(
   }
   if let Some(chunk) = options.chunk {
     if let Some(id) = &options.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
+      t = t.map(|t| replace_all(&ID_PLACEHOLDER, t, id));
     } else if let Some(id) = &chunk.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
+      t = t.map(|t| replace_all(&ID_PLACEHOLDER, t, id));
     }
     if let Some(name) = chunk.name_for_filename_template() {
-      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, name));
+      t = t.map(|t| replace_all(&NAME_PLACEHOLDER, t, name));
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
@@ -336,17 +346,17 @@ fn render_template(
   }
 
   if let Some(id) = &options.id {
-    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
+    t = t.map(|t| replace_all(&ID_PLACEHOLDER, t, id));
   } else if let Some(module) = options.module {
     if let Some(chunk_graph) = options.chunk_graph {
       if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
+        t = t.map(|t| replace_all(&ID_PLACEHOLDER, t, id));
       }
     }
   }
-  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, options.runtime.unwrap_or("_")));
+  t = t.map(|t| replace_all(&RUNTIME_PLACEHOLDER, t, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
-    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, url));
+    t = t.map(|t| replace_all(&URL_PLACEHOLDER, t, url));
   }
   t.into_owned()
 }
