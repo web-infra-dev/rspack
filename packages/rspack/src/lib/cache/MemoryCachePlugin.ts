@@ -8,7 +8,7 @@ export default class MemoryCachePlugin {
 			string,
 			{
 				etag: string | null;
-				data: any;
+				data: unknown;
 			} | null
 		> = new Map();
 		compiler.cache.hooks.store.tap(
