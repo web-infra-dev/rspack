@@ -431,6 +431,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		} as Map<string, Readonly<Chunk>>;
 	}
 
+	get entries(): Map<string, EntryData> {
+		return new Entries(this.#inner.entries);
+	}
+
 	#createCachedAssets() {
 		return new Proxy(
 			{},
@@ -1129,4 +1133,71 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
 	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
+}
+
+export type EntryData = binding.JsEntryData;
+
+export class Entries implements Map<string, EntryData> {
+	#data: binding.Entries;
+
+	constructor(data: binding.Entries) {
+		this.#data = data;
+	}
+
+	clear(): void {
+		this.#data.clear();
+	}
+
+	forEach(
+		callback: (
+			value: binding.JsEntryData,
+			key: string,
+			map: Map<string, binding.JsEntryData>
+		) => void,
+		thisArg?: any
+	): void {
+		for (const [key, value] of this) {
+			callback.call(thisArg, value, key, this);
+		}
+	}
+
+	get size(): number {
+		return this.#data.size;
+	}
+
+	entries(): IterableIterator<[string, binding.JsEntryData]> {
+		throw new Error("Method not implemented.");
+	}
+	values(): IterableIterator<binding.JsEntryData> {
+		throw new Error("Method not implemented.");
+	}
+
+	[Symbol.iterator](): IterableIterator<[string, binding.JsEntryData]> {
+		throw new Error("Method not implemented.");
+	}
+
+	get [Symbol.toStringTag](): string {
+		return "Map";
+	}
+
+	has(key: string): boolean {
+		return this.#data.has(key);
+	}
+
+	set(key: string, value: EntryData): this {
+		this.#data.set(key, value);
+		return this;
+	}
+
+	delete(key: string): boolean {
+		return this.#data.delete(key);
+	}
+
+	get(key: string): EntryData | undefined {
+		return this.#data.get(key);
+	}
+
+	keys(): IterableIterator<string> {
+		return this.#data.keys()[Symbol.iterator]();
+	}
 }

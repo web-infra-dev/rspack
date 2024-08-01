@@ -12,33 +12,49 @@ pub struct JsEntryData {
 }
 
 #[napi]
-pub struct JsEntryDataMap {
+pub struct Entries {
   compilation: &'static mut Compilation,
 }
 
-impl JsEntryDataMap {
+impl Entries {
   pub fn new(compilation: &'static mut Compilation) -> Self {
     Self { compilation }
   }
 }
 
 #[napi]
-impl JsEntryDataMap {
+impl Entries {
+  #[napi]
+  pub fn clear(&mut self) {
+    self.compilation.entries.drain(..);
+  }
+
+  #[napi(getter)]
+  pub fn size(&mut self) -> u32 {
+    self.compilation.entries.len() as u32
+  }
+
   #[napi]
   pub fn has(&self, key: String) -> bool {
     self.compilation.entries.contains_key(&key)
   }
 
+  #[napi]
   pub fn set(&mut self, key: String, value: JsEntryData) {
     unimplemented!()
   }
 
   #[napi]
-  pub fn delete(&mut self, key: String) {
-    self.compilation.entries.swap_remove(&key);
+  pub fn delete(&mut self, key: String) -> bool {
+    let r = self.compilation.entries.swap_remove(&key);
+    match r {
+      Some(_) => true,
+      None => false,
+    }
   }
 
-  pub fn get(&'static self, env: Env, key: String) -> Result<Option<JsEntryData>> {
+  #[napi]
+  pub fn get(&'static self, env: Env, key: String) -> Result<Either<JsEntryData, ()>> {
     let entry = self.compilation.entries.get(&key);
 
     Ok(match entry {
@@ -63,12 +79,12 @@ impl JsEntryDataMap {
             Ok(instance)
           })
           .collect::<Result<Vec<ClassInstance<JsDependency>>>>()?;
-        Some(JsEntryData {
+        Either::A(JsEntryData {
           dependencies,
           include_dependencies,
         })
       }
-      None => None,
+      None => Either::B(()),
     })
   }
 

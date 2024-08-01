@@ -6,7 +6,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
-use entries::JsEntryDataMap;
+use entries::Entries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
@@ -569,8 +569,8 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn entries(&'static mut self) -> JsEntryDataMap {
-    JsEntryDataMap::new(&mut self.0)
+  pub fn entries(&'static mut self) -> Entries {
+    Entries::new(&mut self.0)
   }
 }
 
