@@ -1,7 +1,7 @@
 import type * as binding from "@rspack/binding";
 import { type Resolve, getRawResolve } from "./config";
 
-interface ResolveContext {}
+type ResolveContext = {};
 
 type ErrorWithDetail = Error & { details?: string };
 

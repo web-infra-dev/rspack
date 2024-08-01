@@ -26,8 +26,7 @@ class Message extends Error {
 		this.stack = undefined;
 		Error.captureStackTrace(this);
 		const match = this.stack!.split("\n")[3].match(CURRENT_METHOD_REGEXP);
-		this.message =
-			match && match[1] ? createMessage(match[1]) : createMessage();
+		this.message = match?.[1] ? createMessage(match[1]) : createMessage();
 	}
 }
 

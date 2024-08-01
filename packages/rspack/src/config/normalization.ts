@@ -417,12 +417,12 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-					(obj, key) => (
-						(obj[key] = (
-							customKeys && key in customKeys ? customKeys[key] : fn
-						)(value[key])),
-						obj
-					),
+					(obj, key) => {
+						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+							value[key]
+						);
+						return obj;
+					},
 					{} as Record<string, R>
 				);
 	if (customKeys) {

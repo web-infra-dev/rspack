@@ -500,7 +500,7 @@ class Compiler {
 	}
 
 	purgeInputFileSystem() {
-		if (this.inputFileSystem && this.inputFileSystem.purge) {
+		if (this.inputFileSystem?.purge) {
 			this.inputFileSystem.purge();
 		}
 	}

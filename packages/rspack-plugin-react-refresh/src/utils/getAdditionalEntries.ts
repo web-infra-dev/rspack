@@ -13,7 +13,6 @@ export function getAdditionalEntries({
 	devServer: any;
 	options: NormalizedPluginOptions;
 }): AdditionalEntries {
-	/** @type {Record<string, string | number>} */
 	const resourceQuery: Record<string, string | number> = {};
 
 	if (devServer) {
@@ -78,12 +77,8 @@ export function getAdditionalEntries({
 		undefined,
 		undefined,
 		{
-			/**
-			 * @param {string} string
-			 * @returns {string}
-			 */
-			encodeURIComponent(string) {
-				return string;
+			encodeURIComponent(str: string): string {
+				return str;
 			}
 		}
 	);
@@ -95,8 +90,8 @@ export function getAdditionalEntries({
 
 	const overlayEntries = [
 		// Error overlay runtime
-		options.overlay &&
-			options.overlay.entry &&
+		options.overlay !== false &&
+			options.overlay?.entry &&
 			`${require.resolve(options.overlay.entry)}${queryString ? `?${queryString}` : ""}`
 	].filter(Boolean) as string[];
 

@@ -215,7 +215,7 @@ export interface TerserMangleOptions {
 	safari10?: boolean;
 	reserved?: string[];
 }
-export interface TerserManglePropertiesOptions {}
+export type TerserManglePropertiesOptions = {};
 
 function isObject(value: any): value is Object {
 	const type = typeof value;

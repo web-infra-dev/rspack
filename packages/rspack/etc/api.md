@@ -4428,7 +4428,6 @@ export const javascript: JavaScript;
 
 // @public (undocumented)
 class JavascriptModulesPlugin extends RspackBuiltinPlugin {
-    constructor();
     // (undocumented)
     affectedHooks: "compilation";
     // (undocumented)
@@ -5144,10 +5143,7 @@ export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDe
 };
 
 // @public (undocumented)
-export interface LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> {
-    // (undocumented)
-    (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData): string | void | Buffer | Promise<string | Buffer>;
-}
+export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer>;
 
 // @public (undocumented)
 class LoaderObject {
@@ -8543,10 +8539,7 @@ const performance_2: z.ZodUnion<[z.ZodObject<{
 }>, z.ZodLiteral<false>]>;
 
 // @public (undocumented)
-interface PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> {
-    // (undocumented)
-    (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object): string | void | Buffer | Promise<string | Buffer>;
-}
+type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
 
 // @public (undocumented)
 type PluginImportConfig = {
@@ -8738,8 +8731,7 @@ export type ResolveAlias = z.infer<typeof resolveAlias>;
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
 
 // @public (undocumented)
-interface ResolveContext {
-}
+type ResolveContext = {};
 
 // @public (undocumented)
 type ResolveData = {
@@ -12813,7 +12805,6 @@ export const rspackOptions: z.ZodObject<{
 
 // @public (undocumented)
 class RspackOptionsApply {
-    constructor();
     // (undocumented)
     process(options: RspackOptionsNormalized, compiler: Compiler): void;
 }
@@ -14197,8 +14188,7 @@ interface TerserMangleOptions {
 }
 
 // @public (undocumented)
-interface TerserManglePropertiesOptions {
-}
+type TerserManglePropertiesOptions = {};
 
 // @public (undocumented)
 const TIMERS_AGGREGATES_SYMBOL: unique symbol;
@@ -14523,7 +14513,6 @@ export const WebpackError: ErrorConstructor;
 class WebpackError_2 extends Error {
     // (undocumented)
     [inspect.custom](): string;
-    constructor(message?: string);
     // (undocumented)
     chunk?: Chunk;
     // (undocumented)

@@ -75,10 +75,7 @@ export function hotLoader(
 
 const loader: LoaderDefinition = function loader(content) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -91,10 +88,7 @@ const loader: LoaderDefinition = function loader(content) {
 
 export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -182,7 +176,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 					}
 				}
 			} else {
-				locals = exports && exports.locals;
+				locals = exports?.locals;
 			}
 
 			if (Array.isArray(exports) && emit) {

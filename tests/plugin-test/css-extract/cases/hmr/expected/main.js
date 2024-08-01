@@ -11,10 +11,8 @@ const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
 function debounce(fn, time) {
     let timeout = 0;
-    return function () {
-        // @ts-ignore
+    return function (...args) {
         const self = this;
-        const args = arguments;
         const functionCall = function functionCall() {
             return fn.apply(self, args);
         };
@@ -43,7 +41,7 @@ function getCurrentScriptUrl(moduleId) {
             return null;
         }
         const splitResult = src.split(/([^\\/]+)\.js$/);
-        const filename = splitResult && splitResult[1];
+        const filename = splitResult?.[1];
         if (!filename) {
             return [src.replace(".js", ".css")];
         }

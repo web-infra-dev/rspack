@@ -23,15 +23,6 @@ export class WebpackError extends Error {
 	details?: string;
 	hideStack?: boolean;
 
-	/**
-	 * Creates an instance of WebpackError.
-	 * @param message error message
-	 * @returns
-	 */
-	constructor(message?: string) {
-		super(message);
-	}
-
 	[inspect.custom]() {
 		return this.stack + (this.details ? `\n${this.details}` : "");
 	}

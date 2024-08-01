@@ -11,6 +11,7 @@ type Obj = Record<PropertyKey, any>;
 
 type Info = Map<any, ObjectParsedPropertyEntry>;
 
+const DYNAMIC_INFO = Symbol("cleverMerge dynamic info");
 type FunctionWithDynamicInfo = ((...args: any[]) => any) & {
 	[DYNAMIC_INFO]?: [FunctionWithDynamicInfo, Obj];
 };
@@ -52,7 +53,6 @@ const setPropertyCache = new WeakMap<
 	Map<string, Map<string | number | boolean, Obj>>
 >();
 export const DELETE = Symbol("DELETE");
-const DYNAMIC_INFO = Symbol("cleverMerge dynamic info");
 
 /**
  * Merges two given objects and caches the result to avoid computation if same objects passed as arguments again.
@@ -375,7 +375,7 @@ const mergeEntries = (
 			// second value override everything
 			// = second.base + second.byProperty
 			return secondEntry;
-		case VALUE_TYPE_UNDEFINED:
+		case VALUE_TYPE_UNDEFINED: {
 			if (!firstEntry.byProperty) {
 				// = first.base + second.byProperty
 				return {
@@ -404,6 +404,7 @@ const mergeEntries = (
 				byProperty: firstEntry.byProperty,
 				byValues: newByValues
 			};
+		}
 		default: {
 			if (!firstEntry.byProperty) {
 				// The simple case

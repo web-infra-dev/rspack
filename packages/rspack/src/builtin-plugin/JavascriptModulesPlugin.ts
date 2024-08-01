@@ -17,10 +17,6 @@ export class JavascriptModulesPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.JavascriptModulesPlugin;
 	affectedHooks = "compilation" as const;
 
-	constructor() {
-		super();
-	}
-
 	raw(): BuiltinPlugin {
 		return createBuiltinPlugin(this.name, undefined);
 	}

@@ -327,8 +327,7 @@ function getCurrentLoader(
 	index = loaderContext.loaderIndex
 ) {
 	if (
-		loaderContext.loaders &&
-		loaderContext.loaders.length &&
+		loaderContext.loaders?.length &&
 		index < loaderContext.loaders.length &&
 		index >= 0 &&
 		loaderContext.loaders[index]

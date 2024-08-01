@@ -531,7 +531,7 @@ export class MultiCompiler {
 
 	purgeInputFileSystem() {
 		for (const compiler of this.compilers) {
-			if (compiler.inputFileSystem && compiler.inputFileSystem.purge) {
+			if (compiler.inputFileSystem?.purge) {
 				compiler.inputFileSystem.purge();
 			}
 		}
