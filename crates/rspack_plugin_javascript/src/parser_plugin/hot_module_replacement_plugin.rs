@@ -4,7 +4,8 @@ pub mod hot_module_replacement {
 }
 
 use rspack_core::{BoxDependency, ErrorSpan, SpanExt};
-use swc_core::common::{Span, Spanned};
+use rspack_error::ErrorLocation;
+use swc_core::common::{BytePos, Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
 
@@ -58,9 +59,9 @@ impl<'parser> JavascriptParser<'parser> {
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        span.real_lo(),
-        span.real_hi(),
         Some("hot"),
+        ErrorLocation::new(span, &self.source_map),
+        span.into(),
       )));
   }
 
@@ -73,9 +74,9 @@ impl<'parser> JavascriptParser<'parser> {
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        call_expr.callee.span().real_lo(),
-        call_expr.callee.span().real_hi(),
         Some("hot.accept"),
+        ErrorLocation::new(call_expr.callee.span(), &self.source_map),
+        call_expr.callee.span().into(),
       )));
     let dependencies = extract_deps(call_expr, create_dependency);
     if self.build_meta.esm && !call_expr.args.is_empty() {
@@ -85,15 +86,22 @@ impl<'parser> JavascriptParser<'parser> {
         self
           .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
+            ErrorLocation::new(span, &self.source_map),
             span.into(),
             true,
             dependency_ids,
           )));
       } else {
+        let span = Span {
+          lo: BytePos(call_expr.span().real_hi()),
+          hi: BytePos(1),
+        };
+
         self
           .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
-            ErrorSpan::new(call_expr.span().real_hi() - 1, 0),
+            ErrorLocation::new(span, &self.source_map),
+            span.into(),
             false,
             dependency_ids,
           )));
@@ -113,9 +121,9 @@ impl<'parser> JavascriptParser<'parser> {
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        call_expr.callee.span().real_lo(),
-        call_expr.callee.span().real_hi(),
         Some("hot.decline"),
+        ErrorLocation::new(call_expr.callee.span(), &self.source_map),
+        call_expr.callee.span().into(),
       )));
     let dependencies = extract_deps(call_expr, create_dependency);
     self.dependencies.extend(dependencies);
