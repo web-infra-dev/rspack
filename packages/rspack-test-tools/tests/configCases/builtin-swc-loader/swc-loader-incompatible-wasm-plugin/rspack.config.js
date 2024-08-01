@@ -70,6 +70,7 @@ const config = {
       template: './index.html',
     }),
 		{
+			// Replace all assets with empty content to avoid evaluation that causes errors
 			apply(compiler) {
 				compiler.hooks.compilation.tap("_", (compilation) => {
 					compilation.hooks.processAssets.tap("_", (assets) => {
