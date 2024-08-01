@@ -8636,7 +8636,7 @@ class ProvideSharedPlugin<Enhanced extends boolean = false> extends RspackBuilti
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
-    _provides: [string, Omit<RawProvideOptions, 'key'>][];
+    _provides: [string, Omit<RawProvideOptions, "key">][];
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin;
 }
