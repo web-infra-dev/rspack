@@ -37,7 +37,7 @@ module.exports = {
 		expect(error).toBeTruthy();
 		expect(error.toString()).toMatchInlineSnapshot(`
 		"Error:   × Empty dependency: Expected a non-empty request
-		   ╭─[1:1]
+		   ╭─[3:4]
 		 1 │ module.exports = function b() {
 		 2 │     /* eslint-disable node/no-missing-require */
 		 3 │     require(\\"\\");

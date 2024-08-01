@@ -137,6 +137,17 @@ export class JSDOMWebRunner<
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
+		moduleScope.getComputedStyle = function () {
+			const computedStyle = this.dom.window.getComputedStyle(this.dom.window);
+			const getPropertyValue =
+				computedStyle.getPropertyValue.bind(computedStyle);
+			return {
+				...computedStyle,
+				getPropertyValue(v: any) {
+					return getPropertyValue(v);
+				}
+			};
+		};
 		moduleScope.STATS = moduleScope.__STATS__;
 		return moduleScope;
 	}

@@ -24,7 +24,7 @@ type TModuleGetHandler = (
 	options: TCompilerOptions<ECompilerType>
 ) => string[];
 
-declare var global: {
+declare let global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};

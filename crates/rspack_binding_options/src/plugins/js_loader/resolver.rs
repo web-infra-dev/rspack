@@ -43,7 +43,7 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
     });
     // TODO: builtin-loader supports function
     return Arc::new(rspack_loader_lightningcss::LightningCssLoader::new(
-      None, config,
+      None, config, builtin,
     ));
   }
 

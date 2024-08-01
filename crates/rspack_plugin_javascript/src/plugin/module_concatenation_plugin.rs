@@ -12,9 +12,9 @@ use rspack_core::concatenated_module::{
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
   CompilationOptimizeChunkModules, CompilerModuleContext, CompilerOptions, ExportInfoProvided,
-  ExtendedReferencedExport, ImmutableModuleGraph, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
-  RunnerContext, RuntimeCondition, RuntimeSpec, SourceType,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RunnerContext,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -31,7 +31,7 @@ enum Warning {
 }
 
 #[derive(Debug, Clone)]
-struct ConcatConfiguration {
+pub struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
   modules: IdentifierIndexSet,
@@ -39,7 +39,7 @@ struct ConcatConfiguration {
 }
 
 impl ConcatConfiguration {
-  fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
+  pub fn new(root_module: ModuleIdentifier, runtime: Option<RuntimeSpec>) -> Self {
     let mut modules = IdentifierIndexSet::default();
     modules.insert(root_module);
 
@@ -536,6 +536,176 @@ impl ModuleConcatenationPlugin {
     None
   }
 
+  pub async fn process_concatenated_configuration(
+    compilation: &mut Compilation,
+    config: ConcatConfiguration,
+    used_modules: &mut HashSet<ModuleIdentifier>,
+  ) -> Result<()> {
+    let module_graph = compilation.get_module_graph();
+
+    // dbg!(&config);
+    let root_module_id = config.root_module;
+    if used_modules.contains(&root_module_id) {
+      return Ok(());
+    }
+
+    //
+    let modules_set = config.get_modules();
+    for m in modules_set {
+      used_modules.insert(*m);
+    }
+    let box_module = module_graph
+      .module_by_identifier(&root_module_id)
+      .expect("should have module");
+    let root_module_ctxt = RootModuleContext {
+      id: root_module_id,
+      readable_identifier: box_module
+        .readable_identifier(&compilation.options.context)
+        .to_string(),
+      name_for_condition: box_module.name_for_condition().clone(),
+      lib_indent: box_module
+        .lib_ident(LibIdentOptions {
+          context: compilation.options.context.as_str(),
+        })
+        .map(|id| id.to_string()),
+      layer: box_module.get_layer().cloned(),
+      resolve_options: box_module.get_resolve_options().clone(),
+      code_generation_dependencies: box_module
+        .get_code_generation_dependencies()
+        .map(|deps| deps.to_vec()),
+      presentational_dependencies: box_module
+        .get_presentational_dependencies()
+        .map(|deps| deps.to_vec()),
+      context: Some(compilation.options.context.clone()),
+      side_effect_connection_state: box_module
+        .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
+      factory_meta: box_module.factory_meta().cloned(),
+      build_meta: box_module.build_meta().cloned(),
+    };
+    let modules = modules_set
+      .iter()
+      .map(|id| {
+        let module = module_graph
+          .module_by_identifier(id)
+          .unwrap_or_else(|| panic!("should have module {}", id));
+        let inner_module = ConcatenatedInnerModule {
+          id: *id,
+          size: module.size(Some(&rspack_core::SourceType::JavaScript), compilation),
+          original_source_hash: module.original_source().map(|source| {
+            let mut hasher = DefaultHasher::default();
+            source.dyn_hash(&mut hasher);
+            hasher.finish()
+          }),
+          shorten_id: module
+            .readable_identifier(&compilation.options.context)
+            .to_string(),
+        };
+        inner_module
+      })
+      .collect::<Vec<_>>();
+    let mut new_module = ConcatenatedModule::create(
+      root_module_ctxt,
+      modules,
+      Some(rspack_hash::HashFunction::MD4),
+      config.runtime.clone(),
+      compilation,
+    );
+    let new_module_assets: HashSet<String> =
+      modules_set.iter().fold(HashSet::default(), |mut acc, id| {
+        acc.extend(
+          compilation
+            .module_assets
+            .get(id)
+            .cloned()
+            .unwrap_or_default(),
+        );
+        acc
+      });
+    new_module
+      .build(
+        rspack_core::BuildContext {
+          runner_context: RunnerContext {
+            options: compilation.options.clone(),
+            resolver_factory: compilation.resolver_factory.clone(),
+            module: CompilerModuleContext::from_module(&new_module),
+            module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
+          },
+          plugin_driver: compilation.plugin_driver.clone(),
+          compiler_options: &compilation.options,
+        },
+        Some(compilation),
+      )
+      .await?;
+    let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+    let mut module_graph = compilation.get_module_graph_mut();
+    let root_mgm_exports = module_graph
+      .module_graph_module_by_identifier(&root_module_id)
+      .expect("should have mgm")
+      .exports;
+    let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
+    module_graph.add_module_graph_module(module_graph_module);
+    module_graph.clone_module_attributes(&root_module_id, &new_module.id());
+    // integrate
+
+    for m in modules_set {
+      if m == &root_module_id {
+        continue;
+      }
+      module_graph.copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
+        let dep = mg
+          .dependency_by_id(&c.dependency_id)
+          .expect("should have dependency");
+        c.original_module_identifier.as_ref() == Some(m)
+          && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
+      });
+      // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
+      for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
+        let module = module_graph
+          .module_by_identifier(m)
+          .expect("should exist module");
+
+        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+
+        if source_types.len() == 1 {
+          chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
+        } else {
+          let new_source_types = source_types
+            .into_iter()
+            .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+            .collect();
+          chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
+        }
+      }
+    }
+    // module_graph
+    //   .module_identifier_to_module
+    //   .remove(&root_module_id);
+    // compilation.chunk_graph.clear
+
+    chunk_graph.replace_module(&root_module_id, &new_module.id());
+
+    module_graph.move_module_connections(&root_module_id, &new_module.id(), |c, dep| {
+      let other_module = if *c.module_identifier() == root_module_id {
+        c.original_module_identifier
+      } else {
+        Some(*c.module_identifier())
+      };
+      let inner_connection = is_harmony_dep_like(dep)
+        && if let Some(other_module) = other_module {
+          modules_set.contains(&other_module)
+        } else {
+          false
+        };
+      !inner_connection
+    });
+    let id = new_module.id();
+    module_graph.add_module(new_module.boxed());
+    compilation.chunk_graph = chunk_graph;
+    compilation.module_assets.insert(id, new_module_assets);
+
+    Ok(())
+  }
+
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
     let mut relevant_modules = vec![];
@@ -596,27 +766,24 @@ impl ModuleConcatenationPlugin {
         }
 
         let exports_info = module_graph.get_exports_info(&module_id);
-        let relevant_exports = exports_info.get_relevant_exports(None, &module_graph);
+        let relevant_exports = exports_info.get_relevant_exports(&module_graph, None);
         let unknown_exports = relevant_exports
           .iter()
-          .filter(|id| {
-            let export_info = id.get_export_info(&module_graph).clone();
-            let mut mga = ImmutableModuleGraph::new(&module_graph);
-            export_info.is_reexport() && export_info.id.get_target(&mut mga, None).is_none()
+          .filter(|export_info| {
+            export_info.is_reexport(&module_graph)
+              && export_info.get_target(&module_graph, None).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
         if !unknown_exports.is_empty() {
           let cur_bailout_reason = unknown_exports
             .into_iter()
-            .map(|id| {
-              let export_info = id.get_export_info(&module_graph);
+            .map(|export_info| {
               let name = export_info
-                .name
-                .as_ref()
+                .name(&module_graph)
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
-              format!("{} : {}", name, export_info.id.get_used_info(&module_graph))
+              format!("{} : {}", name, export_info.get_used_info(&module_graph))
             })
             .collect::<Vec<String>>()
             .join(", ");
@@ -635,9 +802,11 @@ impl ModuleConcatenationPlugin {
         }
         let unknown_provided_exports = relevant_exports
           .iter()
-          .filter(|id| {
-            let export_info = id.get_export_info(&module_graph);
-            !matches!(export_info.provided, Some(ExportInfoProvided::True))
+          .filter(|export_info| {
+            !matches!(
+              export_info.provided(&module_graph),
+              Some(ExportInfoProvided::True)
+            )
           })
           .copied()
           .collect::<Vec<_>>();
@@ -645,18 +814,16 @@ impl ModuleConcatenationPlugin {
         if !unknown_provided_exports.is_empty() {
           let cur_bailout_reason = unknown_provided_exports
             .into_iter()
-            .map(|id| {
-              let export_info = id.get_export_info(&module_graph);
+            .map(|export_info| {
               let name = export_info
-                .name
-                .as_ref()
+                .name(&module_graph)
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
                 "{} : {} and {}",
                 name,
-                export_info.id.get_provided_info(&module_graph),
-                export_info.id.get_used_info(&module_graph)
+                export_info.get_provided_info(&module_graph),
+                export_info.get_used_info(&module_graph),
               )
             })
             .collect::<Vec<String>>()
@@ -741,9 +908,9 @@ impl ModuleConcatenationPlugin {
         chunk_runtime = merge_runtime(&chunk_runtime, &r);
       }
       let module_graph = compilation.get_module_graph();
-      let exports_info_id = module_graph.get_exports_info(current_root).id;
+      let exports_info = module_graph.get_exports_info(current_root);
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        exports_info_id.is_module_used(&module_graph, r)
+        exports_info.is_module_used(&module_graph, r)
       });
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),
@@ -853,167 +1020,7 @@ impl ModuleConcatenationPlugin {
     let mut used_modules = HashSet::default();
 
     for config in concat_configurations {
-      let module_graph = compilation.get_module_graph();
-
-      // dbg!(&config);
-      let root_module_id = config.root_module;
-      if used_modules.contains(&root_module_id) {
-        continue;
-      }
-
-      //
-      let modules_set = config.get_modules();
-      for m in modules_set {
-        used_modules.insert(*m);
-      }
-      let box_module = module_graph
-        .module_by_identifier(&root_module_id)
-        .expect("should have module");
-      let root_module_ctxt = RootModuleContext {
-        id: root_module_id,
-        readable_identifier: box_module
-          .readable_identifier(&compilation.options.context)
-          .to_string(),
-        name_for_condition: box_module.name_for_condition().clone(),
-        lib_indent: box_module
-          .lib_ident(LibIdentOptions {
-            context: compilation.options.context.as_str(),
-          })
-          .map(|id| id.to_string()),
-        layer: box_module.get_layer().cloned(),
-        resolve_options: box_module.get_resolve_options().clone(),
-        code_generation_dependencies: box_module
-          .get_code_generation_dependencies()
-          .map(|deps| deps.to_vec()),
-        presentational_dependencies: box_module
-          .get_presentational_dependencies()
-          .map(|deps| deps.to_vec()),
-        context: Some(compilation.options.context.clone()),
-        side_effect_connection_state: box_module
-          .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
-        factory_meta: box_module.factory_meta().cloned(),
-        build_meta: box_module.build_meta().cloned(),
-      };
-      let modules = modules_set
-        .iter()
-        .map(|id| {
-          let module = module_graph
-            .module_by_identifier(id)
-            .unwrap_or_else(|| panic!("should have module {}", id));
-          let inner_module = ConcatenatedInnerModule {
-            id: *id,
-            size: module.size(Some(&rspack_core::SourceType::JavaScript), compilation),
-            original_source_hash: module.original_source().map(|source| {
-              let mut hasher = DefaultHasher::default();
-              source.dyn_hash(&mut hasher);
-              hasher.finish()
-            }),
-            shorten_id: module
-              .readable_identifier(&compilation.options.context)
-              .to_string(),
-          };
-          inner_module
-        })
-        .collect::<Vec<_>>();
-      let mut new_module = ConcatenatedModule::create(
-        root_module_ctxt,
-        modules,
-        Some(rspack_hash::HashFunction::MD4),
-        config.runtime.clone(),
-        compilation,
-      );
-      let new_module_assets: HashSet<String> =
-        modules_set.iter().fold(HashSet::default(), |mut acc, id| {
-          acc.extend(
-            compilation
-              .module_assets
-              .get(id)
-              .cloned()
-              .unwrap_or_default(),
-          );
-          acc
-        });
-      new_module
-        .build(
-          rspack_core::BuildContext {
-            runner_context: RunnerContext {
-              options: compilation.options.clone(),
-              resolver_factory: compilation.resolver_factory.clone(),
-              module: CompilerModuleContext::from_module(&new_module),
-              module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-            },
-            plugin_driver: compilation.plugin_driver.clone(),
-            compiler_options: &compilation.options,
-          },
-          Some(compilation),
-        )
-        .await?;
-      let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
-      let mut module_graph = compilation.get_module_graph_mut();
-      let root_mgm_exports = module_graph
-        .module_graph_module_by_identifier(&root_module_id)
-        .expect("should have mgm")
-        .exports;
-      let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
-      module_graph.add_module_graph_module(module_graph_module);
-      module_graph.clone_module_attributes(&root_module_id, &new_module.id());
-      // integrate
-
-      for m in modules_set {
-        if m == &root_module_id {
-          continue;
-        }
-        module_graph.copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
-          let dep = mg
-            .dependency_by_id(&c.dependency_id)
-            .expect("should have dependency");
-          c.original_module_identifier.as_ref() == Some(m)
-            && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
-        });
-        // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-        for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
-          let module = module_graph
-            .module_by_identifier(m)
-            .expect("should exist module");
-
-          let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
-
-          if source_types.len() == 1 {
-            chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
-          } else {
-            let new_source_types = source_types
-              .into_iter()
-              .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-              .collect();
-            chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
-          }
-        }
-      }
-      // module_graph
-      //   .module_identifier_to_module
-      //   .remove(&root_module_id);
-      // compilation.chunk_graph.clear
-
-      chunk_graph.replace_module(&root_module_id, &new_module.id());
-
-      module_graph.move_module_connections(&root_module_id, &new_module.id(), |c, dep| {
-        let other_module = if *c.module_identifier() == root_module_id {
-          c.original_module_identifier
-        } else {
-          Some(*c.module_identifier())
-        };
-        let inner_connection = is_harmony_dep_like(dep)
-          && if let Some(other_module) = other_module {
-            modules_set.contains(&other_module)
-          } else {
-            false
-          };
-        !inner_connection
-      });
-      let id = new_module.id();
-      module_graph.add_module(new_module.boxed());
-      compilation.chunk_graph = chunk_graph;
-      compilation.module_assets.insert(id, new_module_assets);
+      Self::process_concatenated_configuration(compilation, config, &mut used_modules).await?;
     }
     Ok(())
   }

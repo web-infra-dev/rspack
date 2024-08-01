@@ -59,7 +59,7 @@ impl DependencyTemplate for PureExpressionDependency {
         let runtime = ctx.runtime;
         let runtime_condition = filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(UsedName::Str(id.clone()), cur_runtime, &module_graph)
+            exports_info.get_used(&module_graph, UsedName::Str(id.clone()), cur_runtime)
               != UsageState::Unused
           })
         });

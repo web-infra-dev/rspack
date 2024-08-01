@@ -26,9 +26,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let Callee::Import(import_call) = &node.callee else {
       unreachable!()
     };
-    let Some(dyn_imported) = node.args.first() else {
-      return None;
-    };
+    let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
     }

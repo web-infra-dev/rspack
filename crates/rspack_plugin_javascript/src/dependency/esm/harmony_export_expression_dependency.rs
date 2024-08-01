@@ -2,11 +2,12 @@ use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
+  DependencyType, ErrorSpan, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
   HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
+use rspack_error::ErrorLocation;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -19,26 +20,39 @@ pub enum DeclarationId {
 
 #[derive(Debug, Clone)]
 pub struct DeclarationInfo {
-  pub range: DependencyLocation,
-  pub prefix: String,
-  pub suffix: String,
+  range: ErrorSpan,
+  prefix: String,
+  suffix: String,
+}
+
+impl DeclarationInfo {
+  pub fn new(range: ErrorSpan, prefix: String, suffix: String) -> Self {
+    Self {
+      range,
+      prefix,
+      suffix,
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct HarmonyExportExpressionDependency {
-  pub range: DependencyLocation,
-  pub range_stmt: DependencyLocation,
-  pub declaration: Option<DeclarationId>,
-  pub id: DependencyId,
+  id: DependencyId,
+  loc: ErrorLocation,
+  range: ErrorSpan,
+  range_stmt: ErrorSpan,
+  declaration: Option<DeclarationId>,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
-    range: DependencyLocation,
-    range_stmt: DependencyLocation,
+    loc: ErrorLocation,
+    range: ErrorSpan,
+    range_stmt: ErrorSpan,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {
+      loc,
       range,
       range_stmt,
       declaration,
@@ -54,6 +68,10 @@ impl Dependency for HarmonyExportExpressionDependency {
 
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc)
   }
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
@@ -107,7 +125,6 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_exports_info(module_identifier)
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
     }
 
@@ -116,8 +133,8 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         DeclarationId::Id(id) => id,
         DeclarationId::Func(func) => {
           source.replace(
-            func.range.start(),
-            func.range.end(),
+            func.range.start,
+            func.range.end,
             &format!("{}{}{}", func.prefix, DEFAULT_EXPORT, func.suffix),
             None,
           );
@@ -151,8 +168,8 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       }
 
       source.replace(
-        self.range_stmt.start(),
-        self.range.start(),
+        self.range_stmt.start,
+        self.range.start,
         "/* harmony default export */ ",
         None,
       );
@@ -207,12 +224,12 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       };
 
       source.replace(
-        self.range_stmt.start(),
-        self.range.start(),
+        self.range_stmt.start,
+        self.range.start,
         &format!("{}(", content),
         None,
       );
-      source.replace(self.range.end(), self.range_stmt.end(), ");", None);
+      source.replace(self.range.end, self.range_stmt.end, ");", None);
     }
   }
 

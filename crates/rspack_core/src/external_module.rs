@@ -209,8 +209,9 @@ impl ExternalModule {
             .boxed(),
           );
           format!(
-            "{} = __WEBPACK_EXTERNAL_createRequire(import.meta.url)({});",
+            "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({});",
             get_namespace_object_export(concatenation_scope),
+            compilation.options.output.import_meta_name,
             json_stringify(request.primary())
           )
         } else {

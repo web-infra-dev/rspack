@@ -69,7 +69,7 @@ impl Dependency for CommonJsFullRequireDependency {
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type_readonly(module_graph, false))
+        .map(|m| m.get_exports_type(module_graph, false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {
@@ -126,7 +126,6 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
     if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&self.id) {
       let used = module_graph
         .get_exports_info(&imported_module.module_identifier)
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
       if let Some(used) = used {

@@ -32,12 +32,27 @@ export class ConfigProcessor<
 		}
 
 		const ext = path.extname(parseResource(options.output?.filename).path);
+		const bundlePath = [];
 		if (
 			options.output?.path &&
 			fs.existsSync(path.join(options.output.path!, "bundle" + index + ext))
 		) {
-			return "./bundle" + index + ext;
+			if (options.experiments && options.experiments.css) {
+				const cssOutputPath = path.join(
+					options.output.path!,
+					(typeof options.output?.cssFilename === "string" &&
+						options.output?.cssFilename) ||
+						"bundle" + index + ".css"
+				);
+				if (fs.existsSync(cssOutputPath)) {
+					bundlePath.push("./bundle" + index + ".css");
+				}
+			}
+
+			bundlePath.push("./bundle" + index + ext);
 		}
+
+		return bundlePath;
 	}
 
 	static defaultOptions<T extends ECompilerType>(

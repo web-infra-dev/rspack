@@ -17,7 +17,7 @@ it("should set nonce attributes", () => {
 
 	import(/* webpackChunkName: "chunk-css" */ "./chunk.css");
 
-	expect(document.head._children).toHaveLength(3);
+	expect(document.head._children).toHaveLength(2);
 
 	const link = document.head._children[1];
 

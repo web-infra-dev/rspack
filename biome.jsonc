@@ -19,12 +19,12 @@
 			"packages/rspack-plugin-preact-refresh/tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"packages/rspack-plugin-mini-css-extract/test/cases/**/*",
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
 			"packages/rspack-plugin-react-refresh/client",
 			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
@@ -33,40 +33,69 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": false,
+			"recommended": true,
 			"a11y": {
-				"useButtonType": "error",
-				"noSvgWithoutTitle": "error"
+				"useKeyWithClickEvents": "off"
 			},
 			"complexity": {
-				"useArrowFunction": "error",
-				"useLiteralKeys": "error",
-				"noForEach": "error"
+				"noMultipleSpacesInRegularExpressionLiterals": "off",
+				"noStaticOnlyClass": "off",
+				"noThisInStatic": "off",
+				"noUselessConstructor": "off",
+				"noBannedTypes": "off",
+				"useOptionalChain": "off",
+				"noUselessEmptyExport": "off",
+				"noExtraBooleanCast": "off"
+			},
+			"correctness": {
+				"noConstructorReturn": "off",
+				"noSwitchDeclarations": "off",
+				"noInvalidUseBeforeDeclaration": "off",
+				"noInnerDeclarations": "off",
+				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noUnusedTemplateLiteral": "error",
-				"useNodejsImportProtocol": "error",
-				"noUselessElse": "error",
-				"noNonNullAssertion": "off",
-				"useNumberNamespace": "error",
-				"useConst": "error",
-				"useImportType": "error",
-				"useExportType": "error",
-				"useEnumInitializers": "error",
-				"useSelfClosingElements": "error"
+				"noCommaOperator": "off",
+				"useExponentiationOperator": "off",
+				"useShorthandFunctionType": "off",
+				"noArguments": "off",
+				"noInferrableTypes": "off",
+				"noParameterAssign": "off",
+				"useTemplate": "off",
+				"useSingleVarDeclarator": "off",
+				"noNonNullAssertion": "off"
+			},
+			"performance": {
+				"noDelete": "off",
+				"noAccumulatingSpread": "off"
+			},
+			"security": {
+				"noGlobalEval": "off"
 			},
 			"suspicious": {
-				"noDoubleEquals": "error"
+				"noEmptyInterface": "off",
+				"noGlobalAssign": "off",
+				"noGlobalIsNan": "off",
+				"noFallthroughSwitchClause": "off",
+				"noConfusingVoidType": "off",
+				"noPrototypeBuiltins": "off",
+				"noImplicitAnyLet": "off",
+				"noAssignInExpressions": "off",
+				"noArrayIndexKey": "off",
+				"noRedundantUseStrict": "off",
+				"noControlCharactersInRegex": "off",
+				"noExplicitAny": "off"
 			}
 		},
 		"ignore": [
 			"tests/**/*",
 			"crates/**/*",
 			"packages/rspack-test-tools/template",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
+			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
 			"packages/rspack-plugin-react-refresh/client",
 			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"

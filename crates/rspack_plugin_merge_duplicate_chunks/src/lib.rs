@@ -97,7 +97,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
             .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
           {
             let exports_info = module_graph.get_exports_info(&module.identifier());
-            if !exports_info.is_equally_used(&chunk.runtime, &other_chunk.runtime, &module_graph) {
+            if !exports_info.is_equally_used(&module_graph, &chunk.runtime, &other_chunk.runtime) {
               continue 'outer;
             }
           }

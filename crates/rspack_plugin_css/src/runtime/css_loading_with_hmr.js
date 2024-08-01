@@ -14,10 +14,10 @@ var applyHandler = function (options) {
 			}
 			while (newTags.length) {
 				var info = newTags.pop();
-				// var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[1], info[0]);
-				// chunkModuleIds.forEach(function(id) {
-				//     moduleIds.push(id)
-				// });
+				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[1], info[0]);
+				chunkModuleIds.forEach(function(id) {
+				    moduleIds.push(id)
+				});
 			}
 			return moduleIds;
 		}
@@ -71,11 +71,11 @@ __webpack_require__.hmrC.css = function (
 									return resolve();
 								}
 							} catch (e) {}
-							// var factories = {};
-							// loadCssChunkData(factories, link, chunkId);
-							// Object.keys(factories).forEach(function(id) {
-							//     (updatedModulesList.push(id));
-							// });
+							var factories = {};
+							loadCssChunkData(factories, link, chunkId);
+							Object.keys(factories).forEach(function(id) {
+							    (updatedModulesList.push(id));
+							});
 							link.sheet.disabled = true;
 							oldTags.push(oldTag);
 							newTags.push([chunkId, link]);

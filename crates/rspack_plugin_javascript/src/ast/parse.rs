@@ -25,11 +25,11 @@ fn module_type_to_is_module(value: &ModuleType) -> IsModule {
 
 /// Why this helper function design like this?
 /// 1. `swc_ecma_parser` could return ast with some errors which are recoverable
-/// or warning (though swc defined them as errors), but the parser at here should
-/// be non-error-tolerant.
+///    or warning (though swc defined them as errors), but the parser at here should
+///    be non-error-tolerant.
 ///
 /// 2. We can't convert to [rspack_error::Error] at this point, because there is
-/// no `path` and `source`
+///    no `path` and `source`
 pub fn parse_js(
   fm: Arc<SourceFile>,
   target: EsVersion,

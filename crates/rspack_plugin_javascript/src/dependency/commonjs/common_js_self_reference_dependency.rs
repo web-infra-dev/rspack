@@ -93,7 +93,6 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
     let used = if self.names.is_empty() {
       module_graph
         .get_exports_info(&module.identifier())
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()))
         .unwrap_or_else(|| UsedName::Vec(self.names.clone()))
     } else {

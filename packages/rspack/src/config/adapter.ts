@@ -222,6 +222,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
+		cssHeadDataCompression: output.cssHeadDataCompression!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
 		hotUpdateGlobal: output.hotUpdateGlobal!,
@@ -232,6 +233,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		strictModuleErrorHandling: output.strictModuleErrorHandling!,
 		globalObject: output.globalObject!,
 		importFunctionName: output.importFunctionName!,
+		importMetaName: output.importMetaName!,
 		iife: output.iife!,
 		module: output.module!,
 		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
@@ -655,6 +657,7 @@ function getRawJavascriptParserOptions(
 		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
 		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
 		dynamicImportFetchPriority: parser.dynamicImportFetchPriority?.toString(),
+		importMeta: parser.importMeta ?? true,
 		url:
 			parser.url === false
 				? "false"

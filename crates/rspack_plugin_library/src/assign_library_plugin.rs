@@ -411,12 +411,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         Some(&runtime),
       );
     } else {
-      let exports_info_id = compilation
+      let exports_info = compilation
         .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
-      exports_info_id
-        .set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
+        .get_exports_info(&module_identifier);
+      exports_info.set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
     }
   }
   Ok(())
@@ -498,7 +496,7 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
     props_so_far.push(accessor[i].clone());
     current = format!(
       "({current}{} = {base}{} || {{}})",
-      property_access(&vec![&accessor[i]], 0),
+      property_access(vec![&accessor[i]], 0),
       property_access(&props_so_far, 0)
     );
     i += 1;

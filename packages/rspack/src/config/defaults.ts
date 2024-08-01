@@ -253,6 +253,7 @@ const applyJavascriptParserOptionsDefaults = (
 	);
 	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
 	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
+	D(parserOptions, "importMeta", fallback?.importMeta ?? true);
 };
 
 const applyModuleDefaults = (
@@ -591,6 +592,7 @@ const applyOutputDefaults = (
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
 	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
+	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
@@ -709,6 +711,7 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	D(output, "importMetaName", "import.meta");
 	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);

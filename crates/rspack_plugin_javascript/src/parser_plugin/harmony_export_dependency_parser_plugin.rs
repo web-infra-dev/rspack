@@ -1,4 +1,5 @@
-use rspack_core::{BoxDependency, ConstDependency, DependencyLocation, DependencyType, SpanExt};
+use rspack_core::{BoxDependency, ConstDependency, DependencyType, ErrorSpan, SpanExt};
+use rspack_error::ErrorLocation;
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 
@@ -24,18 +25,9 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
     let span = statement.span();
     let dep = HarmonyExportHeaderDependency::new(
-      statement.declaration_span().map(|span| {
-        DependencyLocation::new(
-          span.real_lo(),
-          span.real_hi(),
-          Some(parser.source_map.clone()),
-        )
-      }),
-      DependencyLocation::new(
-        span.real_lo(),
-        span.real_hi(),
-        Some(parser.source_map.clone()),
-      ),
+      ErrorLocation::new(span, &parser.source_map),
+      statement.declaration_span().map(|span| span.into()),
+      span.into(),
     );
     parser.presentational_dependencies.push(Box::new(dep));
     Some(true)
@@ -54,6 +46,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     let side_effect_dep = HarmonyImportSideEffectDependency::new(
       source.clone(),
       parser.last_harmony_import_order,
+      ErrorLocation::new(statement.span(), &parser.source_map),
       statement.span().into(),
       statement.source_span().into(),
       DependencyType::EsmExport,
@@ -89,6 +82,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         Some(export_name.clone()),
         false,
         None,
+        ErrorLocation::new(statement.span(), &parser.source_map),
         statement.span().into(),
         HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
@@ -99,6 +93,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       Box::new(HarmonyExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
+        ErrorLocation::new(statement.span(), &parser.source_map),
       ))
     };
     parser.dependencies.push(dep);
@@ -129,6 +124,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       export_name.cloned(),
       local_id.is_some(),
       star_exports,
+      ErrorLocation::new(statement.span(), &parser.source_map),
       statement.span().into(),
       HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
         parser.javascript_options,
@@ -150,17 +146,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   ) -> Option<bool> {
     let expr_span = expr.span();
     let statement_span = statement.span();
-    let dep = HarmonyExportExpressionDependency::new(
-      DependencyLocation::new(
-        expr_span.real_lo(),
-        expr_span.real_hi(),
-        Some(parser.source_map.clone()),
-      ),
-      DependencyLocation::new(
-        statement_span.real_lo(),
-        statement_span.real_hi(),
-        Some(parser.source_map.clone()),
-      ),
+    let dep: HarmonyExportExpressionDependency = HarmonyExportExpressionDependency::new(
+      ErrorLocation::new(statement.span(), &parser.source_map),
+      ErrorSpan::new(expr_span.real_lo(), expr_span.real_hi()),
+      ErrorSpan::new(statement_span.real_lo(), statement_span.real_hi()),
       match expr {
         ExportDefaultExpression::FnDecl(f) => {
           let start = f.span().real_lo();
@@ -169,14 +158,14 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
           } else {
             f.function.body.span().real_lo()
           };
-          Some(DeclarationId::Func(DeclarationInfo {
-            range: DependencyLocation::new(start, end, Some(parser.source_map.clone())),
-            prefix: format!(
+          Some(DeclarationId::Func(DeclarationInfo::new(
+            ErrorSpan::new(start, end),
+            format!(
               "{}function{} ",
               if f.function.is_async { "async " } else { "" },
               if f.function.is_generator { "*" } else { "" },
             ),
-            suffix: format!(
+            format!(
               r#"({}"#,
               if f.function.params.is_empty() {
                 ") "
@@ -184,7 +173,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
                 ""
               }
             ),
-          }))
+          )))
         }
         ExportDefaultExpression::ClassDecl(c) => c
           .ident

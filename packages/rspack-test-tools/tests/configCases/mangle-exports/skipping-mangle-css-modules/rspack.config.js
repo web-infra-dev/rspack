@@ -13,7 +13,7 @@ module.exports = {
 				test: /\.module\.css$/,
 				type: "css/module",
 				generator: {
-					exportsOnly: false,
+					exportsOnly: true,
 				},
 				parser: {
 					namedExports: false,

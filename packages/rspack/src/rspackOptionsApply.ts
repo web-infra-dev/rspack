@@ -67,7 +67,7 @@ import {
 	WorkerPlugin
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
-import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
@@ -192,8 +192,8 @@ export class RspackOptionsApply {
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
 					append: hidden ? false : undefined,
-					module: moduleMaps ? true : cheap ? false : true,
-					columns: cheap ? false : true,
+					module: moduleMaps ? true : !cheap,
+					columns: !cheap,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace
 				}).apply(compiler);

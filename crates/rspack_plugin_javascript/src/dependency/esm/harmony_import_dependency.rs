@@ -12,8 +12,8 @@ use rspack_core::{
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
-use rspack_error::DiagnosticExt;
 use rspack_error::{Diagnostic, TraceableError};
+use rspack_error::{DiagnosticExt, ErrorLocation};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -44,6 +44,7 @@ pub struct HarmonyImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
+  pub loc: ErrorLocation,
   pub span: ErrorSpan,
   pub source_span: ErrorSpan,
   pub dependency_type: DependencyType,
@@ -53,9 +54,11 @@ pub struct HarmonyImportSideEffectDependency {
 }
 
 impl HarmonyImportSideEffectDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
     source_order: i32,
+    loc: ErrorLocation,
     span: ErrorSpan,
     source_span: ErrorSpan,
     dependency_type: DependencyType,
@@ -68,6 +71,7 @@ impl HarmonyImportSideEffectDependency {
       id: DependencyId::new(),
       source_order,
       request,
+      loc,
       span,
       source_span,
       dependency_type,
@@ -203,10 +207,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   additional_msg: String,
   should_error: bool,
 ) -> Option<Diagnostic> {
-  let Some(imported_module) = module_graph.get_module_by_dependency_id(module_dependency.id())
-  else {
-    return None;
-  };
+  let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if !imported_module.get_diagnostics().is_empty() {
     return None;
   }
@@ -216,7 +217,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type = imported_module.get_exports_type_readonly(
+  let exports_type = imported_module.get_exports_type(
     module_graph,
     parent_module
       .build_meta()
@@ -271,21 +272,18 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(
-        module_graph
-          .get_exports_info(&imported_module_identifier)
-          .id,
-      );
+      let mut maybe_exports_info = Some(module_graph.get_exports_info(&imported_module_identifier));
       while pos < ids.len()
         && let Some(exports_info) = maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(id, module_graph);
-        if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
-          let provided_exports = exports_info
-            .get_exports_info(module_graph)
-            .get_provided_exports(module_graph);
+        let export_info = exports_info.get_read_only_export_info(module_graph, id);
+        if matches!(
+          export_info.provided(module_graph),
+          Some(ExportInfoProvided::False)
+        ) {
+          let provided_exports = exports_info.get_provided_exports(module_graph);
           let more_info = if let ProvidedExports::Vec(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -315,7 +313,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = export_info.id.get_nested_exports_info(module_graph);
+        maybe_exports_info = export_info.get_nested_exports_info(module_graph);
       }
       let msg = format!(
         "export {} {} was not found in '{}'",
@@ -376,6 +374,10 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
 impl Dependency for HarmonyImportSideEffectDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc)
   }
 
   fn span(&self) -> Option<ErrorSpan> {

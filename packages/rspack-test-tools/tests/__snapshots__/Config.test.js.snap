@@ -1,5 +1,15 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
+"body {
+  & .-ca56f23580d7bbb484-used {
+    color: #00f;
+  }
+}
+
+head{--webpack--909:used:-ca56f23580d7bĒ484-ĀĂ/&_368;}"
+`;
+
 exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
   "style": "-ca56f23580d7bbb484-style",
@@ -206,7 +216,7 @@ exports[`config config/chunk-index/available-modules-order-index exported tests 
 .n {
   color: blue;
 }
-"
+head{--webpack--shared:&_547,Ā587;}"
 `;
 
 exports[`config config/css/at-import-in-the-top exported tests at-import-in-the-top 1`] = `
@@ -229,7 +239,7 @@ exports[`config config/css/at-import-in-the-top exported tests at-import-in-the-
 	color: red;
 }
 
-"
+head{--webpack--909:&_412,Ā645ą_34;}"
 `;
 
 exports[`config config/css/export-selector exported tests should have correct css result 1`] = `
@@ -246,7 +256,7 @@ exports[`config config/css/export-selector exported tests should have correct cs
 
 /* #endregion \\"./style.module.css?imported\\" */
 
-"
+head{--webpack--imported_js:foo:foo/bar:b a r/local:local/dashName:dashName/&\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
 `;
 
 exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `"5d8d67b36a3d70a5cea9.png"`;
@@ -314,6 +324,73 @@ div {
 		50% 50%/191px no-repeat;
 }
 
+head{--webpack--120:&_13;}"
+`;
+
+exports[`config config/library/modern-module-force-concaten step  should pass 1`] = `
+"
+;// CONCATENATED MODULE: ./a.js
+const a = 'a'
+
+export { a };
+"
+`;
+
+exports[`config config/library/modern-module-force-concaten step  should pass 2`] = `
+"var __webpack_modules__ = ({
+\\"772\\": (function (module) {
+
+;// CONCATENATED MODULE: ./b.cjs
+module.exports = 'b'
+
+}),
+
+});
+/************************************************************************/
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+/************************************************************************/
+// startup
+// Load entry module and return exports
+// This entry module is referenced by other modules so it can't be inlined
+var __webpack_exports__ = __webpack_require__(\\"772\\");
+"
+`;
+
+exports[`config config/library/modern-module-force-concaten step  should pass 3`] = `
+"
+;// CONCATENATED MODULE: ./c.js
+const c = 'c'
+
+"
+`;
+
+exports[`config config/library/modern-module-force-concaten step  should pass 4`] = `
+"
+;// CONCATENATED MODULE: ./d.mjs
+const d = 'd'
+export { d };
 "
 `;
 
@@ -399,5 +476,5 @@ exports[`config config/schemes/data-imports exported tests data imports 1`] = `
   d: url(26a611d6d05cbb01e459);
 }
 
-"
+head{--webpack--909:&_653,Ā47ĄĀ645ą_49Ď571;}"
 `;

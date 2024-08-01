@@ -2,6 +2,8 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 # 性能分析
 
+## Rspack Profile
+
 <ApiMeta addedVersion={'0.3.0'} />
 
 Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析。
@@ -15,3 +17,36 @@ $ RSPACK_PROFILE=ALL rspack build
 - `trace.json`：使用 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录了 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看
 - `jscpuprofile.json`：使用 [Node.js inspector](https://nodejs.org/dist/latest-v18.x/docs/api/inspector.html) 细粒度地记录了 JavaScript 侧的各个阶段的耗时，可以使用 [speedscope.app](https://www.speedscope.app/) 进行查看
 - `logging.json`：包含一些日志信息，粗粒度地记录了构建的各个阶段耗时
+
+## Rsdoctor 的编译分析
+
+你可以通过使用 Rsdoctor 来查看 Loader 和 Plugin 的编译耗时及编译过程。
+
+#### Loader Timeline
+
+如果想要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+
+您可以在时间轴中查看每个 Loader 的执行时间以及编译的文件，以及这个 Loader 编译文件所花费的时间。
+
+参考 [Loader Timeline](https://rsdoctor.dev/guide/usage/loaders-timeline).
+
+#### Loader Details
+
+如果你想查看 Loader 对代码编译过程，那么可以利用 [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis) 功能:
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-analyze-code.png)
+
+在这个报告页面中，你可以查看到 Loader 对每个文件的编译前后的代码的变化。
+
+参考 [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis).
+
+#### 开启编译耗时分析
+
+关于如何启用 `RsdoctorRspackPlugin`，可以参考 [使用 Rsdoctor](/guide/optimization/use-rsdoctor)。
+
+- `RsdoctorRspackPlugin` 的 `features.loader` 和 `features.plugins` 参数需要为 `true`，`features.loader` 和 `features.plugins` 是默认开启的。查看参数文档[Rsdoctor options](https://rsdoctor.dev/zh/config/options/options#features)。
+- 使用文档：
+  - Loader Analysis 使用文档可查看 [Loader Timeline](https://rsdoctor.dev/zh/guide/usage/loaders-timeline) 和 [Loader Details](https://rsdoctor.dev/zh/guide/usage/loaders-analysis)。
+  - Plugins Analysis 使用文档可查看 [Plugin Analysis](https://rsdoctor.dev/zh/guide/usage/plugins-analysis)。

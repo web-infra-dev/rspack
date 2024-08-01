@@ -1,26 +1,36 @@
 use rspack_core::{
   import_statement, runtime_condition_expression, AsDependency, DependencyId, DependencyTemplate,
-  RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  ErrorSpan, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
+use rspack_error::ErrorLocation;
 
 use crate::dependency::get_import_emitted_runtime;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyAcceptDependency {
-  start: u32,
-  end: u32,
+  loc: ErrorLocation,
+  range: ErrorSpan,
   has_callback: bool,
   dependency_ids: Vec<DependencyId>,
 }
 
 impl HarmonyAcceptDependency {
-  pub fn new(start: u32, end: u32, has_callback: bool, dependency_ids: Vec<DependencyId>) -> Self {
+  pub fn new(
+    loc: ErrorLocation,
+    range: ErrorSpan,
+    has_callback: bool,
+    dependency_ids: Vec<DependencyId>,
+  ) -> Self {
     Self {
-      start,
-      end,
+      loc,
+      range,
       has_callback,
       dependency_ids,
     }
+  }
+
+  pub fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc)
   }
 }
 
@@ -93,18 +103,18 @@ impl DependencyTemplate for HarmonyAcceptDependency {
 
     if self.has_callback {
       source.insert(
-        self.start,
+        self.range.start,
         format!("function(__WEBPACK_OUTDATED_DEPENDENCIES__) {{\n{content}(").as_str(),
         None,
       );
       source.insert(
-        self.end,
+        self.range.end,
         ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this)",
         None,
       );
     } else {
       source.insert(
-        self.start,
+        self.range.start,
         format!(", function(){{\n{content}\n}}").as_str(),
         None,
       );

@@ -11,13 +11,14 @@
 import assert from "node:assert";
 
 import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
-import {
-	DynamicEntryPlugin,
-	type EntryOptions,
-	EntryPlugin
-} from "../builtin-plugin";
+import { DynamicEntryPlugin, EntryPlugin } from "../builtin-plugin";
+import type { EntryOptions } from "../builtin-plugin";
 
-export default class EntryOptionPlugin {
+export class EntryOptionPlugin {
+	/**
+	 * @param compiler the compiler instance one is tapping into
+	 * @returns
+	 */
 	apply(compiler: Compiler) {
 		compiler.hooks.entryOption.tap("EntryOptionPlugin", (context, entry) => {
 			EntryOptionPlugin.applyEntryOption(compiler, context, entry);
@@ -25,6 +26,12 @@ export default class EntryOptionPlugin {
 		});
 	}
 
+	/**
+	 * @param compiler the compiler
+	 * @param context context directory
+	 * @param entry request
+	 * @returns
+	 */
 	static applyEntryOption(
 		compiler: Compiler,
 		context: string,
@@ -51,6 +58,12 @@ export default class EntryOptionPlugin {
 		}
 	}
 
+	/**
+	 * @param compiler the compiler
+	 * @param name entry name
+	 * @param desc entry description
+	 * @returns options for the entry
+	 */
 	static entryDescriptionToOptions(
 		compiler: Compiler,
 		name: string,
@@ -89,3 +102,5 @@ export default class EntryOptionPlugin {
 		return options;
 	}
 }
+
+export default EntryOptionPlugin;
