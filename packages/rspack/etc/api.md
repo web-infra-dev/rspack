@@ -4042,7 +4042,7 @@ interface GlobalPassOption {
 }
 
 // @public (undocumented)
-type GotHandler<T = any> = (result: any | null, callback: (error: Error) => void) => void;
+type GotHandler<T = any> = (result: any | null, callback: (error: Error | null) => void) => void;
 
 // @public (undocumented)
 type GroupConfig = {

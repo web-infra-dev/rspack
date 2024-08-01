@@ -487,27 +487,6 @@ Get a cache object with the specified name, which can be used for the plugin to 
 getCache(name: string): CacheFacade;
 ```
 
-The following code finds out the newly added assets in the `processAssets`:
-
-```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
-  const cache = compilation.getCache('MyPlugin');
-
-  compilation.hooks.processAssets.tap('MyPlugin', () => {
-    const currentAssets = compilation.getAssets().map(i => i.name);
-    const lastAssets = cache.get('assets', null);
-    if (lastAsset) {
-      for (const asset of currentAssets) {
-        if (!lastAssets.contains(asset)) {
-          console.log(`New asset: ${asset}`);
-        }
-      }
-    }
-    cache.store('assets', null, currentAssets);
-  });
-});
-```
-
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
     <CacheType />

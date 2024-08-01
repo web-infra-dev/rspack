@@ -25,13 +25,13 @@ export type CallbackCache<T> = (err?: WebpackError | null, result?: T) => void;
 
 type GotHandler<T = any> = (
 	result: any | null,
-	callback: (error: Error) => void
+	callback: (error: Error | null) => void
 ) => void;
 
 const needCalls = (
 	times: number,
 	callback: () => void
-): ((error: Error) => void) => {
+): ((error: Error | null) => void) => {
 	return err => {
 		if (--times === 0) {
 			return callback();

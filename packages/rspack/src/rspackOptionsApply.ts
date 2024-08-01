@@ -68,6 +68,7 @@ import {
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
+import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
@@ -361,6 +362,10 @@ export class RspackOptionsApply {
 		}
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);
+
+		if (options.cache) {
+			new MemoryCachePlugin().apply(compiler);
+		}
 
 		new WorkerPlugin(
 			options.output.workerChunkLoading!,
