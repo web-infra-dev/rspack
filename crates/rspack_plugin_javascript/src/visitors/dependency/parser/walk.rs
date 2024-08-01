@@ -1349,9 +1349,9 @@ impl<'parser> JavascriptParser<'parser> {
               if let Some(body) = &ctor.body {
                 this.detect_mode(&body.stmts);
                 let prev = this.prev_statement;
-                this.pre_walk_block_statement(body);
+                this.pre_walk_statement(Statement::Block(body));
                 this.prev_statement = prev;
-                this.walk_block_statement(body);
+                this.walk_statement(Statement::Block(body));
               }
             });
 
