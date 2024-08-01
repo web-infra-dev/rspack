@@ -6,7 +6,7 @@ use rspack_core::{EntryOptions, EntryRuntime};
 use crate::RawLibraryOptions;
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawEntryPluginOptions {
   pub context: String,
   pub entry: String,
@@ -29,7 +29,7 @@ impl From<RawEntryRuntimeWrapper> for EntryRuntime {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawEntryOptions {
   pub name: Option<String>,
   #[napi(ts_type = "false | string")]
