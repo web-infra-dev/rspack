@@ -96,12 +96,27 @@ module.exports = {
 
 <ApiMeta addedVersion="0.7.0" />
 
-- **类型：**
+- **类型：** `boolean`, `Object`
+- **默认值：** `false`
 
 ```ts
 type LazyCompilationOptions =
   | boolean
   | {
+      backend?: {
+        /**
+         * A custom client.
+         */
+        client?: string;
+        /**
+         * Specify where to listen to from the server.
+         */
+        listen?: number | ListenOptions;
+        /**
+         * Specify the protocol the client should use to connect to the server.
+         */
+        protocol?: 'http' | 'https';
+      };
       /**
        * 为 entries 启用 lazy compilation
        */
@@ -116,8 +131,6 @@ type LazyCompilationOptions =
       test?: RegExp | ((m: Module) => boolean);
     };
 ```
-
-- **默认值：** `false`
 
 开启懒编译，这对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。例如你有二十个入口，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
 
@@ -139,6 +152,26 @@ module.exports = {
 :::note
 当前 lazy compilation 是对齐 webpack 实现的，**并且仍处于实验性阶段**。在部分场景下，lazy compilation 可能无法按照预期工作，或是性能提升不明显。
 :::
+
+### experiments.lazyCompilation.backend.listen
+
+- **类型：** `number`, `ListenOptions`
+
+```ts
+type ListenOptions = {
+  port?: number | undefined;
+  host?: string | undefined;
+  backlog?: number | undefined;
+  path?: string | undefined;
+  exclusive?: boolean | undefined;
+  readableAll?: boolean | undefined;
+  writableAll?: boolean | undefined;
+  /**
+   * @default false
+   */
+  ipv6Only?: boolean | undefined;
+};
+```
 
 ### 排除 HMR client
 

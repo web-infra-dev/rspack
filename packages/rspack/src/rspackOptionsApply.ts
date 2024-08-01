@@ -281,7 +281,6 @@ export class RspackOptionsApply {
 								flags: lazyOptions.test.flags
 							}
 						: undefined,
-				// @ts-expect-error backend is hide
 				lazyOptions.backend
 			).apply(compiler);
 		}
