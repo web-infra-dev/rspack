@@ -2,6 +2,7 @@ use lightningcss::targets::Browsers;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Draft {
   pub custom_media: bool,
 }
