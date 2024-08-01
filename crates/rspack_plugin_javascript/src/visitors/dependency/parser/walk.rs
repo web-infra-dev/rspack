@@ -541,7 +541,7 @@ impl<'parser> JavascriptParser<'parser> {
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &getter.body {
-          self.walk_block_statement(body);
+          self.walk_statement(Statement::Block(body));
         }
         self.top_level_scope = was_top_level;
       }
@@ -550,7 +550,7 @@ impl<'parser> JavascriptParser<'parser> {
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
         if let Some(body) = &setter.body {
-          self.walk_block_statement(body);
+          self.walk_statement(Statement::Block(body));
         }
         self.top_level_scope = was_top_level;
       }
@@ -1436,7 +1436,7 @@ impl<'parser> JavascriptParser<'parser> {
           ClassMember::StaticBlock(block) => {
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
-            this.walk_block_statement(&block.body);
+            this.walk_statement(Statement::Block(&block.body));
             this.top_level_scope = was_top_level;
           }
           ClassMember::Empty(_) => {}
