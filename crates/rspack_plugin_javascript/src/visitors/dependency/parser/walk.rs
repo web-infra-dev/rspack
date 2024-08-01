@@ -1436,7 +1436,7 @@ impl<'parser> JavascriptParser<'parser> {
           ClassMember::StaticBlock(block) => {
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
-            this.walk_block_statement(Statement::Block(&block.body));
+            this.walk_block_statement(&block.body);
             this.top_level_scope = was_top_level;
           }
           ClassMember::Empty(_) => {}
