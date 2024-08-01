@@ -1,8 +1,12 @@
+mod dependency;
+mod entries;
+
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
+use entries::JsEntryDataMap;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
@@ -10,9 +14,6 @@ use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
-use rspack_core::Compilation;
-use rspack_core::Dependency;
-use rspack_core::DependencyId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
@@ -589,114 +590,4 @@ pub struct JsExecuteModuleResult {
 pub struct JsBuildTimeExecutionOption {
   pub public_path: Option<String>,
   pub base_uri: Option<String>,
-}
-
-#[napi(object)]
-pub struct JsEntryData {
-  pub dependencies: Vec<ClassInstance<JsDependency>>,
-  pub include_dependencies: Vec<ClassInstance<JsDependency>>,
-  // pub options: JsEntryOptions,
-}
-
-#[napi]
-pub struct JsEntryDataMap {
-  compilation: &'static mut Compilation,
-}
-
-impl JsEntryDataMap {
-  pub fn new(compilation: &'static mut Compilation) -> Self {
-    Self { compilation }
-  }
-}
-
-#[napi]
-impl JsEntryDataMap {
-  #[napi]
-  pub fn has(&self, key: String) -> bool {
-    self.compilation.entries.contains_key(&key)
-  }
-
-  pub fn set(&mut self, key: String, value: JsEntryData) {
-    unimplemented!()
-  }
-
-  #[napi]
-  pub fn delete(&mut self, key: String) {
-    self.compilation.entries.swap_remove(&key);
-  }
-
-  pub fn get(&'static self, env: Env, key: String) -> Result<Option<JsEntryData>> {
-    let entry = self.compilation.entries.get(&key);
-
-    Ok(match entry {
-      Some(e) => {
-        let dependencies = e
-          .dependencies
-          .clone()
-          .into_iter()
-          .map(|id| {
-            let js_dep = JsDependency::new(id, self.compilation);
-            let instance = js_dep.into_instance(env)?;
-            Ok(instance)
-          })
-          .collect::<Result<Vec<ClassInstance<JsDependency>>>>()?;
-        let include_dependencies = e
-          .include_dependencies
-          .clone()
-          .into_iter()
-          .map(|id| {
-            let js_dep = JsDependency::new(id, self.compilation);
-            let instance = js_dep.into_instance(env)?;
-            Ok(instance)
-          })
-          .collect::<Result<Vec<ClassInstance<JsDependency>>>>()?;
-        Some(JsEntryData {
-          dependencies,
-          include_dependencies,
-        })
-      }
-      None => None,
-    })
-  }
-
-  #[napi]
-  pub fn keys(&self) -> Vec<&String> {
-    self.compilation.entries.keys().collect()
-  }
-}
-
-#[napi]
-pub struct JsDependency {
-  dependency_id: DependencyId,
-  compilation: &'static Compilation,
-}
-
-impl JsDependency {
-  pub(crate) fn new(dependency_id: DependencyId, compilation: &'static Compilation) -> Self {
-    Self {
-      dependency_id,
-      compilation,
-    }
-  }
-}
-
-#[napi]
-impl JsDependency {
-  #[napi(getter)]
-  pub fn get_type(&self) -> &str {
-    let module_graph = self.compilation.get_module_graph();
-    let dep = module_graph
-      .dependency_by_id(&self.dependency_id)
-      .unwrap_or_else(|| panic!("Failed to get dependency by id = {:?}", &self.dependency_id));
-    dep.dependency_type().as_str()
-  }
-
-  #[napi(getter)]
-  pub fn category(&self) -> &str {
-    let module_graph = self.compilation.get_module_graph();
-    let dep = module_graph
-      .dependency_by_id(&self.dependency_id)
-      .unwrap_or_else(|| panic!("Failed to get dependency by id = {:?}", &self.dependency_id));
-    dep.category().as_str()
-  }
 }
