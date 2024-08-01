@@ -1,8 +1,9 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 
-static SAFE_IDENTIFIER_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("should init regex"));
+static SAFE_IDENTIFIER_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("should init regex"));
 const RESERVED_IDENTIFIER: [&str; 37] = [
   "break",
   "case",

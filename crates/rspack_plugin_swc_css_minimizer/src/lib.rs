@@ -1,6 +1,7 @@
 mod swc_css_compiler;
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{rspack_sources::MapOptions, Compilation, CompilationProcessAssets, Plugin};
@@ -10,8 +11,8 @@ use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
-static CSS_ASSET_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
+static CSS_ASSET_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, Default)]
 pub struct SwcCssMinimizerRspackPluginOptions {

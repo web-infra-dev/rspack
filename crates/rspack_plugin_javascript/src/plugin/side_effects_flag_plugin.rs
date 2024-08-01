@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
@@ -328,8 +328,8 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   }
 }
 
-static PURE_COMMENTS: Lazy<regex::Regex> =
-  Lazy::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+static PURE_COMMENTS: LazyLock<regex::Regex> =
+  LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
 
 fn is_pure_call_expr(
   call_expr: &CallExpr,

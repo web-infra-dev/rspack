@@ -1,14 +1,14 @@
+use std::sync::LazyLock;
 use std::{fmt::Display, sync::Arc};
 
 use miette::{Diagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan};
-use once_cell::sync::Lazy;
 use swc_core::common::SourceFile;
 use thiserror::Error;
 
 use crate::RspackSeverity;
 
 #[allow(clippy::rc_buffer)]
-static EMPTY_STRING: Lazy<Arc<String>> = Lazy::new(|| Arc::new("".to_string()));
+static EMPTY_STRING: LazyLock<Arc<String>> = LazyLock::new(|| Arc::new("".to_string()));
 
 #[derive(Debug, Error)]
 #[error(transparent)]

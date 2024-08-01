@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
@@ -83,10 +84,11 @@ impl Plugin for MangleExportsPlugin {
 fn compare_strings_numeric(a: Option<&Atom>, b: Option<&Atom>) -> std::cmp::Ordering {
   a.cmp(&b)
 }
-static MANGLE_NAME_NORMAL_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^[a-zA-Z0-9_$]").expect("should construct regex"));
-static MANGLE_NAME_DETERMINISTIC_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^[a-zA-Z_$][a-zA-Z0-9_$]|^[1-9][0-9]").expect("should construct regex"));
+static MANGLE_NAME_NORMAL_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("^[a-zA-Z0-9_$]").expect("should construct regex"));
+static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new("^[a-zA-Z_$][a-zA-Z0-9_$]|^[1-9][0-9]").expect("should construct regex")
+});
 
 /// Function to mangle exports information.
 fn mangle_exports_info(

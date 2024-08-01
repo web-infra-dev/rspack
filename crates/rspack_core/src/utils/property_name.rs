@@ -1,13 +1,13 @@
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
-pub static SAFE_IDENTIFIER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("Invalid regexp"));
-pub static RESERVED_IDENTIFIER: Lazy<HashSet<&str>> = Lazy::new(|| {
+pub static SAFE_IDENTIFIER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("Invalid regexp"));
+pub static RESERVED_IDENTIFIER: LazyLock<HashSet<&str>> = LazyLock::new(|| {
   HashSet::from_iter([
     "break",
     "case",

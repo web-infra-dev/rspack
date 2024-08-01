@@ -326,6 +326,7 @@ export interface JsChunkGroup {
   chunks: Array<JsChunk>
   index?: number
   name?: string
+  isInitial: boolean
 }
 
 export interface JsChunkPathData {
@@ -1422,6 +1423,9 @@ export interface RawProvideOptions {
   shareScope: string
   version?: string | false | undefined
   eager: boolean
+  singleton?: boolean
+  requiredVersion?: string | false | undefined
+  strictVersion?: boolean
 }
 
 export interface RawRegex {

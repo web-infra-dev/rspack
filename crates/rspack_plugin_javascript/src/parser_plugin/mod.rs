@@ -59,8 +59,8 @@ pub(crate) use self::use_strict_plugin::UseStrictPlugin;
 pub(crate) use self::webpack_included_plugin::WebpackIsIncludedPlugin;
 pub(crate) use self::worker_plugin::WorkerPlugin;
 
-pub static JS_DEFAULT_KEYWORD: once_cell::sync::Lazy<swc_core::atoms::Atom> =
-  once_cell::sync::Lazy::new(|| swc_core::atoms::atom!("default"));
+pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_core::atoms::Atom> =
+  std::sync::LazyLock::new(|| swc_core::atoms::atom!("default"));
 
-pub static DEFAULT_STAR_JS_WORD: once_cell::sync::Lazy<swc_core::atoms::Atom> =
-  once_cell::sync::Lazy::new(|| swc_core::atoms::atom!("*default*"));
+pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<swc_core::atoms::Atom> =
+  std::sync::LazyLock::new(|| swc_core::atoms::atom!("*default*"));

@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   fmt::Debug,
@@ -8,7 +9,6 @@ use std::{
 };
 
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
@@ -185,8 +185,8 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
-static PREPARE_ID_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+static PREPARE_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
   pub fn prepare_id(v: &str) -> Cow<str> {

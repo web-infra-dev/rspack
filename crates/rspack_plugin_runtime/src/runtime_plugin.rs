@@ -1,7 +1,7 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
-use once_cell::sync::Lazy;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
   ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationParams,
@@ -27,7 +27,7 @@ use crate::runtime_module::{
   RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
-static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
+static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
   vec![
     RuntimeGlobals::CHUNK_NAME,
     RuntimeGlobals::RUNTIME_ID,
@@ -62,57 +62,59 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
   ]
 });
 
-static MODULE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Lazy::new(|| {
-  vec![
-    (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
-    (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
-    (
-      RuntimeGlobals::HARMONY_MODULE_DECORATOR,
-      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-    ),
-    (
-      RuntimeGlobals::NODE_MODULE_DECORATOR,
-      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-    ),
-  ]
-});
+static MODULE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> =
+  LazyLock::new(|| {
+    vec![
+      (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
+      (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
+      (
+        RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+      ),
+      (
+        RuntimeGlobals::NODE_MODULE_DECORATOR,
+        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+      ),
+    ]
+  });
 
-static TREE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Lazy::new(|| {
-  vec![
-    (
-      RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
-      vec![RuntimeGlobals::DEFINE_PROPERTY_GETTERS],
-    ),
-    (
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-      vec![
+static TREE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> =
+  LazyLock::new(|| {
+    vec![
+      (
+        RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+        vec![RuntimeGlobals::DEFINE_PROPERTY_GETTERS],
+      ),
+      (
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        vec![
+          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+          RuntimeGlobals::REQUIRE,
+        ],
+      ),
+      (
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-        RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-        RuntimeGlobals::REQUIRE,
-      ],
-    ),
-    (
-      RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-      vec![RuntimeGlobals::HAS_OWN_PROPERTY],
-    ),
-    (
-      RuntimeGlobals::INITIALIZE_SHARING,
-      vec![RuntimeGlobals::SHARE_SCOPE_MAP],
-    ),
-    (
-      RuntimeGlobals::SHARE_SCOPE_MAP,
-      vec![RuntimeGlobals::HAS_OWN_PROPERTY],
-    ),
-    (
-      RuntimeGlobals::HARMONY_MODULE_DECORATOR,
-      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-    ),
-    (
-      RuntimeGlobals::NODE_MODULE_DECORATOR,
-      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-    ),
-  ]
-});
+        vec![RuntimeGlobals::HAS_OWN_PROPERTY],
+      ),
+      (
+        RuntimeGlobals::INITIALIZE_SHARING,
+        vec![RuntimeGlobals::SHARE_SCOPE_MAP],
+      ),
+      (
+        RuntimeGlobals::SHARE_SCOPE_MAP,
+        vec![RuntimeGlobals::HAS_OWN_PROPERTY],
+      ),
+      (
+        RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+      ),
+      (
+        RuntimeGlobals::NODE_MODULE_DECORATOR,
+        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+      ),
+    ]
+  });
 
 fn handle_require_scope_globals(
   runtime_requirements: &RuntimeGlobals,

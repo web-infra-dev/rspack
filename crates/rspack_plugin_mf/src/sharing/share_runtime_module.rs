@@ -9,7 +9,7 @@ use rspack_core::{
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::utils::json_stringify;
+use crate::{utils::json_stringify, ConsumeVersion};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -76,13 +76,29 @@ impl RuntimeModule for ShareRuntimeModule {
           .map(|info| match info {
             DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
             DataInitInfo::ProvideSharedInfo(info) => {
-              format!(
-                "{{ name: {}, version: {}, factory: {}, eager: {} }}",
+              let mut stage = format!(
+                "{{ name: {}, version: {}, factory: {}, eager: {}",
                 json_stringify(&info.name),
                 json_stringify(&info.version.to_string()),
                 info.factory,
-                if info.eager { "1" } else { "0" }
-              )
+                if info.eager { "1" } else { "0" },
+              );
+              if self.enhanced {
+                if let Some(singleton) = info.singleton {
+                  stage += ", singleton: ";
+                  stage += if singleton { "1" } else { "0" };
+                }
+                if let Some(required_version) = info.required_version {
+                  stage += ", requiredVersion: ";
+                  stage += &json_stringify(&required_version.to_string());
+                }
+                if let Some(strict_version) = info.strict_version {
+                  stage += ", strictVersion: ";
+                  stage += if strict_version { "1" } else { "0" };
+                }
+              }
+              stage += " }";
+              stage
             }
             _ => "".to_string(),
           })
@@ -141,4 +157,7 @@ pub struct ProvideSharedInfo {
   pub version: ProvideVersion,
   pub factory: String,
   pub eager: bool,
+  pub singleton: Option<bool>,
+  pub required_version: Option<ConsumeVersion>,
+  pub strict_version: Option<bool>,
 }

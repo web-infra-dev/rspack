@@ -11,7 +11,6 @@ version    = "0.1.0"
 async-trait              = { workspace = true }
 indexmap                 = { workspace = true }
 itertools                = { workspace = true }
-once_cell                = { workspace = true }
 rspack_collections       = { path = "../rspack_collections" }
 rspack_core              = { path = "../rspack_core" }
 rspack_error             = { path = "../rspack_error" }
