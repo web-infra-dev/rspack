@@ -14,8 +14,6 @@ pub use callback::JsCallback;
 pub mod threadsafe_function;
 pub mod threadsafe_js_value_ref;
 
-mod value_ref;
-
 pub mod regexp {
   pub use crate::ext::js_reg_exp_ext::JsRegExpExt;
   pub use crate::js_values::js_reg_exp::JsRegExp;
@@ -31,4 +29,4 @@ pub mod napi {
   pub use napi::*;
 }
 
-pub use value_ref::*;
+pub use js_values::value_ref::*;

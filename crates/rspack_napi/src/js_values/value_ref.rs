@@ -1,5 +1,6 @@
 // Copied from https://github.com/napi-rs/napi-rs/blob/main/crates/napi/src/js_values/value_ref.rs
-// Added implementation for &Ref and &mut Ref to ToNapiValue.
+// 1. A new implementation has been added for creating a reference from raw napi_env and napi_value.
+// 2. Implementation for &Ref and &mut Ref has been added to trait ToNapiValue.
 
 use std::ptr;
 
@@ -16,7 +17,7 @@ unsafe impl Send for Ref {}
 unsafe impl Sync for Ref {}
 
 impl Ref {
-  pub(crate) fn new(env: napi_env, value: napi_value, ref_count: u32) -> Result<Ref> {
+  pub fn new(env: napi_env, value: napi_value, ref_count: u32) -> Result<Ref> {
     let mut raw_ref = ptr::null_mut();
     assert_ne!(ref_count, 0, "Initial `ref_count` must be > 0");
     check_status!(unsafe { sys::napi_create_reference(env, value, ref_count, &mut raw_ref) })?;
