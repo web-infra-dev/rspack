@@ -19,16 +19,6 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export class Entries {
-  clear(): void
-  get size(): number
-  has(key: string): boolean
-  set(key: string, value: JsEntryData): void
-  delete(key: string): boolean
-  get(key: string): JsEntryData | undefined
-  keys(): Array<string>
-}
-
 export class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
@@ -72,12 +62,22 @@ export class JsCompilation {
   addBuildDependencies(deps: Array<string>): void
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
-  get entries(): Entries
+  get entries(): JsEntries
 }
 
 export class JsDependency {
   get type(): string
   get category(): string
+}
+
+export class JsEntries {
+  clear(): void
+  get size(): number
+  has(key: string): boolean
+  set(key: string, value: JsEntryData): void
+  delete(key: string): boolean
+  get(key: string): JsEntryData | undefined
+  keys(): Array<string>
 }
 
 export class JsResolver {

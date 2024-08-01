@@ -12,18 +12,18 @@ pub struct JsEntryData {
 }
 
 #[napi]
-pub struct Entries {
+pub struct JsEntries {
   compilation: &'static mut Compilation,
 }
 
-impl Entries {
+impl JsEntries {
   pub fn new(compilation: &'static mut Compilation) -> Self {
     Self { compilation }
   }
 }
 
 #[napi]
-impl Entries {
+impl JsEntries {
   #[napi]
   pub fn clear(&mut self) {
     self.compilation.entries.drain(..);
@@ -40,7 +40,7 @@ impl Entries {
   }
 
   #[napi]
-  pub fn set(&mut self, key: String, value: JsEntryData) {
+  pub fn set(&mut self, _key: String, _value: JsEntryData) {
     unimplemented!()
   }
 

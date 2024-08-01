@@ -1156,9 +1156,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 export type EntryData = binding.JsEntryData;
 
 export class Entries implements Map<string, EntryData> {
-	#data: binding.Entries;
+	#data: binding.JsEntries;
 
-	constructor(data: binding.Entries) {
+	constructor(data: binding.JsEntries) {
 		this.#data = data;
 	}
 
