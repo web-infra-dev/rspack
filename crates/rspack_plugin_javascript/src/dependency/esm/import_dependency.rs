@@ -32,7 +32,7 @@ pub fn create_import_dependency_referenced_exports(
         else {
           return create_exports_object_referenced();
         };
-        let exports_type = imported_module.get_exports_type_readonly(mg, strict);
+        let exports_type = imported_module.get_exports_type(mg, strict);
         if matches!(
           exports_type,
           ExportsType::DefaultOnly | ExportsType::DefaultWithNamed

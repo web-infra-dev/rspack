@@ -83,6 +83,7 @@ module.exports = {
         dynamicImportPrefetch: false,
         dynamicImportPreload: false,
         url: true,
+        importMeta: true,
       },
       // CSS 模块的解析器选项
       css: {
@@ -214,6 +215,15 @@ module.exports = {
 - **类型：** `"error" | "warn" | "auto" | false`
 
 当使用了不存在的导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
+
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否要解析替换 `import.meta`。
 
 #### module.parser.javascript.reexportExportsPresence
 

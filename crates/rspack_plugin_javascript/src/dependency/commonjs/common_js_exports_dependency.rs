@@ -121,7 +121,6 @@ impl DependencyTemplate for CommonJsExportsDependency {
 
     let used = module_graph
       .get_exports_info(&module.identifier())
-      .id
       .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
     let exports_argument = module.get_exports_argument();

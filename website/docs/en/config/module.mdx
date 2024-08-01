@@ -83,6 +83,7 @@ module.exports = {
         dynamicImportPrefetch: false,
         dynamicImportPreload: false,
         url: true,
+        importMeta: true,
       },
       // Parser options for CSS modules
       css: {
@@ -214,6 +215,15 @@ Warn or error for using non-existent exports and conflicting re-exports.
 - **Type:** `"error" | "warn" | "auto" | false`
 
 Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable evaluating `import.meta`.
 
 #### module.parser.javascript.reexportExportsPresence
 

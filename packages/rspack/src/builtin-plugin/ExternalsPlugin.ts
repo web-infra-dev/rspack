@@ -38,7 +38,7 @@ function getRawExternalItem(item: ExternalItem | undefined): RawExternalItem {
 						externalType: type
 					});
 				}) as Promise<ExternalItemValue>;
-				if (promise && promise.then) {
+				if (promise?.then) {
 					promise.then(
 						result =>
 							resolve({

@@ -253,6 +253,7 @@ const applyJavascriptParserOptionsDefaults = (
 	);
 	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
 	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
+	D(parserOptions, "importMeta", fallback?.importMeta ?? true);
 };
 
 const applyModuleDefaults = (
@@ -589,8 +590,9 @@ const applyOutputDefaults = (
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
-	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
-	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
+	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);
+	F(output, "chunkLoadingGlobal", () => `webpackChunk${uniqueNameId}`);
+	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
@@ -617,10 +619,7 @@ const applyOutputDefaults = (
 				if (tp.dynamicImport) return "module";
 				if (tp.document) return "array-push";
 				throw new Error(
-					"For the selected environment is no default ESM chunk format available:\n" +
-						"ESM exports can be chosen when 'import()' is available.\n" +
-						"JSONP Array push can be chosen when 'document' is available.\n" +
-						helpMessage
+					`For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n${helpMessage}`
 				);
 			}
 			if (tp.document) return "array-push";
@@ -628,10 +627,7 @@ const applyOutputDefaults = (
 			if (tp.nodeBuiltins) return "commonjs";
 			if (tp.importScripts) return "array-push";
 			throw new Error(
-				"For the selected environment is no default script chunk format available:\n" +
-					"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-					"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
-					helpMessage
+				`For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n${helpMessage}`
 			);
 		}
 		throw new Error(
@@ -709,6 +705,7 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	D(output, "importMetaName", "import.meta");
 	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
@@ -784,8 +781,8 @@ const applyOutputDefaults = (
 	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
 		(v === undefined && c) || v;
 
-	F(environment, "globalThis", () => tp && tp.globalThis);
-	F(environment, "bigIntLiteral", () => tp && tp.bigIntLiteral);
+	F(environment, "globalThis", () => tp?.globalThis);
+	F(environment, "bigIntLiteral", () => tp?.bigIntLiteral);
 	F(environment, "const", () => tp && optimistic(tp.const));
 	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
 	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
@@ -803,13 +800,13 @@ const applyOutputDefaults = (
 	);
 	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
 	F(environment, "dynamicImport", () =>
-		conditionallyOptimistic(tp && tp.dynamicImport, output.module)
+		conditionallyOptimistic(tp?.dynamicImport, output.module)
 	);
 	F(environment, "dynamicImportInWorker", () =>
-		conditionallyOptimistic(tp && tp.dynamicImportInWorker, output.module)
+		conditionallyOptimistic(tp?.dynamicImportInWorker, output.module)
 	);
 	F(environment, "module", () =>
-		conditionallyOptimistic(tp && tp.module, output.module)
+		conditionallyOptimistic(tp?.module, output.module)
 	);
 	F(environment, "document", () => tp && optimistic(tp.document));
 };
@@ -818,35 +815,25 @@ const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
 	{ targetProperties }: { targetProperties: any }
 ) => {
-	D(externalsPresets, "web", targetProperties && targetProperties.web);
-	D(externalsPresets, "node", targetProperties && targetProperties.node);
-	D(
-		externalsPresets,
-		"electron",
-		targetProperties && targetProperties.electron
-	);
+	D(externalsPresets, "web", targetProperties?.web);
+	D(externalsPresets, "node", targetProperties?.node);
+	D(externalsPresets, "electron", targetProperties?.electron);
 	D(
 		externalsPresets,
 		"electronMain",
-		targetProperties &&
-			targetProperties.electron &&
-			targetProperties.electronMain
+		targetProperties?.electron && targetProperties.electronMain
 	);
 	D(
 		externalsPresets,
 		"electronPreload",
-		targetProperties &&
-			targetProperties.electron &&
-			targetProperties.electronPreload
+		targetProperties?.electron && targetProperties.electronPreload
 	);
 	D(
 		externalsPresets,
 		"electronRenderer",
-		targetProperties &&
-			targetProperties.electron &&
-			targetProperties.electronRenderer
+		targetProperties?.electron && targetProperties.electronRenderer
 	);
-	D(externalsPresets, "nwjs", targetProperties && targetProperties.nwjs);
+	D(externalsPresets, "nwjs", targetProperties?.nwjs);
 };
 
 const applyLoaderDefaults = (
@@ -877,17 +864,17 @@ const applyNodeDefaults = (
 
 	// IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
 	F(node, "global", () => {
-		if (targetProperties && targetProperties.global) return false;
+		if (targetProperties?.global) return false;
 		return "warn";
 	});
 	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
-		if (targetProperties && targetProperties.node) return "eval-only";
+		if (targetProperties?.node) return "eval-only";
 		return "warn-mock";
 	});
 	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
-		if (targetProperties && targetProperties.node) return "eval-only";
+		if (targetProperties?.node) return "eval-only";
 		return "warn-mock";
 	});
 };
@@ -1021,7 +1008,7 @@ const getResolveDefaults = ({
 	const tp = targetProperties;
 
 	const browserField =
-		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
+		tp?.web && (!tp.node || (tp.electron && tp.electronRenderer));
 	const aliasFields = browserField ? ["browser"] : [];
 	const mainFields = browserField
 		? ["browser", "module", "..."]

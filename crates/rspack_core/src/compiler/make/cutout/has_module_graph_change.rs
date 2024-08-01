@@ -128,7 +128,7 @@ mod t {
   use crate::{
     compiler::make::cutout::has_module_graph_change::ModuleDeps, AsContextDependency, BuildInfo,
     BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-    Dependency, DependencyId, DependencyTemplate, ExportsInfoId, FactoryMeta, Module,
+    Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta, Module,
     ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
     ModuleType, RuntimeSpec, SourceType,
   };
@@ -304,9 +304,9 @@ mod t {
     let module1_id = module1.id;
 
     mg.add_module(module_orig);
-    mg.add_module_graph_module(ModuleGraphModule::new(module_orig_id, ExportsInfoId::new()));
+    mg.add_module_graph_module(ModuleGraphModule::new(module_orig_id, ExportsInfo::new()));
     mg.add_module(module1);
-    mg.add_module_graph_module(ModuleGraphModule::new(module1_id, ExportsInfoId::new()));
+    mg.add_module_graph_module(ModuleGraphModule::new(module1_id, ExportsInfo::new()));
     mg.add_dependency(dep1);
     mg.set_resolved_module(Some(module_orig_id), dep1_id, module1_id)
       .unwrap();

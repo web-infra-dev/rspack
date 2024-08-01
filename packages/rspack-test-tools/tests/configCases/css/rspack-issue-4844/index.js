@@ -8,5 +8,5 @@ it("should only has one property", () => {
 	// this output should align to
 	// `webpack` + `css-loader+modules.exportLocationConvention: "camelCase"`
 	// rather than `webpack+experiments.css`
-	expect(content.match(/"xxx": ".*"/g).length).toBe(1);
+	expect(content.match(/"foo": ".*"/g).length).toBe(1);
 });

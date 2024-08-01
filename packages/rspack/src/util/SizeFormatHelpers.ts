@@ -20,7 +20,5 @@ export const formatSize = (size: unknown) => {
 	const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 	const index = Math.floor(Math.log(size) / Math.log(1024));
 
-	return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
-		abbreviations[index]
-	}`;
+	return `${+(size / 1024 ** index).toPrecision(3)} ${abbreviations[index]}`;
 };

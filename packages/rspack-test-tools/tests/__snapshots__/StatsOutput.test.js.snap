@@ -103,8 +103,8 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/hot+production should print correct stats for 1`] = `
-"asset main.js 32.5 KiB [emitted] (name: main)
-runtime modules 30.2 KiB 11 modules
+"asset main.js 35.2 KiB [emitted] (name: main)
+runtime modules 32.8 KiB 12 modules
 ./index.js 25 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;

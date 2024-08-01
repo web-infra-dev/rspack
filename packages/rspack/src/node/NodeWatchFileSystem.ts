@@ -84,7 +84,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			// pause emitting events (avoids clearing aggregated changes and removals on timeout)
 			this.watcher.pause();
 
-			if (this.inputFileSystem && this.inputFileSystem.purge) {
+			if (this.inputFileSystem?.purge) {
 				const fs = this.inputFileSystem;
 				for (const item of changes) {
 					fs.purge(item);
@@ -125,7 +125,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			},
 			getAggregatedRemovals: util.deprecate(
 				() => {
-					const items = this.watcher && this.watcher.aggregatedRemovals;
+					const items = this.watcher?.aggregatedRemovals;
 					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
 						const fs = this.inputFileSystem;
 						for (const item of items) {
@@ -139,7 +139,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			),
 			getAggregatedChanges: util.deprecate(
 				() => {
-					const items = this.watcher && this.watcher.aggregatedChanges;
+					const items = this.watcher?.aggregatedChanges;
 					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
 						const fs = this.inputFileSystem;
 						for (const item of items) {
@@ -166,9 +166,9 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				"DEP_WEBPACK_WATCHER_CONTEXT_TIME_INFO_ENTRIES"
 			),
 			getInfo: () => {
-				const removals = this.watcher && this.watcher.aggregatedRemovals;
-				const changes = this.watcher && this.watcher.aggregatedChanges;
-				if (this.inputFileSystem && this.inputFileSystem.purge) {
+				const removals = this.watcher?.aggregatedRemovals;
+				const changes = this.watcher?.aggregatedChanges;
+				if (this.inputFileSystem?.purge) {
 					const fs = this.inputFileSystem;
 					if (removals) {
 						for (const item of removals) {

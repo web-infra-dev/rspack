@@ -151,18 +151,15 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   for (runtime, export, module_identifier) in runtime_info {
     let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let export_info_id =
-        module_graph.get_export_info(module_identifier, &(export.as_str()).into());
-      export_info_id.set_used(&mut module_graph, UsageState::Used, Some(&runtime));
-      export_info_id
-        .get_export_info_mut(&mut module_graph)
-        .can_mangle_use = Some(false);
+      let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      export_info.set_used(&mut module_graph, UsageState::Used, Some(&runtime));
+      export_info.set_can_mangle_use(&mut module_graph, Some(false));
     } else {
-      let exports_info_id = module_graph.get_exports_info(&module_identifier).id;
+      let exports_info = module_graph.get_exports_info(&module_identifier);
       if self.ns_object_used {
-        exports_info_id.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
+        exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
       } else {
-        exports_info_id.set_all_known_exports_used(&mut module_graph, Some(&runtime));
+        exports_info.set_all_known_exports_used(&mut module_graph, Some(&runtime));
       }
     }
   }

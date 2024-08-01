@@ -500,7 +500,7 @@ class Compiler {
 	}
 
 	purgeInputFileSystem() {
-		if (this.inputFileSystem && this.inputFileSystem.purge) {
+		if (this.inputFileSystem?.purge) {
 			this.inputFileSystem.purge();
 		}
 	}
@@ -878,7 +878,7 @@ class Compiler {
 								return cached.exports;
 							}
 
-							var execOptions = {
+							const execOptions = {
 								id,
 								module: {
 									id,

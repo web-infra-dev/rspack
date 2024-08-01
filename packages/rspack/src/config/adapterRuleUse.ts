@@ -153,29 +153,25 @@ export interface LoaderContext<OptionsType = {}> {
 	_module: Module;
 }
 
-export interface LoaderDefinitionFunction<
+export type LoaderDefinitionFunction<
 	OptionsType = {},
 	ContextAdditions = {}
-> {
-	(
-		this: LoaderContext<OptionsType> & ContextAdditions,
-		content: string,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	): string | void | Buffer | Promise<string | Buffer>;
-}
+> = (
+	this: LoaderContext<OptionsType> & ContextAdditions,
+	content: string,
+	sourceMap?: string | SourceMap,
+	additionalData?: AdditionalData
+) => string | void | Buffer | Promise<string | Buffer>;
 
-export interface PitchLoaderDefinitionFunction<
+export type PitchLoaderDefinitionFunction<
 	OptionsType = {},
 	ContextAdditions = {}
-> {
-	(
-		this: LoaderContext<OptionsType> & ContextAdditions,
-		remainingRequest: string,
-		previousRequest: string,
-		data: object
-	): string | void | Buffer | Promise<string | Buffer>;
-}
+> = (
+	this: LoaderContext<OptionsType> & ContextAdditions,
+	remainingRequest: string,
+	previousRequest: string,
+	data: object
+) => string | void | Buffer | Promise<string | Buffer>;
 
 export type LoaderDefinition<
 	OptionsType = {},
@@ -225,14 +221,15 @@ const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 			o.targets = browserslistToTargets(browserslist(o.targets));
 		}
 
-		if (o.include) {
+		if (o.include && typeof o.include === "object") {
 			o.include = toFeatures(o.include as unknown as FeatureOptions);
 		}
 
-		if (o.exclude) {
+		if (o.exclude && typeof o.exclude === "object") {
 			o.exclude = toFeatures(o.exclude as unknown as FeatureOptions);
 		}
 	}
+
 	return o;
 };
 
@@ -262,8 +259,8 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		let o,
-			isBuiltin = false;
+		let o;
+		let isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
 			o = getBuiltinLoaderOptions(use.loader, use.options, options);
 			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);
@@ -293,12 +290,12 @@ function resolveStringifyLoaders(
 
 	if (use.options === null) {
 	} else if (use.options === undefined) {
-	} else if (typeof use.options === "string") obj.query = "?" + use.options;
-	else if (use.ident) obj.query = "??" + (ident = use.ident);
+	} else if (typeof use.options === "string") obj.query = `?${use.options}`;
+	else if (use.ident) obj.query = `??${(ident = use.ident)}`;
 	else if (typeof use.options === "object" && use.options.ident)
-		obj.query = "??" + (ident = use.options.ident);
-	else if (typeof use.options === "object") obj.query = "??" + (ident = path);
-	else obj.query = "?" + JSON.stringify(use.options);
+		obj.query = `??${(ident = use.options.ident)}`;
+	else if (typeof use.options === "object") obj.query = `??${(ident = path)}`;
+	else obj.query = `?${JSON.stringify(use.options)}`;
 
 	if (use.options && typeof use.options === "object") {
 		if (!ident) ident = "[[missing ident]]";

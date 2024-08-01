@@ -50,6 +50,7 @@ import type {
 	HotUpdateMainFilename,
 	Iife,
 	ImportFunctionName,
+	ImportMetaName,
 	InfrastructureLogging,
 	Layer,
 	LazyCompilationOptions,
@@ -139,6 +140,7 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
+				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -160,6 +162,7 @@ export const getNormalizedRspackOptions = (
 					: ["..."],
 				globalObject: output.globalObject,
 				importFunctionName: output.importFunctionName,
+				importMetaName: output.importMetaName,
 				iife: output.iife,
 				module: output.module,
 				sourceMapFilename: output.sourceMapFilename,
@@ -414,12 +417,12 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-					(obj, key) => (
-						(obj[key] = (
-							customKeys && key in customKeys ? customKeys[key] : fn
-						)(value[key])),
-						obj
-					),
+					(obj, key) => {
+						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+							value[key]
+						);
+						return obj;
+					},
 					{} as Record<string, R>
 				);
 	if (customKeys) {
@@ -474,6 +477,7 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	importMetaName?: ImportMetaName;
 	iife?: Iife;
 	wasmLoading?: WasmLoading;
 	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
@@ -498,6 +502,7 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
+	cssHeadDataCompression?: boolean;
 }
 
 export interface ModuleOptionsNormalized {

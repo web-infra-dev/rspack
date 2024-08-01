@@ -74,7 +74,6 @@ import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
 
 export class RspackOptionsApply {
-	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
@@ -146,7 +145,7 @@ export class RspackOptionsApply {
 				}
 				default:
 					throw new Error(
-						"Unsupported chunk format '" + options.output.chunkFormat + "'."
+						`Unsupported chunk format '${options.output.chunkFormat}'.`
 					);
 			}
 		}
@@ -192,8 +191,8 @@ export class RspackOptionsApply {
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
 					append: hidden ? false : undefined,
-					module: moduleMaps ? true : cheap ? false : true,
-					columns: cheap ? false : true,
+					module: moduleMaps ? true : !cheap,
+					columns: !cheap,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace
 				}).apply(compiler);

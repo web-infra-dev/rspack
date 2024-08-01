@@ -170,7 +170,7 @@ const ASSETS_GROUPERS: Record<
 									: `*${extension}`
 							);
 						while (path.length > 0) {
-							keys.push(path.join("/") + "/");
+							keys.push(`${path.join("/")}/`);
 							path.pop();
 						}
 					} else {
@@ -194,7 +194,7 @@ const ASSETS_GROUPERS: Record<
 		const groupByAssetInfoFlag = (name: keyof JsStatsAssetInfo) => {
 			groupConfigs.push({
 				getKeys: asset => {
-					return asset.info && asset.info[name] ? ["1"] : undefined;
+					return asset.info?.[name] ? ["1"] : undefined;
 				},
 				// @ts-expect-error
 				createGroup: (key, children: KnownStatsAsset[]) => {
@@ -382,7 +382,7 @@ const MODULES_GROUPERS = (
 									: `*${extension}`
 							);
 						while (path.length > 0) {
-							keys.push(path.join("/") + "/");
+							keys.push(`${path.join("/")}/`);
 							path.pop();
 						}
 					} else {

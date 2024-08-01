@@ -35,6 +35,7 @@ pub fn collect_destructuring_assignment_properties(
   }
 }
 
+#[allow(dead_code)]
 pub(crate) mod expr_like {
   use std::any::Any;
 
@@ -255,9 +256,7 @@ pub fn extract_require_call_info(
   };
 
   // call require() with no param
-  let Some(first_arg) = args.first() else {
-    return None;
-  };
+  let first_arg = args.first()?;
 
   let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi(), None);
 

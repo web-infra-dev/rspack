@@ -2,8 +2,10 @@ use std::collections::HashSet;
 use std::hash::Hash;
 use std::{collections::HashMap, fmt::Debug, hash::BuildHasherDefault};
 
+use dashmap::{DashMap, DashSet};
 use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[macro_export]
 macro_rules! impl_item_ukey {
@@ -18,16 +20,18 @@ macro_rules! impl_item_ukey {
 
 pub type UkeyMap<K, V> = HashMap<K, V, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
+pub type UkeyDashMap<K, V> = DashMap<K, V, BuildHasherDefault<UkeyHasher>>;
 
 pub type UkeySet<K> = HashSet<K, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
+pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;
 
 pub trait ItemUkey {
   fn ukey(&self) -> Ukey;
 }
 
 /// Ukey stands for Unique key
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Ukey(u32);
 
 impl Ukey {
@@ -226,7 +230,7 @@ where
   <Item as DatabaseItem>::ItemUkey: Eq + Hash + Debug,
 {
   pub fn add(&mut self, item: Item) -> &mut Item {
-    debug_assert!(self.inner.get(&item.ukey()).is_none());
+    debug_assert!(!self.inner.contains_key(&item.ukey()));
     let ukey = item.ukey();
     self.inner.entry(ukey).or_insert(item)
   }

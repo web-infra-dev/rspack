@@ -291,10 +291,7 @@ export class StatsFactory {
 				h.call(comparators, context)
 			);
 			if (comparators.length > 0) {
-				items.sort(
-					// @ts-expect-error number of arguments is correct
-					concatComparators(...comparators)
-				);
+				items.sort(concatComparators(...comparators));
 			}
 
 			// run filter on sorted items
@@ -350,10 +347,7 @@ export class StatsFactory {
 				h => h.call(comparators2, context)
 			);
 			if (comparators2.length > 0) {
-				resultItems.sort(
-					// @ts-expect-error number of arguments is correct
-					concatComparators(...comparators2)
-				);
+				resultItems.sort(concatComparators(...comparators2));
 			}
 
 			// group result items

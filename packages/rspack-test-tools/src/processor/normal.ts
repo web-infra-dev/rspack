@@ -45,7 +45,7 @@ export class NormalProcessor<
 		const { root, compilerOptions } = this._normalOptions;
 		return {
 			context: root,
-			entry: "./" + path.relative(root, context.getSource()) + "/",
+			entry: `./${path.relative(root, context.getSource())}/`,
 			target: compilerOptions?.target || "async-node",
 			devtool: compilerOptions?.devtool,
 			mode: compilerOptions?.mode || "none",

@@ -1,9 +1,7 @@
 // @ts-nocheck
 /*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-*/
-
-"use strict";
+ * MIT License http://www.opensource.org/licenses/mit-license.php
+ */
 
 const path = require("node:path");
 
@@ -359,8 +357,8 @@ exports.getUndoPath = (filename, outputPath, enforceRelative) => {
 				const i = outputPath.lastIndexOf("/");
 				const j = outputPath.lastIndexOf("\\");
 				const pos = i < 0 ? j : j < 0 ? i : Math.max(i, j);
-				if (pos < 0) return outputPath + "/";
-				append = outputPath.slice(pos + 1) + "/" + append;
+				if (pos < 0) return `${outputPath}/`;
+				append = `${outputPath.slice(pos + 1)}/${append}`;
 				outputPath = outputPath.slice(0, pos);
 			}
 		} else if (part !== ".") {

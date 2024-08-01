@@ -117,9 +117,7 @@ fn get_required_version_from_description_file(
   data: serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {
-  let Some(data) = data.as_object() else {
-    return None;
-  };
+  let data = data.as_object()?;
   let get_version_from_dependencies = |dependencies: &str| {
     data
       .get(dependencies)

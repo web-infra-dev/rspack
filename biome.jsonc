@@ -19,12 +19,12 @@
 			"packages/rspack-plugin-preact-refresh/tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"packages/rspack-plugin-mini-css-extract/test/cases/**/*",
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
 			"packages/rspack-plugin-react-refresh/client",
 			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
@@ -38,34 +38,16 @@
 				"useKeyWithClickEvents": "off"
 			},
 			"complexity": {
-				"noMultipleSpacesInRegularExpressionLiterals": "off",
 				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
-				"noUselessConstructor": "off",
-				"noUselessTernary": "off",
-				"noBannedTypes": "off",
-				"useOptionalChain": "off",
-				"noUselessEmptyExport": "off",
-				"noExtraBooleanCast": "off"
+				"noBannedTypes": "off"
 			},
 			"correctness": {
-				"noEmptyPattern": "off",
 				"noConstructorReturn": "off",
-				"noSwitchDeclarations": "off",
-				"noInvalidUseBeforeDeclaration": "off",
-				"noInnerDeclarations": "off",
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noCommaOperator": "off",
-				"useExponentiationOperator": "off",
-				"useShorthandFunctionType": "off",
-				"noArguments": "off",
-				"noInferrableTypes": "off",
-				"noVar": "off",
 				"noParameterAssign": "off",
-				"useTemplate": "off",
-				"useSingleVarDeclarator": "off",
 				"noNonNullAssertion": "off"
 			},
 			"performance": {
@@ -76,17 +58,12 @@
 				"noGlobalEval": "off"
 			},
 			"suspicious": {
-				"noEmptyInterface": "off",
-				"noGlobalAssign": "off",
-				"noGlobalIsNan": "off",
 				"noFallthroughSwitchClause": "off",
-				"noConstEnum": "off",
 				"noConfusingVoidType": "off",
 				"noPrototypeBuiltins": "off",
 				"noImplicitAnyLet": "off",
 				"noAssignInExpressions": "off",
 				"noArrayIndexKey": "off",
-				"noRedundantUseStrict": "off",
 				"noControlCharactersInRegex": "off",
 				"noExplicitAny": "off"
 			}
@@ -95,10 +72,11 @@
 			"tests/**/*",
 			"crates/**/*",
 			"packages/rspack-test-tools/template",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
+			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
 			"packages/rspack-plugin-react-refresh/client",
 			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"

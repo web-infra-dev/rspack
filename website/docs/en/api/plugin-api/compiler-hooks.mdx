@@ -1,26 +1,39 @@
 import CompilerType from '../../types/compiler.mdx';
+import CompilationType from '../../types/compilation.mdx';
 import StatsType from '../../types/stats.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
+import { ApiMeta } from '@components/ApiMeta';
 
 # Compiler Hooks
 
 ## `environment`
 
-`SyncHook<[]>`
-
 Called while preparing the compiler environment, right after initializing the plugins in the configuration file.
+
+- **Type:** `SyncHook<[]>`
 
 ## `afterEnvironment`
 
-`SyncHook<[]>`
+Called right after the `environment` hook, when the compiler environment setup is complete.
 
-Called right after the environment hook, when the compiler environment setup is complete.
+- **Type:** `SyncHook<[]>`
+
+## `entryOption`
+
+Called after the [`entry`](/config/entry) configuration from Rspack options has been processed.
+
+- **Type:** `SyncBailHook<[string, EntryNormalized]>`
+- **Arguments:**
+  - `string`: same with [`context`](/config/context)
+  - `EntryNormalized`: normalized [`entry`](/config/entry)
 
 ## `afterPlugins`
 
-`SyncHook<[Compiler]>`
-
 Called after setting up initial set of internal plugins.
+
+- **Type:** `SyncHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
 
 <Collapse>
   <CollapsePanel
@@ -34,9 +47,11 @@ Called after setting up initial set of internal plugins.
 
 ## `afterResolvers`
 
-`SyncHook<[Compiler]>`
-
 Triggered after resolver setup is complete.
+
+- **Type:** `SyncHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
 
 <Collapse>
   <CollapsePanel
@@ -48,29 +63,19 @@ Triggered after resolver setup is complete.
   </CollapsePanel>
 </Collapse>
 
-## `entryOption`
-
-`SyncBailHook<[string, EntryNormalized]>`
-
-Called after the entry configuration has been processed.
-
-<Collapse>
-  <CollapsePanel header="EntryNormalized.ts" key="EntryNormalized">
-    See [entry configuration](/config/entry) for more details.
-  </CollapsePanel>
-</Collapse>
-
 ## `initialize`
-
-`SyncHook<[]>`
 
 Called when a compiler object is initialized.
 
+- **Type:** `SyncHook<[]>`
+
 ## `beforeRun`
 
-`AsyncSeriesHook<[Compiler]>`
-
 Adds a hook right before running the compiler.
+
+- **Type:** `AsyncSeriesHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
 
 <Collapse>
   <CollapsePanel
@@ -84,27 +89,11 @@ Adds a hook right before running the compiler.
 
 ## `run`
 
-`AsyncSeriesHook<[Compiler]>`
+Called ad the beginning of a build execution.
 
-Called at the beginning of a build execution.
-
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="Compiler.ts"
-    key="Compiler"
-  >
-    <CompilerType />
-  </CollapsePanel>
-</Collapse>
-
-## `childCompiler`
-
-`SyncHook[Compiler, string, number]`
-
-> where the version of the function type is `>=0.4.1`.
-
-Executed after created a childCompiler.
+- **Type:** `AsyncSeriesHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
 
 <Collapse>
   <CollapsePanel
@@ -118,9 +107,11 @@ Executed after created a childCompiler.
 
 ## `watchRun`
 
-`AsyncSeriesHook<[Compiler]>`
-
 Executes a plugin during watch mode after a new compilation is triggered but before the compilation is actually started.
+
+- **Type:** `AsyncSeriesHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
 
 <Collapse>
   <CollapsePanel
@@ -132,109 +123,157 @@ Executes a plugin during watch mode after a new compilation is triggered but bef
   </CollapsePanel>
 </Collapse>
 
-## `compile`
-
-`SyncHook<[]>`
-
-Called right after beforeCompile, before a new compilation is created.
-
 ## `beforeCompile`
-
-`AsyncSeriesHook<[]>`
 
 Executes a plugin after compilation parameters are created.
 
-## `afterCompile`
+- **Type:** `AsyncSeriesHook<[]>`
 
-`AsyncSeriesHook<[Compilation]>`
+## `compile`
 
-Called after finishing and sealing the compilation.
+Called right after `beforeCompile`, before a new compilation is created.
 
-<Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
-  </CollapsePanel>
-</Collapse>
+- **Type:** `SyncHook<[]>`
 
 ## `thisCompilation`
 
-`SyncHook<[Compilation]>`
+Called while initializing the compilation, right before calling the `compilation` hook.
 
-Executed while initializing the compilation, right before emitting the compilation event.
+- **Type:** `SyncHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: created [compilation](/api/objects/compilation) object
 
 <Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
 ## `compilation`
 
-`SyncHook<[Compilation]>`
-
 Runs a plugin after a compilation has been created.
 
+- **Type:** `SyncHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: created [compilation](/api/objects/compilation) object
+
 <Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
 ## `make`
 
-`AsyncParallelHook<[Compilation]>`
+Called before the make phase.
 
-Executed before the make stage.
+In the make phase, Rspack will build the module graph starting from the entry, and use the loader to handle each module.
+
+- **Type:** `AsyncParallelHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/objects/compilation) object
 
 <Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterCompile`
+
+Called after the make phase and before the seal phase.
+
+In the seal phase, Rspack will create chunk graph from the module graph and then generate the assets.
+
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/objects/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
 ## `shouldEmit`
 
-`SyncBailHook<[Compilation]>`
+<ApiMeta addedVersion="0.4.1" />
 
-> where the version of the function type is `>=0.4.1`.
+Called before emitting assets. Should return a boolean telling whether to emit.
 
-Return a boolean telling whether to emit.
+- **Type:** `SyncBailHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/objects/compilation) object
 
 <Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
 ## `emit`
 
-`AsyncSeriesHook<[Compilation]>`
+Called right before emitting assets to output dir.
 
-Executed right before emitting assets to output directory.
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/objects/compilation) object
 
 <Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
 ## `afterEmit`
 
-`AsyncSeriesHook<[Compilation]>`
-
 Called after emitting assets to output directory.
 
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/objects/compilation) object
+
 <Collapse>
-  <CollapsePanel header="Compilation.ts" key="Compilation">
-    See [compilation object](/api/objects/compilation) for more details.
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
 ## `done`
 
-`AsyncSeriesHook<Stats>`
+Called when the compilation has completed.
 
-Executed when the compilation has completed.
+- **Type:** `AsyncSeriesHook<Stats>`
+- **Arguments:**
+  - `Stats`: generated stats object
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
@@ -244,9 +283,11 @@ Executed when the compilation has completed.
 
 ## `afterDone`
 
-`AsyncSeriesHook<Stats>`
+Called after `done` hook.
 
-Executed after `done` hook.
+- **Type:** `SyncHook<Stats>`
+- **Arguments:**
+  - `Stats`: generated stats object
 
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
@@ -254,14 +295,14 @@ Executed after `done` hook.
   </CollapsePanel>
 </Collapse>
 
-## `watchClose`
+## `failed`
 
-`SyncHook<[]>`
+Called if the compilation fails.
+
+- **Type:** `SyncHook<[Error]>`
+
+## `watchClose`
 
 Called when a watching compilation has stopped.
 
-## `failed`
-
-`SyncHook<[Error]>`
-
-Called if the compilation fails.
+- **Type:** `SyncHook<[]>`

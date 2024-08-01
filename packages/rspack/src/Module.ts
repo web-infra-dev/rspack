@@ -1,6 +1,5 @@
 import type {
 	JsCodegenerationResult,
-	JsCodegenerationResults,
 	JsCreateData,
 	JsFactoryMeta,
 	JsModule
@@ -134,6 +133,4 @@ export class CodeGenerationResult {
 	}
 }
 
-export class CodeGenerationResults {
-	constructor(_result: JsCodegenerationResults) {}
-}
+export class CodeGenerationResults {}

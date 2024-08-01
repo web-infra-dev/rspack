@@ -4,6 +4,12 @@ const common = {
 		moduleIds: "named",
 	},
 	module: {
+		generator: {
+			'css/module': {
+				exportsOnly: true,
+				esModule: false,
+			}
+		},
 		rules: [
 			{
 				test: /\.module\.css$/,

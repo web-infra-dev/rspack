@@ -10,7 +10,7 @@ import { generateTreeData } from "../utils/generateTreeData";
 const Sider = Layout.Sider;
 const Content = Layout.Content;
 
-declare var window: {
+declare let window: {
 	$$diff_detail$$: TDiffStats;
 };
 

@@ -1,5 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	target: 'web',
+	node: false,
 	externals: [
 		function ({ request, dependencyType }, callback) {
 			if (/^(\/\/|custom?:\/\/)/.test(request)) {

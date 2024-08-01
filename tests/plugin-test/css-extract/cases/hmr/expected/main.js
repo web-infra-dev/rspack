@@ -11,10 +11,8 @@ const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
 function debounce(fn, time) {
     let timeout = 0;
-    return function () {
-        // @ts-ignore
+    return function (...args) {
         const self = this;
-        const args = arguments;
         const functionCall = function functionCall() {
             return fn.apply(self, args);
         };
@@ -38,12 +36,12 @@ function getCurrentScriptUrl(moduleId) {
         }
         srcByModuleId[moduleId] = src;
     }
-    return function (fileMap) {
+    return (fileMap) => {
         if (!src) {
             return null;
         }
         const splitResult = src.split(/([^\\/]+)\.js$/);
-        const filename = splitResult && splitResult[1];
+        const filename = splitResult?.[1];
         if (!filename) {
             return [src.replace(".js", ".css")];
         }
@@ -187,12 +185,14 @@ function normalizeUrl(urlString) {
     if (/^data:/i.test(urlString)) {
         return urlString;
     }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
+    const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
+    const components = urlString
+        .replace(new RegExp(protocol, "i"), "")
+        .split("/");
+    const host = components[0].toLowerCase().replace(/\.$/, "");
     components[0] = "";
-    var path = components
-        .reduce(function (accumulator, item) {
+    const path = components
+        .reduce((accumulator, item) => {
         switch (item) {
             case "..":
                 accumulator.pop();

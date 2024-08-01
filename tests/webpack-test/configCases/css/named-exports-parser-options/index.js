@@ -3,7 +3,6 @@ import style2 from "./style.module.css?default"
 import * as style3 from "./style.module.css?named"
 
 it("should able to import with different namedExports", () => {
-	debugger
 	expect(style1).toEqual(nsObj({ class: '-_style_module_css-class' }));
 	expect(style2).toEqual(nsObj({ class: '-_style_module_css_default-class' }));
 	expect(style3).toEqual(nsObj({ class: '-_style_module_css_named-class' }));

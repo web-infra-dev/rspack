@@ -24,7 +24,7 @@ export interface CssExtractRspackPluginOptions {
 }
 
 export class CssExtractRspackPlugin {
-	static pluginName: string = "css-extract-rspack-plugin";
+	static pluginName = "css-extract-rspack-plugin";
 	static loader: string = LOADER_PATH;
 
 	options: CssExtractRspackPluginOptions;
