@@ -30,7 +30,7 @@ use crate::{
 };
 use crate::{JsDiagnostic, JsRspackError};
 
-#[napi(object_from_js = false)]
+#[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
 
 impl JsCompilation {
