@@ -75,7 +75,7 @@ jobs:
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
-          git clean -ffdx -e node_modules target
+          git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
       - name: Setup tmate session
