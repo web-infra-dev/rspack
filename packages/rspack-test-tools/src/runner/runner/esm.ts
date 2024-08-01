@@ -57,9 +57,9 @@ export class EsmRunner<
 			let esm = esmCache.get(file.path);
 			if (!esm) {
 				esm = new SourceTextModule(file.content, {
-					identifier: esmIdentifier + "-" + file.path,
+					identifier: `${esmIdentifier}-${file.path}`,
 					// no attribute
-					url: pathToFileURL(file.path).href + "?" + esmIdentifier,
+					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
 					context: esmContext,
 					initializeImportMeta: (meta: { url: string }, _: any) => {
 						meta.url = pathToFileURL(file!.path).href;

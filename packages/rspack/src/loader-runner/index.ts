@@ -108,11 +108,11 @@ function createLoaderObject(
 			obj.type = value.type;
 			if (obj.options === null) obj.query = "";
 			else if (obj.options === undefined) obj.query = "";
-			else if (typeof obj.options === "string") obj.query = "?" + obj.options;
-			else if (obj.ident) obj.query = "??" + obj.ident;
+			else if (typeof obj.options === "string") obj.query = `?${obj.options}`;
+			else if (obj.ident) obj.query = `??${obj.ident}`;
 			else if (typeof obj.options === "object" && obj.options.ident)
-				obj.query = "??" + obj.options.ident;
-			else obj.query = "?" + JSON.stringify(obj.options);
+				obj.query = `??${obj.options.ident}`;
+			else obj.query = `?${JSON.stringify(obj.options)}`;
 		}
 	});
 	obj.request = loader;
@@ -327,8 +327,7 @@ function getCurrentLoader(
 	index = loaderContext.loaderIndex
 ) {
 	if (
-		loaderContext.loaders &&
-		loaderContext.loaders.length &&
+		loaderContext.loaders?.length &&
 		index < loaderContext.loaders.length &&
 		index >= 0 &&
 		loaderContext.loaders[index]

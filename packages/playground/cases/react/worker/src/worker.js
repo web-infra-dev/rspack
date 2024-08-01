@@ -1,6 +1,6 @@
 import Button from "./Button";
 
-onmessage = e => {
+window.onmessage = () => {
 	Button.add();
 	postMessage(Button.get());
 };

@@ -6,7 +6,7 @@ function normalizeUrl(urlString: string): string {
 	}
 
 	const protocol =
-		urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+		urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
 	const components = urlString
 		.replace(new RegExp(protocol, "i"), "")
 		.split("/");

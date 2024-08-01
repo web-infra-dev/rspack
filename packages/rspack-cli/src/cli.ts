@@ -134,7 +134,7 @@ export class RspackCLI {
 			} else if (!item.entry) {
 				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
 				const defaultEntryPath =
-					findConfig(defaultEntryBase) || defaultEntryBase + ".js"; // default entry is js
+					findConfig(defaultEntryBase) || `${defaultEntryBase}.js`; // default entry is js
 				item.entry = {
 					main: defaultEntryPath
 				};

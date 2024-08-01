@@ -1,5 +1,3 @@
-/* eslint-disable no-control-regex */
-
 import fs from "node:fs";
 import path from "node:path";
 import type { Compiler, Stats } from "@rspack/core";
@@ -51,8 +49,7 @@ export class StatsProcessor<
 		for (const compiler of compilers) {
 			const ifs = compiler.inputFileSystem;
 			compiler.inputFileSystem = Object.create(ifs);
-			compiler.inputFileSystem.readFile = () => {
-				const args = Array.prototype.slice.call(arguments);
+			compiler.inputFileSystem.readFile = (...args: any[]) => {
 				const callback = args.pop();
 				ifs.readFile.apply(
 					ifs,
@@ -171,12 +168,12 @@ export class StatsProcessor<
 		actual = actual
 			.replace(/\r\n?/g, "\n")
 			// CHANGE: Remove potential line break and "|" caused by long text
-			.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n  │ )/g, "$1")
+			.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n {2}│ )/g, "$1")
 			// CHANGE: Update the regular expression to replace the 'Rspack' version string
 			.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
 			.replace(
 				new RegExp(quoteMeta(testPath), "g"),
-				"Xdir/" + path.basename(this._options.name)
+				`Xdir/${path.basename(this._options.name)}`
 			)
 			.replace(/(\w)\\(\w)/g, "$1/$2")
 			.replace(/, additional resolving: X ms/g, "")

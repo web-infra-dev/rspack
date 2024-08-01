@@ -28,7 +28,7 @@ const truncateArgs = (args: any[], maxLength: number): string[] => {
 			return args;
 		}
 		if (availableLength > 3) {
-			return ["..." + args[0].slice(-availableLength + 3)];
+			return [`...${args[0].slice(-availableLength + 3)}`];
 		}
 		return [args[0].slice(-availableLength)];
 	}
@@ -74,7 +74,7 @@ const truncateArgs = (args: any[], maxLength: number): string[] => {
 			return str;
 		}
 		if (length > 5) {
-			return "..." + str.slice(-length + 3);
+			return `...${str.slice(-length + 3)}`;
 		}
 		if (length > 0) {
 			return str.slice(-length);

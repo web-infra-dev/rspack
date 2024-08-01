@@ -484,27 +484,6 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 getCache(name: string): CacheFacade;
 ```
 
-以下示例在 `processAssets` 阶段找出此次编译过程中新增的产物：
-
-```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
-  const cache = compilation.getCache('MyPlugin');
-
-  compilation.hooks.processAssets.tap('MyPlugin', () => {
-    const currentAssets = compilation.getAssets().map(i => i.name);
-    const lastAssets = cache.get('assets', null);
-    if (lastAsset) {
-      for (const asset of currentAssets) {
-        if (!lastAssets.contains(asset)) {
-          console.log(`New asset: ${asset}`);
-        }
-      }
-    }
-    cache.store('assets', null, currentAssets);
-  });
-});
-```
-
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
     <CacheType />

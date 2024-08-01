@@ -123,9 +123,9 @@ const makeCacheable = <T extends ParsedResourceWithoutFragment>(
 	return fn;
 };
 
-const makeCacheableWithContext = (fn: {
-	(context: string, identifier: string): string;
-}) => {
+const makeCacheableWithContext = (
+	fn: (context: string, identifier: string) => string
+) => {
 	const cache: WeakMap<
 		object,
 		Map<string, Map<string, string>>
@@ -377,8 +377,8 @@ export const getUndoPath = (
 				const i = outputPath.lastIndexOf("/");
 				const j = outputPath.lastIndexOf("\\");
 				const pos = i < 0 ? j : j < 0 ? i : Math.max(i, j);
-				if (pos < 0) return outputPath + "/";
-				append = outputPath.slice(pos + 1) + "/" + append;
+				if (pos < 0) return `${outputPath}/`;
+				append = `${outputPath.slice(pos + 1)}/${append}`;
 				outputPath = outputPath.slice(0, pos);
 			}
 		} else if (part !== ".") {

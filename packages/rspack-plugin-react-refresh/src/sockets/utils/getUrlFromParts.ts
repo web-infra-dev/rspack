@@ -23,16 +23,15 @@ export default function urlFromParts(
 		fullProtocol = fullProtocol.replace(/^(?:http|.+-extension|file)/i, "ws");
 	}
 
-	fullProtocol = fullProtocol + "//";
+	fullProtocol = `${fullProtocol}//`;
 
 	let fullHost = urlParts.hostname;
 	if (urlParts.auth) {
-		const fullAuth =
-			urlParts.auth.split(":").map(encodeURIComponent).join(":") + "@";
+		const fullAuth = `${urlParts.auth.split(":").map(encodeURIComponent).join(":")}@`;
 		fullHost = fullAuth + fullHost;
 	}
 	if (urlParts.port) {
-		fullHost = fullHost + ":" + urlParts.port;
+		fullHost = `${fullHost}:${urlParts.port}`;
 	}
 
 	const url = new URL(urlParts.pathname, fullProtocol + fullHost);

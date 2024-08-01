@@ -63,12 +63,12 @@ const getAddonPlatformArchAbi = () => {
 
 	const abi = NodePlatformArchToAbi[platform][arch];
 	if (abi === undefined) return new Error(`unsupported cpu arch: ${arch}`);
-	binding += "-" + arch;
+	binding += `-${arch}`;
 
 	if (typeof abi === "string") {
-		binding += abi.length ? "-" + abi : "";
+		binding += abi.length ? `-${abi}` : "";
 	} else if (typeof abi === "object") {
-		binding += "-" + abi[isMusl() ? "musl" : "gnu"];
+		binding += `-${abi[isMusl() ? "musl" : "gnu"]}`;
 	} else {
 		return new Error(`unsupported abi: ${abi}`);
 	}

@@ -7,6 +7,7 @@ mod codegen_result;
 mod compilation;
 mod context_module_factory;
 mod filename;
+mod identifier;
 mod library_options;
 mod module;
 mod normal_module_factory;
@@ -20,6 +21,7 @@ mod runtime;
 mod source;
 mod stats;
 mod utils;
+mod value_ref;
 
 pub use asset::*;
 pub use chunk::*;

@@ -91,90 +91,10 @@ export class JsResolverFactory {
 }
 
 export class JsStats {
-  getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean, usedExports: boolean, providedExports: boolean): Array<JsStatsChunk>
-  getEntrypoints(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
-  getNamedChunkGroups(chunkGroupAuxiliary: boolean, chunkGroupChildren: boolean): Array<JsStatsChunkGroup>
-  getErrors(): Array<JsStatsError>
-  getWarnings(): Array<JsStatsWarning>
+  toJson(jsOptions: JsStatsOptions): JsStatsCompilation
+  hasWarnings(): boolean
+  hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string | null
-}
-
-export class JsStatsChunk {
-  get type(): string
-  get files(): Array<string>
-  get auxiliaryFiles(): Array<string>
-  get id(): string | undefined
-  get idHints(): Array<string>
-  get hash(): string | undefined
-  get entry(): boolean
-  get initial(): boolean
-  get names(): Array<string>
-  get size(): number
-  get parents(): Array<string> | undefined
-  get children(): Array<string> | undefined
-  get siblings(): Array<string> | undefined
-  get childrenByOrder(): Record<string, Array<string>>
-  get runtime(): Array<string>
-  get reason(): string | undefined
-  get rendered(): boolean
-  get sizes(): Array<JsStatsSize>
-  get origins(): Array<JsOriginRecord>
-  get modules(): Array<JsStatsModule> | undefined
-}
-
-export class JsStatsModule {
-  get type(): string
-  get moduleType(): string
-  get identifier(): string
-  get layer(): string | undefined
-  get name(): string
-  get id(): string | undefined
-  get chunks(): Array<string | undefined | null>
-  get size(): number
-  get depth(): number | undefined
-  get dependent(): boolean | undefined
-  get issuer(): string | undefined
-  get issuerName(): string | undefined
-  get issuerId(): string | undefined
-  get issuerPath(): Array<JsStatsModuleIssuer>
-  get nameForCondition(): string | undefined
-  get assets(): Array<string> | undefined
-  get source(): string | Buffer | undefined
-  get orphan(): boolean
-  get providedExports(): Array<string> | undefined
-  get usedExports(): string | Array<string> | undefined
-  get optimizationBailout(): Array<string> | undefined
-  get preOrderIndex(): number | undefined
-  get postOrderIndex(): number | undefined
-  get built(): boolean
-  get codeGenerated(): boolean
-  get buildTimeExecuted(): boolean
-  get cached(): boolean
-  get cacheable(): boolean
-  get optional(): boolean
-  get failed(): boolean
-  get errors(): number
-  get warnings(): number
-  get sizes(): Array<JsStatsSize>
-  get profile(): JsStatsModuleProfile | undefined
-  get reasons(): Array<JsStatsModuleReason> | undefined
-  get modules(): Array<JsStatsModule> | undefined
-}
-
-export class JsStatsModuleReason {
-  get moduleIdentifier(): string | undefined
-  get moduleName(): string | undefined
-  get moduleId(): string | undefined
-  get type(): string | undefined
-  get userRequest(): string | undefined
-}
-
-export class JsStatsSize {
-  sourceType: string
-  size: number
 }
 
 export class Rspack {
@@ -534,6 +454,12 @@ export interface JsModule {
   layer?: string
 }
 
+export interface JsModuleDescriptor {
+  identifier: string
+  name: string
+  id?: string
+}
+
 export interface JsNormalModuleFactoryCreateModuleArgs {
   dependencyType: string
   rawRequest: string
@@ -543,10 +469,7 @@ export interface JsNormalModuleFactoryCreateModuleArgs {
 }
 
 export interface JsOriginRecord {
-  module: string
-  moduleId: string
-  moduleIdentifier: string
-  moduleName: string
+  moduleDescriptor?: JsModuleDescriptor
   loc: string
   request: string
 }
@@ -651,9 +574,32 @@ export interface JsStatsAssetsByChunkName {
   files: Array<string>
 }
 
+export interface JsStatsChunk {
+  type: string
+  files: Array<string>
+  auxiliaryFiles: Array<string>
+  id?: string
+  idHints: Array<string>
+  hash?: string
+  entry: boolean
+  initial: boolean
+  names: Array<string>
+  size: number
+  parents?: Array<string>
+  children?: Array<string>
+  siblings?: Array<string>
+  childrenByOrder: Record<string, Array<string>>
+  runtime: Array<string>
+  reason?: string
+  rendered: boolean
+  sizes: Array<JsStatsSize>
+  origins: Array<JsOriginRecord>
+  modules?: Array<JsStatsModule>
+}
+
 export interface JsStatsChunkGroup {
   name: string
-  chunks: Array<string | undefined | null>
+  chunks: Array<string>
   assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
@@ -671,16 +617,26 @@ export interface JsStatsChunkGroupChildren {
   prefetch?: Array<JsStatsChunkGroup>
 }
 
+export interface JsStatsCompilation {
+  assets?: Array<JsStatsAsset>
+  assetsByChunkName?: Array<JsStatsAssetsByChunkName>
+  chunks?: Array<JsStatsChunk>
+  entrypoints?: Array<JsStatsChunkGroup>
+  errors: Array<JsStatsError>
+  hash?: string
+  modules?: Array<JsStatsModule>
+  namedChunkGroups?: Array<JsStatsChunkGroup>
+  warnings: Array<JsStatsWarning>
+}
+
 export interface JsStatsError {
+  moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   loc?: string
   file?: string
-  moduleIdentifier?: string
-  moduleName?: string
-  moduleId?: string
   chunkId?: string
   details?: string
   stack?: string
@@ -704,15 +660,58 @@ export interface JsStatsMillisecond {
   subsecMillis: number
 }
 
+export interface JsStatsModule {
+  commonAttributes: JsStatsModuleCommonAttributes
+  dependent?: boolean
+  issuerDescriptor?: JsModuleDescriptor
+  issuerPath?: Array<JsStatsModuleIssuer>
+  usedExports?: string | Array<string>
+  modules?: Array<JsStatsModule>
+}
+
+export interface JsStatsModuleCommonAttributes {
+  type: string
+  moduleType: string
+  layer?: string
+  size: number
+  sizes: Array<JsStatsSize>
+  built: boolean
+  codeGenerated: boolean
+  buildTimeExecuted: boolean
+  cached: boolean
+  moduleDescriptor?: JsModuleDescriptor
+  nameForCondition?: string
+  preOrderIndex?: number
+  postOrderIndex?: number
+  cacheable?: boolean
+  optional?: boolean
+  orphan?: boolean
+  failed?: boolean
+  errors?: number
+  warnings?: number
+  profile?: JsStatsModuleProfile
+  chunks?: Array<string>
+  assets?: Array<string>
+  reasons?: Array<JsStatsModuleReason>
+  providedExports?: Array<string>
+  optimizationBailout?: Array<string>
+  depth?: number
+  source?: string | Buffer
+}
+
 export interface JsStatsModuleIssuer {
-  identifier: string
-  name: string
-  id?: string
+  moduleDescriptor: JsModuleDescriptor
 }
 
 export interface JsStatsModuleProfile {
   factory: JsStatsMillisecond
   building: JsStatsMillisecond
+}
+
+export interface JsStatsModuleReason {
+  moduleDescriptor?: JsModuleDescriptor
+  type?: string
+  userRequest?: string
 }
 
 export interface JsStatsModuleTrace {
@@ -721,24 +720,50 @@ export interface JsStatsModuleTrace {
 }
 
 export interface JsStatsModuleTraceModule {
-  identifier: string
-  name?: string
-  id?: string
+  moduleDescriptor: JsModuleDescriptor
 }
 
 export interface JsStatsOptimizationBailout {
   inner: string
 }
 
+export interface JsStatsOptions {
+  assets: boolean
+  cachedModules: boolean
+  chunks: boolean
+  chunkGroupAuxiliary: boolean
+  chunkGroupChildren: boolean
+  chunkGroups: boolean
+  chunkModules: boolean
+  chunkRelations: boolean
+  depth: boolean
+  entrypoints: boolean | string
+  errors: boolean
+  hash: boolean
+  ids: boolean
+  modules: boolean
+  moduleAssets: boolean
+  nestedModules: boolean
+  optimizationBailout: boolean
+  providedExports: boolean
+  reasons: boolean
+  source: boolean
+  usedExports: boolean
+  warnings: boolean
+}
+
+export interface JsStatsSize {
+  sourceType: string
+  size: number
+}
+
 export interface JsStatsWarning {
+  moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
-  moduleIdentifier?: string
-  moduleName?: string
-  moduleId?: string
   chunkId?: string
   details?: string
   stack?: string

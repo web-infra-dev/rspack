@@ -17,13 +17,11 @@ function debounce<T extends (...args: any[]) => any>(
 ): DebouncedFunction<T> {
 	let timeout: NodeJS.Timeout | number = 0;
 
-	return function () {
-		// @ts-ignore
+	return function (this: any, ...args: Parameters<T>[]) {
 		const self = this;
-		const args = arguments;
 
 		const functionCall = function functionCall() {
-			return fn.apply(self, args as unknown as Parameters<T>);
+			return fn.apply(self, args as Parameters<T>);
 		};
 
 		clearTimeout(timeout);
@@ -58,7 +56,7 @@ function getCurrentScriptUrl(moduleId: string) {
 		}
 
 		const splitResult = src.split(/([^\\/]+)\.js$/);
-		const filename = splitResult && splitResult[1];
+		const filename = splitResult?.[1];
 
 		if (!filename) {
 			return [src.replace(".js", ".css")];

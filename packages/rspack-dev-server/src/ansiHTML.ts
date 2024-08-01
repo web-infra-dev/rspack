@@ -62,22 +62,22 @@ const _openTags: Record<string, string | ((m: Match) => Option<string>)> = {
 		// color
 		const mode = _colorMode[match[0]];
 		if (mode === "rgb") {
-			const r = match[1],
-				g = match[2],
-				b = match[3];
+			const r = match[1];
+			const g = match[2];
+			const b = match[3];
 			match.advance(4);
-			return "color: rgb(" + r + "," + g + "," + b + ")";
+			return `color: rgb(${r},${g},${b})`;
 		}
 	},
 	48: (match: Match) => {
 		// background color
 		const mode = _colorMode[match[0]];
 		if (mode === "rgb") {
-			const r = match[1],
-				g = match[2],
-				b = match[3];
+			const r = match[1];
+			const g = match[2];
+			const b = match[3];
 			match.advance(4);
-			return "background-color: rgb(" + r + "," + g + "," + b + ")";
+			return `background-color: rgb(${r},${g},${b})`;
 		}
 	}
 };
@@ -95,8 +95,8 @@ const _closeTags: Record<
 	0: ansiCodes => {
 		if (!ansiCodes) return "</span>";
 		if (!ansiCodes.length) return "";
-		let code: Option<string>,
-			ret = "";
+		let code: Option<string>;
+		let ret = "";
 		while ((code = ansiCodes.pop())) {
 			const closeTag = _openTagToCloseTag[code];
 			if (closeTag) {
@@ -147,8 +147,8 @@ export default function ansiHTML(text: string) {
 				this.splice(0, count);
 			}
 		});
-		let seq,
-			rep = "";
+		let seq;
+		let rep = "";
 		while ((seq = match[0])) {
 			match.advance(1);
 			rep += applySeq(seq);
@@ -169,16 +169,13 @@ export default function ansiHTML(text: string) {
 					)(ansiCodes);
 				}
 				// If current sequence has been opened, close it.
-				if (!!~ansiCodes.indexOf(seq)) {
-					// eslint-disable-line no-extra-boolean-cast
+				if (ansiCodes.indexOf(seq) !== -1) {
 					ansiCodes.pop();
 					return "</span>";
 				}
 				// Open tag.
 				ansiCodes.push(seq);
-				return (
-					ret + (other[0] === "<" ? other : '<span style="' + other + ';">')
-				);
+				return ret + (other[0] === "<" ? other : `<span style="${other};">`);
 			}
 
 			const ct = _closeTags[seq];
@@ -227,9 +224,7 @@ ansiHTML.setColors = (colors: typeof _defColors) => {
 				hex.some(h => typeof h !== "string")
 			) {
 				throw new Error(
-					"The value of `" +
-						key +
-						"` property must be an Array and each item could only be a hex string, e.g.: FF0000"
+					`The value of \`${key}\` property must be an Array and each item could only be a hex string, e.g.: FF0000`
 				);
 			}
 			const defHexColor = _defColors[key];
@@ -244,7 +239,7 @@ ansiHTML.setColors = (colors: typeof _defColors) => {
 			hex = hex.slice(0, 2);
 		} else if (typeof hex !== "string") {
 			throw new Error(
-				"The value of `" + key + "` property must be a hex string, e.g.: FF0000"
+				`The value of \`${key}\` property must be a hex string, e.g.: FF0000`
 			);
 		}
 		_finalColors[key] = hex;
@@ -280,22 +275,18 @@ if (Object.defineProperty) {
 function _setTags(colors: typeof _defColors) {
 	// reset all
 	_openTags["0"] =
-		"font-weight:normal;opacity:1;color:#" +
-		colors.reset[0] +
-		";background:#" +
-		colors.reset[1];
+		`font-weight:normal;opacity:1;color:#${colors.reset[0]};background:#${colors.reset[1]}`;
 	// inverse
-	_openTags["7"] =
-		"color:#" + colors.reset[1] + ";background:#" + colors.reset[0];
+	_openTags["7"] = `color:#${colors.reset[1]};background:#${colors.reset[0]}`;
 	// dark grey
-	_openTags["90"] = "color:#" + colors.darkgrey;
+	_openTags["90"] = `color:#${colors.darkgrey}`;
 
 	for (const code in _styles) {
 		const color = _styles[code];
 		const oriColor = colors[color] || "000";
-		_openTags[code] = "color:#" + oriColor;
+		_openTags[code] = `color:#${oriColor}`;
 		const codeInt = Number.parseInt(code);
-		_openTags[(codeInt + 10).toString()] = "background:#" + oriColor;
+		_openTags[(codeInt + 10).toString()] = `background:#${oriColor}`;
 	}
 }
 

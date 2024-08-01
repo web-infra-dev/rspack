@@ -10,7 +10,6 @@ ERROR in ./app.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.js
 
 ERROR in ./app.js
   × Module parse failed:
@@ -24,7 +23,6 @@ ERROR in ./app.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.js
 
 ERROR in ./app.js
   × Module parse failed:
@@ -38,7 +36,6 @@ ERROR in ./app.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.js
 
 ERROR in ./app.js
   × Module parse failed:
@@ -52,7 +49,6 @@ ERROR in ./app.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.js
 
 ERROR in ./app.jsx
   × Module parse failed:
@@ -66,7 +62,6 @@ ERROR in ./app.jsx
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.jsx
 
 ERROR in ./app.jsx
   × Module parse failed:
@@ -80,7 +75,6 @@ ERROR in ./app.jsx
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.jsx
 
 ERROR in ./app.jsx
   × Module parse failed:
@@ -94,7 +88,6 @@ ERROR in ./app.jsx
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.jsx
 
 ERROR in ./app.jsx
   × Module parse failed:
@@ -108,7 +101,6 @@ ERROR in ./app.jsx
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.jsx
 
 ERROR in ./app.ts
   × Module parse failed:
@@ -123,7 +115,6 @@ ERROR in ./app.ts
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./app.ts
 
 ERROR in ./index.js
   × No parser registered for 'ts'

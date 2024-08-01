@@ -20,7 +20,7 @@ export function getNextName(name) {
 	if (["monorepo"].includes(name)) {
 		return name;
 	}
-	const nextName = name + "-canary";
+	const nextName = `${name}-canary`;
 	return nextName;
 }
 

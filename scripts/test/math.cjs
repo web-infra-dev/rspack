@@ -8,7 +8,7 @@ const toMatcher = a => {
 	if (typeof a === "string") {
 		return i => i.startsWith(a);
 	}
-	throw new Error("Expected `RegExp` or `string`, got " + typeof a);
+	throw new Error(`Expected \`RegExp\` or \`string\`, got ${typeof a}`);
 };
 const zip = (a, b) => a.map((a, index) => [a, b[index]]);
 

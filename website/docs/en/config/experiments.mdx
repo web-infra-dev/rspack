@@ -96,12 +96,27 @@ Enabled by default and can be turned off with this configuration.
 
 <ApiMeta addedVersion="0.7.0" />
 
-- **Type:**
+- **Type:** `boolean`, `Object`
+- **Default:** `false`
 
 ```ts
 type LazyCompilationOptions =
   | boolean
   | {
+      backend?: {
+        /**
+         * A custom client.
+         */
+        client?: string;
+        /**
+         * Specify where to listen to from the server.
+         */
+        listen?: number | ListenOptions;
+        /**
+         * Specify the protocol the client should use to connect to the server.
+         */
+        protocol?: 'http' | 'https';
+      };
       /**
        * Enable lazy compilation for entries.
        */
@@ -116,8 +131,6 @@ type LazyCompilationOptions =
       test?: RegExp | ((m: Module) => boolean);
     };
 ```
-
-- **Default:** `false`
 
 Enable lazy compilation, which can greatly improve the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA). For example, if you have twenty entry points, only the accessed entry points will be built. Or if there are many `import()` statements in the project, each module pointed to by `import()` will only be built when it is actually accessed.
 
@@ -139,6 +152,26 @@ In addition, you can also configure a `test` parameter for more fine-grained con
 :::tip
 The current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
 :::
+
+### experiments.lazyCompilation.backend.listen
+
+- **Type:** `number`, `ListenOptions`
+
+```ts
+type ListenOptions = {
+  port?: number | undefined;
+  host?: string | undefined;
+  backlog?: number | undefined;
+  path?: string | undefined;
+  exclusive?: boolean | undefined;
+  readableAll?: boolean | undefined;
+  writableAll?: boolean | undefined;
+  /**
+   * @default false
+   */
+  ipv6Only?: boolean | undefined;
+};
+```
 
 ### Exclude HMR client
 

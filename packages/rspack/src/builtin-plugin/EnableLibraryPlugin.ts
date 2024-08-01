@@ -28,12 +28,7 @@ export class EnableLibraryPlugin extends RspackBuiltinPlugin {
 	static checkEnabled(compiler: Compiler, type: LibraryType) {
 		if (!getEnabledTypes(compiler).has(type)) {
 			throw new Error(
-				`Library type "${type}" is not enabled. ` +
-					"EnableLibraryPlugin need to be used to enable this type of library. " +
-					'This usually happens through the "output.enabledLibraryTypes" option. ' +
-					'If you are using a function as entry which sets "library", you need to add all potential library types to "output.enabledLibraryTypes". ' +
-					"These types are enabled: " +
-					Array.from(getEnabledTypes(compiler)).join(", ")
+				`Library type "${type}" is not enabled. EnableLibraryPlugin need to be used to enable this type of library. This usually happens through the "output.enabledLibraryTypes" option. If you are using a function as entry which sets "library", you need to add all potential library types to "output.enabledLibraryTypes". These types are enabled: ${Array.from(getEnabledTypes(compiler)).join(", ")}`
 			);
 		}
 	}

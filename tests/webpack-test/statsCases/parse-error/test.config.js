@@ -42,8 +42,8 @@ module.exports = {
 			@@ -19,6 +17,1 @@
 			- help:
 			- You may need an appropriate loader to handle this file type.
-			- @ ./b.js [XX]
 			- @ ./a.js
+			- @ ./index.js
 			-
 			- Rspack x.x.x compiled with XX error
 			+ webpack x.x.x compiled with XX error"
