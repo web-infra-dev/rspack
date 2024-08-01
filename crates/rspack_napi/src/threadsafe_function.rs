@@ -1,9 +1,9 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
 use napi::{
   bindgen_prelude::{
-    check_status, Either3, Either4, FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName,
-    ValidateNapiValue,
+    check_status, Either3, Either4, FromNapiValue, JsValuesTupleIntoVec, Promise, ToNapiValue,
+    TypeName, ValidateNapiValue,
   },
   sys::{self, napi_env},
   threadsafe_function::{
@@ -14,7 +14,7 @@ use napi::{
 use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
 
-use crate::{JsCallback, NapiErrorExt};
+use crate::{JsCallback, NapiErrorExt, Ref};
 
 type ErrorResolver = dyn FnOnce(Env);
 
@@ -22,6 +22,7 @@ pub struct ThreadsafeFunction<T: 'static, R> {
   inner: RawThreadsafeFunction<T, ErrorStrategy::Fatal>,
   env: napi_env,
   resolver: JsCallback<Box<ErrorResolver>>,
+  js_fn: Arc<Ref>,
   _data: PhantomData<R>,
 }
 
@@ -37,6 +38,7 @@ impl<T: 'static, R> Clone for ThreadsafeFunction<T, R> {
       inner: self.inner.clone(),
       env: self.env,
       resolver: self.resolver.clone(),
+      js_fn: self.js_fn.clone(),
       _data: self._data,
     }
   }
@@ -45,8 +47,15 @@ impl<T: 'static, R> Clone for ThreadsafeFunction<T, R> {
 unsafe impl<T: 'static, R> Sync for ThreadsafeFunction<T, R> {}
 unsafe impl<T: 'static, R> Send for ThreadsafeFunction<T, R> {}
 
+impl<T: 'static + JsValuesTupleIntoVec, R> ToNapiValue for ThreadsafeFunction<T, R> {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> napi::Result<sys::napi_value> {
+    unsafe { ToNapiValue::to_napi_value(env, val.js_fn.as_ref()) }
+  }
+}
+
 impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<T, R> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
+    let js_fn_ref = Ref::new(env, napi_val, 1)?;
     let inner = unsafe {
       <RawThreadsafeFunction<T, ErrorStrategy::Fatal> as FromNapiValue>::from_napi_value(
         env, napi_val,
@@ -57,6 +66,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<
       inner,
       env,
       resolver: unsafe { JsCallback::new(env) }?,
+      js_fn: Arc::new(js_fn_ref),
       _data: PhantomData,
     })
   }
