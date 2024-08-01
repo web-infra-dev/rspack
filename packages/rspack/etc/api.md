@@ -929,6 +929,8 @@ export class ChunkGroup {
     // (undocumented)
     get index(): Readonly<number | undefined>;
     // (undocumented)
+    isInitial(): boolean;
+    // (undocumented)
     get name(): Readonly<string | undefined>;
 }
 

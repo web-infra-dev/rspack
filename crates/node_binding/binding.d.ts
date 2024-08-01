@@ -390,6 +390,7 @@ export interface JsChunkGroup {
   chunks: Array<JsChunk>
   index?: number
   name?: string
+  isInitial: boolean
 }
 
 export interface JsChunkPathData {

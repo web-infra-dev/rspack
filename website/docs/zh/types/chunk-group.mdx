@@ -5,6 +5,7 @@ type ChunkGroup = {
   name?: Readonly<string>; // 名称
   index?: Readonly<number>; // 索引序
   chunks: ReadonlyArray<Chunk>; // 包含的 chunk 列表
+  isInitial(): boolean; // 是否在页面初始加载
   getFiles(): ReadonlyArray<string>; // 关联的文件列表
   getParents(): ReadonlyArray<ChunkGroup>; // 父 chunk group 列表
 };
