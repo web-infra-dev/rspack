@@ -85,7 +85,7 @@ export function concatErrorMsgAndStack(
 }
 
 export function indent(str: string, prefix: string) {
-	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
+	const rem = str.replace(/\n([^\n])/g, `\n${prefix}$1`);
 	return prefix + rem;
 }
 

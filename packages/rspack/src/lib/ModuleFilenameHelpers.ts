@@ -25,7 +25,7 @@ export const asRegExp = (test: string | RegExp): RegExp => {
 	if (typeof test === "string") {
 		// Escape special characters in the string to prevent them from being interpreted as special characters in a regular expression. Do this by
 		// adding a backslash before each special character
-		return new RegExp("^" + test.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"));
+		return new RegExp(`^${test.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")}`);
 	}
 	return test;
 };

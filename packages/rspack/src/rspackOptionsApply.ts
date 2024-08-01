@@ -146,7 +146,7 @@ export class RspackOptionsApply {
 				}
 				default:
 					throw new Error(
-						"Unsupported chunk format '" + options.output.chunkFormat + "'."
+						`Unsupported chunk format '${options.output.chunkFormat}'.`
 					);
 			}
 		}

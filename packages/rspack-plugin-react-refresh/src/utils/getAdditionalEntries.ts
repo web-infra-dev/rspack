@@ -33,7 +33,7 @@ export function getAdditionalEntries({
 			if (parsedUrl.username) {
 				auth = parsedUrl.username;
 				if (parsedUrl.password) {
-					auth += ":" + parsedUrl.password;
+					auth += `:${parsedUrl.password}`;
 				}
 			}
 

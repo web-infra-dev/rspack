@@ -992,7 +992,7 @@ const joinInBrackets = (items: any[]) => {
 };
 
 const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
-	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
+	const rem = str.replace(/\n([^\n])/g, `\n${prefix}$1`);
 	if (noPrefixInFirstLine) return rem;
 	const ind = str[0] === "\n" ? "" : prefix;
 	return ind + rem;
@@ -1020,7 +1020,7 @@ const joinExplicitNewLine = (
 			first = false;
 			const noJoiner = firstInLine || content.startsWith("\n");
 			firstInLine = content.endsWith("\n");
-			return noJoiner ? content : " " + content;
+			return noJoiner ? content : ` ${content}`;
 		})
 		.filter(Boolean)
 		.join("")
@@ -1124,23 +1124,20 @@ const SIMPLE_ELEMENT_JOINERS: Record<
 	},
 	chunk: items => {
 		let hasEntry = false;
-		return (
-			"chunk " +
-			joinExplicitNewLine(
-				items.filter(item => {
-					switch (item.element) {
-						case "entry":
-							if (item.content) hasEntry = true;
-							break;
-						case "initial":
-							if (hasEntry) return false;
-							break;
-					}
-					return true;
-				}),
-				"  "
-			)
-		);
+		return `chunk ${joinExplicitNewLine(
+			items.filter(item => {
+				switch (item.element) {
+					case "entry":
+						if (item.content) hasEntry = true;
+						break;
+					case "initial":
+						if (hasEntry) return false;
+						break;
+				}
+				return true;
+			}),
+			"  "
+		)}`;
 	},
 	"chunk.childrenByOrder[]": items => `(${joinOneLine(items)})`,
 	chunkGroup: items => joinExplicitNewLine(items, "  "),
@@ -1186,11 +1183,11 @@ const SIMPLE_ELEMENT_JOINERS: Record<
 	},
 	"module.profile": joinInBrackets,
 	moduleIssuer: joinOneLine,
-	chunkOrigin: items => "> " + joinOneLine(items),
+	chunkOrigin: items => `> ${joinOneLine(items)}`,
 	"errors[].error": joinError(true),
 	"warnings[].error": joinError(false),
 	loggingGroup: items => joinExplicitNewLine(items, "").trimEnd(),
-	moduleTraceItem: items => " @ " + joinOneLine(items),
+	moduleTraceItem: items => ` @ ${joinOneLine(items)}`,
 	moduleTraceDependency: joinOneLine
 };
 

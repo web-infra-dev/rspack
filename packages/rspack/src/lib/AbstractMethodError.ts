@@ -17,7 +17,7 @@ const CURRENT_METHOD_REGEXP = /at ([a-zA-Z0-9_.]*)/;
  * @returns message
  */
 function createMessage(method?: string): string {
-	return `Abstract method${method ? " " + method : ""}. Must be overridden.`;
+	return `Abstract method${method ? ` ${method}` : ""}. Must be overridden.`;
 }
 
 class Message extends Error {

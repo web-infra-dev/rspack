@@ -590,8 +590,8 @@ const applyOutputDefaults = (
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
-	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
-	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
+	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);
+	F(output, "chunkLoadingGlobal", () => `webpackChunk${uniqueNameId}`);
 	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
@@ -619,10 +619,7 @@ const applyOutputDefaults = (
 				if (tp.dynamicImport) return "module";
 				if (tp.document) return "array-push";
 				throw new Error(
-					"For the selected environment is no default ESM chunk format available:\n" +
-						"ESM exports can be chosen when 'import()' is available.\n" +
-						"JSONP Array push can be chosen when 'document' is available.\n" +
-						helpMessage
+					`For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n${helpMessage}`
 				);
 			}
 			if (tp.document) return "array-push";
@@ -630,10 +627,7 @@ const applyOutputDefaults = (
 			if (tp.nodeBuiltins) return "commonjs";
 			if (tp.importScripts) return "array-push";
 			throw new Error(
-				"For the selected environment is no default script chunk format available:\n" +
-					"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-					"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
-					helpMessage
+				`For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n${helpMessage}`
 			);
 		}
 		throw new Error(

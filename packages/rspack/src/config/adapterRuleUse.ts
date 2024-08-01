@@ -294,12 +294,12 @@ function resolveStringifyLoaders(
 
 	if (use.options === null) {
 	} else if (use.options === undefined) {
-	} else if (typeof use.options === "string") obj.query = "?" + use.options;
-	else if (use.ident) obj.query = "??" + (ident = use.ident);
+	} else if (typeof use.options === "string") obj.query = `?${use.options}`;
+	else if (use.ident) obj.query = `??${(ident = use.ident)}`;
 	else if (typeof use.options === "object" && use.options.ident)
-		obj.query = "??" + (ident = use.options.ident);
-	else if (typeof use.options === "object") obj.query = "??" + (ident = path);
-	else obj.query = "?" + JSON.stringify(use.options);
+		obj.query = `??${(ident = use.options.ident)}`;
+	else if (typeof use.options === "object") obj.query = `??${(ident = path)}`;
+	else obj.query = `?${JSON.stringify(use.options)}`;
 
 	if (use.options && typeof use.options === "object") {
 		if (!ident) ident = "[[missing ident]]";

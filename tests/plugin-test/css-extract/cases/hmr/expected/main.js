@@ -187,7 +187,7 @@ function normalizeUrl(urlString) {
     if (/^data:/i.test(urlString)) {
         return urlString;
     }
-    const protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
+    const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
     const components = urlString
         .replace(new RegExp(protocol, "i"), "")
         .split("/");

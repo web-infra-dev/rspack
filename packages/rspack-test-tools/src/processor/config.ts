@@ -35,21 +35,21 @@ export class ConfigProcessor<
 		const bundlePath = [];
 		if (
 			options.output?.path &&
-			fs.existsSync(path.join(options.output.path!, "bundle" + index + ext))
+			fs.existsSync(path.join(options.output.path!, `bundle${index}${ext}`))
 		) {
 			if (options.experiments && options.experiments.css) {
 				const cssOutputPath = path.join(
 					options.output.path!,
 					(typeof options.output?.cssFilename === "string" &&
 						options.output?.cssFilename) ||
-						"bundle" + index + ".css"
+						`bundle${index}.css`
 				);
 				if (fs.existsSync(cssOutputPath)) {
-					bundlePath.push("./bundle" + index + ".css");
+					bundlePath.push(`./bundle${index}.css`);
 				}
 			}
 
-			bundlePath.push("./bundle" + index + ext);
+			bundlePath.push(`./bundle${index}${ext}`);
 		}
 
 		return bundlePath;
