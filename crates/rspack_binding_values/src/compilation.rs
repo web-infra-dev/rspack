@@ -3,6 +3,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
+use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
@@ -10,6 +11,7 @@ use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
+use rspack_core::EntryData;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
@@ -563,6 +565,11 @@ impl JsCompilation {
       }
     })
   }
+
+  #[napi(getter)]
+  pub fn entries(&'static mut self) -> JsEntryDataMap {
+    JsEntryDataMap::new(&mut self.0.entries)
+  }
 }
 
 #[napi(object)]
@@ -581,4 +588,56 @@ pub struct JsExecuteModuleResult {
 pub struct JsBuildTimeExecutionOption {
   pub public_path: Option<String>,
   pub base_uri: Option<String>,
+}
+
+// #[napi]
+// pub struct JsEntryData {}
+
+// impl JsEntryData {
+//   pub fn new(entry: EntryData) -> Self {
+//     Self {}
+//   }
+// }
+
+// impl JsEntryData {
+//   pub fn dependencies() -> Vec<JsDependency> {}
+
+//   pub fn include_dependencies -> Vec<JsDependency> {}
+
+//   pub fn options -> EntryOptions {
+
+//   }
+// }
+
+#[napi]
+pub struct JsEntryDataMap {
+  entries: &'static mut IndexMap<String, EntryData>,
+}
+
+impl JsEntryDataMap {
+  pub fn new(entries: &'static mut IndexMap<String, EntryData>) -> Self {
+    Self { entries }
+  }
+}
+
+#[napi]
+impl JsEntryDataMap {
+  #[napi]
+  pub fn has(&self, key: String) -> bool {
+    self.entries.contains_key(&key)
+  }
+
+  // pub fn set(&mut self, key: String, value: JsEntryData) {}
+
+  #[napi]
+  pub fn delete(&mut self, key: String) {
+    self.entries.swap_remove(&key);
+  }
+
+  // pub fn get(&self, key: String) -> Option<JsEntryData> {}
+
+  #[napi]
+  pub fn keys(&self) -> Vec<&String> {
+    self.entries.keys().collect()
+  }
 }

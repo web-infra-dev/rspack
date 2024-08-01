@@ -8,6 +8,7 @@ version    = "0.1.0"
 [dependencies]
 futures            = { workspace = true }
 heck               = { workspace = true }
+indexmap           = { workspace = true }
 napi               = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive        = { workspace = true }
 once_cell          = { workspace = true }
