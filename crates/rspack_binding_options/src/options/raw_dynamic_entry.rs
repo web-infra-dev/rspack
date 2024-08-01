@@ -1,13 +1,14 @@
 use napi_derive::napi;
-use rspack_binding_values::JsEntryOptions;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_dynamic_entry::{DynamicEntryPluginOptions, EntryDynamicResult};
+
+use crate::RawEntryOptions;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawEntryDynamicResult {
   pub import: Vec<String>,
-  pub options: JsEntryOptions,
+  pub options: RawEntryOptions,
 }
 
 pub type RawEntryDynamic = ThreadsafeFunction<(), Vec<RawEntryDynamicResult>>;

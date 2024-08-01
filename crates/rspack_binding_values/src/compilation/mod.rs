@@ -1,22 +1,23 @@
 mod dependency;
 mod entries;
-mod entry_options;
 
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
+use std::ops::DerefMut;
 use std::path::PathBuf;
 
 use entries::Entries;
-pub use entry_options::*;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
-use rspack_core::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey,
-  rspack_sources::{BoxSource, SourceExt},
-  AssetInfo, ModuleIdentifier,
-};
+use rspack_core::get_chunk_from_ukey;
+use rspack_core::get_chunk_group_from_ukey;
+use rspack_core::rspack_sources::BoxSource;
+use rspack_core::rspack_sources::SourceExt;
+use rspack_core::AssetInfo;
+use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
-use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt};
+use rspack_napi::napi::bindgen_prelude::*;
+use rspack_napi::NapiResultExt;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
