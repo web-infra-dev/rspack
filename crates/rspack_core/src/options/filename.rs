@@ -5,7 +5,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, NoExpand, Regex};
 use rspack_error::error;
