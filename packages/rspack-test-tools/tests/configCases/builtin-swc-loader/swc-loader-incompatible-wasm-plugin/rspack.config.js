@@ -2,6 +2,7 @@
 
 const rspack = require('@rspack/core');
 const path = require('path');
+const { RawSource } = require('webpack-sources');
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
   entry: {
@@ -68,6 +69,18 @@ const config = {
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
+		{
+			apply(compiler) {
+				compiler.hooks.compilation.tap("_", (compilation) => {
+					compilation.hooks.processAssets.tap("_", (assets) => {
+						let names = Object.keys(assets);
+						names.forEach(name => {
+							assets[name] = new RawSource("")
+						})
+					})
+				})
+			}
+		}
   ],
   experiments: { css: true }
 };

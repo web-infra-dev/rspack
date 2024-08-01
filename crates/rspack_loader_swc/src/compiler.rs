@@ -243,8 +243,6 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
   res.with_context(|| format!("failed to read .swcrc file for input file at `{}`", name))
 }
 
-const CARGO_TOML: &str = include_str!("../../../Cargo.toml");
-
 pub(crate) struct SwcCompiler {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
@@ -398,7 +396,7 @@ impl SwcCompiler {
               Err(err) => {
                 macro_rules! swc_error {
                   ($tt:tt) => {{
-                    let swc_core_version = get_swc_core_version();
+                    let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
 
                     MietteDiagnostic::new(format!("Builtin swc-loader error: {}
                     
@@ -635,26 +633,4 @@ impl IntoSwcComments for SingleThreadedComments {
       trailing: Arc::new(DashMap::from_iter(t)),
     }
   }
-}
-
-fn get_swc_core_version() -> String {
-  let workspace_toml = cargo_toml::Manifest::from_str(CARGO_TOML)
-    .expect("Should parse cargo toml")
-    .workspace;
-  workspace_toml
-    .as_ref()
-    .and_then(|ws| {
-      ws.dependencies.get("swc_core").and_then(|dep| match dep {
-        cargo_toml::Dependency::Simple(s) => Some(&**s),
-        cargo_toml::Dependency::Inherited(_) => unreachable!(),
-        cargo_toml::Dependency::Detailed(d) => d.version.as_deref(),
-      })
-    })
-    .expect("Should have `swc_core` version")
-    .to_owned()
-}
-
-#[test]
-fn should_get_swc_core_version() {
-  assert!(!get_swc_core_version().is_empty())
 }
