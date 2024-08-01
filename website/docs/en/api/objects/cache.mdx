@@ -8,7 +8,7 @@ When writing Rspack plugins, you can use `compiler.getCache(name: string)` or `c
 
 :::warning Notice
 
-- Only available when `cache: true` which it is enabled in `mode="development"` by default.
+- Only available when [cache: true](/config/cache) which it is enabled in `mode="development"` by default.
 - Only used for the JavaScript plugins, the Rust cache cannot be accessed.
 - Only memory cache is provided, persistent cache is not supported yet.
 
