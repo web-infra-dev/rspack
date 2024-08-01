@@ -29,9 +29,7 @@ module.exports = {
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
 		    "children": Object {},
-		    "chunks": Array [
-		      null,
-		    ],
+		    "chunks": Array [],
 		    "filteredAssets": 0,
 		    "name": "main",
 		  },

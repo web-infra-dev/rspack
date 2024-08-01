@@ -10,4 +10,3 @@ ERROR in ./syntax-error.json
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./syntax-error.json

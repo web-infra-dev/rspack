@@ -29,6 +29,7 @@ module.exports = {
 		      "moduleIdentifier": "javascript/esm|<cwd>packages/rspack-test-tools/tests/fixtures/errors/resolve-fail-esm/index.js",
 		      "moduleName": "./resolve-fail-esm/index.js",
 		      "moduleTrace": Array [],
+		      "stack": undefined,
 		    },
 		  ],
 		  "warnings": Array [],

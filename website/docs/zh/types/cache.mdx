@@ -1,48 +1,43 @@
 <>
 
-```ts
-type ItemCacheFacade = {
-  get<T>(callback: (err: Error, result: T) => void): void;
-  getPromise<T>(): Promise<T>;
-  store<T>(data: T, callback: (err: Error, result: T) => void): void;
-  storePromise<T>(data: T): Promise<void>;
-  provide<T>(
-    computer: (fn: (err: Error, result: T) => void) => void,
-    callback: (err: Error, result: T) => void,
-  ): void;
-  providePromise<T>(
-    computer: (fn: (err: Error, result: T) => void) => void,
-  ): Promise<T>;
-};
+> 详见 [Cache 对象](/api/objects/cache)
 
+```ts
 type CacheFacade = {
-  getChildCache(name: string): CacheFacade;
-  getItemCache(identifier, etag): ItemCacheFacade;
-  getLazyHashedEtag(obj: HashableObject): Etag;
-  mergeEtags(a: Etag, b: Etag): Etag;
-  get<T>(
+  getChildCache(name: string): CacheFacade; // 创建子缓存对象
+  getItemCache(identifier, etag): ItemCacheFacade; // 获取单个项目的缓存对象
+  getLazyHashedEtag(obj: HashableObject): Etag; // 生成 Etag
+  mergeEtags(a: Etag, b: Etag): Etag; // 合并 Etag
+  get<T>( // 异步获取缓存数据，通过回调获取结果
     identifier: string,
     etag: Etag,
     callback: (err: Error, result: T) => void,
   ): void;
-  getPromise<T>(identifier: string, etag: Etag): Promise<T>;
-  store<T>(
+  getPromise<T>( // 异步获取缓存数据，通过 Promise 获取结果
+    identifier: string,
+    etag: Etag,
+  ): Promise<T>;
+  store<T>( // 异步存储缓存数据，通过回调获取结果
     identifier: string,
     etag: Etag,
     data: T,
-    callback: (err: Error, result: T) => void,
+    callback: (err: Error) => void,
   ): void;
-  storePromise<T>(identifier: string, etag: Etag, data: T): Promise<void>;
-  provide<T>(
+  storePromise<T>( // 异步存储缓存数据，通过 Promise 获取结果
     identifier: string,
     etag: Etag,
-    computer: (fn: (err: Error, result: T) => void) => void,
-    callback: (err: Error, result: T) => void,
-  ): void;
-  providePromise<T>(
+    data: T,
+  ): Promise<void>;
+  provide<T>( // 尝试获取缓存，不存在则生成并存储，通过回调获取结果
     identifier: string,
     etag: Etag,
-    computer: (fn: (err: Error, result: T) => void) => void,
+    computer: () => T | Promise<T>,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>( // 尝试获取缓存，不存在则生成并存储，通过 Promise 获取结果
+    identifier: string,
+    etag: Etag,
+    computer: () => T | Promise<T>,
   ): Promise<T>;
 };
 ```

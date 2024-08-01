@@ -161,7 +161,7 @@ module.exports = {
 		        "issuer": undefined,
 		        "issuerId": undefined,
 		        "issuerName": undefined,
-		        "issuerPath": Array [],
+		        "issuerPath": undefined,
 		        "layer": undefined,
 		        "moduleType": "javascript/auto",
 		        "name": "./fixtures/chunk-b.js",
@@ -177,9 +177,7 @@ module.exports = {
 		        "providedExports": Array [],
 		        "reasons": Array [
 		          Object {
-		            "moduleId": undefined,
-		            "moduleIdentifier": undefined,
-		            "moduleName": undefined,
+		            "moduleId": null,
 		            "type": "entry",
 		            "userRequest": "./fixtures/chunk-b",
 		          },
@@ -207,7 +205,7 @@ module.exports = {
 		      Object {
 		        "loc": "main",
 		        "module": "",
-		        "moduleId": "",
+		        "moduleId": undefined,
 		        "moduleIdentifier": "",
 		        "moduleName": "",
 		        "request": "./fixtures/chunk-b",

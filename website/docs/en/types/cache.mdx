@@ -1,48 +1,43 @@
 <>
 
-```ts
-type ItemCacheFacade = {
-  get<T>(callback: (err: Error, result: T) => void): void;
-  getPromise<T>(): Promise<T>;
-  store<T>(data: T, callback: (err: Error, result: T) => void): void;
-  storePromise<T>(data: T): Promise<void>;
-  provide<T>(
-    computer: (fn: (err: Error, result: T) => void) => void,
-    callback: (err: Error, result: T) => void,
-  ): void;
-  providePromise<T>(
-    computer: (fn: (err: Error, result: T) => void) => void,
-  ): Promise<T>;
-};
+> See [cache object](/api/objects/cache) for more details.
 
+```ts
 type CacheFacade = {
-  getChildCache(name: string): CacheFacade;
-  getItemCache(identifier, etag): ItemCacheFacade;
-  getLazyHashedEtag(obj: HashableObject): Etag;
-  mergeEtags(a: Etag, b: Etag): Etag;
-  get<T>(
+  getChildCache(name: string): CacheFacade; // create a named child cache object
+  getItemCache(identifier, etag): ItemCacheFacade; // create a cache object for an data item
+  getLazyHashedEtag(obj: HashableObject): Etag; // create a lazy computed etag
+  mergeEtags(a: Etag, b: Etag): Etag; // merge two etags
+  get<T>( // async data getter, callback by function
     identifier: string,
     etag: Etag,
     callback: (err: Error, result: T) => void,
   ): void;
-  getPromise<T>(identifier: string, etag: Etag): Promise<T>;
-  store<T>(
+  getPromise<T>( // async data getter, callback by promise
+    identifier: string,
+    etag: Etag,
+  ): Promise<T>;
+  store<T>( // async data setter, callback by function
     identifier: string,
     etag: Etag,
     data: T,
-    callback: (err: Error, result: T) => void,
+    callback: (err: Error) => void,
   ): void;
-  storePromise<T>(identifier: string, etag: Etag, data: T): Promise<void>;
-  provide<T>(
+  storePromise<T>( // async data setter, callback by promise
     identifier: string,
     etag: Etag,
-    computer: (fn: (err: Error, result: T) => void) => void,
-    callback: (err: Error, result: T) => void,
-  ): void;
-  providePromise<T>(
+    data: T,
+  ): Promise<void>;
+  provide<T>( // try to get the data, use function to compute if not exists, callback by function
     identifier: string,
     etag: Etag,
-    computer: (fn: (err: Error, result: T) => void) => void,
+    computer: () => T | Promise<T>,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>( // try to get the data, use function to compute if not exists, callback by function
+    identifier: string,
+    etag: Etag,
+    computer: () => T | Promise<T>,
   ): Promise<T>;
 };
 ```

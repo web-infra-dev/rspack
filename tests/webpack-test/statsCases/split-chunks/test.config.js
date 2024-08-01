@@ -43,7 +43,7 @@ module.exports = {
 			- chunk (runtime: a, main) default/XX.js (id hint: ) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [rendered] split chunk (cache group: default)
 			- > ./b [XX] ./index.js XX:XX-XX
 			- > ./c [XX] ./index.js XX:XX-XX
-			- > ./g [XX] ./a.js XX:XX-XX
+			- > ./g ./a.js XX:XX-XX
 			- ./f.js XX bytes [built] [code generated]
 			- chunk (runtime: a) default/a.js (a) XX bytes (javascript) XX KiB (runtime) >{XX}< >{XX}< [entry] [rendered]
 			- > ./a a
@@ -84,11 +84,8 @@ module.exports = {
 			+ ./node_modules/y.js XX bytes [built] [code generated]
 			@@ -49,0 +41,1 @@
 			+ runtime modules XX KiB XX modules
-			@@ -50,4 +43,17 @@
+			@@ -50,1 +43,9 @@
 			- chunk (runtime: a, main) default/async-g.js (async-g) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= [rendered]
-			- > ./g [XX] ./a.js XX:XX-XX
-			- ./g.js XX bytes [built] [code generated]
-			- default (Rspack x.x.x) compiled successfully
 			+ chunk (runtime: main) default/XX.js (id hint: vendors) XX bytes <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= [rendered] split chunk (cache group: defaultVendors)
 			+ > ./c ./index.js XX:XX-XX
 			+ ./node_modules/z.js XX bytes [built] [code generated]
@@ -98,7 +95,9 @@ module.exports = {
 			+ chunk (runtime: a, main) default/XX.js XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [rendered] split chunk (cache group: default)
 			+ > ./b ./index.js XX:XX-XX
 			+ > ./c ./index.js XX:XX-XX
-			+ > ./g ./a.js XX:XX-XX
+			@@ -52,2 +53,7 @@
+			- ./g.js XX bytes [built] [code generated]
+			- default (Rspack x.x.x) compiled successfully
 			+ ./f.js XX bytes [built] [code generated]
 			+ chunk (runtime: a) default/a.js (a) XX bytes (javascript) XX KiB (runtime) >{XX}< >{XX}< [entry] [rendered]
 			+ > ./a a
@@ -156,7 +155,7 @@ module.exports = {
 			- chunk (runtime: a, main) all-chunks/XX.js (id hint: ) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [rendered] split chunk (cache group: default)
 			- > ./b [XX] ./index.js XX:XX-XX
 			- > ./c [XX] ./index.js XX:XX-XX
-			- > ./g [XX] ./a.js XX:XX-XX
+			- > ./g ./a.js XX:XX-XX
 			- ./f.js XX bytes [built] [code generated]
 			- chunk (runtime: a) all-chunks/a.js (a) XX KiB ={XX}= >{XX}< >{XX}< [entry] [rendered]
 			+ chunk (runtime: c) all-chunks/c.js (c) XX bytes (javascript) XX KiB (runtime) ={XX}= ={XX}= ={XX}= ={XX}= [entry] [rendered]
@@ -193,11 +192,8 @@ module.exports = {
 			+ ./node_modules/y.js XX bytes [built] [code generated]
 			@@ -105,0 +111,1 @@
 			+ runtime modules XX KiB XX modules
-			@@ -106,4 +113,19 @@
+			@@ -106,1 +113,10 @@
 			- chunk (runtime: a, main) all-chunks/async-g.js (async-g) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= [rendered]
-			- > ./g [XX] ./a.js XX:XX-XX
-			- ./g.js XX bytes [built] [code generated]
-			- all-chunks (Rspack x.x.x) compiled successfully
 			+ chunk (runtime: c, main) all-chunks/XX.js (id hint: vendors) XX bytes <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [initial] [rendered] split chunk (cache group: defaultVendors)
 			+ > ./c ./index.js XX:XX-XX
 			+ > ./c c
@@ -208,7 +204,9 @@ module.exports = {
 			+ chunk (runtime: a, b, c, main) all-chunks/XX.js XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [initial] [rendered] split chunk (cache group: default)
 			+ > ./b ./index.js XX:XX-XX
 			+ > ./c ./index.js XX:XX-XX
-			+ > ./g ./a.js XX:XX-XX
+			@@ -108,2 +124,8 @@
+			- ./g.js XX bytes [built] [code generated]
+			- all-chunks (Rspack x.x.x) compiled successfully
 			+ > ./b b
 			+ > ./c c
 			+ ./f.js XX bytes [built] [code generated]
@@ -288,7 +286,7 @@ module.exports = {
 			+ runtime modules XX KiB XX modules
 			@@ -168,2 +189,10 @@
 			- chunk (runtime: a, main) manual/async-g.js (async-g) XX bytes <{XX}> <{XX}> <{XX}> [rendered]
-			- > ./g [XX] ./a.js XX:XX-XX
+			- > ./g ./a.js XX:XX-XX
 			+ chunk (runtime: main) manual/async-c.js (async-c) XX bytes <{XX}> ={XX}= [rendered]
 			+ > ./c ./index.js XX:XX-XX
 			+ dependent modules XX bytes [dependent] XX modules
@@ -379,7 +377,7 @@ module.exports = {
 			- chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/XX.js (id hint: ) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [rendered] split chunk (cache group: default)
 			- > ./b [XX] ./index.js XX:XX-XX
 			- > ./c [XX] ./index.js XX:XX-XX
-			- > ./g [XX] ./a.js XX:XX-XX
+			- > ./g ./a.js XX:XX-XX
 			- ./f.js XX bytes [built] [code generated]
 			- chunk (runtime: main) name-too-long/XX.js (id hint: ) XX bytes <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= >{XX}< >{XX}< [rendered] split chunk (cache group: default)
 			- > ./a [XX] ./index.js XX:XX-XX
@@ -394,13 +392,8 @@ module.exports = {
 			+ ./node_modules/y.js XX bytes [built] [code generated]
 			@@ -222,0 +257,1 @@
 			+ runtime modules XX KiB XX modules
-			@@ -223,6 +259,15 @@
+			@@ -223,1 +259,10 @@
 			- chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/async-g.js (async-g) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= [rendered]
-			- > ./g [XX] ./a.js XX:XX-XX
-			- ./g.js XX bytes [built] [code generated]
-			- chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) XX KiB ={XX}= >{XX}< >{XX}< [entry] [rendered]
-			- > ./a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-			- name-too-long (Rspack x.x.x) compiled successfully
 			+ chunk (runtime: cccccccccccccccccccccccccccccc, main) name-too-long/XX.js (id hint: vendors) XX bytes <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [initial] [rendered] split chunk (cache group: defaultVendors)
 			+ > ./c ./index.js XX:XX-XX
 			+ > ./c cccccccccccccccccccccccccccccc
@@ -411,7 +404,11 @@ module.exports = {
 			+ chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, cccccccccccccccccccccccccccccc, main) name-too-long/XX.js XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [initial] [rendered] split chunk (cache group: default)
 			+ > ./b ./index.js XX:XX-XX
 			+ > ./c ./index.js XX:XX-XX
-			+ > ./g ./a.js XX:XX-XX
+			@@ -225,4 +270,4 @@
+			- ./g.js XX bytes [built] [code generated]
+			- chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa) XX KiB ={XX}= >{XX}< >{XX}< [entry] [rendered]
+			- > ./a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			- name-too-long (Rspack x.x.x) compiled successfully
 			+ > ./b bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 			+ > ./c cccccccccccccccccccccccccccccc
 			+ ./f.js XX bytes [built] [code generated]
@@ -456,7 +453,7 @@ module.exports = {
 			- chunk (runtime: a, main) custom-chunks-filter/XX.js (id hint: ) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [rendered] split chunk (cache group: default)
 			- > ./b [XX] ./index.js XX:XX-XX
 			- > ./c [XX] ./index.js XX:XX-XX
-			- > ./g [XX] ./a.js XX:XX-XX
+			- > ./g ./a.js XX:XX-XX
 			- ./f.js XX bytes [built] [code generated]
 			- chunk (runtime: a) custom-chunks-filter/a.js (a) XX bytes (javascript) XX KiB (runtime) >{XX}< >{XX}< [entry] [rendered]
 			- > ./a a
@@ -495,11 +492,8 @@ module.exports = {
 			+ ./node_modules/y.js XX bytes [built] [code generated]
 			@@ -278,0 +318,1 @@
 			+ runtime modules XX KiB XX modules
-			@@ -279,4 +320,20 @@
+			@@ -279,1 +320,10 @@
 			- chunk (runtime: a, main) custom-chunks-filter/async-g.js (async-g) XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= [rendered]
-			- > ./g [XX] ./a.js XX:XX-XX
-			- ./g.js XX bytes [built] [code generated]
-			- custom-chunks-filter (Rspack x.x.x) compiled successfully
 			+ chunk (runtime: c, main) custom-chunks-filter/XX.js (id hint: vendors) XX bytes <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [initial] [rendered] split chunk (cache group: defaultVendors)
 			+ > ./c ./index.js XX:XX-XX
 			+ > ./c c
@@ -510,7 +504,9 @@ module.exports = {
 			+ chunk (runtime: a, b, c, main) custom-chunks-filter/XX.js XX bytes <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> <{XX}> ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= ={XX}= [initial] [rendered] split chunk (cache group: default)
 			+ > ./b ./index.js XX:XX-XX
 			+ > ./c ./index.js XX:XX-XX
-			+ > ./g ./a.js XX:XX-XX
+			@@ -281,2 +331,9 @@
+			- ./g.js XX bytes [built] [code generated]
+			- custom-chunks-filter (Rspack x.x.x) compiled successfully
 			+ > ./b b
 			+ > ./c c
 			+ ./f.js XX bytes [built] [code generated]
@@ -552,7 +548,8 @@ module.exports = {
 			- > ./a [XX] ./index.js XX:XX-XX
 			- > ./b [XX] ./index.js XX:XX-XX
 			- > ./c [XX] ./index.js XX:XX-XX
-			@@ -308,17 +369,0 @@
+			@@ -307,17 +368,0 @@
+			- ./node_modules/z.js XX bytes [built] [code generated]
 			- chunk (runtime: main) custom-chunks-filter-in-cache-groups/async-a.js (async-a) XX bytes <{XX}> ={XX}= >{XX}< [rendered]
 			- > ./a [XX] ./index.js XX:XX-XX
 			- dependent modules XX bytes [dependent] XX modules
@@ -569,7 +566,6 @@ module.exports = {
 			- dependent modules XX bytes [dependent] XX modules
 			- cacheable modules XX bytes
 			- ./a.js XX bytes [built] [code generated]
-			- ./node_modules/z.js XX bytes [built] [code generated]
 			@@ -326,0 +370,1 @@
 			+ > ./b b
 			@@ -329,1 +374,2 @@
@@ -600,7 +596,7 @@ module.exports = {
 			+ runtime modules XX KiB XX modules
 			@@ -340,2 +401,10 @@
 			- chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) XX bytes <{XX}> <{XX}> <{XX}> [rendered]
-			- > ./g [XX] ./a.js XX:XX-XX
+			- > ./g ./a.js XX:XX-XX
 			+ chunk (runtime: main) custom-chunks-filter-in-cache-groups/async-c.js (async-c) XX bytes <{XX}> ={XX}= [rendered]
 			+ > ./c ./index.js XX:XX-XX
 			+ dependent modules XX bytes [dependent] XX modules
