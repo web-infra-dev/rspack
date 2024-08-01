@@ -102,6 +102,20 @@ Enabled by default and can be turned off with this configuration.
 type LazyCompilationOptions =
   | boolean
   | {
+      backend?: {
+        /**
+         * A custom client.
+         */
+        client?: string;
+        /**
+         * Specify where to listen to from the server.
+         */
+        listen?: number | ListenOptions;
+        /**
+         * Specify the protocol the client should use to connect to the server.
+         */
+        protocol?: 'http' | 'https';
+      };
       /**
        * Enable lazy compilation for entries.
        */
