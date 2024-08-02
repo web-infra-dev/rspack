@@ -1,8 +1,7 @@
 /** @type {import("../../../../dist").TDiffCaseConfig} */
 module.exports = {
 	renameModule: (raw) => {
-		console.log(raw);
-		console.log(raw.split("|").slice(0, -1).join('|'));
+		// remove hash for concated module identifier
 		return raw.split("|").slice(0, -1).join('|');
 	},
 	modules: true,
