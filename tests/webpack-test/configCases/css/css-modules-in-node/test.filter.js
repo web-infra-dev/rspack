@@ -1,1 +1,2 @@
-module.exports = () => {return false}
+// do not support webpack.ids.DeterministicModuleIdsPlugin
+module.exports = () => false;

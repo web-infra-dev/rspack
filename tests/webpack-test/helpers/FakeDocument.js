@@ -225,8 +225,8 @@ class FakeSheet {
 					"utf-8"
 				);
 			})
-			.replace(/\/\*[\s\S]*\*\//g, '')
-			.replace("//", "");
+			.replace(/\/\*[\s\S]*?\*\//g, '');
+
 		walkCssTokens(css, {
 			isSelector() {
 				return selector === undefined;
