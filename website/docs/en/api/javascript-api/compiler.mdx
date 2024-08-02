@@ -61,7 +61,7 @@ watch(
 ): Watching; // watching controller
 ```
 
-:::warning 警告
+:::warning Warning
 This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.watch` callback and wait for it to finish before executing `compiler.watch` again. Concurrent compilations will damage the output files.
 :::
 
@@ -72,7 +72,7 @@ const watching = compiler.watch(
     poll: undefined,
   },
   (err, stats) => {
-    // 处理构建结果
+    // Deal with the result
     handleBuildResult(stats);
   },
 );
