@@ -17,8 +17,8 @@ impl EntryOptionsDTO {
 #[napi]
 impl EntryOptionsDTO {
   #[napi(getter)]
-  pub fn name(&self) -> Option<&String> {
-    self.0.name.as_ref()
+  pub fn name(&self) -> Either<&String, ()> {
+    self.0.name.as_ref().into()
   }
 
   #[napi(setter)]
@@ -26,12 +26,15 @@ impl EntryOptionsDTO {
     self.0.name = name;
   }
 
-  #[napi(getter)]
-  pub fn runtime(&self) -> Option<Either<bool, &String>> {
-    self.0.runtime.as_ref().map(|rt| match rt {
-      EntryRuntime::String(s) => Either::B(s),
-      EntryRuntime::False => Either::A(false),
-    })
+  #[napi(getter, ts_return_type = "false | bool | undefined")]
+  pub fn runtime(&self) -> Either3<bool, &String, ()> {
+    match &self.0.runtime {
+      Some(rt) => match rt {
+        EntryRuntime::String(s) => Either3::B(s),
+        EntryRuntime::False => Either3::A(false),
+      },
+      None => Either3::C(()),
+    }
   }
 
   #[napi(setter)]
@@ -43,8 +46,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter)]
-  pub fn chunk_loading(&self) -> Option<&str> {
-    self.0.chunk_loading.as_ref().map(Into::into)
+  pub fn chunk_loading(&self) -> Either<&str, ()> {
+    match &self.0.chunk_loading {
+      Some(c) => Either::A(c.into()),
+      None => Either::B(()),
+    }
   }
 
   #[napi(setter)]
@@ -53,8 +59,8 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter)]
-  pub fn async_chunks(&self) -> Option<bool> {
-    self.0.async_chunks
+  pub fn async_chunks(&self) -> Either<bool, ()> {
+    self.0.async_chunks.into()
   }
 
   #[napi(setter)]
@@ -63,8 +69,8 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter)]
-  pub fn base_uri(&self) -> Option<&String> {
-    self.0.base_uri.as_ref()
+  pub fn base_uri(&self) -> Either<&String, ()> {
+    self.0.base_uri.as_ref().into()
   }
 
   #[napi(setter)]
@@ -73,8 +79,8 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter)]
-  pub fn library(&self) -> Option<JsLibraryOptions> {
-    self.0.library.clone().map(Into::into)
+  pub fn library(&self) -> Either<JsLibraryOptions, ()> {
+    self.0.library.clone().map(Into::into).into()
   }
 
   #[napi(setter)]
@@ -83,8 +89,8 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter)]
-  pub fn depend_on(&self) -> Option<&Vec<String>> {
-    self.0.depend_on.as_ref()
+  pub fn depend_on(&self) -> Either<&Vec<String>, ()> {
+    self.0.depend_on.as_ref().into()
   }
 
   #[napi(setter)]
@@ -93,8 +99,8 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter)]
-  pub fn layer(&self) -> Option<&String> {
-    self.0.layer.as_ref()
+  pub fn layer(&self) -> Either<&String, ()> {
+    self.0.layer.as_ref().into()
   }
 
   #[napi(setter)]
@@ -102,15 +108,25 @@ impl EntryOptionsDTO {
     self.0.layer = layer;
   }
 
-  // #[napi(getter)]
-  // pub fn public_path(&self) -> Option<Either<String, JsFunction>> {
-  //   unimplemented!()
-  // }
+  #[napi(getter)]
+  pub fn public_path(&self) -> Either3<String, JsFunction, ()> {
+    unimplemented!()
+  }
 
-  // #[napi(getter)]
-  // pub fn filename(&self) -> Option<Either<String, JsFunction>> {
-  //   unimplemented!()
-  // }
+  #[napi(setter)]
+  pub fn set_public_path(&self, _public_path: Option<Either<String, JsFunction>>) {
+    unimplemented!()
+  }
+
+  #[napi(getter)]
+  pub fn filename(&self) -> Either3<String, JsFunction, ()> {
+    unimplemented!()
+  }
+
+  #[napi(setter)]
+  pub fn set_filename(&self, _filename: Option<Either<String, JsFunction>>) {
+    unimplemented!()
+  }
 }
 
 #[napi(object, object_to_js = false)]
@@ -248,5 +264,26 @@ impl JsEntries {
   #[napi]
   pub fn keys(&self) -> Vec<&String> {
     self.compilation.entries.keys().collect()
+  }
+
+  #[napi]
+  pub fn values(&'static self) -> Vec<EntryDataDTO> {
+    self
+      .compilation
+      .entries
+      .values()
+      .cloned()
+      .map(|value| {
+        // To resolve the lifetime issue, `&'static self` is converted to `&'static mut self`.
+        // Since JS is single-threaded, data races theoretically should not occur, making this safe.
+        // However, this approach is highly hacky. It is recommended to look for a better solution in the future.
+        let compilation_ptr = self.compilation as *const Compilation as *mut Compilation;
+        let compilation = unsafe { &mut *compilation_ptr };
+        EntryDataDTO {
+          entry_data: value,
+          compilation,
+        }
+      })
+      .collect()
   }
 }

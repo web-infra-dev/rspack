@@ -19,6 +19,37 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export class EntryDataDto {
+  get dependencies(): Array<JsDependency>
+  get includeDependencies(): Array<JsDependency>
+  get options(): EntryOptionsDto
+}
+export type EntryDataDTO = EntryDataDto
+
+export class EntryOptionsDto {
+  get name(): string | undefined
+  set name(name?: string | undefined | null)
+  get runtime(): false | bool | undefined
+  set runtime(chunkLoading?: boolean | string | undefined | null)
+  get chunkLoading(): string | undefined
+  set chunkLoading(chunkLoading?: string | undefined | null)
+  get asyncChunks(): boolean | undefined
+  set asyncChunks(asyncChunks?: boolean | undefined | null)
+  get baseUri(): string | undefined
+  set baseUri(baseUri?: string | undefined | null)
+  get library(): JsLibraryOptions | undefined
+  set library(options?: JsLibraryOptions | undefined | null)
+  get dependOn(): Array<string> | undefined
+  set dependOn(dependOn?: Array<string> | undefined | null)
+  get layer(): string | undefined
+  set layer(layer?: string | undefined | null)
+  get publicPath(): string | ((...args: any[]) => any) | undefined
+  set publicPath(publicPath?: string | ((...args: any[]) => any) | undefined | null)
+  get filename(): string | ((...args: any[]) => any) | undefined
+  set filename(filename?: string | ((...args: any[]) => any) | undefined | null)
+}
+export type EntryOptionsDTO = EntryOptionsDto
+
 export class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
@@ -74,10 +105,11 @@ export class JsEntries {
   clear(): void
   get size(): number
   has(key: string): boolean
-  set(key: string, value: JsEntryData): void
+  set(key: string, value: JsEntryData | EntryDataDto): void
   delete(key: string): boolean
-  get(key: string): JsEntryData | undefined
+  get(key: string): EntryDataDto | undefined
   keys(): Array<string>
+  values(): Array<EntryDataDto>
 }
 
 export class JsResolver {
@@ -387,10 +419,18 @@ export interface JsEntryOptions {
   runtime?: false | string
   chunkLoading?: string
   asyncChunks?: boolean
+  publicPath?: "auto" | JsFilename
   baseUri?: string
+  filename?: JsFilename
   library?: JsLibraryOptions
   dependOn?: Array<string>
   layer?: string
+}
+
+export interface JsEntryPluginOptions {
+  context: string
+  entry: string
+  options: JsEntryOptions
 }
 
 export interface JsExecuteModuleArg {
@@ -1053,26 +1093,7 @@ export interface RawDynamicEntryPluginOptions {
 
 export interface RawEntryDynamicResult {
   import: Array<string>
-  options: RawEntryOptions
-}
-
-export interface RawEntryOptions {
-  name?: string
-  runtime?: false | string
-  chunkLoading?: string
-  asyncChunks?: boolean
-  publicPath?: "auto" | JsFilename
-  baseUri?: string
-  filename?: JsFilename
-  library?: JsLibraryOptions
-  dependOn?: Array<string>
-  layer?: string
-}
-
-export interface RawEntryPluginOptions {
-  context: string
-  entry: string
-  options: RawEntryOptions
+  options: JsEntryOptions
 }
 
 export interface RawEnvironment {

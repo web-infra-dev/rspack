@@ -1184,14 +1184,28 @@ export class Entries implements Map<string, EntryData> {
 	}
 
 	entries(): IterableIterator<[string, binding.JsEntryData]> {
-		throw new Error("Method not implemented.");
+		const self = this;
+		const keys = this.keys();
+		return {
+			[Symbol.iterator]() {
+				return this;
+			},
+			next() {
+				const { done, value } = keys.next();
+				return {
+					done,
+					value: done ? (undefined as any) : [value, self.get(value)!]
+				};
+			}
+		};
 	}
+
 	values(): IterableIterator<binding.JsEntryData> {
-		throw new Error("Method not implemented.");
+		return this.#data.values()[Symbol.iterator]();
 	}
 
 	[Symbol.iterator](): IterableIterator<[string, binding.JsEntryData]> {
-		throw new Error("Method not implemented.");
+		return this.entries();
 	}
 
 	get [Symbol.toStringTag](): string {
