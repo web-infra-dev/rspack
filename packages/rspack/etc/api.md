@@ -1129,6 +1129,7 @@ export class Compilation {
         Set<string>
         ], void>;
         runtimeModule: RuntimeModule;
+        seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
     // (undocumented)

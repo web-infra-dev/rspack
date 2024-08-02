@@ -215,7 +215,7 @@ export class Compilation {
 			void
 		>;
 		runtimeModule: RuntimeModule;
-		seal: liteTapable.AsyncSeriesHook<[], void>;
+		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
 	name?: string;
