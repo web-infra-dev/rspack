@@ -441,9 +441,7 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
   pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilation, ()>,
-  #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
-  )]
+  #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
   pub register_compilation_seal_taps: RegisterFunction<(), ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"

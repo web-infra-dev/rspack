@@ -1007,7 +1007,7 @@ class Compiler {
 			registerCompilationSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSeal,
 				() => this.#compilation!.hooks.seal,
-				queried => async () => await queried.call()
+				queried => () => queried.call()
 			),
 			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterSeal,
