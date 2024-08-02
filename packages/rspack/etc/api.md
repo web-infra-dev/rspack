@@ -30,6 +30,7 @@ import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
+import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
@@ -44,7 +45,6 @@ import { RawCopyPattern } from '@rspack/binding';
 import type { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
-import { RawLibraryOptions } from '@rspack/binding';
 import { RawLightningCssMinimizerRspackPluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
@@ -1049,6 +1049,8 @@ export class Compilation {
     emitAsset(filename: string, source: Source, assetInfo?: AssetInfo): void;
     // (undocumented)
     endTime?: number;
+    // (undocumented)
+    get entries(): Map<string, EntryData>;
     get entrypoints(): ReadonlyMap<string, Entrypoint>;
     // (undocumented)
     get errors(): RspackError[];
@@ -2366,6 +2368,9 @@ interface Entry_2 {
     safeTime: number;
     timestamp: number;
 }
+
+// @public (undocumented)
+type EntryData = binding.JsEntryData;
 
 // @public (undocumented)
 export type EntryDependOn = z.infer<typeof entryDependOn>;
@@ -4138,7 +4143,7 @@ export const getNormalizedRspackOptions: (config: RspackOptions) => RspackOption
 export function getRawChunkLoading(chunkLoading: ChunkLoading): string;
 
 // @public (undocumented)
-export function getRawLibrary(library: LibraryOptions): RawLibraryOptions;
+export function getRawLibrary(library: LibraryOptions): JsLibraryOptions;
 
 // @public (undocumented)
 export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compiler) => RawOptions;
