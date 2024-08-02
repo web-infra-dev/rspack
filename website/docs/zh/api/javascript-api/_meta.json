@@ -1,7 +1,1 @@
-[
-  "index",
-  "compilation",
-  "stats-json",
-  "logger",
-  "cache"
-]
+["index", "compilation", "stats-json", "logger", "cache"]
