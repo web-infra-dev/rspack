@@ -75,6 +75,7 @@ jobs:
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
+          git config --system core.longpaths true
           git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
@@ -225,6 +226,7 @@ jobs:
         if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
+          git config --system core.longpaths true
           git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
@@ -278,6 +280,7 @@ jobs:
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
+          git config --system core.longpaths true
           git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
