@@ -5,14 +5,15 @@ class Plugin {
      * @param {import("@rspack/core").Compiler} compiler
      */
     apply(compiler) {
-        compiler.hooks.afterCompile.tap(PLUGIN_NAME, compilation => {
-            expect(Array.from(compilation.entries.keys())).toEqual(["main", "foo"]);
-
-            const entry = compilation.entries.get("foo");
-            expect(entry.dependencies.length).toEqual(1);
-            expect(entry.options.asyncChunks).toEqual(true);
+        compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 
             compilation.hooks.finishModules.tap(PLUGIN_NAME, () => {
+                expect(Array.from(compilation.entries.keys())).toEqual(["main", "foo"]);
+
+                const entry = compilation.entries.get("foo");
+                expect(entry.dependencies.length).toEqual(1);
+                expect(entry.options.asyncChunks).toEqual(true);
+
                 compilation.entries.delete("foo");
             })
         });

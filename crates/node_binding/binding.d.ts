@@ -34,21 +34,21 @@ export type EntryDataDTO = EntryDataDto
 
 export class EntryOptionsDto {
   get name(): string | undefined
-  set name(name?: string | undefined | null)
-  get runtime(): false | bool | undefined
-  set runtime(chunkLoading?: boolean | string | undefined | null)
+  set name(name: string | undefined)
+  get runtime(): false | string | undefined
+  set runtime(chunkLoading: boolean | string | undefined)
   get chunkLoading(): string | undefined
-  set chunkLoading(chunkLoading?: string | undefined | null)
+  set chunkLoading(chunkLoading: string | undefined)
   get asyncChunks(): boolean | undefined
-  set asyncChunks(asyncChunks?: boolean | undefined | null)
+  set asyncChunks(asyncChunks: boolean | undefined)
   get baseUri(): string | undefined
-  set baseUri(baseUri?: string | undefined | null)
+  set baseUri(baseUri: string | undefined)
   get library(): JsLibraryOptions | undefined
-  set library(options?: JsLibraryOptions | undefined | null)
+  set library(library: JsLibraryOptions | undefined)
   get dependOn(): Array<string> | undefined
-  set dependOn(dependOn?: Array<string> | undefined | null)
+  set dependOn(dependOn: Array<string> | undefined)
   get layer(): string | undefined
-  set layer(layer?: string | undefined | null)
+  set layer(layer: string | undefined)
 }
 export type EntryOptionsDTO = EntryOptionsDto
 

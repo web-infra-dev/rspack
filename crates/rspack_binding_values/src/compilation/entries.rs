@@ -22,11 +22,14 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_name(&mut self, name: Option<String>) {
-    self.0.name = name;
+  pub fn set_name(&mut self, name: Either<String, ()>) {
+    self.0.name = match name {
+      Either::A(s) => Some(s),
+      Either::B(_) => None,
+    };
   }
 
-  #[napi(getter, ts_return_type = "false | bool | undefined")]
+  #[napi(getter, ts_return_type = "false | string | undefined")]
   pub fn runtime(&self) -> Either3<bool, &String, ()> {
     match &self.0.runtime {
       Some(rt) => match rt {
@@ -38,11 +41,12 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_runtime(&mut self, chunk_loading: Option<Either<bool, String>>) {
-    self.0.chunk_loading = chunk_loading.map(|c| match c {
-      Either::A(_) => ChunkLoading::Disable,
-      Either::B(s) => ChunkLoading::Enable(s.as_str().into()),
-    });
+  pub fn set_runtime(&mut self, chunk_loading: Either3<bool, String, ()>) {
+    self.0.chunk_loading = match chunk_loading {
+      Either3::A(_) => Some(ChunkLoading::Disable),
+      Either3::B(s) => Some(ChunkLoading::Enable(s.as_str().into())),
+      Either3::C(_) => None,
+    };
   }
 
   #[napi(getter)]
@@ -54,8 +58,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_chunk_loading(&mut self, chunk_loading: Option<String>) {
-    self.0.chunk_loading = chunk_loading.map(|s| Into::into(s.as_str()));
+  pub fn set_chunk_loading(&mut self, chunk_loading: Either<String, ()>) {
+    self.0.chunk_loading = match chunk_loading {
+      Either::A(s) => Some(Into::into(s.as_str())),
+      Either::B(_) => None,
+    };
   }
 
   #[napi(getter)]
@@ -64,8 +71,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_async_chunks(&mut self, async_chunks: Option<bool>) {
-    self.0.async_chunks = async_chunks;
+  pub fn set_async_chunks(&mut self, async_chunks: Either<bool, ()>) {
+    self.0.async_chunks = match async_chunks {
+      Either::A(b) => Some(b),
+      Either::B(_) => None,
+    };
   }
 
   #[napi(getter)]
@@ -74,8 +84,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_base_uri(&mut self, base_uri: Option<String>) {
-    self.0.base_uri = base_uri;
+  pub fn set_base_uri(&mut self, base_uri: Either<String, ()>) {
+    self.0.base_uri = match base_uri {
+      Either::A(s) => Some(s),
+      Either::B(_) => None,
+    };
   }
 
   #[napi(getter)]
@@ -84,8 +97,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_library(&mut self, options: Option<JsLibraryOptions>) {
-    self.0.library = options.map(Into::into);
+  pub fn set_library(&mut self, library: Either<JsLibraryOptions, ()>) {
+    self.0.library = match library {
+      Either::A(l) => Some(l.into()),
+      Either::B(_) => None,
+    };
   }
 
   #[napi(getter)]
@@ -94,8 +110,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_depend_on(&mut self, depend_on: Option<Vec<String>>) {
-    self.0.depend_on = depend_on;
+  pub fn set_depend_on(&mut self, depend_on: Either<Vec<String>, ()>) {
+    self.0.depend_on = match depend_on {
+      Either::A(vec) => Some(vec),
+      Either::B(_) => None,
+    };
   }
 
   #[napi(getter)]
@@ -104,8 +123,11 @@ impl EntryOptionsDTO {
   }
 
   #[napi(setter)]
-  pub fn set_layer(&mut self, layer: Option<String>) {
-    self.0.layer = layer;
+  pub fn set_layer(&mut self, layer: Either<String, ()>) {
+    self.0.layer = match layer {
+      Either::A(s) => Some(s),
+      Either::B(_) => None,
+    };
   }
 
   // #[napi(getter)]

@@ -1,5 +1,7 @@
 import assert from "node:assert";
 import {
+	type JsLibraryName,
+	type JsLibraryOptions,
 	type RawAssetGeneratorOptions,
 	type RawAssetInlineGeneratorOptions,
 	type RawAssetParserDataUrl,
@@ -14,8 +16,6 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
-	type JsLibraryName,
-	type JsLibraryOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
