@@ -63,8 +63,8 @@ const deprecateAllProperties = <O extends object>(
 	return newObj;
 };
 
-export class NormalModule {
-	static getCompilationHooks(compilation: Compilation) {
+export const NormalModule = {
+	getCompilationHooks(compilation: Compilation) {
 		if (!(compilation instanceof Compilation)) {
 			throw new TypeError(
 				"The 'compilation' argument must be an instance of Compilation"
@@ -102,6 +102,6 @@ export class NormalModule {
 		}
 		return hooks;
 	}
-}
+};
 
 export default NormalModule;

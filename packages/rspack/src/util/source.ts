@@ -1,10 +1,10 @@
 import type { JsCompatSource } from "@rspack/binding";
-import { CompatSource, RawSource, Source } from "webpack-sources";
+import { CompatSource, RawSource, type Source } from "webpack-sources";
 
 import { isNil } from "./index";
 
-class JsSource extends Source {
-	static __from_binding(source: JsCompatSource): Source {
+const JsSource = {
+	__from_binding(source: JsCompatSource): Source {
 		if (source.isRaw) {
 			return new RawSource(
 				// @ts-expect-error: webpack-sources can accept buffer as source, see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/RawSource.js#L12
@@ -31,9 +31,9 @@ class JsSource extends Source {
 				return null;
 			}
 		});
-	}
+	},
 
-	static __to_binding(source: Source) {
+	__to_binding(source: Source) {
 		const sourceSource = source.source();
 		const isBuffer = Buffer.isBuffer(sourceSource);
 
@@ -65,7 +65,7 @@ class JsSource extends Source {
 			isBuffer
 		};
 	}
-}
+};
 
 function arrayBufferToBuffer(ab: ArrayBuffer) {
 	const buf = Buffer.alloc(ab.byteLength);

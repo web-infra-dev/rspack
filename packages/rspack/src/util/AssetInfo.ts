@@ -3,8 +3,8 @@ import type { JsAssetInfo as JsAssetInfoBinding } from "@rspack/binding";
 export type AssetInfo = Partial<Omit<JsAssetInfoBinding, "extras">> &
 	Record<string, any>;
 
-class JsAssetInfo {
-	static __from_binding(jsAssetInfo: JsAssetInfoBinding): AssetInfo {
+const JsAssetInfo = {
+	__from_binding(jsAssetInfo: JsAssetInfoBinding): AssetInfo {
 		const {
 			immutable,
 			minimized,
@@ -31,9 +31,9 @@ class JsAssetInfo {
 			javascriptModule,
 			sourceFilename
 		};
-	}
+	},
 
-	static __to_binding(assetInfo: AssetInfo = {}): JsAssetInfoBinding {
+	__to_binding(assetInfo: AssetInfo = {}): JsAssetInfoBinding {
 		let {
 			immutable = false,
 			minimized = false,
@@ -62,6 +62,6 @@ class JsAssetInfo {
 			sourceFilename
 		};
 	}
-}
+};
 
 export { JsAssetInfo };

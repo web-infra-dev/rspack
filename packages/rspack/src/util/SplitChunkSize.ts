@@ -1,7 +1,7 @@
 import type { RawSplitChunkSizes } from "@rspack/binding";
 
-class JsSplitChunkSizes {
-	static __to_binding(
+const JsSplitChunkSizes = {
+	__to_binding(
 		sizes?: number | Record<string, number>
 	): number | RawSplitChunkSizes | undefined {
 		if (typeof sizes === "number") {
@@ -15,6 +15,6 @@ class JsSplitChunkSizes {
 		}
 		return sizes;
 	}
-}
+};
 
 export { JsSplitChunkSizes };

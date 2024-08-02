@@ -38,7 +38,6 @@
 				"useKeyWithClickEvents": "off"
 			},
 			"complexity": {
-				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
 				"noBannedTypes": "off"
 			},

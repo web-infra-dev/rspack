@@ -23,67 +23,67 @@ const COMMENT_END_REGEX = /\*\//g;
 const PATH_NAME_NORMALIZE_REPLACE_REGEX = /[^a-zA-Z0-9_!§$()=\-^°]+/g;
 const MATCH_PADDED_HYPHENS_REPLACE_REGEX = /^-|-$/g;
 
-class Template {
+const Template = {
 	/**
 	 *
 	 * @param fn a runtime function (.runtime.js) "template"
 	 * @returns the updated and normalized function string
 	 */
-	static getFunctionContent(fn: Function): string {
+	getFunctionContent(fn: Function): string {
 		return fn
 			.toString()
 			.replace(FUNCTION_CONTENT_REGEX, "")
 			.replace(INDENT_MULTILINE_REGEX, "")
 			.replace(LINE_SEPARATOR_REGEX, "\n");
-	}
+	},
 
 	/**
 	 * @param str the string converted to identifier
 	 * @returns created identifier
 	 */
-	static toIdentifier(str: any): string {
+	toIdentifier(str: any): string {
 		if (typeof str !== "string") return "";
 		return str
 			.replace(IDENTIFIER_NAME_REPLACE_REGEX, "_$1")
 			.replace(IDENTIFIER_ALPHA_NUMERIC_NAME_REPLACE_REGEX, "_");
-	}
+	},
 	/**
 	 *
 	 * @param str string to be converted to commented in bundle code
 	 * @returns returns a commented version of string
 	 */
-	static toComment(str: string): string {
+	toComment(str: string): string {
 		if (!str) return "";
 		return `/*! ${str.replace(COMMENT_END_REGEX, "* /")} */`;
-	}
+	},
 
 	/**
 	 *
 	 * @param str string to be converted to "normal comment"
 	 * @returns returns a commented version of string
 	 */
-	static toNormalComment(str: string): string {
+	toNormalComment(str: string): string {
 		if (!str) return "";
 		return `/* ${str.replace(COMMENT_END_REGEX, "* /")} */`;
-	}
+	},
 
 	/**
 	 * @param str string path to be normalized
 	 * @returns normalized bundle-safe path
 	 */
-	static toPath(str: string): string {
+	toPath(str: string): string {
 		if (typeof str !== "string") return "";
 		return str
 			.replace(PATH_NAME_NORMALIZE_REPLACE_REGEX, "-")
 			.replace(MATCH_PADDED_HYPHENS_REPLACE_REGEX, "");
-	}
+	},
 
 	// map number to a single character a-z, A-Z or multiple characters if number is too big
 	/**
 	 * @param n number to convert to ident
 	 * @returns returns single character ident
 	 */
-	static numberToIdentifier(n: number): string {
+	numberToIdentifier(n: number): string {
 		if (n >= NUMBER_OF_IDENTIFIER_START_CHARS) {
 			// use multiple letters
 			return (
@@ -107,13 +107,13 @@ class Template {
 
 		if (n === DELTA_A_TO_Z) return "_";
 		return "$";
-	}
+	},
 
 	/**
 	 * @param n number to convert to ident
 	 * @returns returns single character ident
 	 */
-	static numberToIdentifierContinuation(n: number): string {
+	numberToIdentifierContinuation(n: number): string {
 		if (n >= NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) {
 			// use multiple letters
 			return (
@@ -145,14 +145,14 @@ class Template {
 
 		if (n === 10) return "_";
 		return "$";
-	}
+	},
 
 	/**
 	 *
 	 * @param s string to convert to identity
 	 * @returns converted identity
 	 */
-	static indent(s: string | string[]): string {
+	indent(s: string | string[]): string {
 		if (Array.isArray(s)) {
 			return s.map(Template.indent).join("\n");
 		}
@@ -160,7 +160,7 @@ class Template {
 		if (!str) return "";
 		const ind = str[0] === "\n" ? "" : "\t";
 		return ind + str.replace(/\n([^\n])/g, "\n\t$1");
-	}
+	},
 
 	/**
 	 *
@@ -168,31 +168,31 @@ class Template {
 	 * @param prefix prefix to compose
 	 * @returns returns new prefix string
 	 */
-	static prefix(s: string | string[], prefix: string): string {
+	prefix(s: string | string[], prefix: string): string {
 		const str = Template.asString(s).trim();
 		if (!str) return "";
 		const ind = str[0] === "\n" ? "" : prefix;
 		return ind + str.replace(/\n([^\n])/g, `\n${prefix}$1`);
-	}
+	},
 
 	/**
 	 *
 	 * @param str string or string collection
 	 * @returns returns a single string from array
 	 */
-	static asString(str: string | string[]): string {
+	asString(str: string | string[]): string {
 		if (Array.isArray(str)) {
 			return str.join("\n");
 		}
 		return str;
-	}
+	},
 
 	/**
 	 * @param modules a collection of modules to get array bounds for
 	 * @returns returns the upper and lower array bounds
 	 * or false if not every module has a number based id
 	 */
-	static getModulesArrayBounds(
+	getModulesArrayBounds(
 		modules: { id: string | number }[]
 	): [number, number] | false {
 		let maxId = Number.NEGATIVE_INFINITY;
@@ -217,6 +217,6 @@ class Template {
 		const arrayOverhead = minId === 0 ? maxId : 16 + `${minId}`.length + maxId;
 		return arrayOverhead < objectOverhead ? [minId, maxId] : false;
 	}
-}
+};
 
 export { Template };

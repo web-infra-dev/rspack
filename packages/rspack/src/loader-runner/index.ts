@@ -217,15 +217,14 @@ export class LoaderObject {
 	}
 }
 
-class JsSourceMap {
-	static __from_binding(map?: Buffer) {
+const JsSourceMap = {
+	__from_binding(map?: Buffer) {
 		return isNil(map) ? undefined : toObject(map);
-	}
-
-	static __to_binding(map?: object) {
+	},
+	__to_binding(map?: object) {
 		return serializeObject(map);
 	}
-}
+};
 
 const loadLoaderAsync: (loaderObject: LoaderObject) => Promise<void> =
 	promisify(loadLoader);

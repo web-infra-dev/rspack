@@ -3,8 +3,8 @@ import { concatErrorMsgAndStack } from "./util";
 
 export type RspackError = binding.JsRspackError;
 
-export class JsDiagnostic {
-	static __to_binding(
+export const JsDiagnostic = {
+	__to_binding(
 		error: Error | RspackError,
 		severity: binding.JsRspackSeverity
 	): binding.JsDiagnostic {
@@ -13,7 +13,7 @@ export class JsDiagnostic {
 			severity
 		};
 	}
-}
+};
 
 export class NonErrorEmittedError extends Error {
 	constructor(error: Error) {

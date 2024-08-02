@@ -6807,18 +6807,13 @@ const noParseOption: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
 
 // @public (undocumented)
-export class NormalModule {
-    // (undocumented)
-    static getCompilationHooks(compilation: Compilation): {
-        loader: liteTapable.SyncHook<[LoaderContext<{}>], void, {
-            _UnsetAdditionalOptions: true;
-        }>;
+export const NormalModule: {
+    getCompilationHooks(compilation: Compilation): {
+        loader: liteTapable.SyncHook<[LoaderContext]>;
         readResourceForScheme: any;
-        readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext<{}>], string | Buffer, {
-            _UnsetAdditionalOptions: true;
-        }>>;
+        readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
     };
-}
+};
 
 // @public (undocumented)
 type NormalModuleCreateData = binding.JsNormalModuleFactoryCreateModuleArgs & {
@@ -14493,32 +14488,21 @@ interface Targets {
 }
 
 // @public
-export class Template {
-    // (undocumented)
-    static asString(str: string | string[]): string;
-    // (undocumented)
-    static getFunctionContent(fn: Function): string;
-    // (undocumented)
-    static getModulesArrayBounds(modules: {
+export const Template: {
+    getFunctionContent(fn: Function): string;
+    toIdentifier(str: any): string;
+    toComment(str: string): string;
+    toNormalComment(str: string): string;
+    toPath(str: string): string;
+    numberToIdentifier(n: number): string;
+    numberToIdentifierContinuation(n: number): string;
+    indent(s: string | string[]): string;
+    prefix(s: string | string[], prefix: string): string;
+    asString(str: string | string[]): string;
+    getModulesArrayBounds(modules: {
         id: string | number;
     }[]): [number, number] | false;
-    // (undocumented)
-    static indent(s: string | string[]): string;
-    // (undocumented)
-    static numberToIdentifier(n: number): string;
-    // (undocumented)
-    static numberToIdentifierContinuation(n: number): string;
-    // (undocumented)
-    static prefix(s: string | string[], prefix: string): string;
-    // (undocumented)
-    static toComment(str: string): string;
-    // (undocumented)
-    static toIdentifier(str: any): string;
-    // (undocumented)
-    static toNormalComment(str: string): string;
-    // (undocumented)
-    static toPath(str: string): string;
-}
+};
 
 // @public (undocumented)
 interface TerserCompressOptions {
