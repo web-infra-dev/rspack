@@ -786,8 +786,7 @@ const allowTarget = z.union([
 		"es2019",
 		"es2020",
 		"es2021",
-		"es2022",
-		"browserslist"
+		"es2022"
 	]),
 	z.literal("node"),
 	z.literal("async-node"),
@@ -839,6 +838,10 @@ const allowTarget = z.union([
 	),
 	z.custom<`node-webkit${number}.${number}`>(
 		value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
+	),
+	z.literal("browserslist"),
+	z.custom<`browserslist:${string}`>(
+		value => typeof value === "string" && /^browserslist:(.+)$/.test(value)
 	)
 ]);
 
