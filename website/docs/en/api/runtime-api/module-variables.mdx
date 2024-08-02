@@ -22,7 +22,7 @@ module.id === require.resolve('./src/main.js'); // true
 
 ### module.hot
 
-Indicates whether or not Hot Module Replacement is enabled and provides an interface to the process. See the [HMR API page](/api/hmr) for details.
+Indicates whether or not Hot Module Replacement is enabled and provides an interface to the process. See the [HMR API page](/api/runtime-api/hmr) for details.
 
 ### global
 
@@ -134,7 +134,7 @@ typeof import.meta.url
 You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
 
 :::tip
-The return value of `import.meta.webpackContext` is the same as [import.meta.webpackContext](/api/modules/module-variables#importmetawebpackcontext). We recommend using `import.meta.webpackContext`, which is more powerful.
+The return value of `import.meta.webpackContext` is the same as [import.meta.webpackContext](/api/runtime-api/module-variables#importmetawebpackcontext). We recommend using `import.meta.webpackContext`, which is more powerful.
 :::
 
 - **Type:**

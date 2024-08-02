@@ -9,7 +9,7 @@ import Columns from '@components/Columns';
 
 Logging output is an additional way to display messages to the end users.
 
-Rspack logger is available to [loaders](/guide/features/loader) and [plugins](/guide/features/plugin). Emitting as part of the [Stats](/api/objects/stats) and configured by the user in [rspack configuration](/config/).
+Rspack logger is available to [loaders](/guide/features/loader) and [plugins](/guide/features/plugin). Emitting as part of the [Stats](/api/javascript-api/stats-json) and configured by the user in [rspack configuration](/config/).
 
 Benefits of custom logging API in Rspack:
 
@@ -35,7 +35,7 @@ Keep in mind that multiple plugins and loaders are used together. Loaders are us
 
 There are two types of logging methods:
 
-1. [compilation.getLogger](/api/objects/compilation#getlogger): the content will be stored within the stats, use this when logging is related to the compilation.
+1. [compilation.getLogger](/api/javascript-api/compilation#getlogger): the content will be stored within the stats, use this when logging is related to the compilation.
 2. `compiler.getInfrastructureLogger`: the content will not be stored, used this when logging is outside the compilation cycle.
 
 You can use them in your plugin like below:

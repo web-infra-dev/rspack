@@ -5,11 +5,11 @@ import Columns from '@components/Columns';
 
 <WebpackLicense from="https://webpack.docschina.org/api/logging/" />
 
-# Logger 对象
+# Logger
 
 使用 Logger 输出消息是一种向用户展示信息的有效方式。
 
-Rspack logger 可以在 [loaders](/guide/features/loader) 和 [plugins](/guide/features/plugin) 中使用。 生成的日志将作为 [Stats](/api/objects/stats) 的一部分并且可以在 [rspack configuration](/config/) 中配置。
+Rspack logger 可以在 [loaders](/guide/features/loader) 和 [plugins](/guide/features/plugin) 中使用。 生成的日志将作为 [Stats](/api/javascript-api/stats-json) 的一部分并且可以在 [rspack configuration](/config/) 中配置。
 
 使用 Rspack 的 Logger 有如下收益：
 
@@ -35,7 +35,7 @@ Rspack logger 可以在 [loaders](/guide/features/loader) 和 [plugins](/guide/f
 
 插件中有两种方式来获取 Logger：
 
-1. [compilation.getLogger](/api/objects/compilation#getlogger): 日志内容会被存储到 Stats 中，适合输出与一次 Compilation 关联的日志。
+1. [compilation.getLogger](/api/javascript-api/compilation#getlogger): 日志内容会被存储到 Stats 中，适合输出与一次 Compilation 关联的日志。
 2. `compiler.getInfrastructureLogger`: 日志内容不会被存储，适合输出不与 Compilation 关联的全局信息。
 
 可以在插件中通过如下代码获得 Logger：

@@ -2,7 +2,7 @@ import { Children } from 'react';
 import type { PropsWithChildren } from 'react';
 
 interface Props {
-  titles: string[];
+  titles?: string[];
 }
 
 export default function Columns({
