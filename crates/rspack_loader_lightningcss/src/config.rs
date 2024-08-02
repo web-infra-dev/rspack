@@ -8,11 +8,13 @@ pub struct Draft {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NonStandard {
   pub deep_selector_combinator: bool,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PseudoClasses {
   pub hover: Option<String>,
   pub active: Option<String>,
