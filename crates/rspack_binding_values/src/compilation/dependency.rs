@@ -3,8 +3,8 @@ use rspack_core::{Compilation, DependencyId};
 
 #[napi]
 pub struct JsDependency {
-  dependency_id: DependencyId,
-  compilation: &'static Compilation,
+  pub(crate) dependency_id: DependencyId,
+  pub(crate) compilation: &'static Compilation,
 }
 
 impl JsDependency {
