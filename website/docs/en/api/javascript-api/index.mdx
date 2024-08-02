@@ -2,9 +2,9 @@ import WebpackLicense from '@components/webpack-license';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { PackageManagerTabs } from '@theme';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-import CompilerType from '../types/compiler.mdx';
-import WatchingType from '../types/watching.mdx';
-import StatsType from '../types/stats.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import WatchingType from '../../types/watching.mdx';
+import StatsType from '../../types/stats.mdx';
 
 <WebpackLicense from="https://webpack.js.org/api/node/" />
 
@@ -46,11 +46,11 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip
-The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/javascript-api#error-handling) section of this guide. The `err` object will only contain rspack-related issues, such as misconfiguration, etc.
+The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/javascript-api/index#error-handling) section of this guide. The `err` object will only contain rspack-related issues, such as misconfiguration, etc.
 :::
 
 :::tip
-You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/javascript-api#multicompiler) section below for more information.
+You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/javascript-api/index#multicompiler) section below for more information.
 :::
 
 ## Compiler Instance
@@ -172,7 +172,7 @@ watching.invalidate();
 
 ## Stats Object
 
-The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api#rspack) callback, is a good source of information about the code compilation process. It includes:
+The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api/index#rspack) callback, is a good source of information about the code compilation process. It includes:
 
 - Errors and Warnings (if any)
 - Timings
@@ -215,7 +215,7 @@ stats.toJson({
 });
 ```
 
-All available options and presets are described in the [stats configurations](/config/stats), and the generated data is described in the [stats object](/api/objects/stats).
+All available options and presets are described in the [stats configurations](/config/stats), and the generated data is described in the [stats object](/api/javascript-api/stats-json).
 
 ### stats.toString(options)
 

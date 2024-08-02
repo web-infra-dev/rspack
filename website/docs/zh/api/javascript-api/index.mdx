@@ -2,9 +2,9 @@ import WebpackLicense from '@components/webpack-license';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { PackageManagerTabs } from '@theme';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-import CompilerType from '../types/compiler.mdx';
-import WatchingType from '../types/watching.mdx';
-import StatsType from '../types/stats.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import WatchingType from '../../types/watching.mdx';
+import StatsType from '../../types/stats.mdx';
 
 <WebpackLicense from="https://webpack.docschina.org/api/node/" />
 
@@ -46,11 +46,11 @@ rspack({}, (err, stats) => {
 ```
 
 :::tip 提示
-`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/javascript-api#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
+`err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/javascript-api/index#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
 :::
 
 :::tip 提示
-你也可以为 rspack() 函数提供一个配置数组。更多详细信息，请查看 [MultiCompiler](/api/javascript-api#multicompiler) 章节。
+你也可以为 rspack() 函数提供一个配置数组。更多详细信息，请查看 [MultiCompiler](/api/javascript-api/index#multicompiler) 章节。
 :::
 
 ## Compiler 实例
@@ -172,7 +172,7 @@ watching.invalidate();
 
 ## Stats 对象
 
-`stats` 对象会被作为 [`rspack()`](/api/javascript-api#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
+`stats` 对象会被作为 [`rspack()`](/api/javascript-api/index#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
 
 - 错误和警告（如果有的话）
 - 计时信息
@@ -215,7 +215,7 @@ stats.toJson({
 });
 ```
 
-所有可用的配置选项和预设值都可查询 [Stats 配置](/config/stats)，生成的 Stats 对象结构可查询 [Stats 对象](/api/objects/stats)。
+所有可用的配置选项和预设值都可查询 [Stats 配置](/config/stats)，生成的 Stats 对象结构可查询 [Stats 对象](/api/javascript-api/stats-json)。
 
 ### stats.toString(options)
 

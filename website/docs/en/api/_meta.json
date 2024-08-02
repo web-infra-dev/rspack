@@ -3,15 +3,13 @@
   "cli",
   {
     "type": "dir",
-    "name": "modules",
-    "label": "Modules"
+    "name": "runtime-api",
+    "label": "Runtime API"
   },
-  "javascript-api",
-  "hmr",
   {
     "type": "dir",
-    "name": "objects",
-    "label": "Objects"
+    "name": "javascript-api",
+    "label": "JavaScript API"
   },
   {
     "type": "dir",

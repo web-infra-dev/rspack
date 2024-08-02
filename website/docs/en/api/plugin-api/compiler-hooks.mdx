@@ -141,7 +141,7 @@ Called while initializing the compilation, right before calling the `compilation
 
 - **Type:** `SyncHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: created [compilation](/api/objects/compilation) object
+  - `Compilation`: created [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -159,7 +159,7 @@ Runs a plugin after a compilation has been created.
 
 - **Type:** `SyncHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: created [compilation](/api/objects/compilation) object
+  - `Compilation`: created [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -179,7 +179,7 @@ In the make phase, Rspack will build the module graph starting from the entry, a
 
 - **Type:** `AsyncParallelHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: current [compilation](/api/objects/compilation) object
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -199,7 +199,7 @@ In the seal phase, Rspack will create chunk graph from the module graph and then
 
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: current [compilation](/api/objects/compilation) object
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -219,7 +219,7 @@ Called before emitting assets. Should return a boolean telling whether to emit.
 
 - **Type:** `SyncBailHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: current [compilation](/api/objects/compilation) object
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -237,7 +237,7 @@ Called right before emitting assets to output dir.
 
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: current [compilation](/api/objects/compilation) object
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -255,7 +255,7 @@ Called after emitting assets to output directory.
 
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: current [compilation](/api/objects/compilation) object
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
