@@ -3117,7 +3117,6 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "heck 0.5.0",
- "indexmap 2.2.6",
  "napi-derive",
  "napi-h",
  "rspack_collections",
