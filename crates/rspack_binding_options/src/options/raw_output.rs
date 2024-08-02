@@ -1,11 +1,9 @@
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::library::JsLibraryOptions;
 use rspack_binding_values::JsFilename;
-use rspack_core::{
-  CrossOriginLoading, Environment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, PathInfo,
-};
-use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
+use rspack_core::{CrossOriginLoading, Environment, PathInfo};
+use rspack_core::{OutputOptions, TrustedTypes};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -17,103 +15,6 @@ impl From<RawTrustedTypes> for TrustedTypes {
   fn from(value: RawTrustedTypes) -> Self {
     Self {
       policy_name: value.policy_name,
-    }
-  }
-}
-
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawLibraryName {
-  #[napi(ts_type = r#""string" | "array" | "umdObject""#)]
-  pub r#type: String,
-  pub string_payload: Option<String>,
-  pub array_payload: Option<Vec<String>>,
-  pub umd_object_payload: Option<RawLibraryCustomUmdObject>,
-}
-
-impl From<RawLibraryName> for LibraryName {
-  fn from(value: RawLibraryName) -> Self {
-    match value.r#type.as_str() {
-      "string" => {
-        Self::NonUmdObject(LibraryNonUmdObject::String(value.string_payload.expect(
-          "should have a string_payload when RawLibraryName.type is \"string\"",
-        )))
-      }
-      "array" => Self::NonUmdObject(LibraryNonUmdObject::Array(
-        value
-          .array_payload
-          .expect("should have a array_payload when RawLibraryName.type is \"array\""),
-      )),
-      "umdObject" => Self::UmdObject(
-        value
-          .umd_object_payload
-          .expect("should have a umd_object_payload when RawLibraryName.type is \"umdObject\"")
-          .into(),
-      ),
-      _ => unreachable!(),
-    }
-  }
-}
-
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawLibraryCustomUmdObject {
-  pub amd: Option<String>,
-  pub commonjs: Option<String>,
-  pub root: Option<Vec<String>>,
-}
-
-impl From<RawLibraryCustomUmdObject> for LibraryCustomUmdObject {
-  fn from(value: RawLibraryCustomUmdObject) -> Self {
-    Self {
-      amd: value.amd,
-      commonjs: value.commonjs,
-      root: value.root,
-    }
-  }
-}
-
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawLibraryAuxiliaryComment {
-  pub root: Option<String>,
-  pub commonjs: Option<String>,
-  pub commonjs2: Option<String>,
-  pub amd: Option<String>,
-}
-
-impl From<RawLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
-  fn from(value: RawLibraryAuxiliaryComment) -> Self {
-    Self {
-      amd: value.amd,
-      commonjs: value.commonjs,
-      root: value.root,
-      commonjs2: value.commonjs2,
-    }
-  }
-}
-
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawLibraryOptions {
-  pub name: Option<RawLibraryName>,
-  pub export: Option<Vec<String>>,
-  // webpack type
-  pub library_type: String,
-  pub umd_named_define: Option<bool>,
-  pub auxiliary_comment: Option<RawLibraryAuxiliaryComment>,
-  pub amd_container: Option<String>,
-}
-
-impl From<RawLibraryOptions> for LibraryOptions {
-  fn from(value: RawLibraryOptions) -> Self {
-    Self {
-      name: value.name.map(Into::into),
-      export: value.export,
-      library_type: value.library_type,
-      umd_named_define: value.umd_named_define,
-      auxiliary_comment: value.auxiliary_comment.map(Into::into),
-      amd_container: value.amd_container,
     }
   }
 }
@@ -181,7 +82,7 @@ pub struct RawOutputOptions {
   pub hot_update_global: String,
   pub unique_name: String,
   pub chunk_loading_global: String,
-  pub library: Option<RawLibraryOptions>,
+  pub library: Option<JsLibraryOptions>,
   pub strict_module_error_handling: bool,
   pub enabled_library_types: Option<Vec<String>>,
   pub global_object: String,

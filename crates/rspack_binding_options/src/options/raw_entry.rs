@@ -1,9 +1,7 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::JsFilename;
+use rspack_binding_values::{library::JsLibraryOptions, JsFilename};
 use rspack_core::{EntryOptions, EntryRuntime};
-
-use crate::RawLibraryOptions;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -40,7 +38,7 @@ pub struct RawEntryOptions {
   pub public_path: Option<JsFilename>,
   pub base_uri: Option<String>,
   pub filename: Option<JsFilename>,
-  pub library: Option<RawLibraryOptions>,
+  pub library: Option<JsLibraryOptions>,
   pub depend_on: Option<Vec<String>>,
   pub layer: Option<String>,
 }

@@ -14,8 +14,8 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
-	type RawLibraryName,
-	type RawLibraryOptions,
+	type JsLibraryName,
+	type JsLibraryOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
@@ -259,7 +259,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
+export function getRawLibrary(library: LibraryOptions): JsLibraryOptions {
 	const {
 		type,
 		name,
@@ -289,7 +289,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 	};
 }
 
-function getRawLibraryName(name: LibraryName): RawLibraryName {
+function getRawLibraryName(name: LibraryName): JsLibraryName {
 	if (typeof name === "string") {
 		return {
 			type: "string",

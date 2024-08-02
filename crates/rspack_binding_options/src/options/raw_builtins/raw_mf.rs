@@ -2,19 +2,20 @@ use std::sync::Arc;
 
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::library::JsLibraryOptions;
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
   ContainerReferencePluginOptions, ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
-use crate::{RawEntryRuntime, RawEntryRuntimeWrapper, RawLibraryOptions};
+use crate::{RawEntryRuntime, RawEntryRuntimeWrapper};
 
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawContainerPluginOptions {
   pub name: String,
   pub share_scope: String,
-  pub library: RawLibraryOptions,
+  pub library: JsLibraryOptions,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<RawEntryRuntime>,
   pub filename: Option<String>,

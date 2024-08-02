@@ -1,14 +1,49 @@
 use napi_derive::napi;
-use rspack_core::Compilation;
+use rspack_core::{Compilation, EntryOptions, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::dependency::JsDependency;
+use crate::library::JsLibraryOptions;
+
+#[napi(object)]
+pub struct JsEntryOptions {
+  pub name: Option<String>,
+  #[napi(ts_type = "false | string")]
+  pub runtime: Option<Either<bool, String>>,
+  pub chunk_loading: Option<String>,
+  pub async_chunks: Option<bool>,
+  pub base_uri: Option<String>,
+  // TODO
+  // public_path
+  // filename
+  pub library: Option<JsLibraryOptions>,
+  pub depend_on: Option<Vec<String>>,
+  pub layer: Option<String>,
+}
+
+impl From<EntryOptions> for JsEntryOptions {
+  fn from(value: EntryOptions) -> Self {
+    Self {
+      name: value.name,
+      runtime: value.runtime.map(|rt| match rt {
+        EntryRuntime::String(s) => Either::B(s),
+        EntryRuntime::False => Either::A(false),
+      }),
+      chunk_loading: value.chunk_loading.map(|s| s.into()),
+      async_chunks: value.async_chunks,
+      base_uri: value.base_uri,
+      library: value.library.map(|l| l.into()),
+      depend_on: value.depend_on,
+      layer: value.layer,
+    }
+  }
+}
 
 #[napi(object)]
 pub struct JsEntryData {
   pub dependencies: Vec<ClassInstance<JsDependency>>,
   pub include_dependencies: Vec<ClassInstance<JsDependency>>,
-  // pub options: JsEntryOptions,
+  pub options: JsEntryOptions,
 }
 
 #[napi]
@@ -82,6 +117,7 @@ impl JsEntries {
         Either::A(JsEntryData {
           dependencies,
           include_dependencies,
+          options: e.options.clone().into(),
         })
       }
       None => Either::B(()),

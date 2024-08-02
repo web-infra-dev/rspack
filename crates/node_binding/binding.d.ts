@@ -379,6 +379,18 @@ export interface JsDiagnostic {
 export interface JsEntryData {
   dependencies: Array<JsDependency>
   includeDependencies: Array<JsDependency>
+  options: JsEntryOptions
+}
+
+export interface JsEntryOptions {
+  name?: string
+  runtime?: false | string
+  chunkLoading?: string
+  asyncChunks?: boolean
+  baseUri?: string
+  library?: JsLibraryOptions
+  dependOn?: Array<string>
+  layer?: string
 }
 
 export interface JsExecuteModuleArg {
@@ -406,6 +418,35 @@ export interface JsFactorizeArgs {
 
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
+}
+
+export interface JsLibraryAuxiliaryComment {
+  root?: string
+  commonjs?: string
+  commonjs2?: string
+  amd?: string
+}
+
+export interface JsLibraryCustomUmdObject {
+  amd?: string
+  commonjs?: string
+  root?: Array<string>
+}
+
+export interface JsLibraryName {
+  type: "string" | "array" | "umdObject"
+  stringPayload?: string
+  arrayPayload?: Array<string>
+  umdObjectPayload?: JsLibraryCustomUmdObject
+}
+
+export interface JsLibraryOptions {
+  name?: JsLibraryName
+  export?: Array<string>
+  libraryType: string
+  umdNamedDefine?: boolean
+  auxiliaryComment?: JsLibraryAuxiliaryComment
+  amdContainer?: string
 }
 
 export interface JsLoaderContext {
@@ -920,7 +961,7 @@ export interface RawConsumeSharedPluginOptions {
 export interface RawContainerPluginOptions {
   name: string
   shareScope: string
-  library: RawLibraryOptions
+  library: JsLibraryOptions
   runtime?: false | string
   filename?: string
   exposes: Array<RawExposeOptions>
@@ -1023,7 +1064,7 @@ export interface RawEntryOptions {
   publicPath?: "auto" | JsFilename
   baseUri?: string
   filename?: JsFilename
-  library?: RawLibraryOptions
+  library?: JsLibraryOptions
   dependOn?: Array<string>
   layer?: string
 }
@@ -1184,35 +1225,6 @@ export interface RawLazyCompilationOption {
   cacheable: boolean
 }
 
-export interface RawLibraryAuxiliaryComment {
-  root?: string
-  commonjs?: string
-  commonjs2?: string
-  amd?: string
-}
-
-export interface RawLibraryCustomUmdObject {
-  amd?: string
-  commonjs?: string
-  root?: Array<string>
-}
-
-export interface RawLibraryName {
-  type: "string" | "array" | "umdObject"
-  stringPayload?: string
-  arrayPayload?: Array<string>
-  umdObjectPayload?: RawLibraryCustomUmdObject
-}
-
-export interface RawLibraryOptions {
-  name?: RawLibraryName
-  export?: Array<string>
-  libraryType: string
-  umdNamedDefine?: boolean
-  auxiliaryComment?: RawLibraryAuxiliaryComment
-  amdContainer?: string
-}
-
 export interface RawLightningCssMinimizerRspackPluginOptions {
   errorRecovery: boolean
   unusedSymbols: Array<string>
@@ -1368,7 +1380,7 @@ export interface RawOutputOptions {
   hotUpdateGlobal: string
   uniqueName: string
   chunkLoadingGlobal: string
-  library?: RawLibraryOptions
+  library?: JsLibraryOptions
   strictModuleErrorHandling: boolean
   enabledLibraryTypes?: Array<string>
   globalObject: string

@@ -97,6 +97,15 @@ impl From<&str> for ChunkLoading {
   }
 }
 
+impl From<ChunkLoading> for String {
+  fn from(value: ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false".to_string(),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
@@ -116,6 +125,18 @@ impl From<&str> for ChunkLoadingType {
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
       _ => unimplemented!("custom chunkLoading in not supported yet"),
+    }
+  }
+}
+
+impl From<ChunkLoadingType> for String {
+  fn from(value: ChunkLoadingType) -> Self {
+    match value {
+      ChunkLoadingType::Jsonp => "jsonp".to_string(),
+      ChunkLoadingType::ImportScripts => "import-scripts".to_string(),
+      ChunkLoadingType::Require => "require".to_string(),
+      ChunkLoadingType::AsyncNode => "async-node".to_string(),
+      ChunkLoadingType::Import => "import".to_string(),
     }
   }
 }
