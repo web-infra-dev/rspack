@@ -36,19 +36,19 @@ use rspack_core::{
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
   CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
   CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationStillValidModule, CompilationStillValidModuleHook,
-  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
-  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
-  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
-  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
-  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  CompilationRuntimeModuleHook, CompilationSeal, CompilationSealHook, CompilationStillValidModule,
+  CompilationStillValidModuleHook, CompilationSucceedModule, CompilationSucceedModuleHook,
+  CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook,
+  CompilerCompilation, CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
+  CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
+  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
+  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
+  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   Scheme,
@@ -317,6 +317,7 @@ pub enum RegisterJsTapKind {
   CompilationChunkAsset,
   CompilationProcessAssets,
   CompilationAfterProcessAssets,
+  CompilationSeal,
   CompilationAfterSeal,
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryFactorize,
@@ -440,6 +441,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
   pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilation, ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
+  )]
+  pub register_compilation_seal_taps: RegisterFunction<(), ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
@@ -679,6 +684,14 @@ define_register!(
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationAfterProcessAssets,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationSealTaps,
+  tap = CompilationSealTap<(), ()> @ CompilationSealHook,
+  cache = false,
+  sync = true,
+  kind = RegisterJsTapKind::CompilationSeal,
   skip = true,
 );
 define_register!(
@@ -1162,6 +1175,17 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
     let compilation = unsafe { JsCompilation::from_compilation(compilation) };
 
     self.function.call_with_sync(compilation).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationSeal for CompilationSealTap {
+  fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.blocking_call_with_sync(())
   }
 
   fn stage(&self) -> i32 {

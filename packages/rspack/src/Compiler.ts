@@ -1004,6 +1004,11 @@ class Compiler {
 				() => this.#compilation!.hooks.afterProcessAssets,
 				queried => () => queried.call(this.#compilation!.assets)
 			),
+			registerCompilationSealTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationSeal,
+				() => this.#compilation!.hooks.seal,
+				queried => async () => await queried.call()
+			),
 			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterSeal,
 				() => this.#compilation!.hooks.afterSeal,
