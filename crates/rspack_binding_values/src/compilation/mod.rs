@@ -570,7 +570,7 @@ impl JsCompilation {
 
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
-    JsEntries::new(&mut self.0)
+    JsEntries::new(self.0)
   }
 }
 

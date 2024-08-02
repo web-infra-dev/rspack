@@ -2,6 +2,8 @@
 // 1. A new implementation has been added for creating a reference from raw napi_env and napi_value.
 // 2. Implementation for &Ref and &mut Ref has been added to trait ToNapiValue.
 
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 use std::ptr;
 
 use napi::sys::{napi_env, napi_value};
