@@ -986,6 +986,24 @@ impl Compilation {
   #[instrument(name = "compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    // Recheck entry and clean useless entry
+    // This should before finish_modules hook is called, ensure providedExports effects on new added modules
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .cloned()
+          .collect(),
+      )],
+    )?;
+
     let start = logger.time("finish modules");
     plugin_driver
       .compilation_hooks
@@ -1006,22 +1024,6 @@ impl Compilation {
       .collect();
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
-
-    // recheck entry and clean useless entry
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .cloned()
-          .collect(),
-      )],
-    )?;
 
     // take make diagnostics
     let diagnostics = self.make_artifact.take_diagnostics();
