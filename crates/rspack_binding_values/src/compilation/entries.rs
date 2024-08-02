@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;
 
-use super::dependency::JsDependency;
+use super::dependency::DependencyDTO;
 use crate::{entry::JsEntryOptions, library::JsLibraryOptions};
 
 #[napi]
@@ -108,31 +108,31 @@ impl EntryOptionsDTO {
     self.0.layer = layer;
   }
 
-  #[napi(getter)]
-  pub fn public_path(&self) -> Either3<String, JsFunction, ()> {
-    unimplemented!()
-  }
+  // #[napi(getter)]
+  // pub fn public_path(&self) -> Either3<String, JsFunction, ()> {
+  //   unimplemented!()
+  // }
 
-  #[napi(setter)]
-  pub fn set_public_path(&self, _public_path: Option<Either<String, JsFunction>>) {
-    unimplemented!()
-  }
+  // #[napi(setter)]
+  // pub fn set_public_path(&self, _public_path: Option<Either<String, JsFunction>>) {
+  //   unimplemented!()
+  // }
 
-  #[napi(getter)]
-  pub fn filename(&self) -> Either3<String, JsFunction, ()> {
-    unimplemented!()
-  }
+  // #[napi(getter)]
+  // pub fn filename(&self) -> Either3<String, JsFunction, ()> {
+  //   unimplemented!()
+  // }
 
-  #[napi(setter)]
-  pub fn set_filename(&self, _filename: Option<Either<String, JsFunction>>) {
-    unimplemented!()
-  }
+  // #[napi(setter)]
+  // pub fn set_filename(&self, _filename: Option<Either<String, JsFunction>>) {
+  //   unimplemented!()
+  // }
 }
 
 #[napi(object, object_to_js = false)]
 pub struct JsEntryData {
-  pub dependencies: Vec<ClassInstance<JsDependency>>,
-  pub include_dependencies: Vec<ClassInstance<JsDependency>>,
+  pub dependencies: Vec<ClassInstance<DependencyDTO>>,
+  pub include_dependencies: Vec<ClassInstance<DependencyDTO>>,
   pub options: JsEntryOptions,
 }
 
@@ -163,33 +163,36 @@ pub struct EntryDataDTO {
 #[napi]
 impl EntryDataDTO {
   #[napi(getter)]
-  pub fn dependencies(&'static self, env: Env) -> Result<Vec<ClassInstance<JsDependency>>> {
+  pub fn dependencies(&'static self, env: Env) -> Result<Vec<ClassInstance<DependencyDTO>>> {
     self
       .entry_data
       .dependencies
       .clone()
       .into_iter()
       .map(|id| {
-        let js_dep = JsDependency::new(id, self.compilation);
+        let js_dep = DependencyDTO::new(id, self.compilation);
         let instance = js_dep.into_instance(env)?;
         Ok(instance)
       })
-      .collect::<Result<Vec<ClassInstance<JsDependency>>>>()
+      .collect::<Result<Vec<ClassInstance<DependencyDTO>>>>()
   }
 
   #[napi(getter)]
-  pub fn include_dependencies(&'static self, env: Env) -> Result<Vec<ClassInstance<JsDependency>>> {
+  pub fn include_dependencies(
+    &'static self,
+    env: Env,
+  ) -> Result<Vec<ClassInstance<DependencyDTO>>> {
     self
       .entry_data
       .include_dependencies
       .clone()
       .into_iter()
       .map(|id| {
-        let js_dep = JsDependency::new(id, self.compilation);
+        let js_dep = DependencyDTO::new(id, self.compilation);
         let instance = js_dep.into_instance(env)?;
         Ok(instance)
       })
-      .collect::<Result<Vec<ClassInstance<JsDependency>>>>()
+      .collect::<Result<Vec<ClassInstance<DependencyDTO>>>>()
   }
 
   #[napi(getter)]
@@ -244,10 +247,7 @@ impl JsEntries {
   #[napi]
   pub fn delete(&mut self, key: String) -> bool {
     let r = self.compilation.entries.swap_remove(&key);
-    match r {
-      Some(_) => true,
-      None => false,
-    }
+    r.is_some()
   }
 
   #[napi]

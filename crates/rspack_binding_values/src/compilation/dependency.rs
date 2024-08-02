@@ -2,12 +2,12 @@ use napi_derive::napi;
 use rspack_core::{Compilation, DependencyId};
 
 #[napi]
-pub struct JsDependency {
+pub struct DependencyDTO {
   pub(crate) dependency_id: DependencyId,
   pub(crate) compilation: &'static Compilation,
 }
 
-impl JsDependency {
+impl DependencyDTO {
   pub(crate) fn new(dependency_id: DependencyId, compilation: &'static Compilation) -> Self {
     Self {
       dependency_id,
@@ -17,7 +17,7 @@ impl JsDependency {
 }
 
 #[napi]
-impl JsDependency {
+impl DependencyDTO {
   #[napi(getter)]
   pub fn get_type(&self) -> &str {
     let module_graph = self.compilation.get_module_graph();

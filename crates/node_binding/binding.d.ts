@@ -19,9 +19,15 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export class DependencyDto {
+  get type(): string
+  get category(): string
+}
+export type DependencyDTO = DependencyDto
+
 export class EntryDataDto {
-  get dependencies(): Array<JsDependency>
-  get includeDependencies(): Array<JsDependency>
+  get dependencies(): Array<DependencyDto>
+  get includeDependencies(): Array<DependencyDto>
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -43,10 +49,6 @@ export class EntryOptionsDto {
   set dependOn(dependOn?: Array<string> | undefined | null)
   get layer(): string | undefined
   set layer(layer?: string | undefined | null)
-  get publicPath(): string | ((...args: any[]) => any) | undefined
-  set publicPath(publicPath?: string | ((...args: any[]) => any) | undefined | null)
-  get filename(): string | ((...args: any[]) => any) | undefined
-  set filename(filename?: string | ((...args: any[]) => any) | undefined | null)
 }
 export type EntryOptionsDTO = EntryOptionsDto
 
@@ -94,11 +96,6 @@ export class JsCompilation {
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
   get entries(): JsEntries
-}
-
-export class JsDependency {
-  get type(): string
-  get category(): string
 }
 
 export class JsEntries {
@@ -409,8 +406,8 @@ export interface JsDiagnostic {
 }
 
 export interface JsEntryData {
-  dependencies: Array<JsDependency>
-  includeDependencies: Array<JsDependency>
+  dependencies: Array<DependencyDto>
+  includeDependencies: Array<DependencyDto>
   options: JsEntryOptions
 }
 
