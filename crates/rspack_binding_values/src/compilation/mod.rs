@@ -1,8 +1,12 @@
+mod dependency;
+mod entries;
+
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
+use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
@@ -26,7 +30,7 @@ use crate::{
 };
 use crate::{JsDiagnostic, JsRspackError};
 
-#[napi(object_from_js = false)]
+#[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
 
 impl JsCompilation {
@@ -562,6 +566,11 @@ impl JsCompilation {
         Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),
       }
     })
+  }
+
+  #[napi(getter)]
+  pub fn entries(&'static mut self) -> JsEntries {
+    JsEntries::new(self.0)
   }
 }
 

@@ -19,6 +19,39 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export class DependencyDto {
+  get type(): string
+  get category(): string
+}
+export type DependencyDTO = DependencyDto
+
+export class EntryDataDto {
+  get dependencies(): Array<DependencyDto>
+  get includeDependencies(): Array<DependencyDto>
+  get options(): EntryOptionsDto
+}
+export type EntryDataDTO = EntryDataDto
+
+export class EntryOptionsDto {
+  get name(): string | undefined
+  set name(name: string | undefined)
+  get runtime(): false | string | undefined
+  set runtime(chunkLoading: boolean | string | undefined)
+  get chunkLoading(): string | undefined
+  set chunkLoading(chunkLoading: string | undefined)
+  get asyncChunks(): boolean | undefined
+  set asyncChunks(asyncChunks: boolean | undefined)
+  get baseUri(): string | undefined
+  set baseUri(baseUri: string | undefined)
+  get library(): JsLibraryOptions | undefined
+  set library(library: JsLibraryOptions | undefined)
+  get dependOn(): Array<string> | undefined
+  set dependOn(dependOn: Array<string> | undefined)
+  get layer(): string | undefined
+  set layer(layer: string | undefined)
+}
+export type EntryOptionsDTO = EntryOptionsDto
+
 export class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
@@ -62,6 +95,18 @@ export class JsCompilation {
   addBuildDependencies(deps: Array<string>): void
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
+  get entries(): JsEntries
+}
+
+export class JsEntries {
+  clear(): void
+  get size(): number
+  has(key: string): boolean
+  set(key: string, value: JsEntryData | EntryDataDto): void
+  delete(key: string): boolean
+  get(key: string): EntryDataDto | undefined
+  keys(): Array<string>
+  values(): Array<EntryDataDto>
 }
 
 export class JsResolver {
@@ -360,6 +405,31 @@ export interface JsDiagnostic {
   error: JsRspackError
 }
 
+export interface JsEntryData {
+  dependencies: Array<DependencyDto>
+  includeDependencies: Array<DependencyDto>
+  options: JsEntryOptions
+}
+
+export interface JsEntryOptions {
+  name?: string
+  runtime?: false | string
+  chunkLoading?: string
+  asyncChunks?: boolean
+  publicPath?: "auto" | JsFilename
+  baseUri?: string
+  filename?: JsFilename
+  library?: JsLibraryOptions
+  dependOn?: Array<string>
+  layer?: string
+}
+
+export interface JsEntryPluginOptions {
+  context: string
+  entry: string
+  options: JsEntryOptions
+}
+
 export interface JsExecuteModuleArg {
   entry: string
   runtimeModules: Array<string>
@@ -385,6 +455,35 @@ export interface JsFactorizeArgs {
 
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
+}
+
+export interface JsLibraryAuxiliaryComment {
+  root?: string
+  commonjs?: string
+  commonjs2?: string
+  amd?: string
+}
+
+export interface JsLibraryCustomUmdObject {
+  amd?: string
+  commonjs?: string
+  root?: Array<string>
+}
+
+export interface JsLibraryName {
+  type: "string" | "array" | "umdObject"
+  stringPayload?: string
+  arrayPayload?: Array<string>
+  umdObjectPayload?: JsLibraryCustomUmdObject
+}
+
+export interface JsLibraryOptions {
+  name?: JsLibraryName
+  export?: Array<string>
+  libraryType: string
+  umdNamedDefine?: boolean
+  auxiliaryComment?: JsLibraryAuxiliaryComment
+  amdContainer?: string
 }
 
 export interface JsLoaderContext {
@@ -899,7 +998,7 @@ export interface RawConsumeSharedPluginOptions {
 export interface RawContainerPluginOptions {
   name: string
   shareScope: string
-  library: RawLibraryOptions
+  library: JsLibraryOptions
   runtime?: false | string
   filename?: string
   exposes: Array<RawExposeOptions>
@@ -991,26 +1090,7 @@ export interface RawDynamicEntryPluginOptions {
 
 export interface RawEntryDynamicResult {
   import: Array<string>
-  options: RawEntryOptions
-}
-
-export interface RawEntryOptions {
-  name?: string
-  runtime?: false | string
-  chunkLoading?: string
-  asyncChunks?: boolean
-  publicPath?: "auto" | JsFilename
-  baseUri?: string
-  filename?: JsFilename
-  library?: RawLibraryOptions
-  dependOn?: Array<string>
-  layer?: string
-}
-
-export interface RawEntryPluginOptions {
-  context: string
-  entry: string
-  options: RawEntryOptions
+  options: JsEntryOptions
 }
 
 export interface RawEnvironment {
@@ -1161,35 +1241,6 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   cacheable: boolean
-}
-
-export interface RawLibraryAuxiliaryComment {
-  root?: string
-  commonjs?: string
-  commonjs2?: string
-  amd?: string
-}
-
-export interface RawLibraryCustomUmdObject {
-  amd?: string
-  commonjs?: string
-  root?: Array<string>
-}
-
-export interface RawLibraryName {
-  type: "string" | "array" | "umdObject"
-  stringPayload?: string
-  arrayPayload?: Array<string>
-  umdObjectPayload?: RawLibraryCustomUmdObject
-}
-
-export interface RawLibraryOptions {
-  name?: RawLibraryName
-  export?: Array<string>
-  libraryType: string
-  umdNamedDefine?: boolean
-  auxiliaryComment?: RawLibraryAuxiliaryComment
-  amdContainer?: string
 }
 
 export interface RawLightningCssMinimizerRspackPluginOptions {
@@ -1347,7 +1398,7 @@ export interface RawOutputOptions {
   hotUpdateGlobal: string
   uniqueName: string
   chunkLoadingGlobal: string
-  library?: RawLibraryOptions
+  library?: JsLibraryOptions
   strictModuleErrorHandling: boolean
   enabledLibraryTypes?: Array<string>
   globalObject: string

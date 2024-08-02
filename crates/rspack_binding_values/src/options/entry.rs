@@ -1,23 +1,23 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::JsFilename;
 use rspack_core::{EntryOptions, EntryRuntime};
 
-use crate::RawLibraryOptions;
+use super::library::JsLibraryOptions;
+use crate::JsFilename;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
-pub struct RawEntryPluginOptions {
+pub struct JsEntryPluginOptions {
   pub context: String,
   pub entry: String,
-  pub options: RawEntryOptions,
+  pub options: JsEntryOptions,
 }
 
-pub type RawEntryRuntime = Either<bool, String>;
-pub struct RawEntryRuntimeWrapper(pub RawEntryRuntime);
+pub type JsEntryRuntime = Either<bool, String>;
+pub struct JsEntryRuntimeWrapper(pub JsEntryRuntime);
 
-impl From<RawEntryRuntimeWrapper> for EntryRuntime {
-  fn from(value: RawEntryRuntimeWrapper) -> Self {
+impl From<JsEntryRuntimeWrapper> for EntryRuntime {
+  fn from(value: JsEntryRuntimeWrapper) -> Self {
     match value.0 {
       Either::A(b) => {
         assert!(!b, "RawEntryRuntime should be false or string");
@@ -30,26 +30,26 @@ impl From<RawEntryRuntimeWrapper> for EntryRuntime {
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
-pub struct RawEntryOptions {
+pub struct JsEntryOptions {
   pub name: Option<String>,
   #[napi(ts_type = "false | string")]
-  pub runtime: Option<RawEntryRuntime>,
+  pub runtime: Option<JsEntryRuntime>,
   pub chunk_loading: Option<String>,
   pub async_chunks: Option<bool>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
   pub base_uri: Option<String>,
   pub filename: Option<JsFilename>,
-  pub library: Option<RawLibraryOptions>,
+  pub library: Option<JsLibraryOptions>,
   pub depend_on: Option<Vec<String>>,
   pub layer: Option<String>,
 }
 
-impl From<RawEntryOptions> for EntryOptions {
-  fn from(value: RawEntryOptions) -> Self {
+impl From<JsEntryOptions> for EntryOptions {
+  fn from(value: JsEntryOptions) -> Self {
     Self {
       name: value.name,
-      runtime: value.runtime.map(|r| RawEntryRuntimeWrapper(r).into()),
+      runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       chunk_loading: value.chunk_loading.as_deref().map(Into::into),
       async_chunks: value.async_chunks,
       public_path: value.public_path.map(Into::into),

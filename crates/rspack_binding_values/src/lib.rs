@@ -20,7 +20,6 @@ mod runtime;
 mod source;
 mod stats;
 mod utils;
-mod value_ref;
 
 pub use asset::*;
 pub use chunk::*;

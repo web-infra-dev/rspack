@@ -18,6 +18,7 @@ use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_swc_css_minimizer::RawSwcCssMinimizerRspackPluginOptions;
+use rspack_binding_values::entry::JsEntryPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
 use rspack_ids::{
@@ -93,9 +94,9 @@ use self::{
 };
 use crate::{
   plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
-  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEntryPluginOptions,
-  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions,
+  RawExternalItemWrapper, RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions,
+  RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -217,7 +218,7 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::EntryPlugin => {
-        let plugin_options = downcast_into::<RawEntryPluginOptions>(self.options)?;
+        let plugin_options = downcast_into::<JsEntryPluginOptions>(self.options)?;
         let context = plugin_options.context.into();
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
