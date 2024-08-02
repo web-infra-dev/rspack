@@ -5,14 +5,17 @@ use rspack_collections::Identifier;
 use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
-use rspack_napi::napi::{
-  bindgen_prelude::{Buffer, FromNapiValue, Result, SharedReference, ToNapiValue},
-  Either,
+use rspack_napi::{
+  napi::{
+    bindgen_prelude::{Buffer, FromNapiValue, Result, SharedReference, ToNapiValue},
+    Either,
+  },
+  Ref,
 };
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompilation, ToJsCompatSource};
-use crate::{identifier::JsIdentifier, value_ref::Ref};
+use crate::identifier::JsIdentifier;
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();

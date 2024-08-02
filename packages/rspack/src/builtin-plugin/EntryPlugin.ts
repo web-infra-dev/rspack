@@ -1,7 +1,7 @@
 import {
 	BuiltinPluginName,
-	type RawEntryOptions,
-	type RawEntryPluginOptions
+	type JsEntryOptions,
+	type JsEntryPluginOptions
 } from "@rspack/binding";
 
 import {
@@ -35,7 +35,7 @@ export const EntryPlugin = create(
 		context: string,
 		entry: string,
 		options: EntryOptions | string = ""
-	): RawEntryPluginOptions => {
+	): JsEntryPluginOptions => {
 		const entryOptions =
 			typeof options === "string" ? { name: options } : options;
 		return {
@@ -47,7 +47,7 @@ export const EntryPlugin = create(
 	"make"
 );
 
-export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
+export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
 	const runtime = entry.runtime;
 	const chunkLoading = entry.chunkLoading;
 	return {
