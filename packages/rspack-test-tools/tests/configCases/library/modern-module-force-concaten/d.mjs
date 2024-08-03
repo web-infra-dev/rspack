@@ -1,1 +1,1 @@
-export const d = 'd'
+const d = 'd'

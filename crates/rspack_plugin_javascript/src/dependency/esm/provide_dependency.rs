@@ -95,9 +95,7 @@ impl DependencyTemplate for ProvideDependency {
     };
     let exports_info = module_graph.get_exports_info(con.module_identifier());
     let used_name =
-      exports_info
-        .id
-        .get_used_name(&module_graph, *runtime, UsedName::Vec(self.ids.clone()));
+      exports_info.get_used_name(&module_graph, *runtime, UsedName::Vec(self.ids.clone()));
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* provided dependency */ var {} = {}{};\n",

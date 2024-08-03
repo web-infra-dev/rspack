@@ -17,7 +17,7 @@ const CURRENT_METHOD_REGEXP = /at ([a-zA-Z0-9_.]*)/;
  * @returns message
  */
 function createMessage(method?: string): string {
-	return `Abstract method${method ? " " + method : ""}. Must be overridden.`;
+	return `Abstract method${method ? ` ${method}` : ""}. Must be overridden.`;
 }
 
 class Message extends Error {
@@ -26,8 +26,7 @@ class Message extends Error {
 		this.stack = undefined;
 		Error.captureStackTrace(this);
 		const match = this.stack!.split("\n")[3].match(CURRENT_METHOD_REGEXP);
-		this.message =
-			match && match[1] ? createMessage(match[1]) : createMessage();
+		this.message = match?.[1] ? createMessage(match[1]) : createMessage();
 	}
 }
 

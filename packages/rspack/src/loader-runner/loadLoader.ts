@@ -21,7 +21,7 @@ type ModuleObject = {
 };
 type LoaderModule = ModuleObject | Function;
 
-var url: undefined | typeof Url = undefined;
+let url: undefined | typeof Url = undefined;
 
 export default function loadLoader(
 	loader: LoaderObject,
@@ -30,9 +30,9 @@ export default function loadLoader(
 	if (loader.type === "module") {
 		try {
 			if (url === undefined) url = require("node:url");
-			var loaderUrl = url!.pathToFileURL(loader.path);
-			var modulePromise = eval(
-				"import(" + JSON.stringify(loaderUrl.toString()) + ")"
+			const loaderUrl = url!.pathToFileURL(loader.path);
+			const modulePromise = eval(
+				`import(${JSON.stringify(loaderUrl.toString())})`
 			);
 			modulePromise.then((module: LoaderModule) => {
 				handleResult(loader, module, callback);
@@ -42,8 +42,9 @@ export default function loadLoader(
 			callback(e);
 		}
 	} else {
+		let module: any;
 		try {
-			var module = require(loader.path);
+			module = require(loader.path);
 		} catch (e) {
 			// it is possible for node to choke on a require if the FD descriptor
 			// limit has been reached. give it a chance to recover.
@@ -51,7 +52,7 @@ export default function loadLoader(
 				e instanceof Error &&
 				(e as NodeJS.ErrnoException).code === "EMFILE"
 			) {
-				var retry = loadLoader.bind(null, loader, callback);
+				const retry = loadLoader.bind(null, loader, callback);
 				if (typeof setImmediate === "function") {
 					// node >= 0.9.0
 					return void setImmediate(retry);
@@ -73,9 +74,7 @@ function handleResult(
 	if (typeof module !== "function" && typeof module !== "object") {
 		return callback(
 			new LoaderLoadingError(
-				"Module '" +
-					loader.path +
-					"' is not a loader (export function or es6 module)"
+				`Module '${loader.path}' is not a loader (export function or es6 module)`
 			)
 		);
 	}
@@ -88,9 +87,7 @@ function handleResult(
 	) {
 		return callback(
 			new LoaderLoadingError(
-				"Module '" +
-					loader.path +
-					"' is not a loader (must have normal or pitch function)"
+				`Module '${loader.path}' is not a loader (must have normal or pitch function)`
 			)
 		);
 	}

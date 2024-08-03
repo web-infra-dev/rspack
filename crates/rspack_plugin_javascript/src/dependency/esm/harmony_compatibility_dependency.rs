@@ -34,9 +34,8 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     let exports_info = module_graph.get_exports_info(&module.identifier());
     if !matches!(
       exports_info
-        .id
-        .get_read_only_export_info(&Atom::from("__esModule"), &module_graph)
-        .get_used(*runtime),
+        .get_read_only_export_info(&module_graph, &Atom::from("__esModule"),)
+        .get_used(&module_graph, *runtime),
       UsageState::Unused
     ) {
       runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);

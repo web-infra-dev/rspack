@@ -140,6 +140,7 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
+				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -416,12 +417,12 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-					(obj, key) => (
-						(obj[key] = (
-							customKeys && key in customKeys ? customKeys[key] : fn
-						)(value[key])),
-						obj
-					),
+					(obj, key) => {
+						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+							value[key]
+						);
+						return obj;
+					},
 					{} as Record<string, R>
 				);
 	if (customKeys) {
@@ -501,6 +502,7 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
+	cssHeadDataCompression?: boolean;
 }
 
 export interface ModuleOptionsNormalized {

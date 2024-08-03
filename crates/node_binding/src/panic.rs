@@ -45,8 +45,6 @@ pub fn install_panic_handler() {
         true
       });
     }))
-    .verbosity(color_backtrace::Verbosity::Medium)
-    .lib_verbosity(color_backtrace::Verbosity::Medium)
     .print_addresses(false)
     // .install(default_output_stream());
     .into_panic_handler(default_output_stream());

@@ -1,0 +1,187 @@
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import Cache from '../../types/cache.mdx';
+import Columns from '@components/Columns';
+
+# Cache
+
+在编写 Rspack 插件时，可通过 `compiler.getCache(name: string)` 或 `compilation.getCache(name: string)` 获取缓存对象，以在构建流程中共享数据。缓存数据存储在 Compiler 上，因此可在 Watch 模式下的多次 Compilation 中使用。
+
+:::warning 注意
+
+- 仅在 [cache: true](/config/cache) 时可用，在 `mode="development"` 时默认开启。
+- 仅用作 JavaScript 侧插件缓存，无法访问 Rust 侧缓存。
+- 仅提供内存缓存，暂不提供持久化缓存。
+
+:::
+
+## 示例
+
+以下示例在 `processAssets` 阶段打印此次构建中新增的产物：
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tapPromise('MyPlugin', async () => {
+    const cache = compilation.getCache('MyPlugin');
+    const currentAssets = compilation.getAssets().map(i => i.name);
+    const lastAssets = await cache.getPromise('assets', null);
+    if (lastAssets) {
+      for (const asset of currentAssets) {
+        if (!lastAssets.includes(asset)) {
+          console.log(`New asset: ${asset}`);
+        }
+      }
+    }
+    await cache.storePromise('assets', null, currentAssets);
+  });
+});
+```
+
+## 方法
+
+### 缓存存取
+
+#### get/getPromise
+
+异步获取缓存数据，提供回调和 Promise 两种形式。
+
+- **类型：**
+  - `get`: `<T>(identifier: string, etag: Etag | null, callback: (err: Error, result: T) => void): void`
+  - `getPromise`: `<T>(identifier: string, etag: Etag | null): Promise<T>;`
+- **参数：**
+  - identifier: 缓存项的标识
+  - etag: 数据项的唯一标识，可通过 `getLazyHashedEtag` 生成
+
+#### store/storePromise
+
+异步存储缓存数据，提供回调和 Promise 两种形式。
+
+- **类型：**
+  - `store`: `<T>(identifier: string, etag: Etag | null, data: T, callback: (err: Error) => void): void;`
+  - `storePromise`: `<T>(identifier: string, etag: Etag | null): Promise<T>;`
+- **参数：**
+  - identifier: 缓存项的标识
+  - etag: 数据项的唯一标识，可通过 `getLazyHashedEtag` 生成
+
+#### provide/providePromise
+
+尝试获取缓存，不存在则通过函数生成并存储，提供回调和 Promise 两种形式。
+
+- **类型：**
+  - `provide`:
+    ```ts
+    provide<T>(
+      identifier: string,
+      etag: Etag | null,
+      computer: (fn: (err: Error, result: T) => void) => void,
+      callback: () => T | Promise<T>,
+    ): void;
+    ```
+  - `providePromise`
+    ```ts
+    providePromise<T>(
+      identifier: string,
+      etag: Etag | null,
+      computer: () => T | Promise<T>,
+    ): Promise<T>;
+    ```
+- **参数：**
+  - identifier: 缓存项的标识
+  - etag: 数据项的唯一标识，可通过 `getLazyHashedEtag` 生成
+  - computer: 缓存数据提供方法
+
+<Columns>
+
+```js title=MyPlugin.js
+const createAssetsData = async () => {
+  console.log('only called once');
+  return compilation.getAssets().map(i => i.name);
+};
+
+compilation.hooks.processAssets.tapPromise('MyPlugin', async () => {
+  const cache = compilation.getCache('MyPlugin');
+  console.log(await cache.getPromise('assets', null)); // undefined
+  await cache.providePromise('assets', null, createAssetsData); // call createAssetsData
+  console.log(await cache.getPromise('assets', null)); // ["main.js"]
+  await cache.providePromise('assets', null, createAssetsData); // not call
+});
+```
+
+```txt title=输出
+undefined
+only called once
+[ 'main.js' ]
+```
+
+</Columns>
+
+### getLazyHashedEtag/mergeEtags
+
+通过 `getLazyHashedEtag` 和 `mergeEtags` 方法可以创建一个 Etag 作为数据项唯一标识，它不会在创建时立即计算，而是在使用的时候延迟计算，并且能够被缓存。需以复杂数据对象作为唯一标识时使用可提升性能。
+
+- `getLazyHashedEtag`: `(obj: HashableObject): Etag`，计算对象的 hash 以获得 Etag 作为数据标识，对象需要实现 `updateHash(hash: Hash)` 方法。
+- `mergeEtags`: `(a: Etag, b: Etag): Etag`，合并两个 Etag 作为数据标识。
+
+<Columns>
+```js title=MyPlugin.js
+const cache = compilation.getCache('MyPlugin');
+const dataEtag = cache.getLazyHashedEtag({
+  content: 'a'.repeat(10000),
+  updateHash(hash) {
+    console.log("only called once");
+    hash.update(this.content);
+  }
+});
+const mergedEtag = cache.mergeEtags(dataEtag, "other etag");
+await cache.storePromise("assets", mergedEtag, "cached value");
+console.log(await cache.getPromise("assets", mergedEtag));
+```
+
+```txt title=输出
+only called once
+cached value
+```
+
+</Columns>
+
+### getItemCache
+
+通过 `getItemCache` 方法可创建一个针对单个数据项的缓存对象，该缓存对象提供了简化的数据存取接口，不再需要传输缓存标识和数据标识。
+
+- **类型：** `(identifier, etag): ItemCacheFacade`
+
+```ts
+type ItemCacheFacade = {
+  get<T>(callback: (err: Error, result: T) => void): void; // 获取数据，通过回调获取结果
+  getPromise<T>(): Promise<T>; // 获取数据，通过 Promise 获取结果
+  store<T>(data: T, callback: (err: Error, result: T) => void): void; // 存储数据，通过回调通知结果
+  storePromise<T>(data: T): Promise<void>; // 存储数据，通过 Promise 获取结果
+  provide<T>( // 尝试获取缓存，不存在则生成并存储，通过回调获取结果
+    computer: (fn: (err: Error, result: T) => void) => void,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>( // 尝试获取缓存，不存在则生成并存储，通过 Promise 获取结果
+    computer: (fn: (err: Error, result: T) => void) => void,
+  ): Promise<T>;
+};
+```
+
+<Columns>
+
+```js title=MyPlugin.js
+const cache = compilation.getCache('MyPlugin');
+const itemCache = cache.getItemCache('item');
+await itemCache.storePromise('cached value');
+console.log(await itemCache.getPromise());
+```
+
+```txt title=输出
+cached value
+```
+
+</Columns>
+
+### getChildCache
+
+通过 `getChildCache` 方法可创建一个子缓存对象，其接口完全一致，可用于在缓存较多需要分组存储时使用。
+
+- **类型：** `(name: string): CacheFacade`

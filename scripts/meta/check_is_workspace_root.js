@@ -21,5 +21,3 @@ try {
 	err.cause = oldErr;
 	throw err;
 }
-
-export {};

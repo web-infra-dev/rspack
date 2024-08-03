@@ -41,6 +41,10 @@ export class ChunkGroup {
 		});
 	}
 
+	isInitial(): boolean {
+		return this.#inner.isInitial;
+	}
+
 	get chunks(): ReadonlyArray<Chunk> {
 		return this.#inner.chunks.map(c =>
 			Chunk.__from_binding(c, this.#innerCompilation)

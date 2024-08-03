@@ -65,9 +65,7 @@ impl CommonJsExportRequireDependency {
     if !ids.is_empty() {
       imported_exports_info = imported_exports_info
         .expect("Should get exports info from imported module")
-        .id
-        .get_nested_exports_info(Some(ids), mg)
-        .map(|id| id.get_exports_info(mg));
+        .get_nested_exports_info(mg, Some(ids));
     }
 
     let mut exports_info = Some(
@@ -80,21 +78,18 @@ impl CommonJsExportRequireDependency {
     if !self.names.is_empty() {
       exports_info = exports_info
         .expect("Should get exports info from imported module")
-        .id
-        .get_nested_exports_info(Some(self.names.clone()), mg)
-        .map(|id| id.get_exports_info(mg));
+        .get_nested_exports_info(mg, Some(self.names.clone()));
     }
 
     let no_extra_exports = imported_exports_info.is_some_and(|imported_exports_info| {
       imported_exports_info
-        .other_exports_info
-        .get_export_info(mg)
-        .provided
+        .other_exports_info(mg)
+        .provided(mg)
         .is_some_and(|provided| matches!(provided, ExportInfoProvided::False))
     });
 
     let no_extra_imports = exports_info.is_some_and(|exports_info| {
-      exports_info.other_exports_info.get_used(mg, runtime) == UsageState::Unused
+      exports_info.other_exports_info(mg).get_used(mg, runtime) == UsageState::Unused
     });
 
     if !no_extra_exports && !no_extra_imports {
@@ -114,19 +109,18 @@ impl CommonJsExportRequireDependency {
       let Some(exports_info) = exports_info else {
         unreachable!();
       };
-      for export_info_id in exports_info.get_ordered_exports() {
-        let export_info = export_info_id.get_export_info(mg);
-        let name = &export_info.name;
-        if matches!(export_info.get_used(runtime), UsageState::Unused) {
+      for export_info in exports_info.ordered_exports(mg) {
+        let name = export_info.name(mg);
+        if matches!(export_info.get_used(mg, runtime), UsageState::Unused) {
           continue;
         }
         if let Some(name) = name {
           if name == "__esModule" && is_namespace_import {
             exports.insert(name.to_owned());
           } else if let Some(imported_exports_info) = imported_exports_info {
-            let imported_export_info = imported_exports_info.id.get_read_only_export_info(name, mg);
+            let imported_export_info = imported_exports_info.get_read_only_export_info(mg, name);
             if matches!(
-              imported_export_info.provided,
+              imported_export_info.provided(mg),
               Some(ExportInfoProvided::False)
             ) {
               continue;
@@ -141,19 +135,18 @@ impl CommonJsExportRequireDependency {
       let Some(imported_exports_info) = imported_exports_info else {
         unreachable!();
       };
-      for imported_export_info_id in imported_exports_info.get_ordered_exports() {
-        let imported_export_info = imported_export_info_id.get_export_info(mg);
-        let name = &imported_export_info.name;
+      for imported_export_info in imported_exports_info.ordered_exports(mg) {
+        let name = imported_export_info.name(mg);
         if let Some(name) = name {
           if matches!(
-            imported_export_info.provided,
+            imported_export_info.provided(mg),
             Some(ExportInfoProvided::False)
           ) {
             continue;
           }
           if let Some(exports_info) = exports_info {
-            let export_info = exports_info.id.get_read_only_export_info(name, mg);
-            if matches!(export_info.get_used(runtime), UsageState::Unused) {
+            let export_info = exports_info.get_read_only_export_info(mg, name);
+            if matches!(export_info.get_used(mg, runtime), UsageState::Unused) {
               continue;
             }
             exports.insert(name.to_owned());
@@ -189,9 +182,7 @@ impl Dependency for CommonJsExportRequireDependency {
       let Some(name) = self.names.first() else {
         unreachable!();
       };
-      let Some(from) = mg.connection_by_dependency(&self.id) else {
-        return None;
-      };
+      let from = mg.connection_by_dependency(&self.id)?;
       Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
@@ -208,9 +199,7 @@ impl Dependency for CommonJsExportRequireDependency {
         ..Default::default()
       })
     } else if self.names.is_empty() {
-      let Some(from) = mg.connection_by_dependency(&self.id) else {
-        return None;
-      };
+      let from = mg.connection_by_dependency(&self.id)?;
       if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(
@@ -292,8 +281,8 @@ impl Dependency for CommonJsExportRequireDependency {
     );
 
     for name in &self.names {
-      let export_info = exports_info.id.get_read_only_export_info(name, mg);
-      let used = export_info.get_used(runtime);
+      let export_info = exports_info.get_read_only_export_info(mg, name);
+      let used = export_info.get_used(mg, runtime);
       if matches!(used, UsageState::Unused) {
         return vec![ExtendedReferencedExport::Array(vec![])];
       }
@@ -301,25 +290,24 @@ impl Dependency for CommonJsExportRequireDependency {
         return get_full_result();
       }
 
-      match export_info.exports_info {
-        Some(v) => exports_info = v.get_exports_info(mg),
+      match export_info.exports_info(mg) {
+        Some(v) => exports_info = v,
         None => return get_full_result(),
       };
     }
 
     if !matches!(
-      exports_info.other_exports_info.get_used(mg, runtime),
+      exports_info.other_exports_info(mg).get_used(mg, runtime),
       UsageState::Unused
     ) {
       return get_full_result();
     }
 
     let mut referenced_exports = vec![];
-    for export_info_id in exports_info.get_ordered_exports() {
-      let export_info = export_info_id.get_export_info(mg);
+    for export_info in exports_info.ordered_exports(mg) {
       let prefix = ids
         .iter()
-        .chain(if let Some(name) = &export_info.name {
+        .chain(if let Some(name) = export_info.name(mg) {
           vec![name]
         } else {
           vec![]
@@ -331,7 +319,7 @@ impl Dependency for CommonJsExportRequireDependency {
         runtime,
         &mut referenced_exports,
         prefix,
-        Some(*export_info_id),
+        Some(export_info),
         false,
         &mut Default::default(),
       )
@@ -372,7 +360,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = mg.get_exports_info(&module.identifier()).id.get_used_name(
+    let used = mg.get_exports_info(&module.identifier()).get_used_name(
       mg,
       *runtime,
       UsedName::Vec(self.names.clone()),
@@ -403,7 +391,6 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
       let ids = self.get_ids(mg);
       if let Some(used_imported) = mg
         .get_exports_info(&imported_module.identifier())
-        .id
         .get_used_name(mg, *runtime, UsedName::Vec(ids))
       {
         require_expr = format!(

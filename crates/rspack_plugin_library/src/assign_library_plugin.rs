@@ -1,6 +1,6 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
@@ -411,12 +411,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         Some(&runtime),
       );
     } else {
-      let exports_info_id = compilation
+      let exports_info = compilation
         .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
-      exports_info_id
-        .set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
+        .get_exports_info(&module_identifier);
+      exports_info.set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
     }
   }
   Ok(())
@@ -498,7 +496,7 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
     props_so_far.push(accessor[i].clone());
     current = format!(
       "({current}{} = {base}{} || {{}})",
-      property_access(&vec![&accessor[i]], 0),
+      property_access(vec![&accessor[i]], 0),
       property_access(&props_so_far, 0)
     );
     i += 1;
@@ -514,11 +512,11 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
   current
 }
 
-static KEYWORD_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static KEYWORD_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|super|switch|static|this|throw|try|true|typeof|var|void|while|with|yield)$").expect("should init regex")
 });
 
-static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static IDENTIFIER_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[\p{L}\p{Nl}$_][\p{L}\p{Nl}$\p{Mn}\p{Mc}\p{Nd}\p{Pc}]*$")
     .expect("should init regex")
 });

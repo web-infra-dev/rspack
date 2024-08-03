@@ -1,17 +1,23 @@
 use rspack_core::{
-  AsDependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  AsDependency, DependencyTemplate, ErrorSpan, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
+use rspack_error::ErrorLocation;
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
-  pub start: u32,
-  pub end: u32,
-  pub id: Option<&'static str>,
+  id: Option<&'static str>,
+  loc: ErrorLocation,
+  span: ErrorSpan,
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(start: u32, end: u32, id: Option<&'static str>) -> Self {
-    Self { start, end, id }
+  pub fn new(id: Option<&'static str>, loc: ErrorLocation, span: ErrorSpan) -> Self {
+    Self { id, loc, span }
+  }
+
+  pub fn loc(&self) -> Option<ErrorLocation> {
+    Some(self.loc)
   }
 }
 
@@ -36,16 +42,13 @@ impl DependencyTemplate for ModuleArgumentDependency {
       .expect("should have mgm")
       .get_module_argument();
 
-    if let Some(id) = self.id {
-      source.replace(
-        self.start,
-        self.end,
-        format!("{module_argument}.{id}").as_str(),
-        None,
-      );
+    let content = if let Some(id) = self.id {
+      format!("{module_argument}.{id}")
     } else {
-      source.replace(self.start, self.end, &format!("{module_argument}"), None);
-    }
+      format!("{module_argument}")
+    };
+
+    source.replace(self.span.start, self.span.end, content.as_str(), None);
   }
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {

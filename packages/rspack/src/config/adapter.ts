@@ -1,5 +1,7 @@
 import assert from "node:assert";
 import {
+	type JsLibraryName,
+	type JsLibraryOptions,
 	type RawAssetGeneratorOptions,
 	type RawAssetInlineGeneratorOptions,
 	type RawAssetParserDataUrl,
@@ -14,8 +16,6 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
-	type RawLibraryName,
-	type RawLibraryOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
@@ -222,6 +222,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
+		cssHeadDataCompression: output.cssHeadDataCompression!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
 		hotUpdateGlobal: output.hotUpdateGlobal!,
@@ -258,7 +259,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
+export function getRawLibrary(library: LibraryOptions): JsLibraryOptions {
 	const {
 		type,
 		name,
@@ -288,7 +289,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 	};
 }
 
-function getRawLibraryName(name: LibraryName): RawLibraryName {
+function getRawLibraryName(name: LibraryName): JsLibraryName {
 	if (typeof name === "string") {
 		return {
 			type: "string",

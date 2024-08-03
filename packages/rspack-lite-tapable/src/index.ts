@@ -441,7 +441,8 @@ export class SyncHook<
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: AsArray<T>
 	): R {
-		let result, error;
+		let result;
+		let error;
 		this.callAsyncStageRange(
 			queried,
 			// @ts-expect-error
@@ -514,7 +515,8 @@ export class SyncBailHook<
 		queried: QueriedHook<T, R, AdditionalOptions>,
 		...args: AsArray<T>
 	): R {
-		let result, error;
+		let result;
+		let error;
 		this.callAsyncStageRange(
 			queried,
 			// @ts-expect-error
@@ -593,7 +595,8 @@ export class SyncWaterfallHook<
 		queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>,
 		...args: AsArray<T>
 	): AsArray<T>[0] {
-		let result, error;
+		let result;
+		let error;
 		this.callAsyncStageRange(
 			queried,
 			// @ts-expect-error
@@ -652,9 +655,7 @@ export class AsyncParallelHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(
@@ -734,9 +735,7 @@ export class AsyncSeriesHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(
@@ -831,9 +830,7 @@ export class AsyncSeriesBailHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(
@@ -939,9 +936,7 @@ export class AsyncSeriesWaterfallHook<
 				const promise = tap.fn(...args2);
 				if (!promise || !promise.then) {
 					throw new Error(
-						"Tap function (tapPromise) did not return promise (returned " +
-							promise +
-							")"
+						`Tap function (tapPromise) did not return promise (returned ${promise})`
 					);
 				}
 				promise.then(

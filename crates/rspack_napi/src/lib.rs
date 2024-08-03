@@ -28,3 +28,5 @@ pub use crate::utils::downcast_into;
 pub mod napi {
   pub use napi::*;
 }
+
+pub use js_values::value_ref::*;

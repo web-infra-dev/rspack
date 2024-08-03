@@ -93,6 +93,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       Box::new(HarmonyExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
+        ErrorLocation::new(statement.span(), &parser.source_map),
       ))
     };
     parser.dependencies.push(dep);

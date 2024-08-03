@@ -134,7 +134,14 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		if (!options.entry) {
 			options.entry = "./index.js";
 		}
+
 		options.module ??= {};
+		for (const cssModuleType of ["css/auto", "css/module", "css"] as const) {
+			options.module!.generator ??= {};
+			options.module!.generator[cssModuleType] ??= {};
+			options.module!.generator[cssModuleType]!.exportsOnly ??=
+				this._hotOptions.target === "async-node";
+		}
 		options.module.rules ??= [];
 		options.module.rules.push({
 			test: /\.(js|css|json)/,

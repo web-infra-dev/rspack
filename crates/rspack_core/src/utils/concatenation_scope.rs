@@ -1,7 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
 use swc_core::atoms::Atom;
@@ -12,7 +12,7 @@ use crate::ModuleIdentifier;
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__WEBPACK_NAMESPACE_OBJECT__";
 
-static MODULE_REFERENCE_REGEXP: Lazy<Regex> = once_cell::sync::Lazy::new(|| {
+static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(
     r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$",
   )

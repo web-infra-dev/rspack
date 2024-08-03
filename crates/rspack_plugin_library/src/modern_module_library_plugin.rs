@@ -2,10 +2,10 @@ use std::hash::Hash;
 
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  merge_runtime, ApplyContext, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
-  CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
-  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, LibraryOptions, ModuleIdentifier,
-  Plugin, PluginContext,
+  merge_runtime, to_identifier, ApplyContext, ChunkUkey, CodeGenerationExportsFinalNames,
+  Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
+  CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions, LibraryOptions,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -74,6 +74,14 @@ impl ModernModuleLibraryPlugin {
     let unconcatenated_module_ids = module_ids
       .iter()
       .filter(|id| !concatenated_module_ids.contains(id))
+      .filter(|id| {
+        let module = module_graph
+          .module_by_identifier(id)
+          .expect("should have module");
+        module
+          .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+          .is_none()
+      })
       .collect::<HashSet<_>>();
 
     for module_id in unconcatenated_module_ids.into_iter() {
@@ -114,6 +122,7 @@ fn render_startup(
     .get(module_id, Some(&chunk.runtime));
 
   let mut exports = vec![];
+  let mut exports_with_property_access = vec![];
 
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -129,21 +138,35 @@ fn render_startup(
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
     let exports_info = module_graph.get_exports_info(module_id);
-    for id in exports_info.get_ordered_exports() {
-      let info = id.get_export_info(&module_graph);
-      let info_name = info.name.as_ref().expect("should have name");
-      let used_name = info
-        .get_used_name(info.name.as_ref(), Some(&chunk.runtime))
+    for export_info in exports_info.ordered_exports(&module_graph) {
+      let info_name = export_info.name(&module_graph).expect("should have name");
+      let used_name = export_info
+        .get_used_name(&module_graph, Some(info_name), Some(&chunk.runtime))
         .expect("name can't be empty");
 
       let final_name = exports_final_names.get(used_name.as_str());
+
       if let Some(final_name) = final_name {
-        if info_name == final_name {
+        // Currently, there's not way to determine if a final_name contains a property access.
+        if final_name.contains('.') || final_name.contains("()") {
+          exports_with_property_access.push((final_name, info_name));
+        } else if info_name == final_name {
           exports.push(info_name.to_string());
         } else {
           exports.push(format!("{} as {}", final_name, info_name));
         }
       }
+    }
+
+    for (final_name, info_name) in exports_with_property_access.iter() {
+      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+
+      source.add(RawSource::from(format!(
+        "var {var_name} = {};\n",
+        final_name
+      )));
+
+      exports.push(format!("{} as {}", var_name, info_name));
     }
   }
 

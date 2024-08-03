@@ -32,6 +32,7 @@ disabletransformbydefault
 ecma
 edusperoni
 esbuild
+etags
 evanw
 experimentscss
 experimentsrspackfuture
@@ -118,6 +119,8 @@ Rollup
 rome
 rsbuild
 Rsdoctor
+rsdoctor
+rsdoctors
 rsfamily
 Rslib
 rspack

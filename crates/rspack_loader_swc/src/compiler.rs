@@ -8,6 +8,7 @@
 use std::env;
 use std::fs::File;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, bail, Context, Error};
@@ -15,6 +16,8 @@ use base64::prelude::*;
 use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
+use rspack_error::miette::MietteDiagnostic;
+use rspack_error::DiagnosticExt;
 use serde_json::error::Category;
 use swc_config::config_types::BoolOr;
 use swc_config::merge::Merge;
@@ -24,7 +27,6 @@ use swc_core::base::config::{
 use swc_core::base::{sourcemap, SwcComments};
 use swc_core::common::comments::{Comment, CommentKind, Comments};
 use swc_core::common::errors::{Handler, HANDLER};
-use swc_core::common::sync::Lazy;
 use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
 };
@@ -137,7 +139,7 @@ fn load_swcrc(path: &Path) -> Result<Rc, Error> {
 }
 
 fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error> {
-  static CUR_DIR: Lazy<PathBuf> = Lazy::new(|| {
+  static CUR_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     if cfg!(target_arch = "wasm32") {
       PathBuf::new()
     } else {
@@ -387,7 +389,35 @@ impl SwcCompiler {
         try_with_handler(self.cm.clone(), Default::default(), |handler| {
           HANDLER.set(handler, || {
             // Fold module
-            Ok(program.fold_with(&mut pass))
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+              program.fold_with(&mut pass)
+            })) {
+              Ok(v) => Ok(v),
+              Err(err) => {
+                macro_rules! swc_error {
+                  ($tt:tt) => {{
+                    let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
+
+                    MietteDiagnostic::new(format!("Builtin swc-loader error: {}
+
+Help:
+    The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
+
+    The `swc_core` version of the current `rspack_core` is {swc_core_version}. Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
+    Versions of `swc_core` are more likely to be located in the `Cargo.toml` file in the root directory of these plugin repositories.
+
+    Check out this guide as a reference for selecting the versions of SWC Wasm plugins: https://swc.rs/docs/plugin/selecting-swc-core", $tt))
+                    .boxed()
+                    .into()
+                  }}
+                }
+                if let Some(err) = err.downcast_ref::<String>() {
+                  Err(swc_error!(err))
+                } else {
+                  Err(swc_error!("unknown error"))
+                }
+              }
+            }
           })
         })
       })
@@ -525,13 +555,7 @@ impl SwcCompiler {
         Ok(r) => r,
         Err(_err) => {
           // Load original source map if possible
-          match read_file_sourcemap(data_url) {
-            Ok(v) => v,
-            Err(_) => {
-              // tracing::error!("failed to read input source map: {:?}", err);
-              None
-            }
-          }
+          read_file_sourcemap(data_url).unwrap_or(None)
         }
       }
     };

@@ -1,0 +1,41 @@
+<>
+
+> See [compilation object](/api/javascript-api/compilation) for more details.
+
+```ts
+type Compilation = {
+  emitAsset(): void; // add a new asset
+  updateAsset(): void; // update content of the asset
+  renameAsset(): void; // rename the asset
+  deleteAsset(): void; // delete an existing asset
+  getAssets(): Asset[]; // get all assets
+  getAsset(): Asset; // get asset from name
+  getPath(): string; // generate path from template
+  getPathWithInfo(): PathWithInfo; // generate path and asset info from template
+  getStats(): Stats; // get stats object
+  createChildCompiler(): Compiler; // create a child compiler
+  rebuildModule(): void; // run module.build again
+  getLogger(): Logger; // get compilation related logger object
+  getCache(): CacheFacade; // get compilation related cache object
+  options: RspackOptionsNormalized; // the compiler options
+  compiler: Compiler; // current compiler
+  hooks: CompilationHooks; // hooks of compilation
+  hash: string | null; // hash of this compilation
+  fullhash: string | null; // same as 'hash'
+  assets: Record<string, Source>; // mapping from filename to asset content
+  chunkGroups: ChunkGroup[]; // list of chunk groups
+  entrypoints: Map<string, Entrypoint>; // mapping from name to entrypoint
+  namedChunkGroups: Map<string, ChunkGroup>; // mapping named chunk groups
+  modules: Set<Module>; // set of all modules
+  chunks: Set<Chunk>; // set of all chunks
+  namedChunks: Map<string, Chunk>; // mapping of named chunks
+  fileDependencies: CompilationDependencies; // dependent files
+  contextDependencies: CompilationDependencies; // dependent directories
+  missingDependencies: CompilationDependencies; // dependent missing files
+  buildDependencies: CompilationDependencies; // dependent build files
+  errors: RspackError[]; // errors during compilation
+  warnings: RspackError[]; // warnings during compilation
+};
+```
+
+</>

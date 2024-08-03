@@ -1,18 +1,19 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   path::{Path, PathBuf},
 };
 
 use concat_string::concat_string;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use sugar_path::SugarPath;
 
-static SEGMENTS_SPLIT_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"([|!])").expect("TODO:"));
-static WINDOWS_ABS_PATH_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
-static WINDOWS_PATH_SEPARATOR_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[/\\]").expect("TODO:"));
+static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"([|!])").expect("TODO:"));
+static WINDOWS_ABS_PATH_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
+static WINDOWS_PATH_SEPARATOR_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[/\\]").expect("TODO:"));
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
   SEGMENTS_SPLIT_REGEXP
     .split(identifier)
@@ -114,10 +115,10 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
     .join("")
 }
 
-static ZERO_WIDTH_SPACE: Lazy<Regex> =
-  Lazy::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
+static ZERO_WIDTH_SPACE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
 
-static FRAGMENT: Lazy<Regex> = Lazy::new(|| Regex::new("#").expect("invalid regex"));
+static FRAGMENT: LazyLock<Regex> = LazyLock::new(|| Regex::new("#").expect("invalid regex"));
 
 pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<str> {
   ZERO_WIDTH_SPACE.replace_all(s, "$1")

@@ -1,6 +1,6 @@
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ExportsInfoId;
+use crate::ExportsInfo;
 use crate::{
   module_graph::ConnectionId, ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer,
   ModuleProfile, ModuleSyntax,
@@ -22,7 +22,7 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
-  pub exports: ExportsInfoId,
+  pub exports: ExportsInfo,
   pub profile: Option<Box<ModuleProfile>>,
   pub is_async: bool,
   pub depth: Option<usize>,
@@ -30,7 +30,7 @@ pub struct ModuleGraphModule {
 }
 
 impl ModuleGraphModule {
-  pub fn new(module_identifier: ModuleIdentifier, exports_info_id: ExportsInfoId) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier, exports_info: ExportsInfo) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -41,7 +41,7 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
-      exports: exports_info_id,
+      exports: exports_info,
       profile: None,
       is_async: false,
       depth: None,

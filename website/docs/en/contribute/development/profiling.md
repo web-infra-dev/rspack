@@ -67,6 +67,14 @@ npm install -g speedscope
 speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 ```
 
+### Rsdoctor Timeline
+
+If we want to analyze the time cost of loaders and plugins or the compilation behavior of loaders, we can use Rsdoctor to view:
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+
+Refer to [Rsdoctor Compilation Analysis](/guide/optimization/profile#use-rsdoctor)
+
 ## Mac Xcode Instruments
 
 Xcode instruments can be used to produce a CPU profile if you are on a Mac.

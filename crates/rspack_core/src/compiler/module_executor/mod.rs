@@ -62,11 +62,7 @@ impl ModuleExecutor {
     make_artifact.diagnostics = Default::default();
     make_artifact.has_module_graph_change = false;
 
-    make_artifact = if let Ok(artifact) = update_module_graph(compilation, make_artifact, params) {
-      artifact
-    } else {
-      MakeArtifact::default()
-    };
+    make_artifact = update_module_graph(compilation, make_artifact, params).unwrap_or_default();
 
     let mut ctx = MakeTaskContext::new(compilation, make_artifact);
     let (event_sender, event_receiver) = unbounded_channel();

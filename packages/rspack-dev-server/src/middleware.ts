@@ -22,9 +22,9 @@ function createPublicPathGetter(compiler: Compiler) {
 	}
 	if (/\[(hash|fullhash)[:\]]/.test(raw)) {
 		return (compilation?: Compilation) =>
-			compilation ? compilation.getPath(raw) : raw.replace(/\/$/, "") + "/";
+			compilation ? compilation.getPath(raw) : `${raw.replace(/\/$/, "")}/`;
 	}
-	return () => raw.replace(/\/$/, "") + "/";
+	return () => `${raw.replace(/\/$/, "")}/`;
 }
 
 export function getRspackMemoryAssets(

@@ -42,7 +42,7 @@ export default function getSocketUrlParts(
 
 		// Make sure the protocol from resource query has a trailing colon
 		if (parsedQuery.sockProtocol) {
-			urlParts.protocol = parsedQuery.sockProtocol + ":";
+			urlParts.protocol = `${parsedQuery.sockProtocol}:`;
 		}
 	} else {
 		const scriptSource = getCurrentScriptSource();
@@ -65,7 +65,7 @@ export default function getSocketUrlParts(
 			// Result: <username> or <username>:<password>
 			urlParts.auth = url.username;
 			if (url.password) {
-				urlParts.auth += ":" + url.password;
+				urlParts.auth += `:${url.password}`;
 			}
 		}
 

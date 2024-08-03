@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   cmp::Ordering,
@@ -9,7 +10,6 @@ use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
@@ -434,9 +434,10 @@ pub fn get_full_chunk_name(
   full_module_names.join(",")
 }
 
-static REGEX1: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
-static REGEX2: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
+static REGEX1: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
+static REGEX2: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
 
 pub fn request_to_id(request: &str) -> String {
   REGEX2

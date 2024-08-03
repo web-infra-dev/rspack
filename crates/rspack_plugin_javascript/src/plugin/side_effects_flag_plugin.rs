@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
@@ -328,8 +328,8 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   }
 }
 
-static PURE_COMMENTS: Lazy<regex::Regex> =
-  Lazy::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+static PURE_COMMENTS: LazyLock<regex::Regex> =
+  LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
 
 fn is_pure_call_expr(
   call_expr: &CallExpr,
@@ -669,7 +669,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     if side_effects_state != rspack_core::ConnectionState::Bool(false) {
       continue;
     }
-    let cur_exports_info_id = module_graph.get_exports_info(&module_identifier).id;
+    let cur_exports_info = module_graph.get_exports_info(&module_identifier);
 
     let incoming_connections = module_graph
       .module_graph_module_by_identifier(&module_identifier)
@@ -698,13 +698,13 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
         .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
         .and_then(|dep| dep.name.clone())
       {
-        let export_info_id = module_graph.get_export_info(
+        let export_info = module_graph.get_export_info(
           con
             .original_module_identifier
             .expect("should have original_module_identifier"),
           &name,
         );
-        export_info_id.move_target(
+        export_info.move_target(
           &mut module_graph,
           Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
             mg.module_by_identifier(&target.module)
@@ -737,9 +737,9 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
       let ids = dep_id.get_ids(&module_graph);
 
       if !ids.is_empty() {
-        let export_info_id = cur_exports_info_id.get_export_info(&ids[0], &mut module_graph);
+        let export_info = cur_exports_info.get_export_info(&mut module_graph, &ids[0]);
 
-        let target = export_info_id.get_target(
+        let target = export_info.get_target(
           &module_graph,
           Some(Arc::new(
             |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {

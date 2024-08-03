@@ -1,13 +1,16 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency, CssExportsConvention,
-  Dependency, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName, Module,
+  Dependency, DependencyId, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
@@ -17,7 +20,7 @@ use rspack_error::{
 };
 use rustc_hash::FxHashSet;
 
-use crate::utils::{css_modules_exports_to_string, LocalIdentOptions};
+use crate::utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions};
 use crate::utils::{export_locals_convention, unescape};
 use crate::{
   dependency::{
@@ -30,11 +33,10 @@ use crate::{
   },
 };
 
-static REGEX_IS_MODULES: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
+static REGEX_IS_MODULES: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
 
-pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
-  &[SourceType::JavaScript, SourceType::Css];
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
 
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
@@ -43,6 +45,7 @@ pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
 pub struct CssExport {
   pub ident: String,
   pub from: Option<String>,
+  pub id: Option<DependencyId>,
 }
 
 pub type CssExports = IndexMap<String, IndexSet<CssExport>>;
@@ -217,6 +220,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               CssExport {
                 ident: local_ident.clone(),
                 from: None,
+                id: None,
               },
             );
           }
@@ -251,6 +255,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               CssExport {
                 ident: local_ident.clone(),
                 from: None,
+                id: None,
               },
             );
           }
@@ -267,14 +272,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
           from,
           range,
         } => {
+          let mut dep_id = None;
           if let Some(from) = from
             && from != "global"
           {
             let from = from.trim_matches(|c| c == '\'' || c == '"');
-            dependencies.push(Box::new(CssComposeDependency::new(
-              from.to_string(),
-              ErrorSpan::new(range.start, range.end),
-            )));
+            let dep =
+              CssComposeDependency::new(from.to_string(), ErrorSpan::new(range.start, range.end));
+            dep_id = Some(*dep.id());
+            dependencies.push(Box::new(dep));
           }
           let exports = self.exports.get_or_insert_default();
           for name in names {
@@ -296,6 +302,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                     from: from
                       .filter(|f| *f != "global")
                       .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
+                    id: dep_id,
                   });
               }
             }
@@ -315,6 +322,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               CssExport {
                 ident: value.to_string(),
                 from: None,
+                id: None,
               },
             );
           }
@@ -384,11 +392,71 @@ impl ParserAndGenerator for CssParserAndGenerator {
           data: generate_context.data,
         };
 
+        let identifier = module.identifier();
+        let module_id = compilation
+          .chunk_graph
+          .get_module_id(identifier)
+          .clone()
+          .unwrap_or_default();
+
         if let Some(exports) = &self.exports {
           let mg = compilation.get_module_graph();
-          let unused =
-            get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+          let unused = get_unused_local_ident(exports, identifier, generate_context.runtime, &mg);
           context.data.insert(unused);
+
+          let used = get_used_exports(exports, identifier, generate_context.runtime, &mg);
+
+          static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#"\\"#).expect("should compile"));
+          let module_id = RE.replace_all(&module_id, "/");
+
+          let meta_data = used
+            .iter()
+            .map(|(n, v)| {
+              let escaped = escape_css(n, false);
+              v.iter()
+                .map(|v| {
+                  let composed = &v.id;
+
+                  if let Some(composed) = composed {
+                    let mg = compilation.get_module_graph();
+                    let module = mg
+                      .get_module_by_dependency_id(composed)
+                      .expect("should have from dependency");
+                    let module_id = compilation
+                      .chunk_graph
+                      .get_module_id(module.identifier())
+                      .as_deref()
+                      .expect("should have module id");
+
+                    format!(
+                      "{}:{}@{}/",
+                      escaped,
+                      escape_css(module_id, false),
+                      escape_css(&v.ident, false)
+                    )
+                  } else {
+                    format!("{}:{}/", escaped, &v.ident)
+                  }
+                })
+                .collect::<Vec<_>>()
+                .join("")
+            })
+            .collect::<Vec<_>>()
+            .join("");
+
+          context.data.insert(CssUsedExports(format!(
+            "{}{}{}",
+            meta_data,
+            if self.es_module { "&" } else { "" },
+            escape_css(&module_id, false)
+          )));
+        } else {
+          context.data.insert(CssUsedExports(format!(
+            "{}{}",
+            if self.es_module { "&" } else { "" },
+            escape_css(&module_id, false)
+          )));
         }
 
         module.get_dependencies().iter().for_each(|id| {
@@ -409,6 +477,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         };
 
         generate_context.concatenation_scope = context.concatenation_scope.take();
+
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
@@ -433,7 +502,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let (ns_obj, left, right) = if self.es_module
             && mg
               .get_exports_info(&module.identifier())
-              .other_exports_info
+              .other_exports_info(&mg)
               .get_used(&mg, generate_context.runtime)
               != UsageState::Unused
           {
@@ -504,7 +573,7 @@ fn get_used_exports<'a>(
       let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
       if let Some(export_info) = export_info {
-        !matches!(export_info.get_used(runtime), UsageState::Unused)
+        !matches!(export_info.get_used(mg, runtime), UsageState::Unused)
       } else {
         true
       }
@@ -531,7 +600,7 @@ fn get_unused_local_ident(
         let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
         if let Some(export_info) = export_info {
-          matches!(export_info.get_used(runtime), UsageState::Unused)
+          matches!(export_info.get_used(mg, runtime), UsageState::Unused)
         } else {
           false
         }
@@ -544,3 +613,6 @@ fn get_unused_local_ident(
       .collect(),
   }
 }
+
+#[derive(Debug, Clone)]
+pub struct CssUsedExports(pub String);

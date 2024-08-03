@@ -1,6 +1,6 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
@@ -22,8 +22,8 @@ use super::create_resource_identifier_for_esm_dependency;
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-static IMPORT_EMITTED_MAP: Lazy<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
-  Lazy::new(Default::default);
+static IMPORT_EMITTED_MAP: LazyLock<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
+  LazyLock::new(Default::default);
 
 pub fn get_import_emitted_runtime(
   module: &ModuleIdentifier,
@@ -207,10 +207,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   additional_msg: String,
   should_error: bool,
 ) -> Option<Diagnostic> {
-  let Some(imported_module) = module_graph.get_module_by_dependency_id(module_dependency.id())
-  else {
-    return None;
-  };
+  let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if !imported_module.get_diagnostics().is_empty() {
     return None;
   }
@@ -275,21 +272,18 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(
-        module_graph
-          .get_exports_info(&imported_module_identifier)
-          .id,
-      );
+      let mut maybe_exports_info = Some(module_graph.get_exports_info(&imported_module_identifier));
       while pos < ids.len()
         && let Some(exports_info) = maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(id, module_graph);
-        if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
-          let provided_exports = exports_info
-            .get_exports_info(module_graph)
-            .get_provided_exports(module_graph);
+        let export_info = exports_info.get_read_only_export_info(module_graph, id);
+        if matches!(
+          export_info.provided(module_graph),
+          Some(ExportInfoProvided::False)
+        ) {
+          let provided_exports = exports_info.get_provided_exports(module_graph);
           let more_info = if let ProvidedExports::Vec(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -319,7 +313,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = export_info.id.get_nested_exports_info(module_graph);
+        maybe_exports_info = export_info.get_nested_exports_info(module_graph);
       }
       let msg = format!(
         "export {} {} was not found in '{}'",

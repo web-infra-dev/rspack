@@ -1,9 +1,9 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
 };
 
-use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::{contextify, Compilation, OutputOptions};
 use rspack_error::Result;
@@ -12,14 +12,14 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
 
-static REGEXP_ALL_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
+static REGEXP_ALL_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\[all-?loaders\]\[resource\]")
     .expect("failed to compile REGEXP_ALL_LOADERS_RESOURCE")
 });
-static SQUARE_BRACKET_TAG_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static SQUARE_BRACKET_TAG_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\[\\*([\w-]+)\\*\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
 });
-static REGEXP_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
+static REGEXP_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\[loaders\]\[resource\]").expect("failed to compile REGEXP_LOADERS_RESOURCE")
 });
 

@@ -15,6 +15,7 @@ mod side_effects_flag_plugin;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
+use std::sync::LazyLock;
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
@@ -22,7 +23,6 @@ pub use flag_dependency_usage_plugin::*;
 use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
-use once_cell::sync::Lazy;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::concatenated_module::find_new_name;
@@ -50,8 +50,9 @@ use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
 
-static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>> =
-  Lazy::new(Default::default);
+static COMPILATION_HOOKS_MAP: LazyLock<
+  FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>,
+> = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
 struct WithHash<T> {
@@ -683,7 +684,7 @@ impl JsPlugin {
           continue;
         };
 
-        if renamed_inline_modules.get(m_identifier).is_some() {
+        if renamed_inline_modules.contains_key(m_identifier) {
           if let Some(source) = renamed_inline_modules.get(m_identifier) {
             rendered_module = source.clone();
           };

@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@master
+      - uses: crate-ci/typos@v1.23.6
         with:
           files: .
 
@@ -190,7 +190,6 @@ jobs:
       - name: Check Dependency Version
         if: steps.changes.outputs.src == 'true'
         run: pnpm run check-dependency-version
-  
 
   lint-website:
     name: Lint and format website
@@ -287,7 +286,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@main
+      - uses: cargo-bins/cargo-binstall@v1.8.0
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
@@ -316,7 +315,8 @@ jobs:
           echo 'debug = false' >> Cargo.toml
 
       - name: Run test
-        run: cargo test --workspace -- --nocapture
+        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
+        run: cargo test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
 
   run_benchmark:
     name: Run benchmark

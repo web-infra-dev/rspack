@@ -12,7 +12,6 @@ bitflags      = { workspace = true }
 concat-string = { workspace = true }
 dashmap       = { workspace = true }
 indexmap      = { workspace = true }
-once_cell     = { workspace = true }
 regex         = { workspace = true }
 rustc-hash    = { workspace = true }
 serde         = { workspace = true }

@@ -12,6 +12,7 @@ pub struct JsChunkGroup {
   pub chunks: Vec<JsChunk>,
   pub index: Option<u32>,
   pub name: Option<String>,
+  pub is_initial: bool,
 }
 
 impl JsChunkGroup {
@@ -29,6 +30,7 @@ impl JsChunkGroup {
       inner_parents: cg.parents.iter().map(|ukey| ukey.as_u32()).collect(),
       inner_ukey: cg.ukey.as_u32(),
       name: cg.name().map(|name| name.to_string()),
+      is_initial: cg.is_initial(),
     }
   }
 }

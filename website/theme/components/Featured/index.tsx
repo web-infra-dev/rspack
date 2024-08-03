@@ -18,7 +18,7 @@ export function Featured() {
     {
       title: 'HMR',
       desc: t('featureHmr'),
-      link: useUrl('/api/hmr'),
+      link: useUrl('/api/runtime-api/hmr'),
     },
     {
       title: 'SWC',

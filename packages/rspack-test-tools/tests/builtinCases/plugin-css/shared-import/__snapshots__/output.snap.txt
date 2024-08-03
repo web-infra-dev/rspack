@@ -5,7 +5,7 @@
   border: 1px solid red;
 }
 
-
+head{--webpack-__rspack_test__-c_css:&\.\/cācss;}
 ```
 
 ```css title=main.css
@@ -27,5 +27,5 @@
   background-color: red;
 }
 
-
+head{--webpack-__rspack_test__-main:&\.\/sharedācss,ĀĂ/aċčďāăbĔs;}
 ```

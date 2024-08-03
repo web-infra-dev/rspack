@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   fmt::Debug,
@@ -8,7 +9,6 @@ use std::{
 };
 
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
@@ -45,6 +45,7 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
+  pub css_head_data_compression: bool,
   pub hot_update_main_filename: FilenameTemplate,
   pub hot_update_chunk_filename: FilenameTemplate,
   pub hot_update_global: String,
@@ -96,6 +97,24 @@ impl From<&str> for ChunkLoading {
   }
 }
 
+impl From<ChunkLoading> for String {
+  fn from(value: ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false".to_string(),
+    }
+  }
+}
+
+impl From<&ChunkLoading> for &str {
+  fn from(value: &ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false",
+    }
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
@@ -115,6 +134,24 @@ impl From<&str> for ChunkLoadingType {
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
       _ => unimplemented!("custom chunkLoading in not supported yet"),
+    }
+  }
+}
+
+impl From<ChunkLoadingType> for String {
+  fn from(value: ChunkLoadingType) -> Self {
+    Into::<&str>::into(&value).to_string()
+  }
+}
+
+impl From<&ChunkLoadingType> for &str {
+  fn from(value: &ChunkLoadingType) -> Self {
+    match value {
+      ChunkLoadingType::Jsonp => "jsonp",
+      ChunkLoadingType::ImportScripts => "import-scripts",
+      ChunkLoadingType::Require => "require",
+      ChunkLoadingType::AsyncNode => "async-node",
+      ChunkLoadingType::Import => "import",
     }
   }
 }
@@ -184,8 +221,8 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
-static PREPARE_ID_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+static PREPARE_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
   pub fn prepare_id(v: &str) -> Cow<str> {

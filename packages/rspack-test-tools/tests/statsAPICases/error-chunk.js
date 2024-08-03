@@ -28,9 +28,11 @@ module.exports = {
 		    "chunkId": "751",
 		    "chunkInitial": true,
 		    "chunkName": "b",
+		    "details": undefined,
 		    "message": "  × Entrypoints 'b' and 'a' use 'dependOn' to depend on each other in a circular way.
 		",
 		    "moduleTrace": Array [],
+		    "stack": undefined,
 		  },
 		]
 	`);

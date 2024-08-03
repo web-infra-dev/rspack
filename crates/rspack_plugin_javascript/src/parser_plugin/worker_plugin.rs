@@ -1,7 +1,7 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyLocation, EntryOptions, ErrorSpan,
@@ -198,8 +198,8 @@ pub struct WorkerPlugin {
   pattern_syntax: FxHashMap<String, FxHashSet<String>>,
 }
 
-static WORKER_FROM_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
+static WORKER_FROM_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
 
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
 

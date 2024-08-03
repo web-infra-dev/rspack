@@ -77,9 +77,7 @@ export default async function checkSourceMap(
 		const observed = JSON.stringify({ source, line, column });
 		recordCheck(
 			expected === observed,
-			`expected original position: ${expected}, observed original position: ${observed}, out: ${
-				outLine + "," + outColumn + "," + outIndex + ":" + outId
-			}, ${checkColumn ? "" : "(column ignored)"}`
+			`expected original position: ${expected}, observed original position: ${observed}, out: ${`${outLine},${outColumn},${outIndex}:${outId}`}, ${checkColumn ? "" : "(column ignored)"}`
 		);
 
 		// Also check the reverse mapping

@@ -13,7 +13,7 @@ import {
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
 
-declare var global: {
+declare let global: {
 	__CHANGED_FILES__: Map<string, number>;
 };
 
@@ -65,7 +65,7 @@ export class HotRunnerFactory<
 							source,
 							jsonStats,
 							"error",
-							"errors" + hotUpdateContext.updateIndex,
+							`errors${hotUpdateContext.updateIndex}`,
 							"Error",
 							callback
 						)
@@ -77,7 +77,7 @@ export class HotRunnerFactory<
 							source,
 							jsonStats,
 							"warning",
-							"warnings" + hotUpdateContext.updateIndex,
+							`warnings${hotUpdateContext.updateIndex}`,
 							"Warning",
 							callback
 						)
@@ -98,9 +98,9 @@ export class HotRunnerFactory<
 			runInNewContext: false,
 			testConfig: {
 				...testConfig,
-				moduleScope(ms) {
+				moduleScope(ms, stats) {
 					if (typeof testConfig.moduleScope === "function") {
-						ms = testConfig.moduleScope(ms);
+						ms = testConfig.moduleScope(ms, stats);
 					}
 					ms.NEXT = next;
 					return ms;

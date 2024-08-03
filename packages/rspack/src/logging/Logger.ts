@@ -122,7 +122,7 @@ export class Logger {
 	}
 
 	timeLog(label: any) {
-		const prev = this[TIMERS_SYMBOL] && this[TIMERS_SYMBOL].get(label);
+		const prev = this[TIMERS_SYMBOL]?.get(label);
 		if (!prev) {
 			throw new Error(`No such label '${label}' for WebpackLogger.timeLog()`);
 		}
@@ -131,7 +131,7 @@ export class Logger {
 	}
 
 	timeEnd(label: any) {
-		const prev = this[TIMERS_SYMBOL] && this[TIMERS_SYMBOL].get(label);
+		const prev = this[TIMERS_SYMBOL]?.get(label);
 		if (!prev) {
 			throw new Error(`No such label '${label}' for WebpackLogger.timeEnd()`);
 		}
@@ -141,7 +141,7 @@ export class Logger {
 	}
 
 	timeAggregate(label: any) {
-		const prev = this[TIMERS_SYMBOL] && this[TIMERS_SYMBOL].get(label);
+		const prev = this[TIMERS_SYMBOL]?.get(label);
 		if (!prev) {
 			throw new Error(
 				`No such label '${label}' for WebpackLogger.timeAggregate()`

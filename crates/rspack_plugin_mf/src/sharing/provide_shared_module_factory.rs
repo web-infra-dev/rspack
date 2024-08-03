@@ -27,6 +27,9 @@ impl ModuleFactory for ProvideSharedModuleFactory {
         dep.version.clone(),
         dep.request().to_owned(),
         dep.eager,
+        dep.singleton,
+        dep.required_version.clone(),
+        dep.strict_version,
       ),
     )))
   }

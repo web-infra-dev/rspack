@@ -75,7 +75,8 @@ jobs:
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
-          git clean -ffdx -e node_modules target
+          git config --system core.longpaths true
+          git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
       - name: Setup tmate session
@@ -225,7 +226,8 @@ jobs:
         if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
-          git clean -ffdx -e node_modules target
+          git config --system core.longpaths true
+          git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
       - name: Download bindings
@@ -278,7 +280,8 @@ jobs:
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
-          git clean -ffdx -e node_modules target
+          git config --system core.longpaths true
+          git clean -ffdx -e node_modules -e target
           git reset --hard HEAD
 
       - name: Download bindings

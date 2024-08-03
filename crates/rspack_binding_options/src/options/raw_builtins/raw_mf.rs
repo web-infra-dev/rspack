@@ -2,21 +2,23 @@ use std::sync::Arc;
 
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::{
+  entry::{JsEntryRuntime, JsEntryRuntimeWrapper},
+  library::JsLibraryOptions,
+};
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
   ContainerReferencePluginOptions, ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
 };
-
-use crate::{RawEntryRuntime, RawEntryRuntimeWrapper, RawLibraryOptions};
 
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawContainerPluginOptions {
   pub name: String,
   pub share_scope: String,
-  pub library: RawLibraryOptions,
+  pub library: JsLibraryOptions,
   #[napi(ts_type = "false | string")]
-  pub runtime: Option<RawEntryRuntime>,
+  pub runtime: Option<JsEntryRuntime>,
   pub filename: Option<String>,
   pub exposes: Vec<RawExposeOptions>,
   pub enhanced: bool,
@@ -28,7 +30,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
       name: value.name,
       share_scope: value.share_scope,
       library: value.library.into(),
-      runtime: value.runtime.map(|r| RawEntryRuntimeWrapper(r).into()),
+      runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       filename: value.filename.map(|f| f.into()),
       exposes: value.exposes.into_iter().map(|e| e.into()).collect(),
       enhanced: value.enhanced,
@@ -105,6 +107,10 @@ pub struct RawProvideOptions {
   #[napi(ts_type = "string | false | undefined")]
   pub version: Option<RawVersion>,
   pub eager: bool,
+  pub singleton: Option<bool>,
+  #[napi(ts_type = "string | false | undefined")]
+  pub required_version: Option<RawVersion>,
+  pub strict_version: Option<bool>,
 }
 
 impl From<RawProvideOptions> for (String, ProvideOptions) {
@@ -116,6 +122,9 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
         share_scope: value.share_scope,
         version: value.version.map(|v| RawVersionWrapper(v).into()),
         eager: value.eager,
+        singleton: value.singleton,
+        required_version: value.required_version.map(|v| RawVersionWrapper(v).into()),
+        strict_version: value.strict_version,
       },
     )
   }

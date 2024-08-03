@@ -1,10 +1,10 @@
 #![feature(let_chains)]
 
 use std::fmt::{self, Debug};
+use std::sync::LazyLock;
 
 use async_recursion::async_recursion;
 use futures::future::BoxFuture;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
@@ -116,8 +116,8 @@ async fn match_object(obj: &BannerPluginOptions, str: &str) -> Result<bool> {
   Ok(true)
 }
 
-static TRIALING_WHITESPACE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\s+\n").expect("invalid regexp"));
+static TRIALING_WHITESPACE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\s+\n").expect("invalid regexp"));
 
 fn wrap_comment(str: &str) -> String {
   if !str.contains('\n') {

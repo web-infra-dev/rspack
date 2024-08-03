@@ -1,9 +1,10 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 
 pub struct Template;
-static COMMENT_END_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\*\/").expect("should construct regex"));
+static COMMENT_END_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\*\/").expect("should construct regex"));
 
 impl Template {
   pub fn to_comment(str: &str) -> String {

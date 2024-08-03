@@ -9,7 +9,6 @@ version    = "0.1.0"
 
 [dependencies]
 lightningcss     = { workspace = true, features = ["sourcemap", "browserslist"] }
-once_cell        = { workspace = true }
 parcel_sourcemap = { workspace = true }
 rayon            = { workspace = true }
 regex            = { workspace = true }

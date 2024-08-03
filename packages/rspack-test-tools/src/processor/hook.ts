@@ -78,7 +78,7 @@ const serialize = (val: unknown, indent = 2, formatOverrides = {}) =>
 
 export class HookCasesContext extends TestContext {
 	protected promises: Promise<void>[] = [];
-	protected count: number = 0;
+	protected count = 0;
 	protected snapshots: Record<
 		string | number,
 		Array<[string | Buffer, string]>
@@ -161,8 +161,8 @@ export class HookCasesContext extends TestContext {
 			const block = this.snapshots[group || index].reduce(
 				(acc, [content, name]) => {
 					name = `## ${name || `test: ${index}`}\n\n`;
-					const block = "```javascript\n" + content + "\n```\n";
-					return (acc += name + block + "\n");
+					const block = `\`\`\`javascript\n${content}\n\`\`\`\n`;
+					return (acc += `${name + block}\n`);
 				},
 				""
 			);

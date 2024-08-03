@@ -1,5 +1,5 @@
 # https://github.com/crate-ci/typos
-# cargo install typos
+# cargo install typos-cli
 # typos
 
 [files]
@@ -27,3 +27,4 @@ fo       = "fo"
 splitted = "splitted"
 ws       = "ws"
 Pn       = "Pn"
+styl     = "styl"

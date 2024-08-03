@@ -1,40 +1,116 @@
-use std::collections::HashMap;
+use std::cell::RefCell;
 
 use napi_derive::napi;
-use rspack_core::{Stats, StatsChunk, StatsModule, StatsUsedExports};
-use rspack_napi::napi::bindgen_prelude::Buffer;
-use rspack_napi::napi::{
-  bindgen_prelude::{Result, SharedReference},
-  Either,
+use rspack_collections::Identifier;
+use rspack_core::{
+  EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
+use rspack_napi::{
+  napi::{
+    bindgen_prelude::{Buffer, FromNapiValue, Result, SharedReference, ToNapiValue},
+    Either,
+  },
+  Ref,
+};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompilation, ToJsCompatSource};
+use crate::identifier::JsIdentifier;
 
-#[napi(object)]
-#[derive(Debug)]
+thread_local! {
+  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsModuleDescriptor {
+  #[napi(ts_type = "string")]
+  pub identifier: JsIdentifier,
+  pub name: String,
+  pub id: Option<String>,
+}
+
+impl FromNapiValue for JsModuleDescriptor {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+pub struct JsModuleDescriptorWrapper(JsModuleDescriptor);
+
+impl JsModuleDescriptorWrapper {
+  pub fn raw(&self) -> &JsModuleDescriptor {
+    &self.0
+  }
+}
+
+impl ToNapiValue for JsModuleDescriptorWrapper {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    MODULE_DESCRIPTOR_REFS.with(|refs| {
+      let id = val.0.identifier.raw();
+      let mut refs = refs.borrow_mut();
+      match refs.entry(id) {
+        std::collections::hash_map::Entry::Occupied(entry) => {
+          let r = entry.get();
+          ToNapiValue::to_napi_value(env, r)
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
+          let r = Ref::new(env, napi_value, 1)?;
+          let r = entry.insert(r);
+          ToNapiValue::to_napi_value(env, r)
+        }
+      }
+    })
+  }
+}
+
+impl From<JsModuleDescriptor> for JsModuleDescriptorWrapper {
+  fn from(value: JsModuleDescriptor) -> Self {
+    Self(value)
+  }
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsError {
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub message: String,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub loc: Option<String>,
   pub file: Option<String>,
-  pub module_identifier: Option<&'static str>,
-  pub module_name: Option<String>,
-  pub module_id: Option<String>,
   pub chunk_id: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
   pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
+impl FromNapiValue for JsStatsError {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
 impl From<rspack_core::StatsError<'_>> for JsStatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
+      module_descriptor: stats.module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
+          name: stats.module_name.unwrap_or_default().into_owned(),
+          id: stats.module_id.map(|s| s.to_string()),
+        }
+        .into()
+      }),
       message: stats.message,
-      module_identifier: stats.module_identifier,
-      module_name: stats.module_name.map(|i| i.into_owned()),
-      module_id: stats.module_id.map(|i| i.to_owned()),
       loc: stats.loc,
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
       chunk_name: stats.chunk_name,
@@ -52,29 +128,42 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsWarning {
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub message: String,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub file: Option<String>,
-  pub module_identifier: Option<&'static str>,
-  pub module_name: Option<String>,
-  pub module_id: Option<String>,
   pub chunk_id: Option<String>,
   pub details: Option<String>,
   pub stack: Option<String>,
   pub module_trace: Vec<JsStatsModuleTrace>,
 }
 
+impl FromNapiValue for JsStatsWarning {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
 impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
   fn from(stats: rspack_core::StatsWarning) -> Self {
     Self {
+      module_descriptor: stats.module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
+          name: stats.module_name.unwrap_or_default().into_owned(),
+          id: stats.module_id.map(|s| s.to_string()),
+        }
+        .into()
+      }),
       message: stats.message,
-      module_identifier: stats.module_identifier,
-      module_name: stats.module_name.map(|i| i.into_owned()),
-      module_id: stats.module_id.map(|i| i.to_owned()),
       file: stats.file.map(|f| f.to_string_lossy().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
@@ -91,11 +180,19 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
   }
 }
 
-#[napi(object)]
-#[derive(Debug)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleTrace {
   pub origin: JsStatsModuleTraceModule,
   pub module: JsStatsModuleTraceModule,
+}
+
+impl FromNapiValue for JsStatsModuleTrace {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
@@ -107,30 +204,49 @@ impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
   }
 }
 
-#[napi(object)]
-#[derive(Debug)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleTraceModule {
-  pub identifier: String,
-  pub name: Option<String>,
-  pub id: Option<String>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: JsModuleDescriptorWrapper,
+}
+
+impl FromNapiValue for JsStatsModuleTraceModule {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule {
   fn from(stats: rspack_core::StatsErrorModuleTraceModule) -> Self {
     Self {
-      identifier: stats.identifier,
-      name: stats.name,
-      id: stats.id,
+      module_descriptor: JsModuleDescriptor {
+        identifier: stats.identifier.into(),
+        name: stats.name,
+        id: stats.id,
+      }
+      .into(),
     }
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsLogging {
   pub name: String,
   pub r#type: String,
   pub args: Option<Vec<String>>,
   pub trace: Option<Vec<String>>,
+}
+
+impl FromNapiValue for JsStatsLogging {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<(String, rspack_core::LogType)> for JsStatsLogging {
@@ -248,7 +364,7 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsAsset {
   pub r#type: &'static str,
   pub name: String,
@@ -261,6 +377,15 @@ pub struct JsStatsAsset {
   pub auxiliary_chunk_names: Vec<String>,
   pub auxiliary_chunk_id_hints: Vec<String>,
   pub auxiliary_chunks: Vec<Option<String>>,
+}
+
+impl FromNapiValue for JsStatsAsset {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsAsset> for JsStatsAsset {
@@ -281,7 +406,7 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsAssetInfo {
   pub minimized: bool,
   pub development: bool,
@@ -293,6 +418,15 @@ pub struct JsStatsAssetInfo {
   pub contenthash: Vec<String>,
   pub fullhash: Vec<String>,
   pub related: Vec<JsStatsAssetInfoRelated>,
+}
+
+impl FromNapiValue for JsStatsAssetInfo {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
@@ -316,10 +450,19 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsAssetInfoRelated {
   pub name: String,
   pub value: Vec<String>,
+}
+
+impl FromNapiValue for JsStatsAssetInfoRelated {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
@@ -334,53 +477,128 @@ impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
 type JsStatsModuleSource = Either<String, Buffer>;
 type JsStatsUsedExports = Either<String, Vec<String>>;
 
-#[napi]
-#[rspack_napi_macros::getters]
-#[derive(Clone)]
+#[napi(object, object_from_js = false)]
+pub struct JsStatsModuleCommonAttributes {
+  pub r#type: &'static str,
+  pub module_type: &'static str,
+  pub layer: Option<String>,
+  pub size: f64,
+  pub sizes: Vec<JsStatsSize>,
+  pub built: bool,
+  pub code_generated: bool,
+  pub build_time_executed: bool,
+  pub cached: bool,
+
+  // module$visible
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub name_for_condition: Option<String>,
+  pub pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
+  pub cacheable: Option<bool>,
+  pub optional: Option<bool>,
+  pub orphan: Option<bool>,
+  pub failed: Option<bool>,
+  pub errors: Option<u32>,
+  pub warnings: Option<u32>,
+  pub profile: Option<JsStatsModuleProfile>,
+
+  // ids
+  pub chunks: Option<Vec<String>>,
+
+  // moduleAssets
+  pub assets: Option<Vec<String>>,
+
+  // reasons
+  pub reasons: Option<Vec<JsStatsModuleReason>>,
+
+  // providedExports
+  pub provided_exports: Option<Vec<String>>,
+
+  // optimizationBailout
+  pub optimization_bailout: Option<Vec<String>>,
+
+  // depth
+  pub depth: Option<u32>,
+
+  // source
+  pub source: Option<Either<String, Buffer>>,
+}
+
+impl FromNapiValue for JsStatsModuleCommonAttributes {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+pub struct JsStatsModuleCommonAttributesWrapper(JsStatsModuleCommonAttributes);
+
+impl From<JsStatsModuleCommonAttributes> for JsStatsModuleCommonAttributesWrapper {
+  fn from(value: JsStatsModuleCommonAttributes) -> Self {
+    JsStatsModuleCommonAttributesWrapper(value)
+  }
+}
+
+impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
+      match val
+        .0
+        .module_descriptor
+        .as_ref()
+        .map(|d| d.raw().identifier.raw())
+        .as_ref()
+      {
+        Some(id) => {
+          let mut refs = refs.borrow_mut();
+          match refs.entry(*id) {
+            std::collections::hash_map::Entry::Occupied(entry) => {
+              let r = entry.get();
+              ToNapiValue::to_napi_value(env, r)
+            }
+            std::collections::hash_map::Entry::Vacant(entry) => {
+              let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
+              let r = Ref::new(env, napi_value, 1)?;
+              let r = entry.insert(r);
+              ToNapiValue::to_napi_value(env, r)
+            }
+          }
+        }
+        None => ToNapiValue::to_napi_value(env, val.0),
+      }
+    })
+  }
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModule {
-  r#type: &'static str,
-  module_type: &'static str,
-  identifier: &'static str,
-  layer: Option<String>,
-  name: String,
-  id: Option<String>,
-  chunks: Vec<Option<String>>,
-  size: f64,
-  depth: Option<u32>,
-  dependent: Option<bool>,
-  issuer: Option<String>,
-  issuer_name: Option<String>,
-  issuer_id: Option<String>,
-  issuer_path: Vec<JsStatsModuleIssuer>,
-  name_for_condition: Option<String>,
-  assets: Option<Vec<String>>,
-  source: Option<Either<String, Buffer>>,
-  orphan: bool,
-  provided_exports: Option<Vec<String>>,
-  used_exports: Option<Either<String, Vec<String>>>,
-  optimization_bailout: Option<Vec<String>>,
-  pre_order_index: Option<u32>,
-  post_order_index: Option<u32>,
-  built: bool,
-  code_generated: bool,
-  build_time_executed: bool,
-  cached: bool,
-  cacheable: bool,
-  optional: bool,
-  failed: bool,
-  errors: u32,
-  warnings: u32,
-  sizes: Vec<JsStatsSize>,
-  profile: Option<JsStatsModuleProfile>,
-  reasons: Option<Vec<JsStatsModuleReason>>,
-  modules: Option<Vec<JsStatsModule>>,
+  #[napi(ts_type = "JsStatsModuleCommonAttributes")]
+  pub common_attributes: JsStatsModuleCommonAttributesWrapper,
+  pub dependent: Option<bool>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub issuer_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub issuer_path: Option<Vec<JsStatsModuleIssuer>>,
+  pub used_exports: Option<Either<String, Vec<String>>>,
+  pub modules: Option<Vec<JsStatsModule>>,
+}
+
+impl FromNapiValue for JsStatsModule {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl TryFrom<StatsModule<'_>> for JsStatsModule {
   type Error = napi::Error;
 
-  fn try_from(stats_module: StatsModule) -> std::result::Result<Self, Self::Error> {
-    let source = stats_module
+  fn try_from(stats: StatsModule) -> std::result::Result<Self, Self::Error> {
+    let source = stats
       .source
       .map(|source| {
         source.to_js_compat_source().map(|js_compat_source| {
@@ -395,7 +613,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-    let mut sizes = stats_module
+    let mut sizes = stats
       .sizes
       .into_iter()
       .map(|s| JsStatsSize {
@@ -404,7 +622,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       })
       .collect::<Vec<_>>();
     sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
-    let modules: Option<Vec<JsStatsModule>> = stats_module
+    let modules: Option<Vec<JsStatsModule>> = stats
       .modules
       .map(|modules| -> Result<_> {
         modules
@@ -415,7 +633,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       .transpose()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-    let reasons = match stats_module.reasons {
+    let reasons = match stats.reasons {
       Some(reasons) => {
         let js_reasons = reasons
           .into_iter()
@@ -426,66 +644,89 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       None => None,
     };
 
-    Ok(Self {
-      r#type: stats_module.r#type,
-      name: stats_module.name.into_owned(),
-      size: stats_module.size,
+    let module_descriptor: Option<JsModuleDescriptorWrapper> = stats.identifier.map(|identifier| {
+      JsModuleDescriptor {
+        identifier: identifier.into(),
+        name: stats.name.unwrap_or_default().into_owned(),
+        id: stats.id.map(|s| s.to_string()),
+      }
+      .into()
+    });
+
+    let common_attributes: JsStatsModuleCommonAttributesWrapper = JsStatsModuleCommonAttributes {
+      r#type: stats.r#type,
+      module_type: stats.module_type.as_str(),
+      layer: stats.layer.map(|i| i.into_owned()),
+      size: stats.size,
       sizes,
-      depth: stats_module.depth.map(|d| d as u32),
-      chunks: stats_module.chunks,
-      module_type: stats_module.module_type.as_str(),
-      layer: stats_module.layer.map(|i| i.into_owned()),
-      identifier: stats_module.identifier.as_str(),
-      id: stats_module.id.map(|i| i.to_owned()),
-      dependent: stats_module.dependent,
-      issuer: stats_module.issuer.map(|i| i.to_owned()),
-      issuer_name: stats_module.issuer_name.map(|i| i.into_owned()),
-      issuer_id: stats_module.issuer_id.map(|i| i.to_owned()),
-      name_for_condition: stats_module.name_for_condition,
-      issuer_path: stats_module
-        .issuer_path
-        .into_iter()
-        .map(Into::into)
-        .collect(),
+      built: stats.built,
+      code_generated: stats.code_generated,
+      build_time_executed: stats.build_time_executed,
+      module_descriptor,
+      depth: stats.depth.map(|d| d as u32),
+      chunks: stats.chunks,
+      name_for_condition: stats.name_for_condition,
       reasons,
-      assets: stats_module.assets,
+      assets: stats.assets,
       source,
-      profile: stats_module.profile.map(|p| p.into()),
-      orphan: stats_module.orphan,
-      provided_exports: stats_module
+      profile: stats.profile.map(|p| p.into()),
+      orphan: stats.orphan,
+      provided_exports: stats
         .provided_exports
         .map(|exports| exports.into_iter().map(|i| i.to_string()).collect()),
-      used_exports: stats_module
-        .used_exports
-        .map(|used_exports| match used_exports {
-          StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
-          StatsUsedExports::Vec(v) => {
-            JsStatsUsedExports::B(v.into_iter().map(|i| i.to_string()).collect())
-          }
-          StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
-        }),
-      optimization_bailout: Some(stats_module.optimization_bailout.to_vec()),
+      optimization_bailout: stats.optimization_bailout.map(|bailout| bailout.to_vec()),
+      pre_order_index: stats.pre_order_index,
+      post_order_index: stats.post_order_index,
+      cached: stats.cached,
+      cacheable: stats.cacheable,
+      optional: stats.optional,
+      failed: stats.failed,
+      errors: stats.errors,
+      warnings: stats.warnings,
+    }
+    .into();
+
+    let issuer_descriptor: Option<JsModuleDescriptorWrapper> = stats.issuer.map(|identifier| {
+      JsModuleDescriptor {
+        identifier: identifier.into(),
+        name: stats.issuer_name.unwrap_or_default().into_owned(),
+        id: stats.issuer_id.map(|s| s.to_string()),
+      }
+      .into()
+    });
+
+    Ok(Self {
+      common_attributes,
+      dependent: stats.dependent,
+      issuer_descriptor,
+      issuer_path: stats
+        .issuer_path
+        .map(|path| path.into_iter().map(Into::into).collect()),
+      used_exports: stats.used_exports.map(|used_exports| match used_exports {
+        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
+        StatsUsedExports::Vec(v) => {
+          JsStatsUsedExports::B(v.into_iter().map(|i| i.to_string()).collect())
+        }
+        StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
+      }),
       modules,
-      pre_order_index: stats_module.pre_order_index,
-      post_order_index: stats_module.post_order_index,
-      built: stats_module.built,
-      code_generated: stats_module.code_generated,
-      build_time_executed: stats_module.build_time_executed,
-      cached: stats_module.cached,
-      cacheable: stats_module.cacheable,
-      optional: stats_module.optional,
-      failed: stats_module.failed,
-      errors: stats_module.errors,
-      warnings: stats_module.warnings,
     })
   }
 }
 
-#[derive(Clone)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleProfile {
   pub factory: JsStatsMillisecond,
   pub building: JsStatsMillisecond,
+}
+
+impl FromNapiValue for JsStatsModuleProfile {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
@@ -497,11 +738,19 @@ impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
   }
 }
 
-#[derive(Clone)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsMillisecond {
   pub secs: u32,
   pub subsec_millis: u32,
+}
+
+impl FromNapiValue for JsStatsMillisecond {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
@@ -513,88 +762,131 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
   }
 }
 
-#[derive(Clone)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleIssuer {
-  pub identifier: &'static str,
-  pub name: String,
-  pub id: Option<String>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: JsModuleDescriptorWrapper,
+}
+
+impl FromNapiValue for JsStatsModuleIssuer {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
   fn from(stats: rspack_core::StatsModuleIssuer) -> Self {
     Self {
-      identifier: stats.identifier,
-      name: stats.name.into_owned(),
-      id: stats.id.map(|i| i.to_owned()),
+      module_descriptor: JsModuleDescriptor {
+        identifier: stats.identifier.into(),
+        name: stats.name.into_owned(),
+        id: stats.id.map(|s| s.to_string()),
+      }
+      .into(),
     }
   }
 }
 
-#[napi]
-#[rspack_napi_macros::getters]
-#[derive(Clone)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsModuleReason {
-  module_identifier: Option<&'static str>,
-  module_name: Option<String>,
-  module_id: Option<String>,
-  r#type: Option<&'static str>,
-  user_request: Option<String>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub r#type: Option<&'static str>,
+  pub user_request: Option<String>,
+}
+
+impl FromNapiValue for JsStatsModuleReason {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
   fn from(stats: rspack_core::StatsModuleReason) -> Self {
     Self {
-      module_identifier: stats.module_identifier,
-      module_name: stats.module_name.map(|i| i.into_owned()),
-      module_id: stats.module_id.map(|i| i.to_owned()),
+      module_descriptor: stats.module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
+          name: stats.module_name.unwrap_or_default().into_owned(),
+          id: stats.module_id.map(|s| s.to_string()),
+        }
+        .into()
+      }),
       r#type: stats.r#type,
       user_request: stats.user_request.map(|i| i.to_owned()),
     }
   }
 }
 
-#[derive(Clone)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsOriginRecord {
-  pub module: String,
-  pub module_id: String,
-  pub module_identifier: String,
-  pub module_name: String,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub loc: String,
   pub request: String,
 }
 
-#[derive(Clone)]
-#[napi]
+impl FromNapiValue for JsOriginRecord {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsSize {
   pub source_type: String,
   pub size: f64,
 }
 
-#[napi]
-#[rspack_napi_macros::getters]
+impl FromNapiValue for JsStatsSize {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsChunk {
-  r#type: String,
-  files: Vec<String>,
-  auxiliary_files: Vec<String>,
-  id: Option<String>,
-  id_hints: Vec<String>,
-  hash: Option<String>,
-  entry: bool,
-  initial: bool,
-  names: Vec<String>,
-  size: f64,
-  parents: Option<Vec<String>>,
-  children: Option<Vec<String>>,
-  siblings: Option<Vec<String>>,
-  children_by_order: HashMap<String, Vec<String>>,
-  runtime: Vec<String>,
-  reason: Option<String>,
-  rendered: bool,
-  sizes: Vec<JsStatsSize>,
-  origins: Vec<JsOriginRecord>,
-  modules: Option<Vec<JsStatsModule>>,
+  pub r#type: String,
+  pub files: Vec<String>,
+  pub auxiliary_files: Vec<String>,
+  pub id: Option<String>,
+  pub id_hints: Vec<String>,
+  pub hash: Option<String>,
+  pub entry: bool,
+  pub initial: bool,
+  pub names: Vec<String>,
+  pub size: f64,
+  pub parents: Option<Vec<String>>,
+  pub children: Option<Vec<String>>,
+  pub siblings: Option<Vec<String>>,
+  pub children_by_order: HashMap<String, Vec<String>>,
+  pub runtime: Vec<String>,
+  pub reason: Option<String>,
+  pub rendered: bool,
+  pub sizes: Vec<JsStatsSize>,
+  pub origins: Vec<JsOriginRecord>,
+  pub modules: Option<Vec<JsStatsModule>>,
+}
+
+impl FromNapiValue for JsStatsChunk {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
@@ -651,10 +943,14 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
         .origins
         .into_iter()
         .map(|origin| JsOriginRecord {
-          module: origin.module,
-          module_id: origin.module_id,
-          module_identifier: origin.module_identifier,
-          module_name: origin.module_name,
+          module_descriptor: origin.module_identifier.map(|identifier| {
+            JsModuleDescriptor {
+              identifier: identifier.into(),
+              name: origin.module_name,
+              id: Some(origin.module_id),
+            }
+            .into()
+          }),
           loc: origin.loc,
           request: origin.request,
         })
@@ -665,10 +961,19 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsChunkGroupAsset {
   pub name: String,
   pub size: f64,
+}
+
+impl FromNapiValue for JsStatsChunkGroupAsset {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
@@ -680,15 +985,24 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsChunkGroup {
   pub name: String,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Vec<String>,
   pub assets: Vec<JsStatsChunkGroupAsset>,
   pub assets_size: f64,
   pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
   pub auxiliary_assets_size: Option<f64>,
   pub children: Option<JsStatsChunkGroupChildren>,
+}
+
+impl FromNapiValue for JsStatsChunkGroup {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
@@ -707,10 +1021,19 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsChunkGroupChildren {
   pub preload: Option<Vec<JsStatsChunkGroup>>,
   pub prefetch: Option<Vec<JsStatsChunkGroup>>,
+}
+
+impl FromNapiValue for JsStatsChunkGroupChildren {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsChunkGroupChildren> for JsStatsChunkGroupChildren {
@@ -724,15 +1047,33 @@ impl From<rspack_core::StatsChunkGroupChildren> for JsStatsChunkGroupChildren {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsStatsOptimizationBailout {
   pub inner: String,
 }
 
-#[napi(object)]
+impl FromNapiValue for JsStatsOptimizationBailout {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsAssetsByChunkName {
   pub name: String,
   pub files: Vec<String>,
+}
+
+impl FromNapiValue for JsStatsAssetsByChunkName {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
 }
 
 impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
@@ -741,6 +1082,127 @@ impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
       name: stats.name,
       files: stats.files,
     }
+  }
+}
+
+#[napi(object, object_to_js = false)]
+pub struct JsStatsOptions {
+  pub assets: bool,
+  pub cached_modules: bool,
+  pub chunks: bool,
+  pub chunk_group_auxiliary: bool,
+  pub chunk_group_children: bool,
+  pub chunk_groups: bool,
+  pub chunk_modules: bool,
+  pub chunk_relations: bool,
+  pub depth: bool,
+  pub entrypoints: Either<bool, String>,
+  pub errors: bool,
+  pub hash: bool,
+  pub ids: bool,
+  pub modules: bool,
+  pub module_assets: bool,
+  pub nested_modules: bool,
+  pub optimization_bailout: bool,
+  pub provided_exports: bool,
+  pub reasons: bool,
+  pub source: bool,
+  pub used_exports: bool,
+  pub warnings: bool,
+}
+
+impl From<JsStatsOptions> for ExtendedStatsOptions {
+  fn from(value: JsStatsOptions) -> Self {
+    let entrypoints = match value.entrypoints {
+      Either::A(b) => EntrypointsStatsOption::Bool(b),
+      Either::B(s) => EntrypointsStatsOption::String(s),
+    };
+
+    Self {
+      assets: value.assets,
+      cached_modules: value.cached_modules,
+      chunks: value.chunks,
+      chunk_group_auxiliary: value.chunk_group_auxiliary,
+      chunk_group_children: value.chunk_group_children,
+      chunk_groups: value.chunk_groups,
+      chunk_modules: value.chunk_modules,
+      chunk_relations: value.chunk_relations,
+      depth: value.depth,
+      entrypoints,
+      errors: value.errors,
+      hash: value.hash,
+      ids: value.ids,
+      modules: value.modules,
+      module_assets: value.module_assets,
+      nested_modules: value.nested_modules,
+      optimization_bailout: value.optimization_bailout,
+      provided_exports: value.provided_exports,
+      reasons: value.reasons,
+      source: value.source,
+      used_exports: value.used_exports,
+      warnings: value.warnings,
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsGetAssets {
+  pub assets: Vec<JsStatsAsset>,
+  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
+}
+
+impl FromNapiValue for JsStatsGetAssets {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsCompilation {
+  pub assets: Option<Vec<JsStatsAsset>>,
+  pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName>>,
+  pub chunks: Option<Vec<JsStatsChunk>>,
+  pub entrypoints: Option<Vec<JsStatsChunkGroup>>,
+  pub errors: Vec<JsStatsError>,
+  pub hash: Option<String>,
+  pub modules: Option<Vec<JsStatsModule>>,
+  pub named_chunk_groups: Option<Vec<JsStatsChunkGroup>>,
+  pub warnings: Vec<JsStatsWarning>,
+}
+
+impl FromNapiValue for JsStatsCompilation {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+pub struct JsStatsCompilationWrapper(JsStatsCompilation);
+
+impl ToNapiValue for JsStatsCompilationWrapper {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    let napi_value = ToNapiValue::to_napi_value(env, val.0);
+
+    MODULE_DESCRIPTOR_REFS.with(|refs| {
+      let mut refs = refs.borrow_mut();
+      for (_, mut r) in refs.drain() {
+        let _ = r.unref(env);
+      }
+    });
+
+    MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
+      let mut refs = refs.borrow_mut();
+      for (_, mut r) in refs.drain() {
+        let _ = r.unref(env);
+      }
+    });
+
+    napi_value
   }
 }
 
@@ -755,16 +1217,64 @@ impl JsStats {
   }
 }
 
-#[napi(object)]
-pub struct JsStatsGetAssets {
-  pub assets: Vec<JsStatsAsset>,
-  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
-}
-
 #[napi]
 impl JsStats {
-  #[napi]
-  pub fn get_assets(&self) -> JsStatsGetAssets {
+  #[napi(ts_return_type = "JsStatsCompilation")]
+  pub fn to_json(&self, js_options: JsStatsOptions) -> Result<JsStatsCompilationWrapper> {
+    let options = ExtendedStatsOptions::from(js_options);
+
+    let hash = options.hash.then(|| self.hash()).flatten();
+
+    let (assets, assets_by_chunk_name) = if options.assets {
+      let asts = self.assets();
+      (Some(asts.assets), Some(asts.assets_by_chunk_name))
+    } else {
+      (None, None)
+    };
+
+    let modules = if options.modules {
+      let mds = self.modules(&options)?;
+      Some(mds)
+    } else {
+      None
+    };
+
+    let chunks = if options.chunks {
+      let chks = self.chunks(&options)?;
+      Some(chks)
+    } else {
+      None
+    };
+
+    let entrypoints = match options.entrypoints {
+      EntrypointsStatsOption::Bool(true) | EntrypointsStatsOption::String(_) => {
+        Some(self.entrypoints(options.chunk_group_auxiliary, options.chunk_group_children))
+      }
+      _ => None,
+    };
+
+    let named_chunk_groups = options.chunk_groups.then(|| {
+      self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children)
+    });
+
+    let errors = self.errors();
+
+    let warnings = self.warnings();
+
+    Ok(JsStatsCompilationWrapper(JsStatsCompilation {
+      assets,
+      assets_by_chunk_name,
+      chunks,
+      entrypoints,
+      errors,
+      hash,
+      modules,
+      named_chunk_groups,
+      warnings,
+    }))
+  }
+
+  fn assets(&self) -> JsStatsGetAssets {
     let (assets, assets_by_chunk_name) = self.inner.get_assets();
     let assets = assets.into_iter().map(Into::into).collect();
     let assets_by_chunk_name = assets_by_chunk_name.into_iter().map(Into::into).collect();
@@ -774,62 +1284,25 @@ impl JsStats {
     }
   }
 
-  #[allow(clippy::too_many_arguments)]
-  #[napi]
-  pub fn get_modules(
-    &self,
-    reasons: bool,
-    module_assets: bool,
-    nested_modules: bool,
-    source: bool,
-    used_exports: bool,
-    provided_exports: bool,
-  ) -> Result<Vec<JsStatsModule>> {
+  fn modules(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsModule>> {
     self
       .inner
-      .get_modules(
-        reasons,
-        module_assets,
-        nested_modules,
-        source,
-        used_exports,
-        provided_exports,
-        |res| res.into_iter().map(JsStatsModule::try_from).collect(),
-      )
+      .get_modules(options, |res| {
+        res.into_iter().map(JsStatsModule::try_from).collect()
+      })
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
-  #[allow(clippy::too_many_arguments)]
-  #[napi]
-  pub fn get_chunks(
-    &self,
-    chunk_modules: bool,
-    chunks_relations: bool,
-    reasons: bool,
-    module_assets: bool,
-    nested_modules: bool,
-    source: bool,
-    used_exports: bool,
-    provided_exports: bool,
-  ) -> Result<Vec<JsStatsChunk>> {
+  fn chunks(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsChunk>> {
     self
       .inner
-      .get_chunks(
-        chunk_modules,
-        chunks_relations,
-        reasons,
-        module_assets,
-        nested_modules,
-        source,
-        used_exports,
-        provided_exports,
-        |res| res.into_iter().map(JsStatsChunk::try_from).collect(),
-      )
+      .get_chunks(options, |res| {
+        res.into_iter().map(JsStatsChunk::try_from).collect()
+      })
       .map_err(|e| napi::Error::from_reason(e.to_string()))?
   }
 
-  #[napi]
-  pub fn get_entrypoints(
+  fn entrypoints(
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
@@ -842,8 +1315,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_named_chunk_groups(
+  fn named_chunk_groups(
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
@@ -856,8 +1328,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_errors(&self) -> Vec<JsStatsError> {
+  fn errors(&self) -> Vec<JsStatsError> {
     self
       .inner
       .get_errors()
@@ -866,14 +1337,23 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_warnings(&self) -> Vec<JsStatsWarning> {
+  fn warnings(&self) -> Vec<JsStatsWarning> {
     self
       .inner
       .get_warnings()
       .into_iter()
       .map(Into::into)
       .collect()
+  }
+
+  #[napi]
+  pub fn has_warnings(&self) -> bool {
+    !self.inner.get_warnings().is_empty()
+  }
+
+  #[napi]
+  pub fn has_errors(&self) -> bool {
+    !self.inner.get_errors().is_empty()
   }
 
   #[napi]
@@ -890,8 +1370,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
-  pub fn get_hash(&self) -> Option<String> {
+  fn hash(&self) -> Option<String> {
     self.inner.get_hash().map(|hash| hash.to_string())
   }
 }

@@ -49,9 +49,7 @@ class EnvironmentPlugin {
 			if (value === undefined) {
 				compiler.hooks.thisCompilation.tap("EnvironmentPlugin", compilation => {
 					const error = new WebpackError(
-						`EnvironmentPlugin - ${key} environment variable is undefined.\n\n` +
-							"You can pass an object with default values to suppress this warning.\n" +
-							"See https://webpack.js.org/plugins/environment-plugin for example."
+						`EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://webpack.js.org/plugins/environment-plugin for example.`
 					);
 
 					error.name = "EnvVariableNotDefinedError";

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::Severity;
@@ -224,7 +224,7 @@ pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
   }
 }
 
-static META_REG: Lazy<Regex> = Lazy::new(|| {
+static META_REG: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
 });
 

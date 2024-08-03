@@ -94,63 +94,56 @@ module.exports = function checkArrayExpectation(
 		const diff = diffItems(array, expected, kind);
 
 		if (expected.length < array.length) {
-			return (
-				done(
-					new Error(
-						`More ${kind}s (${array.length} instead of ${expected.length}) while compiling than expected:\n\n${diff}\n\nCheck expected ${kind}s: ${expectedFilename}`
-					)
-				),
-				true
+			done(
+				new Error(
+					`More ${kind}s (${array.length} instead of ${expected.length}) while compiling than expected:\n\n${diff}\n\nCheck expected ${kind}s: ${expectedFilename}`
+				)
 			);
+
+			return true;
 		}
 		if (expected.length > array.length) {
-			return (
-				done(
-					new Error(
-						`Less ${kind}s (${array.length} instead of ${expected.length}) while compiling than expected:\n\n${diff}\n\nCheck expected ${kind}s: ${expectedFilename}`
-					)
-				),
-				true
+			done(
+				new Error(
+					`Less ${kind}s (${array.length} instead of ${expected.length}) while compiling than expected:\n\n${diff}\n\nCheck expected ${kind}s: ${expectedFilename}`
+				)
 			);
+			return true;
 		}
 		for (let i = 0; i < array.length; i++) {
 			if (Array.isArray(expected[i])) {
 				for (let j = 0; j < expected[i].length; j++) {
 					if (!check(expected[i][j], array[i])) {
-						return (
-							done(
-								new Error(
-									`${upperCaseKind} ${i}: ${explain(
-										array[i]
-									)} doesn't match ${explain(expected[i][j])}`
-								)
-							),
-							true
+						done(
+							new Error(
+								`${upperCaseKind} ${i}: ${explain(
+									array[i]
+								)} doesn't match ${explain(expected[i][j])}`
+							)
 						);
+
+						return true;
 					}
 				}
-			} else if (!check(expected[i], array[i]))
-				return (
-					done(
-						new Error(
-							`${upperCaseKind} ${i}: ${explain(
-								array[i]
-							)} doesn't match ${explain(expected[i])}`
-						)
-					),
-					true
+			} else if (!check(expected[i], array[i])) {
+				done(
+					new Error(
+						`${upperCaseKind} ${i}: ${explain(
+							array[i]
+						)} doesn't match ${explain(expected[i])}`
+					)
 				);
+				return true;
+			}
 		}
 	} else if (array.length > 0) {
-		return (
-			done(
-				new Error(
-					`${upperCaseKind}s while compiling:\n\n${array
-						.map(explain)
-						.join("\n\n")}`
-				)
-			),
-			true
+		done(
+			new Error(
+				`${upperCaseKind}s while compiling:\n\n${array
+					.map(explain)
+					.join("\n\n")}`
+			)
 		);
+		return true;
 	}
 };

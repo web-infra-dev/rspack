@@ -1,6 +1,5 @@
 import path from "node:path";
 
-import FakeDocument from "../../helper/legacy/FakeDocument";
 import type { ECompilerType } from "../../type";
 import type {
 	IBasicModuleScope,
@@ -8,27 +7,20 @@ import type {
 	TRunnerRequirer
 } from "../type";
 import type { IBasicRunnerOptions } from "./basic";
-import { CommonJsRunner } from "./cjs";
+import { FakeDocumentWebRunner } from "./web/fake";
 
 interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>
 	extends IBasicRunnerOptions<T> {
 	stepName: string;
+	isWeb: boolean;
 }
 
 export class WatchRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends CommonJsRunner<T> {
-	private document: any;
+> extends FakeDocumentWebRunner<T> {
 	private state: Record<string, any> = {};
 	constructor(protected _watchOptions: IWatchRunnerOptions<T>) {
 		super(_watchOptions);
-		this.document = new FakeDocument(_watchOptions.dist);
-	}
-
-	protected createGlobalContext() {
-		const globalContext = super.createGlobalContext();
-		globalContext.document = this.document;
-		return globalContext;
 	}
 
 	protected createModuleScope(
@@ -42,5 +34,9 @@ export class WatchRunner<
 		moduleScope.STATE = this.state;
 		moduleScope.WATCH_STEP = this._watchOptions.stepName;
 		return moduleScope;
+	}
+
+	run(file: string) {
+		return super.run(file);
 	}
 }

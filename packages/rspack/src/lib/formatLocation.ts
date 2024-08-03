@@ -8,9 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-// Waiting to adapt
-type DependencyLocation = any;
-type SourcePosition = any;
+import type { DependencyLocation, SourcePosition } from "./Dependency";
 
 /**
  * @param pos position

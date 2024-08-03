@@ -7,7 +7,7 @@ body {
   background: yellow;
 }
 
-
+head{--webpack-__rspack_test__-async-one:&\.\/cācss,ĀĂ/dĆĈ;}
 ```
 
 ```css title=async-two.css
@@ -19,7 +19,7 @@ body {
   background: indigo;
 }
 
-
+head{--webpack-__rspack_test__-async-two:&\.\/eācss,ĀĂ/fĆĈ;}
 ```
 
 ```css title=main.css
@@ -31,5 +31,5 @@ body {
   background: green;
 }
 
-
+head{--webpack-__rspack_test__-main:&\.\/aācss,ĀĂ/bĆĈ;}
 ```

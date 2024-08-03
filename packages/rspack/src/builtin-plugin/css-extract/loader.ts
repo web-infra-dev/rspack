@@ -8,7 +8,7 @@ import { stringifyLocal, stringifyRequest } from "./utils";
 export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-export const ABSOLUTE_PUBLIC_PATH = BASE_URI + "/mini-css-extract-plugin/";
+export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/mini-css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
 	"__mini_css_extract_plugin_single_dot_path_segment__";
 
@@ -75,10 +75,7 @@ export function hotLoader(
 
 const loader: LoaderDefinition = function loader(content) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -91,10 +88,7 @@ const loader: LoaderDefinition = function loader(content) {
 
 export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -182,7 +176,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 					}
 				}
 			} else {
-				locals = exports && exports.locals;
+				locals = exports?.locals;
 			}
 
 			if (Array.isArray(exports) && emit) {

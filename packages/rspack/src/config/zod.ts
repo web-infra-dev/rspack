@@ -346,6 +346,7 @@ const output = z.strictObject({
 	chunkFilename: chunkFilename.optional(),
 	crossOriginLoading: crossOriginLoading.optional(),
 	cssFilename: cssFilename.optional(),
+	cssHeadDataCompression: z.boolean().optional(),
 	cssChunkFilename: cssChunkFilename.optional(),
 	hotUpdateMainFilename: hotUpdateMainFilename.optional(),
 	hotUpdateChunkFilename: hotUpdateChunkFilename.optional(),
@@ -785,8 +786,7 @@ const allowTarget = z.union([
 		"es2019",
 		"es2020",
 		"es2021",
-		"es2022",
-		"browserslist"
+		"es2022"
 	]),
 	z.literal("node"),
 	z.literal("async-node"),
@@ -838,6 +838,10 @@ const allowTarget = z.union([
 	),
 	z.custom<`node-webkit${number}.${number}`>(
 		value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
+	),
+	z.literal("browserslist"),
+	z.custom<`browserslist:${string}`>(
+		value => typeof value === "string" && /^browserslist:(.+)$/.test(value)
 	)
 ]);
 
@@ -1135,7 +1139,9 @@ const statsOptions = z.strictObject({
 	groupReasonsByOrigin: z.boolean().optional(),
 	errorDetails: z.boolean().optional(),
 	errorStack: z.boolean().optional(),
-	moduleTrace: z.boolean().optional()
+	moduleTrace: z.boolean().optional(),
+	cachedModules: z.boolean().optional(),
+	cached: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -1296,7 +1302,25 @@ const rspackFutureOptions = z.strictObject({
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
+const listenOptions = z.object({
+	port: z.number().optional(),
+	host: z.string().optional(),
+	backlog: z.number().optional(),
+	path: z.string().optional(),
+	exclusive: z.boolean().optional(),
+	readableAll: z.boolean().optional(),
+	writableAll: z.boolean().optional(),
+	ipv6Only: z.boolean().optional()
+});
+
 const lazyCompilationOptions = z.object({
+	backend: z
+		.object({
+			client: z.string().optional(),
+			listen: z.number().optional().or(listenOptions),
+			protocol: z.enum(["http", "https"]).optional()
+		})
+		.optional(),
 	imports: z.boolean().optional(),
 	entries: z.boolean().optional(),
 	test: z

@@ -64,9 +64,7 @@ export function toMatchFileSnapshot(content, filepath, options = {}) {
 			message: () =>
 				`New output file ${chalk.blue(
 					path.basename(filename)
-				)} was ${chalk.bold.red("not written")}.\n\n` +
-				"The update flag must be explicitly passed to write a new snapshot.\n\n" +
-				`This is likely because this test is run in a ${chalk.blue(
+				)} was ${chalk.bold.red("not written")}.\n\nThe update flag must be explicitly passed to write a new snapshot.\n\nThis is likely because this test is run in a ${chalk.blue(
 					"continuous integration (CI) environment"
 				)} in which snapshots are not written by default.\n\n`
 		};

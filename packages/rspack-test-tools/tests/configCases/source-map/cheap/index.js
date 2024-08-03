@@ -1,5 +1,5 @@
-const fs = require("fs");
-const sourceMap = require("source-map");
+const fs = __non_webpack_require__("fs");
+const sourceMap = __non_webpack_require__("source-map");
 require("./index.scss");
 
 it("should only map transformed lines if cheap options is used", async () => {

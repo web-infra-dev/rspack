@@ -76,10 +76,9 @@ impl ChunkGraph {
     old_module_id: &ModuleIdentifier,
     new_module_id: &ModuleIdentifier,
   ) {
-    if self
+    if !self
       .chunk_graph_module_by_module_identifier
-      .get(new_module_id)
-      .is_none()
+      .contains_key(new_module_id)
     {
       let new_chunk_graph_module = ChunkGraphModule::new();
       self

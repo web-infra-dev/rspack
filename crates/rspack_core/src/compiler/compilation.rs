@@ -602,9 +602,9 @@ impl Compilation {
   /// Get sorted errors based on the factors as follows in order:
   /// - module identifier
   /// - error offset
-  /// Rspack assumes for each offset, there is only one error.
-  /// However, when it comes to the case that there are multiple errors with the same offset,
-  /// the order of these errors will not be guaranteed.
+  ///   Rspack assumes for each offset, there is only one error.
+  ///   However, when it comes to the case that there are multiple errors with the same offset,
+  ///   the order of these errors will not be guaranteed.
   pub fn get_errors_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
     let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
       d.labels()
@@ -630,9 +630,9 @@ impl Compilation {
   /// Get sorted warnings based on the factors as follows in order:
   /// - module identifier
   /// - error offset
-  /// Rspack assumes for each offset, there is only one error.
-  /// However, when it comes to the case that there are multiple errors with the same offset,
-  /// the order of these errors will not be guaranteed.
+  ///   Rspack assumes for each offset, there is only one error.
+  ///   However, when it comes to the case that there are multiple errors with the same offset,
+  ///   the order of these errors will not be guaranteed.
   pub fn get_warnings_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
     let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
       d.labels()
@@ -986,6 +986,24 @@ impl Compilation {
   #[instrument(name = "compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    // Recheck entry and clean useless entry
+    // This should before finish_modules hook is called, ensure providedExports effects on new added modules
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .cloned()
+          .collect(),
+      )],
+    )?;
+
     let start = logger.time("finish modules");
     plugin_driver
       .compilation_hooks
@@ -1006,22 +1024,6 @@ impl Compilation {
       .collect();
     self.extend_diagnostics(diagnostics);
     logger.time_end(start);
-
-    // recheck entry and clean useless entry
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .cloned()
-          .collect(),
-      )],
-    )?;
 
     // take make diagnostics
     let diagnostics = self.make_artifact.take_diagnostics();
