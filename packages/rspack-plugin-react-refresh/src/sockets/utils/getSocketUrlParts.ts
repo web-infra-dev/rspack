@@ -17,13 +17,8 @@ interface ParsedQuery {
 
 export default function getSocketUrlParts(
 	resourceQuery?: string,
-	metadata?: WDSMetaObj
+	metadata: WDSMetaObj = {}
 ): SocketUrlParts {
-	if (typeof metadata === "undefined") {
-		metadata = {};
-	}
-
-	/** @type {SocketUrlParts} */
 	const urlParts: SocketUrlParts = {} as SocketUrlParts;
 
 	// If the resource query is available,
@@ -32,8 +27,7 @@ export default function getSocketUrlParts(
 		const parsedQuery: ParsedQuery = {} as ParsedQuery;
 		const searchParams = new URLSearchParams(resourceQuery.slice(1));
 		searchParams.forEach((value, key) => {
-			// @ts-expect-error -- ignore
-			parsedQuery[key] = value;
+			parsedQuery[key as keyof ParsedQuery] = value;
 		});
 
 		urlParts.hostname = parsedQuery.sockHost;

@@ -98,7 +98,9 @@ export function normalizeEnv(argv: yargs.Arguments) {
 
 		let prevRef = previous;
 
-		splitKeys.forEach((someKey, index) => {
+		splitKeys.forEach((key, index) => {
+			let someKey = key;
+
 			// https://github.com/webpack/webpack-cli/issues/3284
 			if (someKey.endsWith("=")) {
 				// remove '=' from key

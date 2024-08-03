@@ -95,13 +95,14 @@ export class MultiItemCache implements BaseCache {
 	/**
 	 * @returns promise with the data
 	 */
-	getPromise<T>(): Promise<T | undefined> {
-		const next = async (i: number): Promise<T | undefined> => {
-			const result_1 = await this._items[i].getPromise<T>();
-			if (result_1 !== undefined) return result_1;
-			if (++i < this._items.length) return next(i);
-		};
-		return next(0);
+	async getPromise<T>(): Promise<T | undefined> {
+		for (let i = 0; i < this._items.length; i++) {
+			const result = await this._items[i].getPromise<T>();
+			if (result !== undefined) {
+				return result;
+			}
+		}
+		return undefined;
 	}
 
 	/**

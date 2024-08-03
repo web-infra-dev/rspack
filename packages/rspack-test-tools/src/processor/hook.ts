@@ -130,14 +130,15 @@ export class HookCasesContext extends TestContext {
 	 * @internal
 	 */
 	_addSnapshot(content: unknown, name: string, group: string | number) {
-		content = Buffer.isBuffer(content)
+		const normalizedContent = Buffer.isBuffer(content)
 			? content
 			: serialize(content, undefined, {
 					escapeString: true,
 					printBasicPrototype: true
 				}).replace(/\r\n/g, "\n");
+
 		(this.snapshots[group] = this.snapshots[group] || []).push([
-			content as Buffer | string,
+			normalizedContent,
 			name
 		]);
 		if (!this.snapshotsList.includes(group)) {
@@ -162,13 +163,11 @@ export class HookCasesContext extends TestContext {
 				(acc, [content, name]) => {
 					name = `## ${name || `test: ${index}`}\n\n`;
 					const block = `\`\`\`javascript\n${content}\n\`\`\`\n`;
-					return (acc += `${name + block}\n`);
+					return `${acc}${name + block}\n`;
 				},
 				""
 			);
-			group = Number.isInteger(group) ? `Group: ${index}` : group;
-			group = `# ${group}\n\n`;
-			return (acc += group + block);
+			return `${acc}# ${Number.isInteger(group) ? `Group: ${index}` : group}\n\n${block}`;
 		}, "");
 		env
 			.expect(snapshots)

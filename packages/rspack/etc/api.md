@@ -1041,7 +1041,7 @@ export class Compilation {
     // (undocumented)
     createStatsFactory(options: StatsOptions): StatsFactory;
     // (undocumented)
-    createStatsOptions(optionsOrPreset: StatsValue | undefined, context?: CreateStatsOptionsContext): NormalizedStatsOptions;
+    createStatsOptions(statsValue: StatsValue | undefined, context?: CreateStatsOptionsContext): NormalizedStatsOptions;
     // (undocumented)
     createStatsPrinter(options: StatsOptions): StatsPrinter;
     // (undocumented)
@@ -6679,7 +6679,7 @@ export class MultiStats {
     // (undocumented)
     stats: Stats[];
     // (undocumented)
-    toJson(options?: any): StatsCompilation;
+    toJson(options: any): StatsCompilation;
     // (undocumented)
     toString(options: any): string;
 }
@@ -14514,9 +14514,9 @@ export class Template {
     // (undocumented)
     static indent(s: string | string[]): string;
     // (undocumented)
-    static numberToIdentifier(n: number): string;
+    static numberToIdentifier(num: number): string;
     // (undocumented)
-    static numberToIdentifierContinuation(n: number): string;
+    static numberToIdentifierContinuation(num: number): string;
     // (undocumented)
     static prefix(s: string | string[], prefix: string): string;
     // (undocumented)

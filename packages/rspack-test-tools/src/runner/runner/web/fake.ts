@@ -48,8 +48,10 @@ export class FakeDocumentWebRunner<
 			this.document
 		);
 		const urlToPath = (url: string) => {
-			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
-			return path.resolve(this._options.dist, `./${url}`);
+			return path.resolve(
+				this._options.dist,
+				`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url}`
+			);
 		};
 
 		globalContext.fetch = async (url: string) => {

@@ -1117,7 +1117,7 @@ export function replaceModuleArgument(raw: string): string;
 export function replacePaths(input: string): any;
 
 // @public (undocumented)
-export function replaceRuntimeModuleName(raw: string): string;
+export function replaceRuntimeModuleName(name: string): string;
 
 // @public (undocumented)
 export class RspackDiffConfigPlugin implements RspackPluginInstance {

@@ -20,10 +20,14 @@ const createFakeHook = <T extends Record<string, any>>(
 	message?: string,
 	code?: string
 ): FakeHook<T> => {
-	if (message && code) {
-		fakeHook = deprecateAllProperties(fakeHook, message, code);
-	}
-	return Object.freeze(Object.assign(fakeHook, { _fakeHook: true }));
+	return Object.freeze(
+		Object.assign(
+			message && code
+				? deprecateAllProperties(fakeHook, message, code)
+				: fakeHook,
+			{ _fakeHook: true }
+		)
+	);
 };
 type FakeHook<T> = {
 	_fakeHook: true;

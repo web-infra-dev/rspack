@@ -1,16 +1,17 @@
 export const memoize = <T>(fn: () => T): (() => T) => {
 	let cache = false;
 	let result: T;
+	let callback = fn;
 
 	return () => {
 		if (cache) {
 			return result;
 		}
-		result = fn();
+		result = callback();
 		cache = true;
 		// Allow to clean up memory for fn
 		// and all dependent resources
-		fn = undefined!;
+		callback = undefined!;
 		return result;
 	};
 };

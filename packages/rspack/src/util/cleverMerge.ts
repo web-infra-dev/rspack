@@ -314,11 +314,12 @@ const _cleverMerge = <First extends Obj, Second extends Obj>(
 	const { static: firstInfo, dynamic: firstDynamicInfo } = firstObject;
 
 	// If the first argument has a dynamic part we modify the dynamic part to merge the second argument
+	let secondObj = second;
 	if (firstDynamicInfo !== undefined) {
 		let { byProperty, fn } = firstDynamicInfo;
 		const fnInfo = fn[DYNAMIC_INFO];
 		if (fnInfo) {
-			second = internalCaching
+			secondObj = internalCaching
 				? cachedCleverMerge(fnInfo[1], second)
 				: cleverMerge(fnInfo[1], second);
 			fn = fnInfo[0];
@@ -327,11 +328,11 @@ const _cleverMerge = <First extends Obj, Second extends Obj>(
 		const newFn: FunctionWithDynamicInfo = (...args: any[]) => {
 			const fnResult = fn(...args);
 			return internalCaching
-				? cachedCleverMerge(fnResult, second)
-				: cleverMerge(fnResult, second);
+				? cachedCleverMerge(fnResult, secondObj)
+				: cleverMerge(fnResult, secondObj);
 		};
 
-		newFn[DYNAMIC_INFO] = [fn, second];
+		newFn[DYNAMIC_INFO] = [fn, secondObj];
 		return serializeObject(firstObject.static, { byProperty, fn: newFn });
 	}
 

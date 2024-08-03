@@ -6,15 +6,16 @@ const normalizePaths = serializer.normalizePaths;
 const rspackPath = path.resolve(__dirname, "../../../rspack");
 
 export function replacePaths(input: string) {
+	const paths = input.split("\\\\").join("\\");
 	const rspackRoot: string = normalizePaths(rspackPath);
-	input = input.split("\\\\").join("\\");
+
 	if (os.platform() === "win32") {
 		const winRspackRoot = rspackRoot.split("\\\\").join(path.win32.sep);
-		return normalizePaths(input)
+		return normalizePaths(paths)
 			.split(rspackRoot)
 			.join("<RSPACK_ROOT>")
 			.split(winRspackRoot)
 			.join("<RSPACK_ROOT>");
 	}
-	return normalizePaths(input).split(rspackRoot).join("<RSPACK_ROOT>");
+	return normalizePaths(paths).split(rspackRoot).join("<RSPACK_ROOT>");
 }
