@@ -47,7 +47,6 @@
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noParameterAssign": "off",
 				"noNonNullAssertion": "off"
 			},
 			"performance": {

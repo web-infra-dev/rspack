@@ -122,15 +122,9 @@ export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions>
 	_runRegisterInterceptors(
 		options: FullTap & IfSet<AdditionalOptions>
 	): FullTap & IfSet<AdditionalOptions> {
-		for (const interceptor of this.interceptors) {
-			if (interceptor.register) {
-				const newOptions = interceptor.register(options);
-				if (newOptions !== undefined) {
-					options = newOptions;
-				}
-			}
-		}
-		return options;
+		return this.interceptors.reduce((options, interceptor) => {
+			return interceptor.register?.(options) || options;
+		}, options);
 	}
 
 	_runCallInterceptors(...args: any[]) {
