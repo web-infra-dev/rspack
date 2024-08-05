@@ -19,7 +19,7 @@
   "license": "MIT",
   "packageManager": "pnpm@9.3.0",
   "dependencies": {
-    "@rstack-dev/doc-ui": "^1.1.2",
+    "@rstack-dev/doc-ui": "^1.2.0",
     "antd": "5.19.3",
     "axios": "^1.6.1",
     "date-fns": "^2.29.3",
