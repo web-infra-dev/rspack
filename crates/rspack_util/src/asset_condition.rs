@@ -25,7 +25,7 @@ impl AssetConditions {
   pub fn try_match(&self, data: &str) -> bool {
     match self {
       Self::Single(r) => r.try_match(data),
-      Self::Multiple(l) => l.into_iter().any(|r| r.try_match(data)),
+      Self::Multiple(l) => l.iter().any(|r| r.try_match(data)),
     }
   }
 }
