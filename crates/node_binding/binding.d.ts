@@ -1083,6 +1083,10 @@ export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
+export interface RawDraft {
+  customMedia: boolean
+}
+
 export interface RawDynamicEntryPluginOptions {
   context: string
   entry: () => Promise<RawEntryDynamicResult[]>
@@ -1243,14 +1247,43 @@ export interface RawLazyCompilationOption {
   cacheable: boolean
 }
 
-export interface RawLightningCssMinimizerRspackPluginOptions {
+export interface RawLightningCssBrowsers {
+  android?: number
+  chrome?: number
+  edge?: number
+  firefox?: number
+  ie?: number
+  ios_saf?: number
+  opera?: number
+  safari?: number
+  samsung?: number
+}
+
+export interface RawLightningCssMinimizerOptions {
   errorRecovery: boolean
+  targets?: RawLightningCssBrowsers
+  include?: number
+  exclude?: number
+  draft?: RawDraft
+  nonStandard?: RawNonStandard
+  pseudoClasses?: RawLightningCssPseudoClasses
   unusedSymbols: Array<string>
-  removeUnusedLocalIdents: boolean
-  browserslist: Array<string>
+}
+
+export interface RawLightningCssMinimizerRspackPluginOptions {
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
+  removeUnusedLocalIdents: boolean
+  minimizerOptions: RawLightningCssMinimizerOptions
+}
+
+export interface RawLightningCssPseudoClasses {
+  hover?: string
+  active?: string
+  focus?: string
+  focusVisible?: string
+  focusWithin?: string
 }
 
 export interface RawLimitChunkCountPluginOptions {
@@ -1346,6 +1379,10 @@ export interface RawNodeOption {
   dirname: string
   filename: string
   global: string
+}
+
+export interface RawNonStandard {
+  deepSelectorCombinator: boolean
 }
 
 export interface RawOptimizationOptions {
@@ -1624,15 +1661,19 @@ export interface RawSwcCssMinimizerRspackPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
 }
 
-export interface RawSwcJsMinimizerRspackPluginOptions {
-  extractComments?: RawExtractComments
+export interface RawSwcJsMinimizerOptions {
   compress: any
   mangle: any
   format: any
   module?: boolean
+}
+
+export interface RawSwcJsMinimizerRspackPluginOptions {
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
+  extractComments?: RawExtractComments
+  minimizerOptions: RawSwcJsMinimizerOptions
 }
 
 export interface RawToOptions {

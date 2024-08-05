@@ -45,7 +45,6 @@ import { RawCopyPattern } from '@rspack/binding';
 import type { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
-import { RawLightningCssMinimizerRspackPluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
@@ -335,6 +334,12 @@ const assetResourceGeneratorOptions: z.ZodObject<{
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     emit?: boolean | undefined;
 }>;
+
+// @public (undocumented)
+type AssetRule = string | RegExp;
+
+// @public (undocumented)
+type AssetRules = AssetRule | AssetRule[];
 
 // @public (undocumented)
 export type Assets = Record<string, Source>;
@@ -5294,9 +5299,9 @@ export type LightningcssLoaderOptions = {
 
 // @public (undocumented)
 export const LightningCssMinimizerRspackPlugin: {
-    new (options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined): {
+    new (options?: LightningCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined];
+        _args: [options?: LightningCssMinimizerRspackPluginOptions | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -5304,7 +5309,22 @@ export const LightningCssMinimizerRspackPlugin: {
 };
 
 // @public (undocumented)
-export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions>;
+export type LightningCssMinimizerRspackPluginOptions = {
+    test?: AssetRules;
+    include?: AssetRules;
+    exclude?: AssetRules;
+    removeUnusedLocalIdents?: boolean;
+    minimizerOptions?: {
+        errorRecovery?: boolean;
+        targets?: Targets | string[] | string;
+        include?: LightningcssFeatureOptions;
+        exclude?: LightningcssFeatureOptions;
+        draft?: Drafts;
+        nonStandard?: NonStandard;
+        pseudoClasses?: PseudoClasses;
+        unusedSymbols?: string[];
+    };
+};
 
 // @public (undocumented)
 type LimitChunkCountOptions = {
@@ -5615,13 +5635,7 @@ const matchPart: (str: string, test: Matcher) => boolean;
 type MinifyCondition = string | RegExp;
 
 // @public (undocumented)
-type MinifyCondition_2 = string | RegExp;
-
-// @public (undocumented)
 type MinifyConditions = MinifyCondition | MinifyCondition[];
-
-// @public (undocumented)
-type MinifyConditions_2 = MinifyCondition_2 | MinifyCondition_2[];
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -14326,9 +14340,9 @@ export const SwcCssMinimizerRspackPlugin: {
 
 // @public (undocumented)
 type SwcCssMinimizerRspackPluginOptions = {
-    test?: MinifyConditions_2;
-    exclude?: MinifyConditions_2;
-    include?: MinifyConditions_2;
+    test?: MinifyConditions;
+    exclude?: MinifyConditions;
+    include?: MinifyConditions;
 };
 
 // @public (undocumented)
@@ -14344,14 +14358,16 @@ export const SwcJsMinimizerRspackPlugin: {
 
 // @public (undocumented)
 export type SwcJsMinimizerRspackPluginOptions = {
+    test?: AssetRules;
+    exclude?: AssetRules;
+    include?: AssetRules;
     extractComments?: ExtractCommentsOptions | undefined;
-    compress?: TerserCompressOptions | boolean;
-    mangle?: TerserMangleOptions | boolean;
-    format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
-    module?: boolean;
-    test?: MinifyConditions;
-    exclude?: MinifyConditions;
-    include?: MinifyConditions;
+    minimizerOptions?: {
+        compress?: TerserCompressOptions | boolean;
+        mangle?: TerserMangleOptions | boolean;
+        format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+        module?: boolean;
+    };
 };
 
 // @public (undocumented)

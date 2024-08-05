@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{error, BatchErrors, DiagnosticKind, Result, TraceableError};
+use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
 use rspack_plugin_javascript::{ast::parse_js, utils::DedupEcmaErrors};
 use rspack_plugin_javascript::{
   ast::{print, SourceMapConfig},
@@ -43,25 +43,25 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{JsMinifyOptions, NormalizedExtractComments, SwcJsMinimizerRspackPluginOptions};
+use crate::{JsMinifyOptions, NormalizedExtractComments, PluginOptions};
 
-pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
+pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
   if let Some(condition) = &obj.test {
-    if !condition.try_match(str)? {
-      return Ok(false);
+    if !condition.try_match(str) {
+      return false;
     }
   }
   if let Some(condition) = &obj.include {
-    if !condition.try_match(str)? {
-      return Ok(false);
+    if !condition.try_match(str) {
+      return false;
     }
   }
   if let Some(condition) = &obj.exclude {
-    if condition.try_match(str)? {
-      return Ok(false);
+    if condition.try_match(str) {
+      return false;
     }
   }
-  Ok(true)
+  true
 }
 
 /**

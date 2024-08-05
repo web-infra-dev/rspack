@@ -1,5 +1,6 @@
 #![feature(try_blocks)]
 mod asset;
+mod asset_rule;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -22,6 +23,7 @@ mod stats;
 mod utils;
 
 pub use asset::*;
+pub use asset_rule::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
