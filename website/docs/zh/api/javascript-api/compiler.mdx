@@ -8,6 +8,7 @@ import OutputFileSystemType from '../../types/output-file-system.mdx';
 import WatchFileSystemType from '../../types/watch-file-system.mdx';
 import CompilationType from '../../types/compilation.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
+import { Badge } from '@theme';
 
 # Compiler
 
@@ -368,3 +369,206 @@ isChild(): boolean;
     <WatchFileSystemType />
   </CollapsePanel>
 </Collapse>
+
+## MultiCompiler
+
+`MultiCompiler` 可以让 Rspack 同时执行多份配置。如果传给 Rspack 的 JavaScript API 的配置为多个配置对象构成的数组，Rspack 会创建多个 compiler 实例，并且在所有 compiler 执行完毕后调用回调方法。
+
+```js
+const rspack = require('@rspack/core');
+
+rspack(
+  [
+    { entry: './index1.js', output: { filename: 'bundle1.js' } },
+    { entry: './index2.js', output: { filename: 'bundle2.js' } },
+  ],
+  (err, stats) => {
+    process.stdout.write(stats.toString() + '\n');
+  },
+);
+```
+
+也可以通过 `new MultiCompiler` 创建：
+
+```js
+const compiler1 = new Compiler({
+  /* */
+});
+const compiler2 = new Compiler({
+  /* */
+});
+
+new MultiCompiler([compiler1, compiler2]);
+
+new MultiCompiler([compiler1, compiler2], {
+  parallelism: 1, // 控制最大并行数量
+});
+
+new MultiCompiler({
+  name1: compiler1,
+  name2: compiler2,
+});
+```
+
+MultiCompiler 也提供了部分 Compiler 的方法和属性。
+
+### MultiCompiler 方法
+
+#### setDependencies
+
+指定 compiler 之间的依赖关系，以 `compiler.name`作为标识，以此保证 compiler 执行顺序。
+
+```ts
+setDependencies(compiler: Compiler, dependencies: string[]): void;
+```
+
+#### validateDependencies
+
+检测 compiler 之间的依赖关系是否合法，若成环或缺失会触发回调。
+
+```ts
+validateDependencies(
+  callback: (err: Error) => void; // 错误时回调，若多个错误会回调多次
+): boolean
+```
+
+#### run
+
+根据依赖关系执行各个 compiler 的 `run` 方法，启动编译流程。
+
+```ts
+run(callback: (err: Error, stats: MultiStats) => void): void;
+```
+
+#### watch
+
+根据依赖关系执行各个 compiler 的 `watch` 方法，启动持续监听，在文件变化后自动启动一次编译流程。
+
+```ts
+watch(
+  watchOptions: WatchOptions,
+  handler: (err: Error, stats: MultiStats) => void,
+): MultiWatching
+```
+
+#### close
+
+执行各个 compiler 的 `close` 方法，关闭构建器，并在此期间处理低优先级任务，如缓存等。
+
+```ts
+close(callback: (err: Error) => void): void;
+```
+
+#### purgeInputFileSystem
+
+执行各个 compiler 的 `purgeInputFileSystem`，停止对文件系统的读取循环。
+
+```ts
+purgeInputFileSystem(): void;
+```
+
+#### getInfrastructureLogger
+
+创建一个不与 Compilation 关联的全局[日志对象](/api/javascript-api/logger)，用于打印全局信息。
+
+```ts
+getInfrastructureLogger(name: string): Logger;
+```
+
+> 等同于 `compilers[0].getInfrastructureLogger()`
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
+
+### MultiCompiler 属性
+
+#### compilers
+
+**类型：** `Compiler[]`
+
+获取包含的所有 Compiler 实例。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+#### options
+
+<Badge text="只读" type="info" />
+
+**类型：** `RspackOptionsNormalized[]`
+
+获取各个 Compiler 所使用的完整[构建配置](/config/index)。
+
+#### inputFileSystem
+
+<Badge text="只写" type="info" />
+
+**类型：** `InputFileSystem`
+
+为各个 Compiler 设置用于从文件系统读取的代理对象。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="InputFileSystem.ts"
+    key="InputFileSystem"
+  >
+    <InputFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+#### outputFileSystem
+
+<Badge text="只写" type="info" />
+
+**类型：** `OutputFileSystem`
+
+为各个 Compiler 设置用于输出到文件系统的代理对象。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="OutputFileSystem.ts"
+    key="OutputFileSystem"
+  >
+    <OutputFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+#### watchFileSystem
+
+<Badge text="只写" type="info" />
+
+**类型：** `WatchFileSystem`
+
+为各个 Compiler 设置用于持续监听文件/目录变化的代理对象。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="WatchFileSystem.ts"
+    key="WatchFileSystem"
+  >
+    <WatchFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+#### running
+
+**类型：** `boolean`
+
+当前是否正在执行构建流程。
