@@ -15,7 +15,7 @@ type WatchFileSystem = {
       changes: Set<string>,
       removals: Set<string>
     ): void,
-    callbackUndelayed: ( // 首次变更立即触发
+    callbackUndelayed: ( // Triggered immediately after the first change
       file: string,
       time: number
     ): void;
