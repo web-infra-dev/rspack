@@ -24,7 +24,7 @@ run(callback:  (
 ) => void): void;
 ```
 
-:::warning 警告
+:::warning
 这个 API 一次仅支持一个编译。请在 `compiler.run` 回调中调用 `compiler.close`，并等待它完成后再次执行 `compiler.run`。并发编译将破坏输出文件。
 :::
 
