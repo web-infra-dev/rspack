@@ -51,7 +51,7 @@ define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
   SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationSeal: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationSeal: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: AsyncSeries(compilation: &mut Compilation));
@@ -1049,7 +1049,7 @@ impl Compilation {
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver.compilation_hooks.seal.call(self)?;
+    plugin_driver.compilation_hooks.seal.call(self).await?;
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814

@@ -1677,16 +1677,17 @@ export enum RegisterJsTapKind {
   CompilationChunkAsset = 20,
   CompilationProcessAssets = 21,
   CompilationAfterProcessAssets = 22,
-  CompilationAfterSeal = 23,
-  NormalModuleFactoryBeforeResolve = 24,
-  NormalModuleFactoryFactorize = 25,
-  NormalModuleFactoryResolve = 26,
-  NormalModuleFactoryAfterResolve = 27,
-  NormalModuleFactoryCreateModule = 28,
-  NormalModuleFactoryResolveForScheme = 29,
-  ContextModuleFactoryBeforeResolve = 30,
-  ContextModuleFactoryAfterResolve = 31,
-  JavascriptModulesChunkHash = 32
+  CompilationSeal = 23,
+  CompilationAfterSeal = 24,
+  NormalModuleFactoryBeforeResolve = 25,
+  NormalModuleFactoryFactorize = 26,
+  NormalModuleFactoryResolve = 27,
+  NormalModuleFactoryAfterResolve = 28,
+  NormalModuleFactoryCreateModule = 29,
+  NormalModuleFactoryResolveForScheme = 30,
+  ContextModuleFactoryBeforeResolve = 31,
+  ContextModuleFactoryAfterResolve = 32,
+  JavascriptModulesChunkHash = 33
 }
 
 export interface RegisterJsTaps {
@@ -1713,6 +1714,7 @@ export interface RegisterJsTaps {
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
+  registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>

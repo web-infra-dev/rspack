@@ -215,6 +215,7 @@ export class Compilation {
 			void
 		>;
 		runtimeModule: RuntimeModule;
+		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
 	name?: string;
@@ -346,6 +347,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"runtimeRequirements"
 			]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
+			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
