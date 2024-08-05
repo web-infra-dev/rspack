@@ -1,6 +1,6 @@
 export type IntegrationType = "wds";
 
-export default function getSocketIntegration(integrationType: IntegrationType) {
+export function getSocketIntegration(integrationType: IntegrationType) {
 	let resolvedSocketIntegration;
 	switch (integrationType) {
 		case "wds": {

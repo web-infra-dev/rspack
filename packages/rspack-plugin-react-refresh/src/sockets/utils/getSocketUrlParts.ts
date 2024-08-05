@@ -46,7 +46,7 @@ export default function getSocketUrlParts(
 			// The placeholder `baseURL` with `window.location.href`,
 			// is to allow parsing of path-relative or protocol-relative URLs,
 			// and will have no effect if `scriptSource` is a fully valid URL.
-			url = new URL(scriptSource, window.location.href);
+			url = new URL(scriptSource!, window.location.href);
 		} catch (e) {
 			// URL parsing failed, do nothing.
 			// We will still proceed to see if we can recover using `resourceQuery`
