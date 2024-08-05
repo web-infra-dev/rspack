@@ -122,6 +122,7 @@ class Compiler {
 	};
 
 	webpack: typeof rspack;
+	rspack: typeof rspack;
 	name?: string;
 	parentCompilation?: Compilation;
 	root: Compiler;
@@ -210,6 +211,7 @@ class Compiler {
 		};
 
 		this.webpack = rspack;
+		this.rspack = rspack;
 		this.root = this;
 		this.outputPath = "";
 
