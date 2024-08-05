@@ -72,6 +72,8 @@ export class RspackDevServer extends WebpackDevServer {
     // (undocumented)
     staticWatchers: FSWatcher[];
     // (undocumented)
+    static version: string;
+    // (undocumented)
     webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 }
 

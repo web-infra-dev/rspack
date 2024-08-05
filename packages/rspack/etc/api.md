@@ -13339,7 +13339,7 @@ export interface RspackPluginInstance {
 }
 
 // @public (undocumented)
-export const rspackVersion: any;
+export const rspackVersion: string;
 
 // @public
 type Rule = RegExp | string;
@@ -14726,7 +14726,7 @@ export const util: {
 };
 
 // @public (undocumented)
-export const version: any;
+export const version: string;
 
 // @public (undocumented)
 interface Wasm {

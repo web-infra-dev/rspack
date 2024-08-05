@@ -12,6 +12,8 @@ import path from "node:path";
 import type { Server } from "node:http";
 import type { Socket } from "node:net";
 import { type Compiler, MultiCompiler } from "@rspack/core";
+// @ts-ignore 'package.json' is not under 'rootDir'
+import { version } from "../package.json";
 import type { FSWatcher } from "chokidar";
 import rdm from "webpack-dev-middleware";
 import WebpackDevServer from "webpack-dev-server";
@@ -35,7 +37,10 @@ export class RspackDevServer extends WebpackDevServer {
 	// TODO: remove @ts-ignore here
 	/** @ts-ignore */
 	public compiler: Compiler | MultiCompiler;
-	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
+	public webSocketServer:
+		| WebpackDevServer.WebSocketServerImplementation
+		| undefined;
+	static version: string = version;
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		super(options, compiler as any);
