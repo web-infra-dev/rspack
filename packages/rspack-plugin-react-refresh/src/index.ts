@@ -1,23 +1,23 @@
 import path from "node:path";
-import type { Compiler } from "@rspack/core";
-import {
-	type NormalizedPluginOptions,
-	type PluginOptions,
-	normalizeOptions
-} from "./options";
+import { normalizeOptions } from "./options";
 import { getAdditionalEntries } from "./utils/getAdditionalEntries";
-import getSocketIntegration from "./utils/getSocketIntegration";
+import { getSocketIntegration } from "./utils/getSocketIntegration";
+
+import type { Compiler } from "@rspack/core";
+import type { NormalizedPluginOptions, PluginOptions } from "./options";
 
 export type { PluginOptions };
 
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
+
 const refreshUtilsPath = require.resolve("../client/refreshUtils.js");
 const refreshRuntimeDirPath = path.dirname(
 	require.resolve("react-refresh", {
 		paths: [reactRefreshPath]
 	})
 );
+
 const runtimePaths = [
 	reactRefreshEntryPath,
 	reactRefreshPath,
@@ -25,11 +25,6 @@ const runtimePaths = [
 	refreshRuntimeDirPath
 ];
 
-/**
- * @typedef {Object} Options
- * @property {(string | RegExp | (string | RegExp)[] | null)=} include included resourcePath for loader
- * @property {(string | RegExp | (string | RegExp)[] | null)=} exclude excluded resourcePath for loader
- */
 class ReactRefreshRspackPlugin {
 	options: NormalizedPluginOptions;
 
