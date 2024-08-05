@@ -4,6 +4,7 @@ import {
 	// @ts-ignore 'package.json' is not under 'rootDir'
 } from "../package.json";
 
+// this is a hack to be compatible with plugin which detect webpack's version
 const rspackVersion = _version as string;
 const version = _webpackVersion as string;
 
