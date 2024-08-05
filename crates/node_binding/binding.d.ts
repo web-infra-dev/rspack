@@ -126,6 +126,33 @@ export class JsStats {
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
 
+export class LoaderContextDto {
+  get resourceData(): JsResourceData
+  get _moduleIdentifier(): string
+  get _module(): JsModule
+  get hot(): boolean
+  get content(): null | Buffer
+  set content(val: null | Buffer)
+  get sourceMap(): Buffer | undefined
+  set sourceMap(val: Buffer | undefined)
+  get cacheable(): boolean
+  set cacheable(val: boolean)
+  get fileDependencies(): Array<string>
+  set fileDependencies(val: Array<string>)
+  get contextDependencies(): Array<string>
+  set contextDependencies(val: Array<string>)
+  get missingDependencies(): Array<string>
+  set missingDependencies(val: Array<string>)
+  get buildDependencies(): Array<string>
+  set buildDependencies(val: Array<string>)
+  get loaderItems(): Array<JsLoaderItem>
+  set loaderItems(val: Array<JsLoaderItem>)
+  get loaderIndex(): number
+  set loaderIndex(val: number)
+  get loaderState(): JsLoaderState
+}
+export type JsLoaderContext = LoaderContextDto
+
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
@@ -484,26 +511,6 @@ export interface JsLibraryOptions {
   umdNamedDefine?: boolean
   auxiliaryComment?: JsLibraryAuxiliaryComment
   amdContainer?: string
-}
-
-export interface JsLoaderContext {
-  resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
-  _module: JsModule
-  hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
-  content: null | Buffer
-  additionalData?: any
-  sourceMap?: Buffer
-  cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
 }
 
 export interface JsLoaderItem {

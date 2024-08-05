@@ -362,7 +362,7 @@ export async function runLoaders(
 	/// Construct `loaderContext`
 	const loaderContext = {} as LoaderContext;
 
-	loaderContext.loaders = context.loaderItems.map(item => {
+	loaderContext.loaders = context.loaderItems.map((item: any) => {
 		return LoaderObject.__from_binding(item, compiler);
 	});
 

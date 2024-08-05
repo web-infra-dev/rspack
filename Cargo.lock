@@ -3063,6 +3063,7 @@ dependencies = [
  "glob",
  "napi-derive",
  "napi-h",
+ "once_cell",
  "rspack_binding_values",
  "rspack_collections",
  "rspack_core",
