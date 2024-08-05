@@ -147,7 +147,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@2
+        uses: taiki-e/install-action@v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
