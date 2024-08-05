@@ -94,7 +94,7 @@ export class BuildCommand implements RspackCommand {
 								});
 						}
 					} else {
-						const printedStats = stats.toString(statsOptions as any);
+						const printedStats = stats.toString(statsOptions);
 						// Avoid extra empty line when `stats: 'none'`
 						if (printedStats) {
 							logger.raw(printedStats);
