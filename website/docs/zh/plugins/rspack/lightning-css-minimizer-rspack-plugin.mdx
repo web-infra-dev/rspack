@@ -17,19 +17,26 @@ module.exports = {
 
 ## Options
 
-### errorRecovery
+### include
 
-- **类型：** `boolean`
-- **默认值：** `true`
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
 
-是否忽略无效的规则和声明而不进行报错。
+使用此选项来指定应该被压缩的文件。
 
-### unusedSymbols
+### exclude
 
-- **类型：** `string[]`
-- **默认值：** `[]`
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
 
-已知未使用符号的列表，包括 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。
+使用此选项来指定应该排除在压缩之外的文件。
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项提供一个模式来匹配 CSS 文件。如果文件名匹配给定模式，它将被压缩，否则将不会被压缩。
 
 ### removeUnusedLocalIdents
 
@@ -62,9 +69,47 @@ document.body.className = styles.a;
 .a{color: red}
 ```
 
-### browserslist
+### minimizerOptions
 
-- **类型：** `string[]`
-- **默认值：** `["defaults"]`
+传给 Lightning CSS 进行压缩的配置。
 
-要降级到的 Browserslist 目标
+以下是支持的配置。详细的解释请查看 [lightningcss 文档](https://lightningcss.dev/transpilation.html)
+
+```ts
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+
+type LightningCssMinimizerOptions = {
+  errorRecovery?: boolean;
+  targets?: Targets | string[] | string;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  draft?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
+```

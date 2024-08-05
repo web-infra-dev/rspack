@@ -21,7 +21,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
-use rspack_util::asset_rule::AssetRules;
+use rspack_util::asset_condition::AssetConditions;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_core::base::config::JsMinifyFormatOptions;
 pub use swc_ecma_minifier::option::terser::{TerserCompressorOptions, TerserEcmaVersion};
@@ -36,9 +36,9 @@ static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
 
 #[derive(Debug, Hash)]
 pub struct PluginOptions {
-  pub test: Option<AssetRules>,
-  pub include: Option<AssetRules>,
-  pub exclude: Option<AssetRules>,
+  pub test: Option<AssetConditions>,
+  pub include: Option<AssetConditions>,
+  pub exclude: Option<AssetConditions>,
   pub extract_comments: Option<ExtractComments>,
   pub minimizer_options: MinimizerOptions,
 }

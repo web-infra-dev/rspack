@@ -1,6 +1,6 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{into_asset_rules, RawAssetRules};
+use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_plugin_swc_js_minimizer::{
   ExtractComments, MinimizerOptions, OptionWrapper, PluginOptions,
@@ -19,11 +19,11 @@ pub struct RawExtractComments {
 #[napi(object, object_to_js = false)]
 pub struct RawSwcJsMinimizerRspackPluginOptions {
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub test: Option<RawAssetRules>,
+  pub test: Option<RawAssetConditions>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub include: Option<RawAssetRules>,
+  pub include: Option<RawAssetConditions>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub exclude: Option<RawAssetRules>,
+  pub exclude: Option<RawAssetConditions>,
   pub extract_comments: Option<RawExtractComments>,
   pub minimizer_options: RawSwcJsMinimizerOptions,
 }
@@ -78,9 +78,9 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
     .or(|| BoolOrDataConfig::from_bool(true));
     Ok(Self {
       extract_comments: into_extract_comments(value.extract_comments),
-      test: value.test.map(into_asset_rules),
-      include: value.include.map(into_asset_rules),
-      exclude: value.exclude.map(into_asset_rules),
+      test: value.test.map(into_asset_conditions),
+      include: value.include.map(into_asset_conditions),
+      exclude: value.exclude.map(into_asset_conditions),
       minimizer_options: MinimizerOptions {
         compress,
         mangle,

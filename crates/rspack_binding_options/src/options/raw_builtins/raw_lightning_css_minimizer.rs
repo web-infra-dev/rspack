@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_binding_values::{into_asset_rules, RawAssetRules};
+use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_error::Result;
 use rspack_plugin_lightning_css_minimizer::{
   Browsers, Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
@@ -9,11 +9,11 @@ use rspack_plugin_lightning_css_minimizer::{
 #[napi(object)]
 pub struct RawLightningCssMinimizerRspackPluginOptions {
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub test: Option<RawAssetRules>,
+  pub test: Option<RawAssetConditions>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub include: Option<RawAssetRules>,
+  pub include: Option<RawAssetConditions>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub exclude: Option<RawAssetRules>,
+  pub exclude: Option<RawAssetConditions>,
   pub remove_unused_local_idents: bool,
   pub minimizer_options: RawLightningCssMinimizerOptions,
 }
@@ -73,9 +73,9 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
 
   fn try_from(value: RawLightningCssMinimizerRspackPluginOptions) -> Result<Self> {
     Ok(Self {
-      test: value.test.map(into_asset_rules),
-      include: value.include.map(into_asset_rules),
-      exclude: value.exclude.map(into_asset_rules),
+      test: value.test.map(into_asset_conditions),
+      include: value.include.map(into_asset_conditions),
+      exclude: value.exclude.map(into_asset_conditions),
       remove_unused_local_idents: value.remove_unused_local_idents,
       minimizer_options: MinimizerOptions {
         error_recovery: value.minimizer_options.error_recovery,

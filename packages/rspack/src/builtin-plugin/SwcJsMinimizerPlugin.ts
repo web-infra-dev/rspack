@@ -4,7 +4,7 @@ import {
 	type RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
-import type { AssetRules } from "../util/assetRule";
+import type { AssetConditions } from "../util/assetCondition";
 import { create } from "./base";
 
 type ExtractCommentsCondition = boolean | RegExp;
@@ -18,9 +18,9 @@ type ExtractCommentsObject = {
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
 export type SwcJsMinimizerRspackPluginOptions = {
-	test?: AssetRules;
-	exclude?: AssetRules;
-	include?: AssetRules;
+	test?: AssetConditions;
+	exclude?: AssetConditions;
+	include?: AssetConditions;
 	extractComments?: ExtractCommentsOptions | undefined;
 	minimizerOptions?: {
 		compress?: TerserCompressOptions | boolean;

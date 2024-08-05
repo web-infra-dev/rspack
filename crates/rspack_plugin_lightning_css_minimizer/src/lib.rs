@@ -25,16 +25,16 @@ use rspack_core::{
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_rule::AssetRules;
+use rspack_util::asset_condition::AssetConditions;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, Hash)]
 pub struct PluginOptions {
-  pub test: Option<AssetRules>,
-  pub include: Option<AssetRules>,
-  pub exclude: Option<AssetRules>,
+  pub test: Option<AssetConditions>,
+  pub include: Option<AssetConditions>,
+  pub exclude: Option<AssetConditions>,
   pub remove_unused_local_idents: bool,
   pub minimizer_options: MinimizerOptions,
 }

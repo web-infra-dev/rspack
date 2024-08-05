@@ -101,6 +101,12 @@ export interface Asset {
 }
 
 // @public (undocumented)
+type AssetCondition = string | RegExp;
+
+// @public (undocumented)
+type AssetConditions = AssetCondition | AssetCondition[];
+
+// @public (undocumented)
 interface AssetEmittedInfo {
     // (undocumented)
     compilation: Compilation;
@@ -334,12 +340,6 @@ const assetResourceGeneratorOptions: z.ZodObject<{
     publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     emit?: boolean | undefined;
 }>;
-
-// @public (undocumented)
-type AssetRule = string | RegExp;
-
-// @public (undocumented)
-type AssetRules = AssetRule | AssetRule[];
 
 // @public (undocumented)
 export type Assets = Record<string, Source>;
@@ -5310,9 +5310,9 @@ export const LightningCssMinimizerRspackPlugin: {
 
 // @public (undocumented)
 export type LightningCssMinimizerRspackPluginOptions = {
-    test?: AssetRules;
-    include?: AssetRules;
-    exclude?: AssetRules;
+    test?: AssetConditions;
+    include?: AssetConditions;
+    exclude?: AssetConditions;
     removeUnusedLocalIdents?: boolean;
     minimizerOptions?: {
         errorRecovery?: boolean;
@@ -5630,12 +5630,6 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 
 // @public (undocumented)
 const matchPart: (str: string, test: Matcher) => boolean;
-
-// @public (undocumented)
-type MinifyCondition = string | RegExp;
-
-// @public (undocumented)
-type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 // @public (undocumented)
 export type Mode = z.infer<typeof mode>;
@@ -14340,16 +14334,21 @@ export const SwcCssMinimizerRspackPlugin: {
 
 // @public (undocumented)
 type SwcCssMinimizerRspackPluginOptions = {
-    test?: MinifyConditions;
-    exclude?: MinifyConditions;
-    include?: MinifyConditions;
+    test?: AssetConditions;
+    exclude?: AssetConditions;
+    include?: AssetConditions;
 };
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
     new (options?: SwcJsMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: SwcJsMinimizerRspackPluginOptions | undefined];
+        _args: [options?: SwcJsMinimizerRspackPluginOptions | undefined]; /**
+        * - `false`: removes all comments
+        * - `'some'`: preserves some comments
+        * - `'all'`: preserves all comments
+        * @default false
+        */
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -14358,9 +14357,9 @@ export const SwcJsMinimizerRspackPlugin: {
 
 // @public (undocumented)
 export type SwcJsMinimizerRspackPluginOptions = {
-    test?: AssetRules;
-    exclude?: AssetRules;
-    include?: AssetRules;
+    test?: AssetConditions;
+    exclude?: AssetConditions;
+    include?: AssetConditions;
     extractComments?: ExtractCommentsOptions | undefined;
     minimizerOptions?: {
         compress?: TerserCompressOptions | boolean;

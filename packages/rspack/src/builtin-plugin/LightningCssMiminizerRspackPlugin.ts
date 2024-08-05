@@ -14,13 +14,13 @@ import {
 	browserslistToTargets,
 	toFeatures
 } from "../builtin-loader/lightningcss";
-import type { AssetRules } from "../util/assetRule";
+import type { AssetConditions } from "../util/assetCondition";
 import { create } from "./base";
 
 export type LightningCssMinimizerRspackPluginOptions = {
-	test?: AssetRules;
-	include?: AssetRules;
-	exclude?: AssetRules;
+	test?: AssetConditions;
+	include?: AssetConditions;
+	exclude?: AssetConditions;
 	removeUnusedLocalIdents?: boolean;
 	minimizerOptions?: {
 		errorRecovery?: boolean;

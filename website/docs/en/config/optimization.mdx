@@ -88,11 +88,17 @@ module.exports = {
     // but you can use '...', it represents the default minimizers
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
-        format: {
-          comments: false,
+        minimizerOptions: {
+          format: {
+            comments: false,
+          },
         },
       }),
-      new rspack.SwcCssMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          errorRecovery: false,
+        },
+      }),
     ],
   },
 };
