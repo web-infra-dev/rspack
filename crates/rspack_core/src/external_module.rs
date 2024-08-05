@@ -224,7 +224,7 @@ impl ExternalModule {
                 .to_string(),
               InitFragmentStage::StageHarmonyImports,
               0,
-              InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+              InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
             )
             .boxed(),
@@ -276,7 +276,7 @@ impl ExternalModule {
                   ),
                   InitFragmentStage::StageHarmonyImports,
                   0,
-                  InitFragmentKey::ExternalModule(request.primary().into()),
+                  InitFragmentKey::ModuleExternal(request.primary().into()),
                   None,
                 )
                 .boxed(),

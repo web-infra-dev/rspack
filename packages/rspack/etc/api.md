@@ -7137,17 +7137,17 @@ export { Node_2 as Node }
 
 // @public (undocumented)
 const node_2: z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
-    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
-    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
+    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
+    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
     global: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"warn">]>>;
 }, "strict", z.ZodTypeAny, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }>]>;
 
 // @public (undocumented)
@@ -7186,17 +7186,17 @@ export type NodeOptions = z.infer<typeof nodeOptions>;
 
 // @public (undocumented)
 const nodeOptions: z.ZodObject<{
-    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
-    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
+    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
+    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
     global: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"warn">]>>;
 }, "strict", z.ZodTypeAny, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }>;
 
 // @public (undocumented)
@@ -11075,17 +11075,17 @@ export const rspackOptions: z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     devtool: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["eval", "cheap-source-map", "cheap-module-source-map", "source-map", "inline-cheap-source-map", "inline-cheap-module-source-map", "inline-source-map", "inline-nosources-cheap-source-map", "inline-nosources-cheap-module-source-map", "inline-nosources-source-map", "nosources-cheap-source-map", "nosources-cheap-module-source-map", "nosources-source-map", "hidden-nosources-cheap-source-map", "hidden-nosources-cheap-module-source-map", "hidden-nosources-source-map", "hidden-cheap-source-map", "hidden-cheap-module-source-map", "hidden-source-map", "eval-cheap-source-map", "eval-cheap-module-source-map", "eval-source-map", "eval-nosources-cheap-source-map", "eval-nosources-cheap-module-source-map", "eval-nosources-source-map"]>]>>;
     node: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
-        __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
-        __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
+        __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
+        __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
         global: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"warn">]>>;
     }, "strict", z.ZodTypeAny, {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     }, {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     }>]>>;
     loader: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
     ignoreWarnings: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Error, z.ZodTypeDef, Error>, z.ZodType<Compilation, z.ZodTypeDef, Compilation>], z.ZodUnknown>, z.ZodBoolean>]>, "many">>;
@@ -12782,8 +12782,8 @@ export const rspackOptions: z.ZodObject<{
     }>>) | undefined;
     node?: false | {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     } | undefined;
     profile?: boolean | undefined;
     cache?: boolean | undefined;
@@ -13350,8 +13350,8 @@ export const rspackOptions: z.ZodObject<{
     }>>) | undefined;
     node?: false | {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     } | undefined;
     profile?: boolean | undefined;
     cache?: boolean | undefined;

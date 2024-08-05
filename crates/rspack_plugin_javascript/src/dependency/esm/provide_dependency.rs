@@ -111,7 +111,7 @@ impl DependencyTemplate for ProvideDependency {
       ),
       InitFragmentStage::StageProvides,
       1,
-      InitFragmentKey::ExternalModule(format!("provided {}", self.identifier)),
+      InitFragmentKey::ModuleExternal(format!("provided {}", self.identifier)),
       None,
     )));
     source.replace(self.start, self.end, &self.identifier, None);

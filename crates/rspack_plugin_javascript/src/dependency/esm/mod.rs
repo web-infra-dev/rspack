@@ -1,3 +1,4 @@
+mod external_module_dependency;
 mod harmony_compatibility_dependency;
 mod harmony_export_expression_dependency;
 mod harmony_export_header_dependency;
@@ -13,6 +14,7 @@ use rspack_core::DependencyCategory;
 use rspack_core::ImportAttributes;
 use rspack_util::json_stringify;
 
+pub use self::external_module_dependency::ExternalModuleDependency;
 pub use self::harmony_compatibility_dependency::HarmonyCompatibilityDependency;
 pub use self::harmony_export_expression_dependency::*;
 pub use self::harmony_export_header_dependency::HarmonyExportHeaderDependency;
