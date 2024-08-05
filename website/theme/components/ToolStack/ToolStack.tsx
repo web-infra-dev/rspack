@@ -1,4 +1,4 @@
-import { ToolStack as BaseToolStack } from 'rsfamily-doc-ui/tool-stack';
+import { ToolStack as BaseToolStack } from '@rstack-dev/doc-ui/tool-stack';
 import { useLang } from 'rspress/runtime';
 import { useI18n } from '../../i18n';
 import styles from './ToolStack.module.scss';
