@@ -388,10 +388,6 @@ rspack(
 );
 ```
 
-:::warning
-Multiple configurations will **not be run in parallel**. Each configuration is only processed after the previous one has finished processing.
-:::
-
 It can also be created through `new MultiCompiler`：
 
 ```js
@@ -403,6 +399,10 @@ const compiler2 = new Compiler({
 });
 
 new MultiCompiler([compiler1, compiler2]);
+
+new MultiCompiler([compiler1, compiler2], {
+  parallelism: 1, // the maximum number of parallel compilers
+});
 
 new MultiCompiler({
   name1: compiler1,

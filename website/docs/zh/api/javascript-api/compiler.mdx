@@ -388,10 +388,6 @@ rspack(
 );
 ```
 
-:::warning
-多个配置对象在执行时，不会并行执行。每个配置都只会在前一个处理结束后，才进行处理。
-:::
-
 也可以通过 `new MultiCompiler` 创建：
 
 ```js
@@ -403,6 +399,10 @@ const compiler2 = new Compiler({
 });
 
 new MultiCompiler([compiler1, compiler2]);
+
+new MultiCompiler([compiler1, compiler2], {
+  parallelism: 1, // 控制最大并行数量
+});
 
 new MultiCompiler({
   name1: compiler1,
