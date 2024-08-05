@@ -14,20 +14,21 @@ import * as ModuleFilenameHelpers from "./ModuleFilenameHelpers";
 import type { Compiler } from "../Compiler";
 import type { MatchObject } from "./ModuleFilenameHelpers";
 
-type LoaderOptionsPluginOptions = any;
+type LoaderOptionsPluginOptions = MatchObject & {
+	[key: string]: unknown;
+};
 
 export class LoaderOptionsPlugin {
-	options: MatchObject;
+	options: LoaderOptionsPluginOptions;
 
 	/**
 	 * @param options options object
 	 */
 	constructor(options: LoaderOptionsPluginOptions = {}) {
-		if (typeof options !== "object") options = {};
 		if (!options.test) {
 			options.test = {
 				test: () => true
-			} as any;
+			} as unknown as MatchObject["test"];
 		}
 		this.options = options;
 	}
@@ -50,7 +51,7 @@ export class LoaderOptionsPlugin {
 							if (key === "include" || key === "exclude" || key === "test") {
 								continue;
 							}
-							(context as any)[key] = options[key as keyof MatchObject];
+							(context as any)[key] = options[key];
 						}
 					}
 				}
