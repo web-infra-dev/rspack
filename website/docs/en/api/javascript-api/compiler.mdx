@@ -24,7 +24,7 @@ run(callback:  (
 ) => void): void;
 ```
 
-:::warning Warning
+:::warning
 This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.run` callback and wait for it to finish before executing `compiler.run` again. Concurrent compilations will damage the output files.
 :::
 
