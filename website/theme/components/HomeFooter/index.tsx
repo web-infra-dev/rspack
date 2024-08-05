@@ -67,8 +67,8 @@ function useFooterData() {
           link: 'https://rsdoctor.dev/',
         },
         {
-          title: 'Modern.js',
-          link: 'https://modernjs.dev/en/',
+          title: 'Rslib',
+          link: 'https://github.com/web-infra-dev/rslib',
         },
       ],
     },
