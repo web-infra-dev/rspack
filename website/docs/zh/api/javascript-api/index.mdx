@@ -104,7 +104,7 @@ compiler.run((err, stats) => {
 ```
 
 :::warning 警告
-这个 API 一次仅支持一个编译。当使用 `run` 或者 `watch` 时，调用 `close`，并等待它完成后再次执行 `run` 或者 `watch`。并发编译将破坏输出文件。
+该 API 不支持并发编译。当你使用 `run` 或 `watch` 时，请先调用 `close` 并等待其完成，然后再调用 `run` 或 `watch`。并发编译会破坏输出文件。
 :::
 
 ## 监听
