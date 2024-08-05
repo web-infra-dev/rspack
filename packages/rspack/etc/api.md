@@ -1324,6 +1324,8 @@ export class Compiler {
     // (undocumented)
     root: Compiler;
     // (undocumented)
+    rspack: typeof rspack;
+    // (undocumented)
     run(callback: liteTapable.Callback<Error, Stats>): void;
     // (undocumented)
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
