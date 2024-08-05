@@ -2,7 +2,6 @@ import path from "node:path";
 
 import type { Filename, LoaderContext, LoaderDefinition } from "../..";
 import { CssExtractRspackPlugin } from "./index";
-import schema from "./loader-options.json";
 import { stringifyLocal, stringifyRequest } from "./utils";
 
 export const BASE_URI = "webpack://";
@@ -104,7 +103,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
+	const options = this.getOptions() as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;
