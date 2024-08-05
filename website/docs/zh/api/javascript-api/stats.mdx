@@ -1,0 +1,214 @@
+import Columns from '@components/Columns';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import CompilationType from '../../types/compilation.mdx';
+import { Badge } from '@theme';
+
+# Stats
+
+`Stats` 对象会作为 `rspack()` 回调函数的第二个参数，可以通过它获取到一次 Compilation 执行过程中的信息，包括：
+
+- 错误和警告（如果存在）
+- 计时信息
+- 模块和 chunk 信息
+
+`Stats` 对象提供了两个重要方法：
+
+- `toJson()`: 以 [Stats JSON](/api/javascript-api/stats-json) 对象的形式输出信息，常用于产物分析工具
+- `toString()`: 以字符串形式输出信息，常用于控制台输出
+
+同时 Rspack 也提供了 `StatsFactory` 和 `StatsPrinter` 来更细粒度地控制输出的对象或字符串。
+
+```txt title=Stats 输出
+Compilation ===============> Stats JSON =================> Stats Output
+           ╰─ StatsFactory ─╯           ╰─ StatsPrinter ─╯
+╰─────────── stats.toJson() ───────────╯
+╰───────────────────────── stats.toString() ──────────────────────────╯
+```
+
+通过 [`compilation.getStats()`](/api/javascript-api/compilation#getstats) 或 `new Stats(compilation)` 以创建一个 Compilation 关联的 Stats 对象。
+
+## Stats 方法
+
+### hasErrors
+
+用来检查编译期是否有错误。
+
+```ts
+hasErrors(): boolean;
+```
+
+### hasWarnings
+
+用来检查编译期是否有警告。
+
+```ts
+hasWarnings(): boolean;
+```
+
+### toJson
+
+以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。[Stats 配置](/config/stats) 可以是一个字符串（预设值）或是颗粒化控制的对象：
+
+```js
+stats.toJson('minimal');
+```
+
+```js
+stats.toJson({
+  assets: false,
+  hash: true,
+});
+```
+
+### toString
+
+以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
+
+```ts
+toJson(opts?: StatsValue): string;
+```
+
+配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：
+
+```js
+stats.toString({
+  // 增加控制台颜色开关
+  colors: true,
+});
+```
+
+下面是 `stats.toString()` 用法的示例：
+
+```js
+import { rspack } from '@rspack/core';
+
+rspack(
+  {
+    // ...
+  },
+  (err, stats) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    console.log(
+      stats.toString({
+        chunks: false, // 使构建过程更静默无输出
+        colors: true, // 在控制台展示颜色
+      }),
+    );
+  },
+);
+```
+
+## Stats 属性
+
+### compilation
+
+**类型：** `Compilation`
+
+获取关联的 Compilation 对象。
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="stats">
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+### hash
+
+**类型：** `string`
+
+获取此次构建的哈希值，等同于 [`Compilation.hash`](/api/javascript-api/compilation#hashfullhash)。
+
+## MultiStats
+
+当使用 [`MultiCompiler`](/api/javascript-api/compiler#multicompiler) 同时执行多个编译任务后，它们的编译结果将被包装为一个 `MultiStats` 对象，它提供与 `Stats` 类似的方法和属性。
+
+### hash
+
+<Badge text="只读" type="info" />
+
+**类型：** `string`
+
+获取所有编译的哈希合并后的唯一哈希。
+
+### hasErrors
+
+用来检查编译期是否有错误，只有所有编译都没有错误，才会返回 `false`。
+
+```ts
+hasErrors(): boolean;
+```
+
+### hasWarnings
+
+用来检查编译期是否有警告，只有所有编译都没有警告，才会返回 `false`。
+
+```ts
+hasWarnings(): boolean;
+```
+
+### toJson
+
+根据 [Stats 配置](/config/stats) 获取所有编译的 [Stats JSON](/api/javascript-api/stats-json) 对象，包裹在 `children` 字段中，并汇总 `errors` 和 `warnings`。
+
+```ts
+toJson(options?: StatsValue): {
+  hash: string;
+  errorsCount: number;
+  warningsCount: number;
+  errors: StatsError[];
+  warnings: StatsError[];
+  children: StatsCompilation[];
+};
+```
+
+### toString
+
+根据 [Stats 配置](/config/stats) 拼接所有编译的 Stats 输出字符串。
+
+```ts
+toString(options?: StatsValue): string;
+```
+
+## Stats Factory
+
+用于从 Compilation 生成 Stats JSON 对象，并且提供了钩子以在生成过程中进行细粒度的控制。
+
+可通过 [`compilation.hooks.statsFactory`](/api/plugin-api/compilation-hooks#statsfactory) 获取。或者通过 `new StatsFactory()` 创建新实例。
+
+### Hooks
+
+详见 [StatsFactory 钩子](/api/plugin-api/stats-hooks#statsfactory)
+
+### create
+
+`StatsFactory` 的核心方法，根据 `type` 指定当前数据结构，查找并运行对应的生成器以生成 Stats 项目。
+
+```ts
+stats = statsFactory.create('compilation', compilation, {});
+```
+
+> `StatsFactory` 对象仅负责处理调用钩子，对应类型的处理代码的处理代码可在 [`DefaultStatsFactoryPlugin`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/stats/DefaultStatsFactoryPlugin.ts) 中找到。
+
+## Stats Printer
+
+用于从 Stats JSON 对象生成输出字符串，并且提供了钩子以在生成过程中进行细粒度的控制。
+
+可通过 [`compilation.hooks.statsPrinter`](/api/plugin-api/compilation-hooks#statsprinter) 获取。或者通过 `new StatsPrinter()` 创建新实例。
+
+### Hooks
+
+详见 [StatsPrinter 钩子](/api/plugin-api/stats-hooks#statsprinter)
+
+### print
+
+`StatsPrinter` 的核心方法，根据 `type` 指定当前数据结构，查找并运行对应的生成器以生成 Stats 项目的输出字符串。
+
+```ts
+stats = statsPrinter.print('compilation', stats, {});
+```
+
+> `StatsPrinter` 对象仅负责处理调用钩子，对应类型的处理代码的处理代码可在 [`DefaultStatsPrinterPlugin`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts) 中找到。
