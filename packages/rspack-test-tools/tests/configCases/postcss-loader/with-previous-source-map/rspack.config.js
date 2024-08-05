@@ -18,7 +18,11 @@ module.exports = {
 						}
 					},
 					{
-						loader: "sass-loader"
+						loader: "sass-loader",
+						options: {
+							// use legacy API to generate source maps
+							api: 'legacy'
+						}
 					}
 				],
 				type: "css",
@@ -32,5 +36,8 @@ module.exports = {
 		new rspack.DefinePlugin({
 			CONTEXT: JSON.stringify(__dirname)
 		})
-	]
+	],
+	experiments: {
+		css: true
+	}
 };

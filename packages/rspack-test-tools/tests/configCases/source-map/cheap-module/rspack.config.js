@@ -6,7 +6,15 @@ module.exports = {
 		rules: [
 			{
 				test: /\.s[ac]ss$/i,
-				use: [{ loader: "sass-loader" }],
+				use: [
+					{
+						loader: "sass-loader",
+						options: {
+							// use legacy API to generate source maps
+							api: 'legacy'
+						}
+					}
+				],
 				type: "css",
 				generator: {
 					exportsOnly: false
@@ -16,5 +24,8 @@ module.exports = {
 	},
 	devtool: "cheap-module-source-map",
 	externals: ["source-map"],
-	externalsType: "commonjs"
+	externalsType: "commonjs",
+	experiments: {
+		css: true
+	}
 };
