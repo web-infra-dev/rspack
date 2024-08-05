@@ -3,18 +3,14 @@ import type { WDSMetaObj } from "./getWDSMetadata";
 
 /**
  * Create a valid URL from parsed URL parts.
- * @param {import('./getSocketUrlParts').SocketUrlParts} urlParts The parsed URL parts.
- * @param {import('./getWDSMetadata').WDSMetaObj} [metadata] The parsed WDS metadata object.
- * @returns {string} The generated URL.
+ * @param urlParts The parsed URL parts.
+ * @param [metadata] The parsed WDS metadata object.
+ * @returns The generated URL.
  */
 export default function urlFromParts(
 	urlParts: SocketUrlParts,
-	metadata: WDSMetaObj
-) {
-	if (typeof metadata === "undefined") {
-		metadata = {};
-	}
-
+	metadata: WDSMetaObj = {}
+): string {
 	let fullProtocol = "http:";
 	if (urlParts.protocol) {
 		fullProtocol = urlParts.protocol;

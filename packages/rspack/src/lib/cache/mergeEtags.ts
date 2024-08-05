@@ -32,11 +32,14 @@ const dualObjectMap = new WeakMap();
 const objectStringMap = new WeakMap();
 
 /**
- * @param a first
- * @param b second
+ * @param first first
+ * @param second second
  * @returns result
  */
-export const mergeEtags = (a: Etag, b: Etag): Etag => {
+export const mergeEtags = (first: Etag, second: Etag): Etag => {
+	let a = first;
+	let b = second;
+
 	if (typeof a === "string") {
 		if (typeof b === "string") {
 			return `${a}|${b}`;

@@ -77,15 +77,18 @@ function getCurrentScriptUrl(moduleId: string) {
 }
 
 function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
+	let normalizedUrl;
 	if (!url) {
 		if (!el.href) {
 			return;
 		}
 
-		url = el.href.split("?")[0];
+		normalizedUrl = el.href.split("?")[0];
+	} else {
+		normalizedUrl = url;
 	}
 
-	if (!isUrlRequest(url)) {
+	if (!isUrlRequest(normalizedUrl)) {
 		return;
 	}
 
@@ -95,7 +98,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		return;
 	}
 
-	if (!url || !(url.indexOf(".css") > -1)) {
+	if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
 		return;
 	}
 
@@ -123,7 +126,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		el.parentNode?.removeChild(el);
 	});
 
-	newEl.href = `${url}?${Date.now()}`;
+	newEl.href = `${normalizedUrl}?${Date.now()}`;
 
 	if (el.nextSibling) {
 		el.parentNode?.insertBefore(newEl, el.nextSibling);
@@ -135,10 +138,10 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 function getReloadUrl(href: string, src: Array<string>): string {
 	let ret = "";
 
-	href = normalizeUrl(href);
+	const normalizedHref = normalizeUrl(href);
 
 	src.some(url => {
-		if (href.indexOf(src as unknown as string) > -1) {
+		if (normalizedHref.indexOf(src as unknown as string) > -1) {
 			ret = url;
 		}
 	});

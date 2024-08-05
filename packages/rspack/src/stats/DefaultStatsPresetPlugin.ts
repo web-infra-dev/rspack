@@ -306,8 +306,7 @@ const NORMALIZER = {
 		});
 	},
 	logging: (value: any) => {
-		if (value === true) value = "log";
-		return value;
+		return value === true ? "log" : value;
 	},
 	loggingDebug: (value: any) => {
 		const array = !Array.isArray(value) ? (value ? [value] : []) : value;

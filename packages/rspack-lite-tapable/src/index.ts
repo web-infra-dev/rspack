@@ -122,15 +122,9 @@ export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions>
 	_runRegisterInterceptors(
 		options: FullTap & IfSet<AdditionalOptions>
 	): FullTap & IfSet<AdditionalOptions> {
-		for (const interceptor of this.interceptors) {
-			if (interceptor.register) {
-				const newOptions = interceptor.register(options);
-				if (newOptions !== undefined) {
-					options = newOptions;
-				}
-			}
-		}
-		return options;
+		return this.interceptors.reduce((options, interceptor) => {
+			return interceptor.register?.(options) ?? options;
+		}, options);
 	}
 
 	_runCallInterceptors(...args: any[]) {
@@ -259,22 +253,28 @@ export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions>
 		options: Options<AdditionalOptions>,
 		fn: Function
 	) {
+		let normalizedOptions = options as Tap & IfSet<AdditionalOptions>;
+
 		if (typeof options === "string") {
-			options = {
+			normalizedOptions = {
 				name: options.trim()
 			} as Tap & IfSet<AdditionalOptions>;
 		} else if (typeof options !== "object" || options === null) {
 			throw new Error("Invalid tap options");
 		}
-		if (typeof options.name !== "string" || options.name === "") {
+
+		if (
+			typeof normalizedOptions.name !== "string" ||
+			normalizedOptions.name === ""
+		) {
 			throw new Error("Missing name for tap");
 		}
-		let insert: FullTap & IfSet<AdditionalOptions> = Object.assign(
-			{ type, fn },
-			options
+
+		this._insert(
+			this._runRegisterInterceptors(
+				Object.assign({ type, fn }, normalizedOptions)
+			)
 		);
-		insert = this._runRegisterInterceptors(insert);
-		this._insert(insert);
 	}
 
 	_insert(item: FullTap & IfSet<AdditionalOptions>) {

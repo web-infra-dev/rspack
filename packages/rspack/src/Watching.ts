@@ -306,11 +306,11 @@ export class Watching {
 			// this.compiler.cache.beginIdle();
 			// this.compiler.idle = true;
 			this.handler(err, stats);
-			if (!cbs) {
-				cbs = this.callbacks;
-				this.callbacks = [];
+
+			const callbacksToExecute = cbs || this.callbacks.splice(0);
+			for (const cb of callbacksToExecute) {
+				cb(err);
 			}
-			for (const cb of cbs) cb(err);
 		};
 
 		const cbs = this.callbacks;
