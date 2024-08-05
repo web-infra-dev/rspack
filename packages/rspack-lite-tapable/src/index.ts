@@ -123,7 +123,7 @@ export class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions>
 		options: FullTap & IfSet<AdditionalOptions>
 	): FullTap & IfSet<AdditionalOptions> {
 		return this.interceptors.reduce((options, interceptor) => {
-			return interceptor.register?.(options) || options;
+			return interceptor.register?.(options) ?? options;
 		}, options);
 	}
 
