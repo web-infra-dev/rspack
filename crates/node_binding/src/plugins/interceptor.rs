@@ -688,7 +688,7 @@ define_register!(
   RegisterCompilationSealTaps,
   tap = CompilationSealTap<(), ()> @ CompilationSealHook,
   cache = false,
-  sync = true,
+  sync = false,
   kind = RegisterJsTapKind::CompilationSeal,
   skip = true,
 );
@@ -1182,8 +1182,8 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
 
 #[async_trait]
 impl CompilationSeal for CompilationSealTap {
-  fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
-    self.function.blocking_call_with_sync(())
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.call_with_sync(()).await
   }
 
   fn stage(&self) -> i32 {

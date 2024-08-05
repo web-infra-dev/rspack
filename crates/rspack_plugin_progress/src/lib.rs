@@ -323,7 +323,7 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationSeal for ProgressPlugin)]
-fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("plugins", 1);
   Ok(())
 }
