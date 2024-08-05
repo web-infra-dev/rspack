@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{Resolve, ResolveOptionsWithDependencyType, ResolverFactory};
+use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
 
 pub type Externals = Vec<ExternalItem>;
 
