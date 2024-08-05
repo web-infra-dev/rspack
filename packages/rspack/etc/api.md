@@ -5481,11 +5481,13 @@ export class LoaderOptionsPlugin {
     constructor(options?: LoaderOptionsPluginOptions);
     apply(compiler: Compiler): void;
     // (undocumented)
-    options: MatchObject;
+    options: LoaderOptionsPluginOptions;
 }
 
 // @public (undocumented)
-type LoaderOptionsPluginOptions = any;
+type LoaderOptionsPluginOptions = MatchObject & {
+    [key: string]: unknown;
+};
 
 // @public (undocumented)
 export class LoaderTargetPlugin {
