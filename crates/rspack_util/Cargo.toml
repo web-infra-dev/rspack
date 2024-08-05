@@ -19,7 +19,6 @@ serde_json    = { workspace = true }
 sugar_path    = { workspace = true }
 unicase       = { workspace = true }
 
-lightningcss = { workspace = true, features = ["sourcemap", "browserslist", "into_owned"] }
-swc_core     = { workspace = true, features = ["ecma_ast"] }
+swc_core = { workspace = true, features = ["ecma_ast"] }
 
 rspack_regex = { path = "../rspack_regex" }
