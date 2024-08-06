@@ -6,6 +6,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
+pub use dependency::*;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;

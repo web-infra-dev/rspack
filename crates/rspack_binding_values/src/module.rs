@@ -1,12 +1,12 @@
 use napi_derive::napi;
 use rspack_core::{
-  AsyncDependenciesBlock, Compilation, CompilerModuleContext, DependenciesBlock, Module,
-  ModuleIdentifier,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilerModuleContext,
+  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults};
+use crate::{DependencyDTO, JsChunk, JsCodegenerationResults};
 
 #[derive(Default)]
 #[napi(object)]
@@ -31,12 +31,11 @@ impl DependenciesBlockDTO {
     }
   }
 
-  fn block(&self) -> &AsyncDependenciesBlock {
-    let module_graph = &self.compilation.get_module_graph();
-    module_graph.block_by_id(self.block_id).unwrap_or_else(|| {
+  fn block<'a>(&self, module_graph: &'a ModuleGraph) -> &'a AsyncDependenciesBlock {
+    module_graph.block_by_id(&self.block_id).unwrap_or_else(|| {
       panic!(
-        "Cannot find block with id = {}. It might have been removed on the Rust side.",
-        self.module_id
+        "Cannot find block with id = {:?}. It might have been removed on the Rust side.",
+        self.block_id
       )
     })
   }
@@ -44,14 +43,29 @@ impl DependenciesBlockDTO {
 
 #[napi]
 impl DependenciesBlockDTO {
-  // #[napi(getter)]
-  // pub fn dependencies(&self) -> Vec<DependencyDTO> {}
+  #[napi(getter)]
+  pub fn dependencies(&self) -> Vec<DependencyDTO> {
+    let module_graph = self.compilation.get_module_graph();
+    let block = self.block(&module_graph);
+    block
+      .get_dependencies()
+      .iter()
+      .cloned()
+      .map(|dep_id| DependencyDTO::new(dep_id, self.compilation))
+      .collect::<Vec<_>>()
+  }
 
-  // #[napi(getter)]
-  // pub fn blocks() {
-  //   let block = self.block();
-  //   block.
-  // }
+  #[napi(getter)]
+  pub fn blocks(&self) -> Vec<DependenciesBlockDTO> {
+    let module_graph = self.compilation.get_module_graph();
+    let block = self.block(&module_graph);
+    let blocks = block.get_blocks();
+    blocks
+      .iter()
+      .cloned()
+      .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation))
+      .collect::<Vec<_>>()
+  }
 }
 
 #[napi]
@@ -172,13 +186,13 @@ impl ModuleDTO {
 
   #[napi(getter)]
   pub fn blocks(&self) -> Vec<DependenciesBlockDTO> {
-    let module_graph = self.compilation.get_module_graph();
     let module = self.module();
-    let blocks = module
-      .get_blocks()
-      .clone()
-      .into_iter()
-      .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation));
+    let blocks = module.get_blocks();
+    blocks
+      .iter()
+      .cloned()
+      .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation))
+      .collect::<Vec<_>>()
   }
 }
 
