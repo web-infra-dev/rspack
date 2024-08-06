@@ -1,6 +1,6 @@
 import type fs from "node:fs";
 import path from "node:path";
-import type { StatsError, StatsWarnings } from "@rspack/core";
+import type { StatsError } from "@rspack/core";
 import prettyFormat from "pretty-format";
 import merge from "webpack-merge";
 
@@ -15,7 +15,7 @@ import { SimpleTaskProcessor } from "./simple";
 
 type TStatsDiagnostics = {
 	errors: StatsError[];
-	warnings: StatsWarnings[];
+	warnings: StatsError[];
 };
 
 const CWD_PATTERN = new RegExp(
@@ -163,7 +163,7 @@ export class ErrorProcessor<
 
 		await this._errorOptions.check?.({
 			errors: errors as StatsError[],
-			warnings: warnings as StatsWarnings[]
+			warnings: warnings as StatsError[]
 		});
 	}
 
