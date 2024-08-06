@@ -8,8 +8,10 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			mangle: {
-				keep_fnames: true
+			minimizerOptions: {
+				mangle: {
+					keep_fnames: true
+				}
 			}
 		})
 	]

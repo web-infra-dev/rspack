@@ -87,11 +87,17 @@ module.exports = {
     // 但你可以配合使用 '...'，它代表默认压缩器
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
-        format: {
-          comments: false,
+        minimizerOptions: {
+          format: {
+            comments: false,
+          },
         },
       }),
-      new rspack.SwcCssMinimizerRspackPlugin(),
+      new rspack.SwcCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          errorRecovery: false,
+        },
+      }),
     ],
   },
 };

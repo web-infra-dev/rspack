@@ -1,70 +1,115 @@
-use napi::{bindgen_prelude::Either3, Either};
 use napi_derive::napi;
+use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_error::Result;
-use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_plugin_lightning_css_minimizer::{
-  LightningCssMinimizerOptions, LightningCssMinimizerRule, LightningCssMinimizerRules,
+  Browsers, Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
-
-type RawLightningCssMinimizerRule = Either<String, JsRegExp>;
-type RawLightningCssMinimizerRules = Either3<String, JsRegExp, Vec<RawLightningCssMinimizerRule>>;
-struct RawLightningCssMinimizerRuleWrapper(RawLightningCssMinimizerRule);
-struct RawLightningCssMinimizerRulesWrapper(RawLightningCssMinimizerRules);
 
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawLightningCssMinimizerRspackPluginOptions {
-  pub error_recovery: bool,
-  pub unused_symbols: Vec<String>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub test: Option<RawAssetConditions>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub include: Option<RawAssetConditions>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub exclude: Option<RawAssetConditions>,
   pub remove_unused_local_idents: bool,
-  pub browserslist: Vec<String>,
-  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub test: Option<RawLightningCssMinimizerRules>,
-  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub include: Option<RawLightningCssMinimizerRules>,
-  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub exclude: Option<RawLightningCssMinimizerRules>,
+  pub minimizer_options: RawLightningCssMinimizerOptions,
 }
 
-fn into_condition(c: Option<RawLightningCssMinimizerRules>) -> Option<LightningCssMinimizerRules> {
-  c.map(|test| RawLightningCssMinimizerRulesWrapper(test).into())
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawLightningCssMinimizerOptions {
+  pub error_recovery: bool,
+  pub targets: Option<RawLightningCssBrowsers>,
+  pub include: Option<u32>,
+  pub exclude: Option<u32>,
+  pub draft: Option<RawDraft>,
+  pub non_standard: Option<RawNonStandard>,
+  pub pseudo_classes: Option<RawLightningCssPseudoClasses>,
+  pub unused_symbols: Vec<String>,
 }
 
-impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for LightningCssMinimizerOptions {
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawLightningCssBrowsers {
+  pub android: Option<u32>,
+  pub chrome: Option<u32>,
+  pub edge: Option<u32>,
+  pub firefox: Option<u32>,
+  pub ie: Option<u32>,
+  #[napi(js_name = "ios_saf")]
+  pub ios_saf: Option<u32>,
+  pub opera: Option<u32>,
+  pub safari: Option<u32>,
+  pub samsung: Option<u32>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawDraft {
+  pub custom_media: bool,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawNonStandard {
+  pub deep_selector_combinator: bool,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawLightningCssPseudoClasses {
+  pub hover: Option<String>,
+  pub active: Option<String>,
+  pub focus: Option<String>,
+  pub focus_visible: Option<String>,
+  pub focus_within: Option<String>,
+}
+
+impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawLightningCssMinimizerRspackPluginOptions) -> Result<Self> {
     Ok(Self {
-      error_recovery: value.error_recovery,
-      unused_symbols: value.unused_symbols,
+      test: value.test.map(into_asset_conditions),
+      include: value.include.map(into_asset_conditions),
+      exclude: value.exclude.map(into_asset_conditions),
       remove_unused_local_idents: value.remove_unused_local_idents,
-      browserlist: value.browserslist,
-      test: into_condition(value.test),
-      include: into_condition(value.include),
-      exclude: into_condition(value.exclude),
+      minimizer_options: MinimizerOptions {
+        error_recovery: value.minimizer_options.error_recovery,
+        targets: value.minimizer_options.targets.map(|t| Browsers {
+          android: t.android,
+          chrome: t.chrome,
+          edge: t.edge,
+          firefox: t.firefox,
+          ie: t.ie,
+          ios_saf: t.ios_saf,
+          opera: t.opera,
+          safari: t.safari,
+          samsung: t.samsung,
+        }),
+        include: value.minimizer_options.include,
+        exclude: value.minimizer_options.exclude,
+        draft: value.minimizer_options.draft.map(|d| Draft {
+          custom_media: d.custom_media,
+        }),
+        non_standard: value.minimizer_options.non_standard.map(|n| NonStandard {
+          deep_selector_combinator: n.deep_selector_combinator,
+        }),
+        pseudo_classes: value
+          .minimizer_options
+          .pseudo_classes
+          .map(|p| PseudoClasses {
+            hover: p.hover,
+            active: p.active,
+            focus: p.focus,
+            focus_visible: p.focus_visible,
+            focus_within: p.focus_within,
+          }),
+        unused_symbols: value.minimizer_options.unused_symbols,
+      },
     })
-  }
-}
-
-impl From<RawLightningCssMinimizerRuleWrapper> for LightningCssMinimizerRule {
-  fn from(x: RawLightningCssMinimizerRuleWrapper) -> Self {
-    match x.0 {
-      Either::A(v) => Self::String(v),
-      Either::B(v) => Self::Regexp(v.to_rspack_regex()),
-    }
-  }
-}
-
-impl From<RawLightningCssMinimizerRulesWrapper> for LightningCssMinimizerRules {
-  fn from(value: RawLightningCssMinimizerRulesWrapper) -> Self {
-    match value.0 {
-      Either3::A(v) => Self::String(v),
-      Either3::B(v) => Self::Regexp(v.to_rspack_regex()),
-      Either3::C(v) => Self::Array(
-        v.into_iter()
-          .map(|v| RawLightningCssMinimizerRuleWrapper(v).into())
-          .collect(),
-      ),
-    }
   }
 }

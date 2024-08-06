@@ -15,8 +15,10 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			format: {
-				asciiOnly: true
+			minimizerOptions: {
+				format: {
+					asciiOnly: true
+				}
 			}
 		})
 	]

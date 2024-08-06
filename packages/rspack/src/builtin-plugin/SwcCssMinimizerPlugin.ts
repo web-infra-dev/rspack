@@ -3,15 +3,13 @@ import {
 	type RawSwcCssMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
+import type { AssetConditions } from "../util/assetCondition";
 import { create } from "./base";
 
-type MinifyCondition = string | RegExp;
-type MinifyConditions = MinifyCondition | MinifyCondition[];
-
 export type SwcCssMinimizerRspackPluginOptions = {
-	test?: MinifyConditions;
-	exclude?: MinifyConditions;
-	include?: MinifyConditions;
+	test?: AssetConditions;
+	exclude?: AssetConditions;
+	include?: AssetConditions;
 };
 
 export const SwcCssMinimizerRspackPlugin = create(

@@ -4,10 +4,8 @@ import {
 	type RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
+import type { AssetConditions } from "../util/assetCondition";
 import { create } from "./base";
-
-type MinifyCondition = string | RegExp;
-type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 type ExtractCommentsCondition = boolean | RegExp;
 type ExtractCommentsBanner = string | boolean;
@@ -20,15 +18,16 @@ type ExtractCommentsObject = {
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
 export type SwcJsMinimizerRspackPluginOptions = {
+	test?: AssetConditions;
+	exclude?: AssetConditions;
+	include?: AssetConditions;
 	extractComments?: ExtractCommentsOptions | undefined;
-	compress?: TerserCompressOptions | boolean;
-	mangle?: TerserMangleOptions | boolean;
-	format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
-	module?: boolean;
-
-	test?: MinifyConditions;
-	exclude?: MinifyConditions;
-	include?: MinifyConditions;
+	minimizerOptions?: {
+		compress?: TerserCompressOptions | boolean;
+		mangle?: TerserMangleOptions | boolean;
+		format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+		module?: boolean;
+	};
 };
 
 /**
@@ -270,11 +269,11 @@ export const SwcJsMinimizerRspackPlugin = create(
 	(
 		options?: SwcJsMinimizerRspackPluginOptions
 	): RawSwcJsMinimizerRspackPluginOptions => {
-		let compress = options?.compress ?? true;
-		const mangle = options?.mangle ?? true;
+		let compress = options?.minimizerOptions?.compress ?? true;
+		const mangle = options?.minimizerOptions?.mangle ?? true;
 		const format = {
 			comments: false, // terser and swc use different default value: 'some'
-			...options?.format
+			...options?.minimizerOptions?.format
 		};
 
 		if (compress && typeof compress === "object") {
@@ -289,14 +288,16 @@ export const SwcJsMinimizerRspackPlugin = create(
 		}
 
 		return {
-			extractComments: getRawExtractCommentsOptions(options?.extractComments),
-			compress,
-			mangle,
-			format,
-			module: options?.module,
 			test: options?.test,
 			include: options?.include,
-			exclude: options?.exclude
+			exclude: options?.exclude,
+			extractComments: getRawExtractCommentsOptions(options?.extractComments),
+			minimizerOptions: {
+				compress,
+				mangle,
+				format,
+				module: options?.minimizerOptions?.module
+			}
 		};
 	},
 	"compilation"

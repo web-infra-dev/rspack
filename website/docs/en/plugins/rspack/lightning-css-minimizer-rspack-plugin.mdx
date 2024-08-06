@@ -17,19 +17,26 @@ module.exports = {
 
 ## Options
 
-### errorRecovery
+### include
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
 
-Whether to ignore invalid rules and declarations rather than erroring.
+Use this to specify which files should be minified, it matches the path of the output files.
 
-### unusedSymbols
+### exclude
 
-- **Type:** `string[]`
-- **Default:** `[]`
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
 
-A list of known unused symbols, including CSS class names, ids, and @keyframe names. The declarations of these will be removed.
+Use this to specify which files should be excluded from minification, it matches the path of the output files.
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to provide a pattern that CSS files are matched against. If the output filename matches the given pattern, it will be minified, otherwise it won't be.
 
 ### removeUnusedLocalIdents
 
@@ -62,30 +69,55 @@ At this point, the information that class name b is unused will be obtained via 
 .a{color: red}
 ```
 
-### browserslist
+### minimizerOptions
 
-- **Type:** `string[]`
-- **Default:** `["defaults"]`
+Configuration passed to Lightning CSS for minification.
 
-Browserslist targets to compile the CSS for.
+Below are the configurations supported. For detailed usage, please refer to [Lightning CSS documentation](https://lightningcss.dev/transpilation.html)
 
-### include
+:::info
 
-- **Type:** `string | RegExp | (string | RegExp)[]`
-- **Default:** `undefined`
+1. The default `targets` is set to `"fully supports es6"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
 
-Use this to specify which files should be minified.
+We recommend and encourage users to configure their own `targets` to achieve the best minification results.
+:::
 
-### exclude
+```ts
+type LightningCssMinimizerOptions = {
+  errorRecovery?: boolean;
+  targets?: Targets | string[] | string;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  draft?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
 
-- **Type:** `string | RegExp | (string | RegExp)[]`
-- **Default:** `undefined`
-
-Use this to specify which files should be excluded from minification.
-
-### test
-
-- **Type:** `string | RegExp | (string | RegExp)[]`
-- **Default:** `undefined`
-
-Use this to provide a pattern that css files are matched against. If the filename matches the given pattern, it will be minified, otherwise it won't be.
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+```
