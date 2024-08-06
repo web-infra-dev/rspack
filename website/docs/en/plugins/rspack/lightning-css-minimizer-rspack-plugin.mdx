@@ -78,7 +78,7 @@ Below are the configurations supported. For detailed usage, please refer to [Lig
 :::info
 
 1. The default `targets` is set to `"fully supports es6"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
-2. By default, all features are `exclude`d since syntax downgrading is typically handled in the loader. Therefore, excluding all features avoids syntax downgrading during the minimize process.
+2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
 
 We recommend and encourage users to configure their own `targets` to achieve the best minification results.
 :::
