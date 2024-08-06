@@ -251,7 +251,7 @@ fn match_item_to_error_span(
   match_start: usize,
   match_end: usize,
 ) -> ErrorSpan {
-  let s = ropey::Rope::from_str(&source);
+  let s = ropey::Rope::from_str(source);
   // SAFETY: `comment_span` is always within the bound of `source`.
   let s_loc = byte_offset_to_location(
     &s,
