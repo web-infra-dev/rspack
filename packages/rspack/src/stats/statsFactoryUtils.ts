@@ -78,14 +78,12 @@ export type KnownStatsAsset = {
 	size: number;
 	emitted: boolean;
 	// comparedForEmit: boolean;
-	// cached: boolean;
-	// related?: StatsAsset[];
+	cached: boolean;
+	related?: StatsAsset[];
 	chunkNames?: (string | number)[];
 	chunkIdHints?: (string | number)[];
-	// chunks?: (string | number)[];
 	chunks?: (string | null | undefined)[];
 	auxiliaryChunkNames?: (string | number)[];
-	// auxiliaryChunks?: (string | number)[];
 	auxiliaryChunks?: (string | null | undefined)[];
 	auxiliaryChunkIdHints?: (string | number)[];
 	filteredRelated?: number;
@@ -196,7 +194,7 @@ export type KnownStatsModuleReason = {
 	userRequest?: string;
 	// loc?: string;
 	moduleId?: string | null;
-	resolvedModuleId?: string | number;
+	resolvedModuleId?: string | number | null;
 };
 
 export type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
@@ -504,10 +502,10 @@ export const spaceLimited = (
 						const limited = spaceLimited(
 							group.children,
 							maxGroupSize -
-							// we should use ceil to always feet in max
-							Math.ceil(oversize / groups.length) -
-							// we substitute size of group head
-							headerSize,
+								// we should use ceil to always feet in max
+								Math.ceil(oversize / groups.length) -
+								// we substitute size of group head
+								headerSize,
 							headerSize === 2
 						);
 						groups[i] = {

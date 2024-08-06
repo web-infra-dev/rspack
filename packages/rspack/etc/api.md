@@ -601,19 +601,19 @@ const baseResolveOptions: z.ZodObject<{
 
 // @public (undocumented)
 interface BaseResolveRequest {
-     // (undocumented)
+    	// (undocumented)
     descriptionFileData?: object;
-     // (undocumented)
+    	// (undocumented)
     descriptionFilePath?: string;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileRoot?: string;
-     // (undocumented)
+    	// (undocumented)
     fullySpecified?: boolean;
-     // (undocumented)
+    	// (undocumented)
     ignoreSymlinks?: boolean;
-     // (undocumented)
+    	// (undocumented)
     path: string | false;
-     // (undocumented)
+    	// (undocumented)
     relativePath?: string;
 }
 
@@ -4468,11 +4468,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-     constructor();
+    	constructor();
 
-     digest(encoding?: string): string | Buffer;
+    	digest(encoding?: string): string | Buffer;
 
-     update(data: string | Buffer, inputEncoding?: string): Hash;
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -5066,6 +5066,8 @@ type KnownStatsAsset = {
     info: AssetInfo_2;
     size: number;
     emitted: boolean;
+    cached: boolean;
+    related?: StatsAsset[];
     chunkNames?: (string | number)[];
     chunkIdHints?: (string | number)[];
     chunks?: (string | null | undefined)[];
@@ -5261,9 +5263,12 @@ type KnownStatsModuleReason = {
     moduleIdentifier?: string;
     module?: string;
     moduleName?: string;
+    resolvedModuleIdentifier?: string;
+    resolvedModule?: string;
     type?: string;
     userRequest?: string;
     moduleId?: string | null;
+    resolvedModuleId?: string | number | null;
 };
 
 // @public (undocumented)
@@ -8391,19 +8396,19 @@ export interface OutputNormalized {
 
 // @public (undocumented)
 interface ParsedIdentifier {
-     // (undocumented)
+    	// (undocumented)
     directory: boolean;
-     // (undocumented)
+    	// (undocumented)
     file: boolean;
-     // (undocumented)
+    	// (undocumented)
     fragment: string;
-     // (undocumented)
+    	// (undocumented)
     internal: boolean;
-     // (undocumented)
+    	// (undocumented)
     module: boolean;
-     // (undocumented)
+    	// (undocumented)
     query: string;
-     // (undocumented)
+    	// (undocumented)
     request: string;
 }
 
@@ -9377,13 +9382,13 @@ type RawReactOptions = {
 
 // @public (undocumented)
 type RawSourceMap = {
-     version: number;
-     sources: string[];
-     names: string[];
-     sourceRoot?: string;
-     sourcesContent?: string[];
-     mappings: string;
-     file: string;
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
 };
 
 // @public (undocumented)
@@ -14060,25 +14065,25 @@ const snapshotOptions: z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>;
 
 // @public (undocumented)
 abstract class Source {
-     // (undocumented)
+    	// (undocumented)
     buffer(): Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-     // (undocumented)
+    	// (undocumented)
     size(): number;
 
-     // (undocumented)
+    	// (undocumented)
     source(): string | Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): {
-          source: string | Buffer;
-          map: Object;
-         };
+        		source: string | Buffer;
+        		map: Object;
+        	};
 
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: Hash): void;
 }
 
@@ -14212,7 +14217,6 @@ export type StatsModule = KnownStatsModule & Record<string, any>;
 type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
 // @public (undocumented)
-<<<<<<< HEAD
 type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
 
 // @public (undocumented)
@@ -14224,17 +14228,6 @@ type StatsModuleTraceItem = {
     originId?: string;
     moduleId?: string;
 };
-=======
-type StatsModuleReason = Omit<binding.JsStatsModuleReason, "moduleDescriptor" | "resolvedModuleDescriptor" | "moduleChunks"> & {
-    moduleIdentifier?: string;
-    moduleName?: string;
-    module?: string;
-    moduleId?: string | null;
-    resolvedModuleIdentifier?: string;
-    resolvedModule?: string;
-    resolvedModuleId?: string | null;
-} & Record<string, any>;
->>>>>>> 7660aa969 (feat(stats): add reason.resolvedModule)
 
 // @public (undocumented)
 export type StatsOptions = z.infer<typeof statsOptions>;

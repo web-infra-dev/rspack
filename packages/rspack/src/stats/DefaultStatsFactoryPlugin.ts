@@ -1129,7 +1129,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context
 			);
 			object.filteredRelated = asset.related
-				? asset.related.length - object.related.length
+				? asset.related.length - object.related!.length
 				: undefined;
 		},
 		ids: (object, asset) => {
