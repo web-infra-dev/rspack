@@ -18,11 +18,11 @@ chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascri
     | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
     |   [no exports]
     |   [no exports used]
-    |   esm import ./raw.png
+    |   esm import ./raw.png ./index.js
   ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
     [no exports]
     [no exports used]
-    esm import ./raw.png
+    esm import ./raw.png ./index.js
 modules by path ./ 235 bytes (javascript) 7 bytes (asset)
   orphan modules 76 bytes [orphan]
     ./index.js 75 bytes [depth 0] [orphan] [built]
@@ -33,7 +33,7 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       [no exports]
       [module unused]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-      esm import ./stringModule [686]
+      esm import ./stringModule [686] ./index.js
   code generated modules 159 bytes (javascript) 7 bytes (asset) [code generated]
     ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
       [no exports]
@@ -46,11 +46,11 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
       |   [no exports]
       |   [no exports used]
-      |   esm import ./raw.png
+      |   esm import ./raw.png ./index.js
     ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
       [no exports]
       [no exports used]
-      esm import ./raw.png
+      esm import ./raw.png ./index.js
 runtime modules 1.28 KiB
   webpack/runtime/auto_public_path 1.06 KiB {909} [code generated]
     [no exports]
@@ -375,8 +375,8 @@ exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
 "./index.js 44 bytes [built] [code generated]
   entry ./index
 ./a.js 55 bytes [built] [code generated]
-  cjs self exports reference self
-  cjs require ./a"
+  cjs self exports reference self ./a.js
+  cjs require ./a ./index.js"
 `;
 
 exports[`statsOutput statsOutput/resolve-overflow-error should print correct stats for 1`] = `

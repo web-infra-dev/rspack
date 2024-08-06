@@ -1,5 +1,6 @@
 import type * as binding from "@rspack/binding";
 
+import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation, NormalizedStatsOptions } from "../Compilation";
 import {
 	type Comparator,
@@ -187,15 +188,15 @@ export type KnownStatsModuleReason = {
 	moduleIdentifier?: string;
 	module?: string;
 	moduleName?: string;
-	// resolvedModuleIdentifier?: string;
-	// resolvedModule?: string;
+	resolvedModuleIdentifier?: string;
+	resolvedModule?: string;
 	type?: string;
 	// active: boolean;
 	// explanation?: string;
 	userRequest?: string;
 	// loc?: string;
 	moduleId?: string | null;
-	// resolvedModuleId?: string | number;
+	resolvedModuleId?: string | number;
 };
 
 export type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
@@ -305,7 +306,7 @@ export type SimpleExtractors = {
 		StatsModuleReason
 	>;
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
-	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
+	chunkOrigin: ExtractorsByOption<JsOriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
@@ -503,10 +504,10 @@ export const spaceLimited = (
 						const limited = spaceLimited(
 							group.children,
 							maxGroupSize -
-								// we should use ceil to always feet in max
-								Math.ceil(oversize / groups.length) -
-								// we substitute size of group head
-								headerSize,
+							// we should use ceil to always feet in max
+							Math.ceil(oversize / groups.length) -
+							// we substitute size of group head
+							headerSize,
 							headerSize === 2
 						);
 						groups[i] = {
@@ -640,3 +641,63 @@ export const mergeToObject = (
 export function resolveStatsMillisecond(s: binding.JsStatsMillisecond) {
 	return s.secs * 1000 + s.subsecMillis;
 }
+
+export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
+	let filtered = 0;
+	// Can not fit into limit
+	// print only messages
+	if (errors.length + 1 >= max) {
+		return {
+			errors: errors.map(error => {
+				if (typeof error === "string" || !error.details) return error;
+				filtered++;
+				return { ...error, details: "" };
+			}),
+			filtered
+		};
+	}
+	let fullLength = errors.length;
+	let result = errors;
+
+	let i = 0;
+	for (; i < errors.length; i++) {
+		const error = errors[i];
+		if (typeof error !== "string" && error.details) {
+			const splitted = error.details.split("\n");
+			const len = splitted.length;
+			fullLength += len;
+			if (fullLength > max) {
+				result = i > 0 ? errors.slice(0, i) : [];
+				const overLimit = fullLength - max + 1;
+				const error = errors[i++];
+				result.push({
+					...error,
+					details: error.details!.split("\n").slice(0, -overLimit).join("\n"),
+					filteredDetails: overLimit
+				});
+				filtered = errors.length - i;
+				for (; i < errors.length; i++) {
+					const error = errors[i];
+					if (typeof error === "string" || !error.details) result.push(error);
+					result.push({ ...error, details: "" });
+				}
+				break;
+			}
+			if (fullLength === max) {
+				result = errors.slice(0, ++i);
+				filtered = errors.length - i;
+				for (; i < errors.length; i++) {
+					const error = errors[i];
+					if (typeof error === "string" || !error.details) result.push(error);
+					result.push({ ...error, details: "" });
+				}
+				break;
+			}
+		}
+	}
+
+	return {
+		errors: result,
+		filtered
+	};
+};

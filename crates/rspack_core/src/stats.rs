@@ -906,6 +906,20 @@ impl Stats<'_> {
               }
             })
             .unzip();
+          let (resolved_module_name, resolved_module_id) = connection
+            .resolved_original_module_identifier
+            .and_then(|i| module_graph.module_by_identifier(&i))
+            .map(|m| {
+              if executed {
+                (
+                  m.readable_identifier(&self.compilation.options.context),
+                  None,
+                )
+              } else {
+                get_stats_module_name_and_id(m, self.compilation)
+              }
+            })
+            .unzip();
           let dependency = module_graph.dependency_by_id(&connection.dependency_id);
           let (r#type, user_request) =
             if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
@@ -919,6 +933,21 @@ impl Stats<'_> {
             module_identifier: connection.original_module_identifier,
             module_name,
             module_id: module_id.and_then(|i| i),
+            module_chunks: connection.original_module_identifier.and_then(|id| {
+              if self
+                .compilation
+                .chunk_graph
+                .chunk_graph_module_by_module_identifier
+                .contains_key(&id)
+              {
+                Some(self.compilation.chunk_graph.get_number_of_module_chunks(id) as u32)
+              } else {
+                None
+              }
+            }),
+            resolved_module_identifier: connection.resolved_original_module_identifier,
+            resolved_module_name,
+            resolved_module_id: resolved_module_id.and_then(|i| i),
             r#type,
             user_request,
           })
@@ -1534,6 +1563,11 @@ pub struct StatsModuleReason<'s> {
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
+  pub module_chunks: Option<u32>,
+  pub resolved_module_identifier: Option<ModuleIdentifier>,
+  pub resolved_module_name: Option<Cow<'s, str>>,
+  pub resolved_module_id: Option<&'s str>,
+
   pub r#type: Option<&'static str>,
   pub user_request: Option<&'s str>,
 }

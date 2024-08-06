@@ -68,6 +68,7 @@ module.exports = {
 		    "reasons": Array [
 		      Object {
 		        "moduleId": null,
+		        "resolvedModuleId": null,
 		        "type": "loader import",
 		        "userRequest": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css.webpack[javascript/auto]!=!!!<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		      },
@@ -111,18 +112,24 @@ module.exports = {
 		      Object {
 		        "moduleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "moduleName": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModule": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModuleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "type": "esm import",
 		        "userRequest": "../../../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/api.js",
 		      },
 		      Object {
 		        "moduleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "moduleName": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModule": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModuleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "type": "esm import specifier",
 		        "userRequest": "../../../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/api.js",
 		      },
 		      Object {
 		        "moduleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/api.js",
 		        "moduleName": "../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/api.js",
+		        "resolvedModule": "../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/api.js",
+		        "resolvedModuleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/api.js",
 		        "type": "cjs self exports reference",
 		        "userRequest": "self",
 		      },
@@ -166,18 +173,24 @@ module.exports = {
 		      Object {
 		        "moduleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "moduleName": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModule": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModuleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "type": "esm import",
 		        "userRequest": "../../../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/noSourceMaps.js",
 		      },
 		      Object {
 		        "moduleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "moduleName": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModule": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
+		        "resolvedModuleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "type": "esm import specifier",
 		        "userRequest": "../../../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/noSourceMaps.js",
 		      },
 		      Object {
 		        "moduleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/noSourceMaps.js",
 		        "moduleName": "../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/noSourceMaps.js",
+		        "resolvedModule": "../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/noSourceMaps.js",
+		        "resolvedModuleIdentifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.92.0_webpack-cli@5.1.4_webpack@5.92.0__/node_modules/css-loader/dist/runtime/noSourceMaps.js",
 		        "type": "cjs self exports reference",
 		        "userRequest": "self",
 		      },

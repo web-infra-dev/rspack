@@ -601,19 +601,19 @@ const baseResolveOptions: z.ZodObject<{
 
 // @public (undocumented)
 interface BaseResolveRequest {
-    	// (undocumented)
+     // (undocumented)
     descriptionFileData?: object;
-    	// (undocumented)
+     // (undocumented)
     descriptionFilePath?: string;
-    	// (undocumented)
+     // (undocumented)
     descriptionFileRoot?: string;
-    	// (undocumented)
+     // (undocumented)
     fullySpecified?: boolean;
-    	// (undocumented)
+     // (undocumented)
     ignoreSymlinks?: boolean;
-    	// (undocumented)
+     // (undocumented)
     path: string | false;
-    	// (undocumented)
+     // (undocumented)
     relativePath?: string;
 }
 
@@ -4468,11 +4468,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-    	constructor();
+     constructor();
 
-    	digest(encoding?: string): string | Buffer;
+     digest(encoding?: string): string | Buffer;
 
-    	update(data: string | Buffer, inputEncoding?: string): Hash;
+     update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -8391,19 +8391,19 @@ export interface OutputNormalized {
 
 // @public (undocumented)
 interface ParsedIdentifier {
-    	// (undocumented)
+     // (undocumented)
     directory: boolean;
-    	// (undocumented)
+     // (undocumented)
     file: boolean;
-    	// (undocumented)
+     // (undocumented)
     fragment: string;
-    	// (undocumented)
+     // (undocumented)
     internal: boolean;
-    	// (undocumented)
+     // (undocumented)
     module: boolean;
-    	// (undocumented)
+     // (undocumented)
     query: string;
-    	// (undocumented)
+     // (undocumented)
     request: string;
 }
 
@@ -9377,13 +9377,13 @@ type RawReactOptions = {
 
 // @public (undocumented)
 type RawSourceMap = {
-    	version: number;
-    	sources: string[];
-    	names: string[];
-    	sourceRoot?: string;
-    	sourcesContent?: string[];
-    	mappings: string;
-    	file: string;
+     version: number;
+     sources: string[];
+     names: string[];
+     sourceRoot?: string;
+     sourcesContent?: string[];
+     mappings: string;
+     file: string;
 };
 
 // @public (undocumented)
@@ -11151,7 +11151,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack: z.ZodOptional<z.ZodBoolean>;
         moduleTrace: z.ZodOptional<z.ZodBoolean>;
         cachedModules: z.ZodOptional<z.ZodBoolean>;
+        cachedAssets: z.ZodOptional<z.ZodBoolean>;
         cached: z.ZodOptional<z.ZodBoolean>;
+        errorsSpace: z.ZodOptional<z.ZodNumber>;
+        warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
@@ -11225,7 +11228,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     }, {
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
@@ -11299,7 +11305,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     }>]>>;
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
@@ -13012,7 +13021,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
@@ -13577,7 +13589,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
@@ -14045,25 +14060,25 @@ const snapshotOptions: z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>;
 
 // @public (undocumented)
 abstract class Source {
-    	// (undocumented)
+     // (undocumented)
     buffer(): Buffer;
 
-    	// (undocumented)
+     // (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-    	// (undocumented)
+     // (undocumented)
     size(): number;
 
-    	// (undocumented)
+     // (undocumented)
     source(): string | Buffer;
 
-    	// (undocumented)
+     // (undocumented)
     sourceAndMap(options?: MapOptions): {
-        		source: string | Buffer;
-        		map: Object;
-        	};
+          source: string | Buffer;
+          map: Object;
+         };
 
-    	// (undocumented)
+     // (undocumented)
     updateHash(hash: Hash): void;
 }
 
@@ -14197,6 +14212,7 @@ export type StatsModule = KnownStatsModule & Record<string, any>;
 type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
 // @public (undocumented)
+<<<<<<< HEAD
 type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
 
 // @public (undocumented)
@@ -14208,6 +14224,17 @@ type StatsModuleTraceItem = {
     originId?: string;
     moduleId?: string;
 };
+=======
+type StatsModuleReason = Omit<binding.JsStatsModuleReason, "moduleDescriptor" | "resolvedModuleDescriptor" | "moduleChunks"> & {
+    moduleIdentifier?: string;
+    moduleName?: string;
+    module?: string;
+    moduleId?: string | null;
+    resolvedModuleIdentifier?: string;
+    resolvedModule?: string;
+    resolvedModuleId?: string | null;
+} & Record<string, any>;
+>>>>>>> 7660aa969 (feat(stats): add reason.resolvedModule)
 
 // @public (undocumented)
 export type StatsOptions = z.infer<typeof statsOptions>;
@@ -14286,7 +14313,10 @@ const statsOptions: z.ZodObject<{
     errorStack: z.ZodOptional<z.ZodBoolean>;
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
     cachedModules: z.ZodOptional<z.ZodBoolean>;
+    cachedAssets: z.ZodOptional<z.ZodBoolean>;
     cached: z.ZodOptional<z.ZodBoolean>;
+    errorsSpace: z.ZodOptional<z.ZodNumber>;
+    warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14360,7 +14390,10 @@ const statsOptions: z.ZodObject<{
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14434,7 +14467,10 @@ const statsOptions: z.ZodObject<{
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }>;
 
 // @public (undocumented)
@@ -14541,7 +14577,10 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack: z.ZodOptional<z.ZodBoolean>;
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
     cachedModules: z.ZodOptional<z.ZodBoolean>;
+    cachedAssets: z.ZodOptional<z.ZodBoolean>;
     cached: z.ZodOptional<z.ZodBoolean>;
+    errorsSpace: z.ZodOptional<z.ZodNumber>;
+    warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14615,7 +14654,10 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14689,7 +14731,10 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }>]>;
 
 // @public (undocumented)

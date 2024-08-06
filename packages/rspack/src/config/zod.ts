@@ -1144,7 +1144,10 @@ const statsOptions = z.strictObject({
 	errorStack: z.boolean().optional(),
 	moduleTrace: z.boolean().optional(),
 	cachedModules: z.boolean().optional(),
-	cached: z.boolean().optional()
+	cachedAssets: z.boolean().optional(),
+	cached: z.boolean().optional(),
+	errorsSpace: z.number().optional(),
+	warningsSpace: z.number().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 

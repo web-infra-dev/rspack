@@ -39,6 +39,7 @@ module.exports = {
 		    "auxiliaryChunks": Array [
 		      "909",
 		    ],
+		    "cached": false,
 		    "chunkIdHints": Array [],
 		    "chunkNames": Array [],
 		    "chunks": Array [],
@@ -66,6 +67,7 @@ module.exports = {
 		    "auxiliaryChunkIdHints": Array [],
 		    "auxiliaryChunkNames": Array [],
 		    "auxiliaryChunks": Array [],
+		    "cached": false,
 		    "chunkIdHints": Array [],
 		    "chunkNames": Array [
 		      "main",
