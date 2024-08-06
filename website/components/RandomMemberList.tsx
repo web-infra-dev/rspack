@@ -228,6 +228,5 @@ export const RandomContributorsList = () => {
     },
   ];
 
-  const randomList = list.sort(() => Math.random() - 0.5);
-  return <RandomMemberList list={randomList} />;
+  return <RandomMemberList list={list} />;
 };

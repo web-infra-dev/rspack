@@ -24,8 +24,10 @@ module.exports = {
 		minimize: true,
 		minimizer: [
 			new rspack.SwcJsMinimizerRspackPlugin({
-				format: {
-					ecma: 6
+				minimizerOptions: {
+					format: {
+						ecma: 6
+					}
 				}
 			})
 		]

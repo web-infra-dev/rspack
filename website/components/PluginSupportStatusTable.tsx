@@ -439,7 +439,25 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     name: 'SyncModuleIdsPlugin',
     status: SupportStatus.NotSupported,
   },
-];
+].sort((a, b) => {
+  return (
+    b.status - a.status ||
+    (b.url && a.url ? 0 : (b.url?.length || 0) - (a.url?.length || 0))
+  );
+});
+
+const getNotesText = (
+  lang: string,
+  notes: PluginSupportStatus['notes'],
+  status: PluginSupportStatus['status'],
+) => {
+  if (notes) {
+    return lang === 'zh' ? notes.zh : notes.en;
+  }
+  if (status === SupportStatus.NotSupported) {
+    return lang === 'zh' ? '待实现' : 'To be implemented';
+  }
+};
 
 export const PluginSupportStatusTable: React.FC = () => {
   const lang = useLang();
@@ -464,32 +482,22 @@ export const PluginSupportStatusTable: React.FC = () => {
           key: 'notes',
         },
       ]}
-      body={pluginSupportStatusList
-        .sort((a, b) => {
-          return (
-            b.status - a.status ||
-            (b.url && a.url ? 0 : (b.url?.length || 0) - (a.url?.length || 0))
-          );
-        })
-        .map(({ name, url, status, notes }) => {
-          const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
-          const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
+      body={pluginSupportStatusList.map(({ name, url, status, notes }) => {
+        const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
+        const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
-          const notesText = (() => {
-            if (notes) {
-              return lang === 'zh' ? notes.zh : notes.en;
-            }
-            if (status === SupportStatus.NotSupported) {
-              return lang === 'zh' ? '待实现' : 'To be implemented';
-            }
-          })();
-
-          return {
-            name: url ? <a href={url}>{name}</a> : name,
-            status: statusText,
-            notes: notesText,
-          };
-        })}
+        return {
+          name: url ? (
+            <a href={url} target="_blank" rel="noreferrer">
+              {name}
+            </a>
+          ) : (
+            name
+          ),
+          status: statusText,
+          notes: getNotesText(lang, notes, status),
+        };
+      })}
     />
   );
 };

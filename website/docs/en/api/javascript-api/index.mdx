@@ -20,7 +20,7 @@ The JavaScript API is useful in scenarios in which you need to customize the bui
 
 ## Installation
 
-To start using the Rspack JavaScript API, first install `@rspack/core` if you haven’t yet:
+To start using the Rspack JavaScript API, first install `@rspack/core` if you haven't yet:
 
 <PackageManagerTabs command="add @rspack/core -D" />
 
@@ -62,7 +62,7 @@ You can provide the `rspack` function with an array of configurations. See the [
 
 ## Compiler Instance
 
-If you don’t pass the `rspack` runner function a callback, it will return a Rspack `Compiler` instance. This instance can be used to manually trigger the Rspack runner or have it build and watch for changes, much like the [CLI](/api/cli). The `Compiler` instance provides the following methods:
+If you don't pass the `rspack` runner function a callback, it will return a Rspack `Compiler` instance. This instance can be used to manually trigger the Rspack runner or have it build and watch for changes, much like the [CLI](/api/cli). The `Compiler` instance provides the following methods:
 
 - `.run(callback)`
 - `.watch(watchOptions, handler)`
@@ -199,7 +199,7 @@ For good error handling, you need to account for these three types of errors:
 - Compilation errors (missing modules, syntax errors, etc)
 - Compilation warnings
 
-Here’s an example that does all that:
+Here's an example that handles all conditions:
 
 ```js
 import { rspack } from '@rspack/core';

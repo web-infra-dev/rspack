@@ -23,19 +23,20 @@ module.exports = {
 
   ```ts
   type SwcJsMinimizerRspackPluginOptions = {
+    test?: AssetConditions;
+    exclude?: AssetConditions;
+    include?: AssetConditions;
     extractComments?: boolean | RegExp;
-    compress?: TerserCompressOptions | boolean;
-    mangle?: TerserMangleOptions | boolean;
-    module?: boolean;
-    format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
-
-    test?: MinifyConditions;
-    exclude?: MinifyConditions;
-    include?: MinifyConditions;
+    minimizerOptions?: {
+      compress?: TerserCompressOptions | boolean;
+      mangle?: TerserMangleOptions | boolean;
+      module?: boolean;
+      format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+    };
   };
 
-  type MinifyCondition = string | RegExp;
-  type MinifyConditions = MinifyCondition | MinifyCondition[];
+  type AssetCondition = string | RegExp;
+  type AssetConditions = AssetCondition | AssetCondition[];
 
   interface JsFormatOptions {
     /**

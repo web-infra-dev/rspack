@@ -4,8 +4,10 @@ const { SwcJsMinimizerRspackPlugin } = require("@rspack/core");
 module.exports = {
 	plugins: [
 		new SwcJsMinimizerRspackPlugin({
-			format: {
-				asciiOnly: true
+			minimizerOptions: {
+				format: {
+					asciiOnly: true
+				}
 			}
 		})
 	]
