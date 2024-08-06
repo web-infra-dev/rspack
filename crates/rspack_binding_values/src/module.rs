@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{CompilerModuleContext, Module};
+use rspack_core::{Compilation, CompilerModuleContext, Module, ModuleIdentifier};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
@@ -9,6 +9,123 @@ use crate::{JsChunk, JsCodegenerationResults};
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
+}
+
+#[napi]
+pub struct ModuleDTO {
+  pub(crate) module_id: ModuleIdentifier,
+  pub(crate) compilation: &'static Compilation,
+}
+
+impl ModuleDTO {
+  pub fn new(module_id: ModuleIdentifier, compilation: &'static Compilation) -> Self {
+    Self {
+      module_id,
+      compilation,
+    }
+  }
+
+  fn module(&self) -> &Box<dyn Module> {
+    self
+      .compilation
+      .module_by_identifier(&self.module_id)
+      .unwrap_or_else(|| {
+        panic!(
+          "Cannot find module with id = {}. It might have been removed on the Rust side.",
+          self.module_id
+        )
+      })
+  }
+}
+
+#[napi]
+impl ModuleDTO {
+  #[napi(getter)]
+  pub fn context(&self) -> Option<String> {
+    let module = self.module();
+    module.get_context().map(|c| c.to_string())
+  }
+
+  #[napi(getter)]
+  pub fn original_source(&self) -> Option<JsCompatSource> {
+    let module = self.module();
+    module
+      .original_source()
+      .and_then(|source| source.to_js_compat_source().ok())
+  }
+
+  #[napi(getter)]
+  pub fn resource(&self) -> Option<String> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Some(normal_module.resource_resolved_data().resource.to_string()),
+      Err(_) => None,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn module_identifier(&self) -> &str {
+    let module = self.module();
+    module.identifier().as_str()
+  }
+
+  #[napi(getter)]
+  pub fn name_for_condition(&self) -> Option<String> {
+    let module = self.module();
+    module.name_for_condition().map(|n| n.to_string())
+  }
+
+  #[napi(getter)]
+  pub fn request(&self) -> Option<&str> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Some(normal_module.request()),
+      Err(_) => None,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn user_request(&self) -> Option<&str> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Some(normal_module.user_request()),
+      Err(_) => None,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn raw_request(&self) -> Option<&str> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Some(normal_module.raw_request()),
+      Err(_) => None,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn factory_meta(&self) -> Option<JsFactoryMeta> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => normal_module
+        .factory_meta()
+        .map(|factory_meta| JsFactoryMeta {
+          side_effect_free: factory_meta.side_effect_free,
+        }),
+      Err(_) => None,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn get_type(&self) -> &str {
+    let module = self.module();
+    module.module_type().as_str()
+  }
+
+  #[napi(getter)]
+  pub fn layer(&self) -> Option<&String> {
+    let module = self.module();
+    module.get_layer()
+  }
 }
 
 #[derive(Default)]
