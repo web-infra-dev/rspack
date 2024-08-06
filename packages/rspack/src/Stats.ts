@@ -18,8 +18,7 @@ export type {
 	StatsChunk,
 	StatsCompilation,
 	StatsError,
-	StatsModule,
-	StatsWarnings
+	StatsModule
 } from "./stats/statsFactoryUtils";
 
 export class Stats {

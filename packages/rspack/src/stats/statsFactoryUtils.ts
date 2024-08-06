@@ -8,21 +8,100 @@ import {
 } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
-export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
-
-export type KnownStatsChunk = Omit<
-	binding.JsStatsChunk,
-	"sizes" | "origins"
-> & {
-	sizes: Record<string, number>;
-	origins: StatsChunkOrigin[];
+export type KnownStatsChunkGroup = {
+	name?: string;
+	chunks?: (string | number)[];
+	assets?: { name: string; size?: number }[];
+	filteredAssets?: number;
+	assetsSize?: number;
+	auxiliaryAssets?: { name: string; size?: number }[];
+	filteredAuxiliaryAssets?: number;
+	auxiliaryAssetsSize?: number;
+	// children?: { [index: string]: StatsChunkGroup[] };
+	children?: {
+		preload?: StatsChunkGroup[];
+		prefetch?: StatsChunkGroup[];
+	};
+	childAssets?: { [index: string]: string[] };
+	// isOverSizeLimit?: boolean;
 };
 
-export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related">;
+export type KnownStatsChunk = {
+	type: string;
+	rendered: boolean;
+	initial: boolean;
+	entry: boolean;
+	// recorded: boolean;
+	reason?: string;
+	size: number;
+	sizes?: Record<string, number>;
+	names?: string[];
+	idHints?: string[];
+	runtime?: string[];
+	files?: string[];
+	auxiliaryFiles?: string[];
+	hash?: string;
+	childrenByOrder?: Record<string, (string | number)[]>;
+	id?: string | number;
+	siblings?: (string | number)[];
+	parents?: (string | number)[];
+	children?: (string | number)[];
+	modules?: StatsModule[];
+	filteredModules?: number;
+	origins?: StatsChunkOrigin[];
+};
 
-export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
+// export interface JsStatsAssetInfo {
+// 	minimized: boolean
+// 	development: boolean
+// 	hotModuleReplacement: boolean
+// 	sourceFilename?: string
+// 	immutable: boolean
+// 	javascriptModule?: boolean
+// 	chunkhash: Array<string>
+// 	contenthash: Array<string>
+// 	fullhash: Array<string>
+// 	related: Array<JsStatsAssetInfoRelated>
+//   }
+export type KnownAssetInfo = {
+	immutable?: boolean;
+	minimized?: boolean;
+	fullhash?: string | string[];
+	chunkhash?: string | string[];
+	// modulehash?: string | string[];
+	contenthash?: string | string[];
+	sourceFilename?: string;
+	size?: number;
+	development?: boolean;
+	hotModuleReplacement?: boolean;
+	javascriptModule?: boolean;
+	related?: Record<string, string | string[]>;
+};
 
-export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info">;
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
+
+export type StatsChunkGroup = KnownStatsChunkGroup & Record<string, any>;
+
+export type KnownStatsAsset = {
+	type: string;
+	name: string;
+	info: AssetInfo;
+	size: number;
+	emitted: boolean;
+	// comparedForEmit: boolean;
+	// cached: boolean;
+	// related?: StatsAsset[];
+	chunkNames?: (string | number)[];
+	chunkIdHints?: (string | number)[];
+	// chunks?: (string | number)[];
+	chunks?: (string | null | undefined)[];
+	auxiliaryChunkNames?: (string | number)[];
+	// auxiliaryChunks?: (string | number)[];
+	auxiliaryChunks?: (string | null | undefined)[];
+	auxiliaryChunkIdHints?: (string | number)[];
+	filteredRelated?: number;
+	isOverSizeLimit?: boolean;
+};
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
@@ -80,20 +159,32 @@ export type KnownStatsProfile = {
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
-export type StatsModuleIssuer = Omit<
-	binding.JsStatsModuleIssuer,
-	"identifier"
-> & {
+export type KnownStatsModuleIssuer = {
 	identifier?: string;
-} & Record<string, any>;
+	name?: string;
+	id?: string | number;
+	// profile?: StatsProfile;
+};
 
-export type StatsError = Omit<binding.JsStatsError, "moduleIdentifier"> & {
-	moduleIdentifier?: string;
-} & Record<string, any>;
+export type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
-export type StatsWarnings = Omit<binding.JsStatsWarning, "moduleIdentifier"> & {
+export type KnownStatsError = {
+	message: string;
+	chunkName?: string;
+	chunkEntry?: boolean;
+	chunkInitial?: boolean;
+	file?: string;
 	moduleIdentifier?: string;
-} & Record<string, any>;
+	moduleName?: string;
+	loc?: string;
+	chunkId?: string | number;
+	moduleId?: string | number;
+	moduleTrace?: StatsModuleTraceItem[];
+	details?: any;
+	stack?: string;
+};
+
+export type StatsError = KnownStatsError & Record<string, any>;
 
 export type StatsModuleTraceItem = {
 	originIdentifier?: string;
@@ -104,12 +195,22 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = Omit<
-	binding.JsStatsModuleReason,
-	"moduleIdentifier"
-> & {
+export type KnownStatsModuleReason = {
 	moduleIdentifier?: string;
-} & Record<string, any>;
+	module?: string;
+	moduleName?: string;
+	// resolvedModuleIdentifier?: string;
+	// resolvedModule?: string;
+	type?: string;
+	// active: boolean;
+	// explanation?: string;
+	userRequest?: string;
+	// loc?: string;
+	moduleId?: string | null;
+	// resolvedModuleId?: string | number;
+};
+
+export type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
 
 export type KnownStatsChunkOrigin = {
 	module: string;
@@ -144,7 +245,7 @@ export type KnownStatsCompilation = {
 	namedChunkGroups?: Record<string, StatsChunkGroup>;
 	errors?: StatsError[];
 	errorsCount?: number;
-	warnings?: StatsWarnings[];
+	warnings?: StatsError[];
 	warningsCount?: number;
 	filteredModules?: number;
 	children?: StatsCompilation[];
@@ -187,7 +288,7 @@ type ExtractorsByOption<T, O> = {
 	) => void;
 };
 
-export type PreprocessedAsset = StatsAsset & {
+export type PreprocessedAsset = binding.JsStatsAsset & {
 	type: string;
 	related: PreprocessedAsset[];
 	info: binding.JsStatsAssetInfo;
@@ -218,7 +319,7 @@ export type SimpleExtractors = {
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsWarnings>;
+	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
