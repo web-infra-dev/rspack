@@ -17,13 +17,8 @@ interface ParsedQuery {
 
 export default function getSocketUrlParts(
 	resourceQuery?: string,
-	metadata?: WDSMetaObj
+	metadata: WDSMetaObj = {}
 ): SocketUrlParts {
-	if (typeof metadata === "undefined") {
-		metadata = {};
-	}
-
-	/** @type {SocketUrlParts} */
 	const urlParts: SocketUrlParts = {} as SocketUrlParts;
 
 	// If the resource query is available,
@@ -32,8 +27,7 @@ export default function getSocketUrlParts(
 		const parsedQuery: ParsedQuery = {} as ParsedQuery;
 		const searchParams = new URLSearchParams(resourceQuery.slice(1));
 		searchParams.forEach((value, key) => {
-			// @ts-expect-error -- ignore
-			parsedQuery[key] = value;
+			parsedQuery[key as keyof ParsedQuery] = value;
 		});
 
 		urlParts.hostname = parsedQuery.sockHost;
@@ -52,7 +46,7 @@ export default function getSocketUrlParts(
 			// The placeholder `baseURL` with `window.location.href`,
 			// is to allow parsing of path-relative or protocol-relative URLs,
 			// and will have no effect if `scriptSource` is a fully valid URL.
-			url = new URL(scriptSource, window.location.href);
+			url = new URL(scriptSource!, window.location.href);
 		} catch (e) {
 			// URL parsing failed, do nothing.
 			// We will still proceed to see if we can recover using `resourceQuery`

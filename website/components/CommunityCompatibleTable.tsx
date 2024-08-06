@@ -48,6 +48,23 @@ export interface PluginSupportStatus {
   description?: string;
 }
 
+const getNotesText = (
+  lang: string,
+  description: PluginSupportStatus['description'],
+  status: PluginSupportStatus['status'],
+) => {
+  if (description) {
+    return (
+      <div>
+        <Markdown>{description}</Markdown>
+      </div>
+    );
+  }
+  if (status === CompatibleStatus.NotCompatible) {
+    return lang === 'zh' ? '待支持' : 'To be implemented';
+  }
+};
+
 export const CommunityPluginCompatibleTable: React.FC = () => {
   const lang = useLang() as 'zh' | 'en';
 
@@ -267,19 +284,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
-          const notesText = (() => {
-            if (description) {
-              return (
-                <div>
-                  <Markdown>{description}</Markdown>
-                </div>
-              );
-            }
-            if (status === CompatibleStatus.NotCompatible) {
-              return lang === 'zh' ? '待支持' : 'To be implemented';
-            }
-          })();
-
           return {
             name: (
               <a href={url} target="_blank" rel="noreferrer">
@@ -287,7 +291,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
               </a>
             ),
             status: statusText,
-            notes: notesText,
+            notes: getNotesText(lang, description, status),
           };
         })}
     />

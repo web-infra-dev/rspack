@@ -25,7 +25,8 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
                       href={`/config/mode#${mode}`}
                     >
                       {mode} mode
-                    </a>{' '}
+                    </a>
+                    &nbsp;
                     <span>is</span>
                   </>
                 )}
@@ -58,7 +59,8 @@ PropertyType.CN = ({ type, defaultValueList }) => {
                       href={`/config/mode#${mode}`}
                     >
                       {mode} 模式
-                    </a>{' '}
+                    </a>
+                    &nbsp;
                     <span>为</span>
                   </>
                 )}

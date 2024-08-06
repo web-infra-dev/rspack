@@ -1,7 +1,7 @@
 import {
   Benchmark as BaseBenchmark,
   type BenchmarkData,
-} from 'rsfamily-doc-ui/benchmark';
+} from '@rstack-dev/doc-ui/benchmark';
 import { useI18n } from '../../i18n';
 import styles from './index.module.scss';
 

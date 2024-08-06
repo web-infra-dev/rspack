@@ -75,21 +75,21 @@ interface PluginOptions {
       name: '`filename`',
       type: '`string`',
       default: '"[name].css"',
-      description: 'CSS 产物的名字，请见 output.filename',
+      description: 'CSS 产物的名称，请参考 `output.filename`',
     },
     {
       name: '`chunkFilename`',
       type: '`string`',
       default: '"[name].css"',
       description:
-        'CSS 异步加载产物的名字，如果不设置则会使用 filename，请见 output.chunkFilename',
+        '异步加载的 CSS 产物的名称，如果不设置则会使用 `filename`，请参考 `output.chunkFilename`',
     },
     {
       name: '`ignoreOrder`',
       type: '`boolean`',
       default: 'false',
       description:
-        '若某些 CSS 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css b.css，entryB 引入 b.css a.css，a.css 和 b.css 的顺序无法确定',
+        '若某些 CSS 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css 和 b.css，entryB 引入 b.css 和 a.css，a.css 和 b.css 的顺序无法确定',
     },
     {
       name: '`insert`',
@@ -102,25 +102,27 @@ interface PluginOptions {
       name: '`attributes`',
       type: '`Record<string, string>`',
       default: 'undefined',
-      description: '给 link 标签添加 attributes',
+      description:
+        '设置 link 标签的自定义 attributes，仅对异步加载的 CSS 文件生效',
     },
     {
       name: '`linkType`',
       type: "`string | 'text/css' | false`",
       default: '"text/css"',
-      description: '设置 link 标签的 type',
+      description: '设置 link 标签的 type 属性值，仅对异步加载的 CSS 文件生效',
     },
     {
       name: '`runtime`',
       type: '`boolean`',
       default: 'true',
-      description: '是否注入 CSS 加载相关的 runtime 代码',
+      description:
+        '是否注入 runtime 代码以加载 CSS。如果禁用，CSS 仍然会被提取，可用于自定义的加载方式',
     },
     {
       name: '`pathinfo`',
       type: '`boolean`',
       default: 'false',
-      description: '产物中是否保留更详细的 CSS 路径信息',
+      description: '是否在 CSS 产物中包含带有更详细的路径信息的注释',
     },
   ]}
 />
@@ -163,19 +165,22 @@ interface LoaderOptions {
       name: '`publicPath`',
       type: '`string | ((resourcePath: string, context: string) => string)`',
       default: 'output.publicPath',
-      description: 'CSS 模块中的 publicPath',
+      description:
+        '为 CSS 中的外部资源（如图片、文件等）指定自定义的 publicPath',
     },
     {
       name: '`emit`',
       type: '`boolean`',
       default: 'true',
-      description: '是否提取出 CSS 文件，设置为 false 则不会产生 CSS 文件',
+      description:
+        '如果为 true，则输出 CSS 文件。如果为 false，则插件将提取 CSS，但不会输出文件',
     },
     {
       name: '`esModule`',
       type: '`boolean`',
       default: 'true',
-      description: '是否使用 ES 模块语法进行 CSS Modules 类名导出',
+      description:
+        '在生成的 JavaScript 模块中，是否使用 ES 模块语法进行 CSS Modules 类名导出',
     },
   ]}
 />

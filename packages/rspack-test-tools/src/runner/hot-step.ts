@@ -121,11 +121,13 @@ export class HotStepRunnerFactory<
 			testConfig: {
 				...testConfig,
 				moduleScope(ms, stats) {
-					if (typeof testConfig.moduleScope === "function") {
-						ms = testConfig.moduleScope(ms, stats);
-					}
-					ms.NEXT = next;
-					return ms;
+					const moduleScope =
+						typeof testConfig.moduleScope === "function"
+							? testConfig.moduleScope(ms, stats)
+							: ms;
+
+					moduleScope.NEXT = next;
+					return moduleScope;
 				}
 			},
 			source,

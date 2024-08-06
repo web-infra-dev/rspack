@@ -16,8 +16,8 @@ import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { default as default_2 } from './util/hash';
-import { DependenciesBlockDTO } from '@rspack/binding';
-import { DependencyDTO } from '@rspack/binding';
+import type { DependenciesBlockDTO } from '@rspack/binding';
+import type { DependencyDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -1042,7 +1042,7 @@ export class Compilation {
     // (undocumented)
     createStatsFactory(options: StatsOptions): StatsFactory;
     // (undocumented)
-    createStatsOptions(optionsOrPreset: StatsValue | undefined, context?: CreateStatsOptionsContext): NormalizedStatsOptions;
+    createStatsOptions(statsValue: StatsValue | undefined, context?: CreateStatsOptionsContext): NormalizedStatsOptions;
     // (undocumented)
     createStatsPrinter(options: StatsOptions): StatsPrinter;
     // (undocumented)
@@ -1130,6 +1130,7 @@ export class Compilation {
         Set<string>
         ], void>;
         runtimeModule: RuntimeModule;
+        seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
     // (undocumented)
@@ -1324,6 +1325,8 @@ export class Compiler {
     resolverFactory: ResolverFactory;
     // (undocumented)
     root: Compiler;
+    // (undocumented)
+    rspack: typeof rspack;
     // (undocumented)
     run(callback: liteTapable.Callback<Error, Stats>): void;
     // (undocumented)
@@ -5500,11 +5503,13 @@ export class LoaderOptionsPlugin {
     constructor(options?: LoaderOptionsPluginOptions);
     apply(compiler: Compiler): void;
     // (undocumented)
-    options: MatchObject;
+    options: LoaderOptionsPluginOptions;
 }
 
 // @public (undocumented)
-type LoaderOptionsPluginOptions = any;
+type LoaderOptionsPluginOptions = MatchObject & {
+    [key: string]: unknown;
+};
 
 // @public (undocumented)
 export class LoaderTargetPlugin {
@@ -6698,7 +6703,7 @@ export class MultiStats {
     // (undocumented)
     stats: Stats[];
     // (undocumented)
-    toJson(options?: any): StatsCompilation;
+    toJson(options: any): StatsCompilation;
     // (undocumented)
     toString(options: any): string;
 }
@@ -13358,7 +13363,7 @@ export interface RspackPluginInstance {
 }
 
 // @public (undocumented)
-export const rspackVersion: any;
+export const rspackVersion: string;
 
 // @public
 type Rule = RegExp | string;
@@ -14533,9 +14538,9 @@ export class Template {
     // (undocumented)
     static indent(s: string | string[]): string;
     // (undocumented)
-    static numberToIdentifier(n: number): string;
+    static numberToIdentifier(num: number): string;
     // (undocumented)
-    static numberToIdentifierContinuation(n: number): string;
+    static numberToIdentifierContinuation(num: number): string;
     // (undocumented)
     static prefix(s: string | string[], prefix: string): string;
     // (undocumented)
@@ -14745,7 +14750,7 @@ export const util: {
 };
 
 // @public (undocumented)
-export const version: any;
+export const version: string;
 
 // @public (undocumented)
 interface Wasm {

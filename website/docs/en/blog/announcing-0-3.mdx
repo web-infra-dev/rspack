@@ -12,7 +12,7 @@ In version 0.3, Rspack aligns the default CSS handling behavior with webpack whe
 
 ### Removal of @rspack/postcss-loader and builtins.postcss
 
-Before Rspack fully supported `postcss-loader`, Rspack implemented `@rspack/postcss-loader` and built-in `builtins.postcss` to fulfill the functionality. Currently, Rspack fully supports `postcss-loader`, so we have decided to deprecate `@rspack/postcss-loader` and `builtins.postcss`. Users of `@rspack/postcss-loader` can seamlessly migrate to `postcss-loader`, while users that previously used Rspack’s `builtins.postcss` for the `px2rem` conversion functionality can migrate to `postcss-loader` and `postcss-plugin-px2rem`. Here is the migration process:
+Before Rspack fully supported `postcss-loader`, Rspack implemented `@rspack/postcss-loader` and built-in `builtins.postcss` to fulfill the functionality. Currently, Rspack fully supports `postcss-loader`, so we have decided to deprecate `@rspack/postcss-loader` and `builtins.postcss`. Users of `@rspack/postcss-loader` can seamlessly migrate to `postcss-loader`, while users that previously used Rspack's `builtins.postcss` for the `px2rem` conversion functionality can migrate to `postcss-loader` and `postcss-plugin-px2rem`. Here is the migration process:
 
 • Before:
 
@@ -61,7 +61,7 @@ module.exports = {
 
 ### Removal of Built-in CSS Autoprefixer Functionality
 
-To align better with webpack’s CSS handling, Rspack removes the built-in autoprefixer functionality in 0.3. You can use `postcss-loader` to achieve `autoprefixer`.
+To align better with webpack's CSS handling, Rspack removes the built-in autoprefixer functionality in 0.3. You can use `postcss-loader` to achieve `autoprefixer`.
 
 ```js
 module.exports = {
@@ -90,7 +90,7 @@ You can refer to the [examples/postcss-loader](https://github.com/rspack-contrib
 
 ### Access to Internal Modules Restricted
 
-Due to the current instability of the internal module API in Rspack, directly accessing the internal modules can easily lead to breaking changes. Therefore, Rspack restricts the ability to directly access internal modules and only supports accessing Rspack’s API from the root module.
+Due to the current instability of the internal module API in Rspack, directly accessing the internal modules can easily lead to breaking changes. Therefore, Rspack restricts the ability to directly access internal modules and only supports accessing Rspack's API from the root module.
 
 • Before:
 

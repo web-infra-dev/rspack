@@ -3,7 +3,23 @@ export interface WDSMetaObj {
 	version?: number;
 }
 
-export default function getWDSMetadata(SocketClient: any): WDSMetaObj {
+declare class WebSocketClient {
+	public client: WebSocket;
+
+	constructor(url: string);
+
+	onOpen(f: (...args: any[]) => void): void;
+
+	onClose(f: (...args: any[]) => void): void;
+
+	onMessage(f: (...args: any[]) => void): void;
+}
+
+export interface SocketClient {
+	new (url: string): WebSocketClient;
+}
+
+export default function getWDSMetadata(SocketClient: SocketClient): WDSMetaObj {
 	let enforceWs = false;
 	if (
 		typeof SocketClient.name !== "undefined" &&

@@ -55,13 +55,17 @@ function getCurrentScriptUrl(moduleId) {
     };
 }
 function updateCss(el, url) {
+    let normalizedUrl;
     if (!url) {
         if (!el.href) {
             return;
         }
-        url = el.href.split("?")[0];
+        normalizedUrl = el.href.split("?")[0];
     }
-    if (!isUrlRequest(url)) {
+    else {
+        normalizedUrl = url;
+    }
+    if (!isUrlRequest(normalizedUrl)) {
         return;
     }
     if (el.isLoaded === false) {
@@ -69,7 +73,7 @@ function updateCss(el, url) {
         // We're probably changing the same file more than once.
         return;
     }
-    if (!url || !(url.indexOf(".css") > -1)) {
+    if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
         return;
     }
     el.visited = true;
@@ -89,7 +93,7 @@ function updateCss(el, url) {
         newEl.isLoaded = true;
         el.parentNode?.removeChild(el);
     });
-    newEl.href = `${url}?${Date.now()}`;
+    newEl.href = `${normalizedUrl}?${Date.now()}`;
     if (el.nextSibling) {
         el.parentNode?.insertBefore(newEl, el.nextSibling);
     }
@@ -99,9 +103,9 @@ function updateCss(el, url) {
 }
 function getReloadUrl(href, src) {
     let ret = "";
-    href = (0, normalizeUrl_1.normalizeUrl)(href);
+    const normalizedHref = (0, normalizeUrl_1.normalizeUrl)(href);
     src.some(url => {
-        if (href.indexOf(src) > -1) {
+        if (normalizedHref.indexOf(src) > -1) {
             ret = url;
         }
     });
@@ -180,8 +184,8 @@ exports.cssReload = cssReload;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.normalizeUrl = void 0;
-function normalizeUrl(urlString) {
-    urlString = urlString.trim();
+function normalizeUrl(url) {
+    const urlString = url.trim();
     if (/^data:/i.test(urlString)) {
         return urlString;
     }

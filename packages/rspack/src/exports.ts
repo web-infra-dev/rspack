@@ -1,5 +1,14 @@
-const { version: rspackVersion, webpackVersion } = require("../package.json");
-export { rspackVersion, webpackVersion as version };
+import {
+	version as _version,
+	webpackVersion as _webpackVersion
+	// @ts-ignore 'package.json' is not under 'rootDir'
+} from "../package.json";
+
+// this is a hack to be compatible with plugin which detect webpack's version
+const rspackVersion = _version as string;
+const version = _webpackVersion as string;
+
+export { rspackVersion, version };
 
 export type {
 	Asset,

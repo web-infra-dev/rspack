@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
@@ -40,7 +42,9 @@ pub async fn module_rule_matcher<'a>(
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule.try_match(resource_data.resource.as_str()).await?
+    && !test_rule
+      .try_match(resource_data.resource.as_str().into())
+      .await?
   {
     return Ok(false);
   }
@@ -51,27 +55,28 @@ pub async fn module_rule_matcher<'a>(
     resource_data
       .resource_path
       .as_deref()
-      .map(|p| p.to_string_lossy().into_owned())
-      .unwrap_or_default()
+      .map(|p| p.to_string_lossy())
+      .unwrap_or_else(|| Cow::Borrowed(""))
   };
+
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.try_match(resource_path().as_str()).await?
+    && !test_rule.try_match((&resource_path()).into()).await?
   {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.try_match(resource_path().as_str()).await?
+    && !resource_rule.try_match((&resource_path()).into()).await?
   {
     return Ok(false);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule.try_match(resource_path().as_str()).await?
+    && !include_rule.try_match((&resource_path()).into()).await?
   {
     return Ok(false);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.try_match(resource_path().as_str()).await?
+    && exclude_rule.try_match((&resource_path()).into()).await?
   {
     return Ok(false);
   }
@@ -79,7 +84,7 @@ pub async fn module_rule_matcher<'a>(
   if let Some(resource_query_rule) = &module_rule.resource_query {
     if let Some(resource_query) = &resource_data.resource_query {
       if !resource_query_rule
-        .try_match(resource_query.as_str())
+        .try_match(resource_query.as_str().into())
         .await?
       {
         return Ok(false);
@@ -92,7 +97,7 @@ pub async fn module_rule_matcher<'a>(
   if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
     if let Some(resource_fragment) = &resource_data.resource_fragment {
       if !resource_fragment_condition
-        .try_match(resource_fragment.as_str())
+        .try_match(resource_fragment.as_str().into())
         .await?
       {
         return Ok(false);
@@ -104,7 +109,10 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(mimetype_condition) = &module_rule.mimetype {
     if let Some(mimetype) = &resource_data.mimetype {
-      if !mimetype_condition.try_match(mimetype.as_str()).await? {
+      if !mimetype_condition
+        .try_match(mimetype.as_str().into())
+        .await?
+      {
         return Ok(false);
       }
     } else {
@@ -117,27 +125,29 @@ pub async fn module_rule_matcher<'a>(
     if scheme.is_none() {
       return Ok(false);
     }
-    if !scheme_condition.try_match(scheme.as_str()).await? {
+    if !scheme_condition.try_match(scheme.as_str().into()).await? {
       return Ok(false);
     }
   }
 
   if let Some(issuer_rule) = &module_rule.issuer
     && let Some(issuer) = issuer
-    && !issuer_rule.try_match(issuer).await?
+    && !issuer_rule.try_match(issuer.into()).await?
   {
     return Ok(false);
   }
 
   if let Some(issuer_layer_rule) = &module_rule.issuer_layer
     && let Some(issuer_layer) = issuer_layer
-    && !issuer_layer_rule.try_match(issuer_layer).await?
+    && !issuer_layer_rule.try_match(issuer_layer.into()).await?
   {
     return Ok(false);
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
-    && !dependency_rule.try_match(dependency.as_str()).await?
+    && !dependency_rule
+      .try_match(dependency.as_str().into())
+      .await?
   {
     return Ok(false);
   }
@@ -149,7 +159,7 @@ pub async fn module_rule_matcher<'a>(
           .split('.')
           .try_fold(resource_description.json(), |acc, key| acc.get(key))
         {
-          if !matcher.try_match(v).await? {
+          if !matcher.try_match(v.into()).await? {
             return Ok(false);
           }
         } else {
@@ -165,7 +175,7 @@ pub async fn module_rule_matcher<'a>(
     if let Some(attributes) = attributes {
       for (k, matcher) in with {
         if let Some(v) = attributes.get(k) {
-          if !matcher.try_match(v).await? {
+          if !matcher.try_match(v.into()).await? {
             return Ok(false);
           }
         } else {

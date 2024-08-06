@@ -8,7 +8,7 @@ type Stats = {
   endTime?: number;
   hasErrors(): bool;
   hasWarnings(): bool;
-  toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation;
+  toJson(opts?: StatsValue): StatsCompilation;
   toString(opts?: StatsValue): string;
 };
 ```

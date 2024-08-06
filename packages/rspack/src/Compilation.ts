@@ -215,6 +215,7 @@ export class Compilation {
 			void
 		>;
 		runtimeModule: RuntimeModule;
+		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
 	name?: string;
@@ -267,11 +268,14 @@ export class Compilation {
 			) => `Can't automatically convert plugin using Compilation.hooks.${name} to Compilation.hooks.processAssets because ${reason}.
 BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a single Compilation.hooks.processAssets hook.`;
 			const getOptions = (options: liteTapable.Options) => {
-				if (typeof options === "string") options = { name: options };
-				if (options.stage) {
+				const isString = typeof options === "string";
+				if (!isString && options.stage) {
 					throw new Error(errorMessage("it's using the 'stage' option"));
 				}
-				return { ...options, stage: stage };
+				return {
+					...(isString ? { name: options } : options),
+					stage: stage
+				};
 			};
 			return Object.freeze({
 				name,
@@ -343,6 +347,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"runtimeRequirements"
 			]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
+			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
@@ -513,9 +518,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	createStatsOptions(
-		optionsOrPreset: StatsValue | undefined,
+		statsValue: StatsValue | undefined,
 		context: CreateStatsOptionsContext = {}
 	): NormalizedStatsOptions {
+		let optionsOrPreset = statsValue;
 		if (
 			typeof optionsOrPreset === "boolean" ||
 			typeof optionsOrPreset === "string"
@@ -782,14 +788,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					warns = processWarningsHook.call(warns as any);
-					for (let i = 0; i < warns.length; i++) {
-						const warn = warns[i];
-						inner.pushDiagnostic(
-							JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-						);
-					}
-					return Reflect.apply(target, thisArg, warns);
+					return Reflect.apply(
+						target,
+						thisArg,
+						processWarningsHook.call(warns as any).map(warn => {
+							inner.pushDiagnostic(
+								JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+							);
+							return warn;
+						})
+					);
 				}
 			},
 			{
@@ -816,12 +824,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					warns = processWarningsHook.call(warns as any);
-					const warnList = warns.map(warn => {
-						return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
-					});
-					inner.spliceDiagnostic(0, 0, warnList);
-					return Reflect.apply(target, thisArg, warns);
+					const warnings = processWarningsHook.call(warns as any);
+					inner.spliceDiagnostic(
+						0,
+						0,
+						warnings.map(warn => {
+							return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
+						})
+					);
+					return Reflect.apply(target, thisArg, warnings);
 				}
 			},
 			{
@@ -874,12 +885,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!name) {
 			throw new TypeError("Compilation.getLogger(name) called without a name");
 		}
+
+		let logName = name;
 		let logEntries: LogEntry[] | undefined;
+
 		return new Logger(
 			(type, args) => {
-				if (typeof name === "function") {
-					name = name();
-					if (!name) {
+				if (typeof logName === "function") {
+					logName = logName();
+					if (!logName) {
 						throw new TypeError(
 							"Compilation.getLogger(name) called with a function not returning a name"
 						);
@@ -901,76 +915,77 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					args,
 					trace
 				};
-				if (this.hooks.log.call(name, logEntry) === undefined) {
+				if (this.hooks.log.call(logName, logEntry) === undefined) {
 					if (logEntry.type === LogType.profileEnd) {
 						if (typeof console.profileEnd === "function") {
-							console.profileEnd(`[${name}] ${logEntry.args[0]}`);
+							console.profileEnd(`[${logName}] ${logEntry.args[0]}`);
 						}
 					}
 					if (logEntries === undefined) {
-						logEntries = this.logging.get(name);
+						logEntries = this.logging.get(logName);
 						if (logEntries === undefined) {
 							logEntries = [];
-							this.logging.set(name, logEntries);
+							this.logging.set(logName, logEntries);
 						}
 					}
 					logEntries.push(logEntry);
 					if (logEntry.type === LogType.profile) {
 						if (typeof console.profile === "function") {
-							console.profile(`[${name}] ${logEntry.args[0]}`);
+							console.profile(`[${logName}] ${logEntry.args[0]}`);
 						}
 					}
 				}
 			},
 			(childName): Logger => {
-				if (typeof name === "function") {
-					if (typeof childName === "function") {
+				let normalizedChildName = childName;
+				if (typeof logName === "function") {
+					if (typeof normalizedChildName === "function") {
 						return this.getLogger(() => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
+							if (typeof logName === "function") {
+								logName = logName();
+								if (!logName) {
 									throw new TypeError(
 										"Compilation.getLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
+							if (typeof normalizedChildName === "function") {
+								normalizedChildName = normalizedChildName();
+								if (!normalizedChildName) {
 									throw new TypeError(
 										"Logger.getChildLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							return `${name}/${childName}`;
+							return `${logName}/${normalizedChildName}`;
 						});
 					}
 					return this.getLogger(() => {
-						if (typeof name === "function") {
-							name = name();
-							if (!name) {
+						if (typeof logName === "function") {
+							logName = logName();
+							if (!logName) {
 								throw new TypeError(
 									"Compilation.getLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${logName}/${normalizedChildName}`;
 					});
 				}
-				if (typeof childName === "function") {
+				if (typeof normalizedChildName === "function") {
 					return this.getLogger(() => {
-						if (typeof childName === "function") {
-							childName = childName();
-							if (!childName) {
+						if (typeof normalizedChildName === "function") {
+							normalizedChildName = normalizedChildName();
+							if (!normalizedChildName) {
 								throw new TypeError(
 									"Logger.getChildLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${logName}/${normalizedChildName}`;
 					});
 				}
-				return this.getLogger(`${name}/${childName}`);
+				return this.getLogger(`${logName}/${normalizedChildName}`);
 			}
 		);
 	}

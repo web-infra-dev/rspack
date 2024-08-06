@@ -118,8 +118,8 @@ recognise
 Rollup
 rome
 rsbuild
-Rsdoctor
 rsdoctor
+Rsdoctor
 rsdoctors
 rsfamily
 Rslib
@@ -128,6 +128,7 @@ Rspack
 rspackplugin
 rspress
 Rspress
+rstack
 ruid
 ruleoneof
 ruleparserdataurlcondition
@@ -157,6 +158,7 @@ tuchg
 typeofs
 TypeScript
 ulivz
+Undelayed
 valorkin
 vant
 viktoriialurie

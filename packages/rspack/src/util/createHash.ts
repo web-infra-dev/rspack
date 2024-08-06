@@ -120,11 +120,21 @@ class DebugHash extends Hash {
 	 * @returns updated hash
 	 */
 	update(data: string | Buffer, _inputEncoding?: string): this {
-		if (typeof data !== "string") data = data.toString("utf-8");
-		if (data.startsWith("debug-digest-")) {
-			data = Buffer.from(data.slice("debug-digest-".length), "hex").toString();
+		let normalizedData: string;
+		if (typeof data !== "string") {
+			normalizedData = data.toString("utf-8");
+		} else {
+			normalizedData = data;
 		}
-		this.string += `[${data}](${new Error().stack?.split("\n", 3)[2]})\n`;
+
+		if (normalizedData.startsWith("debug-digest-")) {
+			normalizedData = Buffer.from(
+				normalizedData.slice("debug-digest-".length),
+				"hex"
+			).toString();
+		}
+
+		this.string += `[${normalizedData}](${new Error().stack?.split("\n", 3)[2]})\n`;
 		return this;
 	}
 

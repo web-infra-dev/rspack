@@ -10,10 +10,10 @@ export default function getCurrentScriptSource() {
 	}
 	// Fallback to getting all scripts running in the document,
 	// and finding the last one injected.
-	const scriptElementsWithSrc = Array.prototype.filter.call(
-		(document as Document).scripts || [],
-		elem => elem.getAttribute("src")
-	);
+	const scriptElementsWithSrc: HTMLOrSVGScriptElement[] =
+		Array.prototype.filter.call((document as Document).scripts || [], elem =>
+			elem.getAttribute("src")
+		);
 	if (!scriptElementsWithSrc.length) return;
 	const currentScript = scriptElementsWithSrc[scriptElementsWithSrc.length - 1];
 	return currentScript.getAttribute("src");

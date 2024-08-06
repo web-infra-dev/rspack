@@ -609,7 +609,8 @@ export async function runLoaders(
 		);
 	};
 	loaderContext.rootContext = compiler.context;
-	loaderContext.emitError = function emitError(error) {
+	loaderContext.emitError = function emitError(err) {
+		let error = err;
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
@@ -626,7 +627,8 @@ export async function runLoaders(
 			severity: JsRspackSeverity.Error
 		});
 	};
-	loaderContext.emitWarning = function emitWarning(warning) {
+	loaderContext.emitWarning = function emitWarning(warn) {
+		let warning = warn;
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
