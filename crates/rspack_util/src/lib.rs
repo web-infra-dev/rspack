@@ -2,6 +2,7 @@
 
 mod merge;
 
+pub mod asset_condition;
 pub mod atom;
 pub mod comparators;
 pub mod diff_mode;

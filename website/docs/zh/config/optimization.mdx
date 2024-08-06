@@ -87,11 +87,17 @@ module.exports = {
     // 但你可以配合使用 '...'，它代表默认压缩器
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
-        format: {
-          comments: false,
+        minimizerOptions: {
+          format: {
+            comments: false,
+          },
         },
       }),
-      new rspack.SwcCssMinimizerRspackPlugin(),
+      new rspack.SwcCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          errorRecovery: false,
+        },
+      }),
     ],
   },
 };
@@ -230,16 +236,26 @@ module.exports = {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-`optimization.innerGraph` 告诉 Rspack 是否进行未使用导出的内部图分析。
 
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    innerGraph: false,
-  },
-};
+`optimization.innerGraph` 告诉 Rspack 是否对变量传递进行更详细的分析，这有助于 Rspack 识别未使用的模块导出，从而减少打包产物的体积。
+
+例如：
+
+```js
+import { value } from 'lib';
+
+const value2 = value;
+
+function f1() {
+  console.log(value);
+}
+
+function f2() {
+  console.log(value2);
+}
 ```
+
+这里我们将 `value` 赋值给了 `value2`，`value2` 和 `value` 也分别在函数 `f2` 和 `f1` 中被访问，但函数没有被调用，因此没有使用到 `value2` 和 `value`，因此 `value` 的导入是可以被删除的。
 
 ## optimization.providedExports
 

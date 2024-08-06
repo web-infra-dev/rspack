@@ -39,7 +39,7 @@ module.exports = {
 		  entry ./fixtures/a
 		  cjs self exports reference self [585]
 		  
-		Rspack compiled successfully (cff2f148f1ee5ac48614)"
+		Rspack compiled successfully (4bbdb7fecd05e748d349)"
 	`);
 	}
 };

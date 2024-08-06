@@ -46,7 +46,7 @@ pub fn get_used_module_ids_and_modules(
     .for_each(|module| {
       let module_id = chunk_graph.get_module_id(module.identifier());
       if let Some(module_id) = module_id {
-        used_ids.insert(module_id.clone());
+        used_ids.insert(module_id.to_string());
       } else {
         if filter.as_ref().map_or(true, |f| (f)(module))
           && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
@@ -504,8 +504,8 @@ fn compare_chunks_by_modules(
         let a_module_id = chunk_graph.get_module_id(a_module.identifier());
         let b_module_id = chunk_graph.get_module_id(b_module.identifier());
         let ordering = compare_ids(
-          &a_module_id.clone().unwrap_or_default(),
-          &b_module_id.clone().unwrap_or_default(),
+          a_module_id.unwrap_or_default(),
+          b_module_id.unwrap_or_default(),
         );
         if ordering != Ordering::Equal {
           return Some(ordering);

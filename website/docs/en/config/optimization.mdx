@@ -88,11 +88,17 @@ module.exports = {
     // but you can use '...', it represents the default minimizers
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
-        format: {
-          comments: false,
+        minimizerOptions: {
+          format: {
+            comments: false,
+          },
         },
       }),
-      new rspack.SwcCssMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          errorRecovery: false,
+        },
+      }),
     ],
   },
 };
@@ -237,16 +243,25 @@ module.exports = {
   ]}
 />
 
-`optimization.innerGraph` tells Rspack whether to conduct inner graph analysis for unused exports.
+`optimization.innerGraph` tells Rspack whether to perform a more detailed analysis of variable assignments. This helps Rspack to identify unused module exports, thereby reducing the size of the bundled output.
 
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    innerGraph: false,
-  },
-};
+For example:
+
+```js
+import { value } from 'lib';
+
+const value2 = value;
+
+function f1() {
+  console.log(value);
+}
+
+function f2() {
+  console.log(value2);
+}
 ```
+
+Here we assign the `value` to `value2`. Both `value2` and `value` are accessed within the functions `f2` and `f1` respectively, but the functions are not called, hence `value2` and `value` are not actually used, thus the import of `value` can be removed.
 
 ## optimization.providedExports
 

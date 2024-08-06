@@ -8,8 +8,10 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			compress: {
-				drop_console: true
+			minimizerOptions: {
+				compress: {
+					drop_console: true
+				}
 			}
 		})
 	]

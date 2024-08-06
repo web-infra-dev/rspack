@@ -56,7 +56,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     let module_id = compilation
       .chunk_graph
       .get_module_id(module.identifier())
-      .clone()
+      .map(|s| s.to_string())
       .unwrap_or_default();
 
     init_fragments.push(Box::new(NormalInitFragment::new(
