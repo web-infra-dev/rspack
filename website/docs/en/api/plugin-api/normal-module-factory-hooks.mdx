@@ -3,15 +3,15 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory
 
-The `NormalModuleFactory` module is used by the [Compiler](/api/javascript-api/compiler) to generate modules. Starting with entry points, it resolves each request, parses the content to find further requests, and keeps crawling through files by resolving all and parsing any new files. At last stage, each dependency becomes a Module instance.
+`NormalModuleFactory` is used by the [Compiler](/api/javascript-api/compiler) to generate modules (`NormalModule`). Starting from each entry module (`entry`), it resolves the dependency requests of the modules to obtain the final paths of the dependencies. Based on these final paths, it creates `NormalModule` instances. It then further resolves the dependency requests of the newly created modules. This process is recursive, creating each module as a `NormalModule` through `NormalModuleFactory`.
 
-The `NormalModuleFactory` class extends `Tapable` and provides the following lifecycle hooks. They can be tapped the same way as compiler hooks:
+`NormalModuleFactory` provides the following lifecycle hooks. These can be used just like `Compiler` hooks:
 
 ```js
 NormalModuleFactory.hooks.someHook.tap(/* ... */);
 ```
 
-Besides `tap()`, you can also use `tapAsync()` and `tapPromise()`, depending on the type of hook.
+All hooks inherit from `Tapable`. In addition to `tap()`, you can also use `tapAsync()` and `tapPromise()`, depending on the type of the hook.
 
 ## `beforeResolve`
 
