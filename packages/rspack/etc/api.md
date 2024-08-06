@@ -1875,15 +1875,15 @@ interface Drafts {
 }
 
 // @public (undocumented)
-export const DynamicEntryPlugin: {
-    new (context: string, entry: EntryDynamicNormalized): {
-        name: BuiltinPluginName;
-        _args: [context: string, entry: EntryDynamicNormalized];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+export class DynamicEntryPlugin extends RspackBuiltinPlugin {
+    constructor(context: string, entry: EntryDynamicNormalized);
+    // (undocumented)
+    affectedHooks: "make";
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin | undefined;
+}
 
 // @public (undocumented)
 interface Electron {

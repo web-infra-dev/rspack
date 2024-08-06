@@ -79,8 +79,8 @@ impl ModuleFilenameHelpers {
         let identifier = contextify(context, module_identifier);
         let module_id = chunk_graph
           .get_module_id(*module_identifier)
-          .clone()
-          .unwrap_or("".to_string());
+          .map(|s| s.to_string())
+          .unwrap_or_default();
         let absolute_resource_path = "".to_string();
 
         let hash = get_hash(&identifier, output_options);

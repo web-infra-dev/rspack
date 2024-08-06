@@ -396,7 +396,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         let module_id = compilation
           .chunk_graph
           .get_module_id(identifier)
-          .clone()
           .unwrap_or_default();
 
         if let Some(exports) = &self.exports {
@@ -408,7 +407,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
           static RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#"\\"#).expect("should compile"));
-          let module_id = RE.replace_all(&module_id, "/");
+          let module_id = RE.replace_all(module_id, "/");
 
           let meta_data = used
             .iter()
@@ -426,7 +425,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
                     let module_id = compilation
                       .chunk_graph
                       .get_module_id(module.identifier())
-                      .as_deref()
                       .expect("should have module id");
 
                     format!(
@@ -455,7 +453,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           context.data.insert(CssUsedExports(format!(
             "{}{}",
             if self.es_module { "&" } else { "" },
-            escape_css(&module_id, false)
+            escape_css(module_id, false)
           )));
         }
 
