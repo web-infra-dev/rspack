@@ -16,6 +16,8 @@ import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { default as default_2 } from './util/hash';
+import { DependenciesBlockDTO } from '@rspack/binding';
+import { DependencyDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -32,7 +34,7 @@ import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
-import { JsModule } from '@rspack/binding';
+import type { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
@@ -41,6 +43,7 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
+import type { ModuleDTO } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import type { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -998,8 +1001,6 @@ export class Compilation {
         buildMeta: Record<string, unknown>;
     };
     // @internal
-    __internal__getModules(): JsModule[];
-    // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
     __internal__pushDiagnostic(diagnostic: binding.JsDiagnostic): void;
@@ -1773,6 +1774,26 @@ export type Dependencies = z.infer<typeof dependencies>;
 
 // @public (undocumented)
 const dependencies: z.ZodArray<z.ZodString, "many">;
+
+// @public (undocumented)
+class DependenciesBlock {
+    constructor(binding: DependenciesBlockDTO);
+    // (undocumented)
+    get blocks(): DependenciesBlock[];
+    // (undocumented)
+    get dependencies(): Dependency[];
+}
+
+// @public (undocumented)
+class Dependency {
+    constructor(binding: DependencyDTO);
+    // (undocumented)
+    get category(): string;
+    // (undocumented)
+    get request(): string | undefined;
+    // (undocumented)
+    get type(): string;
+}
 
 // @public (undocumented)
 type DependencyLocation = any;
@@ -5626,9 +5647,11 @@ const mode: z.ZodEnum<["development", "production", "none"]>;
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule, compilation?: Compilation);
+    constructor(module: JsModule | ModuleDTO, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule, compilation?: Compilation): Module;
+    static __from_binding(module: JsModule | ModuleDTO, compilation?: Compilation): Module;
+    // (undocumented)
+    get blocks(): DependenciesBlock[];
     buildInfo: Record<string, any>;
     buildMeta: Record<string, any>;
     // (undocumented)
