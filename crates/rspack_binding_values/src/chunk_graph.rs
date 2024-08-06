@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{ChunkUkey, SourceType};
+use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
 use rspack_napi::napi::Result;
 
 use crate::{JsChunk, JsCompilation, JsModule, ToJsModule};
@@ -70,4 +70,13 @@ pub fn get_chunk_modules_iterable_by_source_type(
       .filter_map(|module| module.to_js_module().ok())
       .collect(),
   )
+}
+
+#[napi(js_name = "__chunk_graph_inner_get_module_id")]
+pub fn get_module_id(module: String, compilation: &JsCompilation) -> Option<String> {
+  let compilation = &compilation.0;
+  compilation
+    .chunk_graph
+    .get_module_id(ModuleIdentifier::from(module))
+    .map(|s| s.to_string())
 }

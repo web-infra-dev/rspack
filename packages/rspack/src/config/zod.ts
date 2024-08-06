@@ -898,8 +898,13 @@ const externalItemFunctionData = z.strictObject({
 	request: z.string().optional(),
 	contextInfo: z
 		.strictObject({
-			issuer: z.string()
+			issuer: z.string(),
+			issuerLayer: z.string().or(z.null())
 		})
+		.optional(),
+	getResolve: z
+		.function()
+		.returns(z.function().args(z.string(), z.string(), z.function().optional()))
 		.optional()
 });
 export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;

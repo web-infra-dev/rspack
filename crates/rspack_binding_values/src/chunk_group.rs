@@ -5,8 +5,6 @@ use crate::{JsChunk, JsCompilation};
 
 #[napi(object)]
 pub struct JsChunkGroup {
-  #[napi(js_name = "__inner_parents")]
-  pub inner_parents: Vec<u32>,
   #[napi(js_name = "__inner_ukey")]
   pub inner_ukey: u32,
   pub chunks: Vec<JsChunk>,
@@ -27,7 +25,6 @@ impl JsChunkGroup {
         .map(|k| JsChunk::from(compilation.chunk_by_ukey.expect_get(k)))
         .collect(),
       index: cg.index,
-      inner_parents: cg.parents.iter().map(|ukey| ukey.as_u32()).collect(),
       inner_ukey: cg.ukey.as_u32(),
       name: cg.name().map(|name| name.to_string()),
       is_initial: cg.is_initial(),
@@ -45,6 +42,28 @@ pub fn get_chunk_group(ukey: u32, compilation: &JsCompilation) -> JsChunkGroup {
   let compilation = &compilation.0;
   let cg = chunk_group(ukey, compilation);
   JsChunkGroup::from_chunk_group(cg, compilation)
+}
+
+#[napi(js_name = "__chunk_group_inner_parents_iterable")]
+pub fn parents_iterable(ukey: u32, compilation: &JsCompilation) -> Vec<JsChunkGroup> {
+  let compilation = &compilation.0;
+  let cg = chunk_group(ukey, compilation);
+  cg.parents_iterable()
+    .map(|k| {
+      JsChunkGroup::from_chunk_group(compilation.chunk_group_by_ukey.expect_get(&k), compilation)
+    })
+    .collect()
+}
+
+#[napi(js_name = "__chunk_group_inner_children_iterable")]
+pub fn children_iterable(ukey: u32, compilation: &JsCompilation) -> Vec<JsChunkGroup> {
+  let compilation = &compilation.0;
+  let cg = chunk_group(ukey, compilation);
+  cg.children_iterable()
+    .map(|k| {
+      JsChunkGroup::from_chunk_group(compilation.chunk_group_by_ukey.expect_get(&k), compilation)
+    })
+    .collect()
 }
 
 #[napi(js_name = "__entrypoint_inner_get_runtime_chunk")]

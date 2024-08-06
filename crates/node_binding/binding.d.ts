@@ -126,6 +126,11 @@ export class JsStats {
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
 
+export class RawExternalItemFnCtx {
+  data(): RawExternalItemFnCtxData
+  getResolver(): JsResolver
+}
+
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
@@ -143,7 +148,13 @@ export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compi
 
 export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, compilation: JsCompilation): Array<JsModule>
 
+export function __chunk_graph_inner_get_module_id(module: string, compilation: JsCompilation): string | null
+
+export function __chunk_group_inner_children_iterable(ukey: number, compilation: JsCompilation): Array<JsChunkGroup>
+
 export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
+
+export function __chunk_group_inner_parents_iterable(ukey: number, compilation: JsCompilation): Array<JsChunkGroup>
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
@@ -158,6 +169,8 @@ export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCo
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
+
+export function __module_graph_inner_is_async(jsModuleIdentifier: string, compilation: JsCompilation): boolean | null
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName
@@ -242,6 +255,7 @@ export function cleanupGlobalTrace(): void
 
 export interface ContextInfo {
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsAdditionalTreeRuntimeRequirementsArg {
@@ -350,7 +364,6 @@ export interface JsChunkAssetArgs {
 }
 
 export interface JsChunkGroup {
-  __inner_parents: Array<number>
   __inner_ukey: number
   chunks: Array<JsChunk>
   index?: number
@@ -1122,7 +1135,7 @@ export interface RawExposeOptions {
   import: Array<string>
 }
 
-export interface RawExternalItemFnCtx {
+export interface RawExternalItemFnCtxData {
   request: string
   context: string
   dependencyType: string

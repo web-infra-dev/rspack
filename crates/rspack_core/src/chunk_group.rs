@@ -50,7 +50,7 @@ pub struct ChunkGroup {
   pub parents: UkeySet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) children: UkeySet<ChunkGroupUkey>,
+  pub children: UkeySet<ChunkGroupUkey>,
   async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
@@ -83,6 +83,10 @@ impl ChunkGroup {
 
   pub fn parents_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
     self.parents.iter()
+  }
+
+  pub fn children_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.children.iter()
   }
 
   pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {

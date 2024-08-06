@@ -1,7 +1,9 @@
 import {
 	type JsChunkGroup,
 	type JsCompilation,
-	__chunk_group_inner_get_chunk_group
+	__chunk_group_inner_children_iterable,
+	__chunk_group_inner_get_chunk_group,
+	__chunk_group_inner_parents_iterable
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
@@ -32,13 +34,17 @@ export class ChunkGroup {
 	}
 
 	getParents(): ReadonlyArray<ChunkGroup> {
-		return this.#inner.__inner_parents.map(parent => {
-			const cg = __chunk_group_inner_get_chunk_group(
-				parent,
-				this.#innerCompilation
-			);
-			return ChunkGroup.__from_binding(cg, this.#innerCompilation);
-		});
+		return __chunk_group_inner_parents_iterable(
+			this.#inner.__inner_ukey,
+			this.#innerCompilation
+		).map(cg => ChunkGroup.__from_binding(cg, this.#innerCompilation));
+	}
+
+	getChildren(): ReadonlyArray<ChunkGroup> {
+		return __chunk_group_inner_children_iterable(
+			this.#inner.__inner_ukey,
+			this.#innerCompilation
+		).map(cg => ChunkGroup.__from_binding(cg, this.#innerCompilation));
 	}
 
 	isInitial(): boolean {
@@ -49,6 +55,10 @@ export class ChunkGroup {
 		return this.#inner.chunks.map(c =>
 			Chunk.__from_binding(c, this.#innerCompilation)
 		);
+	}
+
+	get childrenIterable(): Iterable<ChunkGroup> {
+		return this.getChildren();
 	}
 
 	get index(): Readonly<number | undefined> {

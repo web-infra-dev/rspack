@@ -919,6 +919,8 @@ class ChunkGraph {
     getChunkModulesIterable(chunk: Chunk): Iterable<Module>;
     // (undocumented)
     getChunkModulesIterableBySourceType(chunk: Chunk, sourceType: string): Iterable<Module>;
+    // (undocumented)
+    getModuleId(module: Module): string | null;
 }
 
 // @public (undocumented)
@@ -931,7 +933,11 @@ export class ChunkGroup {
     // @internal
     __internal__innerUkey(): number;
     // (undocumented)
+    get childrenIterable(): Iterable<ChunkGroup>;
+    // (undocumented)
     get chunks(): ReadonlyArray<Chunk>;
+    // (undocumented)
+    getChildren(): ReadonlyArray<ChunkGroup>;
     // (undocumented)
     getFiles(): ReadonlyArray<string>;
     // (undocumented)
@@ -1151,6 +1157,8 @@ export class Compilation {
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
     };
+    // (undocumented)
+    moduleGraph: ModuleGraph;
     // (undocumented)
     get modules(): ReadonlySet<Module>;
     // (undocumented)
@@ -3575,50 +3583,66 @@ const externalItem: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString,
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>;
 
 // @public (undocumented)
@@ -3631,25 +3655,33 @@ const externalItemFunctionData: z.ZodObject<{
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>;
 
 // @public (undocumented)
@@ -3674,168 +3706,142 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
     contextInfo: z.ZodOptional<z.ZodObject<{
         issuer: z.ZodString;
+        issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
     }, "strict", z.ZodTypeAny, {
         issuer: string;
+        issuerLayer: string | null;
     }, {
         issuer: string;
+        issuerLayer: string | null;
     }>>;
+    getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }, {
     context?: string | undefined;
     dependencyType?: string | undefined;
     request?: string | undefined;
     contextInfo?: {
         issuer: string;
+        issuerLayer: string | null;
     } | undefined;
+    getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
 }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>]>;
 
 // @public (undocumented)
-export const ExternalsPlugin: {
-    new (type: string, externals: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[]): {
-        name: BuiltinPluginName;
-        _args: [type: string, externals: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[]];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+export class ExternalsPlugin extends RspackBuiltinPlugin {
+    constructor(type: string, externals: Externals);
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin | undefined;
+}
 
 // @public (undocumented)
 export type ExternalsPresets = z.infer<typeof externalsPresets>;
@@ -6112,6 +6118,13 @@ declare namespace ModuleFilenameHelpers {
     }
 }
 export { ModuleFilenameHelpers }
+
+// @public (undocumented)
+class ModuleGraph {
+    constructor(compilation: Compilation);
+    // (undocumented)
+    isAsync(module: Module): boolean;
+}
 
 // @public (undocumented)
 export type ModuleOptions = z.infer<typeof moduleOptions>;
@@ -10902,100 +10915,132 @@ export const rspackOptions: z.ZodObject<{
         request: z.ZodOptional<z.ZodString>;
         contextInfo: z.ZodOptional<z.ZodObject<{
             issuer: z.ZodString;
+            issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
         }, "strict", z.ZodTypeAny, {
             issuer: string;
+            issuerLayer: string | null;
         }, {
             issuer: string;
+            issuerLayer: string | null;
         }>>;
+        getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
         contextInfo: z.ZodOptional<z.ZodObject<{
             issuer: z.ZodString;
+            issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
         }, "strict", z.ZodTypeAny, {
             issuer: string;
+            issuerLayer: string | null;
         }, {
             issuer: string;
+            issuerLayer: string | null;
         }>>;
+        getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
         contextInfo: z.ZodOptional<z.ZodObject<{
             issuer: z.ZodString;
+            issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
         }, "strict", z.ZodTypeAny, {
             issuer: string;
+            issuerLayer: string | null;
         }, {
             issuer: string;
+            issuerLayer: string | null;
         }>>;
+        getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
         contextInfo: z.ZodOptional<z.ZodObject<{
             issuer: z.ZodString;
+            issuerLayer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
         }, "strict", z.ZodTypeAny, {
             issuer: string;
+            issuerLayer: string | null;
         }, {
             issuer: string;
+            issuerLayer: string | null;
         }>>;
+        getResolve: z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodFunction<z.ZodTuple<[z.ZodString, z.ZodString, z.ZodOptional<z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>>], z.ZodUnknown>, z.ZodUnknown>>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>]>>;
     externalsType: z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>;
     externalsPresets: z.ZodOptional<z.ZodObject<{
@@ -12904,28 +12949,36 @@ export const rspackOptions: z.ZodObject<{
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
     externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
@@ -13472,28 +13525,36 @@ export const rspackOptions: z.ZodObject<{
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
         contextInfo?: {
             issuer: string;
+            issuerLayer: string | null;
         } | undefined;
+        getResolve?: ((...args: unknown[]) => (args_0: string, args_1: string, args_2: ((...args: unknown[]) => unknown) | undefined, ...args_3: unknown[]) => unknown) | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
     externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
