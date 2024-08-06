@@ -19,9 +19,16 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export class DependenciesBlockDto {
+  get dependencies(): Array<DependencyDto>
+  get blocks(): Array<DependenciesBlockDto>
+}
+export type DependenciesBlockDTO = DependenciesBlockDto
+
 export class DependencyDto {
   get type(): string
   get category(): string
+  get request(): string | undefined
 }
 export type DependencyDTO = DependencyDto
 
@@ -57,7 +64,7 @@ export class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
-  getModules(): Array<JsModule>
+  get modules(): Array<ModuleDTO>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
@@ -125,6 +132,22 @@ export class JsStats {
   hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
+
+export class ModuleDto {
+  get context(): string | undefined
+  get originalSource(): JsCompatSource | undefined
+  get resource(): string | undefined
+  get moduleIdentifier(): string
+  get nameForCondition(): string | undefined
+  get request(): string | undefined
+  get userRequest(): string | undefined
+  get rawRequest(): string | undefined
+  get factoryMeta(): JsFactoryMeta | undefined
+  get type(): string
+  get layer(): string | undefined
+  get blocks(): Array<DependenciesBlockDto>
+}
+export type ModuleDTO = ModuleDto
 
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)

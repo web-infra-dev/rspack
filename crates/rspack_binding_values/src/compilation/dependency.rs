@@ -24,9 +24,8 @@ impl DependencyDTO {
   fn module_dependency<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Option<&'a Box<dyn ModuleDependency>> {
-    let dep = self.dependency(&module_graph);
-    dep.downcast_ref::<Box<dyn ModuleDependency>>()
+  ) -> Option<&'a dyn ModuleDependency> {
+    self.dependency(&module_graph).as_module_dependency()
   }
 }
 

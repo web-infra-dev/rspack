@@ -98,25 +98,32 @@ impl ModuleDTO {
 #[napi]
 impl ModuleDTO {
   #[napi(getter)]
-  pub fn context(&self) -> Option<String> {
+  pub fn context(&self) -> Either<String, ()> {
     let module = self.module();
-    module.get_context().map(|c| c.to_string())
+    match module.get_context() {
+      Some(ctx) => Either::A(ctx.to_string()),
+      None => Either::B(()),
+    }
   }
 
   #[napi(getter)]
-  pub fn original_source(&self) -> Option<JsCompatSource> {
+  pub fn original_source(&self) -> Either<JsCompatSource, ()> {
     let module = self.module();
-    module
-      .original_source()
-      .and_then(|source| source.to_js_compat_source().ok())
+    match module.original_source() {
+      Some(source) => match source.to_js_compat_source().ok() {
+        Some(s) => Either::A(s),
+        None => Either::B(()),
+      },
+      None => Either::B(()),
+    }
   }
 
   #[napi(getter)]
-  pub fn resource(&self) -> Option<String> {
+  pub fn resource(&self) -> Either<String, ()> {
     let module = self.module();
     match module.try_as_normal_module() {
-      Ok(normal_module) => Some(normal_module.resource_resolved_data().resource.to_string()),
-      Err(_) => None,
+      Ok(normal_module) => Either::A(normal_module.resource_resolved_data().resource.to_string()),
+      Err(_) => Either::B(()),
     }
   }
 
@@ -127,48 +134,52 @@ impl ModuleDTO {
   }
 
   #[napi(getter)]
-  pub fn name_for_condition(&self) -> Option<String> {
+  pub fn name_for_condition(&self) -> Either<String, ()> {
     let module = self.module();
-    module.name_for_condition().map(|n| n.to_string())
-  }
-
-  #[napi(getter)]
-  pub fn request(&self) -> Option<&str> {
-    let module = self.module();
-    match module.try_as_normal_module() {
-      Ok(normal_module) => Some(normal_module.request()),
-      Err(_) => None,
+    match module.name_for_condition() {
+      Some(s) => Either::A(s.to_string()),
+      None => Either::B(()),
     }
   }
 
   #[napi(getter)]
-  pub fn user_request(&self) -> Option<&str> {
+  pub fn request(&self) -> Either<&str, ()> {
     let module = self.module();
     match module.try_as_normal_module() {
-      Ok(normal_module) => Some(normal_module.user_request()),
-      Err(_) => None,
+      Ok(normal_module) => Either::A(normal_module.request()),
+      Err(_) => Either::B(()),
     }
   }
 
   #[napi(getter)]
-  pub fn raw_request(&self) -> Option<&str> {
+  pub fn user_request(&self) -> Either<&str, ()> {
     let module = self.module();
     match module.try_as_normal_module() {
-      Ok(normal_module) => Some(normal_module.raw_request()),
-      Err(_) => None,
+      Ok(normal_module) => Either::A(normal_module.user_request()),
+      Err(_) => Either::B(()),
     }
   }
 
   #[napi(getter)]
-  pub fn factory_meta(&self) -> Option<JsFactoryMeta> {
+  pub fn raw_request(&self) -> Either<&str, ()> {
     let module = self.module();
     match module.try_as_normal_module() {
-      Ok(normal_module) => normal_module
-        .factory_meta()
-        .map(|factory_meta| JsFactoryMeta {
-          side_effect_free: factory_meta.side_effect_free,
+      Ok(normal_module) => Either::A(normal_module.raw_request()),
+      Err(_) => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn factory_meta(&self) -> Either<JsFactoryMeta, ()> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => match normal_module.factory_meta() {
+        Some(meta) => Either::A(JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
         }),
-      Err(_) => None,
+        None => Either::B(()),
+      },
+      Err(_) => Either::B(()),
     }
   }
 
@@ -179,9 +190,12 @@ impl ModuleDTO {
   }
 
   #[napi(getter)]
-  pub fn layer(&self) -> Option<&String> {
+  pub fn layer(&self) -> Either<&String, ()> {
     let module = self.module();
-    module.get_layer()
+    match module.get_layer() {
+      Some(layer) => Either::A(layer),
+      None => Either::B(()),
+    }
   }
 
   #[napi(getter)]
