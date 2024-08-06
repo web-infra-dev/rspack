@@ -51,18 +51,6 @@ export type KnownStatsChunk = {
 	origins?: StatsChunkOrigin[];
 };
 
-// export interface JsStatsAssetInfo {
-// 	minimized: boolean
-// 	development: boolean
-// 	hotModuleReplacement: boolean
-// 	sourceFilename?: string
-// 	immutable: boolean
-// 	javascriptModule?: boolean
-// 	chunkhash: Array<string>
-// 	contenthash: Array<string>
-// 	fullhash: Array<string>
-// 	related: Array<JsStatsAssetInfoRelated>
-//   }
 export type KnownAssetInfo = {
 	immutable?: boolean;
 	minimized?: boolean;
