@@ -1,4 +1,4 @@
-import { DependenciesBlockDTO } from "@rspack/binding";
+import type { DependenciesBlockDTO } from "@rspack/binding";
 import { Dependency } from "./Dependency";
 
 export class DependenciesBlock {

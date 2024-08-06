@@ -8,8 +8,8 @@ import type {
 import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
-import { JsSource } from "./util/source";
 import { DependenciesBlock } from "./DependenciesBlock";
+import { JsSource } from "./util/source";
 
 export type ResourceData = {
 	resource: string;
