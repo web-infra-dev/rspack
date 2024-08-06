@@ -51,7 +51,11 @@ export const LightningCssMinimizerRspackPlugin = create(
 				errorRecovery: options?.minimizerOptions?.errorRecovery ?? true,
 				unusedSymbols: options?.minimizerOptions?.unusedSymbols ?? [],
 				include: include ? toFeatures(include) : undefined,
-				exclude: exclude ? toFeatures(exclude) : 1048575, // exclude all features, avoid downgrade css syntax when minimize
+				exclude: exclude
+					? toFeatures(exclude)
+					: // exclude all features, avoid downgrade css syntax when minimize
+						// 1048575 = Features.Empty | Features.Nesting | ... | Features.LogicalProperties
+						1048575,
 				targets:
 					typeof targets === "string" || Array.isArray(targets)
 						? (browserslistToTargets(

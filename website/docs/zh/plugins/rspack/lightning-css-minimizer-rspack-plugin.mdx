@@ -75,7 +75,26 @@ document.body.className = styles.a;
 
 以下是支持的配置。详细的解释请查看 [lightningcss 文档](https://lightningcss.dev/transpilation.html)
 
+:::info
+
+1. 默认 `targets` 为 `"Chrome 60"`，以保证压缩后不会出现高级语法导致浏览器不兼容（压缩过程中可能会出现由于高级语法更短而将低级语法转为高级语法）。
+2. 默认 `exclude` 掉所有的 features，一般会在 loader 中进行语法降级，所以 exclude 掉所有 features 避免在 minimize 过程中的语法降级。
+
+我们建议并鼓励用户配置自己所需的 `targets`，以获得最好的压缩效果。
+:::
+
 ```ts
+type LightningCssMinimizerOptions = {
+  errorRecovery?: boolean;
+  targets?: Targets | string[] | string;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  draft?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: string[];
+};
+
 type LightningcssFeatureOptions = {
   nesting?: boolean;
   notSelectorList?: boolean;
@@ -100,16 +119,5 @@ type LightningcssFeatureOptions = {
   selectors?: boolean;
   mediaQueries?: boolean;
   color?: boolean;
-};
-
-type LightningCssMinimizerOptions = {
-  errorRecovery?: boolean;
-  targets?: Targets | string[] | string;
-  include?: LightningcssFeatureOptions;
-  exclude?: LightningcssFeatureOptions;
-  draft?: Drafts;
-  nonStandard?: NonStandard;
-  pseudoClasses?: PseudoClasses;
-  unusedSymbols?: Set<String>;
 };
 ```
