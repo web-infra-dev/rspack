@@ -16,7 +16,6 @@ rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_hook = { path = "../rspack_hook" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_regex = { path = "../rspack_regex" }
 rspack_util = { path = "../rspack_util" }
 serde_json = { workspace = true }
 swc_config = { workspace = true }

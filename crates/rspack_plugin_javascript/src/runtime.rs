@@ -122,7 +122,6 @@ pub fn render_module(
     let module_id = compilation
       .chunk_graph
       .get_module_id(module.identifier())
-      .as_deref()
       .expect("should have module_id in render_module");
     sources.add(RawSource::from(
       serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,

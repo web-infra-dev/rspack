@@ -366,7 +366,7 @@ impl Stats<'_> {
                     .compilation
                     .chunk_graph
                     .get_module_id(identifier)
-                    .clone()
+                    .map(|s| s.to_string())
                     .unwrap_or_default()
                 })
                 .unwrap_or_default();
@@ -850,11 +850,7 @@ impl Stats<'_> {
       stats.id = if executed {
         None
       } else {
-        self
-          .compilation
-          .chunk_graph
-          .get_module_id(identifier)
-          .as_deref()
+        self.compilation.chunk_graph.get_module_id(identifier)
       };
       stats.issuer_id = issuer_id.and_then(|i| i);
 
@@ -1289,7 +1285,7 @@ impl Stats<'_> {
           .compilation
           .chunk_graph
           .get_module_id(origin_module.identifier())
-          .to_owned(),
+          .map(|s| s.to_string()),
       };
 
       let current_stats_module = StatsErrorModuleTraceModule {
@@ -1301,7 +1297,7 @@ impl Stats<'_> {
           .compilation
           .chunk_graph
           .get_module_id(current_module.identifier())
-          .to_owned(),
+          .map(|s| s.to_string()),
       };
 
       module_trace.push(StatsModuleTrace {
@@ -1322,11 +1318,7 @@ fn get_stats_module_name_and_id<'s, 'c>(
 ) -> (Cow<'s, str>, Option<&'c str>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = compilation
-    .chunk_graph
-    .get_module_id(identifier)
-    .as_ref()
-    .map(|i| i.as_str());
+  let id = compilation.chunk_graph.get_module_id(identifier);
   (name, id)
 }
 

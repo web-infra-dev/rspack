@@ -160,12 +160,7 @@ impl Module for FallbackModule {
       .get_dependencies()
       .iter()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
-      .filter_map(|module| {
-        compilation
-          .chunk_graph
-          .get_module_id(module.identifier())
-          .as_deref()
-      })
+      .filter_map(|module| compilation.chunk_graph.get_module_id(module.identifier()))
       .collect();
     let code = format!(
       r#"

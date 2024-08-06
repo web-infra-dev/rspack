@@ -9,8 +9,10 @@ module.exports = {
 		minimizer: [
 			new SwcJsMinimizerRspackPlugin({
 				extractComments: {},
-				format: {
-					comments: "all"
+				minimizerOptions: {
+					format: {
+						comments: "all"
+					}
 				}
 			}),
 		]
