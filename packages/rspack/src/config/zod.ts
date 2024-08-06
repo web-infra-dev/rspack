@@ -1156,9 +1156,27 @@ export interface RspackPluginInstance {
 }
 export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 
+// The Compiler type of webpack is not exactly the same as Rspack.
+// It is allowed to use webpack plugins in in the Rspack config,
+// so we have defined a loose type here to adapt to webpack plugins.
+export type WebpackCompiler = any;
+
+export interface WebpackPluginInstance {
+	apply: (compiler: WebpackCompiler) => void;
+	[k: string]: any;
+}
+export type WebpackPluginFunction = (
+	this: WebpackCompiler,
+	compiler: WebpackCompiler
+) => void;
+
 const plugin = z.union([
-	z.custom<RspackPluginInstance>(),
-	z.custom<RspackPluginFunction>(),
+	z.custom<
+		| RspackPluginInstance
+		| RspackPluginFunction
+		| WebpackPluginInstance
+		| WebpackPluginFunction
+	>(),
 	falsy
 ]);
 const plugins = plugin.array();

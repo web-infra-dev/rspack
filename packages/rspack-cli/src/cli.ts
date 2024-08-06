@@ -150,10 +150,10 @@ export class RspackCLI {
 				);
 				(item.plugins ??= []).push({
 					name: "rspack-bundle-analyzer",
-					apply(compiler) {
+					apply(compiler: any) {
 						new BundleAnalyzerPlugin({
 							generateStatsFile: true
-						}).apply(compiler as any);
+						}).apply(compiler);
 					}
 				});
 			}
