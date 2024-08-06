@@ -15,17 +15,18 @@ impl DependencyDTO {
     }
   }
 
-  fn dependency<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Box<dyn Dependency> {
+  fn dependency<'a>(&self, module_graph: &'a ModuleGraph) -> &'a dyn Dependency {
     module_graph
       .dependency_by_id(&self.dependency_id)
       .unwrap_or_else(|| panic!("Failed to get dependency by id = {:?}", &self.dependency_id))
+      .as_ref()
   }
 
   fn module_dependency<'a>(
     &self,
     module_graph: &'a ModuleGraph,
   ) -> Option<&'a dyn ModuleDependency> {
-    self.dependency(&module_graph).as_module_dependency()
+    self.dependency(module_graph).as_module_dependency()
   }
 }
 

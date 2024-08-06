@@ -82,7 +82,7 @@ impl ModuleDTO {
     }
   }
 
-  fn module(&self) -> &Box<dyn Module> {
+  fn module(&self) -> &dyn Module {
     self
       .compilation
       .module_by_identifier(&self.module_id)
@@ -92,6 +92,7 @@ impl ModuleDTO {
           self.module_id
         )
       })
+      .as_ref()
   }
 }
 
