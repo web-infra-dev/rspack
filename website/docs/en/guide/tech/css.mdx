@@ -2,13 +2,35 @@ import { PackageManagerTabs } from '@theme';
 
 # CSS
 
-CSS is a first-class citizen with Rspack. Rspack has the ability to handle CSS out-of-box, just need to set `experiments.css` to `true`.
+CSS is a first-class citizen in Rspack, and Rspack has several built-in features to support CSS bundling.
 
-By default, files ending in `*.css` are treated as `css/auto` module type, Files ending in `*.module.css` are treated as [CSS Modules](https://github.com/css-modules/css-modules).
+## Enabling CSS Support
 
-You can also customize which modules are CSS modules by configuring `type: 'css/auto'`.
+You can choose from the following options:
 
-```js title=rspack.config.js
+### Native CSS Support
+
+Rspack provides the [experiment.css](/config/experiments#experimentscss) option, an experimental feature introduced in webpack 5 to enable native CSS support. Rspack has improved this feature and plans to enable it by default in Rspack 2.0.
+
+> If you create a new project based on Rspack, it is recommended to use this method.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    css: true,
+  },
+};
+```
+
+After enabling `experiment.css`, Rspack will support the following three module types, which you can set on the `rule` using `type`:
+
+- `css`: Used to handle normal CSS files.
+- `css/module`: Used to handle [CSS Modules](https://github.com/css-modules/css-modules).
+- `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` are treated as CSS Modules.
+
+For files ending in `*.css`, Rspack will treat them as `type: 'css/auto'` by default. You can also configure `type: 'css/auto'` to customize which files are treated as CSS files. For example, treat `.less` files as CSS files:
+
+```js title="rspack.config.js"
 module.exports = {
   module: {
     rules: [
@@ -22,7 +44,68 @@ module.exports = {
 };
 ```
 
-If you're migrating from webpack, see [migration guide](/guide/migration/webpack#removing-css-loader-and-style-loader-and-mini-css-extract-plugin).
+### Using CssExtractRspackPlugin
+
+Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader) and [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) to generate standalone CSS files.
+
+If you are migrating a webpack project that uses [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin), it is recommended to replace it with CssExtractRspackPlugin. Their functionality and options are basically the same.
+
+- Install css-loader:
+
+<PackageManagerTabs command="add css-loader -D" />
+
+- Add configuration:
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+};
+```
+
+> Refer to the [migration guide](/guide/migration/webpack#mini-css-extract-plugin--rspackcssextractrspackplugin) to learn how to migrate from webpack.
+
+:::tip
+CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by `experiments.css`.
+:::
+
+### Using style-loader
+
+Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader) and [style-loader](https://github.com/webpack-contrib/style-loader) to inject CSS via `<style>` tags. This method does not generate standalone CSS files but inline the CSS content into JS files.
+
+- Install css-loader and style-loader:
+
+<PackageManagerTabs command="add css-loader style-loader -D" />
+
+- Add configuration:
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+:::tip
+style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by `experiments.css`.
+:::
 
 ## CSS Modules
 
