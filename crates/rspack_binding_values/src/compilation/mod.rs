@@ -6,6 +6,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
+pub use dependency::*;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
@@ -25,8 +26,8 @@ use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::{
-  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
+  chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
+  JsStats, ModuleDTO, ToJsCompatSource,
 };
 use crate::{JsDiagnostic, JsRspackError};
 
@@ -148,14 +149,15 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi]
-  pub fn get_modules(&self) -> Vec<JsModule> {
+  #[napi(getter)]
+  pub fn modules(&'static self) -> Vec<ModuleDTO> {
     self
       .0
       .get_module_graph()
       .modules()
-      .values()
-      .filter_map(|module| module.to_js_module().ok())
+      .keys()
+      .cloned()
+      .map(|module_id| ModuleDTO::new(module_id, self.0))
       .collect::<Vec<_>>()
   }
 

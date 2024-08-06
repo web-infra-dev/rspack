@@ -1,14 +1,214 @@
 use napi_derive::napi;
-use rspack_core::{CompilerModuleContext, Module};
+use rspack_core::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilerModuleContext,
+  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
+};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults};
+use crate::{DependencyDTO, JsChunk, JsCodegenerationResults};
 
 #[derive(Default)]
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
+}
+
+#[napi]
+pub struct DependenciesBlockDTO {
+  block_id: AsyncDependenciesBlockIdentifier,
+  compilation: &'static Compilation,
+}
+
+impl DependenciesBlockDTO {
+  pub fn new(
+    block_id: AsyncDependenciesBlockIdentifier,
+    compilation: &'static Compilation,
+  ) -> Self {
+    Self {
+      block_id,
+      compilation,
+    }
+  }
+
+  fn block<'a>(&self, module_graph: &'a ModuleGraph) -> &'a AsyncDependenciesBlock {
+    module_graph.block_by_id(&self.block_id).unwrap_or_else(|| {
+      panic!(
+        "Cannot find block with id = {:?}. It might have been removed on the Rust side.",
+        self.block_id
+      )
+    })
+  }
+}
+
+#[napi]
+impl DependenciesBlockDTO {
+  #[napi(getter)]
+  pub fn dependencies(&self) -> Vec<DependencyDTO> {
+    let module_graph = self.compilation.get_module_graph();
+    let block = self.block(&module_graph);
+    block
+      .get_dependencies()
+      .iter()
+      .cloned()
+      .map(|dep_id| DependencyDTO::new(dep_id, self.compilation))
+      .collect::<Vec<_>>()
+  }
+
+  #[napi(getter)]
+  pub fn blocks(&self) -> Vec<DependenciesBlockDTO> {
+    let module_graph = self.compilation.get_module_graph();
+    let block = self.block(&module_graph);
+    let blocks = block.get_blocks();
+    blocks
+      .iter()
+      .cloned()
+      .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation))
+      .collect::<Vec<_>>()
+  }
+}
+
+#[napi]
+pub struct ModuleDTO {
+  pub(crate) module_id: ModuleIdentifier,
+  pub(crate) compilation: &'static Compilation,
+}
+
+impl ModuleDTO {
+  pub fn new(module_id: ModuleIdentifier, compilation: &'static Compilation) -> Self {
+    Self {
+      module_id,
+      compilation,
+    }
+  }
+
+  fn module(&self) -> &dyn Module {
+    self
+      .compilation
+      .module_by_identifier(&self.module_id)
+      .unwrap_or_else(|| {
+        panic!(
+          "Cannot find module with id = {}. It might have been removed on the Rust side.",
+          self.module_id
+        )
+      })
+      .as_ref()
+  }
+}
+
+#[napi]
+impl ModuleDTO {
+  #[napi(getter)]
+  pub fn context(&self) -> Either<String, ()> {
+    let module = self.module();
+    match module.get_context() {
+      Some(ctx) => Either::A(ctx.to_string()),
+      None => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn original_source(&self) -> Either<JsCompatSource, ()> {
+    let module = self.module();
+    match module.original_source() {
+      Some(source) => match source.to_js_compat_source().ok() {
+        Some(s) => Either::A(s),
+        None => Either::B(()),
+      },
+      None => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn resource(&self) -> Either<String, ()> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.resource_resolved_data().resource.to_string()),
+      Err(_) => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn module_identifier(&self) -> &str {
+    let module = self.module();
+    module.identifier().as_str()
+  }
+
+  #[napi(getter)]
+  pub fn name_for_condition(&self) -> Either<String, ()> {
+    let module = self.module();
+    match module.name_for_condition() {
+      Some(s) => Either::A(s.to_string()),
+      None => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn request(&self) -> Either<&str, ()> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.request()),
+      Err(_) => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn user_request(&self) -> Either<&str, ()> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.user_request()),
+      Err(_) => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn raw_request(&self) -> Either<&str, ()> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.raw_request()),
+      Err(_) => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn factory_meta(&self) -> Either<JsFactoryMeta, ()> {
+    let module = self.module();
+    match module.try_as_normal_module() {
+      Ok(normal_module) => match normal_module.factory_meta() {
+        Some(meta) => Either::A(JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
+        }),
+        None => Either::B(()),
+      },
+      Err(_) => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn get_type(&self) -> &str {
+    let module = self.module();
+    module.module_type().as_str()
+  }
+
+  #[napi(getter)]
+  pub fn layer(&self) -> Either<&String, ()> {
+    let module = self.module();
+    match module.get_layer() {
+      Some(layer) => Either::A(layer),
+      None => Either::B(()),
+    }
+  }
+
+  #[napi(getter)]
+  pub fn blocks(&self) -> Vec<DependenciesBlockDTO> {
+    let module = self.module();
+    let blocks = module.get_blocks();
+    blocks
+      .iter()
+      .cloned()
+      .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation))
+      .collect::<Vec<_>>()
+  }
 }
 
 #[derive(Default)]

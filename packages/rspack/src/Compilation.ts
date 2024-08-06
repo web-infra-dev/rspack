@@ -420,13 +420,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get modules(): ReadonlySet<Module> {
-		return memoizeValue(
-			() =>
-				new Set(
-					this.__internal__getModules().map(item =>
-						Module.__from_binding(item, this)
-					)
-				)
+		return new Set(
+			this.#inner.modules.map(module => Module.__from_binding(module, this))
 		);
 	}
 
@@ -1116,15 +1111,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal__hasAsset(name: string): boolean {
 		return this.#inner.hasAsset(name);
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getModules(): JsModule[] {
-		return this.#inner.getModules();
 	}
 
 	/**
