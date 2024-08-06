@@ -509,10 +509,10 @@ cacheable modules 559 bytes
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackChunkName\` expected a string, but received: notGoingToCompileChunkName .
-         ╭─[2:4]
+         ╭─[2:55]
        1 │ export default function() {
        2 │     import(/* webpackPrefetch: true, webpackChunkName: notGoingToCompileChunkName */ \\"./chunk-a\\");
-         ·     ─────────────────────────────────────────────────────────────────────────────────────────────
+         ·                                                        ───────────────────────────
        3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
          ╰────
@@ -522,11 +522,11 @@ WARNING in ./chunk.js
 WARNING in ./chunk.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: \`webpackPrefetch\` expected true or a number, but received: nope .
-         ╭─[5:4]
+         ╭─[5:31]
        3 │     import(/* webpackPrefetch: 0, webpackChunkName: \\"goingToCompileChunkName-b\\" */ \\"./chunk-b\\");
        4 │     import(/* webpack Prefetch: 0, webpackChunkName: \\"notGoingToCompile-c\\" */ \\"./chunk-c\\");
        5 │     import(/* webpackPrefetch: nope */ /* webpackChunkName: \\"yep\\" */ \\"./chunk-d\\");
-         ·     ─────────────────────────────────────────────────────────────────────────────
+         ·                                ─────
        6 │ }
          ╰────
       
