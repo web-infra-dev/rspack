@@ -15,8 +15,8 @@ use rspack_core::{
   DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions,
   GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, OverrideStrict,
-  ParserOptions, ParserOptionsByModuleType,
+  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  OverrideStrict, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
@@ -769,13 +769,6 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       with,
-      r#use: uses.transpose()?.unwrap_or_default(),
-      r#type: module_type,
-      layer: value.layer,
-      parser: value.parser.map(|raw| raw.into()),
-      generator: value.generator.map(|raw| raw.into()),
-      resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
-      side_effects: value.side_effects,
       issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
       issuer_layer: value.issuer_layer.map(|raw| raw.try_into()).transpose()?,
       dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
@@ -783,7 +776,16 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,
       rules,
-      enforce,
+      effect: ModuleRuleEffect {
+        r#use: uses.transpose()?.unwrap_or_default(),
+        r#type: module_type,
+        layer: value.layer,
+        parser: value.parser.map(|raw| raw.into()),
+        generator: value.generator.map(|raw| raw.into()),
+        resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
+        side_effects: value.side_effects,
+        enforce,
+      },
     })
   }
 }
