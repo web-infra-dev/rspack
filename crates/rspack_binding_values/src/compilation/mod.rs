@@ -81,7 +81,7 @@ impl JsCompilation {
   ) -> Result<()> {
     self
       .0
-      .update_asset(&filename, |original_source, original_info| {
+      .update_asset(&filename, |original_source, mut original_info| {
         let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
@@ -107,8 +107,10 @@ impl JsCompilation {
             },
           )
           .transpose();
-        let new_info = new_info.into_rspack_result()?;
-        Ok((new_source, new_info.unwrap_or(original_info)))
+        if let Some(new_info) = new_info.into_rspack_result()? {
+          original_info.merge_another(&new_info);
+        }
+        Ok((new_source, original_info))
       })
       .map_err(|err| napi::Error::from_reason(err.to_string()))
   }
