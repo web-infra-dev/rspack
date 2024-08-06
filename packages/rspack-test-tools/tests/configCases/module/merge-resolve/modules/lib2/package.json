@@ -1,0 +1,7 @@
+{
+  "name": "server-lib",
+  "exports": {
+    "server": "./right.js",
+    "default": "./wrong.js"
+  }
+}

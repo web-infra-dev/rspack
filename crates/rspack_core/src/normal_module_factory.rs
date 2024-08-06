@@ -649,7 +649,7 @@ impl NormalModuleFactory {
         }
       }
     }
-    resolved.map(|r| Box::new(r))
+    resolved.map(Box::new)
   }
 
   fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
