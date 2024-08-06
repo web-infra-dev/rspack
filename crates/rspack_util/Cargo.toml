@@ -20,3 +20,5 @@ sugar_path    = { workspace = true }
 unicase       = { workspace = true }
 
 swc_core = { workspace = true, features = ["ecma_ast"] }
+
+rspack_regex = { path = "../rspack_regex" }
