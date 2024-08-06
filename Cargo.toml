@@ -24,7 +24,7 @@ indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.57" }
+lightningcss       = { version = "1.0.0-alpha.58" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.4" }
@@ -37,7 +37,7 @@ proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.10.4" }
-rspack_sources     = { version = "=0.2.15" }
+rspack_sources     = { version = "=0.2.16" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }

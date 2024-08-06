@@ -190,9 +190,12 @@ export type EntryObject = z.infer<typeof entryObject>;
 const entryStatic = entryObject.or(entryUnnamed);
 export type EntryStatic = z.infer<typeof entryStatic>;
 
-const entry = entryStatic.or(
-	z.function().returns(entryStatic.or(z.promise(entryStatic)))
-);
+const entryDynamic = z
+	.function()
+	.returns(entryStatic.or(z.promise(entryStatic)));
+export type EntryDynamic = z.infer<typeof entryDynamic>;
+
+const entry = entryStatic.or(entryDynamic);
 export type Entry = z.infer<typeof entry>;
 //#endregion
 

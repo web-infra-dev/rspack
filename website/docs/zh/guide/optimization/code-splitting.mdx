@@ -5,17 +5,46 @@ import { ApiMeta } from '@components/ApiMeta';
 
 # 代码分割
 
-Rspack 支持代码分割特性，允许让你对代码进行分割，控制生成的资源体积来获取资源加载性能的提升。
+Rspack 支持代码分割特性，允许让你对代码进行分割，控制生成的资源体积和资源数量来获取资源加载性能的提升。
 
-常用的代码分离方法有三种：
+这里提出一个概念叫做 Chunk，一个 Chunk 为一个浏览器需要加载的资源。
 
-- 入口起点：使用 [entry](/config/entry) 配置手动地分离代码。
-- 防止重复：使用 SplitChunksPlugin 去重和分离 chunk。
-- 动态导入：通过模块的内联函数调用来分离代码。
+## 动态导入（dynamic import）
 
-## 入口起点（entry point）
+当涉及到动态代码拆分时， Rspack 选择的方式是使用符合 ECMAScript 提案的 `import()` 语法来实现动态导入。
 
-这是最简单直观分离代码的方式。但这种方式需要我们手动对 Rspack 进行配置，并暗藏一些隐患，我们将会解决这些问题。我们先来看看如何从通过多个入口起点分割出多个 Chunk 。
+:::info 与 webpack 的差异点
+
+- Rspack 不支持 `require.ensure` 功能。
+
+:::
+
+我们在 `index.js` 通过 `import()` 来动态导入 2 个模块，从而分离出一个新的 Chunk。
+
+```js title=index.js
+import('./foo.js');
+import('./bar.js');
+```
+
+```js title=foo.js
+import './shared.js';
+console.log('foo.js');
+```
+
+```js title=bar.js
+import './shared.js';
+console.log('bar.js');
+```
+
+此时我们执行构建，会得到 3 个 Chunk ，`src_bar_js.js`，`src_foo_js.js` 以及 `main.js`，如果我们查看他们，会发现 `src_bar_js.js` 和 `src_foo_js.js` 中有重复的部分：`shared.js`，我们后面会介绍为何存在重复模块，以及如何去除重复模块。
+
+:::info
+虽然 `shared.js` 在 2 个 Chunk 中重复出现，但它只会被执行一次，不用担心重复模块会重复执行的问题。
+:::
+
+## 分割入口起点（entry point）
+
+这是最简单直观分离代码的方式。但这种方式需要我们手动对 Rspack 进行配置。我们来看看如何从通过多个入口起点分割出多个 Chunk 。
 
 ```js title=rspack.config.js
 /**
@@ -26,9 +55,6 @@ const config = {
   entry: {
     index: './src/index.js',
     another: './src/another-module.js',
-  },
-  output: {
-    filename: '[name].bundle.js',
   },
   stats: 'normal',
 };
@@ -50,43 +76,36 @@ console.log('another-module');
 
 ```
 ...
-            Asset      Size   Chunks             Chunk Names
-another.bundle.js  1.07 KiB  another  [emitted]  another
-  index.bundle.js  1.06 KiB    index  [emitted]  index
-Entrypoint another = another.bundle.js
-Entrypoint index = index.bundle.js
+     Asset      Size   Chunks             Chunk Names
+another.js  1.07 KiB  another  [emitted]  another
+  index.js  1.06 KiB    index  [emitted]  index
+Entrypoint another = another.js
+Entrypoint index = index.js
 [./src/index.js] 41 bytes {another} {index}
 [./src/shared.js] 24 bytes {another} {index}
 ```
 
-正如前面提到的，这种方式存在一些隐患：
-
-- 如果多个入口起点导入链之间包含一些重复的模块，那么这些重复模块会被重复添加到各个入口 Chunk 中。`shared.js` 的代码会被同时打包到 `index.bundle.js` 和 `another.bundle.js` 中。
-- 这种方法不够灵活，并且不能动态地将程序逻辑中的代码拆分出来。
-
-以上两点中，第一点对我们的示例来说无疑是个问题，在下一章节我们会讲述如何移除重复的模块。
+同样的，如果你查看他们会发现他们都会包含有重复的 `shared.js`。
 
 ## SplitChunksPlugin
 
-SplitChunksPlugin 插件可以将公共的依赖模块提提取到一个新生成的 chunk。让我们使用这个插件，将之前的示例中重复的 `shared.js` 模块去除：
+上面的代码分割是很符合直觉的分割逻辑，但现代浏览器大多支持并发网络请求，如果我们将一个 SPA 应用中每一个页面分为一个 Chunk ，当用户切换页面的时候请求一个较大体积的 Chunk ，这显然不能很好利用到浏览器的并发网络请求能力，因此我们可以将 Chunk 拆分成更小的多个 Chunk ，需要请求这个 Chunk 的时候，我们改为同时请求这些更小的 Chunk ，这样会让浏览器请求更加高效。
+
+Rspack 默认会对 `node_modules` 目录下的文件以及重复模块进行拆分，将这些模块从他们所属的原 Chunk 抽离到单独的新 Chunk 中。那为何我们上面例子中，`shared.js` 还是在多个 Chunk 中重复出现了呢？这是因为我们例子中的 `shared.js` 体积很小，如果对一个很小的模块单独拆成一个 Chunk 让浏览器加载，可能反而会让加载更慢。
+
+我们可以配置最小拆分体积为 0 ，来让 `shared.js` 被单独抽离。
 
 ```diff title=rspack.config.js
 /**
  * @type {import('@rspack/core').Configuration}
  */
 const config = {
-  mode: 'development',
   entry: {
     index: './src/index.js',
-    another: './src/another-module.js',
-  },
-  output: {
-    filename: '[name].bundle.js',
   },
 +  optimization: {
 +    splitChunks: {
-+      chunks: 'all',
-+      minSize: 1,
++      minSize: 0,
 +    }
 +  }
 };
@@ -94,77 +113,32 @@ const config = {
 module.exports = config;
 ```
 
-使用 `optimization.splitChunks` 配置选项之后，现在应该可以看出，`index.bundle.js` 和 `another.bundle.js` 中已经移除了重复的依赖模块。需要注意的是，插件将 `shared.js` 分离到单独的 `another~index.bundle.js` 中 ，并且将其从 `index.bundle.js` 和 `another.bundle.js` 中移除。
+重新打包会发现 `shared.js` 被单独抽离出去，产物中多了一个包含有 `shared.js` 的 Chunk。
 
-构建结果：
+### 强制拆分某些模块
 
-```diff
-                  Asset       Size         Chunks             Chunk Names
-      another.bundle.js   3.27 KiB        another  [emitted]  another
-        index.bundle.js   3.27 KiB          index  [emitted]  index
-+ another~index.bundle.js  462 bytes  another~index  [emitted]
-Entrypoint another = another.bundle.js another~index.bundle.js
-Entrypoint index = another~index.bundle.js index.bundle.js
-[./src/index.js] 41 bytes {another~index}
-[./src/shared.js] 24 bytes {another~index}
-```
+我们可以通过 `optimization.splitChunks.cacheGroups.{cacheGroup}.name` 强制将指定模块分到一个 Chunk 中去，例如如下配置：
 
-## 动态导入（dynamic import）
-
-当涉及到动态代码拆分时， Rspack 选择的方式是使用符合 ECMAScript 提案 的 `import()` 语法来实现动态导入。
-
-:::info Webpack 的差异点
-
-- Rspack 不支持 `require.ensure` 功能。
-
-:::
-
-在我们开始之前，先从上述示例的配置中移除掉多余的 entry 和 optimization.splitChunks，因为接下来的演示中并不需要它们：
-
-```diff title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
-  mode: 'development',
-  entry: {
-    'index': './src/index.js',
--    'another': './src/another-module.js',
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        test: /\/some-lib\//,
+        name: 'lib',
+      },
+    },
   },
-  output: {
-    filename: '[name].bundle.js',
-  },
--  optimization: {
--    splitChunks: {
--      chunks: 'all',
--      minSize: 1,
--    }
--  }
 };
-
-module.exports = config;
 ```
 
-现在，我们将不在 `index.js` 中静态导入 `shared.js`，而是通过 `import()` 来动态导入它，从而分离出一个新的 chunk：
+通过如上配置，可以将路径中包含 `some-lib` 目录的文件，全部提取到一个名为 `lib` 的 Chunk 中，如果 `some-lib` 的模块几乎不会更改，该 Chunk 会一直命中用户的浏览器缓存，因此合理进行这样的配置可以提高缓存命中率。
 
-```diff title=index.js
-- import './shared'
-+ import('./shared')
-console.log('index.js')
-```
+然而 `some-lib` 被单独拆成一个独立的 Chunk 也会有坏处，假设某个 Chunk 只依赖 `some-lib` 中的一个很小的文件，但由于 `some-lib` 所有文件都被拆到了一个单独的 Chunk 中，因此这个 Chunk 不得不依赖全部的 `some-lib` Chunk ，导致加载体积更大，因此使用 `cacheGroups.{cacheGroup}.name` 的时候需要小心考虑。
 
-让我们执行 `rspack build` 看看， `shared.js` 被单独分割到 `src_shared_js.bundle.js` 中了。
+下图是一个例子，展示了 cacheGroup 中是否带 name 配置对最终产物 Chunk 的影响。
 
-```diff
-...
-                  Asset       Size         Chunks             Chunk Names
-        index.bundle.js   12.9 KiB          index  [emitted]  index
-+ src_shared_js.bundle.js  245 bytes  src_shared_js  [emitted]
-Entrypoint index = index.bundle.js
-[./src/index.js] 42 bytes {index}
-[./src/shared.js] 24 bytes {src_shared_js}
-build: 67.303ms
-```
+![](https://assets.rspack.dev/rspack/assets/rspack-splitchunks-name-explain.png)
 
 ## Prefetching/Preloading 模块
 

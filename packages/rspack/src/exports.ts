@@ -37,8 +37,7 @@ export type {
 	StatsChunk,
 	StatsCompilation,
 	StatsError,
-	StatsModule,
-	StatsWarnings
+	StatsModule
 } from "./Stats";
 export { Stats } from "./Stats";
 
