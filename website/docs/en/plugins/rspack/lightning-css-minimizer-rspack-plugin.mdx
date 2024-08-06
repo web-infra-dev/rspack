@@ -77,7 +77,7 @@ Below are the configurations supported. For detailed usage, please refer to [Lig
 
 :::info
 
-1. The default `targets` is set to `"Chrome 60"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+1. The default `targets` is set to `"fully supports es6"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
 2. By default, all features are `exclude`d since syntax downgrading is typically handled in the loader. Therefore, excluding all features avoids syntax downgrading during the minimize process.
 
 We recommend and encourage users to configure their own `targets` to achieve the best minification results.

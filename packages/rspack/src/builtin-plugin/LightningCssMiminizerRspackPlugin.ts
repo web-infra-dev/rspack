@@ -41,7 +41,7 @@ export const LightningCssMinimizerRspackPlugin = create(
 	): RawLightningCssMinimizerRspackPluginOptions => {
 		const { include, exclude, draft, nonStandard, pseudoClasses } =
 			options?.minimizerOptions ?? {};
-		const targets = options?.minimizerOptions?.targets ?? "Chrome 60"; // last not support es module chrome version
+		const targets = options?.minimizerOptions?.targets ?? "fully supports es6"; // last not support es module chrome version
 		return {
 			test: options?.test,
 			include: options?.include,
