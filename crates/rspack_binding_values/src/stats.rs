@@ -794,6 +794,7 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
 pub struct JsStatsModuleReason {
   #[napi(ts_type = "JsModuleDescriptor")]
   pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  #[napi(ts_type = "JsModuleDescriptor")]
   pub resolved_module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub module_chunks: Option<u32>,
   pub r#type: Option<&'static str>,

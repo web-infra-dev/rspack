@@ -789,7 +789,7 @@ export interface JsStatsModuleProfile {
 
 export interface JsStatsModuleReason {
   moduleDescriptor?: JsModuleDescriptor
-  resolvedModuleDescriptor?: JsModuleDescriptorWrapper
+  resolvedModuleDescriptor?: JsModuleDescriptor
   moduleChunks?: number
   type?: string
   userRequest?: string
