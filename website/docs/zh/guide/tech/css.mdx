@@ -2,11 +2,33 @@ import { PackageManagerTabs } from '@theme';
 
 # CSS
 
-CSS 是 Rspack 的一等公民，Rspack 内置了对 CSS 的处理能力，只需要配置 `experiments.css` 为 `true` 即可。
+CSS 是 Rspack 的一等公民，Rspack 内置了多种能力来支持 CSS 打包。
 
-我们默认会将 `*.css` 结尾的文件视为 `css/auto` 模块类型，将 `*.module.css` 结尾的文件视为 [CSS Modules](https://github.com/css-modules/css-modules)。
+## 开启 CSS 支持
 
-你也可以通过配置 `type: 'css/auto'` 自定义哪些模块为 `css` 模块。
+你可以从以下方式中进行选择：
+
+### 原生 CSS 支持
+
+Rspack 提供了 [experiment.css](/config/experiments#experimentscss) 选项，这是从 webpack 5 开始引入的实验性功能，用于开启 CSS 原生支持。Rspack 进一步完善了该功能，并计划在 Rspack 2.0 默认开启它。
+
+> 如果你基于 Rspack 创建了一个新项目，那么推荐使用该方式。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    css: true,
+  },
+};
+```
+
+开启 `experiment.css` 后，Rspack 将支持以下三种模块类型，你可以在 `rule` 上通过 `type` 来设置它们：
+
+- `css`：用于处理普通的 CSS 文件。
+- `css/module`：用于处理 [CSS Modules](https://github.com/css-modules/css-modules)。
+- `css/auto`：基于文件扩展名自动判断是普通 CSS 文件还是 CSS Modules，`*.module.css` 结尾的文件视为 CSS Modules。
+
+对于 `*.css` 结尾的文件，Rspack 会默认将其视为 `type: 'css/auto'`，你也可以通过配置 `type: 'css/auto'`，自定义将哪些文件视为 CSS 文件。比如，将 `.less` 文件视为 CSS 文件：
 
 ```js title=rspack.config.js
 module.exports = {
@@ -22,7 +44,68 @@ module.exports = {
 };
 ```
 
-如果你打算从 webpack 进行迁移，详情可以参考[迁移指南](/guide/migration/webpack#去除-css-loader-和-style-loader-和-mini-css-extract-plugin)。
+### 使用 CssExtractRspackPlugin
+
+Rspack 支持使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。
+
+如果你正在迁移一个使用 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) 的 webpack 项目，那么推荐使用 CssExtractRspackPlugin 来替换 mini-css-extract-plugin，它们的功能和配置方式基本一致。
+
+- 安装 css-loader：
+
+<PackageManagerTabs command="add css-loader -D" />
+
+- 添加配置：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+};
+```
+
+> 参考 [迁移指南](/guide/migration/webpack#mini-css-extract-plugin--rspackcssextractrspackplugin) 了解如何从 webpack 进行迁移。
+
+:::tip
+CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'` 或 `type: 'css/module'` 同时使用，因为这些 type 是由 `experiments.css` 提供的。
+:::
+
+### 使用 style-loader
+
+Rspack 支持使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [style-loader](https://github.com/webpack-contrib/style-loader)，将 CSS 通过 `<style>` 标签注入。这种方式不会生成独立的 CSS 文件，而是将 CSS 的内容内联到 JS 文件中。
+
+- 安装 css-loader 和 style-loader：
+
+<PackageManagerTabs command="add css-loader style-loader -D" />
+
+- 添加配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+:::tip
+style-loader 不能与 `type: 'css'`、`type: 'css/auto'` 或 `type: 'css/module'` 同时使用，因为这些 type 是由 `experiments.css` 提供的。
+:::
 
 ## CSS Modules
 
