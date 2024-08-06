@@ -1,5 +1,8 @@
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilerModuleContext, Module, ModuleIdentifier};
+use rspack_core::{
+  AsyncDependenciesBlock, Compilation, CompilerModuleContext, DependenciesBlock, Module,
+  ModuleIdentifier,
+};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use super::{JsCompatSource, ToJsCompatSource};
@@ -9,6 +12,46 @@ use crate::{JsChunk, JsCodegenerationResults};
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
+}
+
+#[napi]
+pub struct DependenciesBlockDTO {
+  block_id: AsyncDependenciesBlockIdentifier,
+  compilation: &'static Compilation,
+}
+
+impl DependenciesBlockDTO {
+  pub fn new(
+    block_id: AsyncDependenciesBlockIdentifier,
+    compilation: &'static Compilation,
+  ) -> Self {
+    Self {
+      block_id,
+      compilation,
+    }
+  }
+
+  fn block(&self) -> &AsyncDependenciesBlock {
+    let module_graph = &self.compilation.get_module_graph();
+    module_graph.block_by_id(self.block_id).unwrap_or_else(|| {
+      panic!(
+        "Cannot find block with id = {}. It might have been removed on the Rust side.",
+        self.module_id
+      )
+    })
+  }
+}
+
+#[napi]
+impl DependenciesBlockDTO {
+  // #[napi(getter)]
+  // pub fn dependencies(&self) -> Vec<DependencyDTO> {}
+
+  // #[napi(getter)]
+  // pub fn blocks() {
+  //   let block = self.block();
+  //   block.
+  // }
 }
 
 #[napi]
@@ -125,6 +168,17 @@ impl ModuleDTO {
   pub fn layer(&self) -> Option<&String> {
     let module = self.module();
     module.get_layer()
+  }
+
+  #[napi(getter)]
+  pub fn blocks(&self) -> Vec<DependenciesBlockDTO> {
+    let module_graph = self.compilation.get_module_graph();
+    let module = self.module();
+    let blocks = module
+      .get_blocks()
+      .clone()
+      .into_iter()
+      .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation));
   }
 }
 
