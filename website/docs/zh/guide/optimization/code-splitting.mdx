@@ -115,7 +115,7 @@ module.exports = config;
 
 重新打包会发现 `shared.js` 被单独抽离出去，产物中多了一个包含有 `shared.js` 的 Chunk。
 
-### 强制拆分某些模块到一个 Chunk
+### 强制拆分某些模块
 
 我们可以通过 `optimization.splitChunks.cacheGroups.{cacheGroup}.name` 强制将指定模块分到一个 Chunk 中去，例如如下配置：
 
