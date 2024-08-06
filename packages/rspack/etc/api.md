@@ -1880,15 +1880,15 @@ interface Drafts {
 }
 
 // @public (undocumented)
-export const DynamicEntryPlugin: {
-    new (context: string, entry: EntryDynamicNormalized): {
-        name: BuiltinPluginName;
-        _args: [context: string, entry: EntryDynamicNormalized];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+export class DynamicEntryPlugin extends RspackBuiltinPlugin {
+    constructor(context: string, entry: EntryDynamicNormalized);
+    // (undocumented)
+    affectedHooks: "make";
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin | undefined;
+}
 
 // @public (undocumented)
 interface Electron {
@@ -2549,6 +2549,280 @@ export interface EntryDescriptionNormalized {
     // (undocumented)
     runtime?: EntryRuntime;
 }
+
+// @public (undocumented)
+export type EntryDynamic = z.infer<typeof entryDynamic>;
+
+// @public (undocumented)
+const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    baseUri: z.ZodOptional<z.ZodString>;
+    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
+    asyncChunks: z.ZodOptional<z.ZodBoolean>;
+    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    library: z.ZodOptional<z.ZodObject<{
+        amdContainer: z.ZodOptional<z.ZodString>;
+        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            commonjs2: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }>]>>;
+        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }>]>>;
+        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
+        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
+    }, "strict", z.ZodTypeAny, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }>>;
+    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
+}, "strict", z.ZodTypeAny, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    baseUri: z.ZodOptional<z.ZodString>;
+    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
+    asyncChunks: z.ZodOptional<z.ZodBoolean>;
+    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    library: z.ZodOptional<z.ZodObject<{
+        amdContainer: z.ZodOptional<z.ZodString>;
+        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            commonjs2: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }>]>>;
+        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }>]>>;
+        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
+        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
+    }, "strict", z.ZodTypeAny, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }>>;
+    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
+}, "strict", z.ZodTypeAny, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>;
 
 // @public (undocumented)
 export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
@@ -9347,6 +9621,7 @@ declare namespace rspackExports {
         EntryUnnamed,
         EntryObject,
         EntryStatic,
+        EntryDynamic,
         Entry,
         Path,
         Pathinfo,
