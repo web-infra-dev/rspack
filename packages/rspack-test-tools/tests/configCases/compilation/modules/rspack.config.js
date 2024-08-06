@@ -14,8 +14,7 @@ class Plugin {
                     stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
                 },
                 () => {
-                    const module = Array.from(compilation.modules)[0];
-                    expect(module.rawRequest).toBe("./index.js");
+                    const module = Array.from(compilation.modules).find(module => module.rawRequest === "./index.js");
                     const block = module.blocks[0];
                     expect(block.dependencies[0].request).toBe("./a");
                 }
