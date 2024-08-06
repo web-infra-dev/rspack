@@ -79,12 +79,12 @@ impl Lockfile {
     Ok(lockfile)
   }
 
-  pub fn to_json_string(&self) -> String {
+  pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
     let json = serde_json::json!({
         "version": self.version,
         "entries": self.entries
     });
-    serde_json::to_string_pretty(&json).unwrap()
+    serde_json::to_string_pretty(&json)
   }
 
   pub fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
@@ -97,6 +97,7 @@ impl Lockfile {
 }
 
 #[async_trait]
+#[allow(dead_code)]
 pub trait LockfileAsync {
   async fn read_from_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
     path: P,
@@ -132,11 +133,13 @@ impl LockfileAsync for Lockfile {
     path: P,
     filesystem: &F,
   ) -> io::Result<()> {
-    let content = self.to_json_string();
+    let content = self
+      .to_json_string()
+      .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     filesystem
       .write(path.as_ref(), content.as_bytes())
       .await
-      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
+      .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     Ok(())
   }
 }
@@ -174,7 +177,7 @@ impl LockfileCache {
           // File doesn't exist, use the default empty lockfile
         }
         Err(e) => {
-          dbg!("Error reading lockfile: {:?}", e);
+          eprintln!("Error reading lockfile: {:?}", e);
         }
       }
     }
@@ -193,7 +196,9 @@ impl LockfileCache {
           .await
           .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
       }
-      let content = lockfile.to_json_string();
+      let content = lockfile
+        .to_json_string()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
       self
         .filesystem
         .write(lockfile_path, content.as_bytes())

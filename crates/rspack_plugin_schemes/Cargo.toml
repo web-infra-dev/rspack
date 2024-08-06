@@ -13,7 +13,7 @@ async-trait   = { workspace = true }
 derivative    = { workspace = true }
 once_cell     = { workspace = true }
 regex         = { workspace = true }
-reqwest       = { version = "0.12.5", default_features = false, features = ["http2"] }
+reqwest       = { version = "0.12.5", default-features = false, features = ["http2", "default-tls"] }
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }

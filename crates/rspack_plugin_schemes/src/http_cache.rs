@@ -45,6 +45,7 @@ pub struct RedirectFetchResult {
 
 pub enum FetchResultType {
   Content(ContentFetchResult),
+  #[allow(dead_code)]
   Redirect(RedirectFetchResult),
 }
 
