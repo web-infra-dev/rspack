@@ -794,6 +794,9 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
 pub struct JsStatsModuleReason {
   #[napi(ts_type = "JsModuleDescriptor")]
   pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub resolved_module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_chunks: Option<u32>,
   pub r#type: Option<&'static str>,
   pub user_request: Option<String>,
 }
@@ -818,6 +821,15 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
         }
         .into()
       }),
+      resolved_module_descriptor: stats.resolved_module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
+          name: stats.resolved_module_name.unwrap_or_default().into_owned(),
+          id: stats.resolved_module_id.map(|s| s.to_string()),
+        }
+        .into()
+      }),
+      module_chunks: stats.module_chunks,
       r#type: stats.r#type,
       user_request: stats.user_request.map(|i| i.to_owned()),
     }

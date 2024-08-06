@@ -5066,6 +5066,8 @@ type KnownStatsAsset = {
     info: AssetInfo_2;
     size: number;
     emitted: boolean;
+    cached: boolean;
+    related?: StatsAsset[];
     chunkNames?: (string | number)[];
     chunkIdHints?: (string | number)[];
     chunks?: (string | null | undefined)[];
@@ -5261,9 +5263,12 @@ type KnownStatsModuleReason = {
     moduleIdentifier?: string;
     module?: string;
     moduleName?: string;
+    resolvedModuleIdentifier?: string;
+    resolvedModule?: string;
     type?: string;
     userRequest?: string;
     moduleId?: string | null;
+    resolvedModuleId?: string | number | null;
 };
 
 // @public (undocumented)
@@ -11154,7 +11159,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack: z.ZodOptional<z.ZodBoolean>;
         moduleTrace: z.ZodOptional<z.ZodBoolean>;
         cachedModules: z.ZodOptional<z.ZodBoolean>;
+        cachedAssets: z.ZodOptional<z.ZodBoolean>;
         cached: z.ZodOptional<z.ZodBoolean>;
+        errorsSpace: z.ZodOptional<z.ZodNumber>;
+        warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
@@ -11228,7 +11236,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     }, {
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
@@ -11302,7 +11313,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     }>]>>;
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
@@ -13015,7 +13029,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
@@ -13580,7 +13597,10 @@ export const rspackOptions: z.ZodObject<{
         errorStack?: boolean | undefined;
         moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
@@ -14289,7 +14309,10 @@ const statsOptions: z.ZodObject<{
     errorStack: z.ZodOptional<z.ZodBoolean>;
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
     cachedModules: z.ZodOptional<z.ZodBoolean>;
+    cachedAssets: z.ZodOptional<z.ZodBoolean>;
     cached: z.ZodOptional<z.ZodBoolean>;
+    errorsSpace: z.ZodOptional<z.ZodNumber>;
+    warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14363,7 +14386,10 @@ const statsOptions: z.ZodObject<{
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14437,7 +14463,10 @@ const statsOptions: z.ZodObject<{
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }>;
 
 // @public (undocumented)
@@ -14544,7 +14573,10 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack: z.ZodOptional<z.ZodBoolean>;
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
     cachedModules: z.ZodOptional<z.ZodBoolean>;
+    cachedAssets: z.ZodOptional<z.ZodBoolean>;
     cached: z.ZodOptional<z.ZodBoolean>;
+    errorsSpace: z.ZodOptional<z.ZodNumber>;
+    warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14618,7 +14650,10 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
@@ -14692,7 +14727,10 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack?: boolean | undefined;
     moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }>]>;
 
 // @public (undocumented)

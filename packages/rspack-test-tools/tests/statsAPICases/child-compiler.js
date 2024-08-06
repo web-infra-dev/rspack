@@ -51,6 +51,7 @@ module.exports = {
 		    Object {
 		      "auxiliaryChunkIdHints": Array [],
 		      "auxiliaryChunkNames": Array [],
+		      "cached": false,
 		      "chunkIdHints": Array [],
 		      "chunkNames": Array [],
 		      "emitted": true,
@@ -72,6 +73,7 @@ module.exports = {
 		    Object {
 		      "auxiliaryChunkIdHints": Array [],
 		      "auxiliaryChunkNames": Array [],
+		      "cached": false,
 		      "chunkIdHints": Array [],
 		      "chunkNames": Array [
 		        "main",
@@ -104,6 +106,7 @@ module.exports = {
 		        Object {
 		          "auxiliaryChunkIdHints": Array [],
 		          "auxiliaryChunkNames": Array [],
+		          "cached": false,
 		          "chunkIdHints": Array [],
 		          "chunkNames": Array [
 		            "TestChild",
