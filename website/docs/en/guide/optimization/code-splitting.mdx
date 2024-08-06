@@ -7,11 +7,13 @@ import { ApiMeta } from '@components/ApiMeta';
 
 Rspack supports code splitting, which allows splitting the code into other chunks. You have the full control about size and number of generated assets, which allow you to gain performance improvements in loading time.
 
+Here we introduce a concept called Chunk, representing a resource that a browser needs to load.
+
 ## Dynamic import
 
 Rspack use the `import()` syntax that conforms to the ECMAScript proposal for dynamic imports.
 
-:::info Inconsistent behaviors with Webpack
+:::info Inconsistent behaviors with webpack
 
 - Rspack doesn't support `require.ensure`.
 
