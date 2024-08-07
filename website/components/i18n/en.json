@@ -22,5 +22,7 @@
   "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead",
   "@nx/webpack-desc": "Use [@nx/rspack](https://www.npmjs.com/package/@nx/rspack) instead",
   "webpack-filter-warnings-plugin-desc": "Use [ignoreWarnings](/config/other-options#ignorewarnings) instead",
-  "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead"
+  "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",
+  "circular-dependency-plugin-desc": "Use Eslint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) rule instead",
+  "html-webpack-tags-plugin-desc": "This plugin depends on webpack and html-webpack-plugin"
 }

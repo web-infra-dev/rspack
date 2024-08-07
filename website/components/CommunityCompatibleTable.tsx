@@ -209,6 +209,23 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'circular-dependency-plugin',
       url: 'https://github.com/aackerman/circular-dependency-plugin',
       status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['circular-dependency-plugin-desc'],
+    },
+    {
+      name: 'critters-webpack-plugin',
+      url: 'https://github.com/GoogleChromeLabs/critters',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'html-webpack-tags-plugin',
+      url: 'https://github.com/jharris4/html-webpack-tags-plugin',
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['html-webpack-tags-plugin-desc'],
+    },
+    {
+      name: '@loadable/webpack-plugin',
+      url: 'https://www.npmjs.com/package/@loadable/webpack-plugin',
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'error-overlay-webpack-plugin',
