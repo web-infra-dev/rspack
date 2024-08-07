@@ -305,9 +305,10 @@ module.exports = {
 - [`'commonjs'`](#externalstypecommonjs)
 - `'commonjs-module'`
 - [`'global'`](#externalstypeglobal)
-- `'import'` - 使用 `import()` 加载一个原生的 ECMAScript 模块（异步模块）
-- `'jsonp'`
 - [`'module'`](#externalstypemodule)
+- [`'import'`](#externalstypeimport) - 使用 `import()` 加载一个原生的 ECMAScript 模块（异步模块）
+- [`'module-import'`](#externalstypemodule-import)
+- `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
 - [`'promise'`](#externalstypepromise)
 - [`'self'`](#externalstypeself)
@@ -389,7 +390,7 @@ jq('.my-element').animate(/* ... */);
 
 将 externals 的默认类型指定为 `'module'`。Rspack 将为模块中使用的 externals 生成类似 `import * as X from '...'` 的代码。
 
-确保开启了 [`experimental.outputModule`](/config/experiments#experimentsoutputmodule)，否则 Rspack 会抛出错误。
+确保开启了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)，否则 Rspack 会抛出错误。
 
 **示例**
 
@@ -410,7 +411,7 @@ module.exports = {
 };
 ```
 
-将生成类似于以下内容的东西
+将会转换为类似下面的代码：
 
 ```js
 import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
@@ -419,7 +420,98 @@ const jq = __WEBPACK_EXTERNAL_MODULE_jquery__['default'];
 jq('.my-element').animate(/* ... */);
 ```
 
-请注意，在输出包中将有一个 `import` 语句。
+请注意，在输出产物中将有 `import` 语句。
+
+### externalsType.import
+
+将 externals 的默认类型指定为 `'import'`。Rspack 将为模块中使用的 externals 生成类似 `import('...')` 的代码。
+
+**示例**
+
+```javascript
+async function foo() {
+  const jq = await import('jQuery');
+  jq('.my-element').animate(/* ... */);
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'import',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+var __webpack_modules__ = {
+  jQuery: module => {
+    module.exports = import('jQuery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+  );
+  jq('.my-element').animate(/* ... */);
+}
+```
+
+请注意，在输出产物中将有 `import()` 语句。
+
+### externalsType['module-import']
+
+将 externals 的默认类型指定为 `'module-import'`。这将结合 [`'module'`](#externalstypemodule) 和 [`'import'`](#externalstypeimport)。Rspack 将自动检测导入语法的类型，对于静态导入设置为 `'module'`，对于动态导入设置为 `'import'`。
+
+**示例**
+
+```javascript
+import { attempt } from 'lodash';
+
+async function foo() {
+  const jq = await import('jQuery');
+  attempt(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'import',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
+const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+
+var __webpack_modules__ = {
+  jQuery: module => {
+    module.exports = import('jQuery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+  );
+  (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+请注意，在输出产物中将有 `import` 或 `import()` 语句。
 
 ### externalsType['node-commonjs']
 
@@ -450,7 +542,7 @@ const jq = createRequire(import.meta.url)('jquery');
 jq('.my-element').animate(/* ... */);
 ```
 
-请注意，输出包中会有一个 `import` 语句。
+请注意，在输出产物中会有 `import` 语句。
 
 ### externalsType.promise
 
