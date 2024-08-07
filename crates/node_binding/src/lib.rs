@@ -37,7 +37,7 @@ pub struct Rspack {
 impl Rspack {
   #[napi(constructor)]
   pub fn new(
-    env: Env,
+    mut env: Env,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
@@ -45,6 +45,25 @@ impl Rspack {
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
+
+    let raw_env = env.raw();
+    env.add_env_cleanup_hook(raw_env, move |raw_env| {
+      // TODO: wait for a better hook to clean up
+      COMPILATION_INSTANCE_REFS.with(|refs| {
+        let mut refs = refs.borrow_mut();
+        for (_, mut r) in refs.drain() {
+          let _ = r.unref(raw_env);
+        }
+      });
+      MODULE_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        for (_, mut refs) in refs_by_compilation_id.drain() {
+          for (_, mut r) in refs.drain() {
+            let _ = r.unref(raw_env);
+          }
+        }
+      });
+    })?;
 
     let mut plugins = Vec::new();
     let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;

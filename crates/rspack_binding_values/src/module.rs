@@ -226,7 +226,7 @@ impl ModuleDTO {
 }
 
 thread_local! {
-  pub(crate) static MODULE_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<Identifier, Ref>>> = Default::default();
+  pub static MODULE_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<Identifier, Ref>>> = Default::default();
 }
 
 pub struct ModuleDTOSingleton {
