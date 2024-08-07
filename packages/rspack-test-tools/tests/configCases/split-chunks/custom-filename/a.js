@@ -17,8 +17,8 @@ it("should have files", () => {
 	expect(files).toContain("a.js");
 	expect(files).toContain("b.js");
 	expect(files).toContain("common-common1_js.js");
-	expect(files).toContain("otherName1.js");
-	expect(files).toContain("otherName2.js");
+	expect(files).toContain("common-common2_js.js");
+	expect(files).toContain("common-common3_js.js");
 	expect(files).toContain("shared-shared-shared1_js.js");
-	expect(files).toContain("shared-theName.js");
+	expect(files).toContain("shared-shared-shared2_js.js");
 });
