@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import PropertyType from '@components/property-type';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
 # Module
 
@@ -134,35 +138,54 @@ module.exports = {
 
 #### module.parser.javascript.dynamicImportMode
 
-- **类型：** `'lazy' | 'eager'`
-- **默认值：** `'lazy'`
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
 
-指定动态导入的全局模式。
+指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
 
 #### module.parser.javascript.dynamicImportPrefetch
 
 <ApiMeta addedVersion="0.4.5" />
 
-- **类型：** `boolean | number`
-- **默认值：** `false`
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-指定动态导入的全局 prefetch。
+指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
 
 #### module.parser.javascript.dynamicImportPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
-指定动态导入的全局 preload。
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **类型：** `boolean | number`
-- **默认值：** `false`
+指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
+
+#### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
 
 #### module.parser.javascript.url
 
 <ApiMeta addedVersion="0.4.4" />
 
-- **类型：** `true | false | 'relative'`
-- **默认值：** `true`
+<PropertyType
+  type="true | false | 'relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 启用 `new URL()` 语法解析。
 
@@ -180,8 +203,10 @@ module.exports = {
 
 <ApiMeta addedVersion="0.6.3" />
 
-- **类型：** `boolean | undefined`
-- **默认值：** `true`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 启用完全动态依赖（`import(variable)`）的警告。
 
@@ -189,17 +214,29 @@ module.exports = {
 
 <ApiMeta addedVersion="0.6.3" />
 
-- **类型：** `boolean | undefined`
-- **默认值：** `false`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
+
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否要解析替换 `import.meta`。
 
 #### module.parser.javascript.exportsPresence
 
 <ApiMeta addedVersion="0.7.1" />
 
-- **类型：** `"error" | "warn" | "auto" | false`
-- **默认值：** `"auto"`
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
 
 当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
 
@@ -212,24 +249,15 @@ module.exports = {
 
 <ApiMeta addedVersion="0.7.1" />
 
-- **类型：** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 当使用了不存在的导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
-
-#### module.parser.javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-是否要解析替换 `import.meta`。
 
 #### module.parser.javascript.reexportExportsPresence
 
 <ApiMeta addedVersion="0.7.1" />
 
-- **类型：** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
 
@@ -237,7 +265,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-- **类型：** `string[] | boolean`
+<PropertyType type="string[] | boolean" />
 
 为 Worker 解析提供自定义的语法，常用于支持 Worklet：
 
@@ -266,7 +294,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
-- **类型：** `'strict' | 'non-strict'`
+<PropertyType type="'strict' | 'non-strict'" />
 
 将模块覆盖为严格模式或非严格模式。
 

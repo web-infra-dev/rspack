@@ -123,10 +123,50 @@ Setting it to `true` or `'multiple'` will add an additional chunk containing onl
 
 Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk.
 
+## optimization.realContentHash
+
+<PropertyType
+  type="boolean | 'flag'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes. This feature will enable by default in production mode.
+
+If realContentHash is set to false, internal data is used to calculate the hash and it can change when assets are identical in some cases.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    realContentHash: true,
+  },
+};
+```
+
+## optimization.splitChunks
+
+<PropertyType type="false | object" />
+
+Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
+
+It is enabled by default for dynamically imported modules.
+
+To turn it off, set it to `false`.
+
+See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
+
 ## optimization.sideEffects
 
-- **Type:** `boolean | 'flag'`
-- **Default:** [production mode](config/mode#production) is `true`，[development mode](config/mode#development) is `'flag'`
+<PropertyType
+  type="boolean | 'flag'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: "'flag'", mode: 'development' },
+  ]}
+/>
 
 ```json
 {
@@ -172,32 +212,20 @@ The `'flag'` value is used by default in non-production builds.
 When `optimization.sideEffects` is true , Rspack will also flag modules as side effect free when they contain only side effect free statements.
 :::
 
-## optimization.realContentHash
+## optimization.providedExports
 
-Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes. This feature will enable by default in production mode.
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-If realContentHash is set to false, internal data is used to calculate the hash and it can change when assets are identical in some cases.
+After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
 
 ```js title=rspack.config.js
 module.exports = {
   //...
   optimization: {
-    realContentHash: true,
+    providedExports: false,
   },
 };
 ```
-
-## optimization.splitChunks
-
-- **Type:** `false | object`
-
-Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
-
-It is enabled by default for dynamically imported modules.
-
-To turn it off, set it to `false`.
-
-See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
 
 ## optimization.usedExports
 
@@ -233,6 +261,27 @@ module.exports = {
 };
 ```
 
+## optimization.mangleExports
+
+<PropertyType
+  type="boolean | 'deterministic' | 'size' "
+  defaultValueList={[
+    { defaultValue: 'deterministic', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+`optimization.mangleExports` allows to control export mangling.
+
+The following values are supported:
+
+| option          | description                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 'named'         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode                                 |
+| 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
+| true            | Same as 'deterministic'                                                                                                            |
+| false           | Keep original name. Good for readability and debugging.                                                                            |
+
 ## optimization.innerGraph
 
 <PropertyType
@@ -263,45 +312,12 @@ function f2() {
 
 Here we assign the `value` to `value2`. Both `value2` and `value` are accessed within the functions `f2` and `f1` respectively, but the functions are not called, hence `value2` and `value` are not actually used, thus the import of `value` can be removed.
 
-## optimization.providedExports
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
-
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    providedExports: false,
-  },
-};
-```
-
-## optimization.mangleExports
-
-<PropertyType
-  type="boolean | 'deterministic' | 'size' "
-  defaultValueList={[
-    { defaultValue: 'deterministic', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-`optimization.mangleExports` allows to control export mangling.
-The following values are supported:
-
-| option          | description                                                                                                                        |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 'named'         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode                                 |
-| 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
-| true            | Same as 'deterministic'                                                                                                            |
-| false           | Keep original name. Good for readability and debugging.                                                                            |
-
 ## optimization.nodeEnv
 
-- **Type:** `boolean | string`
-- **Default:** `false`
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
 `optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
