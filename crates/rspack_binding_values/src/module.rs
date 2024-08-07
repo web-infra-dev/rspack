@@ -282,16 +282,6 @@ impl ToNapiValue for ModuleDTOWrapper {
   }
 }
 
-impl FromNapiValue for ModuleDTOWrapper {
-  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let instance: ClassInstance<ModuleDTO> = FromNapiValue::from_napi_value(env, napi_val)?;
-    Ok(ModuleDTOWrapper {
-      module_id: instance.module_id,
-      compilation: instance.compilation,
-    })
-  }
-}
-
 #[derive(Default)]
 #[napi(object)]
 pub struct JsModule {

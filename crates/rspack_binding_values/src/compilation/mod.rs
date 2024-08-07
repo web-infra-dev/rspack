@@ -132,7 +132,7 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter)]
+  #[napi(getter, ts_return_type = "ModuleDTO")]
   pub fn modules(&'static self) -> Vec<ModuleDTOWrapper> {
     self
       .0

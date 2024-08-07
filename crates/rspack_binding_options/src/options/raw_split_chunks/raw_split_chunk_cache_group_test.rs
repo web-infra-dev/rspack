@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::Either3;
+use napi::bindgen_prelude::{Either3, FromNapiValue};
 use napi_derive::napi;
 use rspack_binding_values::ModuleDTOWrapper;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
@@ -11,9 +11,19 @@ use tokio::runtime::Handle;
 pub(super) type RawCacheGroupTest =
   Either3<String, JsRegExp, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsCacheGroupTestCtx {
+  #[napi(ts_type = "ModuleDTO")]
   pub module: ModuleDTOWrapper,
+}
+
+impl FromNapiValue for JsCacheGroupTestCtx {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    unreachable!()
+  }
 }
 
 impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
