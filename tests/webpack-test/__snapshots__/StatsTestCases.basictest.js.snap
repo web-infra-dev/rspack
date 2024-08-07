@@ -1169,13 +1169,13 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 "default:
   assets by path *.br 13.5 KiB
     asset default-main.js.br 11.5 KiB [emitted]
-    + 7 assets
+    asset default-main.js.map.br 670 bytes [emitted]
+    + 6 assets
   assets by path *.gz 13.5 KiB
     asset default-main.js.gz 11.5 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.26 KiB
-    assets by chunk 840 bytes (auxiliary name: main) 2 assets
-    + 2 assets
+    asset default-main.js.map.gz 670 bytes [emitted]
+    asset default-chunk_js.js.gz 625 bytes [emitted]
+    + 5 assets
   assets by path *.js 12.2 KiB
     asset default-main.js 11.5 KiB [emitted] (name: main)
     asset default-chunk_js.js 625 bytes [emitted]
@@ -1186,13 +1186,13 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 relatedAssets:
   assets by path *.br 13.6 KiB
     asset relatedAssets-main.js.br 11.6 KiB [emitted]
-    + 7 assets
+    asset relatedAssets-main.js.map.br 676 bytes [emitted]
+    + 6 assets
   assets by path *.gz 13.6 KiB
     asset relatedAssets-main.js.gz 11.6 KiB [emitted]
-    + 7 assets
-  assets by path *.map 1.28 KiB
-    assets by chunk 852 bytes (auxiliary name: main) 2 assets
-    + 2 assets
+    asset relatedAssets-main.js.map.gz 676 bytes [emitted]
+    asset relatedAssets-chunk_js.js.gz 631 bytes [emitted]
+    + 5 assets
   assets by path *.js 12.2 KiB
     asset relatedAssets-main.js 11.6 KiB [emitted] (name: main)
     asset relatedAssets-chunk_js.js 631 bytes [emitted]
@@ -1202,13 +1202,7 @@ relatedAssets:
 
 exclude1:
   hidden assets 27.1 KiB 16 assets
-  assets by status 13.6 KiB [emitted]
-    assets by path *.map 1.26 KiB
-      assets by chunk 842 bytes (auxiliary name: main)
-        asset exclude1-main.js.map 671 bytes [emitted] (auxiliary name: main)
-        asset exclude1-main.css.map 171 bytes [emitted] (auxiliary name: main)
-      asset exclude1-chunk_js.js.map 269 bytes [emitted]
-      asset exclude1-chunk_js.css.map 181 bytes [emitted]
+  assets by status 12.3 KiB [emitted]
     assets by path *.js 12.2 KiB
       asset exclude1-main.js 11.5 KiB [emitted] (name: main)
       asset exclude1-chunk_js.js 626 bytes [emitted]
@@ -1217,38 +1211,38 @@ exclude1:
       asset exclude1-main.css 70 bytes [emitted] (name: main)
 
 exclude2:
-  hidden assets 1.26 KiB 4 assets
-  assets by status 39.4 KiB [emitted]
-    assets by path *.br 13.6 KiB
-      asset exclude2-main.js.br 11.5 KiB [emitted]
-      + 7 assets
-    assets by path *.gz 13.6 KiB
-      asset exclude2-main.js.gz 11.5 KiB [emitted]
-      asset exclude2-main.js.map.gz 671 bytes [emitted]
-      + 6 assets
-    assets by path *.js 12.2 KiB
-      asset exclude2-main.js 11.5 KiB [emitted] (name: main)
-      asset exclude2-chunk_js.js 626 bytes [emitted]
-    assets by path *.css 144 bytes
-      asset exclude2-chunk_js.css 74 bytes [emitted]
-      asset exclude2-main.css 70 bytes [emitted] (name: main)
+  assets by path *.br 13.6 KiB
+    asset exclude2-main.js.br 11.5 KiB [emitted]
+    asset exclude2-main.js.map.br 671 bytes [emitted]
+    + 6 assets
+  assets by path *.gz 13.6 KiB
+    asset exclude2-main.js.gz 11.5 KiB [emitted]
+    asset exclude2-main.js.map.gz 671 bytes [emitted]
+    asset exclude2-chunk_js.js.gz 626 bytes [emitted]
+    + 5 assets
+  assets by path *.js 12.2 KiB
+    asset exclude2-main.js 11.5 KiB [emitted] (name: main)
+    asset exclude2-chunk_js.js 626 bytes [emitted]
+  assets by path *.css 144 bytes
+    asset exclude2-chunk_js.css 74 bytes [emitted]
+    asset exclude2-main.css 70 bytes [emitted] (name: main)
 
 exclude3:
-  hidden assets 3.37 KiB 12 assets
-  assets by status 37.3 KiB [emitted]
+  hidden assets 2.93 KiB 10 assets
+  assets by status 36.5 KiB [emitted]
     assets by path *.br 12.4 KiB
       asset exclude3-main.js.br 11.5 KiB [emitted]
-      + 3 assets
+      asset exclude3-main.js.map.br 671 bytes [emitted]
+      asset exclude3-main.css.map.br 171 bytes [emitted]
+      asset exclude3-main.css.br 70 bytes [emitted]
     assets by path *.gz 12.4 KiB
       asset exclude3-main.js.gz 11.5 KiB [emitted]
       asset exclude3-main.js.map.gz 671 bytes [emitted]
-      + 2 assets
+      asset exclude3-main.css.map.gz 171 bytes [emitted]
+      asset exclude3-main.css.gz 70 bytes [emitted]
     assets by chunk 11.6 KiB (name: main)
       asset exclude3-main.js 11.5 KiB [emitted] (name: main)
-      asset exclude3-main.css 70 bytes [emitted] (name: main)
-    assets by path *.map 842 bytes
-      asset exclude3-main.js.map 671 bytes [emitted] (auxiliary name: main)
-      asset exclude3-main.css.map 171 bytes [emitted] (auxiliary name: main)"
+      asset exclude3-main.css 70 bytes [emitted] (name: main)"
 `;
 
 exports[`StatsTestCases should print correct stats for reverse-sort-modules 1`] = `
