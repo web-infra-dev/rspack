@@ -3,8 +3,8 @@ use std::cell::RefCell;
 use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilerModuleContext,
-  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
+  CompilerModuleContext, DependenciesBlock, Module, ModuleGraph, ModuleIdentifier, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, Ref};
 use rustc_hash::FxHashMap as HashMap;
@@ -213,10 +213,20 @@ impl ModuleDTO {
       .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation))
       .collect::<Vec<_>>()
   }
+
+  #[napi]
+  pub fn size(&self, ty: Either<String, ()>) -> f64 {
+    let module = self.module();
+    let ty = match ty {
+      Either::A(s) => Some(SourceType::from(s.as_str())),
+      Either::B(_) => None,
+    };
+    module.size(ty.as_ref(), &self.compilation)
+  }
 }
 
 thread_local! {
-  static MODULE_INSTANCE_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
+  pub(crate) static MODULE_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<Identifier, Ref>>> = Default::default();
 }
 
 pub struct ModuleDTOSingleton {
@@ -241,7 +251,15 @@ impl ModuleDTOSingleton {
 impl ToNapiValue for ModuleDTOSingleton {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs = refs.borrow_mut();
+      let mut refs_by_compilation_id = refs.borrow_mut();
+      let entry = refs_by_compilation_id.entry(val.compilation.id());
+      let refs = match entry {
+        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          let refs = HashMap::default();
+          entry.insert(refs)
+        }
+      };
       match refs.entry(val.module_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
@@ -256,6 +274,16 @@ impl ToNapiValue for ModuleDTOSingleton {
           ToNapiValue::to_napi_value(env, r)
         }
       }
+    })
+  }
+}
+
+impl FromNapiValue for ModuleDTOSingleton {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let instance: ClassInstance<ModuleDTO> = FromNapiValue::from_napi_value(env, napi_val)?;
+    Ok(ModuleDTOSingleton {
+      module_id: instance.module_id,
+      compilation: instance.compilation,
     })
   }
 }

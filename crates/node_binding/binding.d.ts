@@ -64,7 +64,7 @@ export class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
-  get modules(): Array<ModuleDTO>
+  get modules(): Array<ModuleDTOSingleton>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
@@ -146,6 +146,7 @@ export class ModuleDto {
   get type(): string
   get layer(): string | undefined
   get blocks(): Array<DependenciesBlockDto>
+  size(ty: string | undefined): number
 }
 export type ModuleDTO = ModuleDto
 
@@ -347,6 +348,10 @@ export interface JsBeforeResolveArgs {
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
+}
+
+export interface JsCacheGroupTestCtx {
+  module: ModuleDTOSingleton
 }
 
 export interface JsChunk {
@@ -978,10 +983,6 @@ export interface RawCacheGroupOptions {
   name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
-}
-
-export interface RawCacheGroupTestCtx {
-  module: JsModule
 }
 
 export interface RawCacheOptions {

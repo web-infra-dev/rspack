@@ -141,7 +141,7 @@ impl SplitChunksPlugin {
             .name_for_condition()
             .map_or(false, |name| regexp.test(&name)),
           CacheGroupTest::Fn(f) => {
-            let ctx = CacheGroupTestFnCtx { module };
+            let ctx = CacheGroupTestFnCtx { compilation, module };
             f(ctx)?.unwrap_or_default()
           }
           CacheGroupTest::Enabled => true,

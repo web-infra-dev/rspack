@@ -25,9 +25,11 @@ use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
+use crate::ModuleDTOSingleton;
+use crate::MODULE_INSTANCE_REFS;
 use crate::{
   chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
-  JsStats, ModuleDTO, ToJsCompatSource,
+  JsStats, ToJsCompatSource,
 };
 use crate::{JsDiagnostic, JsRspackError};
 
@@ -52,6 +54,18 @@ impl JsCompilation {
         inner,
       )
     })
+  }
+}
+
+impl Drop for JsCompilation {
+  fn drop(&mut self) {
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compilation_id = refs.borrow_mut();
+      let refs = refs_by_compilation_id.get_mut(&self.0.id());
+      if let Some(refs) = refs {
+        refs.clear();
+      }
+    });
   }
 }
 
@@ -150,14 +164,14 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn modules(&'static self) -> Vec<ModuleDTO> {
+  pub fn modules(&'static self) -> Vec<ModuleDTOSingleton> {
     self
       .0
       .get_module_graph()
       .modules()
       .keys()
       .cloned()
-      .map(|module_id| ModuleDTO::new(module_id, self.0))
+      .map(|module_id| ModuleDTOSingleton::new(module_id, self.0))
       .collect::<Vec<_>>()
   }
 
