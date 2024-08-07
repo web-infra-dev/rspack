@@ -120,7 +120,7 @@ export const applyRspackOptionsDefaults = (
 		return options.output.library
 			? options.output.library.type
 			: options.output.module
-				? "module"
+				? "module-import"
 				: "var";
 	});
 

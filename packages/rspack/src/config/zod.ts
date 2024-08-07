@@ -873,6 +873,7 @@ export const externalsType = z.enum([
 	"system",
 	"promise",
 	"import",
+	"module-import",
 	"script",
 	"node-commonjs"
 ]);
