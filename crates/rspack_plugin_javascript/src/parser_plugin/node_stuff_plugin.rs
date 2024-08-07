@@ -1,8 +1,8 @@
-use rspack_core::{get_context, ConstDependency, RuntimeGlobals, SpanExt};
+use rspack_core::{get_context, CachedConstDependency, ConstDependency, RuntimeGlobals, SpanExt};
 use sugar_path::SugarPath;
 
 use super::JavascriptParserPlugin;
-use crate::utils::eval;
+use crate::{dependency::ExternalModuleDependency, utils::eval};
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -28,6 +28,33 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       let dirname = match node_option.dirname.as_str() {
         "mock" => Some("/".to_string()),
         "warn-mock" => Some("/".to_string()),
+        "node-module" => {
+          // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
+          // We need to create two separate dependencies in Rspack.
+          let external_dep = ExternalModuleDependency::new(
+            "url".to_string(),
+            vec![(
+              "fileURLToPath".to_string(),
+              "__webpack_fileURLToPath__".to_string(),
+            )],
+            None,
+          );
+
+          let const_dep = CachedConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            DIR_NAME.into(),
+            "__webpack_fileURLToPath__(import.meta.url + '/..').slice(0, -1)"
+              .to_string()
+              .into(),
+          );
+
+          parser
+            .presentational_dependencies
+            .push(Box::new(external_dep));
+          parser.presentational_dependencies.push(Box::new(const_dep));
+          return Some(true);
+        }
         "true" => Some(
           parser
             .resource_data
@@ -55,6 +82,33 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       let filename = match node_option.filename.as_str() {
         "mock" => Some("/index.js".to_string()),
         "warn-mock" => Some("/index.js".to_string()),
+        "node-module" => {
+          // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
+          // We need to create two separate dependencies in Rspack.
+          let external_dep = ExternalModuleDependency::new(
+            "url".to_string(),
+            vec![(
+              "fileURLToPath".to_string(),
+              "__webpack_fileURLToPath__".to_string(),
+            )],
+            None,
+          );
+
+          let const_dep = CachedConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            FILE_NAME.into(),
+            "__webpack_fileURLToPath__(import.meta.url)"
+              .to_string()
+              .into(),
+          );
+
+          parser
+            .presentational_dependencies
+            .push(Box::new(external_dep));
+          parser.presentational_dependencies.push(Box::new(const_dep));
+          return Some(true);
+        }
         "true" => Some(
           parser
             .resource_data

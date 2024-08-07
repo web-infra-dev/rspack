@@ -5,8 +5,8 @@ use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  AsDependency, CodeGenerationData, Compilation, ConcatenationScope, DependencyId, Module,
-  ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
+  AsDependency, ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope,
+  DependencyId, Module, ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -17,6 +17,24 @@ pub struct TemplateContext<'a, 'b, 'c> {
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'c mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
+}
+
+impl TemplateContext<'_, '_, '_> {
+  pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
+    let data_fragments = self.data.get::<ChunkInitFragments>();
+    if data_fragments.is_some() {
+      return self
+        .data
+        .get_mut::<ChunkInitFragments>()
+        .expect("should have chunk_init_fragments");
+    } else {
+      self.data.insert(ChunkInitFragments::default());
+      return self
+        .data
+        .get_mut::<ChunkInitFragments>()
+        .expect("should have chunk_init_fragments");
+    }
+  }
 }
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;

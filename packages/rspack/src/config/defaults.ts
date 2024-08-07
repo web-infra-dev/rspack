@@ -124,7 +124,10 @@ export const applyRspackOptionsDefaults = (
 				: "var";
 	});
 
-	applyNodeDefaults(options.node, { targetProperties });
+	applyNodeDefaults(options.node, {
+		targetProperties,
+		outputModule: options.output.module
+	});
 
 	applyLoaderDefaults(options.loader, {
 		targetProperties,
@@ -858,7 +861,10 @@ const applyLoaderDefaults = (
 
 const applyNodeDefaults = (
 	node: Node,
-	{ targetProperties }: { targetProperties: any }
+	{
+		outputModule,
+		targetProperties
+	}: { targetProperties: any; outputModule?: boolean }
 ) => {
 	if (node === false) return;
 
@@ -869,12 +875,14 @@ const applyNodeDefaults = (
 	});
 	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
-		if (targetProperties?.node) return "eval-only";
+		if (targetProperties?.node)
+			return outputModule ? "node-module" : "eval-only";
 		return "warn-mock";
 	});
 	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
-		if (targetProperties?.node) return "eval-only";
+		if (targetProperties?.node)
+			return outputModule ? "node-module" : "eval-only";
 		return "warn-mock";
 	});
 };

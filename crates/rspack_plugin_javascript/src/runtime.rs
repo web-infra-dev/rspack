@@ -75,7 +75,11 @@ pub fn render_module(
     return Ok(None);
   };
   let hooks = JsPlugin::get_compilation_hooks(compilation);
-  let mut module_chunk_init_fragments = ChunkInitFragments::default();
+  let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
+    Some(fragments) => fragments.clone(),
+    None => ChunkInitFragments::default(),
+  };
+
   let mut render_source = RenderSource {
     source: origin_source.clone(),
   };
