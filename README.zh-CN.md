@@ -44,7 +44,8 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 
 | 名称                                                                                 | 描述                                                                         |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [Rspack 文档](https://rspack.dev/zh/)                                                | Rspack 官方文档                                                              |
+| [Rspack 最新文档](https://rspack.dev/zh/)                                            | Rspack 最新版本的文档                                                        |
+| [Rspack 0.x 文档](https://v0.rspack.dev/zh/)                                         | Rspack 0.x 版本的文档                                                        |
 | [Rsbuild](https://github.com/web-infra-dev/rsbuild)                                  | 基于 Rspack 的构建工具                                                       |
 | [Rspress](https://github.com/web-infra-dev/rspress)                                  | 基于 Rsbuild 的静态站点生成器                                                |
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | 针对 Rspack 和 webpack 的一站式构建分析工具                                  |

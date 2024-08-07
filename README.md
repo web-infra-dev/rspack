@@ -48,8 +48,8 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 | Name                                                                                 | Description                                                                   |
 | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [Rspack website](https://rspack.dev)                                                 | Official documentation for Rspack                                             |
-| [Rsbuild](https://github.com/web-infra-dev/rsbuild)                                  | An Rspack-based build tool                                                    |
+| [Rspack latest documentation](https://rspack.dev/)                                   | Documentation for the latest version of Rspack                                |
+| [Rspack 0.x documentation](https://v0.rspack.dev/)                                   | Documentation for Rspack 0.x version                                          |
 | [Rspress](https://github.com/web-infra-dev/rspress)                                  | A fast static site generator based on Rsbuild                                 |
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | A one-stop build analyzer for Rspack and webpack                              |
 | [Rslib](https://github.com/web-infra-dev/rslib)                                      | A library build tool powered by Rsbuild                                       |
