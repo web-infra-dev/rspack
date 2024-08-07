@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
-use rspack_binding_values::ModuleDTOSingleton;
+use rspack_binding_values::ModuleDTOWrapper;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
@@ -13,13 +13,13 @@ pub(super) type RawCacheGroupTest =
 
 #[napi(object)]
 pub struct JsCacheGroupTestCtx {
-  pub module: ModuleDTOSingleton,
+  pub module: ModuleDTOWrapper,
 }
 
 impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   fn from(value: CacheGroupTestFnCtx<'a>) -> Self {
     JsCacheGroupTestCtx {
-      module: ModuleDTOSingleton::new(value.module.identifier(), &value.compilation),
+      module: ModuleDTOWrapper::new(value.module.identifier(), &value.compilation),
     }
   }
 }

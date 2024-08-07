@@ -229,12 +229,16 @@ thread_local! {
   pub static MODULE_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<Identifier, Ref>>> = Default::default();
 }
 
-pub struct ModuleDTOSingleton {
+// The difference between ModuleDTOWrapper and ModuleDTO is:
+// ModuleDTOWrapper maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
+//
+// This means that when transferring a ModuleDTO from Rust to JS, you must use ModuleDTOWrapper instead.
+pub struct ModuleDTOWrapper {
   pub module_id: ModuleIdentifier,
   pub compilation: &'static Compilation,
 }
 
-impl ModuleDTOSingleton {
+impl ModuleDTOWrapper {
   pub fn new(module_id: ModuleIdentifier, compilation: &Compilation) -> Self {
     let compilation = unsafe {
       std::mem::transmute::<&rspack_core::Compilation, &'static rspack_core::Compilation>(
@@ -248,7 +252,7 @@ impl ModuleDTOSingleton {
   }
 }
 
-impl ToNapiValue for ModuleDTOSingleton {
+impl ToNapiValue for ModuleDTOWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compilation_id = refs.borrow_mut();
@@ -278,10 +282,10 @@ impl ToNapiValue for ModuleDTOSingleton {
   }
 }
 
-impl FromNapiValue for ModuleDTOSingleton {
+impl FromNapiValue for ModuleDTOWrapper {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let instance: ClassInstance<ModuleDTO> = FromNapiValue::from_napi_value(env, napi_val)?;
-    Ok(ModuleDTOSingleton {
+    Ok(ModuleDTOWrapper {
       module_id: instance.module_id,
       compilation: instance.compilation,
     })

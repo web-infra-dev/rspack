@@ -28,7 +28,7 @@ use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::ModuleDTOSingleton;
+use crate::ModuleDTOWrapper;
 use crate::{
   chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
   JsStats, ToJsCompatSource,
@@ -133,14 +133,14 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn modules(&'static self) -> Vec<ModuleDTOSingleton> {
+  pub fn modules(&'static self) -> Vec<ModuleDTOWrapper> {
     self
       .0
       .get_module_graph()
       .modules()
       .keys()
       .cloned()
-      .map(|module_id| ModuleDTOSingleton::new(module_id, self.0))
+      .map(|module_id| ModuleDTOWrapper::new(module_id, self.0))
       .collect::<Vec<_>>()
   }
 
