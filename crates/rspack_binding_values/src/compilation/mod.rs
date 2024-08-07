@@ -596,6 +596,10 @@ pub struct JsCompilationWrapper(pub(crate) &'static mut rspack_core::Compilation
 
 impl JsCompilationWrapper {
   pub fn new(compilation: &mut rspack_core::Compilation) -> Self {
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     Self(unsafe {
       std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
         compilation,
