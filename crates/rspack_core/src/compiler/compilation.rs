@@ -1854,6 +1854,7 @@ impl AssetInfo {
       self.source_filename = Some(source_filename);
     }
     self.version = another.version;
+    self.related.merge_another(another.related);
 
     // merge vec fields
     self.chunk_hash.extend(another.chunk_hash);
@@ -1873,6 +1874,14 @@ impl AssetInfo {
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
+}
+
+impl AssetInfoRelated {
+  pub fn merge_another(&mut self, another: AssetInfoRelated) {
+    if let Some(source_map) = another.source_map {
+      self.source_map = Some(source_map);
+    }
+  }
 }
 
 /// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
