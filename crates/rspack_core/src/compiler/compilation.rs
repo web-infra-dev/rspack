@@ -1785,6 +1785,8 @@ pub struct AssetInfo {
   /// in the rust struct and have the Js side to reshape and align with webpack.
   /// Related: packages/rspack/src/Compilation.ts
   pub extras: serde_json::Map<String, serde_json::Value>,
+  /// whether this asset is over the size limit
+  pub is_over_size_limit: Option<bool>,
 }
 
 impl AssetInfo {
@@ -1846,6 +1848,10 @@ impl AssetInfo {
     self.css_unused_idents = Some(v);
   }
 
+  pub fn set_is_over_size_limit(&mut self, v: bool) {
+    self.is_over_size_limit = Some(v);
+  }
+
   // https://github.com/webpack/webpack/blob/7b80b2b18db66abca6feb7b02a9089aca4bc8186/lib/asset/AssetGenerator.js#L43-L70
   pub fn merge_another(&mut self, another: AssetInfo) {
     // "another" first fields
@@ -1868,6 +1874,7 @@ impl AssetInfo {
     self.immutable = self.immutable || another.immutable;
     self.development = self.development || another.development;
     self.hot_module_replacement = self.hot_module_replacement || another.hot_module_replacement;
+    self.is_over_size_limit = self.is_over_size_limit.or(another.is_over_size_limit);
   }
 }
 

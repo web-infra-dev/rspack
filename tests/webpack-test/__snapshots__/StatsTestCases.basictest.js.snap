@@ -924,7 +924,7 @@ Rspack x.x.x compiled with 1 error"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-different-mode-and-target 1`] = `
-"asset warning.pro-web.js 294 KiB [emitted] (name: main)
+"asset warning.pro-web.js 294 KiB [emitted] [big] (name: main)
 ./index.js 293 KiB [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
@@ -939,7 +939,7 @@ WARNING in ⚠ Rspack performance recommendations:You can limit the size of your
 
 Rspack x.x.x compiled with 3 warnings in X.23
 
-asset warning.pro-webworker.js 294 KiB [emitted] (name: main)
+asset warning.pro-webworker.js 294 KiB [emitted] [big] (name: main)
 ./index.js 293 KiB [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
@@ -966,11 +966,11 @@ asset no-warning.dev-node.js 1.72 MiB [emitted] (name: main)
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset no-warning.dev-web-with-limit-set.js 1.72 MiB [emitted] (name: main)
+asset no-warning.dev-web-with-limit-set.js 1.72 MiB [emitted] [big] (name: main)
 ./index.js 293 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset warning.pro-node-with-hints-set.js 294 KiB [emitted] (name: main)
+asset warning.pro-node-with-hints-set.js 294 KiB [emitted] [big] (name: main)
 ./index.js 293 KiB [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
@@ -987,9 +987,9 @@ Rspack x.x.x compiled with 3 warnings in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-no-async-chunks-shown 1`] = `
-"asset <CLR=32,BOLD>main.js</CLR> 294 KiB <CLR=32,BOLD>[emitted]</CLR> (name: main)
+"asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>294 KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
 asset <CLR=32,BOLD>sec.js</CLR> 1.01 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
-Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
+Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> 1.01 KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=BOLD>./index.js</CLR> 32 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./index2.js</CLR> 48 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
@@ -1018,10 +1018,10 @@ Rspack x.x.x compiled with <CLR=33,BOLD>3 warnings</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-oversize-limit-error 1`] = `
-"asset <CLR=32,BOLD>main.js</CLR> 294 KiB <CLR=32,BOLD>[emitted]</CLR> (name: main)
-asset <CLR=32,BOLD>sec.js</CLR> 294 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
-Entrypoint <CLR=BOLD>main</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
-Entrypoint <CLR=BOLD>sec</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
+"asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>294 KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
+asset <CLR=33,BOLD>sec.js</CLR> <CLR=33,BOLD>294 KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: sec)
+Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
+Entrypoint <CLR=BOLD>sec</CLR> <CLR=33,BOLD>[big]</CLR> 294 KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=BOLD>./index.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./index2.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./a.js</CLR> 293 KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>

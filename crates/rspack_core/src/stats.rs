@@ -137,6 +137,7 @@ impl Stats<'_> {
                 development: asset.info.development,
                 hot_module_replacement: asset.info.hot_module_replacement,
                 source_filename: asset.info.source_filename.clone(),
+                is_over_size_limit: asset.info.is_over_size_limit,
               },
               emitted: self.compilation.emitted_assets.contains(name),
             },
@@ -519,6 +520,7 @@ impl Stats<'_> {
         .then(|| auxiliary_assets.iter().map(|i| i.size).sum()),
       auxiliary_assets: chunk_group_auxiliary.then_some(auxiliary_assets),
       children,
+      is_over_size_limit: cg.is_over_size_limit,
     }
   }
 
@@ -1433,6 +1435,7 @@ pub struct StatsAssetInfo {
   pub content_hash: Vec<String>,
   pub full_hash: Vec<String>,
   pub related: Vec<StatsAssetInfoRelated>,
+  pub is_over_size_limit: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -1543,6 +1546,7 @@ pub struct StatsChunkGroup {
   pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
   pub auxiliary_assets_size: Option<f64>,
   pub children: Option<StatsChunkGroupChildren>,
+  pub is_over_size_limit: Option<bool>,
 }
 
 #[derive(Debug)]

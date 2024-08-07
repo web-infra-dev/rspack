@@ -1135,8 +1135,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		ids: (object, asset) => {
 			object.chunks = asset.chunks;
 			object.auxiliaryChunks = asset.auxiliaryChunks;
+		},
+		performance: (object, asset) => {
+			object.isOverSizeLimit = asset.info.isOverSizeLimit;
 		}
-		// - performance
 	},
 	chunkGroup: {
 		_: (
@@ -1157,8 +1159,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.auxiliaryAssetsSize = chunkGroup.auxiliaryAssetsSize;
 			object.children = chunkGroup.children;
 			// - childAssets
+		},
+		performance: (object, { chunkGroup }) => {
+			object.isOverSizeLimit = chunkGroup.isOverSizeLimit;
 		}
-		// - performance
 	},
 	module: {
 		_: (

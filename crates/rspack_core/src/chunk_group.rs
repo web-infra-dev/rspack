@@ -59,6 +59,7 @@ pub struct ChunkGroup {
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
   origins: Vec<OriginRecord>,
+  pub(crate) is_over_size_limit: Option<bool>,
 }
 
 impl ChunkGroup {
@@ -78,6 +79,7 @@ impl ChunkGroup {
       entry_point_chunk: None,
       index: None,
       origins: vec![],
+      is_over_size_limit: None,
     }
   }
 
@@ -365,6 +367,10 @@ impl ChunkGroup {
     }
 
     children_by_orders
+  }
+
+  pub fn set_is_over_size_limit(&mut self, v: bool) {
+    self.is_over_size_limit = Some(v);
   }
 }
 
