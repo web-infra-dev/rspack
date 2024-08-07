@@ -223,9 +223,9 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (name, asset) in compilation.assets_mut() {
-    checked_assets
-      .get(name)
-      .map(|checked| asset.info.set_is_over_size_limit(*checked));
+    if let Some(checked) = checked_assets.get(name) {
+      asset.info.set_is_over_size_limit(*checked)
+    }
   }
 
   for (ukey, checked) in checked_chunk_groups.iter() {
