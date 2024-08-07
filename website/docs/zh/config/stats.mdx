@@ -49,6 +49,10 @@ import WebpackLicense from '@components/webpack-license';
 
 控制所有 stats options 是否输出。
 
+:::warning 警告
+开启 `stats.all` 会导致大量的 Rust 与 JavaScript 的数据传输，这将显著提高 Stats 生成耗时，请谨慎使用。
+:::
+
 ### stats.preset
 
 <PropertyType.CN

@@ -49,6 +49,10 @@ You can specify exactly which packing information to output, all the following f
 
 A fallback value for stats options when an option is not defined. It has precedence over local Rspack defaults.
 
+:::warning
+Enabling `stats.all` will lead to a large amount of data transmission between Rust and JavaScript, which will significantly increase the time consumption for stats generation. Please use it with caution.
+:::
+
 ### stats.preset
 
 <PropertyType
