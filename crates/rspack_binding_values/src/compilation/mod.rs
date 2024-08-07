@@ -1,6 +1,7 @@
 mod dependency;
 mod entries;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::ops::DerefMut;
@@ -15,10 +16,12 @@ use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
+use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
+use rspack_napi::Ref;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
@@ -26,7 +29,6 @@ use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ModuleDTOSingleton;
-use crate::MODULE_INSTANCE_REFS;
 use crate::{
   chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
   JsStats, ToJsCompatSource,
@@ -35,39 +37,6 @@ use crate::{JsDiagnostic, JsRspackError};
 
 #[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
-
-impl JsCompilation {
-  /// Convert Rust `Compilation` to `JsCompilation`.
-  ///
-  /// ## JS Interoperable
-  /// `JsCompilation` implements [napi::bindgen_prelude::ToNapiValue].
-  /// It can be send to JavaScript.
-  ///
-  /// ## Safety
-  /// Safety is guaranteed by the following contracts:
-  /// 1. `Compiler` should not be moved. For example: store it on the heap.
-  /// 2. The pointer should be valid for the entire lifetime of `JsCompilation`.
-  /// 3. Caching old `Compilation` will result the program to undefined behavior and it's likely to crash.
-  pub unsafe fn from_compilation(inner: &mut rspack_core::Compilation) -> Self {
-    Self(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        inner,
-      )
-    })
-  }
-}
-
-impl Drop for JsCompilation {
-  fn drop(&mut self) {
-    MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let refs = refs_by_compilation_id.get_mut(&self.0.id());
-      if let Some(refs) = refs {
-        refs.clear();
-      }
-    });
-  }
-}
 
 impl Deref for JsCompilation {
   type Target = rspack_core::Compilation;
@@ -587,6 +556,50 @@ impl JsCompilation {
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
+  }
+}
+
+thread_local! {
+  pub static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, Ref>> = Default::default();
+}
+
+pub struct JsCompilationSingleton(pub(crate) &'static mut rspack_core::Compilation);
+
+impl JsCompilationSingleton {
+  pub fn new(compilation: &mut rspack_core::Compilation) -> Self {
+    Self(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    })
+  }
+}
+
+impl ToNapiValue for JsCompilationSingleton {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    COMPILATION_INSTANCE_REFS.with(|refs| {
+      let mut refs = refs.borrow_mut();
+      match refs.entry(val.0.id()) {
+        std::collections::hash_map::Entry::Occupied(entry) => {
+          let r = entry.get();
+          ToNapiValue::to_napi_value(env, r)
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          let instance = JsCompilation(val.0).into_instance(Env::from_raw(env))?;
+          let napi_value = ToNapiValue::to_napi_value(env, instance)?;
+          let r = Ref::new(env, napi_value, 1)?;
+          let r = entry.insert(r);
+          ToNapiValue::to_napi_value(env, r)
+        }
+      }
+    })
+  }
+}
+
+impl FromNapiValue for JsCompilationSingleton {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let mut instance: ClassInstance<JsCompilation> = FromNapiValue::from_napi_value(env, napi_val)?;
+    Ok(JsCompilationSingleton::new(instance.0))
   }
 }
 

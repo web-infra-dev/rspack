@@ -13,7 +13,7 @@ use napi::{
 use rspack_binding_values::{
   CompatSource, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
   JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
-  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilation,
+  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilationSingleton,
   JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
   JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
   JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModule,
@@ -350,23 +350,23 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilation, ()>,
+  pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilationSingleton, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_compilation_taps: RegisterFunction<JsCompilation, ()>,
+  pub register_compiler_compilation_taps: RegisterFunction<JsCompilationSingleton, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compiler_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
+  pub register_compiler_make_taps: RegisterFunction<JsCompilationSingleton, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_finish_make_taps: RegisterFunction<JsCompilation, Promise<()>>,
+  pub register_compiler_finish_make_taps: RegisterFunction<JsCompilationSingleton, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>"
   )]
-  pub register_compiler_should_emit_taps: RegisterFunction<JsCompilation, Option<bool>>,
+  pub register_compiler_should_emit_taps: RegisterFunction<JsCompilationSingleton, Option<bool>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
@@ -410,7 +410,8 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_finish_modules_taps: RegisterFunction<JsCompilation, Promise<()>>,
+  pub register_compilation_finish_modules_taps:
+    RegisterFunction<JsCompilationSingleton, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>"
   )]
@@ -436,11 +437,12 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_process_assets_taps: RegisterFunction<JsCompilation, Promise<()>>,
+  pub register_compilation_process_assets_taps:
+    RegisterFunction<JsCompilationSingleton, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilation, ()>,
+  pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilationSingleton, ()>,
   #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
   pub register_compilation_seal_taps: RegisterFunction<(), ()>,
   #[napi(
@@ -500,7 +502,7 @@ pub struct RegisterJsTaps {
 /* Compiler Hooks */
 define_register!(
   RegisterCompilerThisCompilationTaps,
-  tap = CompilerThisCompilationTap<JsCompilation, ()> @ CompilerThisCompilationHook,
+  tap = CompilerThisCompilationTap<JsCompilationSingleton, ()> @ CompilerThisCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerThisCompilation,
@@ -508,7 +510,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerCompilationTaps,
-  tap = CompilerCompilationTap<JsCompilation, ()> @ CompilerCompilationHook,
+  tap = CompilerCompilationTap<JsCompilationSingleton, ()> @ CompilerCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerCompilation,
@@ -516,7 +518,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerMakeTaps,
-  tap = CompilerMakeTap<JsCompilation, Promise<()>> @ CompilerMakeHook,
+  tap = CompilerMakeTap<JsCompilationSingleton, Promise<()>> @ CompilerMakeHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerMake,
@@ -524,7 +526,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerFinishMakeTaps,
-  tap = CompilerFinishMakeTap<JsCompilation, Promise<()>> @ CompilerFinishMakeHook,
+  tap = CompilerFinishMakeTap<JsCompilationSingleton, Promise<()>> @ CompilerFinishMakeHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerFinishMake,
@@ -532,7 +534,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerShouldEmitTaps,
-  tap = CompilerShouldEmitTap<JsCompilation, Option<bool>> @ CompilerShouldEmitHook,
+  tap = CompilerShouldEmitTap<JsCompilationSingleton, Option<bool>> @ CompilerShouldEmitHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerShouldEmit,
@@ -598,7 +600,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationFinishModulesTaps,
-  tap = CompilationFinishModulesTap<JsCompilation, Promise<()>> @ CompilationFinishModulesHook,
+  tap = CompilationFinishModulesTap<JsCompilationSingleton, Promise<()>> @ CompilationFinishModulesHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationFinishModules,
@@ -670,7 +672,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationProcessAssetsTaps,
-  tap = CompilationProcessAssetsTap<JsCompilation, Promise<()>> @ CompilationProcessAssetsHook,
+  tap = CompilationProcessAssetsTap<JsCompilationSingleton, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationProcessAssets,
@@ -678,7 +680,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationAfterProcessAssetsTaps,
-  tap = CompilationAfterProcessAssetsTap<JsCompilation, ()> @ CompilationAfterProcessAssetsHook,
+  tap = CompilationAfterProcessAssetsTap<JsCompilationSingleton, ()> @ CompilationAfterProcessAssetsHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationAfterProcessAssets,
@@ -786,11 +788,7 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_sync(compilation).await
   }
 
@@ -806,11 +804,7 @@ impl CompilerCompilation for CompilerCompilationTap {
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_sync(compilation).await
   }
 
@@ -822,12 +816,7 @@ impl CompilerCompilation for CompilerCompilationTap {
 #[async_trait]
 impl CompilerMake for CompilerMakeTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_promise(compilation).await
   }
 
@@ -839,12 +828,7 @@ impl CompilerMake for CompilerMakeTap {
 #[async_trait]
 impl CompilerFinishMake for CompilerFinishMakeTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_promise(compilation).await
   }
 
@@ -856,12 +840,7 @@ impl CompilerFinishMake for CompilerFinishMakeTap {
 #[async_trait]
 impl CompilerShouldEmit for CompilerShouldEmitTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_sync(compilation).await
   }
 
@@ -982,12 +961,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_promise(compilation).await
   }
 
@@ -1149,12 +1123,7 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
 #[async_trait]
 impl CompilationProcessAssets for CompilationProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_promise(compilation).await
   }
 
@@ -1166,12 +1135,7 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
   async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe { JsCompilation::from_compilation(compilation) };
-
+    let compilation = JsCompilationSingleton::new(compilation);
     self.function.call_with_sync(compilation).await
   }
 
