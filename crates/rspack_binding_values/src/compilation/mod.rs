@@ -563,9 +563,13 @@ thread_local! {
   pub static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, Ref>> = Default::default();
 }
 
-pub struct JsCompilationSingleton(pub(crate) &'static mut rspack_core::Compilation);
+// The difference between JsCompilationWrapper and JsCompilation is:
+// JsCompilationWrapper maintains a cache to ensure that the corresponding instance of the same Compilation is unique on the JS side.
+//
+// This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
+pub struct JsCompilationWrapper(pub(crate) &'static mut rspack_core::Compilation);
 
-impl JsCompilationSingleton {
+impl JsCompilationWrapper {
   pub fn new(compilation: &mut rspack_core::Compilation) -> Self {
     Self(unsafe {
       std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
@@ -575,7 +579,7 @@ impl JsCompilationSingleton {
   }
 }
 
-impl ToNapiValue for JsCompilationSingleton {
+impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     COMPILATION_INSTANCE_REFS.with(|refs| {
       let mut refs = refs.borrow_mut();
@@ -593,13 +597,6 @@ impl ToNapiValue for JsCompilationSingleton {
         }
       }
     })
-  }
-}
-
-impl FromNapiValue for JsCompilationSingleton {
-  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let mut instance: ClassInstance<JsCompilation> = FromNapiValue::from_napi_value(env, napi_val)?;
-    Ok(JsCompilationSingleton::new(instance.0))
   }
 }
 
