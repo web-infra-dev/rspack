@@ -103,7 +103,7 @@ export class JsCompilation {
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
   get entries(): JsEntries
-  finalize(): void
+  dispose(): void
 }
 
 export class JsEntries {

@@ -1138,8 +1138,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * @internal
 	 */
-	__internal_finalize() {
-		return this.#inner.finalize();
+	__internal_dispose() {
+		return this.#inner.dispose();
 	}
 
 	seal() {}

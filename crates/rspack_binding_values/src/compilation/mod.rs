@@ -560,7 +560,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn finalize(&self, env: Env) {
+  pub fn dispose(&self, env: Env) {
     // TODO: use napi_add_finalizer if N-API version >= 5
     let compilation_id = self.0.id();
 
