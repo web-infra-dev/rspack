@@ -1,9 +1,13 @@
+use std::cell::RefCell;
+
 use napi_derive::napi;
+use rspack_collections::Identifier;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilerModuleContext,
   DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
 };
-use rspack_napi::napi::bindgen_prelude::*;
+use rspack_napi::{napi::bindgen_prelude::*, Ref};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompatSource, ToJsCompatSource};
 use crate::{DependencyDTO, JsChunk, JsCodegenerationResults};
@@ -208,6 +212,51 @@ impl ModuleDTO {
       .cloned()
       .map(|block_id| DependenciesBlockDTO::new(block_id, self.compilation))
       .collect::<Vec<_>>()
+  }
+}
+
+thread_local! {
+  static MODULE_INSTANCE_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
+}
+
+pub struct ModuleDTOSingleton {
+  pub module_id: ModuleIdentifier,
+  pub compilation: &'static Compilation,
+}
+
+impl ModuleDTOSingleton {
+  pub fn new(module_id: ModuleIdentifier, compilation: &Compilation) -> Self {
+    let compilation = unsafe {
+      std::mem::transmute::<&rspack_core::Compilation, &'static rspack_core::Compilation>(
+        compilation,
+      )
+    };
+    Self {
+      module_id,
+      compilation,
+    }
+  }
+}
+
+impl ToNapiValue for ModuleDTOSingleton {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs = refs.borrow_mut();
+      match refs.entry(val.module_id) {
+        std::collections::hash_map::Entry::Occupied(entry) => {
+          let r = entry.get();
+          ToNapiValue::to_napi_value(env, r)
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          let instance =
+            ModuleDTO::new(val.module_id, val.compilation).into_instance(Env::from_raw(env))?;
+          let napi_value = ToNapiValue::to_napi_value(env, instance)?;
+          let r = Ref::new(env, napi_value, 1)?;
+          let r = entry.insert(r);
+          ToNapiValue::to_napi_value(env, r)
+        }
+      }
+    })
   }
 }
 
