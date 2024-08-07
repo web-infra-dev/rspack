@@ -945,7 +945,7 @@ const applyOptimizationDefaults = (
 		);
 		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
-		// D(splitChunks, "usedExports", optimization.usedExports === true);
+		D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
 		// F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));

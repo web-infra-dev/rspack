@@ -982,6 +982,7 @@ export interface RawCacheGroupOptions {
   name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
+  usedExports?: boolean
 }
 
 export interface RawCacheGroupTestCtx {
@@ -1666,6 +1667,7 @@ export interface RawSplitChunksOptions {
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all' | Function
+  usedExports?: boolean
   automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number

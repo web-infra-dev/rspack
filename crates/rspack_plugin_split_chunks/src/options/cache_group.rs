@@ -42,4 +42,5 @@ pub struct CacheGroup {
   pub max_initial_size: SplitChunkSizes,
   pub filename: Option<Filename>,
   pub automatic_name_delimiter: String,
+  pub used_exports: bool,
 }

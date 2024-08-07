@@ -286,6 +286,7 @@ Object {
       "maxInitialRequests": Infinity,
       "minChunks": 1,
       "minSize": 10000,
+      "usedExports": false,
     },
     "usedExports": false,
   },
