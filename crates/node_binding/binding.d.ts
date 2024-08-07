@@ -332,6 +332,8 @@ export interface JsAssetInfo {
    * Related: packages/rspack/src/Compilation.ts
    */
   extras: Record<string, any>
+  /** whether this asset is over the size limit */
+  isOverSizeLimit?: boolean
 }
 
 export interface JsAssetInfoRelated {
@@ -664,6 +666,7 @@ export interface JsStatsAssetInfo {
   contenthash: Array<string>
   fullhash: Array<string>
   related: Array<JsStatsAssetInfoRelated>
+  isOverSizeLimit?: boolean
 }
 
 export interface JsStatsAssetInfoRelated {
@@ -707,6 +710,7 @@ export interface JsStatsChunkGroup {
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
   auxiliaryAssetsSize?: number
   children?: JsStatsChunkGroupChildren
+  isOverSizeLimit?: boolean
 }
 
 export interface JsStatsChunkGroupAsset {
