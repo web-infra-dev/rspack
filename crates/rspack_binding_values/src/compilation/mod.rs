@@ -108,7 +108,7 @@ impl JsCompilation {
           )
           .transpose();
         if let Some(new_info) = new_info.into_rspack_result()? {
-          original_info.merge_another(&new_info);
+          original_info.merge_another(new_info);
         }
         Ok((new_source, original_info))
       })

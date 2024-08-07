@@ -1847,19 +1847,18 @@ impl AssetInfo {
   }
 
   // https://github.com/webpack/webpack/blob/7b80b2b18db66abca6feb7b02a9089aca4bc8186/lib/asset/AssetGenerator.js#L43-L70
-  pub fn merge_another(&mut self, another: &AssetInfo) {
+  pub fn merge_another(&mut self, another: AssetInfo) {
     // "another" first fields
     self.minimized = another.minimized;
-    if let Some(source_filename) = &another.source_filename {
-      self.source_filename = Some(source_filename.clone());
+    if let Some(source_filename) = another.source_filename {
+      self.source_filename = Some(source_filename);
     }
-    self.version = another.version.clone();
+    self.version = another.version;
 
     // merge vec fields
-    self.chunk_hash.extend(another.chunk_hash.iter().cloned());
-    self
-      .content_hash
-      .extend(another.content_hash.iter().cloned());
+    self.chunk_hash.extend(another.chunk_hash);
+    self.content_hash.extend(another.content_hash);
+    self.extras.extend(another.extras);
     // self.full_hash.extend(another.full_hash.iter().cloned());
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
