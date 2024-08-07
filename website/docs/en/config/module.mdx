@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import PropertyType from '@components/property-type';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
 # Module
 
@@ -134,35 +138,54 @@ Parser options for `javascript` modules.
 
 #### module.parser.javascript.dynamicImportMode
 
-- **Type:** `'lazy' | 'eager'`
-- **Default:** `'lazy'`
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
 
-Specifies global mode for dynamic import.
+Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
 
 #### module.parser.javascript.dynamicImportPrefetch
 
 <ApiMeta addedVersion="0.4.5" />
 
-- **Type:** `boolean | number`
-- **Default:** `false`
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-Specifies global prefetch for dynamic import.
+Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
 
 #### module.parser.javascript.dynamicImportPreload
 
 <ApiMeta addedVersion="0.4.5" />
 
-- **Type:** `boolean | number`
-- **Default:** `false`
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-Specifies global preload for dynamic import.
+Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
+
+#### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
 
 #### module.parser.javascript.url
 
 <ApiMeta addedVersion="0.4.4" />
 
-- **Type:** `true | false | 'relative'`
-- **Default:** `true`
+<PropertyType
+  type="true | false | 'relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable parsing of `new URL()` syntax.
 
@@ -180,8 +203,10 @@ When use 'relative', Rspack would generate relative URLs for `new URL()` syntax,
 
 <ApiMeta addedVersion="0.6.3" />
 
-- **Type:** `boolean | undefined`
-- **Default:** `true`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable warnings for full dynamic dependencies (`import(variable)`).
 
@@ -189,17 +214,29 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 <ApiMeta addedVersion="0.6.3" />
 
-- **Type:** `boolean | undefined`
-- **Default:** `false`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
+
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable or disable evaluating `import.meta`.
 
 #### module.parser.javascript.exportsPresence
 
 <ApiMeta addedVersion="0.7.1" />
 
-- **Type:** `"error" | "warn" | "auto" | false`
-- **Default:** `"auto"`
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
 
 Warn or error for using non-existent exports and conflicting re-exports.
 
@@ -212,24 +249,15 @@ Warn or error for using non-existent exports and conflicting re-exports.
 
 <ApiMeta addedVersion="0.7.1" />
 
-- **Type:** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
-
-#### module.parser.javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enable or disable evaluating `import.meta`.
 
 #### module.parser.javascript.reexportExportsPresence
 
 <ApiMeta addedVersion="0.7.1" />
 
-- **Type:** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
 
@@ -237,7 +265,7 @@ Warn or error for conflicting re-exports, defaulting to the configuration of `mo
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-- **Type:** `string[] | boolean`
+<PropertyType type="string[] | boolean" />
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
 
@@ -266,7 +294,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
-- **Type:** `'strict' | 'non-strict'`
+<PropertyType type="'strict' | 'non-strict'" />
 
 Override the module to strict or non-strict.
 

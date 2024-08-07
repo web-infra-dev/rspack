@@ -1,4 +1,7 @@
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/webpack-license';
+
+<WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
 # Experiments
 
@@ -515,3 +518,27 @@ function prependEntry(compiler, additionalEntry) {
 
 prependEntry(compiler, 'dev-client.js');
 ```
+
+### experiments.rspackFuture.bundlerInfo
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type**:
+  ```ts
+  type BundlerInfo = {
+    version?: string,
+    bundler?: string,
+    force?: ('version' | 'uniqueId')[] ｜ boolean;
+  };
+  ```
+
+Used to inject the currently used Rspack information into the generated asset:
+
+- `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
+- `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
+- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `true` to force injection. An array can be used to select the items to be forced injected。
+
+If `force` is not enabled, then when the module variable is used in the module, it will also be injected:
+
+- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
+- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
