@@ -563,7 +563,13 @@ module.exports = {
 
 <PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出 childCompiler 的 stats 信息。
+是否展示 childCompiler 的 stats 信息。
+
+### stats.performance
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示产物文件超过 [`performance.maxAssetSize`](/config/performance#performancemaxassetsize) 配置时的提示信息。
 
 ### stats.timings
 
