@@ -621,6 +621,7 @@ class Compiler {
 				this.#compilation!.startTime = startTime;
 				this.#compilation!.endTime = Date.now();
 				this.hooks.afterCompile.callAsync(this.#compilation!, err => {
+					this.#compilation!.__internal_finalize();
 					if (err) {
 						return callback(err);
 					}

@@ -1017,6 +1017,8 @@ export class Compilation {
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // @internal
+    __internal_finalize(): void;
+    // @internal
     __internal_getInner(): binding.JsCompilation;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -6074,6 +6076,8 @@ export class Module {
     request?: Readonly<string>;
     // (undocumented)
     resource?: Readonly<string>;
+    // (undocumented)
+    size(type?: string): number;
     // (undocumented)
     type: string;
     // (undocumented)
