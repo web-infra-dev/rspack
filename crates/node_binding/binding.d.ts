@@ -64,7 +64,7 @@ export class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
-  get modules(): Array<ModuleDTOSingleton>
+  get modules(): Array<ModuleDTO>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
@@ -351,7 +351,7 @@ export interface JsBuildTimeExecutionOption {
 }
 
 export interface JsCacheGroupTestCtx {
-  module: ModuleDTOSingleton
+  module: ModuleDTO
 }
 
 export interface JsChunk {

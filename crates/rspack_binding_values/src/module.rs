@@ -221,7 +221,7 @@ impl ModuleDTO {
       Either::A(s) => Some(SourceType::from(s.as_str())),
       Either::B(_) => None,
     };
-    module.size(ty.as_ref(), &self.compilation)
+    module.size(ty.as_ref(), self.compilation)
   }
 }
 

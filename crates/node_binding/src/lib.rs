@@ -44,23 +44,13 @@ impl Rspack {
     output_filesystem: ThreadsafeNodeFS,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::info!("raw_options: {:#?}", &options);
-
     let raw_env = env.raw();
+    // TODO: use napi_add_finalizer if N-API version >= 5
     env.add_env_cleanup_hook(raw_env, move |raw_env| {
-      // TODO: wait for a better hook to clean up
       COMPILATION_INSTANCE_REFS.with(|refs| {
         let mut refs = refs.borrow_mut();
         for (_, mut r) in refs.drain() {
           let _ = r.unref(raw_env);
-        }
-      });
-      MODULE_INSTANCE_REFS.with(|refs| {
-        let mut refs_by_compilation_id = refs.borrow_mut();
-        for (_, mut refs) in refs_by_compilation_id.drain() {
-          for (_, mut r) in refs.drain() {
-            let _ = r.unref(raw_env);
-          }
         }
       });
     })?;
