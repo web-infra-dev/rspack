@@ -37,7 +37,7 @@ pub struct Rspack {
 impl Rspack {
   #[napi(constructor)]
   pub fn new(
-    mut env: Env,
+    env: Env,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
