@@ -134,66 +134,6 @@ impl JsLoaderContext {
   }
 
   #[napi(getter)]
-  pub fn file_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .file_dependencies
-      .iter()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi(setter)]
-  pub fn set_file_dependencies(&mut self, val: Vec<String>) {
-    self.0.file_dependencies = val.into_iter().map(std::path::PathBuf::from).collect();
-  }
-
-  #[napi(getter)]
-  pub fn context_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .context_dependencies
-      .iter()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi(setter)]
-  pub fn set_context_dependencies(&mut self, val: Vec<String>) {
-    self.0.context_dependencies = val.into_iter().map(std::path::PathBuf::from).collect();
-  }
-
-  #[napi(getter)]
-  pub fn missing_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .missing_dependencies
-      .iter()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi(setter)]
-  pub fn set_missing_dependencies(&mut self, val: Vec<String>) {
-    self.0.missing_dependencies = val.into_iter().map(std::path::PathBuf::from).collect();
-  }
-
-  #[napi(getter)]
-  pub fn build_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .build_dependencies
-      .iter()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi(setter)]
-  pub fn set_build_dependencies(&mut self, val: Vec<String>) {
-    self.0.build_dependencies = val.into_iter().map(std::path::PathBuf::from).collect();
-  }
-
-  #[napi(getter)]
   pub fn loader_items(&self) -> Vec<JsLoaderItem> {
     self.0.loader_items.iter().map(Into::into).collect()
   }
@@ -231,6 +171,64 @@ impl JsLoaderContext {
   #[napi(getter)]
   pub fn loader_state(&self) -> JsLoaderState {
     self.0.state().into()
+  }
+
+  #[napi]
+  pub fn add_dependency(&mut self, file: String) {
+    self.0.file_dependencies.insert(file.into());
+  }
+
+  #[napi]
+  pub fn add_context_dependency(&mut self, file: String) {
+    self.0.context_dependencies.insert(file.into());
+  }
+
+  #[napi]
+  pub fn add_missing_dependency(&mut self, file: String) {
+    self.0.missing_dependencies.insert(file.into());
+  }
+
+  #[napi]
+  pub fn add_build_dependency(&mut self, file: String) {
+    self.0.build_dependencies.insert(file.into());
+  }
+
+  #[napi]
+  pub fn get_dependencies(&self) -> Vec<String> {
+    self
+      .0
+      .file_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
+  #[napi]
+  pub fn get_context_dependencies(&self) -> Vec<String> {
+    self
+      .0
+      .context_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
+  #[napi]
+  pub fn get_missing_dependencies(&self) -> Vec<String> {
+    self
+      .0
+      .missing_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
+  #[napi]
+  pub fn clear_dependencies(&mut self) {
+    self.0.file_dependencies.clear();
+    self.0.context_dependencies.clear();
+    self.0.build_dependencies.clear();
+    self.0.cacheable = true;
   }
 }
 
