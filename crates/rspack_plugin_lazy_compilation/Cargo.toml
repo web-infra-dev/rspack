@@ -3,7 +3,7 @@ edition = "2021"
 license = "MIT"
 name    = "rspack_plugin_lazy_compilation"
 version = "0.1.0"
-
+description = "rspack lazy compilation plugin"
 [dependencies]
 async-trait = { workspace = true }
 rustc-hash  = { workspace = true }

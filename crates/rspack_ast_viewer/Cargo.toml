@@ -4,7 +4,7 @@ license = "MIT"
 name    = "rspack_ast_viewer"
 publish = false
 version = "0.1.0"
-
+description = "rspack ast viewer"
 [[bin]]
 name = "rspack-ast-viewer"
 path = "src/main.rs"
