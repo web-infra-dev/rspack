@@ -5,7 +5,7 @@ license    = "MIT"
 name       = "rspack_macros_test"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
-
+description = "rspack macros test"
 [dev-dependencies]
 rspack_collections = { path = "../rspack_collections" }
 rspack_core        = { path = "../rspack_core" }

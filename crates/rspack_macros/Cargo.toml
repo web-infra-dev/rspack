@@ -5,7 +5,7 @@ license    = "MIT"
 name       = "rspack_macros"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
-
+description = "rspack macros"
 [lib]
 proc-macro = true
 

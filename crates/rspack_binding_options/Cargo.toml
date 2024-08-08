@@ -4,7 +4,7 @@ license    = "MIT"
 name       = "rspack_binding_options"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
-
+description = "rspack binding options"
 [features]
 default = []
 plugin  = ["rspack_loader_swc/plugin"]
