@@ -15,13 +15,13 @@ ignored = ["tracing"]
 [dependencies]
 async-trait                           = { workspace = true }
 derivative                            = { workspace = true }
-glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
 rspack_binding_values                 = { path = "../rspack_binding_values" }
 rspack_collections                    = { path = "../rspack_collections" }
 rspack_core                           = { path = "../rspack_core" }
 rspack_error                          = { path = "../rspack_error" }
+rspack_glob                           = { path = "../rspack_glob" }
 rspack_hook                           = { path = "../rspack_hook" }
 rspack_ids                            = { path = "../rspack_ids" }
 rspack_loader_lightningcss            = { path = "../rspack_loader_lightningcss" }

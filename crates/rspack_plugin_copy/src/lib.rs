@@ -11,13 +11,13 @@ use std::{
 use dashmap::DashSet;
 use derivative::Derivative;
 use futures::future::BoxFuture;
-use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
   CompilationLogger, CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
+use rspack_glob::{glob_with, MatchOptions, Pattern as GlobPattern};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
@@ -370,7 +370,7 @@ impl CopyRspackPlugin {
     })
   }
 
-  fn run_patter(
+  fn run_pattern(
     compilation: &Compilation,
     pattern: &CopyPattern,
     _index: usize,
@@ -483,7 +483,7 @@ impl CopyRspackPlugin {
 
     logger.log(format!("begin globbing '{glob_query}'..."));
 
-    let glob_entries = glob::glob_with(
+    let glob_entries = glob_with(
       &glob_query,
       MatchOptions {
         case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
@@ -620,7 +620,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .enumerate()
     .map(|(index, pattern)| {
-      CopyRspackPlugin::run_patter(
+      CopyRspackPlugin::run_pattern(
         compilation,
         pattern,
         index,

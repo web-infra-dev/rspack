@@ -134,7 +134,9 @@ impl From<RawCopyPattern> for CopyPattern {
         ignore: glob_options.ignore.map(|ignore| {
           ignore
             .into_iter()
-            .map(|filter| glob::Pattern::new(filter.as_ref()).expect("Invalid pattern option"))
+            .map(|filter| {
+              rspack_glob::Pattern::new(filter.as_ref()).expect("Invalid pattern option")
+            })
             .collect()
         }),
       },
