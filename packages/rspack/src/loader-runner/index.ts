@@ -218,7 +218,7 @@ export class LoaderObject {
 }
 
 class JsSourceMap {
-	static __from_binding(map?: Buffer) {
+	static __from_binding(map?: Buffer | string) {
 		return isNil(map) ? undefined : toObject(map);
 	}
 
@@ -749,7 +749,9 @@ function createLoaderContext(
 	Object.defineProperty(loaderContext, "loaderIndex", {
 		enumerable: true,
 		get: () => context.loaderIndex,
-		set: loaderIndex => (context.loaderIndex = loaderIndex)
+		set: loaderIndex => {
+			context.loaderIndex = loaderIndex;
+		}
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
@@ -773,7 +775,7 @@ function createLoaderContext(
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
-): Promise<JsLoaderContext> {
+): Promise<void> {
 	const loaderState = context.loaderState;
 
 	const loaderContext = createLoaderContext(compiler, context);
@@ -807,7 +809,7 @@ export async function runLoaders(
 				if (hasArg) {
 					const [content, sourceMap] = args;
 					context.content = isNil(content) ? null : toBuffer(content);
-					context.sourceMap = serializeObject(sourceMap);
+					context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
 					// context.additionalData = additionalData;
 					break;
 				}
@@ -842,7 +844,7 @@ export async function runLoaders(
 			}
 
 			context.content = isNil(content) ? null : toBuffer(content);
-			context.sourceMap = JsSourceMap.__to_binding(sourceMap);
+			context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
 			// context.additionalData = additionalData;
 
 			break;
@@ -855,8 +857,6 @@ export async function runLoaders(
 	context.loaderItems = loaderContext.loaders.map(item =>
 		LoaderObject.__to_binding(item)
 	);
-
-	return context;
 }
 
 function utf8BufferToString(buf: Buffer) {

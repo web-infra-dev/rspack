@@ -114,10 +114,10 @@ export class JsLoaderContext {
   get _moduleIdentifier(): string
   get _module(): JsModule
   get hot(): boolean
-  get content(): null | Buffer
-  set content(val: null | Buffer)
-  get sourceMap(): Buffer | undefined
-  set sourceMap(val: Buffer | undefined)
+  get content(): null | Buffer | string
+  set content(val: null | Buffer | string)
+  get sourceMap(): string | undefined
+  set sourceMap(val: string | undefined)
   get cacheable(): boolean
   set cacheable(val: boolean)
   get loaderItems(): Array<JsLoaderItem>
