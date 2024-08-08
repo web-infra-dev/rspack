@@ -146,9 +146,12 @@ fn render_startup(
 
       let final_name = exports_final_names.get(used_name.as_str());
 
+      let contains_char =
+        |string: &str, chars: &str| -> bool { string.chars().any(|c| chars.contains(c)) };
+
       if let Some(final_name) = final_name {
         // Currently, there's not way to determine if a final_name contains a property access.
-        if final_name.contains('.') || final_name.contains("()") {
+        if contains_char(final_name, "[]().") {
           exports_with_property_access.push((final_name, info_name));
         } else if info_name == final_name {
           exports.push(info_name.to_string());
