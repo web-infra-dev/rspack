@@ -4016,17 +4016,17 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.16"
+version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f4026d5e6d97cee66c64a36df2f2bc6f1bc7d3445386d8156bbf7712afaefd6"
+checksum = "6d93c575915e8b72d075cd7fc8e72fa3d0805683a775b63915cab4c412ed04aa"
 dependencies = [
+ "arrayvec",
  "dashmap 5.5.3",
  "dyn-clone",
  "memchr",
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
- "smallvec",
  "str_indices",
  "substring",
 ]

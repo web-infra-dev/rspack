@@ -328,10 +328,6 @@ impl DependenciesBlock for NormalModule {
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
-
-  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
-    self.get_presentational_dependencies()
-  }
 }
 
 #[async_trait::async_trait]

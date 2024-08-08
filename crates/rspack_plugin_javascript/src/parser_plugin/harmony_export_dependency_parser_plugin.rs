@@ -182,7 +182,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         ExportDefaultExpression::Expr(_) => None,
       },
     );
-    parser.presentational_dependencies.push(Box::new(dep));
+    parser.dependencies.push(Box::new(dep));
     InnerGraphPlugin::add_variable_usage(
       parser,
       expr.ident().unwrap_or_else(|| &DEFAULT_STAR_JS_WORD),
