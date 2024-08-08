@@ -171,12 +171,13 @@ export class StatsFactory {
 		});
 
 		const hooks = this.hooks;
-		this._caches = Object.keys(hooks).reduce((prev, curr) => {
-			return {
-				...prev,
-				[curr]: new Map()
-			};
-		}, {} as Cache);
+		const caches = {} as Cache;
+
+		for (const key of Object.keys(hooks)) {
+			caches[key as keyof Cache] = new Map();
+		}
+
+		this._caches = caches;
 		this._inCreate = false;
 	}
 
