@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
@@ -11,9 +13,6 @@
     },
     {
       "path": "../rspack-dev-server"
-    },
-    {
-      "path": "../rspack-plugin-react-refresh"
     }
   ]
 }

@@ -13,7 +13,6 @@ packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
 packages/rspack-test-tools/src/helper/legacy/**/*
 packages/rspack-test-tools/tests/**/*
-packages/rspack-test-preact-refresh/tests/**/*
 packages/rspack-plugin-mini-css-extract/test/cases/**/*
 
 crates/**/*

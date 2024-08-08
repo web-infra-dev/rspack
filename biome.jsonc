@@ -16,7 +16,6 @@
 			"packages/**/etc/**/*",
 			"crates/**/*",
 			"tests/**/*",
-			"packages/rspack-plugin-preact-refresh/tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
@@ -25,8 +24,6 @@
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},
@@ -75,8 +72,6 @@
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},

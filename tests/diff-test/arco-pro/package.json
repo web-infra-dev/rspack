@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "workspace:*",
+    "@rspack/plugin-react-refresh": "1.0.0-beta.5",
     "@svgr/webpack": "^8.0.0",
     "@swc/core": "1.4.0",
     "@swc/helpers": "0.5.8",
