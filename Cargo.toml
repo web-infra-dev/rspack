@@ -4,6 +4,15 @@ cargo-features = ["trim-paths"]
 members  = ["crates/*"]
 resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
+[workspace.package]
+authors       = ["Rspack Teams"]
+categories    = ["bundler", "development-tools", "web-programming"]
+documentation = "https://rspack.dev/"
+homepage      = "https://rspack.dev/"
+license       = "MIT"
+repository    = "https://github.com/web-infra-dev/rspack"
+
+
 [workspace.dependencies]
 anyhow             = { version = "1.0.81", features = ["backtrace"] }
 anymap             = { version = "=1.0.0-beta.2" }
