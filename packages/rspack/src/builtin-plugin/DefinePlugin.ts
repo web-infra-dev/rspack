@@ -7,7 +7,7 @@ export const DefinePlugin = create(
 	BuiltinPluginName.DefinePlugin,
 	function (define: DefinePluginOptions): NormalizedCodeValue {
 		const supportsBigIntLiteral =
-			this.options.output.environment?.bigIntLiteral ?? false;
+			this?.options?.output?.environment?.bigIntLiteral ?? false;
 		return normalizeValue(define, supportsBigIntLiteral);
 	},
 	"compilation"
