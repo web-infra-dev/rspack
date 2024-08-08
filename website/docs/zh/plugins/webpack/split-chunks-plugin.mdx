@@ -303,4 +303,4 @@ cacheGroup: {
 
 在 chunk Foo 和 chunk Bar 中的 module B 由于 cacheGroup 的配置，会被拆分到一个新的 chunk 中，该 chunk 只包含 module B，这个新 chunk 和 chunk Bar 包含的 module 完全一样，因此可以直接复用 chunk Bar。
 
-如果设置 reuseExistingChunk 为 `false` 那么 chunk Bar 和 chunk Foo 中的 module B 会被移到新 chunk 中，chunk Bar 由于不包含任何 module，会作为空 chunk 被删除。
+如果设置 reuseExistingChunk 为 `false`，那么 chunk Bar 和 chunk Foo 中的 module B 会被移到新 chunk 中，chunk Bar 由于不包含任何 module，会作为空 chunk 被删除。
