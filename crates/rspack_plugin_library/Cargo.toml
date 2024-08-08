@@ -1,9 +1,12 @@
 [package]
-edition = "2021"
-license = "MIT"
-name    = "rspack_plugin_library"
-version = "0.1.0"
-description = "rspack library plugin"
+description             = "rspack library plugin"
+documentation.workspace = true
+edition                 = "2021"
+homepage.workspace      = true
+license                 = "MIT"
+name                    = "rspack_plugin_library"
+repository.workspace    = true
+version                 = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
