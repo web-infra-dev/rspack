@@ -289,7 +289,7 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-是否重用现有的 chunk。举例
+是否重用现有的 chunk。如果经过拆分后新产生的 chunk 中包含的模块和原 chunk 中包含的模块完全一致，则原 chunk 会被复用，不会生成新的 chunk，这可能会影响 chunk 最终的文件名。举例：
 
 ```
 chunk Foo: [ module A, module B ]
