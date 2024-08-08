@@ -7,6 +7,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use either::Either;
 use itertools::Itertools;
 use rspack_collections::impl_item_ukey;
 use rspack_collections::Ukey;
@@ -670,6 +671,33 @@ impl ExportsInfo {
         info.get_used(mg, runtime)
       }
     }
+  }
+
+  pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {
+    let exports_info = self.as_exports_info(mg);
+
+    // only expand capacity when this has redirect_to
+    let mut key = UsageKey(Vec::with_capacity(exports_info.exports.len() + 2));
+
+    if let Some(redirect_to) = &exports_info.redirect_to {
+      key.add(Either::Left(Box::new(
+        redirect_to.get_usage_key(mg, runtime),
+      )));
+    } else {
+      key.add(Either::Right(
+        self.other_exports_info(mg).get_used(mg, runtime),
+      ));
+    };
+
+    key.add(Either::Right(
+      exports_info.side_effects_only_info.get_used(mg, runtime),
+    ));
+
+    for export_info in self.ordered_exports(mg) {
+      key.add(Either::Right(export_info.get_used(mg, runtime)));
+    }
+
+    key
   }
 
   pub fn is_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
@@ -1605,6 +1633,15 @@ pub enum FindTargetRetEnum {
 pub struct FindTargetRetValue {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Default)]
+pub struct UsageKey(pub(crate) Vec<Either<Box<UsageKey>, UsageState>>);
+
+impl UsageKey {
+  fn add(&mut self, value: Either<Box<UsageKey>, UsageState>) {
+    self.0.push(value);
+  }
 }
 
 #[derive(Debug, Clone)]

@@ -37,6 +37,7 @@ pub struct RawSplitChunksOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
+  pub used_exports: Option<bool>,
   pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<u32>,
   pub max_initial_requests: Option<u32>,
@@ -95,6 +96,7 @@ pub struct RawCacheGroupOptions {
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
   pub enforce: Option<bool>,
+  pub used_exports: Option<bool>,
 }
 
 impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
@@ -220,6 +222,9 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
             max_initial_size,
             r#type,
             layer,
+            used_exports: v
+              .used_exports
+              .unwrap_or_else(|| raw_opts.used_exports.unwrap_or_default()),
           }
         }),
     );
