@@ -75,12 +75,17 @@ impl ModernModuleLibraryPlugin {
       .iter()
       .filter(|id| !concatenated_module_ids.contains(id))
       .filter(|id| {
-        let module = module_graph
-          .module_by_identifier(id)
+        let mgm = module_graph
+          .module_graph_module_by_identifier(id)
           .expect("should have module");
-        module
-          .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
-          .is_none()
+        let reasons = &mgm.optimization_bailout;
+        reasons
+          .iter()
+          // We did want force concatenate entry point here.
+          // TODO: use constant variable to identify the reason.
+          .filter(|r| !r.contains("Module is an entry point"))
+          .collect::<Vec<_>>()
+          .is_empty()
       })
       .collect::<HashSet<_>>();
 
