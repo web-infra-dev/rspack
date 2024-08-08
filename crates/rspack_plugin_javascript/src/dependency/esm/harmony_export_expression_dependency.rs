@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
+use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyType, ErrorSpan, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
@@ -229,7 +230,13 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         &format!("{}(", content),
         None,
       );
-      source.replace(self.range.end, self.range_stmt.end, ");", None);
+      source.replace_with_enforce(
+        self.range.end,
+        self.range_stmt.end,
+        ");",
+        None,
+        ReplacementEnforce::Post,
+      );
     }
   }
 
