@@ -50,8 +50,7 @@
 				"noNonNullAssertion": "off"
 			},
 			"performance": {
-				"noDelete": "off",
-				"noAccumulatingSpread": "off"
+				"noDelete": "off"
 			},
 			"security": {
 				"noGlobalEval": "off"
