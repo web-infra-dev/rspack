@@ -151,8 +151,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../../rspack-plugin-react-refresh
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.2.48
         version: 18.2.75
@@ -182,8 +182,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../../rspack-plugin-react-refresh
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.2.48
         version: 18.2.75
@@ -295,8 +295,8 @@ importers:
         specifier: workspace:*
         version: link:../rspack-dev-server
       '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../rspack-plugin-react-refresh
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5(react-refresh@0.14.0)
       '@swc/helpers':
         specifier: 0.5.8
         version: 0.5.8
@@ -358,8 +358,8 @@ importers:
         specifier: workspace:*
         version: link:../../crates/node_binding
       '@rspack/lite-tapable':
-        specifier: workspace:*
-        version: link:../rspack-lite-tapable
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.8
@@ -526,8 +526,8 @@ importers:
         specifier: workspace:*
         version: 'link:'
       '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../rspack-plugin-react-refresh
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5(react-refresh@0.14.0)
       '@types/connect-history-api-fallback':
         specifier: 1.5.4
         version: 1.5.4
@@ -543,61 +543,6 @@ importers:
       jest-serializer-path:
         specifier: ^0.1.15
         version: 0.1.15
-      typescript:
-        specifier: 5.0.2
-        version: 5.0.2
-
-  packages/rspack-lite-tapable:
-    devDependencies:
-      typescript:
-        specifier: 5.0.2
-        version: 5.0.2
-
-  packages/rspack-plugin-preact-refresh:
-    devDependencies:
-      '@prefresh/core':
-        specifier: ^1.5.0
-        version: 1.5.2(preact@10.22.0)
-      '@prefresh/utils':
-        specifier: ^1.2.0
-        version: 1.2.0
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
-      '@rspack/test-tools':
-        specifier: workspace:*
-        version: link:../rspack-test-tools
-      '@swc/helpers':
-        specifier: 0.5.8
-        version: 0.5.8
-      '@swc/plugin-prefresh':
-        specifier: ^2.0.8
-        version: 2.0.8
-      preact:
-        specifier: ^10.15.1
-        version: 10.22.0
-      typescript:
-        specifier: 5.0.2
-        version: 5.0.2
-
-  packages/rspack-plugin-react-refresh:
-    dependencies:
-      error-stack-parser:
-        specifier: ^2.0.6
-        version: 2.1.4
-      html-entities:
-        specifier: ^2.1.0
-        version: 2.5.2
-    devDependencies:
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
-      '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: 'link:'
-      react-refresh:
-        specifier: ^0.14.0
-        version: 0.14.0
       typescript:
         specifier: 5.0.2
         version: 5.0.2
@@ -922,8 +867,8 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/rspack
       '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../../../packages/rspack-plugin-react-refresh
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5(react-refresh@0.14.0)
       '@svgr/webpack':
         specifier: ^8.0.0
         version: 8.1.0(typescript@5.4.2)
@@ -2788,14 +2733,6 @@ packages:
   '@polka/url@1.0.0-next.25':
     resolution: {integrity: sha512-j7P6Rgr3mmtdkeDGTe0E/aYyWEWVtc5yFXtHCRHs28/jptDEWfaVOc5T7cblqy1XKPPfCxJc/8DwQ5YgLOZOVQ==}
 
-  '@prefresh/core@1.5.2':
-    resolution: {integrity: sha512-A/08vkaM1FogrCII5PZKCrygxSsc11obExBScm3JF1CryK2uDS3ZXeni7FeKCx1nYdUkj4UcJxzPzc1WliMzZA==}
-    peerDependencies:
-      preact: ^10.0.0
-
-  '@prefresh/utils@1.2.0':
-    resolution: {integrity: sha512-KtC/fZw+oqtwOLUFM9UtiitB0JsVX0zLKNyRTA332sqREqSALIIQQxdUCS1P3xR/jT1e2e8/5rwH6gdcMLEmsQ==}
-
   '@rollup/rollup-android-arm-eabi@4.17.2':
     resolution: {integrity: sha512-NM0jFxY8bB8QLkoKxIQeObCaDlJKewVlIEkuyYKm5An1tdVZ966w2+MPQ2l8LBZLjR+SgyV+nRkTIunzOYBMLQ==}
     cpu: [arm]
@@ -2875,6 +2812,18 @@ packages:
     resolution: {integrity: sha512-TGGO7v7qOq4CYmSBVEYpI1Y5xDuCEnbVC5Vth8mOsW0gDSzxNrVERPc790IGHsrT2dQSimgMr9Ub3Y1Jci5/8w==}
     cpu: [x64]
     os: [win32]
+
+  '@rspack/lite-tapable@1.0.0-beta.5':
+    resolution: {integrity: sha512-jTmLhUeZgR3u+cHp5Z46FuTWUg+6VWWwbWkIzgVvQoN7YK9ntFfm7k5+cImTEQ0qe1r6P43uV0qD606SoZspKg==}
+    engines: {node: '>=16.0.0'}
+
+  '@rspack/plugin-react-refresh@1.0.0-beta.5':
+    resolution: {integrity: sha512-7pP8OBOkGa/D/ZnkXI7/atWIc5QJDlLHju/qpPGaomdE+Ut0qSzpW6Loya63CDwB0Ok8AQUGe1GsnbsRNset6w==}
+    peerDependencies:
+      react-refresh: '>=0.10.0 <1.0.0'
+    peerDependenciesMeta:
+      react-refresh:
+        optional: true
 
   '@rushstack/node-core-library@4.1.0':
     resolution: {integrity: sha512-qz4JFBZJCf1YN5cAXa1dP6Mki/HrsQxc/oYGAGx29dF2cwF2YMxHoly0FBhMw3IEnxo5fMj0boVfoHVBkpkx/w==}
@@ -3074,9 +3023,6 @@ packages:
 
   '@swc/helpers@0.5.8':
     resolution: {integrity: sha512-lruDGw3pnfM3wmZHeW7JuhkGQaJjPyiKjxeGhdmfoOT53Ic9qb5JLDNaK2HUdl1zLDeX28H221UvKjfdvSLVMg==}
-
-  '@swc/plugin-prefresh@2.0.8':
-    resolution: {integrity: sha512-u/fKPR+ofEefjg6auJorh1Esd4/YuNXkS0AymFAERnf9ifHoP9sKYhx59CvbfRNEgmv7PHs3ndOiewnNInN8vg==}
 
   '@swc/plugin-remove-console@2.0.8':
     resolution: {integrity: sha512-9Yctl9zb2r41Lnz50k1A1HXipt0uP4vl9DtStyUk6llVd6qx5cvOjtVzaJUUAlh9J+F6AIKbQr3MbRk8ub7Pew==}
@@ -7394,9 +7340,6 @@ packages:
     resolution: {integrity: sha512-Wglpdk03BSfXkHoQa3b/oulrotAkwrlLDRSOb9D0bN86FdRyE9lppSp33aHNPgBa0JKCoB+drFLZkQoRRYae5A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  preact@10.22.0:
-    resolution: {integrity: sha512-RRurnSjJPj4rp5K6XoP45Ui33ncb7e4H7WiOHVpjbkvqvA3U+N8Z6Qbo0AE6leGYBV66n8EhEaFixvIu3SkxFw==}
-
   prebundle@1.1.0:
     resolution: {integrity: sha512-yTfRjx0+xiveeb7kO77OcODVB8RSHMKIiVl/qferU7ZHw4Y8pycXkCAtPDViF8YDo0a8ViDpm4C1O9PFKCw1ig==}
     hasBin: true
@@ -11470,12 +11413,6 @@ snapshots:
 
   '@polka/url@1.0.0-next.25': {}
 
-  '@prefresh/core@1.5.2(preact@10.22.0)':
-    dependencies:
-      preact: 10.22.0
-
-  '@prefresh/utils@1.2.0': {}
-
   '@rollup/rollup-android-arm-eabi@4.17.2':
     optional: true
 
@@ -11523,6 +11460,15 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.17.2':
     optional: true
+
+  '@rspack/lite-tapable@1.0.0-beta.5': {}
+
+  '@rspack/plugin-react-refresh@1.0.0-beta.5(react-refresh@0.14.0)':
+    dependencies:
+      error-stack-parser: 2.1.4
+      html-entities: 2.5.2
+    optionalDependencies:
+      react-refresh: 0.14.0
 
   '@rushstack/node-core-library@4.1.0(@types/node@20.12.7)':
     dependencies:
@@ -11765,10 +11711,6 @@ snapshots:
   '@swc/helpers@0.5.8':
     dependencies:
       tslib: 2.6.2
-
-  '@swc/plugin-prefresh@2.0.8':
-    dependencies:
-      '@swc/counter': 0.1.3
 
   '@swc/plugin-remove-console@2.0.8':
     dependencies:
@@ -17307,8 +17249,6 @@ snapshots:
       nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.2.0
-
-  preact@10.22.0: {}
 
   prebundle@1.1.0(typescript@5.0.2):
     dependencies:
