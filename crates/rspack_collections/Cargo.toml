@@ -12,5 +12,5 @@ dashmap  = { workspace = true }
 hashlink = { workspace = true }
 indexmap = { workspace = true }
 rayon    = { workspace = true }
-serde    = { workspace = true }
+serde    = { workspace = true, features = ["derive"] }
 ustr     = { workspace = true, features = ["serde"] }
