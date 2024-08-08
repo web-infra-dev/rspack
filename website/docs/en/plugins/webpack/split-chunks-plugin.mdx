@@ -293,3 +293,24 @@ module.exports = {
   },
 };
 ```
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+
+- **Type:** `boolean`
+- **Default** `false`
+
+Whether to reuse existing chunks when possible. If so, after splitting, the newly created chunk contains modules that are exactly the same as those in the original chunk, the original chunk will be reused, and no new chunk will be generated, which may affect the final filename of the chunk. For example:
+
+```
+chunk Foo: [ module A, module B ]
+chunk Bar: [ module B ]
+
+cacheGroup: {
+  test: /B/,
+  chunks: 'all'
+}
+```
+
+In chunks Foo and Bar, the module B, due to the configuration of cacheGroup, will be split into a new chunk that only contains module B. This new chunk is identical in terms of the modules it contains with chunk Bar, so chunk Bar can be directly reused.
+
+If the setting of reuseExistingChunk is set to `false`, then the module B in chunks Bar and Foo will be moved to a new chunk, and chunk Bar, since it no longer contains any modules, will be deleted as an empty chunk.

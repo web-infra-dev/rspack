@@ -283,3 +283,24 @@ module.exports = {
   },
 };
 ```
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否重用现有的 chunk。如果经过拆分后新产生的 chunk 中包含的模块和原 chunk 中包含的模块完全一致，则原 chunk 会被复用，不会生成新的 chunk，这可能会影响 chunk 最终的文件名。举例：
+
+```
+chunk Foo: [ module A, module B ]
+chunk Bar: [ module B ]
+
+cacheGroup: {
+  test: /B/,
+  chunks: 'all'
+}
+```
+
+由于 cacheGroup 的配置，在 chunk Foo 和 chunk Bar 中的 module B 会被拆分到一个新的 chunk 中，该 chunk 只包含 module B，这个新 chunk 和 chunk Bar 包含的 module 完全一样，因此可以直接复用 chunk Bar。
+
+如果设置 reuseExistingChunk 为 `false`，那么 chunk Bar 和 chunk Foo 中的 module B 会被移到新 chunk 中，chunk Bar 由于不包含任何 module，会作为空 chunk 被删除。

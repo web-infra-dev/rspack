@@ -211,7 +211,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),
             filename: v.filename.map(Filename::from),
-            reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
+            reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
             // TODO(hyf0): the non-enforced default value should be 30
             // I would set align default value with Webpack when the options is exposed to users
             max_async_requests: u32::MAX,
