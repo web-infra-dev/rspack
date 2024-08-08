@@ -773,7 +773,7 @@ function createLoaderContext(
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
-): Promise<JsLoaderContext> {
+): Promise<void> {
 	const loaderState = context.loaderState;
 
 	const loaderContext = createLoaderContext(compiler, context);
@@ -855,8 +855,6 @@ export async function runLoaders(
 	context.loaderItems = loaderContext.loaders.map(item =>
 		LoaderObject.__to_binding(item)
 	);
-
-	return context;
 }
 
 function utf8BufferToString(buf: Buffer) {

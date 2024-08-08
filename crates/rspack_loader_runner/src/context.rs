@@ -1,6 +1,6 @@
 use std::{
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{atomic::AtomicU32, Arc},
 };
 
 use derivative::Derivative;
@@ -34,9 +34,28 @@ impl State {
   }
 }
 
+static LOADER_CONTEXT_ID: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct LoaderContextId(u32);
+
+impl LoaderContextId {
+  pub fn new() -> Self {
+    Self(LOADER_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for LoaderContextId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct LoaderContext<Context: 'static> {
+  pub id: LoaderContextId,
+
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
 
