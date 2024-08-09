@@ -1,62 +1,26 @@
-use std::borrow::Cow;
-use std::fmt::Debug;
-use std::path::PathBuf;
-
 use either::Either;
 use itertools::Itertools;
-use rayon::prelude::*;
-use rspack_collections::{Identifier, IdentifierSet};
-use rspack_error::emitter::{DiagnosticDisplay, DiagnosticDisplayer};
-use rspack_error::emitter::{StdioDiagnosticDisplay, StringDiagnosticDisplay};
+use rayon::iter::{
+  IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge,
+  ParallelIterator,
+};
+use rspack_collections::IdentifierSet;
+use rspack_error::emitter::{
+  DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
+};
 use rspack_error::Result;
-use rspack_sources::Source;
-use rspack_util::atom::Atom;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
+
+mod utils;
+pub use utils::*;
+mod r#struct;
+pub use r#struct::*;
 
 use crate::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, BoxModule, BoxRuntimeModule, Chunk,
-  ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey, Compilation, ExecutedRuntimeModule, LogType,
-  ModuleGraph, ModuleIdentifier, ModuleType, OriginLocation, ProvidedExports, RuntimeSpec,
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey, Compilation,
+  ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, OriginLocation, ProvidedExports,
   SourceType, UsedExports,
 };
-
-fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
-  compilation
-    .assets()
-    .get(file)
-    .and_then(|asset| asset.get_source().map(|s| s.size() as f64))
-    .unwrap_or(-1f64)
-}
-
-pub enum EntrypointsStatsOption {
-  Bool(bool),
-  String(String),
-}
-
-pub struct ExtendedStatsOptions {
-  pub assets: bool,
-  pub cached_modules: bool,
-  pub chunks: bool,
-  pub chunk_group_auxiliary: bool,
-  pub chunk_group_children: bool,
-  pub chunk_groups: bool,
-  pub chunk_modules: bool,
-  pub chunk_relations: bool,
-  pub depth: bool,
-  pub entrypoints: EntrypointsStatsOption,
-  pub errors: bool,
-  pub hash: bool,
-  pub ids: bool,
-  pub modules: bool,
-  pub module_assets: bool,
-  pub nested_modules: bool,
-  pub optimization_bailout: bool,
-  pub provided_exports: bool,
-  pub reasons: bool,
-  pub source: bool,
-  pub used_exports: bool,
-  pub warnings: bool,
-}
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -274,7 +238,7 @@ impl Stats<'_> {
       modules.extend(runtime_modules);
     }
 
-    Self::sort_modules(&mut modules);
+    sort_modules(&mut modules);
 
     Ok(f(modules))
   }
@@ -321,7 +285,7 @@ impl Stats<'_> {
             .into_iter()
             .map(|m| self.get_module(&module_graph, m, false, Some(&root_modules), options))
             .collect::<Result<Vec<_>>>()?;
-          Self::sort_modules(&mut chunk_modules);
+          sort_modules(&mut chunk_modules);
           Some(chunk_modules)
         } else {
           None
@@ -329,7 +293,13 @@ impl Stats<'_> {
 
         let (parents, children, siblings) = options
           .chunk_relations
-          .then(|| self.get_chunk_relations(c))
+          .then(|| {
+            get_chunk_relations(
+              c,
+              &self.compilation.chunk_group_by_ukey,
+              &self.compilation.chunk_by_ukey,
+            )
+          })
           .map_or((None, None, None), |(parents, children, siblings)| {
             (Some(parents), Some(children), Some(siblings))
           });
@@ -478,39 +448,47 @@ impl Stats<'_> {
       vec![]
     };
 
-    let children = chunk_group_children.then(|| {
+    let children_info = chunk_group_children.then(|| {
       let ordered_children = cg.get_children_by_orders(self.compilation);
-      StatsChunkGroupChildren {
-        preload: ordered_children
-          .get(&ChunkGroupOrderKey::Preload)
-          .expect("should have preload chunk groups")
-          .par_iter()
-          .map(|ukey| {
-            let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
-            self.get_chunk_group(
-              cg.name().unwrap_or_default(),
-              ukey,
-              chunk_group_auxiliary,
-              false,
-            )
-          })
-          .collect::<Vec<_>>(),
-        prefetch: ordered_children
-          .get(&ChunkGroupOrderKey::Prefetch)
-          .expect("should have prefetch chunk groups")
-          .par_iter()
-          .map(|ukey| {
-            let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
-            self.get_chunk_group(
-              cg.name().unwrap_or_default(),
-              ukey,
-              chunk_group_auxiliary,
-              false,
-            )
-          })
-          .collect::<Vec<_>>(),
-      }
+      (
+        StatsChunkGroupChildren {
+          preload: get_chunk_group_ordered_children(
+            self,
+            &ordered_children,
+            &ChunkGroupOrderKey::Preload,
+            &self.compilation.chunk_group_by_ukey,
+            chunk_group_auxiliary,
+          ),
+          prefetch: get_chunk_group_ordered_children(
+            self,
+            &ordered_children,
+            &ChunkGroupOrderKey::Prefetch,
+            &self.compilation.chunk_group_by_ukey,
+            chunk_group_auxiliary,
+          ),
+        },
+        StatschunkGroupChildAssets {
+          preload: get_chunk_group_oreded_child_assets(
+            &ordered_children,
+            &ChunkGroupOrderKey::Preload,
+            &self.compilation.chunk_group_by_ukey,
+            &self.compilation.chunk_by_ukey,
+          ),
+          prefetch: get_chunk_group_oreded_child_assets(
+            &ordered_children,
+            &ChunkGroupOrderKey::Prefetch,
+            &self.compilation.chunk_group_by_ukey,
+            &self.compilation.chunk_by_ukey,
+          ),
+        },
+      )
     });
+
+    let (children, child_assets) = match children_info {
+      Some(children_info) => (Some(children_info.0), Some(children_info.1)),
+      None => (None, None),
+    };
+
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
@@ -520,6 +498,7 @@ impl Stats<'_> {
         .then(|| auxiliary_assets.iter().map(|i| i.size).sum()),
       auxiliary_assets: chunk_group_auxiliary.then_some(auxiliary_assets),
       children,
+      child_assets,
       is_over_size_limit: cg.is_over_size_limit,
     }
   }
@@ -578,7 +557,12 @@ impl Stats<'_> {
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
-        let module_trace = self.get_module_trace(module_identifier);
+        let module_trace = get_module_trace(
+          module_identifier,
+          &self.compilation.get_module_graph(),
+          &self.compilation.chunk_graph,
+          &self.compilation.options,
+        );
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
@@ -623,7 +607,12 @@ impl Stats<'_> {
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
-        let module_trace = self.get_module_trace(module_identifier);
+        let module_trace = get_module_trace(
+          module_identifier,
+          &self.compilation.get_module_graph(),
+          &self.compilation.chunk_graph,
+          &self.compilation.options,
+        );
 
         StatsWarning {
           message: diagnostic_displayer
@@ -663,24 +652,6 @@ impl Stats<'_> {
 
   pub fn get_hash(&self) -> Option<&str> {
     self.compilation.get_hash()
-  }
-
-  fn sort_modules(modules: &mut [StatsModule]) {
-    modules.sort_unstable_by(|a, b| {
-      // align with MODULES_SORTER
-      // https://github.com/webpack/webpack/blob/ab3e93b19ead869727592d09d36f94e649eb9d83/lib/stats/DefaultStatsFactoryPlugin.js#L1546
-      if a.depth != b.depth {
-        a.depth.cmp(&b.depth)
-      } else if a.pre_order_index != b.pre_order_index {
-        a.pre_order_index.cmp(&b.pre_order_index)
-      } else if let (Some(a_name), Some(b_name)) = (&a.name, &b.name)
-        && a_name.len() != b_name.len()
-      {
-        a_name.len().cmp(&b_name.len())
-      } else {
-        a.name.cmp(&b.name)
-      }
-    });
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1013,7 +984,7 @@ impl Stats<'_> {
           .filter_map(|m| module_graph.module_by_identifier(&m.id))
           .map(|module| self.get_module(module_graph, module, executed, root_modules, options))
           .collect::<Result<_>>()?;
-        Self::sort_modules(&mut modules);
+        sort_modules(&mut modules);
         stats.modules = Some(modules);
       };
     }
@@ -1233,366 +1204,4 @@ impl Stats<'_> {
 
     Ok(stats)
   }
-
-  fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
-    let compilation = &self.compilation;
-    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
-
-    let mut parents = HashSet::default();
-    let mut children = HashSet::default();
-    let mut siblings = HashSet::default();
-
-    for cg in &chunk.groups {
-      if let Some(cg) = get_chunk_group_from_ukey(cg, chunk_group_by_ukey) {
-        for p in &cg.parents {
-          if let Some(pg) = get_chunk_group_from_ukey(p, chunk_group_by_ukey) {
-            for c in &pg.chunks {
-              if let Some(c) = get_chunk_from_ukey(c, chunk_by_ukey)
-                && let Some(id) = &c.id
-              {
-                parents.insert(id.to_string());
-              }
-            }
-          }
-        }
-
-        for p in &cg.children {
-          if let Some(pg) = get_chunk_group_from_ukey(p, chunk_group_by_ukey) {
-            for c in &pg.chunks {
-              if let Some(c) = get_chunk_from_ukey(c, chunk_by_ukey)
-                && let Some(id) = &c.id
-              {
-                children.insert(id.to_string());
-              }
-            }
-          }
-        }
-
-        for c in &cg.chunks {
-          if let Some(c) = get_chunk_from_ukey(c, chunk_by_ukey)
-            && c.id != chunk.id
-            && let Some(id) = &c.id
-          {
-            siblings.insert(id.to_string());
-          }
-        }
-      }
-    }
-
-    let mut parents = Vec::from_iter(parents);
-    let mut children = Vec::from_iter(children);
-    let mut siblings = Vec::from_iter(siblings);
-
-    parents.sort();
-    children.sort();
-    siblings.sort();
-
-    (parents, children, siblings)
-  }
-
-  fn get_module_trace(&self, module_identifier: Option<Identifier>) -> Vec<StatsModuleTrace> {
-    let module_graph = self.compilation.get_module_graph();
-    let mut module_trace = vec![];
-    let mut visited_modules = HashSet::<Identifier>::default();
-    let mut current_module_identifier = module_identifier;
-    while let Some(module_identifier) = current_module_identifier {
-      if visited_modules.contains(&module_identifier) {
-        break;
-      }
-      visited_modules.insert(module_identifier);
-      let Some(origin_module) = module_graph.get_issuer(&module_identifier) else {
-        break;
-      };
-      let Some(current_module) = module_graph.module_by_identifier(&module_identifier) else {
-        break;
-      };
-      let origin_stats_module = StatsErrorModuleTraceModule {
-        identifier: origin_module.identifier(),
-        name: origin_module
-          .readable_identifier(&self.compilation.options.context)
-          .to_string(),
-        id: self
-          .compilation
-          .chunk_graph
-          .get_module_id(origin_module.identifier())
-          .map(|s| s.to_string()),
-      };
-
-      let current_stats_module = StatsErrorModuleTraceModule {
-        identifier: current_module.identifier(),
-        name: current_module
-          .readable_identifier(&self.compilation.options.context)
-          .to_string(),
-        id: self
-          .compilation
-          .chunk_graph
-          .get_module_id(current_module.identifier())
-          .map(|s| s.to_string()),
-      };
-
-      module_trace.push(StatsModuleTrace {
-        origin: origin_stats_module,
-        module: current_stats_module,
-      });
-
-      current_module_identifier = Some(origin_module.identifier());
-    }
-
-    module_trace
-  }
-}
-
-fn get_stats_module_name_and_id<'s, 'c>(
-  module: &'s BoxModule,
-  compilation: &'c Compilation,
-) -> (Cow<'s, str>, Option<&'c str>) {
-  let identifier = module.identifier();
-  let name = module.readable_identifier(&compilation.options.context);
-  let id = compilation.chunk_graph.get_module_id(identifier);
-  (name, id)
-}
-
-#[derive(Debug)]
-pub struct StatsError<'s> {
-  pub message: String,
-  pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: Option<Cow<'s, str>>,
-  pub module_id: Option<&'s str>,
-  pub loc: Option<String>,
-  pub file: Option<PathBuf>,
-
-  pub chunk_name: Option<String>,
-  pub chunk_entry: Option<bool>,
-  pub chunk_initial: Option<bool>,
-  pub chunk_id: Option<String>,
-  pub details: Option<String>,
-  pub stack: Option<String>,
-  pub module_trace: Vec<StatsModuleTrace>,
-}
-
-#[derive(Debug)]
-pub struct StatsWarning<'s> {
-  pub message: String,
-  pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: Option<Cow<'s, str>>,
-  pub module_id: Option<&'s str>,
-  pub loc: Option<String>,
-  pub file: Option<PathBuf>,
-
-  pub chunk_name: Option<String>,
-  pub chunk_entry: Option<bool>,
-  pub chunk_initial: Option<bool>,
-  pub chunk_id: Option<String>,
-  pub details: Option<String>,
-  pub stack: Option<String>,
-  pub module_trace: Vec<StatsModuleTrace>,
-}
-
-#[derive(Debug)]
-pub struct StatsModuleTrace {
-  pub origin: StatsErrorModuleTraceModule,
-  pub module: StatsErrorModuleTraceModule,
-}
-
-#[derive(Debug)]
-pub struct StatsErrorModuleTraceModule {
-  pub identifier: ModuleIdentifier,
-  pub name: String,
-  pub id: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct StatsAsset {
-  pub r#type: &'static str,
-  pub name: String,
-  pub size: f64,
-  pub chunks: Vec<Option<String>>,
-  pub chunk_names: Vec<String>,
-  pub chunk_id_hints: Vec<String>,
-  pub info: StatsAssetInfo,
-  pub emitted: bool,
-  pub auxiliary_chunk_names: Vec<String>,
-  pub auxiliary_chunk_id_hints: Vec<String>,
-  pub auxiliary_chunks: Vec<Option<String>>,
-}
-
-#[derive(Debug)]
-pub struct StatsAssetsByChunkName {
-  pub name: String,
-  pub files: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct StatsAssetInfo {
-  pub minimized: bool,
-  pub development: bool,
-  pub hot_module_replacement: bool,
-  pub source_filename: Option<String>,
-  pub immutable: bool,
-  pub javascript_module: Option<bool>,
-  pub chunk_hash: Vec<String>,
-  pub content_hash: Vec<String>,
-  pub full_hash: Vec<String>,
-  pub related: Vec<StatsAssetInfoRelated>,
-  pub is_over_size_limit: Option<bool>,
-}
-
-#[derive(Debug)]
-pub struct StatsAssetInfoRelated {
-  pub name: String,
-  pub value: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct StatsModule<'s> {
-  pub r#type: &'static str,
-  pub module_type: ModuleType,
-  pub layer: Option<Cow<'s, str>>,
-  pub identifier: Option<ModuleIdentifier>,
-  pub name: Option<Cow<'s, str>>,
-  pub name_for_condition: Option<String>,
-  pub id: Option<&'s str>,
-  pub chunks: Option<Vec<String>>, // has id after the call of chunkIds hook
-  pub size: f64,
-  pub sizes: Vec<StatsSourceTypeSize>,
-  pub dependent: Option<bool>,
-  pub issuer: Option<ModuleIdentifier>,
-  pub issuer_name: Option<Cow<'s, str>>,
-  pub issuer_id: Option<&'s str>,
-  pub issuer_path: Option<Vec<StatsModuleIssuer<'s>>>,
-  pub reasons: Option<Vec<StatsModuleReason<'s>>>,
-  pub assets: Option<Vec<String>>,
-  pub modules: Option<Vec<StatsModule<'s>>>,
-  pub source: Option<&'s dyn Source>,
-  pub profile: Option<StatsModuleProfile>,
-  pub orphan: Option<bool>,
-  pub provided_exports: Option<Vec<Atom>>,
-  pub used_exports: Option<StatsUsedExports>,
-  pub optimization_bailout: Option<&'s [String]>,
-  pub depth: Option<usize>,
-  pub pre_order_index: Option<u32>,
-  pub post_order_index: Option<u32>,
-  pub built: bool,
-  pub code_generated: bool,
-  pub build_time_executed: bool,
-  pub cached: bool,
-  pub cacheable: Option<bool>,
-  pub optional: Option<bool>,
-  pub failed: Option<bool>,
-  pub errors: Option<u32>,
-  pub warnings: Option<u32>,
-}
-
-#[derive(Debug)]
-pub enum StatsUsedExports {
-  Vec(Vec<Atom>),
-  Bool(bool),
-  Null,
-}
-
-#[derive(Debug)]
-pub struct StatsModuleProfile {
-  pub factory: StatsMillisecond,
-  pub building: StatsMillisecond,
-}
-
-#[derive(Debug)]
-pub struct StatsOriginRecord {
-  pub module: Option<ModuleIdentifier>,
-  pub module_id: String,
-  pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: String,
-  pub loc: String,
-  pub request: String,
-}
-
-#[derive(Debug)]
-pub struct StatsChunk<'a> {
-  pub r#type: &'static str,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
-  pub id: Option<String>,
-  pub entry: bool,
-  pub initial: bool,
-  pub names: Vec<String>,
-  pub size: f64,
-  pub modules: Option<Vec<StatsModule<'a>>>,
-  pub parents: Option<Vec<String>>,
-  pub children: Option<Vec<String>>,
-  pub siblings: Option<Vec<String>>,
-  pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
-  pub runtime: RuntimeSpec,
-  pub sizes: HashMap<SourceType, f64>,
-  pub reason: Option<String>,
-  pub rendered: bool,
-  pub origins: Vec<StatsOriginRecord>,
-  pub id_hints: Vec<String>,
-  pub hash: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct StatsChunkGroupAsset {
-  pub name: String,
-  pub size: f64,
-}
-
-#[derive(Debug)]
-pub struct StatsChunkGroup {
-  pub name: String,
-  pub chunks: Vec<String>,
-  pub assets: Vec<StatsChunkGroupAsset>,
-  pub assets_size: f64,
-  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
-  pub auxiliary_assets_size: Option<f64>,
-  pub children: Option<StatsChunkGroupChildren>,
-  pub is_over_size_limit: Option<bool>,
-}
-
-#[derive(Debug)]
-pub struct StatsChunkGroupChildren {
-  pub preload: Vec<StatsChunkGroup>,
-  pub prefetch: Vec<StatsChunkGroup>,
-}
-
-#[derive(Debug)]
-pub struct StatsModuleIssuer<'s> {
-  pub identifier: ModuleIdentifier,
-  pub name: Cow<'s, str>,
-  pub id: Option<&'s str>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct StatsModuleReason<'s> {
-  pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: Option<Cow<'s, str>>,
-  pub module_id: Option<&'s str>,
-  pub module_chunks: Option<u32>,
-  pub resolved_module_identifier: Option<ModuleIdentifier>,
-  pub resolved_module_name: Option<Cow<'s, str>>,
-  pub resolved_module_id: Option<&'s str>,
-
-  pub r#type: Option<&'static str>,
-  pub user_request: Option<&'s str>,
-}
-
-#[derive(Debug)]
-pub struct StatsMillisecond {
-  pub secs: u64,
-  pub subsec_millis: u32,
-}
-
-impl StatsMillisecond {
-  pub fn new(secs: u64, subsec_millis: u32) -> Self {
-    Self {
-      secs,
-      subsec_millis,
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct StatsSourceTypeSize {
-  pub source_type: SourceType,
-  pub size: f64,
 }

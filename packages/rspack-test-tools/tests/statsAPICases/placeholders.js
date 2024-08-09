@@ -28,6 +28,7 @@ module.exports = {
 		    "assetsSize": 0,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [],
 		    "filteredAssets": 0,

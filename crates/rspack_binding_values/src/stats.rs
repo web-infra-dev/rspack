@@ -1007,8 +1007,9 @@ pub struct JsStatsChunkGroup {
   pub assets_size: f64,
   pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
   pub auxiliary_assets_size: Option<f64>,
-  pub children: Option<JsStatsChunkGroupChildren>,
   pub is_over_size_limit: Option<bool>,
+  pub children: Option<JsStatsChunkGroupChildren>,
+  pub child_assets: Option<JsStatsChildGroupChildAssets>,
 }
 
 impl FromNapiValue for JsStatsChunkGroup {
@@ -1032,7 +1033,32 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
         .map(|assets| assets.into_iter().map(Into::into).collect()),
       auxiliary_assets_size: stats.auxiliary_assets_size,
       children: stats.children.map(|i| i.into()),
+      child_assets: stats.child_assets.map(|i| i.into()),
       is_over_size_limit: stats.is_over_size_limit,
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsChildGroupChildAssets {
+  pub preload: Option<Vec<String>>,
+  pub prefetch: Option<Vec<String>>,
+}
+
+impl FromNapiValue for JsStatsChildGroupChildAssets {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAssets {
+  fn from(stats: rspack_core::StatschunkGroupChildAssets) -> Self {
+    Self {
+      preload: (!stats.preload.is_empty()).then_some(stats.preload),
+      prefetch: (!stats.prefetch.is_empty()).then_some(stats.prefetch),
     }
   }
 }
