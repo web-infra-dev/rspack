@@ -304,9 +304,10 @@ Supported types:
 - [`'commonjs'`](#externalstypecommonjs)
 - `'commonjs-module'`
 - [`'global'`](#externalstypeglobal)
-- `'import'` - uses `import()` to load a native EcmaScript module (async module)
-- `'jsonp'`
 - [`'module'`](#externalstypemodule)
+- [`'import'`](#externalstypeimport) - uses `import()` to load a native EcmaScript module (async module)
+- [`'module-import'`](#externalstypemodule-import)
+- `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
 - [`'promise'`](#externalstypepromise) - same as `'var'` but awaits the result (async module)
 - [`'self'`](#externalstypeself)
@@ -419,6 +420,99 @@ jq('.my-element').animate(/* ... */);
 ```
 
 Note that there will be an `import` statement in the output bundle.
+
+### externalsType.import
+
+Specify the default type of externals as `'import'`. Rspack will generate code like `import('...')` for externals used in a module.
+
+**Example**
+
+```javascript
+async function foo() {
+  const jq = await import('jQuery');
+  jq('.my-element').animate(/* ... */);
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'import',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+var __webpack_modules__ = {
+  jQuery: module => {
+    module.exports = import('jQuery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+  );
+  jq('.my-element').animate(/* ... */);
+}
+```
+
+Note that there will be an `import()` statement in the output bundle.
+
+### externalsType['module-import']
+
+Specify the default type of externals as `'module-import'`. This combines [`'module'`](#externalstypemodule) and [`'import'`](#externalstypeimport). Rspack will automatically detect the type of import syntax, setting it to `'module'` for static imports and `'import'` for dynamic imports.
+
+Make sure to enable [`experiments.outputModule`](/config/#experimentsoutputmodule) first if static imports exist, otherwise Rspack will throw errors.
+
+**Example**
+
+```javascript
+import { attempt } from 'lodash';
+
+async function foo() {
+  const jq = await import('jQuery');
+  attempt(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'import',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
+const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+
+var __webpack_modules__ = {
+  jQuery: module => {
+    module.exports = import('jQuery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+  );
+  (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+Note that there will be an `import` or `import()` statement in the output bundle.
 
 ### externalsType['node-commonjs']
 

@@ -3,13 +3,14 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxModule, CompilerOptions, ContextInfo, ExternalItem, ExternalItemFnCtx,
-  ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
-  ModuleDependency, ModuleExt, ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin,
-  PluginContext,
+  ApplyContext, BoxModule, CompilerOptions, ContextInfo, DependencyMeta, ExternalItem,
+  ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue,
+  ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::dependency::{HarmonyImportSideEffectDependency, ImportDependency};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
@@ -101,10 +102,31 @@ impl ExternalsPlugin {
       None
     }
 
+    let dependency_meta: DependencyMeta = DependencyMeta {
+      external_type: {
+        if dependency
+          .as_any()
+          .downcast_ref::<ImportDependency>()
+          .is_some()
+        {
+          Some(ExternalTypeEnum::Import)
+        } else if dependency
+          .as_any()
+          .downcast_ref::<HarmonyImportSideEffectDependency>()
+          .is_some()
+        {
+          Some(ExternalTypeEnum::Module)
+        } else {
+          None
+        }
+      },
+    };
+
     Some(ExternalModule::new(
       external_module_config,
       r#type.unwrap_or(external_module_type),
       dependency.request().to_owned(),
+      dependency_meta,
     ))
   }
 }

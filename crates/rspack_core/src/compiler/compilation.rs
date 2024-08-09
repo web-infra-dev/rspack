@@ -1785,6 +1785,8 @@ pub struct AssetInfo {
   /// in the rust struct and have the Js side to reshape and align with webpack.
   /// Related: packages/rspack/src/Compilation.ts
   pub extras: serde_json::Map<String, serde_json::Value>,
+  /// whether this asset is over the size limit
+  pub is_over_size_limit: Option<bool>,
 }
 
 impl AssetInfo {
@@ -1846,20 +1848,24 @@ impl AssetInfo {
     self.css_unused_idents = Some(v);
   }
 
+  pub fn set_is_over_size_limit(&mut self, v: bool) {
+    self.is_over_size_limit = Some(v);
+  }
+
   // https://github.com/webpack/webpack/blob/7b80b2b18db66abca6feb7b02a9089aca4bc8186/lib/asset/AssetGenerator.js#L43-L70
-  pub fn merge_another(&mut self, another: &AssetInfo) {
+  pub fn merge_another(&mut self, another: AssetInfo) {
     // "another" first fields
     self.minimized = another.minimized;
-    if let Some(source_filename) = &another.source_filename {
-      self.source_filename = Some(source_filename.clone());
+    if let Some(source_filename) = another.source_filename {
+      self.source_filename = Some(source_filename);
     }
-    self.version = another.version.clone();
+    self.version = another.version;
+    self.related.merge_another(another.related);
 
     // merge vec fields
-    self.chunk_hash.extend(another.chunk_hash.iter().cloned());
-    self
-      .content_hash
-      .extend(another.content_hash.iter().cloned());
+    self.chunk_hash.extend(another.chunk_hash);
+    self.content_hash.extend(another.content_hash);
+    self.extras.extend(another.extras);
     // self.full_hash.extend(another.full_hash.iter().cloned());
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
@@ -1868,12 +1874,21 @@ impl AssetInfo {
     self.immutable = self.immutable || another.immutable;
     self.development = self.development || another.development;
     self.hot_module_replacement = self.hot_module_replacement || another.hot_module_replacement;
+    self.is_over_size_limit = self.is_over_size_limit.or(another.is_over_size_limit);
   }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
+}
+
+impl AssetInfoRelated {
+  pub fn merge_another(&mut self, another: AssetInfoRelated) {
+    if let Some(source_map) = another.source_map {
+      self.source_map = Some(source_map);
+    }
+  }
 }
 
 /// level order, the impl is different from webpack, since we can't iterate a set and mutate it at

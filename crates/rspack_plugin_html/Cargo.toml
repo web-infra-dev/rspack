@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_plugin_html"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack html plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_html"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [features]
 default = []
 testing = ["dep:schemars"]
@@ -16,11 +16,11 @@ itertools         = { workspace = true }
 path-clean        = { workspace = true }
 rayon             = { workspace = true }
 regex             = { workspace = true }
-rspack_base64     = { path = "../rspack_base64" }
-rspack_core       = { path = "../rspack_core" }
-rspack_error      = { path = "../rspack_error" }
-rspack_hook       = { path = "../rspack_hook" }
-rspack_util       = { path = "../rspack_util" }
+rspack_base64     = { version = "0.1.0", path = "../rspack_base64" }
+rspack_core       = { version = "0.1.0", path = "../rspack_core" }
+rspack_error      = { version = "0.1.0", path = "../rspack_error" }
+rspack_hook       = { version = "0.1.0", path = "../rspack_hook" }
+rspack_util       = { version = "0.1.0", path = "../rspack_util" }
 schemars          = { workspace = true, optional = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }

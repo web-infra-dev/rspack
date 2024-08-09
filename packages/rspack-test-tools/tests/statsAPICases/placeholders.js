@@ -31,6 +31,7 @@ module.exports = {
 		    "children": Object {},
 		    "chunks": Array [],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "main",
 		  },
 		}

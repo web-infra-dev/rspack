@@ -1,19 +1,23 @@
 import type { FC } from 'react';
+import { useLang } from 'rspress/runtime';
 type DefaultValue = {
   defaultValue: string;
   mode?: 'development' | 'production' | 'none';
 };
-const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
-  CN: FC<{ type: string; defaultValueList?: DefaultValue[] }>;
-} = ({ type, defaultValueList }) => {
+const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> = ({
+  type,
+  defaultValueList,
+}) => {
+  const lang = useLang();
   return (
-    <ul className="list-disc pl-5 my-4 leading-7">
+    <ul style={{ fontSize: 14 }} className="list-disc pl-5 my-4 leading-7">
       <li className="[&:not(:first-child)]:mt-2">
-        <strong>Type:</strong> <code>{type}</code>
+        <strong>{lang === 'zh' ? '类型：' : 'Type:'}</strong>{' '}
+        <code>{type}</code>
       </li>
       {defaultValueList?.length && defaultValueList.length > 0 && (
         <li className="[&:not(:first-child)]:mt-2">
-          <strong>Default: </strong>
+          <strong>{lang === 'zh' ? '默认值：' : 'Default:'}</strong>
           {defaultValueList.map(({ defaultValue, mode }, index) => {
             return (
               <span key={defaultValue}>
@@ -24,44 +28,10 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> & {
                       style={{ marginLeft: '4px' }}
                       href={`/config/mode#${mode}`}
                     >
-                      {mode} mode
+                      {mode} {lang === 'zh' ? '模式' : 'mode'}
                     </a>
                     &nbsp;
-                    <span>is</span>
-                  </>
-                )}
-                <code style={{ marginLeft: '4px' }}>{defaultValue}</code>
-              </span>
-            );
-          })}
-        </li>
-      )}
-    </ul>
-  );
-};
-PropertyType.CN = ({ type, defaultValueList }) => {
-  return (
-    <ul className="list-disc pl-5 my-4 leading-7">
-      <li className="[&:not(:first-child)]:mt-2">
-        <strong>类型：</strong> <code>{type}</code>
-      </li>
-      {defaultValueList?.length && defaultValueList.length > 0 && (
-        <li className="[&:not(:first-child)]:mt-2">
-          <strong>默认值: </strong>
-          {defaultValueList.map(({ defaultValue, mode }, index) => {
-            return (
-              <span key={defaultValue}>
-                {index > 0 && <span>, </span>}
-                {mode && (
-                  <>
-                    <a
-                      style={{ marginLeft: '4px' }}
-                      href={`/config/mode#${mode}`}
-                    >
-                      {mode} 模式
-                    </a>
-                    &nbsp;
-                    <span>为</span>
+                    <span>{lang === 'zh' ? '为' : 'is'}</span>
                   </>
                 )}
                 <code style={{ marginLeft: '4px' }}>{defaultValue}</code>

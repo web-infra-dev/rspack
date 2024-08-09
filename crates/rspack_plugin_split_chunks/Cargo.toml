@@ -1,9 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_plugin_split_chunks"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
+description = "rspack split chunks plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_split_chunks"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,12 +13,12 @@ dashmap            = { workspace = true }
 derivative         = { workspace = true }
 rayon              = { workspace = true }
 regex              = { workspace = true }
-rspack_collections = { path = "../rspack_collections" }
-rspack_core        = { path = "../rspack_core" }
-rspack_error       = { path = "../rspack_error" }
-rspack_hash        = { path = "../rspack_hash" }
-rspack_hook        = { path = "../rspack_hook" }
-rspack_regex       = { path = "../rspack_regex" }
-rspack_util        = { path = "../rspack_util" }
+rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core        = { version = "0.1.0", path = "../rspack_core" }
+rspack_error       = { version = "0.1.0", path = "../rspack_error" }
+rspack_hash        = { version = "0.1.0", path = "../rspack_hash" }
+rspack_hook        = { version = "0.1.0", path = "../rspack_hook" }
+rspack_regex       = { version = "0.1.0", path = "../rspack_regex" }
+rspack_util        = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash         = { workspace = true }
 tracing            = { workspace = true }

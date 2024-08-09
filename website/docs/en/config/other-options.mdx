@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/webpack-license';
+import PropertyType from '@components/property-type';
+
+<WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
 
 # Other Options
 
@@ -8,8 +12,7 @@ These are the remaining configuration options supported by rspack.
 
 <ApiMeta addedVersion="0.4.5" />
 
-- **Type:** `boolean`
-- **Default:** `false`
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Fail out on the first error instead of tolerating it. By default Rspack will log these errors in red in the terminal, as well as the browser console when using HMR, but continue bundling.
 To enable it:
@@ -24,8 +27,10 @@ This will force Rspack to exit its bundling process.
 
 ## dependencies
 
-- **Type:** `string[]`
-- **Default:** `undefined`
+<PropertyType
+  type="string[]"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 A list of [name](#name) defining all sibling configurations it depends on. Dependent configurations need to be compiled first.
 
@@ -53,8 +58,10 @@ module.exports = [
 
 ## ignoreWarnings
 
-- **Type:** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
-- **Default:** `undefined`
+<PropertyType
+  type="(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 Tells Rspack to ignore specific warnings.
 
@@ -67,8 +74,10 @@ module.exports = {
 
 ## name
 
-- **Type:** `string`
-- **Default:** `undefined`
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 Name of the configuration. Used when loading multiple configurations.
 
@@ -78,3 +87,46 @@ module.exports = {
   name: 'admin-app',
 };
 ```
+
+## loader
+
+<PropertyType
+  type="Record<string, any>"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Expose custom values into the [loader context](/api/loader-api/context).
+
+For example, you can define a new variable in the loader context:
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  loader: {
+    answer: 42,
+  },
+};
+```
+
+Then use `this.answer` to get its value in the loader:
+
+```js title=custom-loader.js
+module.exports = function (source) {
+  // ...
+  console.log(this.answer); // will log `42` here
+  return source;
+};
+```
+
+:::tip
+You can override properties in the loader context as webpack copies all properties that are defined in the loader to the loader context.
+:::
+
+## profile
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool. It will also log out a summary of module timings.

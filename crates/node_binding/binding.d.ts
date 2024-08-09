@@ -147,7 +147,7 @@ export class ModuleDto {
   get type(): string
   get layer(): string | undefined
   get blocks(): Array<DependenciesBlockDto>
-  size(ty: string | undefined): number
+  size(ty?: string | undefined | null): number
 }
 export type ModuleDTO = ModuleDto
 
@@ -334,6 +334,8 @@ export interface JsAssetInfo {
    * Related: packages/rspack/src/Compilation.ts
    */
   extras: Record<string, any>
+  /** whether this asset is over the size limit */
+  isOverSizeLimit?: boolean
 }
 
 export interface JsAssetInfoRelated {
@@ -670,6 +672,7 @@ export interface JsStatsAssetInfo {
   contenthash: Array<string>
   fullhash: Array<string>
   related: Array<JsStatsAssetInfoRelated>
+  isOverSizeLimit?: boolean
 }
 
 export interface JsStatsAssetInfoRelated {
@@ -713,6 +716,7 @@ export interface JsStatsChunkGroup {
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
   auxiliaryAssetsSize?: number
   children?: JsStatsChunkGroupChildren
+  isOverSizeLimit?: boolean
 }
 
 export interface JsStatsChunkGroupAsset {
@@ -984,6 +988,7 @@ export interface RawCacheGroupOptions {
   name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
+  usedExports?: boolean
 }
 
 export interface RawCacheOptions {
@@ -1664,6 +1669,7 @@ export interface RawSplitChunksOptions {
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all' | Function
+  usedExports?: boolean
   automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number

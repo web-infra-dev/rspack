@@ -316,10 +316,10 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
-"asset main.js 303 KiB [emitted] (name: main)
+"asset main.js 303 KiB [emitted] [big] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 303 KiB = main.js
+Entrypoint main [big] 303 KiB = main.js
 runtime modules 8.39 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 48 bytes [built] [code generated]
@@ -342,10 +342,10 @@ Rspack x.x.x compiled with 2 errors in X s"
 `;
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
-"asset main.js 303 KiB [emitted] (name: main)
+"asset main.js 303 KiB [emitted] [big] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
-Entrypoint main 303 KiB = main.js
+Entrypoint main [big] 303 KiB = main.js
 runtime modules 8.39 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 48 bytes [built] [code generated]

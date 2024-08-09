@@ -15,7 +15,7 @@ use swc_core::common::{BytePos, SourceMap};
 
 use crate::{
   update_hash::{UpdateHashContext, UpdateRspackHash},
-  BoxDependency, DependencyId, DependencyTemplate, GroupOptions, ModuleIdentifier,
+  BoxDependency, DependencyId, GroupOptions, ModuleIdentifier,
 };
 
 pub trait DependenciesBlock {
@@ -26,10 +26,6 @@ pub trait DependenciesBlock {
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
   fn get_dependencies(&self) -> &[DependencyId];
-
-  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
-    None
-  }
 }
 
 #[derive(Derivative)]

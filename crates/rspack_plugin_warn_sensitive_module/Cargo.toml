@@ -1,14 +1,14 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_plugin_warn_sensitive_module"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack sensitive module plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_warn_sensitive_module"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [dependencies]
-rspack_core  = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_hook  = { path = "../rspack_hook" }
+rspack_core  = { version = "0.1.0", path = "../rspack_core" }
+rspack_error = { version = "0.1.0", path = "../rspack_error" }
+rspack_hook  = { version = "0.1.0", path = "../rspack_hook" }
 tracing      = { workspace = true }
 
 [package.metadata.cargo-shear]

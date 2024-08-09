@@ -418,6 +418,7 @@ pub struct JsStatsAssetInfo {
   pub contenthash: Vec<String>,
   pub fullhash: Vec<String>,
   pub related: Vec<JsStatsAssetInfoRelated>,
+  pub is_over_size_limit: Option<bool>,
 }
 
 impl FromNapiValue for JsStatsAssetInfo {
@@ -446,6 +447,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
         .into_iter()
         .map(Into::into)
         .collect::<Vec<_>>(),
+      is_over_size_limit: stats.is_over_size_limit,
     }
   }
 }
@@ -1006,6 +1008,7 @@ pub struct JsStatsChunkGroup {
   pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
   pub auxiliary_assets_size: Option<f64>,
   pub children: Option<JsStatsChunkGroupChildren>,
+  pub is_over_size_limit: Option<bool>,
 }
 
 impl FromNapiValue for JsStatsChunkGroup {
@@ -1029,6 +1032,7 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
         .map(|assets| assets.into_iter().map(Into::into).collect()),
       auxiliary_assets_size: stats.auxiliary_assets_size,
       children: stats.children.map(|i| i.into()),
+      is_over_size_limit: stats.is_over_size_limit,
     }
   }
 }

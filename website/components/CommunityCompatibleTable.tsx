@@ -188,6 +188,51 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: '@nx/webpack',
+      url: 'https://www.npmjs.com/package/@nx/webpack',
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['@nx/webpack-desc'],
+    },
+    {
+      name: 'webpack-filter-warnings-plugin',
+      url: 'https://github.com/mattlewis92/webpack-filter-warnings-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['webpack-filter-warnings-plugin-desc'],
+    },
+    {
+      name: 'speed-measure-webpack-plugin',
+      url: 'https://www.npmjs.com/package/speed-measure-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['speed-measure-webpack-plugin-desc'],
+    },
+    {
+      name: 'circular-dependency-plugin',
+      url: 'https://github.com/aackerman/circular-dependency-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['circular-dependency-plugin-desc'],
+    },
+    {
+      name: 'critters-webpack-plugin',
+      url: 'https://github.com/GoogleChromeLabs/critters',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'html-webpack-tags-plugin',
+      url: 'https://github.com/jharris4/html-webpack-tags-plugin',
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['html-webpack-tags-plugin-desc'],
+    },
+    {
+      name: '@loadable/webpack-plugin',
+      url: 'https://www.npmjs.com/package/@loadable/webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'error-overlay-webpack-plugin',
+      url: 'https://github.com/gregberge/error-overlay-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'webpackbar',
       url: 'https://www.npmjs.com/package/webpackbar',
       status: CompatibleStatus.NotCompatible,

@@ -1655,11 +1655,16 @@ impl ConcatenatedModule {
       let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
       let CodeGenerationResult {
         mut inner,
-        chunk_init_fragments,
+        mut chunk_init_fragments,
         runtime_requirements,
         concatenation_scope,
         ..
       } = codegen_res;
+
+      if let Some(fragments) = codegen_res.data.get::<ChunkInitFragments>() {
+        chunk_init_fragments.extend(fragments.iter().cloned());
+      }
+
       let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
       let source = inner
         .remove(&SourceType::JavaScript)

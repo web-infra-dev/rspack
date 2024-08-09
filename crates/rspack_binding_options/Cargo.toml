@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_binding_options"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack binding options"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_binding_options"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [features]
 default = []
 plugin  = ["rspack_loader_swc/plugin"]
@@ -18,56 +18,56 @@ derivative                            = { workspace = true }
 glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
-rspack_binding_values                 = { path = "../rspack_binding_values" }
-rspack_collections                    = { path = "../rspack_collections" }
-rspack_core                           = { path = "../rspack_core" }
-rspack_error                          = { path = "../rspack_error" }
-rspack_hook                           = { path = "../rspack_hook" }
-rspack_ids                            = { path = "../rspack_ids" }
-rspack_loader_lightningcss            = { path = "../rspack_loader_lightningcss" }
-rspack_loader_preact_refresh          = { path = "../rspack_loader_preact_refresh" }
-rspack_loader_react_refresh           = { path = "../rspack_loader_react_refresh" }
-rspack_loader_runner                  = { path = "../rspack_loader_runner" }
-rspack_loader_swc                     = { path = "../rspack_loader_swc" }
-rspack_loader_testing                 = { path = "../rspack_loader_testing" }
-rspack_napi                           = { path = "../rspack_napi" }
-rspack_napi_macros                    = { path = "../rspack_napi_macros" }
-rspack_plugin_asset                   = { path = "../rspack_plugin_asset" }
-rspack_plugin_banner                  = { path = "../rspack_plugin_banner" }
-rspack_plugin_copy                    = { path = "../rspack_plugin_copy" }
-rspack_plugin_css                     = { path = "../rspack_plugin_css" }
-rspack_plugin_devtool                 = { path = "../rspack_plugin_devtool" }
-rspack_plugin_dynamic_entry           = { path = "../rspack_plugin_dynamic_entry" }
-rspack_plugin_ensure_chunk_conditions = { path = "../rspack_plugin_ensure_chunk_conditions" }
-rspack_plugin_entry                   = { path = "../rspack_plugin_entry" }
-rspack_plugin_externals               = { path = "../rspack_plugin_externals" }
-rspack_plugin_extract_css             = { path = "../rspack_plugin_extract_css" }
-rspack_plugin_hmr                     = { path = "../rspack_plugin_hmr" }
-rspack_plugin_html                    = { path = "../rspack_plugin_html" }
-rspack_plugin_ignore                  = { path = "../rspack_plugin_ignore" }
-rspack_plugin_javascript              = { path = "../rspack_plugin_javascript" }
-rspack_plugin_json                    = { path = "../rspack_plugin_json" }
-rspack_plugin_lazy_compilation        = { path = "../rspack_plugin_lazy_compilation" }
-rspack_plugin_library                 = { path = "../rspack_plugin_library" }
-rspack_plugin_lightning_css_minimizer = { path = "../rspack_plugin_lightning_css_minimizer" }
-rspack_plugin_limit_chunk_count       = { path = "../rspack_plugin_limit_chunk_count" }
-rspack_plugin_merge_duplicate_chunks  = { path = "../rspack_plugin_merge_duplicate_chunks" }
-rspack_plugin_mf                      = { path = "../rspack_plugin_mf" }
-rspack_plugin_progress                = { path = "../rspack_plugin_progress" }
-rspack_plugin_real_content_hash       = { path = "../rspack_plugin_real_content_hash" }
-rspack_plugin_remove_empty_chunks     = { path = "../rspack_plugin_remove_empty_chunks" }
-rspack_plugin_runtime                 = { path = "../rspack_plugin_runtime" }
-rspack_plugin_runtime_chunk           = { path = "../rspack_plugin_runtime_chunk" }
-rspack_plugin_schemes                 = { path = "../rspack_plugin_schemes" }
-rspack_plugin_size_limits             = { path = "../rspack_plugin_size_limits" }
-rspack_plugin_split_chunks            = { path = "../rspack_plugin_split_chunks" }
-rspack_plugin_swc_css_minimizer       = { path = "../rspack_plugin_swc_css_minimizer" }
-rspack_plugin_swc_js_minimizer        = { path = "../rspack_plugin_swc_js_minimizer" }
-rspack_plugin_warn_sensitive_module   = { path = "../rspack_plugin_warn_sensitive_module" }
-rspack_plugin_wasm                    = { path = "../rspack_plugin_wasm" }
-rspack_plugin_web_worker_template     = { path = "../rspack_plugin_web_worker_template" }
-rspack_plugin_worker                  = { path = "../rspack_plugin_worker" }
-rspack_regex                          = { path = "../rspack_regex" }
+rspack_binding_values                 = { version = "0.1.0", path = "../rspack_binding_values" }
+rspack_collections                    = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core                           = { version = "0.1.0", path = "../rspack_core" }
+rspack_error                          = { version = "0.1.0", path = "../rspack_error" }
+rspack_hook                           = { version = "0.1.0", path = "../rspack_hook" }
+rspack_ids                            = { version = "0.1.0", path = "../rspack_ids" }
+rspack_loader_lightningcss            = { version = "0.1.0", path = "../rspack_loader_lightningcss" }
+rspack_loader_preact_refresh          = { version = "0.1.0", path = "../rspack_loader_preact_refresh" }
+rspack_loader_react_refresh           = { version = "0.1.0", path = "../rspack_loader_react_refresh" }
+rspack_loader_runner                  = { version = "0.1.0", path = "../rspack_loader_runner" }
+rspack_loader_swc                     = { version = "0.1.0", path = "../rspack_loader_swc" }
+rspack_loader_testing                 = { version = "0.1.0", path = "../rspack_loader_testing" }
+rspack_napi                           = { version = "0.1.0", path = "../rspack_napi" }
+rspack_napi_macros                    = { version = "0.1.0", path = "../rspack_napi_macros" }
+rspack_plugin_asset                   = { version = "0.1.0", path = "../rspack_plugin_asset" }
+rspack_plugin_banner                  = { version = "0.1.0", path = "../rspack_plugin_banner" }
+rspack_plugin_copy                    = { version = "0.1.0", path = "../rspack_plugin_copy" }
+rspack_plugin_css                     = { version = "0.1.0", path = "../rspack_plugin_css" }
+rspack_plugin_devtool                 = { version = "0.1.0", path = "../rspack_plugin_devtool" }
+rspack_plugin_dynamic_entry           = { version = "0.1.0", path = "../rspack_plugin_dynamic_entry" }
+rspack_plugin_ensure_chunk_conditions = { version = "0.1.0", path = "../rspack_plugin_ensure_chunk_conditions" }
+rspack_plugin_entry                   = { version = "0.1.0", path = "../rspack_plugin_entry" }
+rspack_plugin_externals               = { version = "0.1.0", path = "../rspack_plugin_externals" }
+rspack_plugin_extract_css             = { version = "0.1.0", path = "../rspack_plugin_extract_css" }
+rspack_plugin_hmr                     = { version = "0.1.0", path = "../rspack_plugin_hmr" }
+rspack_plugin_html                    = { version = "0.1.0", path = "../rspack_plugin_html" }
+rspack_plugin_ignore                  = { version = "0.1.0", path = "../rspack_plugin_ignore" }
+rspack_plugin_javascript              = { version = "0.1.0", path = "../rspack_plugin_javascript" }
+rspack_plugin_json                    = { version = "0.1.0", path = "../rspack_plugin_json" }
+rspack_plugin_lazy_compilation        = { version = "0.1.0", path = "../rspack_plugin_lazy_compilation" }
+rspack_plugin_library                 = { version = "0.1.0", path = "../rspack_plugin_library" }
+rspack_plugin_lightning_css_minimizer = { version = "0.1.0", path = "../rspack_plugin_lightning_css_minimizer" }
+rspack_plugin_limit_chunk_count       = { version = "0.1.0", path = "../rspack_plugin_limit_chunk_count" }
+rspack_plugin_merge_duplicate_chunks  = { version = "0.1.0", path = "../rspack_plugin_merge_duplicate_chunks" }
+rspack_plugin_mf                      = { version = "0.1.0", path = "../rspack_plugin_mf" }
+rspack_plugin_progress                = { version = "0.1.0", path = "../rspack_plugin_progress" }
+rspack_plugin_real_content_hash       = { version = "0.1.0", path = "../rspack_plugin_real_content_hash" }
+rspack_plugin_remove_empty_chunks     = { version = "0.1.0", path = "../rspack_plugin_remove_empty_chunks" }
+rspack_plugin_runtime                 = { version = "0.1.0", path = "../rspack_plugin_runtime" }
+rspack_plugin_runtime_chunk           = { version = "0.1.0", path = "../rspack_plugin_runtime_chunk" }
+rspack_plugin_schemes                 = { version = "0.1.0", path = "../rspack_plugin_schemes" }
+rspack_plugin_size_limits             = { version = "0.1.0", path = "../rspack_plugin_size_limits" }
+rspack_plugin_split_chunks            = { version = "0.1.0", path = "../rspack_plugin_split_chunks" }
+rspack_plugin_swc_css_minimizer       = { version = "0.1.0", path = "../rspack_plugin_swc_css_minimizer" }
+rspack_plugin_swc_js_minimizer        = { version = "0.1.0", path = "../rspack_plugin_swc_js_minimizer" }
+rspack_plugin_warn_sensitive_module   = { version = "0.1.0", path = "../rspack_plugin_warn_sensitive_module" }
+rspack_plugin_wasm                    = { version = "0.1.0", path = "../rspack_plugin_wasm" }
+rspack_plugin_web_worker_template     = { version = "0.1.0", path = "../rspack_plugin_web_worker_template" }
+rspack_plugin_worker                  = { version = "0.1.0", path = "../rspack_plugin_worker" }
+rspack_regex                          = { version = "0.1.0", path = "../rspack_regex" }
 rustc-hash                            = { workspace = true }
 serde                                 = { workspace = true, features = ["derive"] }
 serde_json                            = { workspace = true }

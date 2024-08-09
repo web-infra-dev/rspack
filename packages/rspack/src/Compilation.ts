@@ -1133,15 +1133,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner;
 	}
 
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__dispose() {
-		return this.#inner.dispose();
-	}
-
 	seal() {}
 	unseal() {}
 

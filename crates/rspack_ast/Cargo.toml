@@ -4,7 +4,7 @@ license    = "MIT"
 name       = "rspack_ast"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
-
+description = "rspack ast"
 [dependencies]
 anyhow = { workspace = true }
 swc_core = { workspace = true, features = [
@@ -16,19 +16,16 @@ swc_core = { workspace = true, features = [
   "ecma_codegen",
   "ecma_quote",
   "common_concurrent",
-  "common_tty",
   "swc_ecma_ast",
   "ecma_transforms_react",
   "ecma_transforms_module",
   "swc_ecma_codegen",
   "swc_ecma_visit",
-  "ecma_visit_path",
   "css_ast",
   "css_codegen",
   "css_parser",
   "css_utils",
   "css_visit",
-  "css_compat",
   "css_modules",
 ] }
 swc_error_reporters = { workspace = true }

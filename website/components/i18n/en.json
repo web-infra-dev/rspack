@@ -19,5 +19,10 @@
   "webpack-virtual-modules-desc": "Use [rspack-plugin-virtual-module](https://github.com/rspack-contrib/rspack-plugins/tree/main/packages/plugin-virtual-module) instead",
   "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead",
   "workbox-webpack-plugin-desc": "Use [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) instead",
-  "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead"
+  "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead",
+  "@nx/webpack-desc": "Use [@nx/rspack](https://www.npmjs.com/package/@nx/rspack) instead",
+  "webpack-filter-warnings-plugin-desc": "Use [ignoreWarnings](/config/other-options#ignorewarnings) instead",
+  "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",
+  "circular-dependency-plugin-desc": "Use Eslint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) rule instead",
+  "html-webpack-tags-plugin-desc": "This plugin depends on webpack and html-webpack-plugin"
 }

@@ -18,7 +18,7 @@
     "core-js": "3.36.1",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
-    "@rspack/plugin-react-refresh": "workspace:*",
+    "@rspack/plugin-react-refresh": "1.0.0-beta.5",
     "@swc/helpers": "0.5.8",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^9.1.3",

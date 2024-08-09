@@ -1,11 +1,11 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_node"
-publish    = false
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "node binding"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_node"
+publish     = false
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [lib]
 crate-type = ["cdylib"]
 
@@ -14,18 +14,18 @@ default = []
 plugin  = ["rspack_binding_options/plugin"]
 
 [dependencies]
-rspack_allocator         = { path = "../rspack_allocator" }
-rspack_binding_options   = { path = "../rspack_binding_options" }
-rspack_binding_values    = { path = "../rspack_binding_values" }
-rspack_collections       = { path = "../rspack_collections" }
-rspack_core              = { path = "../rspack_core" }
-rspack_error             = { path = "../rspack_error" }
-rspack_fs_node           = { path = "../rspack_fs_node" }
-rspack_hash              = { path = "../rspack_hash" }
-rspack_hook              = { path = "../rspack_hook" }
-rspack_napi              = { path = "../rspack_napi" }
-rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_tracing           = { path = "../rspack_tracing" }
+rspack_allocator         = { version = "0.1.0", path = "../rspack_allocator" }
+rspack_binding_options   = { version = "0.1.0", path = "../rspack_binding_options" }
+rspack_binding_values    = { version = "0.1.0", path = "../rspack_binding_values" }
+rspack_collections       = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core              = { version = "0.1.0", path = "../rspack_core" }
+rspack_error             = { version = "0.1.0", path = "../rspack_error" }
+rspack_fs_node           = { version = "0.1.0", path = "../rspack_fs_node" }
+rspack_hash              = { version = "0.1.0", path = "../rspack_hash" }
+rspack_hook              = { version = "0.1.0", path = "../rspack_hook" }
+rspack_napi              = { version = "0.1.0", path = "../rspack_napi" }
+rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascript" }
+rspack_tracing           = { version = "0.1.0", path = "../rspack_tracing" }
 tokio                    = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
 async-trait = { workspace = true }

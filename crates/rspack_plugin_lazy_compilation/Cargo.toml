@@ -1,8 +1,12 @@
 [package]
-edition = "2021"
-license = "MIT"
-name    = "rspack_plugin_lazy_compilation"
-version = "0.1.0"
+description             = "rspack lazy compilation plugin"
+documentation.workspace = true
+edition                 = "2021"
+homepage.workspace      = true
+license                 = "MIT"
+name                    = "rspack_plugin_lazy_compilation"
+repository.workspace    = true
+version                 = "0.1.0"
 
 [dependencies]
 async-trait = { workspace = true }
@@ -10,13 +14,13 @@ rustc-hash  = { workspace = true }
 tokio       = { workspace = true }
 tracing     = { workspace = true }
 
-rspack_collections       = { path = "../rspack_collections" }
-rspack_core              = { path = "../rspack_core" }
-rspack_error             = { path = "../rspack_error" }
-rspack_hook              = { path = "../rspack_hook" }
-rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_regex             = { path = "../rspack_regex" }
-rspack_util              = { path = "../rspack_util" }
+rspack_collections       = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core              = { version = "0.1.0", path = "../rspack_core" }
+rspack_error             = { version = "0.1.0", path = "../rspack_error" }
+rspack_hook              = { version = "0.1.0", path = "../rspack_hook" }
+rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascript" }
+rspack_regex             = { version = "0.1.0", path = "../rspack_regex" }
+rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

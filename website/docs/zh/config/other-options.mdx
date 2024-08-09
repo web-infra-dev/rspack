@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/webpack-license';
+import PropertyType from '@components/property-type';
+
+<WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
 
 # 其他配置
 
@@ -8,8 +12,7 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 <ApiMeta addedVersion="0.4.5" />
 
-- **类型：** `boolean`
-- **默认值：** `false`
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 遇到第一个错误时退出。Rspack 在默认情况下会在命令行以及在 HMR 时的浏览器 console 中打印这些错误，并且继续编译。
 
@@ -23,8 +26,10 @@ module.exports = {
 
 ## dependencies
 
-- **类型：** `string[]`
-- **默认值：** `undefined`
+<PropertyType
+  type="string[]"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 定义当前配置依赖的所有相邻配置的 [name](#name)。依赖的配置需要先编译完成。
 
@@ -52,8 +57,10 @@ module.exports = [
 
 ## ignoreWarnings
 
-- **类型：** `(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]`
-- **默认值：** `undefined`
+<PropertyType
+  type="(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 告知 Rspack 忽略特定的警告。
 
@@ -66,8 +73,10 @@ module.exports = {
 
 ## name
 
-- **类型：** `string`
-- **默认值：** `undefined`
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 配置的名称。当加载多个配置时被使用。
 
@@ -77,3 +86,46 @@ module.exports = {
   name: 'admin-app',
 };
 ```
+
+### loader
+
+<PropertyType
+  type="Record<string, any>"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+将自定义值添加到 [Loader 上下文](/api/loader-api/context)。
+
+如下示例在 Loader 上下问中定义了一个新变量 `answer`：
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  loader: {
+    answer: 42,
+  },
+};
+```
+
+通过 `this.answer` 在 Loader 中获取该变量：
+
+```js title=custom-loader.js
+module.exports = function (source) {
+  // ...
+  console.log(this.answer); // 打印 `42`
+  return source;
+};
+```
+
+:::tip
+你可以覆盖 Loader 上下文中的属性，因为 Rspack 会将所有定义在 Loader 中的属性负责到 Loader 上下文中。
+:::
+
+## profile
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+捕获构建的分析和提示数据，供分析工具消费。它会尽可能详细的打印模块的耗时信息。

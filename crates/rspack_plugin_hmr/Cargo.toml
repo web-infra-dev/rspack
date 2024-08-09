@@ -1,17 +1,17 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_plugin_hmr"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack hmr plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_hmr"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [dependencies]
-rspack_collections = { path = "../rspack_collections" }
-rspack_core        = { path = "../rspack_core" }
-rspack_error       = { path = "../rspack_error" }
-rspack_hash        = { path = "../rspack_hash" }
-rspack_hook        = { path = "../rspack_hook" }
-rspack_util        = { path = "../rspack_util" }
+rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core        = { version = "0.1.0", path = "../rspack_core" }
+rspack_error       = { version = "0.1.0", path = "../rspack_error" }
+rspack_hash        = { version = "0.1.0", path = "../rspack_hash" }
+rspack_hook        = { version = "0.1.0", path = "../rspack_hook" }
+rspack_util        = { version = "0.1.0", path = "../rspack_util" }
 
 async-trait = { workspace = true }
 rustc-hash  = { workspace = true }

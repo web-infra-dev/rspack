@@ -50,10 +50,10 @@ module.exports = {
 		          "auxiliaryAssets": Array [
 		            Object {
 		              "name": "chunk.js.map",
-		              "size": 508,
+		              "size": 514,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 508,
+		          "auxiliaryAssetsSize": 514,
 		          "chunks": Array [
 		            "919",
 		          ],
@@ -65,6 +65,7 @@ module.exports = {
 		      "909",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": false,
 		    "name": "main",
 		  },
 		}
@@ -82,10 +83,10 @@ module.exports = {
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "chunk.js.map",
-		        "size": 508,
+		        "size": 514,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 508,
+		    "auxiliaryAssetsSize": 514,
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -141,6 +142,7 @@ module.exports = {
 		      "919",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk",
 		  },
 		  "chunk-a": Object {
@@ -158,6 +160,7 @@ module.exports = {
 		      "807",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk-a",
 		  },
 		  "chunk-b": Object {
@@ -175,6 +178,7 @@ module.exports = {
 		      "805",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk-b",
 		  },
 		  "chunk-c": Object {
@@ -192,6 +196,7 @@ module.exports = {
 		      "212",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk-c",
 		  },
 		  "main": Object {
@@ -222,10 +227,10 @@ module.exports = {
 		          "auxiliaryAssets": Array [
 		            Object {
 		              "name": "chunk.js.map",
-		              "size": 508,
+		              "size": 514,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 508,
+		          "auxiliaryAssetsSize": 514,
 		          "chunks": Array [
 		            "919",
 		          ],
@@ -237,6 +242,7 @@ module.exports = {
 		      "909",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": false,
 		    "name": "main",
 		  },
 		}

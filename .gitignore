@@ -204,7 +204,6 @@ npm/**/*.node
 
 # Precompiled config schema
 packages/rspack/src/config/schema.check.js
-justfile
 
 ## Angular Incremental Build Cache
 **/.angular/

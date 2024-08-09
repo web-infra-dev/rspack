@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_plugin_javascript"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack javascript plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_javascript"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [dependencies]
 anymap = { workspace = true }
 async-trait = { workspace = true }
@@ -20,15 +20,15 @@ once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 ropey = "1.6.1"
-rspack_ast = { path = "../rspack_ast" }
-rspack_collections = { path = "../rspack_collections" }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_hash = { path = "../rspack_hash" }
-rspack_hook = { path = "../rspack_hook" }
-rspack_ids = { path = "../rspack_ids/" }
-rspack_regex = { path = "../rspack_regex" }
-rspack_util = { path = "../rspack_util" }
+rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
+rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core = { version = "0.1.0", path = "../rspack_core" }
+rspack_error = { version = "0.1.0", path = "../rspack_error" }
+rspack_hash = { version = "0.1.0", path = "../rspack_hash" }
+rspack_hook = { version = "0.1.0", path = "../rspack_hook" }
+rspack_ids = { version = "0.1.0", path = "../rspack_ids/" }
+rspack_regex = { version = "0.1.0", path = "../rspack_regex" }
+rspack_util = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 stacker = { workspace = true }
@@ -41,11 +41,9 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_optimization",
   "ecma_transforms_module",
   "ecma_transforms_compat",
-  "ecma_transforms_proposal",
   "ecma_transforms_typescript",
   "base",
   "ecma_quote",
-  "base",
 ] }
 swc_node_comments = { workspace = true }
 tracing = { workspace = true }

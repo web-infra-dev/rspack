@@ -134,7 +134,7 @@ module.exports = {
 
 With the above configuration, all files that include the `some-lib` directory in their path can be extracted into a single Chunk named `lib`. If the modules in `some-lib` are rarely changed, this Chunk will consistently hit the user's browser cache, thus a well-considered configuration like this can increase the cache hit rate.
 
-However, separating `some-lib` into an independent Chunk can also have downsides. Suppose a Chunk only depends on a very small file within `some-lib`, but since all files of `some-lib` are split into a single Chunk, this Chunk has to rely on the entire `some-lib` Chunk, resulting in a larger load volume. Therefore, when using cacheGroups.{cacheGroup}.name, careful consideration is needed.
+However, separating `some-lib` into an independent Chunk can also have downsides. Suppose a Chunk only depends on a very small file within `some-lib`, but since all files of `some-lib` are split into a single Chunk, this Chunk has to rely on the entire `some-lib` Chunk, resulting in a larger load volume. Therefore, when using cacheGroups.\{cacheGroup\}.name, careful consideration is needed.
 
 Here is an example show the effect of the `name` configuration of cacheGroup.
 

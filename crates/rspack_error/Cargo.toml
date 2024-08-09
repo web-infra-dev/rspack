@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_error"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack error"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_error"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -14,8 +14,8 @@ futures            = { workspace = true }
 miette             = { version = "5", features = ["fancy"] }
 once_cell          = { workspace = true }
 owo-colors         = "3.5.0"
-rspack_collections = { path = "../rspack_collections" }
-swc_core           = { workspace = true, features = ["common"] }
+rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
+swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
 termcolor          = "1"
 textwrap           = "0.15.2"
 thiserror          = "1"

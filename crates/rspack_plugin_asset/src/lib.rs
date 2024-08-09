@@ -404,7 +404,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                     .hash(contenthash)
                     .filename(&source_file_name),
                 )?;
-                asset_info.merge_another(&another_asset_info);
+                asset_info.merge_another(another_asset_info);
                 PublicPath::ensure_ends_with_slash(public_path)
               }
               PublicPath::Auto => public_path.render(compilation, &filename),

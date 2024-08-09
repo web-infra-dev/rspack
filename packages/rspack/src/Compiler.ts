@@ -706,7 +706,6 @@ class Compiler {
 	}
 
 	#resetThisCompilation() {
-		this.#compilation!.__internal__dispose();
 		// reassign new compilation in thisCompilation
 		this.#compilation = undefined;
 		// ensure thisCompilation must call

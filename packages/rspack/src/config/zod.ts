@@ -873,6 +873,7 @@ export const externalsType = z.enum([
 	"system",
 	"promise",
 	"import",
+	"module-import",
 	"script",
 	"node-commonjs"
 ]);
@@ -1009,11 +1010,11 @@ export type DevTool = z.infer<typeof devTool>;
 const nodeOptions = z.strictObject({
 	__dirname: z
 		.boolean()
-		.or(z.enum(["warn-mock", "mock", "eval-only"]))
+		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	__filename: z
 		.boolean()
-		.or(z.enum(["warn-mock", "mock", "eval-only"]))
+		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	global: z.boolean().or(z.literal("warn")).optional()
 });
@@ -1237,6 +1238,7 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
 	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
 	minChunks: z.number().min(1).optional(),
+	usedExports: z.boolean().optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),

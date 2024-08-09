@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_loader_runner"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack loader runner"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_loader_runner"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [dependencies]
 anymap      = { workspace = true }
 async-trait = { workspace = true }
@@ -14,8 +14,8 @@ tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros",
 
 once_cell          = { workspace = true }
 regex              = { workspace = true }
-rspack_collections = { path = "../rspack_collections" }
-rspack_error       = { path = "../rspack_error" }
+rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
+rspack_error       = { version = "0.1.0", path = "../rspack_error" }
 rspack_sources     = { workspace = true }
-rspack_util        = { path = "../rspack_util" }
+rspack_util        = { version = "0.1.0", path = "../rspack_util" }
 serde_json         = { workspace = true }

@@ -129,10 +129,29 @@ pub struct ExternalModule {
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
+  dependency_meta: DependencyMeta,
+}
+
+#[derive(Debug)]
+pub enum ExternalTypeEnum {
+  Import,
+  Module,
+}
+
+pub type MetaExternalType = Option<ExternalTypeEnum>;
+
+#[derive(Debug)]
+pub struct DependencyMeta {
+  pub external_type: MetaExternalType,
 }
 
 impl ExternalModule {
-  pub fn new(request: ExternalRequest, external_type: ExternalType, user_request: String) -> Self {
+  pub fn new(
+    request: ExternalRequest,
+    external_type: ExternalType,
+    user_request: String,
+    dependency_meta: DependencyMeta,
+  ) -> Self {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
@@ -147,6 +166,7 @@ impl ExternalModule {
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::empty(),
+      dependency_meta,
     }
   }
 
@@ -170,6 +190,7 @@ impl ExternalModule {
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let mut runtime_requirements: RuntimeGlobals = Default::default();
+
     let source = match self.external_type.as_str() {
       "this" if let Some(request) = request => format!(
         "{} = (function() {{ return {}; }}());",
@@ -203,7 +224,7 @@ impl ExternalModule {
                 .to_string(),
               InitFragmentStage::StageHarmonyImports,
               0,
-              InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+              InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
             )
             .boxed(),
@@ -234,52 +255,62 @@ impl ExternalModule {
           to_identifier(id)
         )
       }
-      "import" if let Some(request) = request => format!(
-        "{} = {};",
-        get_namespace_object_export(concatenation_scope),
-        get_source_for_import(request, compilation)
-      ),
+      "module" | "import" | "module-import" if let Some(request) = request => {
+        match self.get_module_import_type(external_type) {
+          "import" => {
+            format!(
+              "{} = {};",
+              get_namespace_object_export(concatenation_scope),
+              get_source_for_import(request, compilation)
+            )
+          }
+          "module" => {
+            if compilation.options.output.module {
+              let id = to_identifier(&request.primary);
+              chunk_init_fragments.push(
+                NormalInitFragment::new(
+                  format!(
+                    "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
+                    id.clone(),
+                    json_stringify(request.primary())
+                  ),
+                  InitFragmentStage::StageHarmonyImports,
+                  0,
+                  InitFragmentKey::ModuleExternal(request.primary().into()),
+                  None,
+                )
+                .boxed(),
+              );
+              runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+              format!(
+                r#"
+    var x = y => {{ var x = {{}}; {}(x, y); return x; }}
+    var y = x => () => x
+    {} = __WEBPACK_EXTERNAL_MODULE_{}__;
+    "#,
+                RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+                get_namespace_object_export(concatenation_scope),
+                id.clone()
+              )
+            } else {
+              format!(
+                "{} = {};",
+                get_namespace_object_export(concatenation_scope),
+                get_source_for_import(request, compilation)
+              )
+            }
+          }
+          r#type => panic!(
+            "Unhandled external type: {} in \"module-import\" type",
+            r#type
+          ),
+        }
+      }
       "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope),
         get_source_for_default_case(false, request)
       ),
-      "module" if let Some(request) = request => {
-        if compilation.options.output.module {
-          let id = to_identifier(&request.primary);
-          chunk_init_fragments.push(
-            NormalInitFragment::new(
-              format!(
-                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
-                id.clone(),
-                json_stringify(request.primary())
-              ),
-              InitFragmentStage::StageHarmonyImports,
-              0,
-              InitFragmentKey::ExternalModule(request.primary().into()),
-              None,
-            )
-            .boxed(),
-          );
-          runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-          format!(
-            r#"
-var x = y => {{ var x = {{}}; {}(x, y); return x; }}
-var y = x => () => x
-{} = __WEBPACK_EXTERNAL_MODULE_{}__;
-"#,
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-            get_namespace_object_export(concatenation_scope),
-            id.clone()
-          )
-        } else {
-          format!(
-            "{} = {};",
-            get_namespace_object_export(concatenation_scope),
-            get_source_for_import(request, compilation)
-          )
-        }
-      }
       "script" if let Some(request) = request => {
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
@@ -315,6 +346,24 @@ if(typeof {global} !== "undefined") return resolve();
       chunk_init_fragments,
       runtime_requirements,
     ))
+  }
+
+  fn get_module_import_type<'a>(&self, external_type: &'a ExternalType) -> &'a str {
+    match external_type.as_str() {
+      "module-import" => {
+        let external_type = self
+          .dependency_meta
+          .external_type
+          .as_ref()
+          .expect("should get \"module\" or \"import\" external type from dependency");
+
+        match external_type {
+          ExternalTypeEnum::Import => "import",
+          ExternalTypeEnum::Module => "module",
+        }
+      }
+      import_or_module => import_or_module,
+    }
   }
 }
 
@@ -412,6 +461,7 @@ impl Module for ExternalModule {
   ) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
+    let (_, external_type) = self.get_request_and_external_type();
 
     let build_info = BuildInfo {
       hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
@@ -431,12 +481,18 @@ impl Module for ExternalModule {
     match self.external_type.as_str() {
       "this" => build_result.build_info.strict = false,
       "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "script" | "promise" => build_result.build_meta.has_top_level_await = true,
-      "import" => {
-        build_result.build_meta.has_top_level_await = true;
-        build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
-      }
+      "module" | "import" | "module-import" => match self.get_module_import_type(external_type) {
+        "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
+        "import" => {
+          build_result.build_meta.has_top_level_await = true;
+          build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        }
+        r#type => panic!(
+          "Unhandled external type: {} in \"module-import\" type",
+          r#type
+        ),
+      },
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
     build_result
