@@ -1,5 +1,4 @@
 mod cutout;
-mod file_counter;
 pub mod repair;
 
 use std::path::PathBuf;
@@ -8,8 +7,10 @@ use rspack_collections::IdentifierSet;
 use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 
-use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
-use crate::{BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial};
+use self::{cutout::Cutout, repair::repair};
+use crate::{
+  utils::FileCounter, BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial,
+};
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
@@ -78,6 +79,13 @@ impl MakeArtifact {
       res.extend(module_graph.revoke_module(module_identifier));
     }
     res
+  }
+
+  pub fn reset_dependencies_incremental_info(&mut self) {
+    self.file_dependencies.reset_incremental_info();
+    self.context_dependencies.reset_incremental_info();
+    self.missing_dependencies.reset_incremental_info();
+    self.build_dependencies.reset_incremental_info();
   }
 }
 

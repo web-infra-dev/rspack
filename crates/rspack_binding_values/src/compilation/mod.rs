@@ -1,4 +1,4 @@
-mod dependency;
+mod dependencies;
 mod entries;
 
 use std::cell::RefCell;
@@ -7,7 +7,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
-pub use dependency::*;
+use dependencies::DependenciesDTO;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
@@ -305,39 +305,8 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_file_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .file_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_context_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .context_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_missing_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .missing_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_build_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .build_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
+  pub fn dependencies(&'static self) -> DependenciesDTO {
+    DependenciesDTO::new(self.0)
   }
 
   #[napi]

@@ -25,6 +25,22 @@ export class DependenciesBlockDto {
 }
 export type DependenciesBlockDTO = DependenciesBlockDto
 
+export class DependenciesDto {
+  get fileDependencies(): Array<string>
+  get addedFileDependencies(): Array<string>
+  get removedFileDependencies(): Array<string>
+  get contextDependencies(): Array<string>
+  get addedContextDependencies(): Array<string>
+  get removedContextDependencies(): Array<string>
+  get missingDependencies(): Array<string>
+  get addedMissingDependencies(): Array<string>
+  get removedMissingDependencies(): Array<string>
+  get buildDependencies(): Array<string>
+  get addedBuildDependencies(): Array<string>
+  get removedBuildDependencies(): Array<string>
+}
+export type DependenciesDTO = DependenciesDto
+
 export class DependencyDto {
   get type(): string
   get category(): string
@@ -33,8 +49,8 @@ export class DependencyDto {
 export type DependencyDTO = DependencyDto
 
 export class EntryDataDto {
-  get dependencies(): Array<DependencyDto>
-  get includeDependencies(): Array<DependencyDto>
+  get dependencies(): Array<DependencyDTO>
+  get includeDependencies(): Array<DependencyDTO>
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -82,10 +98,7 @@ export class JsCompilation {
   get entrypoints(): Record<string, JsChunkGroup>
   get chunkGroups(): Array<JsChunkGroup>
   get hash(): string | null
-  getFileDependencies(): Array<string>
-  getContextDependencies(): Array<string>
-  getMissingDependencies(): Array<string>
-  getBuildDependencies(): Array<string>
+  dependencies(): DependenciesDto
   pushDiagnostic(diagnostic: JsDiagnostic): void
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
@@ -436,8 +449,8 @@ export interface JsDiagnostic {
 }
 
 export interface JsEntryData {
-  dependencies: Array<DependencyDto>
-  includeDependencies: Array<DependencyDto>
+  dependencies: Array<DependencyDTO>
+  includeDependencies: Array<DependencyDTO>
   options: JsEntryOptions
 }
 
