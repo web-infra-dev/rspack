@@ -100,7 +100,7 @@ type StatsAsset = {
   };
   // related assets, like source-map
   related: StatsAsset[];
-  // whether the asset is over size limit
+  // whether the asset exceeds performance.maxAssetSize
   isOverSizeLimit?: boolean;
 };
 ```
@@ -302,7 +302,7 @@ type StatsChunkGroup = {
     // prefetch assets
     prefetch?: Array<string>;
   };
-  // Whether the assets of chunk group are over size limit
+  // Whether the assets of this entrypoint exceeds performance.maxEntrypointSize
   isOverSizeLimit?: boolean;
 };
 ```
