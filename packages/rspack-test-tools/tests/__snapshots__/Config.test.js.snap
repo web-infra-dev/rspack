@@ -458,6 +458,99 @@ const d = 'd'
 "
 `;
 
+exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
+"import { createRequire as __WEBPACK_EXTERNAL_createRequire } from \\"module\\";
+var __webpack_modules__ = ({
+\\"17\\": (function (module) {
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)(\\"path\\");
+
+}),
+\\"441\\": (function (module, __unused_webpack_exports, __webpack_require__) {
+const path = __webpack_require__(17)
+
+module.exports = path.sep
+
+
+}),
+
+});
+/************************************************************************/
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+/************************************************************************/
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-harmony modules
+__webpack_require__.n = function (module) {
+	var getter = module && module.__esModule ?
+		function () { return module['default']; } :
+		function () { return module; };
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+
+
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
+/************************************************************************/
+
+// EXTERNAL MODULE: ./f/bar.cjs
+var bar = __webpack_require__(\\"441\\");
+var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
+;// CONCATENATED MODULE: ./f/foo.js
+const foo = 'foo'
+
+;// CONCATENATED MODULE: ./f/index.js
+
+
+
+const value = foo + (bar_default())
+
+
+
+export { value };
+"
+`;
+
 exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat 1`] = `
 "
 ;// CONCATENATED MODULE: ./a.js
