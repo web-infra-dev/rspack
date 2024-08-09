@@ -614,19 +614,23 @@ impl Module for ConcatenatedModule {
   fn code_generation(
     &self,
     compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
+    generation_runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut runtime_requirements = RuntimeGlobals::default();
-    let generation_runtime = runtime.cloned().expect("should have runtime");
-    let merged_runtime = if let Some(ref runtime) = self.runtime {
-      generation_runtime
-        .intersection(runtime)
-        .cloned()
-        .collect::<RuntimeSpec>()
+    let runtime = if let Some(self_runtime) = &self.runtime
+      && let Some(generation_runtime) = generation_runtime
+    {
+      Some(Cow::Owned(
+        generation_runtime
+          .intersection(self_runtime)
+          .cloned()
+          .collect::<RuntimeSpec>(),
+      ))
     } else {
-      generation_runtime
+      generation_runtime.map(Cow::Borrowed)
     };
+    let runtime = runtime.as_deref();
     let context = compilation.options.context.clone();
 
     let (modules_with_info, module_to_info_map) =
@@ -642,12 +646,8 @@ impl Module for ConcatenatedModule {
     let tmp: Vec<rspack_error::Result<(rspack_collections::Identifier, ModuleInfo)>> = arc_map
       .par_iter()
       .map(|(id, info)| {
-        let updated_module_info = self.analyze_module(
-          compilation,
-          Arc::clone(&arc_map),
-          info.clone(),
-          Some(&merged_runtime),
-        )?;
+        let updated_module_info =
+          self.analyze_module(compilation, Arc::clone(&arc_map), info.clone(), runtime)?;
         Ok((*id, updated_module_info))
       })
       .collect::<Vec<_>>();
