@@ -30,7 +30,6 @@ use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ModuleDTOWrapper;
-use crate::MODULE_INSTANCE_REFS;
 use crate::{
   chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
   JsStats, ToJsCompatSource,
@@ -563,8 +562,21 @@ impl JsCompilation {
   }
 }
 
+#[derive(Default)]
+struct CompilationInstanceRefs(RefCell<HashMap<CompilationId, (Ref, napi_env)>>);
+
+impl Drop for CompilationInstanceRefs {
+  fn drop(&mut self) {
+    // cleanup references to be executed in cases of panic or unexpected termination
+    let mut refs = self.0.borrow_mut();
+    for (_, (mut r, env)) in refs.drain() {
+      let _ = r.unref(env);
+    }
+  }
+}
+
 thread_local! {
-  pub static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, Ref>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: CompilationInstanceRefs = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -586,23 +598,14 @@ impl JsCompilationWrapper {
     })
   }
 
-  pub fn cleanup(env: napi_env, compilation_id: CompilationId) {
+  pub fn cleanup(compilation_id: CompilationId) {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-      let mut refs = ref_cell.borrow_mut();
-      if let Some(mut r) = refs.remove(&compilation_id) {
+      let mut refs = ref_cell.0.borrow_mut();
+      if let Some((mut r, env)) = refs.remove(&compilation_id) {
         let _ = r.unref(env);
       }
     });
-
-    MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let refs = refs_by_compilation_id.remove(&compilation_id);
-      if let Some(mut refs) = refs {
-        for (_, mut r) in refs.drain() {
-          let _ = r.unref(env);
-        }
-      }
-    });
+    ModuleDTOWrapper::cleanup(compilation_id);
   }
 }
 
@@ -610,28 +613,27 @@ impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
       let mut env_wrapper = Env::from_raw(env);
-      let mut refs = ref_cell.borrow_mut();
+      let mut refs = ref_cell.0.borrow_mut();
       let compilation_id = val.0.id();
       let mut vacant = false;
       let napi_value = match refs.entry(compilation_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
+          ToNapiValue::to_napi_value(env, &r.0)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           vacant = true;
           let instance = JsCompilation(val.0).into_instance(env_wrapper)?;
           let napi_value = ToNapiValue::to_napi_value(env, instance)?;
           let r = Ref::new(env, napi_value, 1)?;
-          let r = entry.insert(r);
-          ToNapiValue::to_napi_value(env, r)
+          let r = entry.insert((r, env));
+          ToNapiValue::to_napi_value(env, &r.0)
         }
       };
       if vacant {
-        // cleanup references to be executed in cases of panic or unexpected termination
-        let _ = env_wrapper.add_env_cleanup_hook((), move |_| {
-          JsCompilationWrapper::cleanup(env, compilation_id)
-        });
+        // cleanup references to be executed when the JS thread exits normally
+        let _ = env_wrapper
+          .add_env_cleanup_hook((), move |_| JsCompilationWrapper::cleanup(compilation_id));
       }
       napi_value
     })

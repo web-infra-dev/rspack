@@ -8,6 +8,7 @@ use rspack_core::{
 };
 use rspack_napi::{napi::bindgen_prelude::*, Ref};
 use rustc_hash::FxHashMap as HashMap;
+use sys::napi_env;
 
 use super::{JsCompatSource, ToJsCompatSource};
 use crate::{DependencyDTO, JsChunk, JsCodegenerationResults};
@@ -217,16 +218,29 @@ impl ModuleDTO {
   #[napi]
   pub fn size(&self, ty: Option<String>) -> f64 {
     let module = self.module();
-    let ty = match ty {
-      Some(s) => Some(SourceType::from(s.as_str())),
-      None => None,
-    };
+    let ty = ty.map(|s| SourceType::from(s.as_str()));
     module.size(ty.as_ref(), self.compilation)
   }
 }
 
+type ModuleInstanceRefs = HashMap<Identifier, (Ref, napi_env)>;
+
+#[derive(Default)]
+struct ModuleInstanceRefsByCompilationId(RefCell<HashMap<CompilationId, ModuleInstanceRefs>>);
+
+impl Drop for ModuleInstanceRefsByCompilationId {
+  fn drop(&mut self) {
+    let mut refs_by_compilation_id = self.0.borrow_mut();
+    for (_, mut refs) in refs_by_compilation_id.drain() {
+      for (_, (mut r, env)) in refs.drain() {
+        let _ = r.unref(env);
+      }
+    }
+  }
+}
+
 thread_local! {
-  pub static MODULE_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<Identifier, Ref>>> = Default::default();
+  static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilationId = Default::default();
 }
 
 // The difference between ModuleDTOWrapper and ModuleDTO is:
@@ -254,12 +268,23 @@ impl ModuleDTOWrapper {
       compilation,
     }
   }
+
+  pub fn cleanup(compilation_id: CompilationId) {
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compilation_id = refs.0.borrow_mut();
+      if let Some(mut refs) = refs_by_compilation_id.remove(&compilation_id) {
+        for (_, (mut r, env)) in refs.drain() {
+          let _ = r.unref(env);
+        }
+      }
+    });
+  }
 }
 
 impl ToNapiValue for ModuleDTOWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
+      let mut refs_by_compilation_id = refs.0.borrow_mut();
       let entry = refs_by_compilation_id.entry(val.compilation.id());
       let refs = match entry {
         std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
@@ -271,15 +296,15 @@ impl ToNapiValue for ModuleDTOWrapper {
       match refs.entry(val.module_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
+          ToNapiValue::to_napi_value(env, &r.0)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           let instance =
             ModuleDTO::new(val.module_id, val.compilation).into_instance(Env::from_raw(env))?;
           let napi_value = ToNapiValue::to_napi_value(env, instance)?;
           let r = Ref::new(env, napi_value, 1)?;
-          let r = entry.insert(r);
-          ToNapiValue::to_napi_value(env, r)
+          let r = entry.insert((r, env));
+          ToNapiValue::to_napi_value(env, &r.0)
         }
       }
     })

@@ -165,7 +165,7 @@ impl Rspack {
       Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
     })?;
 
-    self.cleanup_last_compilation(env, &compiler.compilation);
+    self.cleanup_last_compilation(&compiler.compilation);
 
     // SAFETY:
     // 1. `Compiler` is pinned and stored on the heap.
@@ -176,8 +176,8 @@ impl Rspack {
     )
   }
 
-  fn cleanup_last_compilation(&self, env: Env, compilation: &Compilation) {
-    JsCompilationWrapper::cleanup(env.raw(), compilation.id());
+  fn cleanup_last_compilation(&self, compilation: &Compilation) {
+    JsCompilationWrapper::cleanup(compilation.id());
   }
 }
 
