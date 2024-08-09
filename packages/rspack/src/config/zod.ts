@@ -1244,6 +1244,8 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
+	maxAsyncRequests: z.number().optional(),
+	maxInitialRequests: z.number().optional(),
 	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
@@ -1272,8 +1274,6 @@ const optimizationSplitChunksOptions = z.strictObject({
 	cacheGroups: z
 		.record(z.literal(false).or(optimizationSplitChunksCacheGroup))
 		.optional(),
-	maxAsyncRequests: z.number().optional(),
-	maxInitialRequests: z.number().optional(),
 	fallbackCacheGroup: z
 		.strictObject({
 			chunks: optimizationSplitChunksChunks.optional(),

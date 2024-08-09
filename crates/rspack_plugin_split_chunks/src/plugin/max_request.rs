@@ -24,7 +24,7 @@ impl SplitChunksPlugin {
         let allowed_max_request = if chunk.is_only_initial(chunk_group_db) {
           cache_group.max_initial_requests
         } else if chunk.can_be_initial(chunk_group_db) {
-          u32::max(
+          f64::max(
             cache_group.max_initial_requests,
             cache_group.max_async_requests,
           )
@@ -54,7 +54,7 @@ impl SplitChunksPlugin {
           .map(|requests| requests as u32)
           .unwrap_or_default();
 
-        if actually_requests >= allowed_max_request {
+        if actually_requests as f64 >= allowed_max_request {
           Some(chunk.ukey)
         } else {
           None
