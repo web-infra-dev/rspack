@@ -42,8 +42,8 @@
     "ts-node": "^10.9.2",
     "concat-stream": "^2.0.0",
     "cross-env": "^7.0.3",
-    "execa": "^5.0.0",
-    "internal-ip": "6.2.0"
+    "execa": "^9.0.0",
+    "internal-ip": "8.0.0"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
