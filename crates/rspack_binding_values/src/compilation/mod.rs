@@ -561,30 +561,6 @@ impl JsCompilation {
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
   }
-
-  #[napi]
-  pub fn dispose(&self, env: Env) {
-    // TODO: use napi_add_finalizer if N-API version >= 5
-    let compilation_id = self.0.id();
-
-    COMPILATION_INSTANCE_REFS.with(|refs| {
-      let mut refs = refs.borrow_mut();
-      let r = refs.remove(&compilation_id);
-      if let Some(mut r) = r {
-        let _ = r.unref(env.raw());
-      }
-    });
-
-    MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let refs = refs_by_compilation_id.remove(&compilation_id);
-      if let Some(mut refs) = refs {
-        for (_, mut r) in refs.drain() {
-          let _ = r.unref(env.raw());
-        }
-      }
-    });
-  }
 }
 
 thread_local! {
