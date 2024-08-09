@@ -20,16 +20,16 @@ Rspack 不再支持 Node.js 14，现在需要 Node.js 16+。
 
 `experiments.rspackFuture.disableTransformByDefault` 在 v0.4.0 中默认启用。对于仍需要旧行为的用户，可以手动将此选项设置为 `false`。
 
-此功能主要解决三类问题：[内置](/config/builtins) 代码转换功能，[目标](/config/target)，和自定义 [Rule.type](/config/module#ruletype)。
+此功能主要解决三类问题：[内置](https://v0.rspack.dev/config/builtins) 代码转换功能，[目标](/config/target)，和自定义 [Rule.type](/config/module#ruletype)。
 
-1. 移除对一些 [内置](/config/builtins) 功能的支持：
+1. 移除对一些 [内置](https://v0.rspack.dev/config/builtins) 功能的支持：
 
-- [builtins.relay](/config/builtins#builtinsrelay)：移动到 `rspackExperiments.relay`
-- [builtins.react](/config/builtins#builtinsreact)：移动到 `jsc.transform.react`
-- [builtins.emotion](/config/builtins#builtinsemotion)：移动到 `rspackExperiments.emotion`
-- [builtins.pluginImport](/config/builtins#builtinspluginimport)：移动到 `rspackExperiments.import`
-- [builtins.decorator](/config/builtins#builtinsdecorator)：移动到 `jsc.parser.decorators`
-- [builtins.presetEnv](/config/builtins#builtinspresetenv)：移动到 `jsc.env`
+- [builtins.relay](https://v0.rspack.dev/config/builtins#builtinsrelay)：移动到 `rspackExperiments.relay`
+- [builtins.react](https://v0.rspack.dev/config/builtins#builtinsreact)：移动到 `jsc.transform.react`
+- [builtins.emotion](https://v0.rspack.dev/config/builtins#builtinsemotion)：移动到 `rspackExperiments.emotion`
+- [builtins.pluginImport](https://v0.rspack.dev/config/builtins#builtinspluginimport)：移动到 `rspackExperiments.import`
+- [builtins.decorator](https://v0.rspack.dev/config/builtins#builtinsdecorator)：移动到 `jsc.parser.decorators`
+- [builtins.presetEnv](https://v0.rspack.dev/config/builtins#builtinspresetenv)：移动到 `jsc.env`
 
 ```javascript
 module.exports = {

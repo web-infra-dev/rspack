@@ -38,17 +38,6 @@ At this point:
 
 Define a field, such as `browser`, that should be parsed in accordance with [this specification](https://github.com/defunctzombie/package-browser-field-spec).
 
-## resolve.browserField
-
-<ApiMeta deprecatedVersion="0.5.1" removedVersion="0.7.0" />
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Whether to resolve according to the [package-browser-filed-spec](https://github.com/defunctzombie/package-browser-field-spec) rule.
-
-Works the same with enhanced-resolve's `resolve.aliasFields = ["browser"]`.
-
 ## resolve.conditionNames
 
 - **Type:** `string[]`
@@ -282,29 +271,6 @@ When enabled, `require('file')` will first look for the `. /file` file in the cu
 - **Default:** `false`
 
 Opt for absolute paths when resolving, in relation to `resolve.roots`.
-
-## resolve.tsConfigPath
-
-<ApiMeta removedVersion="1.0.0-alpha.0" />
-
-- **Type:** `string | undefined`
-- **Default:** `undefined`
-
-If you pass the path of `tsconfig.json` via the option, Rspack will try to resolve modules based on the `paths` and `baseUrl` of `tsconfig.json`, functionally equivalent to [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin).
-
-```js rspack.config.js
-const path = require('path');
-
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
-  // ...
-  resolve: {
-    tsConfigPath: path.resolve(__dirname, 'tsconfig.json'),
-  },
-  // ...
-};
-module.exports = config;
-```
 
 ## resolve.tsConfig
 

@@ -38,17 +38,6 @@ import WebpackLicense from '@components/webpack-license';
 
 定义一个字段，例如 `browser`，以依照[此规范](https://github.com/defunctzombie/package-browser-field-spec)进行解析。
 
-## resolve.browserField
-
-<ApiMeta deprecatedVersion="0.5.1" removedVersion="0.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-是否按照 [package-browser-filed-spec](https://github.com/defunctzombie/package-browser-field-spec) 规则解析。
-
-等同于 enhanced-resolve 的 `resolve.aliasFields = ["browser"]`。
-
 ## resolve.conditionNames
 
 - **类型：** `string[]`
@@ -282,29 +271,6 @@ module.exports = {
 - **默认值：**`false`
 
 在解析时，倾向使用与 `resolve.roots` 相关的绝对路径。
-
-## resolve.tsConfigPath
-
-<ApiMeta removedVersion="1.0.0-alpha.0" />
-
-- **类型：** `string | undefined`
-- **默认值：** `undefined`
-
-这个选项接受的是 `tsconfig.json` 的文件路径。在开启这个选项后， Rspack 会基于 `tsconfig.json` 中 的 `paths` 和 `baseUrl` 来寻找模块，其功能等同于 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin)。
-
-```js rspack.config.js
-const path = require('path');
-
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
-  // ...
-  resolve: {
-    tsConfigPath: path.resolve(__dirname, 'tsconfig.json'),
-  },
-  // ...
-};
-module.exports = config;
-```
 
 ## resolve.tsConfig
 
