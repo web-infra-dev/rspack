@@ -22,6 +22,7 @@ use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::Ref;
+use sys::napi_env;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
@@ -608,6 +609,25 @@ impl JsCompilationWrapper {
       )
     })
   }
+
+  pub fn cleanup(env: napi_env, compilation_id: CompilationId) {
+    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
+      let mut refs = ref_cell.borrow_mut();
+      if let Some(mut r) = refs.remove(&compilation_id) {
+        let _ = r.unref(env);
+      }
+    });
+
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compilation_id = refs.borrow_mut();
+      let refs = refs_by_compilation_id.remove(&compilation_id);
+      if let Some(mut refs) = refs {
+        for (_, mut r) in refs.drain() {
+          let _ = r.unref(env);
+        }
+      }
+    });
+  }
 }
 
 impl ToNapiValue for JsCompilationWrapper {
@@ -632,23 +652,9 @@ impl ToNapiValue for JsCompilationWrapper {
         }
       };
       if vacant {
+        // cleanup references to be executed in cases of panic or unexpected termination
         let _ = env_wrapper.add_env_cleanup_hook((), move |_| {
-          COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-            let mut refs = ref_cell.borrow_mut();
-            if let Some(mut r) = refs.remove(&compilation_id) {
-              let _ = r.unref(env);
-            }
-          });
-
-          MODULE_INSTANCE_REFS.with(|refs| {
-            let mut refs_by_compilation_id = refs.borrow_mut();
-            let refs = refs_by_compilation_id.remove(&compilation_id);
-            if let Some(mut refs) = refs {
-              for (_, mut r) in refs.drain() {
-                let _ = r.unref(env);
-              }
-            }
-          });
+          JsCompilationWrapper::cleanup(env, compilation_id)
         });
       }
       napi_value
