@@ -1,11 +1,15 @@
+mod incremental_info;
+
 use std::path::PathBuf;
 
+use incremental_info::IncrementalInfo;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Used to count file usage
 #[derive(Debug, Default)]
 pub struct FileCounter {
   inner: HashMap<PathBuf, usize>,
+  incremental_info: IncrementalInfo,
 }
 
 impl FileCounter {
@@ -16,6 +20,7 @@ impl FileCounter {
     if let Some(value) = self.inner.get_mut(path) {
       *value += 1;
     } else {
+      self.incremental_info.add(path);
       self.inner.insert(path.clone(), 1);
     }
   }
@@ -30,6 +35,7 @@ impl FileCounter {
     if let Some(value) = self.inner.get_mut(path) {
       *value -= 1;
       if value == &0 {
+        self.incremental_info.remove(path);
         self.inner.remove(path);
       }
     } else {
@@ -55,6 +61,21 @@ impl FileCounter {
   pub fn files(&self) -> impl Iterator<Item = &PathBuf> {
     self.inner.keys()
   }
+
+  /// reset incremental info
+  pub fn reset_incremental_info(&mut self) {
+    self.incremental_info.reset()
+  }
+
+  /// Added files compared to the `files()` when call reset_incremental_info
+  pub fn added_files(&self) -> &HashSet<PathBuf> {
+    self.incremental_info.added_files()
+  }
+
+  /// Removed files compared to the `files()` when call reset_incremental_info
+  pub fn removed_files(&self) -> &HashSet<PathBuf> {
+    self.incremental_info.removed_files()
+  }
 }
 
 #[cfg(test)]
@@ -70,15 +91,23 @@ mod test {
     counter.add_file(&file_a);
     counter.add_file(&file_b);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.added_files().len(), 2);
+    assert_eq!(counter.removed_files().len(), 0);
 
     counter.remove_file(&file_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.added_files().len(), 2);
+    assert_eq!(counter.removed_files().len(), 0);
 
     counter.remove_file(&file_b);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.added_files().len(), 1);
+    assert_eq!(counter.removed_files().len(), 0);
 
     counter.remove_file(&file_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().len(), 0);
+    assert_eq!(counter.removed_files().len(), 0);
   }
 
   #[test]
@@ -111,5 +140,31 @@ mod test {
     let mut counter = FileCounter::default();
     let file_a = std::path::PathBuf::from("/a");
     counter.remove_file(&file_a);
+  }
+
+  #[test]
+  fn file_counter_reset_incremental_info() {
+    let mut counter = FileCounter::default();
+    let file_a = std::path::PathBuf::from("/a");
+
+    counter.add_file(&file_a);
+    assert_eq!(counter.added_files().len(), 1);
+    assert_eq!(counter.removed_files().len(), 0);
+
+    counter.reset_incremental_info();
+    assert_eq!(counter.added_files().len(), 0);
+    assert_eq!(counter.removed_files().len(), 0);
+
+    counter.add_file(&file_a);
+    assert_eq!(counter.added_files().len(), 0);
+    assert_eq!(counter.removed_files().len(), 0);
+
+    counter.remove_file(&file_a);
+    assert_eq!(counter.added_files().len(), 0);
+    assert_eq!(counter.removed_files().len(), 0);
+
+    counter.remove_file(&file_a);
+    assert_eq!(counter.added_files().len(), 0);
+    assert_eq!(counter.removed_files().len(), 1);
   }
 }
