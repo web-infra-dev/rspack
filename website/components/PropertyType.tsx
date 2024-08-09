@@ -1,23 +1,29 @@
 import type { FC } from 'react';
 import { useLang } from 'rspress/runtime';
+
 type DefaultValue = {
   defaultValue: string;
   mode?: 'development' | 'production' | 'none';
 };
+
 const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> = ({
   type,
   defaultValueList,
 }) => {
   const lang = useLang();
   return (
-    <ul style={{ fontSize: 14 }} className="list-disc pl-5 my-4 leading-7">
+    <ul className="list-disc pl-5 my-4 leading-7">
       <li className="[&:not(:first-child)]:mt-2">
-        <strong>{lang === 'zh' ? '类型：' : 'Type:'}</strong>{' '}
+        <span className="font-semibold">
+          {lang === 'zh' ? '类型：' : 'Type:'}
+        </span>{' '}
         <code>{type}</code>
       </li>
       {defaultValueList?.length && defaultValueList.length > 0 && (
         <li className="[&:not(:first-child)]:mt-2">
-          <strong>{lang === 'zh' ? '默认值：' : 'Default:'}</strong>
+          <span className="font-semibold">
+            {lang === 'zh' ? '默认值：' : 'Default:'}
+          </span>
           {defaultValueList.map(({ defaultValue, mode }, index) => {
             return (
               <span key={defaultValue}>
