@@ -215,11 +215,11 @@ impl ModuleDTO {
   }
 
   #[napi]
-  pub fn size(&self, ty: Either<String, ()>) -> f64 {
+  pub fn size(&self, ty: Option<String>) -> f64 {
     let module = self.module();
     let ty = match ty {
-      Either::A(s) => Some(SourceType::from(s.as_str())),
-      Either::B(_) => None,
+      Some(s) => Some(SourceType::from(s.as_str())),
+      None => None,
     };
     module.size(ty.as_ref(), self.compilation)
   }
@@ -240,6 +240,10 @@ pub struct ModuleDTOWrapper {
 
 impl ModuleDTOWrapper {
   pub fn new(module_id: ModuleIdentifier, compilation: &Compilation) -> Self {
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe {
       std::mem::transmute::<&rspack_core::Compilation, &'static rspack_core::Compilation>(
         compilation,
