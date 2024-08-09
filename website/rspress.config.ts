@@ -4,6 +4,7 @@ import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
+import pluginMermaid from 'rspress-plugin-mermaid';
 import pluginSitemap from 'rspress-plugin-sitemap';
 import { defineConfig } from 'rspress/config';
 
@@ -29,6 +30,7 @@ export default defineConfig({
     cleanUrls: true,
   },
   plugins: [
+    pluginMermaid(),
     pluginSitemap({
       domain: PUBLISH_URL,
     }),

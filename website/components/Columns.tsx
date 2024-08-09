@@ -29,7 +29,7 @@ interface ColumnProps {
 
 export function Column({ title, children }: PropsWithChildren<ColumnProps>) {
   return (
-    <div className="w-80 flex-auto m-auto" style={{ marginTop: 0 }}>
+    <div className="flex-auto m-auto" style={{ marginTop: 0 }}>
       {title && <div className="font-bold text-center">{title}</div>}
       {children}
     </div>
