@@ -979,6 +979,8 @@ export interface RawCacheGroupOptions {
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
+  maxAsyncRequests?: number
+  maxInitialRequests?: number
   name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean

@@ -7302,6 +7302,8 @@ const optimization: z.ZodObject<{
         maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+        maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+        maxInitialRequests: z.ZodOptional<z.ZodNumber>;
         automaticNameDelimiter: z.ZodOptional<z.ZodString>;
         cacheGroups: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
             chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
@@ -7313,6 +7315,8 @@ const optimization: z.ZodObject<{
             maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+            maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+            maxInitialRequests: z.ZodOptional<z.ZodNumber>;
             automaticNameDelimiter: z.ZodOptional<z.ZodString>;
             test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
             priority: z.ZodOptional<z.ZodNumber>;
@@ -7338,6 +7342,8 @@ const optimization: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }, {
             filename?: string | undefined;
@@ -7356,10 +7362,10 @@ const optimization: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }>]>>>;
-        maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
-        maxInitialRequests: z.ZodOptional<z.ZodNumber>;
         fallbackCacheGroup: z.ZodOptional<z.ZodObject<{
             chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
             minSize: z.ZodOptional<z.ZodNumber>;
@@ -7393,6 +7399,8 @@ const optimization: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7411,10 +7419,10 @@ const optimization: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7434,6 +7442,8 @@ const optimization: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7452,10 +7462,10 @@ const optimization: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7510,6 +7520,8 @@ const optimization: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7528,10 +7540,10 @@ const optimization: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7573,6 +7585,8 @@ const optimization: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7591,10 +7605,10 @@ const optimization: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7664,6 +7678,8 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
     maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+    maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+    maxInitialRequests: z.ZodOptional<z.ZodNumber>;
     automaticNameDelimiter: z.ZodOptional<z.ZodString>;
     test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
     priority: z.ZodOptional<z.ZodNumber>;
@@ -7689,6 +7705,8 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
 }, {
     filename?: string | undefined;
@@ -7707,6 +7725,8 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
 }>;
 
@@ -7730,6 +7750,8 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+    maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+    maxInitialRequests: z.ZodOptional<z.ZodNumber>;
     automaticNameDelimiter: z.ZodOptional<z.ZodString>;
     cacheGroups: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
         chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
@@ -7741,6 +7763,8 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+        maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+        maxInitialRequests: z.ZodOptional<z.ZodNumber>;
         automaticNameDelimiter: z.ZodOptional<z.ZodString>;
         test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
         priority: z.ZodOptional<z.ZodNumber>;
@@ -7766,6 +7790,8 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }, {
         filename?: string | undefined;
@@ -7784,10 +7810,10 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }>]>>>;
-    maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
-    maxInitialRequests: z.ZodOptional<z.ZodNumber>;
     fallbackCacheGroup: z.ZodOptional<z.ZodObject<{
         chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
         minSize: z.ZodOptional<z.ZodNumber>;
@@ -7821,6 +7847,8 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
     cacheGroups?: Record<string, false | {
         filename?: string | undefined;
@@ -7839,10 +7867,10 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }> | undefined;
-    maxAsyncRequests?: number | undefined;
-    maxInitialRequests?: number | undefined;
     fallbackCacheGroup?: {
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         minSize?: number | undefined;
@@ -7862,6 +7890,8 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
     cacheGroups?: Record<string, false | {
         filename?: string | undefined;
@@ -7880,10 +7910,10 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }> | undefined;
-    maxAsyncRequests?: number | undefined;
-    maxInitialRequests?: number | undefined;
     fallbackCacheGroup?: {
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         minSize?: number | undefined;
@@ -11381,6 +11411,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+            maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+            maxInitialRequests: z.ZodOptional<z.ZodNumber>;
             automaticNameDelimiter: z.ZodOptional<z.ZodString>;
             cacheGroups: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
                 chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
@@ -11392,6 +11424,8 @@ export const rspackOptions: z.ZodObject<{
                 maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+                maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+                maxInitialRequests: z.ZodOptional<z.ZodNumber>;
                 automaticNameDelimiter: z.ZodOptional<z.ZodString>;
                 test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
                 priority: z.ZodOptional<z.ZodNumber>;
@@ -11417,6 +11451,8 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }, {
                 filename?: string | undefined;
@@ -11435,10 +11471,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }>]>>>;
-            maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
-            maxInitialRequests: z.ZodOptional<z.ZodNumber>;
             fallbackCacheGroup: z.ZodOptional<z.ZodObject<{
                 chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
                 minSize: z.ZodOptional<z.ZodNumber>;
@@ -11472,6 +11508,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11490,10 +11528,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11513,6 +11551,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11531,10 +11571,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11589,6 +11629,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11607,10 +11649,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11652,6 +11694,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11670,10 +11714,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -13110,6 +13154,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -13128,10 +13174,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -13680,6 +13726,8 @@ export const rspackOptions: z.ZodObject<{
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -13698,10 +13746,10 @@ export const rspackOptions: z.ZodObject<{
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
