@@ -146,6 +146,7 @@ export class ModuleDto {
   get type(): string
   get layer(): string | undefined
   get blocks(): Array<DependenciesBlockDto>
+  size(ty?: string | undefined | null): number
 }
 export type ModuleDTO = ModuleDto
 
@@ -349,6 +350,10 @@ export interface JsBeforeResolveArgs {
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
+}
+
+export interface JsCacheGroupTestCtx {
+  module: ModuleDTO
 }
 
 export interface JsChunk {
@@ -991,10 +996,6 @@ export interface RawCacheGroupOptions {
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
-}
-
-export interface RawCacheGroupTestCtx {
-  module: JsModule
 }
 
 export interface RawCacheOptions {

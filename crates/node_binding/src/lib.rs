@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
 use rspack_binding_options::BuiltinPlugin;
-use rspack_core::PluginExt;
+use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
@@ -164,6 +164,9 @@ impl Rspack {
       // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
       Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
     })?;
+
+    self.cleanup_last_compilation(&compiler.compilation);
+
     // SAFETY:
     // 1. `Compiler` is pinned and stored on the heap.
     // 2. `JsReference` (NAPI internal mechanism) keeps `Compiler` alive until its instance getting garbage collected.
@@ -171,6 +174,10 @@ impl Rspack {
       unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
       _guard,
     )
+  }
+
+  fn cleanup_last_compilation(&self, compilation: &Compilation) {
+    JsCompilationWrapper::cleanup(compilation.id());
   }
 }
 

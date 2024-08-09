@@ -6077,6 +6077,8 @@ export class Module {
     // (undocumented)
     resource?: Readonly<string>;
     // (undocumented)
+    size(type?: string): number;
+    // (undocumented)
     type: string;
     // (undocumented)
     userRequest?: Readonly<string>;
