@@ -548,11 +548,11 @@ runtime modules 2.59 KiB 3 modules
 ./a.js 18 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset b-runtime~main-eb1e55e9714495b68bff.js 4.39 KiB [emitted] [immutable] (name: runtime~main)
+asset b-runtime~main-2a432c6b45b448fcde80.js 4.39 KiB [emitted] [immutable] (name: runtime~main)
 asset b-all-b_js-468c0f551eefc9f96f0b.js 461 bytes [emitted] [immutable] (id hint: all)
-asset b-main-72ac2a7c5326395bcc89.js 420 bytes [emitted] [immutable] (name: main)
+asset b-main-236b715ba81f9430f0c7.js 420 bytes [emitted] [immutable] (name: main)
 asset b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 5.42 KiB = b-runtime~main-eb1e55e9714495b68bff.js 4.39 KiB b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes b-all-b_js-468c0f551eefc9f96f0b.js 461 bytes b-main-72ac2a7c5326395bcc89.js 420 bytes
+Entrypoint main 5.42 KiB = b-runtime~main-2a432c6b45b448fcde80.js 4.39 KiB b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes b-all-b_js-468c0f551eefc9f96f0b.js 461 bytes b-main-236b715ba81f9430f0c7.js 420 bytes
 runtime modules 3.17 KiB 5 modules
 cacheable modules 40 bytes
   ./b.js 17 bytes [built] [code generated]
