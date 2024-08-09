@@ -5145,8 +5145,10 @@ type KnownStatsChunkGroup = {
         prefetch?: StatsChunkGroup[];
     };
     childAssets?: {
-        [index: string]: string[];
+        preload?: string[];
+        prefetch?: string[];
     };
+    isOverSizeLimit?: boolean;
 };
 
 // @public (undocumented)

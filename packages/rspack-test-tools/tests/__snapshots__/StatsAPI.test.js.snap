@@ -161,6 +161,7 @@ Object {
       "assetsSize": 207,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
+      "childAssets": Object {},
       "children": Object {},
       "chunks": Array [
         "909",
@@ -254,6 +255,7 @@ Object {
       "assetsSize": 207,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
+      "childAssets": Object {},
       "children": Object {},
       "chunks": Array [
         "909",
@@ -675,6 +677,7 @@ Object {
       "assetsSize": 441,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
+      "childAssets": Object {},
       "children": Object {},
       "chunks": Array [
         "909",
@@ -1392,6 +1395,7 @@ Object {
       "assetsSize": 441,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
+      "childAssets": Object {},
       "children": Object {},
       "chunks": Array [
         "909",
@@ -2044,6 +2048,7 @@ exports.c = require(\\"./c?c=3\\");
       "assetsSize": 346,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
+      "childAssets": Object {},
       "children": Object {},
       "chunks": Array [
         "909",
@@ -2362,6 +2367,7 @@ exports.c = require(\\"./c?c=3\\");
       "assetsSize": 346,
       "auxiliaryAssets": Array [],
       "auxiliaryAssetsSize": 0,
+      "childAssets": Object {},
       "children": Object {},
       "chunks": Array [
         "909",

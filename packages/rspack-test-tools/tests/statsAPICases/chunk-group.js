@@ -37,6 +37,7 @@ module.exports = {
 		      },
 		    ],
 		    "auxiliaryAssetsSize": 681,
+		    "childAssets": Object {},
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -87,6 +88,14 @@ module.exports = {
 		      },
 		    ],
 		    "auxiliaryAssetsSize": 514,
+		    "childAssets": Object {
+		      "prefetch": Array [
+		        "chunk-b.js",
+		      ],
+		      "preload": Array [
+		        "chunk-b.js",
+		      ],
+		    },
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -155,6 +164,7 @@ module.exports = {
 		    "assetsSize": 136,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [
 		      "807",
@@ -173,6 +183,7 @@ module.exports = {
 		    "assetsSize": 136,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [
 		      "805",
@@ -191,6 +202,7 @@ module.exports = {
 		    "assetsSize": 136,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [
 		      "212",
@@ -214,6 +226,7 @@ module.exports = {
 		      },
 		    ],
 		    "auxiliaryAssetsSize": 681,
+		    "childAssets": Object {},
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {

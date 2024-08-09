@@ -18,13 +18,15 @@ export type KnownStatsChunkGroup = {
 	auxiliaryAssets?: { name: string; size?: number }[];
 	filteredAuxiliaryAssets?: number;
 	auxiliaryAssetsSize?: number;
-	// children?: { [index: string]: StatsChunkGroup[] };
 	children?: {
 		preload?: StatsChunkGroup[];
 		prefetch?: StatsChunkGroup[];
 	};
-	childAssets?: { [index: string]: string[] };
-	// isOverSizeLimit?: boolean;
+	childAssets?: {
+		preload?: string[];
+		prefetch?: string[];
+	};
+	isOverSizeLimit?: boolean;
 };
 
 export type KnownStatsChunk = {

@@ -679,6 +679,11 @@ export interface JsStatsAssetsByChunkName {
   files: Array<string>
 }
 
+export interface JsStatsChildGroupChildAssets {
+  preload?: Array<string>
+  prefetch?: Array<string>
+}
+
 export interface JsStatsChunk {
   type: string
   files: Array<string>
@@ -709,8 +714,9 @@ export interface JsStatsChunkGroup {
   assetsSize: number
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
   auxiliaryAssetsSize?: number
-  children?: JsStatsChunkGroupChildren
   isOverSizeLimit?: boolean
+  children?: JsStatsChunkGroupChildren
+  childAssets?: JsStatsChildGroupChildAssets
 }
 
 export interface JsStatsChunkGroupAsset {
