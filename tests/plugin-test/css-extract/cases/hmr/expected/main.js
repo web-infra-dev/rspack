@@ -40,12 +40,10 @@ function getCurrentScriptUrl(moduleId) {
         if (!src) {
             return null;
         }
-        const splitResult = src.split(/([^\\/]+)\.js$/);
-        const filename = splitResult?.[1];
-        if (!filename) {
-            return [src.replace(".js", ".css")];
-        }
-        if (!fileMap) {
+        const splitResult = src.match(/([^\\/]+)\.js$/);
+        // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
+        const filename = splitResult && splitResult[1];
+        if (!filename || !fileMap) {
             return [src.replace(".js", ".css")];
         }
         return fileMap.split(",").map(mapRule => {
@@ -84,21 +82,29 @@ function updateCss(el, url) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode?.removeChild(el);
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
     });
     newEl.addEventListener("error", () => {
         if (newEl.isLoaded) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode?.removeChild(el);
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
     });
     newEl.href = `${normalizedUrl}?${Date.now()}`;
+    const parent = el.parentNode;
+    if (!parent) {
+        return;
+    }
     if (el.nextSibling) {
-        el.parentNode?.insertBefore(newEl, el.nextSibling);
+        parent.insertBefore(newEl, el.nextSibling);
     }
     else {
-        el.parentNode?.appendChild(newEl);
+        parent.appendChild(newEl);
     }
 }
 function getReloadUrl(href, src) {
@@ -167,7 +173,8 @@ function cssReload(moduleId, options) {
             return;
         }
         if (reloaded) {
-            console.log("[HMR] css reload %s", src?.join(" "));
+            // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
+            console.log("[HMR] css reload %s", src && src.join(" "));
         }
         else {
             console.log("[HMR] Reload all css");
