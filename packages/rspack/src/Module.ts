@@ -131,6 +131,13 @@ export class Module {
 		}
 		return [];
 	}
+
+	size(type?: string): number {
+		if ("size" in this.#inner) {
+			return this.#inner.size(type);
+		}
+		return 0;
+	}
 }
 
 export class CodeGenerationResult {

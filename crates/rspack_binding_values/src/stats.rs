@@ -14,8 +14,8 @@ use rspack_napi::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{JsCompilation, ToJsCompatSource};
-use crate::identifier::JsIdentifier;
+use super::ToJsCompatSource;
+use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();

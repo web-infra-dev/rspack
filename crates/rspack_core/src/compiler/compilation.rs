@@ -329,72 +329,100 @@ impl Compilation {
     }
   }
 
-  pub fn file_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
-    self
+  pub fn file_dependencies(
+    &self,
+  ) -> (
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+  ) {
+    let all_files = self
       .make_artifact
       .file_dependencies
       .files()
-      .chain(
-        self
-          .module_executor
-          .as_ref()
-          .expect("should have module_executor")
-          .make_artifact
-          .file_dependencies
-          .files(),
-      )
-      .chain(&self.file_dependencies)
+      .chain(&self.file_dependencies);
+    let added_files = self
+      .make_artifact
+      .file_dependencies
+      .added_files()
+      .iter()
+      .chain(&self.file_dependencies);
+    let removed_files = self.make_artifact.file_dependencies.removed_files().iter();
+    (all_files, added_files, removed_files)
   }
 
-  pub fn context_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
-    self
+  pub fn context_dependencies(
+    &self,
+  ) -> (
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+  ) {
+    let all_files = self
       .make_artifact
       .context_dependencies
       .files()
-      .chain(
-        self
-          .module_executor
-          .as_ref()
-          .expect("should have module_executor")
-          .make_artifact
-          .context_dependencies
-          .files(),
-      )
-      .chain(&self.context_dependencies)
+      .chain(&self.context_dependencies);
+    let added_files = self
+      .make_artifact
+      .context_dependencies
+      .added_files()
+      .iter()
+      .chain(&self.file_dependencies);
+    let removed_files = self
+      .make_artifact
+      .context_dependencies
+      .removed_files()
+      .iter();
+    (all_files, added_files, removed_files)
   }
 
-  pub fn missing_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
-    self
+  pub fn missing_dependencies(
+    &self,
+  ) -> (
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+  ) {
+    let all_files = self
       .make_artifact
       .missing_dependencies
       .files()
-      .chain(
-        self
-          .module_executor
-          .as_ref()
-          .expect("should have module_executor")
-          .make_artifact
-          .missing_dependencies
-          .files(),
-      )
-      .chain(&self.missing_dependencies)
+      .chain(&self.missing_dependencies);
+    let added_files = self
+      .make_artifact
+      .missing_dependencies
+      .added_files()
+      .iter()
+      .chain(&self.file_dependencies);
+    let removed_files = self
+      .make_artifact
+      .missing_dependencies
+      .removed_files()
+      .iter();
+    (all_files, added_files, removed_files)
   }
 
-  pub fn build_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
-    self
+  pub fn build_dependencies(
+    &self,
+  ) -> (
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &PathBuf>,
+  ) {
+    let all_files = self
       .make_artifact
       .build_dependencies
       .files()
-      .chain(
-        self
-          .module_executor
-          .as_ref()
-          .expect("should have module_executor")
-          .make_artifact
-          .build_dependencies
-          .files(),
-      )
-      .chain(&self.build_dependencies)
+      .chain(&self.build_dependencies);
+    let added_files = self
+      .make_artifact
+      .build_dependencies
+      .added_files()
+      .iter()
+      .chain(&self.file_dependencies);
+    let removed_files = self.make_artifact.build_dependencies.removed_files().iter();
+    (all_files, added_files, removed_files)
   }
 
   // TODO move out from compilation
@@ -683,6 +711,8 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self) -> Result<()> {
+    self.make_artifact.reset_dependencies_incremental_info();
+    //        self.module_executor.
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);

@@ -2,8 +2,7 @@ use napi_derive::napi;
 use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;
 
-use super::dependency::DependencyDTO;
-use crate::{entry::JsEntryOptions, library::JsLibraryOptions};
+use crate::{dependency::DependencyDTO, entry::JsEntryOptions, library::JsLibraryOptions};
 
 #[napi]
 pub struct EntryOptionsDTO(EntryOptions);
