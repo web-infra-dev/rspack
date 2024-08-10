@@ -9,7 +9,7 @@
  */
 
 import assert from "node:assert";
-import { Abortable } from "node:events";
+import type { Abortable } from "node:events";
 import path from "node:path";
 
 import type { WatchOptions } from "../config";
