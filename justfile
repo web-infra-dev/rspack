@@ -62,3 +62,21 @@ test-node preset="unit":
     pnpm build:cli:debug
     pnpm test:{{preset}}
 
+# Support `just build [debug|release] (--force)`
+build mode="debug" +args="":
+    pnpm --filter @rspack/binding build:{{mode}}
+    pnpm --filter "@rspack/*" build {{args}}
+
+# Support `just watch [all|rust|node] [debug|release]`
+watch target="all" mode="debug":
+    just _watch-{{target}} {{mode}}
+
+_watch-all mode:
+    pnpm --filter @rspack/binding watch:{{mode}}
+    pnpm --filter "@rspack/*" watch
+
+_watch-rust mode:
+    pnpm --filter @rspack/binding watch:{{mode}}
+
+_watch-node:
+    pnpm --filter "@rspack/*" watch
