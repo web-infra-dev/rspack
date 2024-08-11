@@ -960,6 +960,10 @@ impl<'parser> JavascriptParser<'parser> {
             if let Some(computed) = member.prop.as_computed() {
               self.walk_expression(&computed.expr);
             }
+          } else if let Some(member) = callee.as_super_prop() {
+            if let Some(computed) = member.prop.as_computed() {
+              self.walk_expression(&computed.expr);
+            }
           } else {
             self.walk_expression(callee);
           }
