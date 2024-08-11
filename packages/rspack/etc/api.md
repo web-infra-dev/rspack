@@ -4768,58 +4768,36 @@ const infrastructureLogging: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-interface IStats {
-    // (undocumented)
-    atime: Date;
-    // (undocumented)
-    atimeMs: number | bigint;
-    // (undocumented)
-    birthtime: Date;
-    // (undocumented)
-    birthtimeMs: number | bigint;
-    // (undocumented)
-    blksize: number | bigint;
-    // (undocumented)
-    blocks: number | bigint;
-    // (undocumented)
-    ctime: Date;
-    // (undocumented)
-    ctimeMs: number | bigint;
-    // (undocumented)
-    dev: number | bigint;
-    // (undocumented)
-    gid: number | bigint;
-    // (undocumented)
-    ino: number | bigint;
-    // (undocumented)
-    isBlockDevice: () => boolean;
-    // (undocumented)
-    isCharacterDevice: () => boolean;
-    // (undocumented)
-    isDirectory: () => boolean;
-    // (undocumented)
-    isFIFO: () => boolean;
-    // (undocumented)
+type IStats = IStatsBase<number>;
+
+// @public (undocumented)
+type IStatsBase<T> = {
     isFile: () => boolean;
-    // (undocumented)
-    isSocket: () => boolean;
-    // (undocumented)
+    isDirectory: () => boolean;
+    isBlockDevice: () => boolean;
+    isCharacterDevice: () => boolean;
     isSymbolicLink: () => boolean;
-    // (undocumented)
-    mode: number | bigint;
-    // (undocumented)
+    isFIFO: () => boolean;
+    isSocket: () => boolean;
+    dev: T;
+    ino: T;
+    mode: T;
+    nlink: T;
+    uid: T;
+    gid: T;
+    rdev: T;
+    size: T;
+    blksize: T;
+    blocks: T;
+    atimeMs: T;
+    mtimeMs: T;
+    ctimeMs: T;
+    birthtimeMs: T;
+    atime: Date;
     mtime: Date;
-    // (undocumented)
-    mtimeMs: number | bigint;
-    // (undocumented)
-    nlink: number | bigint;
-    // (undocumented)
-    rdev: number | bigint;
-    // (undocumented)
-    size: number | bigint;
-    // (undocumented)
-    uid: number | bigint;
-}
+    ctime: Date;
+    birthtime: Date;
+};
 
 // @public (undocumented)
 class ItemCacheFacade implements BaseCache {

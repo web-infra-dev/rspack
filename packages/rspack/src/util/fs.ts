@@ -9,6 +9,7 @@
  */
 
 import assert from "node:assert";
+import type { Abortable } from "node:events";
 import path from "node:path";
 
 import type { WatchOptions } from "../config";
@@ -30,6 +31,43 @@ export interface WatcherInfo {
 	contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">; // get info about directories
 }
 
+export type IStatsBase<T> = {
+	isFile: () => boolean;
+	isDirectory: () => boolean;
+	isBlockDevice: () => boolean;
+	isCharacterDevice: () => boolean;
+	isSymbolicLink: () => boolean;
+	isFIFO: () => boolean;
+	isSocket: () => boolean;
+	dev: T;
+	ino: T;
+	mode: T;
+	nlink: T;
+	uid: T;
+	gid: T;
+	rdev: T;
+	size: T;
+	blksize: T;
+	blocks: T;
+	atimeMs: T;
+	mtimeMs: T;
+	ctimeMs: T;
+	birthtimeMs: T;
+	atime: Date;
+	mtime: Date;
+	ctime: Date;
+	birthtime: Date;
+};
+
+export type IStats = IStatsBase<number>;
+
+export type IBigIntStats = IStatsBase<bigint> & {
+	atimeNs: bigint;
+	mtimeNs: bigint;
+	ctimeNs: bigint;
+	birthtimeNs: bigint;
+};
+
 interface IDirent {
 	isFile: () => boolean;
 	isDirectory: () => boolean;
@@ -39,34 +77,6 @@ interface IDirent {
 	isFIFO: () => boolean;
 	isSocket: () => boolean;
 	name: string | Buffer;
-}
-
-interface IStats {
-	isFile: () => boolean;
-	isDirectory: () => boolean;
-	isBlockDevice: () => boolean;
-	isCharacterDevice: () => boolean;
-	isSymbolicLink: () => boolean;
-	isFIFO: () => boolean;
-	isSocket: () => boolean;
-	dev: number | bigint;
-	ino: number | bigint;
-	mode: number | bigint;
-	nlink: number | bigint;
-	uid: number | bigint;
-	gid: number | bigint;
-	rdev: number | bigint;
-	size: number | bigint;
-	blksize: number | bigint;
-	blocks: number | bigint;
-	atimeMs: number | bigint;
-	mtimeMs: number | bigint;
-	ctimeMs: number | bigint;
-	birthtimeMs: number | bigint;
-	atime: Date;
-	mtime: Date;
-	ctime: Date;
-	birthtime: Date;
 }
 
 export interface OutputFileSystem {
@@ -110,6 +120,365 @@ export interface OutputFileSystem {
 	relative?: (arg0: string, arg1: string) => string;
 	dirname?: (arg0: string) => string;
 }
+
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonArray = JsonValue[];
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+export type JsonObject = { [Key in string]: JsonValue } & {
+	[Key in string]?: JsonValue | undefined;
+};
+
+export type NoParamCallback = (err: NodeJS.ErrnoException | null) => void;
+export type StringCallback = (
+	err: NodeJS.ErrnoException | null,
+	data?: string
+) => void;
+export type BufferCallback = (
+	err: NodeJS.ErrnoException | null,
+	data?: Buffer
+) => void;
+export type StringOrBufferCallback = (
+	err: NodeJS.ErrnoException | null,
+	data?: string | Buffer
+) => void;
+export type ReaddirStringCallback = (
+	err: NodeJS.ErrnoException | null,
+	files?: string[]
+) => void;
+export type ReaddirBufferCallback = (
+	err: NodeJS.ErrnoException | null,
+	files?: Buffer[]
+) => void;
+export type ReaddirStringOrBufferCallback = (
+	err: NodeJS.ErrnoException | null,
+	files?: string[] | Buffer[]
+) => void;
+export type ReaddirDirentCallback = (
+	err: NodeJS.ErrnoException | null,
+	files?: IDirent[]
+) => void;
+export type StatsCallback = (
+	err: NodeJS.ErrnoException | null,
+	stats?: IStats
+) => void;
+export type BigIntStatsCallback = (
+	err: NodeJS.ErrnoException | null,
+	stats?: IBigIntStats
+) => void;
+export type StatsOrBigIntStatsCallback = (
+	err: NodeJS.ErrnoException | null,
+	stats?: IStats | IBigIntStats
+) => void;
+export type NumberCallback = (
+	err: NodeJS.ErrnoException | null,
+	data?: number
+) => void;
+export type ReadJsonCallback = (
+	err: NodeJS.ErrnoException | Error | null,
+	data?: JsonObject
+) => void;
+
+export type PathLike = string | Buffer | URL;
+export type PathOrFileDescriptor = PathLike | number;
+
+export type ObjectEncodingOptions = {
+	encoding?: BufferEncoding | null;
+};
+
+export type ReadFile = {
+	(
+		path: PathOrFileDescriptor,
+		options:
+			| ({
+					encoding: null | undefined;
+					flag?: string;
+			  } & Abortable)
+			| null
+			| undefined,
+		callback: BufferCallback
+	): void;
+	(
+		path: PathOrFileDescriptor,
+		options:
+			| ({ encoding: BufferEncoding; flag?: string } & Abortable)
+			| BufferEncoding,
+		callback: StringCallback
+	): void;
+	(
+		path: PathOrFileDescriptor,
+		options:
+			| (ObjectEncodingOptions & { flag?: string } & Abortable)
+			| BufferEncoding
+			| null
+			| undefined,
+		callback: StringOrBufferCallback
+	): void;
+	(path: PathOrFileDescriptor, callback: BufferCallback): void;
+};
+
+export type ReadFileSync = {
+	(
+		path: PathOrFileDescriptor,
+		options: {
+			encoding: null | undefined;
+			flag?: string;
+		} | null
+	): Buffer;
+	(
+		path: PathOrFileDescriptor,
+		options: { encoding: BufferEncoding; flag?: string } | BufferEncoding
+	): string;
+	(
+		path: PathOrFileDescriptor,
+		options: (ObjectEncodingOptions & { flag?: string }) | BufferEncoding | null
+	): string | Buffer;
+};
+
+export type EncodingOption =
+	| ObjectEncodingOptions
+	| BufferEncoding
+	| undefined
+	| null;
+
+export type BufferEncodingOption = "buffer" | { encoding: "buffer" };
+
+export type StatOptions = {
+	bigint?: boolean;
+};
+
+export type StatSyncOptions = {
+	bigint?: boolean;
+	throwIfNoEntry?: boolean;
+};
+
+export type Readlink = {
+	(path: PathLike, options: EncodingOption, callback: StringCallback): void;
+	(
+		path: PathLike,
+		options: BufferEncodingOption,
+		callback: BufferCallback
+	): void;
+	(
+		path: PathLike,
+		options: EncodingOption,
+		callback: StringOrBufferCallback
+	): void;
+	(path: PathLike, callback: StringCallback): void;
+};
+
+export type ReadlinkSync = {
+	(path: PathLike, options: EncodingOption): string;
+	(path: PathLike, options: BufferEncodingOption): Buffer;
+	(path: PathLike, options: EncodingOption): string | Buffer;
+};
+
+export type Readdir = {
+	(
+		path: PathLike,
+		options:
+			| {
+					encoding: BufferEncoding | null;
+					withFileTypes?: false;
+					recursive?: boolean;
+			  }
+			| BufferEncoding
+			| null
+			| undefined,
+		callback: ReaddirStringCallback
+	): void;
+	(
+		path: PathLike,
+		options:
+			| { encoding: "buffer"; withFileTypes?: false; recursive?: boolean }
+			| "buffer",
+		callback: ReaddirBufferCallback
+	): void;
+	(path: PathLike, callback: ReaddirStringCallback): void;
+	(
+		path: PathLike,
+		options:
+			| (ObjectEncodingOptions & { withFileTypes: true; recursive?: boolean })
+			| BufferEncoding
+			| null
+			| undefined,
+		callback: ReaddirStringOrBufferCallback
+	): void;
+	(
+		path: PathLike,
+		options: ObjectEncodingOptions & {
+			withFileTypes: true;
+			recursive?: boolean;
+		},
+		callback: ReaddirDirentCallback
+	): void;
+};
+
+export type ReaddirSync = {
+	(
+		path: PathLike,
+		options:
+			| {
+					encoding: BufferEncoding | null;
+					withFileTypes?: false;
+					recursive?: boolean;
+			  }
+			| BufferEncoding
+			| null
+	): string[];
+	(
+		path: PathLike,
+		options:
+			| { encoding: "buffer"; withFileTypes?: false; recursive?: boolean }
+			| "buffer"
+	): Buffer[];
+	(
+		path: PathLike,
+		options:
+			| (ObjectEncodingOptions & { withFileTypes?: false; recursive?: boolean })
+			| BufferEncoding
+			| null
+	): string[] | Buffer[];
+	(
+		path: PathLike,
+		options: ObjectEncodingOptions & {
+			withFileTypes: true;
+			recursive?: boolean;
+		}
+	): IDirent[];
+};
+
+export type Stat = {
+	(path: PathLike, callback: StatsCallback): void;
+	(
+		path: PathLike,
+		options: (StatOptions & { bigint?: false }) | undefined,
+		callback: StatsCallback
+	): void;
+	(
+		path: PathLike,
+		options: StatOptions & { bigint: true },
+		callback: BigIntStatsCallback
+	): void;
+	(
+		path: PathLike,
+		options: StatOptions | undefined,
+		callback: StatsOrBigIntStatsCallback
+	): void;
+};
+
+export type StatSync = {
+	(path: PathLike, options?: undefined): IStats;
+	(
+		path: PathLike,
+		options?: StatSyncOptions & { bigint?: false; throwIfNoEntry: false }
+	): IStats | undefined;
+	(
+		path: PathLike,
+		options: StatSyncOptions & { bigint: true; throwIfNoEntry: false }
+	): IBigIntStats | undefined;
+	(path: PathLike, options?: StatSyncOptions & { bigint?: false }): IStats;
+	(path: PathLike, options: StatSyncOptions & { bigint: true }): IBigIntStats;
+	(
+		path: PathLike,
+		options: StatSyncOptions & { bigint: boolean; throwIfNoEntry?: false }
+	): IStats | IBigIntStats;
+	(
+		path: PathLike,
+		options?: StatSyncOptions
+	): IStats | IBigIntStats | undefined;
+};
+
+export type LStat = {
+	(path: PathLike, callback: StatsCallback): void;
+	(
+		path: PathLike,
+		options: (StatOptions & { bigint?: false }) | undefined,
+		callback: StatsCallback
+	): void;
+	(
+		path: PathLike,
+		options: StatOptions & { bigint: true },
+		callback: BigIntStatsCallback
+	): void;
+	(
+		path: PathLike,
+		options: StatOptions | undefined,
+		callback: StatsOrBigIntStatsCallback
+	): void;
+};
+
+export type LStatSync = {
+	(path: PathLike, options?: undefined): IStats;
+	(
+		path: PathLike,
+		options?: StatSyncOptions & { bigint?: false; throwIfNoEntry: false }
+	): IStats | undefined;
+	(
+		path: PathLike,
+		options: StatSyncOptions & { bigint: true; throwIfNoEntry: false }
+	): IBigIntStats | undefined;
+	(path: PathLike, options?: StatSyncOptions & { bigint?: false }): IStats;
+	(path: PathLike, options: StatSyncOptions & { bigint: true }): IBigIntStats;
+	(
+		path: PathLike,
+		options: StatSyncOptions & { bigint: boolean; throwIfNoEntry?: false }
+	): IStats | IBigIntStats;
+	(
+		path: PathLike,
+		options?: StatSyncOptions
+	): IStats | IBigIntStats | undefined;
+};
+
+export type RealPath = {
+	(path: PathLike, options: EncodingOption, callback: StringCallback): void;
+	(
+		path: PathLike,
+		options: BufferEncodingOption,
+		callback: BufferCallback
+	): void;
+	(
+		path: PathLike,
+		options: EncodingOption,
+		callback: StringOrBufferCallback
+	): void;
+	(path: PathLike, callback: StringCallback): void;
+};
+
+export type RealPathSync = {
+	(path: PathLike, options?: EncodingOption): string;
+	(path: PathLike, options: BufferEncodingOption): Buffer;
+	(path: PathLike, options?: EncodingOption): string | Buffer;
+};
+
+export type ReadJson = (
+	path: PathOrFileDescriptor,
+	callback: ReadJsonCallback
+) => void;
+
+export type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
+
+export type Purge = (files?: string | string[] | Set<string>) => void;
+
+export type InputFileSystem = {
+	readFile: ReadFile;
+	readFileSync?: ReadFileSync;
+	readlink: Readlink;
+	readlinkSync?: ReadlinkSync;
+	readdir: Readdir;
+	readdirSync?: ReaddirSync;
+	stat: Stat;
+	statSync?: StatSync;
+	lstat?: LStat;
+	lstatSync?: LStatSync;
+	realpath?: RealPath;
+	realpathSync?: RealPathSync;
+	readJson?: ReadJson;
+	readJsonSync?: ReadJsonSync;
+	purge?: Purge;
+	join?: (path1: string, path2: string) => string;
+	relative?: (from: string, to: string) => string;
+	dirname?: (path: string) => string;
+};
 
 export function rmrf(
 	fs: OutputFileSystem,
