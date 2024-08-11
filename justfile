@@ -56,8 +56,9 @@ test:
 test-rust:
     cargo test --no-fail-fast
 
-# Run Node.js tests
-test-node:
+# Supported presets: unit, ci, webpack, plugin
+test-node preset="unit":
     pnpm install
     pnpm build:cli:debug
-    pnpm test:unit
+    pnpm test:{{preset}}
+
