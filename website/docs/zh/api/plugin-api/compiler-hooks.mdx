@@ -1,10 +1,137 @@
+import Mermaid from '@components/Mermaid';
 import CompilerType from '../../types/compiler.mdx';
 import CompilationType from '../../types/compilation.mdx';
 import StatsType from '../../types/stats.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { ApiMeta } from '@components/ApiMeta';
+import Columns from '@components/Columns';
+import { NoSSR } from 'rspress/runtime';
 
 # Compiler 钩子
+
+## Overview
+
+<NoSSR>
+
+<Columns>
+
+<div>
+
+<Mermaid title="rspack()" style={{width: '20rem'}}>
+
+{`
+flowchart TD
+CallRspack("rspack()") --> CreateCompiler("创建 Compiler 实例")
+CreateCompiler --> ApplyNodeEnvPlugin(执行 NodeEnvironmentPlugin)
+ApplyNodeEnvPlugin --> ApplyDefaultOptions(合并默认配置)
+ApplyDefaultOptions --> ApplyCustomPlugins(执行自定义插件)
+ApplyCustomPlugins --> HookEnvironment(<a href="#environment">hooks.environment</a>)
+HookEnvironment --> HookAfterEnvironment(<a href="#afterenvironment">hooks.afterEnvironment</a>)
+HookAfterEnvironment --> ApplyRspackPlugins(执行内部插件)
+ApplyRspackPlugins <--> HookEntryOptions(<a href="#entryoption">hooks.entryOption</a>)
+ApplyRspackPlugins --> HookAfterPlugins(<a href="#afterplugins">hooks.afterPlugins</a>)
+HookAfterPlugins --> ResolveOptions(获取路径解析配置（resolveOptions）)
+ResolveOptions --> HookAfterResolvers(<a href="#afterresolvers">hooks.afterResolvers</a>)
+HookAfterResolvers --> HookInitialize(<a href="#initialize">hooks.initialize</a>)
+HookInitialize --> compiler("返回 compiler 实例")
+
+class CallRspack flow-start
+class compiler flow-end
+class CreateCompiler,ApplyNodeEnvPlugin,ApplyDefaultOptions,ApplyCustomPlugins,ApplyRspackPlugins,ResolveOptions flow-process
+class HookEnvironment,HookAfterEnvironment,HookEntryOptions,HookAfterPlugins,HookAfterResolvers,HookInitialize flow-hook
+`}
+
+</Mermaid>
+
+<br />
+
+<Mermaid title="compiler.compile()">
+
+{`
+flowchart TD
+Compile("compiler.compile(callback)") --> CompilationParams("创建模块工厂")
+CompilationParams --> HookNormalModuleFactory(hooks.normalModuleFactory)
+CompilationParams --> HookContextModuleFactory(hooks.contextModuleFactory)
+CompilationParams --> HookBeforeCompile(<a href="#beforecompile">hooks.beforeCompile</a>)
+HookBeforeCompile --> HookCompile(<a href="#compile">hooks.compile</a>)
+HookCompile --> Compilation("创建 Compilation 实例")
+Compilation --> HookThisCompilation(<a href="#thiscompilation">hooks.thisCompilation</a>)
+HookThisCompilation --> HookCompilation(<a href="#compilation">hooks.compilation</a>)
+HookCompilation --> HookMake(<a href="#make">hooks.make</a>)
+HookMake --> CreateModuleGraph(创建模块图)
+CreateModuleGraph <--> RunLoaders(执行 loader 编译模块)
+CreateModuleGraph --> HookFinishMake(hooks.finishMake)
+HookFinishMake --> CompilationFinish("compilation.finish()")
+CompilationFinish --> CompilationSeal("compilation.seal()")
+CompilationSeal --> HookAfterCompile(<a href="#aftercompile">hooks.afterCompile</a>)
+HookAfterCompile --> Callback("callback()")
+
+class Compile flow-start
+class Callback,CloseCallback flow-end
+class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
+class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookAfterCompile flow-hook
+class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-non-support
+`}
+
+</Mermaid>
+
+</div>
+
+<Mermaid title="compiler.watch/run/close()">
+
+{`
+flowchart TD
+WatchCompiler("compiler.watch(options, callback)") --> CreateWatching("创建 Watching 实例")
+RunCompiler("compiler.run(callback)") --> HookBeforeRun(<a href="#beforerun">hooks.beforeRun</a>)
+HookBeforeRun --> HookRun(<a href="#run">hooks.run</a>)
+HookRun --> HookReadRecords(hooks.readRecords)
+CreateWatching --> HookReadRecords
+HookReadRecords --> Compile("compiler.compile()")
+HookWatchRun --> Compile
+HookReadRecords --> HookWatchRun(<a href="#watchrun">hooks.watchRun</a>)
+Compile --> HookShouldEmit{<a href="#shouldemit">hooks.shouldEmit</a>}
+HookShouldEmit --> |是| HookEmit(<a href="#emit">hooks.emit</a>)
+HookShouldEmit --> |否| HookDone(<a href="#done">hooks.done</a>)
+HookEmit --> EmitAssets(生成产物文件)
+EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
+EmitAssets --> HookAfterEmit(<a href="#afteremit">hooks.afterEmit</a>)
+HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
+HookNeedAdditionalPass --> |是| HookAdditionalDone(hooks.done)
+HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
+HookAdditionPass --> Compile
+HookNeedAdditionalPass --> |否| HookEmitRecords(hooks.emitRecords)
+HookEmitRecords --> HookDone
+HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
+HookFailed --> Callback("callback(err, stats)")
+Callback --> WatchingWatch("watching.watch()")
+WatchingWatch --> HookAfterDone(<a href="#afterdone">hooks.afterDone</a>)
+WatchingWatch --> CollectFileChanges("收集文件变更")
+CollectFileChanges --> HookReadRecords
+Callback --> HookAfterDone
+
+HookAfterDone -.-> CloseCompile("compiler.close(callback)")
+CloseCompile --> WatchingClose("watching.close()")
+WatchingClose --> HookWatchClose(<a href="#watchclose">hooks.watchClose</a>)
+HookWatchClose --> CloseCallback("callback()")
+CloseCallback --> HookShutdown(<a href="#shutdown">hooks.shutdown</a>)
+
+class RunCompiler,WatchCompiler flow-start
+class Callback flow-end
+class Compile,EmitAssets,CollectFileChanges,CreateWatching,WatchingWatch flow-process
+class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
+class HookReadRecords,HookAssetEmitted,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
+
+class CloseCompile flow-start
+class CloseCallback flow-end
+class WatchingClose flow-process
+class HookWatchClose,HookShutdown flow-hook
+`}
+
+</Mermaid>
+
+</Columns>
+
+</NoSSR>
 
 ## `environment`
 
@@ -302,3 +429,9 @@ compilation 创建之后执行。
 停止监听时调用。
 
 - **类型：** `SyncHook<[]>`
+
+## `shutdown`
+
+当前 Compiler 关闭时调用。
+
+- **Type:** `AsyncSeriesHook<[]>`
