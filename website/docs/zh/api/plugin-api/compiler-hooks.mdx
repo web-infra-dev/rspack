@@ -11,8 +11,11 @@ import Columns from '@components/Columns';
 ## Overview
 
 <Columns>
+
 <div>
+
 <Mermaid title="rspack()" style={{width: '20rem'}}>
+
 ```mermaid
 flowchart TD
   CallRspack("rspack()") --> CreateCompiler("创建 Compiler 实例")
@@ -34,10 +37,14 @@ class compiler flow-end
 class CreateCompiler,ApplyNodeEnvPlugin,ApplyDefaultOptions,ApplyCustomPlugins,ApplyRspackPlugins,ResolveOptions flow-process
 class HookEnvironment,HookAfterEnvironment,HookEntryOptions,HookAfterPlugins,HookAfterResolvers,HookInitialize flow-hook
 
-````
+```
+
 </Mermaid>
-<br/>
+
+<br />
+
 <Mermaid title="compiler.compile()">
+
 ```mermaid
 flowchart TD
   Compile("compiler.compile(callback)") --> CompilationParams("创建模块工厂")
@@ -62,13 +69,14 @@ class Callback,CloseCallback flow-end
 class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
 class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookAfterCompile flow-hook
 class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-non-support
-````
+```
 
 </Mermaid>
 
 </div>
 
 <Mermaid title="compiler.watch/run/close()">
+
 ```mermaid
 flowchart TD
   WatchCompiler("compiler.watch(options, callback)") --> CreateWatching("创建 Watching 实例")
@@ -115,8 +123,8 @@ class CloseCompile flow-start
 class CloseCallback flow-end
 class WatchingClose flow-process
 class HookWatchClose,HookShutdown flow-hook
-
 ```
+
 </Mermaid>
 
 </Columns>
@@ -423,4 +431,3 @@ compilation 创建之后执行。
 当前 Compiler 关闭时调用。
 
 - **Type:** `AsyncSeriesHook<[]>`
-```
