@@ -2,20 +2,20 @@ import type { CSSProperties, PropsWithChildren } from 'react';
 import './Mermaid.scss';
 
 import mermaid, { type MermaidConfig } from 'mermaid';
-import type React from 'react';
 import { useEffect, useId, useState } from 'react';
-interface MermaidRendererProps {
-  code: string;
+interface Props {
+  style?: CSSProperties;
+  title?: string;
   config?: MermaidConfig;
 }
-
-const MermaidRenderer: React.FC<MermaidRendererProps> = props => {
-  const { code, config = {} } = props;
-
+export default function Mermaid({
+  style,
+  children,
+  title,
+  config,
+}: PropsWithChildren<Props>) {
   const id = useId();
-
   const [svg, setSvg] = useState('');
-
   const [renderError, setRenderError] = useState(false);
 
   async function renderMermaid2SVG() {
@@ -34,7 +34,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = props => {
 
       const { svg } = await mermaid.render(
         id.replace(/:/g, ''),
-        code as string,
+        children as string,
       );
 
       setSvg(svg);
@@ -46,31 +46,16 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = props => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: safe
   useEffect(() => {
     renderMermaid2SVG();
-  }, [code]);
-
+  }, [children]);
   return (
     <>
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
-      {renderError ? null : <div dangerouslySetInnerHTML={{ __html: svg }} />}
+      {renderError || !svg ? null : (
+        <div style={style} className="rspack-mermaid">
+          <h3>{title}</h3>
+          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
+          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        </div>
+      )}
     </>
-  );
-};
-
-interface Props {
-  style?: CSSProperties;
-  title?: string;
-  config?: MermaidConfig;
-}
-export default function Mermaid({
-  style,
-  children,
-  title,
-  config,
-}: PropsWithChildren<Props>) {
-  return (
-    <div style={style} className="rspack-mermaid">
-      <h3>{title}</h3>
-      <MermaidRenderer code={children as string} config={config} />
-    </div>
   );
 }
