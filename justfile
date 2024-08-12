@@ -18,7 +18,7 @@ setup:
   corepack enable
   pnpm install
   
-  echo '✅ Setup complete!'
+  @echo '✅ Setup complete!'
 
 # Check readiness of the project
 ready:
@@ -26,7 +26,7 @@ ready:
   just check  
   just lint 
   just test
-  echo '✅ All passed!'
+  @echo '✅ All passed!'
 
 # Publish Rust crates to crates.io
 release:
@@ -56,14 +56,14 @@ test:
 test-rust:
     cargo test --no-fail-fast
 
-# Supported presets: unit, ci, webpack, plugin
-test-node preset="unit":
+# Supported mode: unit, ci, webpack, plugin
+test-node mode="unit":
     pnpm install
     pnpm build:cli:debug
-    pnpm test:{{preset}}
+    pnpm test:{{mode}}
 
 # Support `just build [debug|release] (--force)`
-build mode="debug" +args="":
+build mode="debug" *args="":
     pnpm --filter @rspack/binding build:{{mode}}
     pnpm --filter "@rspack/*" build {{args}}
 
