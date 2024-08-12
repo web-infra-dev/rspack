@@ -94,7 +94,7 @@ type LightningcssFeatureOptions = {
 
 type LightningcssLoaderOptions = {
   errorRecovery?: boolean;
-  targets?: Targets | string[] | string;
+  targets?: string[] | string;
   include?: LightningcssFeatureOptions;
   exclude?: LightningcssFeatureOptions;
   draft?: Drafts;
@@ -106,7 +106,7 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
-The `targets` option supports multiple formats, it can be set as a browserslist query string, a browserslist query result, or the native `targets` of lightningcss.
+browserslist query string.
 
 Here are some examples of setting targets.
 
@@ -130,35 +130,6 @@ const loader = {
   /** @type {import('@rspack/core').LightningcssLoaderOptions} */
   options: {
     targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
-  },
-};
-```
-
-- Setting the browserslist query result:
-
-```js
-const browserslist = require('browserslist');
-
-const loader = {
-  loader: 'builtin:lightningcss-loader',
-  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
-  options: {
-    targets: browserslist('> 0.2%'),
-  },
-};
-```
-
-- Setting as lightningcss's native `targets`, which relies on lightningcss's internal `browserslistToTargets` method to convert a `browserslist` query result to lightningcss's `targets` format:
-
-```js
-const browserslist = require('browserslist');
-const lightningcss = require('lightningcss');
-
-const loader = {
-  loader: 'builtin:lightningcss-loader',
-  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
-  options: {
-    targets: lightningcss.browserslistToTargets(browserslist('> 0.2%')),
   },
 };
 ```

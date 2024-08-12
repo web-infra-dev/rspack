@@ -5706,7 +5706,7 @@ export type LightningCssMinimizerRspackPluginOptions = {
     removeUnusedLocalIdents?: boolean;
     minimizerOptions?: {
         errorRecovery?: boolean;
-        targets?: Targets | string[] | string;
+        targets?: string[] | string;
         include?: LightningcssFeatureOptions;
         exclude?: LightningcssFeatureOptions;
         draft?: Drafts;

@@ -38,12 +38,17 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   }
 
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
-    let config = serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-      panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
-    });
+    let config: rspack_loader_lightningcss::config::RawConfig =
+      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+        panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
+      });
     // TODO: builtin-loader supports function
     return Arc::new(rspack_loader_lightningcss::LightningCssLoader::new(
-      None, config, builtin,
+      None,
+      config.try_into().unwrap_or_else(|e| {
+        panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
+      }),
+      builtin,
     ));
   }
 

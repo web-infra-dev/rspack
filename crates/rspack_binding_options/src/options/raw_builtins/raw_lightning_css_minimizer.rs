@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_error::Result;
 use rspack_plugin_lightning_css_minimizer::{
-  Browsers, Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
+  Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub struct RawLightningCssMinimizerRspackPluginOptions {
 #[napi(object)]
 pub struct RawLightningCssMinimizerOptions {
   pub error_recovery: bool,
-  pub targets: Option<RawLightningCssBrowsers>,
+  pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
   pub draft: Option<RawDraft>,
@@ -79,17 +79,15 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
       remove_unused_local_idents: value.remove_unused_local_idents,
       minimizer_options: MinimizerOptions {
         error_recovery: value.minimizer_options.error_recovery,
-        targets: value.minimizer_options.targets.map(|t| Browsers {
-          android: t.android,
-          chrome: t.chrome,
-          edge: t.edge,
-          firefox: t.firefox,
-          ie: t.ie,
-          ios_saf: t.ios_saf,
-          opera: t.opera,
-          safari: t.safari,
-          samsung: t.samsung,
-        }),
+        targets: value
+          .minimizer_options
+          .targets
+          .map(|t| {
+            rspack_loader_lightningcss::lightningcss::targets::Browsers::from_browserslist(t)
+          })
+          .transpose()
+          .map_err(|e| rspack_error::error!("Failed to parser browserslist: {}", e))?
+          .flatten(),
         include: value.minimizer_options.include,
         exclude: value.minimizer_options.exclude,
         draft: value.minimizer_options.draft.map(|d| Draft {
