@@ -69,8 +69,8 @@ impl Rspack {
       plugins,
       AsyncNodeWritableFileSystem::new(output_filesystem)
         .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
-      resolver_factory,
-      loader_resolver_factory,
+      Some(resolver_factory),
+      Some(loader_resolver_factory),
     );
 
     Ok(Self {

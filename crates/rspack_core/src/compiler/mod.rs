@@ -74,8 +74,9 @@ where
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     output_filesystem: T,
-    resolver_factory: Arc<ResolverFactory>,
-    loader_resolver_factory: Arc<ResolverFactory>,
+    // no need to pass resolve_factory in rust api
+    resolver_factory: Option<Arc<ResolverFactory>>,
+    loader_resolver_factory: Option<Arc<ResolverFactory>>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -83,6 +84,10 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
+    let resolver_factory =
+      resolver_factory.unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve.clone())));
+    let loader_resolver_factory = loader_resolver_factory
+      .unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve_loader.clone())));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
