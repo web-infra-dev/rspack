@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_ast"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
 description = "rspack ast"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_ast"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 [dependencies]
 anyhow = { workspace = true }
 swc_core = { workspace = true, features = [
