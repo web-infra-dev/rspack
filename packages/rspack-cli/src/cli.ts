@@ -24,13 +24,11 @@ import type {
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import findConfig from "./utils/findConfig";
 import { type LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
 
-const defaultEntry = "src/index";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv;
@@ -130,13 +128,6 @@ export class RspackCLI {
 			if (options.entry) {
 				item.entry = {
 					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-				};
-			} else if (!item.entry) {
-				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
-				const defaultEntryPath =
-					findConfig(defaultEntryBase) || `${defaultEntryBase}.js`; // default entry is js
-				item.entry = {
-					main: defaultEntryPath
 				};
 			}
 			// to set output.path
