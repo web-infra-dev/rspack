@@ -11,8 +11,11 @@ import Columns from '@components/Columns';
 ## Overview
 
 <Columns>
+
 <div>
+
 <Mermaid title="rspack()" style={{width: '20rem'}}>
+
 ```mermaid
 flowchart TD
   CallRspack("rspack()") --> CreateCompiler("new Compiler()")
@@ -34,10 +37,14 @@ class compiler flow-end
 class CreateCompiler,ApplyNodeEnvPlugin,ApplyDefaultOptions,ApplyCustomPlugins,ApplyRspackPlugins,ResolveOptions flow-process
 class HookEnvironment,HookAfterEnvironment,HookEntryOptions,HookAfterPlugins,HookAfterResolvers,HookInitialize flow-hook
 
-````
+```
+
 </Mermaid>
-<br/>
+
+<br />
+
 <Mermaid title="compiler.compile()">
+
 ```mermaid
 flowchart TD
   Compile("compiler.compile(callback)") --> CompilationParams("Create module factories")
@@ -62,7 +69,7 @@ class Callback,CloseCallback flow-end
 class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
 class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookAfterCompile flow-hook
 class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-non-support
-````
+```
 
 </Mermaid>
 
