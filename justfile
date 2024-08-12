@@ -29,7 +29,7 @@ ready:
   @echo '✅ All passed!'
 
 # Publish Rust crates to crates.io
-release:
+release-rust:
     cargo release publish --no-verify --execute --no-confirm
 
 # Format Rust, TOML files, and JavaScript code
