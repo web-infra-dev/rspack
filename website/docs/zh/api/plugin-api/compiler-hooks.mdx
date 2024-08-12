@@ -90,16 +90,16 @@ HookReadRecords --> Compile("compiler.compile()")
 HookWatchRun --> Compile
 HookReadRecords --> HookWatchRun(<a href="#watchrun">hooks.watchRun</a>)
 Compile --> HookShouldEmit{<a href="#shouldemit">hooks.shouldEmit</a>}
-HookShouldEmit --> |true| HookEmit(<a href="#emit">hooks.emit</a>)
-HookShouldEmit --> |false| HookDone(<a href="#done">hooks.done</a>)
+HookShouldEmit --> |是| HookEmit(<a href="#emit">hooks.emit</a>)
+HookShouldEmit --> |否| HookDone(<a href="#done">hooks.done</a>)
 HookEmit --> EmitAssets(生成产物文件)
 EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
 EmitAssets --> HookAfterEmit(<a href="#afteremit">hooks.afterEmit</a>)
 HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
-HookNeedAdditionalPass --> |true| HookAdditionalDone(hooks.done)
+HookNeedAdditionalPass --> |是| HookAdditionalDone(hooks.done)
 HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
 HookAdditionPass --> Compile
-HookNeedAdditionalPass --> |false| HookEmitRecords(hooks.emitRecords)
+HookNeedAdditionalPass --> |否| HookEmitRecords(hooks.emitRecords)
 HookEmitRecords --> HookDone
 HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
 HookFailed --> Callback("callback(err, stats)")
