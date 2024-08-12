@@ -76,6 +76,7 @@ class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-
 </div>
 
 <Mermaid title="compiler.watch/run/close()">
+
 ```mermaid
 flowchart TD
   WatchCompiler("compiler.watch(options, callback)") --> CreateWatching("new Watching()")
@@ -122,8 +123,8 @@ class CloseCompile flow-start
 class CloseCallback flow-end
 class WatchingClose flow-process
 class HookWatchClose,HookShutdown flow-hook
-
 ```
+
 </Mermaid>
 
 </Columns>
@@ -434,4 +435,3 @@ Called when a watching compilation has stopped.
 Called when the compiler is closing.
 
 - **Type:** `AsyncSeriesHook<[]>`
-```
