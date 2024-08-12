@@ -46,7 +46,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = props => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: safe
   useEffect(() => {
     renderMermaid2SVG();
-  }, []);
+  }, [code]);
 
   return (
     <>
