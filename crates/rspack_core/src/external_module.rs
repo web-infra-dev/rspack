@@ -281,14 +281,10 @@ impl ExternalModule {
                 )
                 .boxed(),
               );
-              runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
               format!(
                 r#"
-    var x = y => {{ var x = {{}}; {}(x, y); return x; }}
-    var y = x => () => x
-    {} = __WEBPACK_EXTERNAL_MODULE_{}__;
-    "#,
-                RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+{} = __WEBPACK_EXTERNAL_MODULE_{}__;
+"#,
                 get_namespace_object_export(concatenation_scope),
                 id.clone()
               )
