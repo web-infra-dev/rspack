@@ -5,10 +5,13 @@ import StatsType from '../../types/stats.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { ApiMeta } from '@components/ApiMeta';
 import Columns from '@components/Columns';
+import { NoSSR } from 'rspress/runtime';
 
 # Compiler 钩子
 
 ## Overview
+
+<NoSSR>
 
 <Columns>
 
@@ -127,6 +130,8 @@ class HookWatchClose,HookShutdown flow-hook
 </Mermaid>
 
 </Columns>
+
+</NoSSR>
 
 ## `environment`
 
