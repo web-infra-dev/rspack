@@ -1,3 +1,4 @@
+import Mermaid from '@components/Mermaid';
 import CompilerType from '../../types/compiler.mdx';
 import CompilationType from '../../types/compilation.mdx';
 import StatsType from '../../types/stats.mdx';
@@ -9,79 +10,114 @@ import Columns from '@components/Columns';
 
 ## Overview
 
-<Columns titles={["rspack()", "compiler.run()", "compiler.compile()"]}>
-<>
+<Columns>
+<div>
+<Mermaid title="rspack()" style={{width: '20rem'}}>
 ```mermaid
 flowchart TD
   CallRspack("rspack()") --> CreateCompiler("new Compiler()")
   CreateCompiler --> ApplyNodeEnvPlugin(Apply NodeEnvironmentPlugin)
   ApplyNodeEnvPlugin --> ApplyDefaultOptions(Apply default options)
   ApplyDefaultOptions --> ApplyCustomPlugins(Apply custom plugins)
-  ApplyCustomPlugins --> HookEnvironment(hooks.environment)
-  HookEnvironment --> HookAfterEnvironment(hooks.afterEnvironment)
+  ApplyCustomPlugins --> HookEnvironment(<a href="#environment">hooks.environment</a>)
+  HookEnvironment --> HookAfterEnvironment(<a href="#afterenvironment">hooks.afterEnvironment</a>)
   HookAfterEnvironment --> ApplyRspackPlugins(Apply internal plugins)
-  ApplyRspackPlugins <--> HookEntryOptions(hooks.entryOptions)
-  ApplyRspackPlugins --> HookAfterPlugins(hooks.afterPlugins)
-  HookAfterPlugins --> ResolveOptions(resolverFactory.hooks.resolveOptions)
-  ResolveOptions --> HookAfterResolvers(hooks.afterResolvers)
-  HookAfterResolvers --> HookInitialize(hooks.initialize)
-  HookInitialize --> compiler
+  ApplyRspackPlugins <--> HookEntryOptions(<a href="#entryoption">hooks.entryOption</a>)
+  ApplyRspackPlugins --> HookAfterPlugins(<a href="#afterplugins">hooks.afterPlugins</a>)
+  HookAfterPlugins --> ResolveOptions(Generate resolve options)
+  ResolveOptions --> HookAfterResolvers(<a href="#afterresolvers">hooks.afterResolvers</a>)
+  HookAfterResolvers --> HookInitialize(<a href="#initialize">hooks.initialize</a>)
+  HookInitialize --> compiler("return compiler")
 
 class CallRspack flow-start
 class compiler flow-end
-class ApplyNodeEnvPlugin,ApplyDefaultOptions,ApplyCustomPlugins,ApplyRspackPlugins,ResolveOptions flow-process
+class CreateCompiler,ApplyNodeEnvPlugin,ApplyDefaultOptions,ApplyCustomPlugins,ApplyRspackPlugins,ResolveOptions flow-process
 class HookEnvironment,HookAfterEnvironment,HookEntryOptions,HookAfterPlugins,HookAfterResolvers,HookInitialize flow-hook
 
 ````
-</>
-
-<>
-```mermaid
-flowchart TD
-  RunCompiler("compiler.run(callback)") --> HookBeforeRun(hooks.beforeRun)
-  HookBeforeRun --> HooksRun(hooks.run)
-  HooksRun --> HooksReadRecords(hooks.readRecords)
-  HooksReadRecords --> Compile("compiler.compile()")
-  Compile --> HookShouldEmit{hooks.shouldEmit}
-  HookShouldEmit --> |true| HookEmit(hooks.emit)
-  HookShouldEmit --> |false| HookDone(hooks.done)
-  HookEmit --> EmitAssets(Emit asset files)
-  EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
-  EmitAssets --> HookAfterEmit(hooks.afterEmit)
-  HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
-  HookNeedAdditionalPass --> |true| HookAdditionalDone(hooks.done)
-  HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
-  HookAdditionPass --> Compile
-  HookNeedAdditionalPass --> |false| HookEmitRecords(hooks.emitRecords)
-  HookEmitRecords --> HookDone
-  HookDone --> HookFailed(hooks.failed)
-  HookFailed --> Callback("callback(err, stats)")
-  Callback --> HookAfterDone(hooks.afterDone)
-````
-
-</>
-
-<>
+</Mermaid>
+<br/>
+<Mermaid title="compiler.compile()">
 ```mermaid
 flowchart TD
   Compile("compiler.compile(callback)") --> CompilationParams("Create module factories")
   CompilationParams --> HookNormalModuleFactory(hooks.normalModuleFactory)
   CompilationParams --> HookContextModuleFactory(hooks.contextModuleFactory)
-  CompilationParams --> HookBeforeCompile(hooks.beforeCompile)
-  HookBeforeCompile --> HookCompile(hooks.compile)
-  HookCompile --> Compilation("new Compilation")
-  Compilation --> HookThisCompilation(hooks.thisCompilation)
-  HookThisCompilation --> HookCompilation(hooks.compilation)
-  HookCompilation --> HookMake(hooks.make)
+  CompilationParams --> HookBeforeCompile(<a href="#beforecompile">hooks.beforeCompile</a>)
+  HookBeforeCompile --> HookCompile(<a href="#compile">hooks.compile</a>)
+  HookCompile --> Compilation("new Compilation()")
+  Compilation --> HookThisCompilation(<a href="#thiscompilation">hooks.thisCompilation</a>)
+  HookThisCompilation --> HookCompilation(<a href="#compilation">hooks.compilation</a>)
+  HookCompilation --> HookMake(<a href="#make">hooks.make</a>)
   HookMake --> CreateModuleGraph(Create module graph)
   CreateModuleGraph <--> RunLoaders(Run loaders on modules)
   CreateModuleGraph --> HookFinishMake(hooks.finishMake)
   HookFinishMake --> CompilationFinish("compilation.finish()")
   CompilationFinish --> CompilationSeal("compilation.seal()")
-  CompilationSeal --> HookAfterCompile(hooks.afterCompile)
+  CompilationSeal --> HookAfterCompile(<a href="#aftercompile">hooks.afterCompile</a>)
   HookAfterCompile --> Callback("callback()")
+
+class Compile flow-start
+class Callback,CloseCallback flow-end
+class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
+class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookAfterCompile flow-hook
+class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-non-support
+````
+
+</Mermaid>
+
+</div>
+
+<Mermaid title="compiler.watch/run/close()">
+```mermaid
+flowchart TD
+  WatchCompiler("compiler.watch(options, callback)") --> CreateWatching("new Watching()")
+  RunCompiler("compiler.run(callback)") --> HookBeforeRun(<a href="#beforerun">hooks.beforeRun</a>)
+  HookBeforeRun --> HookRun(<a href="#run">hooks.run</a>)
+  HookRun --> HookReadRecords(hooks.readRecords)
+  CreateWatching --> HookReadRecords
+  HookReadRecords --> Compile("compiler.compile()")
+  HookWatchRun --> Compile
+  HookReadRecords --> HookWatchRun(<a href="#watchrun">hooks.watchRun</a>)
+  Compile --> HookShouldEmit{<a href="#shouldemit">hooks.shouldEmit</a>}
+  HookShouldEmit --> |是| HookEmit(<a href="#emit">hooks.emit</a>)
+  HookShouldEmit --> |否| HookDone(<a href="#done">hooks.done</a>)
+  HookEmit --> EmitAssets(Emit asset files)
+  EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
+  EmitAssets --> HookAfterEmit(<a href="#afteremit">hooks.afterEmit</a>)
+  HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
+  HookNeedAdditionalPass --> |是| HookAdditionalDone(hooks.done)
+  HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
+  HookAdditionPass --> Compile
+  HookNeedAdditionalPass --> |否| HookEmitRecords(hooks.emitRecords)
+  HookEmitRecords --> HookDone
+  HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
+  HookFailed --> Callback("callback(err, stats)")
+  Callback --> WatchingWatch("watching.watch()")
+  WatchingWatch --> HookAfterDone(<a href="#afterdone">hooks.afterDone</a>)
+  WatchingWatch --> CollectFileChanges("Collect file changes")
+  CollectFileChanges --> HookReadRecords
+  Callback --> HookAfterDone
+
+HookAfterDone -.-> CloseCompile("compiler.close(callback)")
+CloseCompile --> WatchingClose("watching.close()")
+WatchingClose --> HookWatchClose(<a href="#watchclose">hooks.watchClose</a>)
+HookWatchClose --> CloseCallback("callback()")
+CloseCallback --> HookShutdown(<a href="#shutdown">hooks.shutdown</a>)
+
+class RunCompiler,WatchCompiler flow-start
+class Callback flow-end
+class Compile,EmitAssets,CollectFileChanges,CreateWatching,WatchingWatch flow-process
+class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
+class HookReadRecords,HookAssetEmitted,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
+
+class CloseCompile flow-start
+class CloseCallback flow-end
+class WatchingClose flow-process
+class HookWatchClose,HookShutdown flow-hook
+
 ```
-</>
+</Mermaid>
 
 </Columns>
 
@@ -385,3 +421,10 @@ Called if the compilation fails.
 Called when a watching compilation has stopped.
 
 - **Type:** `SyncHook<[]>`
+
+## `shutdown`
+
+Called when the compiler is closing.
+
+- **Type:** `AsyncSeriesHook<[]>`
+```
