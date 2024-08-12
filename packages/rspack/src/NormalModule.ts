@@ -2,12 +2,13 @@ import util from "node:util";
 import * as liteTapable from "@rspack/lite-tapable";
 
 import { Compilation } from "./Compilation";
+import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
 
 const compilationHooksMap = new WeakMap<
 	Compilation,
 	{
-		loader: liteTapable.SyncHook<[LoaderContext]>;
+		loader: liteTapable.SyncHook<[LoaderContext, Module]>;
 		readResourceForScheme: any;
 		readResource: liteTapable.HookMap<
 			liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
@@ -77,7 +78,7 @@ export class NormalModule {
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {
-				loader: new liteTapable.SyncHook(["loaderContext"]),
+				loader: new liteTapable.SyncHook(["loaderContext", "module"]),
 				// TODO webpack 6 deprecate
 				readResourceForScheme: new liteTapable.HookMap(scheme => {
 					const hook = hooks!.readResource.for(scheme);
