@@ -1,19 +1,76 @@
 import type { CSSProperties, PropsWithChildren } from 'react';
 import './Mermaid.scss';
 
+import mermaid, { type MermaidConfig } from 'mermaid';
+import type React from 'react';
+import { useEffect, useId, useState } from 'react';
+interface MermaidRendererProps {
+  code: string;
+  config?: MermaidConfig;
+}
+
+const MermaidRenderer: React.FC<MermaidRendererProps> = props => {
+  const { code, config = {} } = props;
+
+  const id = useId();
+
+  const [svg, setSvg] = useState('');
+
+  const [renderError, setRenderError] = useState(false);
+
+  async function renderMermaid2SVG() {
+    // https://github.com/mermaid-js/mermaid/blob/1b40f552b20df4ab99a986dd58c9d254b3bfd7bc/packages/mermaid/src/docs/.vitepress/theme/Mermaid.vue#L53
+    const hasDarkClass = document.documentElement.classList.contains('dark');
+
+    const mermaidConfig: MermaidConfig = {
+      securityLevel: 'loose',
+      startOnLoad: false,
+      theme: hasDarkClass ? 'dark' : 'default',
+      ...config,
+    };
+
+    try {
+      mermaid.initialize(mermaidConfig);
+
+      const { svg } = await mermaid.render(
+        id.replace(/:/g, ''),
+        code as string,
+      );
+
+      setSvg(svg);
+    } catch (error) {
+      setRenderError(true);
+    }
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: safe
+  useEffect(() => {
+    renderMermaid2SVG();
+  }, []);
+
+  return (
+    <>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
+      {renderError ? null : <div dangerouslySetInnerHTML={{ __html: svg }} />}
+    </>
+  );
+};
+
 interface Props {
   style?: CSSProperties;
   title?: string;
+  config?: MermaidConfig;
 }
 export default function Mermaid({
   style,
   children,
   title,
+  config,
 }: PropsWithChildren<Props>) {
   return (
     <div style={style} className="rspack-mermaid">
       <h3>{title}</h3>
-      {children}
+      <MermaidRenderer code={children as string} config={config} />
     </div>
   );
 }
