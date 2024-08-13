@@ -50,6 +50,18 @@
       }
     }
 
+    .flow-optimization {
+      rect,
+      polygon {
+        fill: var(--tw-ring-color) !important;
+        stroke: var(--rp-container-details-link) !important;
+      }
+
+      span.nodeLabel {
+        color: #333 !important;
+      }
+    }
+
     .flow-hook {
       rect,
       polygon {
@@ -118,6 +130,18 @@
         polygon {
           fill: #666 !important;
           stroke: #666 !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+
+      .flow-optimization {
+        rect,
+        polygon {
+          fill: var(--tw-ring-color) !important;
+          stroke: var(--rp-container-details-link) !important;
         }
 
         span.nodeLabel {
