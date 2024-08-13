@@ -7222,7 +7222,7 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 export class NormalModule {
     // (undocumented)
     static getCompilationHooks(compilation: Compilation): {
-        loader: liteTapable.SyncHook<[LoaderContext<{}>], void, {
+        loader: liteTapable.SyncHook<[LoaderContext<{}>, Module], void, {
             _UnsetAdditionalOptions: true;
         }>;
         readResourceForScheme: any;

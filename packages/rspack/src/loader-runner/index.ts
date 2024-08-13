@@ -752,7 +752,10 @@ export async function runLoaders(
 	let compilation: Compilation | undefined = compiler._lastCompilation;
 	let step = 0;
 	while (compilation) {
-		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
+		NormalModule.getCompilationHooks(compilation).loader.call(
+			loaderContext,
+			loaderContext._module
+		);
 		compilation = compilation.compiler.parentCompilation;
 		step++;
 		if (step > 1000) {
