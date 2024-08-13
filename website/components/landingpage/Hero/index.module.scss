@@ -1,0 +1,115 @@
+.hero {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+}
+
+.innerHero {
+  display: flex;
+  width: 1152px;
+  height: 646px;
+  padding: 64px 0px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  width: 216.225px;
+  height: 180px;
+}
+
+.title {
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 72px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 93.6px; /* 130% */
+
+  // background
+  background: var(
+    --orange-gradient,
+    linear-gradient(279deg, #ff8b00 35.21%, #f93920 63.34%)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: var(--Text-primary-color, #0b0c0e);
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 50px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 72px; /* 144% */
+}
+
+.description {
+  color: var(--Text-secondary-color, #6b7075);
+  text-align: center;
+  /* Style 5 */
+  font-family: 'Open Sans';
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px; /* 83.333% */
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.buttonPrimary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 24px 12px 24px;
+
+  // style
+  border-radius: 25px;
+  border: 1.5px solid var(--orange-gradient, #ff8b00);
+  background: var(
+    --orange-gradient,
+    linear-gradient(279deg, #ff8b00 35.21%, #f93920 63.34%)
+  );
+
+  // text
+  color: var(--white, #fff);
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 24px */
+  text-transform: capitalize;
+}
+
+.buttonSecondary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 24px 12px 24px;
+  // style
+  border-radius: 25px;
+  border: 2px solid var(--orange-gradient, #ff8b00);
+
+  // text
+  color: var(--dark-bg-70, #0b0c0e);
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 24px */
+  text-transform: capitalize;
+}

@@ -1,0 +1,125 @@
+.featuresContainer {
+  display: flex;
+  padding: 32px 144px;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  .featuresContainerInner {
+    width: 1440px;
+    height: 716px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+.whyRspack {
+  flex: 2 2 calc(67%) !important;
+
+  .whyRspackText {
+    font-family: 'Open Sans';
+    font-size: 50px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: -2px;
+    // style
+    background: var(
+      --Linear-Text,
+      linear-gradient(278deg, #ff8b00 52.48%, #f93920 98.12%)
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .whyRspackDescription {
+    font-family: 'Open Sans';
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 40px; /* 166.667% */
+  }
+}
+
+.features {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 0px;
+
+  .featureCard {
+    display: flex;
+    flex: 1 1 33%;
+    padding: 32px;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    align-self: stretch;
+    // style
+    border-radius: 20px;
+    border: 1px solid var(--card-stroke, #e6e8ea);
+    background: var(
+      --Light-card-gradient,
+      conic-gradient(
+        from 225deg at 50% 50%,
+        rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
+        #fff 360deg
+      )
+    );
+  }
+
+  .featureIcon {
+    background: url('./assets/CardBg.svg') cover no-repeat;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 150px;
+    width: 300px;
+    // style
+    border-radius: 20px;
+    border: 1px solid var(--card-stroke, #e6e8ea);
+    background: var(
+      --Light-card-gradient,
+      conic-gradient(
+        from 225deg at 50% 50%,
+        rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
+        #fff 360deg
+      )
+    );
+
+    // text
+    font-size: 2rem;
+    color: #ff6347;
+    margin-bottom: 10px;
+  }
+
+  .featureContent {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px;
+
+    .featureTitle {
+      color: var(--dark-bg-70, #0b0c0e);
+      font-family: 'Open Sans';
+      font-size: 18px;
+      font-style: normal;
+      font-weight: 700;
+      line-height: normal;
+    }
+
+    .featureDescription {
+      color: var(--secondary-text-light, #6b7075);
+      font-family: 'Open Sans';
+      font-size: 16px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 24px; /* 150% */
+    }
+  }
+}
