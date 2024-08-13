@@ -6,11 +6,12 @@
 
 use codspeed_criterion_compat::{criterion_group, criterion_main, Criterion};
 
-const PATH: &'static str = "some/a/bigger/path/to/the/crazy/needle.txt";
-const GLOB: &'static str = "some/**/needle.txt";
+const PATH: &str = "some/a/bigger/path/to/the/crazy/needle.txt";
+const GLOB: &str = "some/**/needle.txt";
 
 #[inline]
 fn rspack_glob(pat: &str, s: &str) -> bool {
+  #[allow(clippy::unwrap_used)]
   let pat = rspack_glob::Pattern::new(pat).unwrap();
   pat.matches(s)
 }

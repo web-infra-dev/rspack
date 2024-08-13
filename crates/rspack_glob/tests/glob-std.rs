@@ -10,8 +10,6 @@
 
 // ignore-windows TempDir may cause IoError on windows: #10462
 
-#![cfg_attr(test, deny(warnings))]
-
 extern crate tempdir;
 
 use std::env;
@@ -69,7 +67,7 @@ fn main() {
   }
 
   let root = TempDir::new("glob-tests");
-  let root = root.ok().expect("Should have created a temp directory");
+  let root = root.expect("Should have created a temp directory");
   assert!(env::set_current_dir(root.path()).is_ok());
 
   mk_file("aaa", true);
@@ -148,7 +146,7 @@ fn main() {
   if env::consts::FAMILY == "windows" {
     let r_verbatim = PathBuf::from("r").canonicalize().unwrap();
     assert_eq!(
-      glob_vec(&format!("{}\\**", r_verbatim.display().to_string()))
+      glob_vec(&format!("{}\\**", r_verbatim.display()))
         .into_iter()
         .map(|p| p.strip_prefix(&r_verbatim).unwrap().to_owned())
         .collect::<Vec<_>>(),

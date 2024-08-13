@@ -100,7 +100,7 @@ fn glob_match_with_normalized_pattern(
           let pat = entry.insert(pat);
           pat.matches(string.trim_start_matches("./"))
         }
-        Err(_) => return false,
+        Err(_) => false,
       }
     }
   }
