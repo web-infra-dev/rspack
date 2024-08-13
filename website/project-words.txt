@@ -55,6 +55,7 @@ Iife
 indicatif
 innovatively
 IWANABETHATGUY
+intlify
 jantimon
 JavaScript
 jerrykingxyz
@@ -96,6 +97,7 @@ NAPI-RS
 nativizing
 nestjs
 NestJS
+ngtools
 noimport
 nosources
 nwjs
@@ -159,6 +161,7 @@ typeofs
 TypeScript
 ulivz
 Undelayed
+unplugin
 valorkin
 vant
 viktoriialurie
