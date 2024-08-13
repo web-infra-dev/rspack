@@ -3220,6 +3220,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_glob"
+version = "0.1.0"
+
+[[package]]
 name = "rspack_hash"
 version = "0.1.0"
 dependencies = [
