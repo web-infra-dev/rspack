@@ -577,8 +577,6 @@ enum MatchResult {
 }
 
 const ERROR_WILDCARDS: &str = "wildcards are either regular `*` or recursive `**`";
-const ERROR_RECURSIVE_WILDCARDS: &str = "recursive wildcards must form a single path \
-                                         component";
 const ERROR_INVALID_RANGE: &str = "invalid range pattern";
 
 impl Pattern {
@@ -590,28 +588,6 @@ impl Pattern {
     let mut tokens = Vec::new();
     let mut is_recursive = false;
     let mut i = 0;
-
-    // A pattern is relative if it starts with "." followed by a separator,
-    // eg. "./test" or ".\test"
-    let is_relative = matches!(chars.get(..2), Some(['.', sep]) if path::is_separator(*sep));
-    if is_relative {
-      // If a pattern starts with a relative prefix, strip it from the
-      // pattern and replace it with a "**" sequence
-      i += 2;
-      tokens.push(AnyRecursiveSequence);
-    } else {
-      // A pattern is absolute if it starts with a path separator, eg. "/home" or "\\?\C:\Users"
-      let mut is_absolute = chars.first().map_or(false, |c| path::is_separator(*c));
-      // On windows a pattern may also be absolute if it starts with a
-      // drive letter, a colon and a separator, eg. "c:/Users" or "G:\Users"
-      if cfg!(windows) && !is_absolute {
-        is_absolute = matches!(chars.get(..3), Some(['a'..='z' | 'A'..='Z', ':', sep]) if path::is_separator(*sep));
-      }
-      // If a pattern is not absolute, insert a "**" sequence in front
-      if !is_absolute {
-        tokens.push(AnyRecursiveSequence);
-      }
-    }
 
     while i < chars.len() {
       match chars[i] {
@@ -651,17 +627,11 @@ impl Pattern {
                   true
                   // `**` ends in non-separator
                 } else {
-                  return Err(PatternError {
-                    pos: i,
-                    msg: ERROR_RECURSIVE_WILDCARDS,
-                  });
+                  false
                 }
                 // `**` begins with non-separator
               } else {
-                return Err(PatternError {
-                  pos: old - 1,
-                  msg: ERROR_RECURSIVE_WILDCARDS,
-                });
+                false
               };
 
               if is_valid {
@@ -672,6 +642,8 @@ impl Pattern {
                   is_recursive = true;
                   tokens.push(AnyRecursiveSequence);
                 }
+              } else {
+                tokens.push(AnySequence);
               }
             }
             _ => {
@@ -1158,16 +1130,6 @@ mod test {
   #[test]
   fn test_pattern_from_str() {
     assert!("a*b".parse::<Pattern>().unwrap().matches("a_b"));
-    assert!("a/**b".parse::<Pattern>().unwrap_err().pos == 4);
-  }
-
-  #[test]
-  fn test_wildcard_errors() {
-    assert!(Pattern::new("a/**b").unwrap_err().pos == 4);
-    assert!(Pattern::new("a/bc**").unwrap_err().pos == 3);
-    assert!(Pattern::new("a/*****").unwrap_err().pos == 4);
-    assert!(Pattern::new("a/b**c**d").unwrap_err().pos == 2);
-    assert!(Pattern::new("a**b").unwrap_err().pos == 0);
   }
 
   #[test]
@@ -1184,7 +1146,6 @@ mod test {
 
   #[test]
   fn test_glob_errors() {
-    assert!(glob("a/**b").err().unwrap().pos == 4);
     assert!(glob("abc[def").err().unwrap().pos == 3);
   }
 
@@ -1559,19 +1520,6 @@ mod test {
   fn test_path_join() {
     let pattern = Path::new("one").join(Path::new("**/*.rs"));
     assert!(Pattern::new(pattern.to_str().unwrap()).is_ok());
-  }
-
-  #[test]
-  fn test_pattern_relative() {
-    assert!(Pattern::new("./b").unwrap().matches_path(Path::new("a/b")));
-    assert!(Pattern::new("b").unwrap().matches_path(Path::new("a/b")));
-
-    if cfg!(windows) {
-      assert!(Pattern::new(".\\b")
-        .unwrap()
-        .matches_path(Path::new("a\\b")));
-      assert!(Pattern::new("b").unwrap().matches_path(Path::new("a\\b")));
-    }
   }
 
   #[test]

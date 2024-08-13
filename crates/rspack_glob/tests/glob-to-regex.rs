@@ -43,15 +43,13 @@ fn test() {
   assert_match("f*uck", "fuck");
 
   // Equivalent matches without/with using RegExp 'g'
-  assert_not_match(".min.", "example.com/jquery.min.js");
-  assert_match("*.min.*", "example.com/jquery.min.js");
+  assert_not_match(".min.", "http://example.com/jquery.min.js");
 
-  assert_not_match("http:", "example.com/jquery.min.js");
+  assert_not_match("http:", "http://example.com/jquery.min.js");
 
-  assert_not_match("min.js", "example.com/jquery.min.js");
-  assert_match("*.min.js", "example.com/jquery.min.js");
+  assert_not_match("min.js", "http://example.com/jquery.min.js");
 
-  assert_not_match("/js*jq*.js", "example.com/js/jquery.min.js");
+  assert_not_match("/js*jq*.js", "http://example.com/js/jquery.min.js");
 }
 
 #[test]
@@ -83,11 +81,20 @@ fn test_globstar_specific_cases() {
   assert_not_match("**/.txt", "/foo/bar/baz/qux.txt");
   assert_not_match("*/*.txt", "/foo/bar/baz/qux.txt");
   assert_not_match("*/*.txt", "foo.txt");
-  assert_not_match("foo.com/*", "foo.com/bar/baz/jquery.min.js");
+  assert_not_match("http://foo.com/*", "http://foo.com/bar/baz/jquery.min.js");
 
-  assert_match("foo.com/**", "foo.com/bar/baz/jquery.min.js");
+  assert_match("http://foo.com/**", "http://foo.com/bar/baz/jquery.min.js");
 
-  assert_match("foo.com/*/*/jquery.min.js", "foo.com/bar/baz/jquery.min.js");
-  assert_match("foo.com/**/jquery.min.js", "foo.com/bar/baz/jquery.min.js");
-  assert_not_match("foo.com/*/jquery.min.js", "foo.com/bar/baz/jquery.min.js");
+  assert_match(
+    "http://foo.com/*/*/jquery.min.js",
+    "http://foo.com/bar/baz/jquery.min.js",
+  );
+  assert_match(
+    "http://foo.com/**/jquery.min.js",
+    "http://foo.com/bar/baz/jquery.min.js",
+  );
+  assert_not_match(
+    "http://foo.com/*/jquery.min.js",
+    "http://foo.com/bar/baz/jquery.min.js",
+  );
 }
