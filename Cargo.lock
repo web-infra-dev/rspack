@@ -104,37 +104,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f1f8f5a6f3d50d89e3797d7593a50f96bb2aaa20ca0cc7be1fb673232c91d72"
 
 [[package]]
-name = "argh"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7af5ba06967ff7214ce4c7419c7d185be7ecd6cc4965a8f6e1d8ce0398aad219"
-dependencies = [
- "argh_derive",
- "argh_shared",
-]
-
-[[package]]
-name = "argh_derive"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56df0aeedf6b7a2fc67d06db35b09684c3e8da0c95f8f27685cb17e08413d87a"
-dependencies = [
- "argh_shared",
- "proc-macro2",
- "quote",
- "syn 2.0.63",
-]
-
-[[package]]
-name = "argh_shared"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5693f39141bda5760ecc4111ab08da40565d1771038c4a0250f03457ec707531"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "arrayref"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1733,85 +1702,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
-name = "lexical"
-version = "6.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7aefb36fd43fef7003334742cbf77b243fcd36418a1d1bdd480d613a67968f6"
-dependencies = [
- "lexical-core",
-]
-
-[[package]]
-name = "lexical-core"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cde5de06e8d4c2faabc400238f9ae1c74d5412d03a7bd067645ccbc47070e46"
-dependencies = [
- "lexical-parse-float",
- "lexical-parse-integer",
- "lexical-util",
- "lexical-write-float",
- "lexical-write-integer",
-]
-
-[[package]]
-name = "lexical-parse-float"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "683b3a5ebd0130b8fb52ba0bdc718cc56815b6a097e28ae5a6997d0ad17dc05f"
-dependencies = [
- "lexical-parse-integer",
- "lexical-util",
- "static_assertions",
-]
-
-[[package]]
-name = "lexical-parse-integer"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d0994485ed0c312f6d965766754ea177d07f9c00c9b82a5ee62ed5b47945ee9"
-dependencies = [
- "lexical-util",
- "static_assertions",
-]
-
-[[package]]
 name = "lexical-sort"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c09e4591611e231daf4d4c685a66cb0410cc1e502027a20ae55f2bb9e997207a"
 dependencies = [
  "any_ascii",
-]
-
-[[package]]
-name = "lexical-util"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5255b9ff16ff898710eb9eb63cb39248ea8a5bb036bea8085b1a767ff6c4e3fc"
-dependencies = [
- "static_assertions",
-]
-
-[[package]]
-name = "lexical-write-float"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "accabaa1c4581f05a3923d1b4cfd124c329352288b7b9da09e766b0668116862"
-dependencies = [
- "lexical-util",
- "lexical-write-integer",
- "static_assertions",
-]
-
-[[package]]
-name = "lexical-write-integer"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1b6f3d1f4422866b68192d62f77bc5c700bee84f3069f2469d7bc8c77852446"
-dependencies = [
- "lexical-util",
- "static_assertions",
 ]
 
 [[package]]
@@ -3006,17 +2902,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_ast_viewer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argh",
- "regex",
- "swc_core",
- "swc_error_reporters",
-]
-
-[[package]]
 name = "rspack_base64"
 version = "0.1.0"
 dependencies = [
@@ -3076,7 +2961,6 @@ dependencies = [
  "rspack_plugin_schemes",
  "rspack_plugin_size_limits",
  "rspack_plugin_split_chunks",
- "rspack_plugin_swc_css_minimizer",
  "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_warn_sensitive_module",
  "rspack_plugin_wasm",
@@ -3625,7 +3509,6 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "swc_html",
- "swc_html_minifier",
  "tracing",
  "urlencoding",
 ]
@@ -3901,21 +3784,6 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "rustc-hash 1.1.0",
- "tracing",
-]
-
-[[package]]
-name = "rspack_plugin_swc_css_minimizer"
-version = "0.1.0"
-dependencies = [
- "rayon",
- "regex",
- "rspack_core",
- "rspack_error",
- "rspack_hook",
- "rspack_regex",
- "rspack_util",
- "swc_core",
  "tracing",
 ]
 
@@ -4788,13 +4656,6 @@ dependencies = [
  "swc_allocator",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_minifier",
- "swc_css_modules",
- "swc_css_parser",
- "swc_css_utils",
- "swc_css_visit",
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_parser",
@@ -4811,118 +4672,6 @@ dependencies = [
  "swc_plugin_proxy",
  "swc_plugin_runner",
  "vergen",
-]
-
-[[package]]
-name = "swc_css_ast"
-version = "0.143.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd74b0674c9ab8eebfaada987afc2c1da9bb83519851d253e6c55fe81a7b5d50"
-dependencies = [
- "is-macro",
- "string_enum",
- "swc_atoms",
- "swc_common",
-]
-
-[[package]]
-name = "swc_css_codegen"
-version = "0.154.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae8e731ef1e9f1399548fcaaf2bc5c154d16adc29546a2e7120d692ae4260487"
-dependencies = [
- "auto_impl",
- "bitflags 2.5.0",
- "rustc-hash 1.1.0",
- "serde",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_css_codegen_macros",
- "swc_css_utils",
-]
-
-[[package]]
-name = "swc_css_codegen_macros"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de2ece8c7dbdde85aa1bcc9764c5f41f7450d8bf1312eac2375b8dc0ecbc13d7"
-dependencies = [
- "proc-macro2",
- "quote",
- "swc_macros_common",
- "syn 2.0.63",
-]
-
-[[package]]
-name = "swc_css_minifier"
-version = "0.119.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ca5bb8750e08558b4afd838f72728fb0645d35ede8626a14c25b95ae7b4604e"
-dependencies = [
- "serde",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_css_utils",
- "swc_css_visit",
-]
-
-[[package]]
-name = "swc_css_modules"
-version = "0.32.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2d9a9eeb446f4985454c0742e44b4ab8fef4d935d96b11bbb277102a7167207"
-dependencies = [
- "rustc-hash 1.1.0",
- "serde",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_parser",
- "swc_css_visit",
-]
-
-[[package]]
-name = "swc_css_parser"
-version = "0.153.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f98be1caea76ea9b38ddf9d9940f133aa491e9bc0c254745cfa7e685dbc2b28b"
-dependencies = [
- "lexical",
- "serde",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
-]
-
-[[package]]
-name = "swc_css_utils"
-version = "0.140.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47ab39714e7f531b892385aeb562e326f525efe738c3294d0d7f16c25fbca982"
-dependencies = [
- "once_cell",
- "serde",
- "serde_json",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_css_visit",
-]
-
-[[package]]
-name = "swc_css_visit"
-version = "0.142.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80600a79fb14fe45ab7b92bb4baf2f34767942c732de19c3d691c2f51bd7a155"
-dependencies = [
- "serde",
- "swc_atoms",
- "swc_common",
- "swc_css_ast",
- "swc_visit",
 ]
 
 [[package]]
@@ -5684,35 +5433,6 @@ dependencies = [
  "quote",
  "swc_macros_common",
  "syn 2.0.63",
-]
-
-[[package]]
-name = "swc_html_minifier"
-version = "0.142.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e700e9ea6f29c41849136496652f9cc4ec83e3ad97a64023114eef82e056823c"
-dependencies = [
- "once_cell",
- "serde",
- "serde_json",
- "swc_atoms",
- "swc_cached",
- "swc_common",
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_minifier",
- "swc_css_parser",
- "swc_ecma_ast",
- "swc_ecma_codegen",
- "swc_ecma_minifier",
- "swc_ecma_parser",
- "swc_ecma_transforms_base",
- "swc_ecma_visit",
- "swc_html_ast",
- "swc_html_codegen",
- "swc_html_parser",
- "swc_html_utils",
- "swc_html_visit",
 ]
 
 [[package]]

@@ -59,12 +59,6 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_module",
   "swc_ecma_codegen",
   "swc_ecma_visit",
-  "css_ast",
-  "css_codegen",
-  "css_parser",
-  "css_utils",
-  "css_visit",
-  "css_modules",
 ] }
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

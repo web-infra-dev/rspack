@@ -11,9 +11,9 @@ use swc_html::{
   },
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
-use swc_html_minifier::minify_document;
-pub use swc_html_minifier::option::MinifyOptions;
 
+// use swc_html_minifier::minify_document;
+// pub use swc_html_minifier::option::MinifyOptions;
 use crate::config::HtmlRspackPluginOptions;
 
 pub struct HtmlCompiler<'a> {
@@ -55,7 +55,7 @@ impl<'a> HtmlCompiler<'a> {
     if minify {
       // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
       GLOBALS.set(&Default::default(), || {
-        minify_document(ast, &MinifyOptions::default());
+        // minify_document(ast, &MinifyOptions::default());
       })
     }
 
