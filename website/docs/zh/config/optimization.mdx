@@ -306,7 +306,17 @@ function f2() {
 
 这里我们将 `value` 赋值给了 `value2`，`value2` 和 `value` 也分别在函数 `f2` 和 `f1` 中被访问，但函数没有被调用，因此没有使用到 `value2` 和 `value`，因此 `value` 的导入是可以被删除的。
 
-                                             |
+## optimization.concatenateModules
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+开启模块拼接优化，允许将多个模块拼接成单个模块以降低产物体积，提升压缩效率。此优化需要开启 [optimization.providedExports](#optimizationprovidedexports) 和 [optimization.usedExports](#optimizationusedexports)。默认情况下，`optimization.concatenateModules` 在 `production` 模式下启用，其它模式则禁用。
 
 ## optimization.nodeEnv
 
