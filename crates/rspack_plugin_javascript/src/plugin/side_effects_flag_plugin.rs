@@ -12,6 +12,7 @@ use rspack_core::{
   NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Result;
+use rspack_glob::MatchOptions;
 use rspack_hook::{plugin, plugin_hook};
 use sugar_path::SugarPath;
 use swc_core::common::comments::Comments;
@@ -61,17 +62,22 @@ fn get_side_effects_from_package_json(
   side_effects: SideEffects,
   relative_path: PathBuf,
   glob_pattern_cache: &DashMap<String, rspack_glob::Pattern>,
+  match_options: &MatchOptions,
 ) -> bool {
   match side_effects {
     SideEffects::Bool(s) => s,
-    SideEffects::String(s) => {
-      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy(), glob_pattern_cache)
-    }
+    SideEffects::String(s) => glob_match_with_normalized_pattern(
+      &s,
+      &relative_path.to_string_lossy(),
+      glob_pattern_cache,
+      match_options,
+    ),
     SideEffects::Array(patterns) => patterns.iter().any(|pattern| {
       glob_match_with_normalized_pattern(
         pattern,
         &relative_path.to_string_lossy(),
         glob_pattern_cache,
+        match_options,
       )
     }),
   }
@@ -81,6 +87,7 @@ fn glob_match_with_normalized_pattern(
   pattern: &str,
   string: &str,
   glob_pattern_cache: &DashMap<String, rspack_glob::Pattern>,
+  match_options: &MatchOptions,
 ) -> bool {
   let trim_start = pattern.trim_start_matches("./");
   let normalized_glob = if trim_start.contains('/') {
@@ -91,14 +98,14 @@ fn glob_match_with_normalized_pattern(
   match glob_pattern_cache.entry(normalized_glob) {
     dashmap::mapref::entry::Entry::Occupied(entry) => {
       let pattern = entry.get();
-      pattern.matches(string.trim_start_matches("./"))
+      pattern.matches_with(string.trim_start_matches("./"), match_options)
     }
     dashmap::mapref::entry::Entry::Vacant(entry) => {
       let pattern = rspack_glob::Pattern::new(entry.key());
       match pattern {
         Ok(pat) => {
           let pat = entry.insert(pat);
-          pat.matches(string.trim_start_matches("./"))
+          pat.matches_with(string.trim_start_matches("./"), match_options)
         }
         Err(_) => false,
       }
@@ -648,6 +655,18 @@ impl ClassExt for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin {
   glob_pattern_cache: DashMap<String, rspack_glob::Pattern>,
+  match_options: MatchOptions,
+}
+
+impl SideEffectsFlagPlugin {
+  pub fn new() -> Self {
+    let match_options = MatchOptions {
+      case_sensitive: false,
+      require_literal_separator: true,
+      require_literal_leading_dot: false,
+    };
+    Self::new_inner(DashMap::default(), match_options)
+  }
 }
 
 #[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
@@ -675,8 +694,12 @@ async fn nmf_module(
     return Ok(());
   };
   let relative_path = resource_path.relative(package_path);
-  let has_side_effects =
-    get_side_effects_from_package_json(side_effects, relative_path, &self.glob_pattern_cache);
+  let has_side_effects = get_side_effects_from_package_json(
+    side_effects,
+    relative_path,
+    &self.glob_pattern_cache,
+    &self.match_options,
+  );
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
   });
@@ -859,6 +882,12 @@ fn get_level_order_module_ids(mg: &ModuleGraph, entries: IdentifierSet) -> Vec<M
 mod test_side_effects {
   use super::*;
 
+  static MATCH_OPTIONS: MatchOptions = MatchOptions {
+    case_sensitive: false,
+    require_literal_separator: true,
+    require_literal_leading_dot: false,
+  };
+
   fn get_side_effects_from_package_json_helper(
     side_effects_config: Vec<&str>,
     relative_path: &str,
@@ -877,7 +906,12 @@ mod test_side_effects {
       SideEffects::String((&side_effects_config[0]).to_string())
     };
 
-    get_side_effects_from_package_json(side_effects, relative_path, glob_pattern_cache)
+    get_side_effects_from_package_json(
+      side_effects,
+      relative_path,
+      glob_pattern_cache,
+      &MATCH_OPTIONS,
+    )
   }
 
   #[test]

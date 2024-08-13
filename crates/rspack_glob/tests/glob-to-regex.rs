@@ -6,7 +6,7 @@ fn glob(pat: &str, path: &str) -> bool {
   let p = Pattern::new(pat).unwrap();
   p.matches_with(
     path,
-    MatchOptions {
+    &MatchOptions {
       case_sensitive: false,
       require_literal_separator: true,
       require_literal_leading_dot: false,
