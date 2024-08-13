@@ -81,7 +81,6 @@ const BENCHMARK_DATA: BenchmarkData = {
 
 export function Benchmark() {
   const t = useI18n();
-
   return (
     <div className="relative flex flex-col justify-center pt-24 pb-10 h-auto">
       <div className="flex flex-center flex-col">
