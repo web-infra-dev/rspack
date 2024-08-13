@@ -119,6 +119,13 @@
     stroke: #666 !important;
     fill: #666 !important;
   }
+
+  .cluster {
+    rect {
+      fill: transparent !important;
+      stroke: #666 !important;
+    }
+  }
 }
 
 .dark {
