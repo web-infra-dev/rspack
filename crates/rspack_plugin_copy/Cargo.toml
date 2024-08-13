@@ -9,7 +9,7 @@ version     = "0.1.0"
 dashmap        = { workspace = true }
 derivative     = { workspace = true }
 futures        = { workspace = true }
-glob           = { workspace = true }
+rspack_glob           = { version = "0.1.0", path = "../rspack_glob" }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true }
 regex          = { workspace = true }

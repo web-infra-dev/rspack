@@ -10,7 +10,7 @@ anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
-fast-glob = "0.3.2"
+rspack_glob = { version = "0.1.0", path = "../rspack_glob" }
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }

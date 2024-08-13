@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use dashmap::DashMap;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
@@ -56,26 +57,53 @@ impl SideEffects {
   }
 }
 
-fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: PathBuf) -> bool {
+fn get_side_effects_from_package_json(
+  side_effects: SideEffects,
+  relative_path: PathBuf,
+  glob_pattern_cache: &DashMap<String, rspack_glob::Pattern>,
+) -> bool {
   match side_effects {
     SideEffects::Bool(s) => s,
     SideEffects::String(s) => {
-      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy())
+      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy(), glob_pattern_cache)
     }
-    SideEffects::Array(patterns) => patterns
-      .iter()
-      .any(|pattern| glob_match_with_normalized_pattern(pattern, &relative_path.to_string_lossy())),
+    SideEffects::Array(patterns) => patterns.iter().any(|pattern| {
+      glob_match_with_normalized_pattern(
+        pattern,
+        &relative_path.to_string_lossy(),
+        glob_pattern_cache,
+      )
+    }),
   }
 }
 
-fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
+fn glob_match_with_normalized_pattern(
+  pattern: &str,
+  string: &str,
+  glob_pattern_cache: &DashMap<String, rspack_glob::Pattern>,
+) -> bool {
   let trim_start = pattern.trim_start_matches("./");
   let normalized_glob = if trim_start.contains('/') {
     trim_start.to_string()
   } else {
     String::from("**/") + trim_start
   };
-  fast_glob::glob_match_with_brace(&normalized_glob, string.trim_start_matches("./"))
+  match glob_pattern_cache.entry(normalized_glob) {
+    dashmap::mapref::entry::Entry::Occupied(entry) => {
+      let pattern = entry.get();
+      pattern.matches(string.trim_start_matches("./"))
+    }
+    dashmap::mapref::entry::Entry::Vacant(entry) => {
+      let pattern = rspack_glob::Pattern::new(entry.key());
+      match pattern {
+        Ok(pat) => {
+          let pat = entry.insert(pat);
+          pat.matches(string.trim_start_matches("./"))
+        }
+        Err(_) => return false,
+      }
+    }
+  }
 }
 
 pub struct SideEffectsFlagPluginVisitor<'a> {
@@ -618,7 +646,9 @@ impl ClassExt for ClassMember {
 
 #[plugin]
 #[derive(Debug, Default)]
-pub struct SideEffectsFlagPlugin;
+pub struct SideEffectsFlagPlugin {
+  glob_pattern_cache: DashMap<String, rspack_glob::Pattern>,
+}
 
 #[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
 async fn nmf_module(
@@ -645,7 +675,8 @@ async fn nmf_module(
     return Ok(());
   };
   let relative_path = resource_path.relative(package_path);
-  let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
+  let has_side_effects =
+    get_side_effects_from_package_json(side_effects, relative_path, &self.glob_pattern_cache);
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
   });
@@ -831,6 +862,7 @@ mod test_side_effects {
   fn get_side_effects_from_package_json_helper(
     side_effects_config: Vec<&str>,
     relative_path: &str,
+    glob_pattern_cache: &DashMap<String, rspack_glob::Pattern>,
   ) -> bool {
     assert!(!side_effects_config.is_empty());
     let relative_path = PathBuf::from(relative_path);
@@ -845,97 +877,116 @@ mod test_side_effects {
       SideEffects::String((&side_effects_config[0]).to_string())
     };
 
-    get_side_effects_from_package_json(side_effects, relative_path)
+    get_side_effects_from_package_json(side_effects, relative_path, glob_pattern_cache)
   }
 
   #[test]
   fn cases() {
+    let glob_pattern_cache = DashMap::default();
+
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/index.js", "./src/selection/index.js"],
-      "./src/selection/index.js"
+      "./src/selection/index.js",
+      &glob_pattern_cache
     ));
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js"],
-      "./x.js"
+      "./x.js",
+      &glob_pattern_cache
     ));
     assert!(get_side_effects_from_package_json_helper(
       vec!["./**/src/x/y/z.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"./src/**/z.js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/z.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"./**/x/**/z.js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["./**/x/**/z.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"./**/src/**",
     assert!(get_side_effects_from_package_json_helper(
       vec!["./**/src/**"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"./**/src/*",
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/x/y/z.js"],
-      "./**/src/*"
+      "./**/src/*",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"*.js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["*.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"x/**/z.js",
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/x/y/z.js"],
-      "x/**/z.js"
+      "x/**/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"src/**/z.js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/z.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"src/**/{x,y,z}.js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["src/**/{x,y,z}.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 				"./src/x/y/z.js",
     // 				"src/**/[x-z].js",
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/[x-z].js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     // 		const array = ["./src/**/*.js", "./dirty.js"];
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
-      "./dirty.js"
+      "./dirty.js",
+      &glob_pattern_cache
     ));
     assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
-      "./clean.js"
+      "./clean.js",
+      &glob_pattern_cache
     ));
     assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*/z.js"],
-      "./src/x/y/z.js"
+      "./src/x/y/z.js",
+      &glob_pattern_cache
     ));
   }
 }
