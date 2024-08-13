@@ -10,7 +10,7 @@ Loader 属于对资源的前处理，而 [Rule.type](/config/module#ruletype) �
 
 :::
 
-目前 Rspack 已对大多数社区 loader 进行了支持，仅 [cache-loader](https://github.com/web-infra-dev/rspack/issues/6457) 等少数 loader 还未支持。如果你发现有不支持的 loader，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流。
+目前 Rspack 已经几乎支持了社区所有的 loader。如果你发现有不支持的 loader，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流。
 
 ## 示例
 
@@ -144,3 +144,4 @@ module.exports = {
 内置 Loader 在不损失 JS Loader 的可组合性的同时，提供了比 JS Loader 更优的性能。一些内置的 Loader 包括：
 
 - [builtin:swc-loader](/guide/features/builtin-swc-loader)
+- [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader)
