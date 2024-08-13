@@ -53,7 +53,7 @@ Rspack was initially created to solve performance problems encountered at ByteDa
 - **Dev mode startup performance.** `npm run dev` is a command that developers may invoke many times per hour. Engineering productivity suffers if startup time exceeds 10-15 seconds.
 - **Fast builds.** `npm run build` is used in CI/CD pipelines and directly impacts merging productivity and application delivery time. Large applications may spend 20-30 minutes running these pipelines, and bundling time is often a major contributor.
 - **Flexible configuration.** From experimenting with various popular bundlers, we found that one-size-fits-all configurations encountered many problems when trying to accommodate real world projects. A major advantage of webpack is its flexibility and ease of accommodating customized requirements for each project. This in turn may pose steep migration costs for legacy projects that try to migrate away from webpack.
-- **Production optimization capabilities.** All of the existing bundling solutions also had various limitations when optimizing for a production environment, such as insufficiently fine-grained package splitting, etc. Rspack was an opportunity to rethink these optimizations from the ground up, leveraging Rust-specific features such as multithreading.
+- **Production optimization capabilities.** All of the existing bundling solutions also had various limitations when optimizing for a production environment, such as insufficiently fine-grained code splitting, etc. Rspack has an opportunity to rethink these optimizations from the ground up, leveraging Rust-specific features such as multithreading.
 
 ## Current status of Rspack
 
@@ -65,7 +65,7 @@ Currently, Rspack's cache support is relatively simple, only supporting memory-l
 
 ## The future of Rspack
 
-Although Rspack already meets the needs of many projects, there are still some gaps to reach the full capabilities of webpack. Prioritization will be based on community feedback, so please tell us about your requirements!
+Although Rspack already meets the needs of many projects, there are still some gaps to reach the full capabilities of webpack. Prioritization will be based on community feedback, so please tell us about your needs!
 
 ### Collaboration with community partners
 
@@ -73,7 +73,7 @@ We are very willing to provide support to framework teams and toolchains within 
 
 ### Enhancing plugin capabilities
 
-Rspack already implements the basic `Loader` interface and a small number of webpack plugin APIs. Although our goal is not to achieve 100% compatibility for plugin APIs, we will try our best to implement the mainstream requirements based on community feedback. At the same time, we are also exploring higher-performance plugin communication solutions to reduce the cost of plugin communication, thereby ensuring more plugin APIs can be implemented.
+Rspack already implements the full `Loader` interface and some webpack plugin APIs. Although our goal is not to achieve 100% compatibility for plugin APIs, we will try our best to implement the mainstream requirements based on community feedback. At the same time, we are also exploring higher-performance plugin communication solutions to reduce the cost of plugin communication, thereby ensuring more plugin APIs can be implemented.
 
 ### Continuously improving performance
 
@@ -87,21 +87,21 @@ Today Rspack is primarily tested using a subset of webpack's test cases. In the 
 
 [webpack](https://webpack.js.org/) is perhaps the most mature modern bundler, with an active ecosystem, flexible configuration, and rich features.
 
-- **Rust language efficiency:** webpack's competitors frequently challenge it based on performance, especially for larger inputs. Rspack approaches this using the Rust platform, which was specifically designed to prioritize performance, topping benchmarks for both speed and memory management. Rust also provides many compiler safeguards to avoid common pitfalls of other native languages such as C++.
+- **Rust language efficiency:** webpack's competitors frequently challenge it based on performance, especially for larger projects. Rspack solves this using the Rust language, which was specifically designed to prioritize performance, topping benchmarks for both speed and memory management. Rust also provides many compiler safeguards to avoid common pitfalls of other native languages such as C++.
 
 - **Highly parallelized architecture:** webpack is limited by JavaScript's weak support for multithreading. By contrast, Rspack's native code takes full advantage of modern multi-core CPUs.
 
-- **Built-in implementations of essential bundling features:** webpack's hook system famously enables a vast landscape of loaders and plugins contributed by the community. Unfortunately these third-party packages can frequently lead to performance bottlenecks, perhaps because the authors did not have deep knowledge of webpack internals, or simply because the hook system by nature limits interaction of algorithms. Rspack provides built-in implementations of key bundling features to improve performance.
+- **Built-in implementations of essential bundling features:** webpack's hook system famously enables a vast landscape of loaders and plugins contributed by the community. Unfortunately these third-party packages can frequently lead to performance bottlenecks, perhaps because the authors did not have deep knowledge of webpack internals, or simply because the hook system by nature limits interaction of algorithms. Rspack provides built-in plugins for key features to improve performance.
 
 - **Optimized Hot Module Replacement (HMR):** No matter how large your project is, ensuring a great experience for HMR places even steeper demands for build times than ordinary bundling. Rspack incorporates a specialized incremental compilation strategy to address this requirement.
 
 ## Compared with Vite
 
-[Vite](https://vitejs.dev/) offers a great developer experience, but its reliance on [Rollup](https://rollupjs.org/) for production builds faces similar performance costs as other JavaScript-based algorithms. The same tradeoffs of webpack versus Rollup also apply, for example flexibility of the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) feature.
+[Vite](https://vitejs.dev/) offers a great developer experience, but its reliance on [Rollup](https://rollupjs.org/) for production builds faces similar performance costs as other JavaScript-based algorithms. The same tradeoffs of webpack versus Rollup also apply, for example missing flexibility of the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) feature.
 
 ## Compared with esbuild
 
-[esbuild](https://esbuild.github.io/) achieves very good performance by implementing nearly all operations in Golang except for some JavaScript plugins. However, esbuild's feature set is not as complete as webpack, for example with respect to JavaScript Hot Module Replacement (HMR) and incremental compilation, and also the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) feature.
+[esbuild](https://esbuild.github.io/) achieves very good performance by implementing nearly all operations in Golang except for some JavaScript plugins. However, esbuild's feature set is not as complete as webpack, for example missing HMR and [optimization.splitChunks](/config/optimization#optimizationsplitchunks) features.
 
 ## Compared with Turbopack
 
