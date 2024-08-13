@@ -6,5 +6,11 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dev-dependencies]
-tempdir = "0.3"
-glob = { workspace = true }
+codspeed-criterion-compat = "2.6.0"
+criterion                 = "0.4.0"
+fast-glob                 = "0.3.2"
+tempdir                   = "0.3"
+
+[[bench]]
+harness = false
+name    = "bench"
