@@ -1313,7 +1313,7 @@ export interface RawLightningCssBrowsers {
 
 export interface RawLightningCssMinimizerOptions {
   errorRecovery: boolean
-  targets?: RawLightningCssBrowsers
+  targets?: Array<string>
   include?: number
   exclude?: number
   draft?: RawDraft

@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use config::Config;
 use derivative::Derivative;
+pub use lightningcss;
 use lightningcss::{
   printer::{PrinterOptions, PseudoClasses},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
@@ -13,7 +14,7 @@ use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
-mod config;
+pub mod config;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 

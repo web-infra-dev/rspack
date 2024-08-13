@@ -11,7 +11,6 @@ import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
 import {
 	type FeatureOptions,
-	browserslistToTargets,
 	toFeatures
 } from "../builtin-loader/lightningcss";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
@@ -26,7 +25,6 @@ import type {
 	RuleSetUseItem,
 	Target
 } from "./zod";
-import browserslist = require("browserslist");
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -213,12 +211,8 @@ const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
 
 const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 	if (o && typeof o === "object") {
-		if (o.targets && typeof o.targets === "string") {
-			o.targets = browserslistToTargets(browserslist(o.targets));
-		}
-
-		if (o.targets && Array.isArray(o.targets)) {
-			o.targets = browserslistToTargets(browserslist(o.targets));
+		if (typeof o.targets === "string") {
+			o.targets = [o.targets];
 		}
 
 		if (o.include && typeof o.include === "object") {

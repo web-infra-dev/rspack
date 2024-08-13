@@ -73,7 +73,7 @@ At this point, the information that class name b is unused will be obtained via 
 
 Configuration passed to Lightning CSS for minification.
 
-Below are the configurations supported. For detailed usage, please refer to [Lightning CSS documentation](https://lightningcss.dev/transpilation.html)
+Below are the configurations supported, `targets` configuration is plain browserslist query, for other detailed usage, please refer to [Lightning CSS documentation](https://lightningcss.dev/transpilation.html)
 
 :::info
 
@@ -86,7 +86,7 @@ We recommend and encourage users to configure their own `targets` to achieve the
 ```ts
 type LightningCssMinimizerOptions = {
   errorRecovery?: boolean;
-  targets?: Targets | string[] | string;
+  targets?: string[] | string;
   include?: LightningcssFeatureOptions;
   exclude?: LightningcssFeatureOptions;
   draft?: Drafts;
