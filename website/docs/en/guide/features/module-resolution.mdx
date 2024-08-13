@@ -1,6 +1,6 @@
 # Module resolution
 
-Module resolution is the process of converting a module identifier to a module's file path. The [nodejs_resolver](https://github.com/web-infra-dev/nodejs_resolver) is used in Rspack for module path resolution, which is an extension to the [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) with the same interface as [enhanced-resolve](https://github.com/webpack/enhanced-resolve), see [resolution configuration](/config/resolve) for detailed resolve configuration.
+Module resolution is the process of converting a module identifier to a module's file path. The Rust port enhanced-resolve is used for module path resolution, which is an extension to the [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) with the same interface as [enhanced-resolve](https://github.com/webpack/enhanced-resolve), see [resolution configuration](/config/resolve) for detailed resolve configuration.
 
 ## Rspack
 
