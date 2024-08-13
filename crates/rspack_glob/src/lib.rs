@@ -54,21 +54,6 @@
 //!   }
 //! }
 //! ```
-
-#![doc(
-  html_logo_url = "https://www.rust-lang.org/logos/rust-logo-128x128-blk-v2.png",
-  html_favicon_url = "https://www.rust-lang.org/favicon.ico",
-  html_root_url = "https://docs.rs/glob/0.3.1"
-)]
-#![deny(missing_docs)]
-
-#[cfg(test)]
-#[macro_use]
-extern crate doc_comment;
-
-#[cfg(test)]
-doctest!("../README.md");
-
 use std::cmp;
 use std::error::Error;
 use std::fmt;
@@ -82,7 +67,7 @@ use std::str::FromStr;
 use CharSpecifier::{CharRange, SingleChar};
 use MatchResult::{EntirePatternDoesntMatch, Match, SubPatternDoesntMatch};
 use PatternToken::AnyExcept;
-use PatternToken::{AnyChar, AnyRecursiveSequence, AnySequence, AnyWithin, Char};
+use PatternToken::{AnyChar, AnyPattern, AnyRecursiveSequence, AnySequence, AnyWithin, Char};
 
 /// An iterator that yields `Path`s from the filesystem that match a particular
 /// pattern.
@@ -314,7 +299,7 @@ impl Error for GlobError {
   }
 
   #[allow(unknown_lints, bare_trait_objects)]
-  fn cause(&self) -> Option<&Error> {
+  fn cause(&self) -> Option<&dyn Error> {
     Some(&self.error)
   }
 }
@@ -526,14 +511,10 @@ impl fmt::Display for PatternError {
 ///
 /// - `*` matches any (possibly empty) sequence of characters.
 ///
-/// - `**` matches the current directory and arbitrary
-///   subdirectories. To match files in arbitrary subdiretories, use
-///   `**/*`.
-///
-///   This sequence **must** form a single path component, so both
-///   `**a` and `b**` are invalid and will result in an error.  A
-///   sequence of more than two consecutive `*` characters is also
-///   invalid.
+/// - `**` matches the current directory and arbitrary subdirectories. This
+///   sequence **must** form a single path component, so both `**a` and `b**`
+///   are invalid and will result in an error.  A sequence of more than two
+///   consecutive `*` characters is also invalid.
 ///
 /// - `[...]` matches any character inside the brackets.  Character sequences
 ///   can also specify ranges of characters, as ordered by Unicode, so e.g.
@@ -549,6 +530,9 @@ impl fmt::Display for PatternError {
 ///   `]` and NOT `]` can be matched by `[]]` and `[!]]` respectively.  The `-`
 ///   character can be specified inside a character sequence pattern by placing
 ///   it at the start or the end, e.g. `[abc-]`.
+///
+/// - `{...}` can be used to specify multiple patterns separated by commas. For
+///   example, `a/{b,c}/d` will match `a/b/d` and `a/c/d`.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Debug)]
 pub struct Pattern {
   original: String,
@@ -579,6 +563,8 @@ enum PatternToken {
   AnyRecursiveSequence,
   AnyWithin(Vec<CharSpecifier>),
   AnyExcept(Vec<CharSpecifier>),
+  /// A set of patterns that at least one of them must match
+  AnyPattern(Vec<Pattern>),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -609,6 +595,28 @@ impl Pattern {
     let mut is_recursive = false;
     let mut i = 0;
 
+    // A pattern is relative if it starts with "." followed by a separator,
+    // eg. "./test" or ".\test"
+    let is_relative = matches!(chars.get(..2), Some(['.', sep]) if path::is_separator(*sep));
+    if is_relative {
+      // If a pattern starts with a relative prefix, strip it from the
+      // pattern and replace it with a "**" sequence
+      i += 2;
+      tokens.push(AnyRecursiveSequence);
+    } else {
+      // A pattern is absolute if it starts with a path separator, eg. "/home" or "\\?\C:\Users"
+      let mut is_absolute = chars.first().map_or(false, |c| path::is_separator(*c));
+      // On windows a pattern may also be absolute if it starts with a
+      // drive letter, a colon and a separator, eg. "c:/Users" or "G:\Users"
+      if cfg!(windows) && !is_absolute {
+        is_absolute = matches!(chars.get(..3), Some(['a'..='z' | 'A'..='Z', ':', sep]) if path::is_separator(*sep));
+      }
+      // If a pattern is not absolute, insert a "**" sequence in front
+      if !is_absolute {
+        tokens.push(AnyRecursiveSequence);
+      }
+    }
+
     while i < chars.len() {
       match chars[i] {
         '?' => {
@@ -624,52 +632,55 @@ impl Pattern {
 
           let count = i - old;
 
-          if count > 2 {
-            return Err(PatternError {
-              pos: old + 2,
-              msg: ERROR_WILDCARDS,
-            });
-          } else if count == 2 {
-            // ** can only be an entire path component
-            // i.e. a/**/b is valid, but a**/b or a/**b is not
-            // invalid matches are treated literally
-            let is_valid = if i == 2 || path::is_separator(chars[i - count - 1]) {
-              // it ends in a '/'
-              if i < chars.len() && path::is_separator(chars[i]) {
-                i += 1;
-                true
-              // or the pattern ends here
-              // this enables the existing globbing mechanism
-              } else if i == chars.len() {
-                true
-              // `**` ends in non-separator
+          match count {
+            count if count > 2 => {
+              return Err(PatternError {
+                pos: old + 2,
+
+                msg: ERROR_WILDCARDS,
+              });
+            }
+            count if count == 2 => {
+              // ** can only be an entire path component
+              // i.e. a/**/b is valid, but a**/b or a/**b is not
+              // invalid matches are treated literally
+              let is_valid = if i == 2 || path::is_separator(chars[i - count - 1]) {
+                // it ends in a '/'
+                if i < chars.len() && path::is_separator(chars[i]) {
+                  i += 1;
+                  true
+                  // or the pattern ends here
+                  // this enables the existing globbing mechanism
+                } else if i == chars.len() {
+                  true
+                  // `**` ends in non-separator
+                } else {
+                  return Err(PatternError {
+                    pos: i,
+                    msg: ERROR_RECURSIVE_WILDCARDS,
+                  });
+                }
+                // `**` begins with non-separator
               } else {
                 return Err(PatternError {
-                  pos: i,
+                  pos: old - 1,
                   msg: ERROR_RECURSIVE_WILDCARDS,
                 });
-              }
-            // `**` begins with non-separator
-            } else {
-              return Err(PatternError {
-                pos: old - 1,
-                msg: ERROR_RECURSIVE_WILDCARDS,
-              });
-            };
+              };
 
-            if is_valid {
-              // collapse consecutive AnyRecursiveSequence to a
-              // single one
-
-              let tokens_len = tokens.len();
-
-              if !(tokens_len > 1 && tokens[tokens_len - 1] == AnyRecursiveSequence) {
-                is_recursive = true;
-                tokens.push(AnyRecursiveSequence);
+              if is_valid {
+                // collapse consecutive AnyRecursiveSequence to a
+                // single one
+                let tokens_len = tokens.len();
+                if !(tokens_len > 1 && tokens[tokens_len - 1] == AnyRecursiveSequence) {
+                  is_recursive = true;
+                  tokens.push(AnyRecursiveSequence);
+                }
               }
             }
-          } else {
-            tokens.push(AnySequence);
+            _ => {
+              tokens.push(AnySequence);
+            }
           }
         }
         '[' => {
@@ -702,6 +713,44 @@ impl Pattern {
             msg: ERROR_INVALID_RANGE,
           });
         }
+        '{' => {
+          let mut depth = 1;
+          let mut j = i + 1;
+          while j < chars.len() {
+            match chars[j] {
+              '{' => depth += 1,
+              '}' => depth -= 1,
+              _ => (),
+            }
+            if depth > 1 {
+              return Err(PatternError {
+                pos: j,
+                msg: "nested '{' in '{...}' is not allowed",
+              });
+            }
+            if depth == 0 {
+              break;
+            }
+            j += 1;
+          }
+          if depth != 0 {
+            return Err(PatternError {
+              pos: i,
+              msg: "unmatched '{'",
+            });
+          }
+          let mut subpatterns = Vec::new();
+          for subpattern in pattern[i + 1..j].split(',') {
+            let mut pattern = Pattern::new(subpattern)?;
+            // HACK: remove the leading '**' if it exists
+            if pattern.tokens.first() == Some(&PatternToken::AnyRecursiveSequence) {
+              pattern.tokens.remove(0);
+            }
+            subpatterns.push(pattern);
+          }
+          tokens.push(AnyPattern(subpatterns));
+          i = j + 1;
+        }
         c => {
           tokens.push(Char(c));
           i += 1;
@@ -714,6 +763,14 @@ impl Pattern {
       original: pattern.to_string(),
       is_recursive,
     })
+  }
+
+  fn from_tokens(tokens: Vec<PatternToken>, original: String, is_recursive: bool) -> Self {
+    Self {
+      tokens,
+      original,
+      is_recursive,
+    }
   }
 
   /// Escape metacharacters within the given string by surrounding them in
@@ -789,7 +846,7 @@ impl Pattern {
     options: MatchOptions,
   ) -> MatchResult {
     for (ti, token) in self.tokens[i..].iter().enumerate() {
-      match *token {
+      match token {
         AnySequence | AnyRecursiveSequence => {
           // ** must be at the start.
           debug_assert!(match *token {
@@ -821,6 +878,18 @@ impl Pattern {
             }
           }
         }
+        AnyPattern(patterns) => {
+          for pattern in patterns.iter() {
+            let mut tokens = pattern.tokens.clone();
+            tokens.extend_from_slice(&self.tokens[(i + ti + 1)..]);
+            let new_pattern =
+              Pattern::from_tokens(tokens, pattern.original.clone(), pattern.is_recursive);
+            if new_pattern.matches_from(follows_separator, file.clone(), 0, options) == Match {
+              return Match;
+            }
+          }
+          return SubPatternDoesntMatch;
+        }
         _ => {
           let c = match file.next() {
             Some(c) => c,
@@ -840,7 +909,7 @@ impl Pattern {
             AnyWithin(ref specifiers) => in_char_specifiers(&specifiers, c, options),
             AnyExcept(ref specifiers) => !in_char_specifiers(&specifiers, c, options),
             Char(c2) => chars_eq(c, c2, options.case_sensitive),
-            AnySequence | AnyRecursiveSequence => unreachable!(),
+            AnySequence | AnyRecursiveSequence | AnyPattern(_) => unreachable!(),
           } {
             return SubPatternDoesntMatch;
           }
@@ -1490,5 +1559,98 @@ mod test {
   fn test_path_join() {
     let pattern = Path::new("one").join(&Path::new("**/*.rs"));
     assert!(Pattern::new(pattern.to_str().unwrap()).is_ok());
+  }
+
+  #[test]
+  fn test_pattern_relative() {
+    assert!(Pattern::new("./b").unwrap().matches_path(Path::new("a/b")));
+    assert!(Pattern::new("b").unwrap().matches_path(Path::new("a/b")));
+
+    if cfg!(windows) {
+      assert!(Pattern::new(".\\b")
+        .unwrap()
+        .matches_path(Path::new("a\\b")));
+      assert!(Pattern::new("b").unwrap().matches_path(Path::new("a\\b")));
+    }
+  }
+
+  #[test]
+  fn test_pattern_absolute() {
+    assert!(Pattern::new("/a/b")
+      .unwrap()
+      .matches_path(Path::new("/a/b")));
+
+    if cfg!(windows) {
+      assert!(Pattern::new("c:/a/b")
+        .unwrap()
+        .matches_path(Path::new("c:/a/b")));
+      assert!(Pattern::new("C:\\a\\b")
+        .unwrap()
+        .matches_path(Path::new("C:\\a\\b")));
+
+      assert!(Pattern::new("\\\\?\\c:\\a\\b")
+        .unwrap()
+        .matches_path(Path::new("\\\\?\\c:\\a\\b")));
+      assert!(Pattern::new("\\\\?\\C:/a/b")
+        .unwrap()
+        .matches_path(Path::new("\\\\?\\C:/a/b")));
+    }
+  }
+
+  #[test]
+  fn test_pattern_glob() {
+    assert!(Pattern::new("*.js")
+      .unwrap()
+      .matches_path(Path::new("b/c.js")));
+    assert!(Pattern::new("**/*.js")
+      .unwrap()
+      .matches_path(Path::new("b/c.js")));
+    assert!(Pattern::new("*.js")
+      .unwrap()
+      .matches_path(Path::new("/a/b/c.js")));
+    assert!(Pattern::new("**/*.js")
+      .unwrap()
+      .matches_path(Path::new("/a/b/c.js")));
+
+    if cfg!(windows) {
+      assert!(Pattern::new("*.js")
+        .unwrap()
+        .matches_path(Path::new("C:\\a\\b\\c.js")));
+      assert!(Pattern::new("**/*.js")
+        .unwrap()
+        .matches_path(Path::new("\\\\?\\C:\\a\\b\\c.js")));
+    }
+  }
+
+  #[test]
+  fn test_pattern_glob_brackets() {
+    let pattern = Pattern::new("{foo.js,bar.js}").unwrap();
+    assert!(pattern.matches_path(Path::new("foo.js")));
+    assert!(pattern.matches_path(Path::new("bar.js")));
+    assert!(!pattern.matches_path(Path::new("baz.js")));
+
+    let pattern = Pattern::new("{foo,bar}.js").unwrap();
+    assert!(pattern.matches_path(Path::new("foo.js")));
+    assert!(pattern.matches_path(Path::new("bar.js")));
+    assert!(!pattern.matches_path(Path::new("baz.js")));
+    assert!(Pattern::new("**/{foo,bar}.js")
+      .unwrap()
+      .matches_path(Path::new("a/b/foo.js")));
+
+    let pattern = Pattern::new("src/{a/foo,bar}.js").unwrap();
+    assert!(pattern.matches_path(Path::new("src/a/foo.js")));
+    assert!(pattern.matches_path(Path::new("src/bar.js")));
+    assert!(!pattern.matches_path(Path::new("src/a/b/foo.js")));
+    assert!(!pattern.matches_path(Path::new("src/a/bar.js")));
+
+    let pattern = Pattern::new("src/{a,b}/{c,d}/foo.js").unwrap();
+    assert!(pattern.matches_path(Path::new("src/a/c/foo.js")));
+    assert!(pattern.matches_path(Path::new("src/a/d/foo.js")));
+    assert!(pattern.matches_path(Path::new("src/b/c/foo.js")));
+    assert!(pattern.matches_path(Path::new("src/b/d/foo.js")));
+    assert!(!pattern.matches_path(Path::new("src/bar/foo.js")));
+
+    let _ = Pattern::new("{{foo,bar},baz}")
+      .expect_err("should not allow curly brackets more than 1 level deep");
   }
 }
