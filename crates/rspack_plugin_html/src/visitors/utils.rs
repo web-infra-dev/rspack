@@ -11,7 +11,7 @@ pub fn create_attribute(name: &str, value: &Option<String>) -> Attribute {
     name: name.into(),
     raw_name: None,
     value: value.as_ref().map(|str| Atom::from(str.as_str())),
-    raw_value: value.as_ref().map(|str| Atom::from(str.as_str())),
+    raw_value: None,
   }
 }
 
