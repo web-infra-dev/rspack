@@ -13,7 +13,7 @@ const BuiltWithRsPack: React.FC = () => {
         <div className={styles.logos}>
           <div className={styles.logo}>
             <img src={bitDevLogo} alt="bit.dev" />
-            <span>bit.dev</span>
+            <span className={styles.bitDevText}>bit.dev</span>
           </div>
           <div className={styles.logo}>
             <img src={microsoftLogo} alt="Microsoft" />

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useLang, useNavigate } from 'rspress/runtime';
+import { useLang } from 'rspress/runtime';
 import styles from './index.module.scss';
 
 const ToolStack: React.FC = () => {
@@ -47,7 +47,6 @@ const ToolStack: React.FC = () => {
       url: 'https://github.com/web-infra-dev/rslib',
     },
   ];
-  const navigate = useNavigate();
 
   return (
     <div className={styles.container}>
@@ -65,7 +64,7 @@ const ToolStack: React.FC = () => {
               className={styles.tool}
               key={name}
               onClick={() => {
-                navigate(url);
+                window.location.href = url;
               }}
             >
               <img src={logo} alt={name} className={styles.logo} />

@@ -1,4 +1,6 @@
 import React from 'react';
+import { useLang } from 'rspress/runtime';
+import { useI18n } from '../../../theme/i18n';
 import arrow from './assets/arrow.svg';
 import layer from './assets/layer.svg';
 import loader from './assets/loader.svg';
@@ -9,61 +11,62 @@ import setting from './assets/setting.svg';
 import tree from './assets/tree.svg';
 import styles from './index.module.scss';
 
-const FeatureRow1 = [
-  {
-    icon: arrow,
-    title: 'Code Splitting',
-    description:
-      'Split code into smaller bundles to enable on-demand loading and improve performance.',
-  },
-  {
-    icon: tree,
-    title: 'Tree Shaking',
-    description:
-      'Detect and eliminate unused code from the final bundles to reduce output size.',
-  },
-  {
-    icon: layer,
-    title: 'Plugins',
-    description:
-      'Offer rich plugin hooks and compatibility with most webpack plugins.',
-  },
-  {
-    icon: moduleFederation,
-    title: 'Module Federation',
-    description:
-      'Share code between web applications and collaborate more efficiently.',
-  },
-];
-
-const FeatureRow2 = [
-  {
-    icon: setting,
-    title: 'Asset Management',
-    description:
-      'Handles and optimizes static assets like images, fonts and stylesheets.',
-  },
-  {
-    icon: loader,
-    title: 'Loaders',
-    description:
-      'Fully compatible with webpack loaders, reusing the entire ecosystem.',
-  },
-  {
-    icon: reload,
-    title: 'HMR',
-    description:
-      'Hot updating of modules at runtime without the need for a full refresh.',
-  },
-  {
-    icon: server,
-    title: 'Dev Server',
-    description:
-      'Provides a mature, high-performance dev server for local development.',
-  },
-];
-
 const FullyFeatured = () => {
+  const lang = useLang();
+  const FeatureRow1 = [
+    {
+      icon: arrow,
+      title: 'Code Splitting',
+      description:
+        'Split code into smaller bundles to enable on-demand loading and improve performance.',
+    },
+    {
+      icon: tree,
+      title: 'Tree Shaking',
+      description:
+        'Detect and eliminate unused code from the final bundles to reduce output size.',
+    },
+    {
+      icon: layer,
+      title: 'Plugins',
+      description:
+        'Offer rich plugin hooks and compatibility with most webpack plugins.',
+    },
+    {
+      icon: moduleFederation,
+      title: 'Module Federation',
+      description:
+        'Share code between web applications and collaborate more efficiently.',
+    },
+  ];
+
+  const FeatureRow2 = [
+    {
+      icon: setting,
+      title: 'Asset Management',
+      description:
+        'Handles and optimizes static assets like images, fonts and stylesheets.',
+    },
+    {
+      icon: loader,
+      title: 'Loaders',
+      description:
+        'Fully compatible with webpack loaders, reusing the entire ecosystem.',
+    },
+    {
+      icon: reload,
+      title: 'HMR',
+      description:
+        'Hot updating of modules at runtime without the need for a full refresh.',
+    },
+    {
+      icon: server,
+      title: 'Dev Server',
+      description:
+        'Provides a mature, high-performance dev server for local development.',
+    },
+  ];
+
   return (
     <div className={styles.container}>
       <div className={styles.content}>
