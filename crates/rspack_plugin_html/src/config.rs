@@ -84,7 +84,7 @@ pub struct HtmlRspackPluginOptions {
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
-  pub excluded_chunks: Option<Vec<String>>,
+  pub exclude_chunks: Option<Vec<String>>,
 
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
@@ -94,6 +94,7 @@ pub struct HtmlRspackPluginOptions {
   pub title: Option<String>,
   pub favicon: Option<String>,
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
+  pub hash: bool,
 }
 
 fn default_filename() -> String {
@@ -119,12 +120,13 @@ impl Default for HtmlRspackPluginOptions {
       public_path: None,
       script_loading: default_script_loading(),
       chunks: None,
-      excluded_chunks: None,
+      exclude_chunks: None,
       sri: None,
       minify: false,
       title: None,
       favicon: None,
       meta: None,
+      hash: false,
     }
   }
 }

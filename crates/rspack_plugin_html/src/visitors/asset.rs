@@ -8,7 +8,7 @@ use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
-use super::utils::create_element;
+use super::utils::{append_hash, create_element};
 use crate::config::{HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading};
 
 // the tag
@@ -183,6 +183,12 @@ impl VisitMut for AssetWriter<'_, '_> {
           if env::consts::OS == "windows" {
             let reg = Regex::new(r"[/\\]").expect("Invalid RegExp");
             favicon_link_path = reg.replace_all(favicon_link_path.as_str(), "/").to_string();
+          }
+
+          if self.config.hash {
+            if let Some(hash) = self.compilation.get_hash() {
+              favicon_link_path = append_hash(&favicon_link_path, hash);
+            }
           }
 
           n.children.push(Child::Element(Element {

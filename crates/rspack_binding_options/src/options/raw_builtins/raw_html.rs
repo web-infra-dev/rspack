@@ -33,13 +33,14 @@ pub struct RawHtmlRspackPluginOptions {
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
-  pub excluded_chunks: Option<Vec<String>>,
+  pub exclude_chunks: Option<Vec<String>>,
   #[napi(ts_type = "\"sha256\" | \"sha384\" | \"sha512\"")]
   pub sri: Option<RawHtmlSriHashFunction>,
   pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
+  pub hash: Option<bool>,
 }
 
 impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
@@ -62,12 +63,13 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
       public_path: value.public_path,
       script_loading,
       chunks: value.chunks,
-      excluded_chunks: value.excluded_chunks,
+      exclude_chunks: value.exclude_chunks,
       sri,
       minify: value.minify.unwrap_or_default(),
       title: value.title,
       favicon: value.favicon,
       meta: value.meta,
+      hash: value.hash.unwrap_or_default(),
     }
   }
 }

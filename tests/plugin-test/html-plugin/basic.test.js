@@ -139,49 +139,47 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: url encodes the file name
-  // it("properly encodes file names in emitted URIs", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "foo/very fancy+name.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin()],
-  //     },
-  //     [
-  //       /<script defer src="foo\/very%20fancy%2Bname.js"><\/script>[\s]*<\/head>/,
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("properly encodes file names in emitted URIs", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "foo/very fancy+name.js",
+        },
+        plugins: [new HtmlWebpackPlugin()],
+      },
+      [
+        /<script defer src="foo\/very%20fancy%2Bname.js"><\/script>[\s]*<\/head>/,
+      ],
+      null,
+      done,
+    );
+  });
 
-  // TODO: url encodes the file name
-  // itUnixOnly(
-  //   "properly encodes file names in emitted URIs but keeps the querystring",
-  //   (done) => {
-  //     testHtmlPlugin(
-  //       {
-  //         mode: "production",
-  //         entry: path.join(__dirname, "fixtures/index.js"),
-  //         output: {
-  //           path: OUTPUT_DIR,
-  //           filename:
-  //             "fo:o/very fancy+file-name.js?path=/home?value=abc&value=def#zzz",
-  //         },
-  //         plugins: [new HtmlWebpackPlugin()],
-  //       },
-  //       [
-  //         '<script defer src="fo%3Ao/very%20fancy%2Bfile-name.js?path=/home?value=abc&value=def#zzz">',
-  //       ],
-  //       null,
-  //       done,
-  //     );
-  //   },
-  // );
+  itUnixOnly(
+    "properly encodes file names in emitted URIs but keeps the querystring",
+    (done) => {
+      testHtmlPlugin(
+        {
+          mode: "production",
+          entry: path.join(__dirname, "fixtures/index.js"),
+          output: {
+            path: OUTPUT_DIR,
+            filename:
+              "fo:o/very fancy+file-name.js?path=/home?value=abc&value=def#zzz",
+          },
+          plugins: [new HtmlWebpackPlugin()],
+        },
+        [
+          '<script defer src="fo%3Ao/very%20fancy%2Bfile-name.js?path=/home?value=abc&value=def#zzz">',
+        ],
+        null,
+        done,
+      );
+    },
+  );
 
   it("generates a default index.html file with multiple entry points", (done) => {
     testHtmlPlugin(
@@ -519,32 +517,31 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: Support excludeChunks
-  // it("allows you to inject a specified asset into a given html file", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         util: path.join(__dirname, "fixtures/util.js"),
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           inject: true,
-  //           excludeChunks: ["util"],
-  //           template: path.join(__dirname, "fixtures/plain.html"),
-  //         }),
-  //       ],
-  //     },
-  //     ['<script defer src="app_bundle.js"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows you to inject a specified asset into a given html file", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          util: path.join(__dirname, "fixtures/util.js"),
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            inject: true,
+            excludeChunks: ["util"],
+            template: path.join(__dirname, "fixtures/plain.html"),
+          }),
+        ],
+      },
+      ['<script defer src="app_bundle.js"'],
+      null,
+      done,
+    );
+  });
 
 
   // TODO: ejs template params `<%= webpackConfig.output.publicPath %>`
@@ -643,8 +640,6 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      // DIFF: ['<script defer src="index_bundle.js"']
-      // `prodution` use html-minify-terser to convert `defer` to `defer`
       ['<script defer src="index_bundle.js"'],
       null,
       done,
@@ -688,41 +683,39 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support hash config
-  // it("allows to append hashes to the assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ hash: true })],
-  //     },
-  //     ['<script defer src="index_bundle.js?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows to append hashes to the assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ hash: true })],
+      },
+      ['<script defer src="index_bundle.js?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("allows to append hashes to the assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ hash: true, inject: true })],
-  //     },
-  //     ['<script defer src="index_bundle.js?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows to append hashes to the assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ hash: true, inject: true })],
+      },
+      ['<script defer src="index_bundle.js?%hash%"'],
+      null,
+      done,
+    );
+  });
 
   it("should work with the css extract plugin", (done) => {
     testHtmlPlugin(
@@ -809,159 +802,154 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //         publicPath: "/some/",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           hash: true,
-  //           filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
-  //         }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="/some/styles.css?%hash%"'],
-  //     path.join("subfolder", "test.html"),
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          publicPath: "/some/",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            hash: true,
+            filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
+          }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="/some/styles.css?%hash%"'],
+      path.join("subfolder", "test.html"),
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //         publicPath: "/some",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="/some/styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          publicPath: "/some",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="/some/styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //         publicPath: "some/",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="some/styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          publicPath: "some/",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="some/styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           hash: true,
-  //           filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
-  //         }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="../styles.css?%hash%"'],
-  //     path.join("subfolder", "test.html"),
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            hash: true,
+            filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
+          }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="../styles.css?%hash%"'],
+      path.join("subfolder", "test.html"),
+      done,
+    );
+  });
 
   it("should inject css files when using the extract text plugin", (done) => {
     testHtmlPlugin(
@@ -991,34 +979,33 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with injected css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true, inject: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with injected css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true, inject: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
   // TODO: support xhtml and minify config
   // it("should output xhtml link stylesheet tag", (done) => {

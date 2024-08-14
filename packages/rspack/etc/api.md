@@ -4587,13 +4587,14 @@ export const HtmlRspackPlugin: {
     new (c?: {
         filename?: string | undefined;
         publicPath?: string | undefined;
+        hash?: boolean | undefined;
         chunks?: string[] | undefined;
         template?: string | undefined;
         templateContent?: string | undefined;
         templateParameters?: Record<string, string> | undefined;
         inject?: boolean | "head" | "body" | undefined;
         scriptLoading?: "module" | "blocking" | "defer" | undefined;
-        excludedChunks?: string[] | undefined;
+        excludeChunks?: string[] | undefined;
         sri?: "sha256" | "sha384" | "sha512" | undefined;
         minify?: boolean | undefined;
         title?: string | undefined;
@@ -4604,13 +4605,14 @@ export const HtmlRspackPlugin: {
         _args: [c?: {
             filename?: string | undefined;
             publicPath?: string | undefined;
+            hash?: boolean | undefined;
             chunks?: string[] | undefined;
             template?: string | undefined;
             templateContent?: string | undefined;
             templateParameters?: Record<string, string> | undefined;
             inject?: boolean | "head" | "body" | undefined;
             scriptLoading?: "module" | "blocking" | "defer" | undefined;
-            excludedChunks?: string[] | undefined;
+            excludeChunks?: string[] | undefined;
             sri?: "sha256" | "sha384" | "sha512" | undefined;
             minify?: boolean | undefined;
             title?: string | undefined;
@@ -4636,22 +4638,24 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath: z.ZodOptional<z.ZodString>;
     scriptLoading: z.ZodOptional<z.ZodEnum<["blocking", "defer", "module"]>>;
     chunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    excludedChunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    excludeChunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     sri: z.ZodOptional<z.ZodEnum<["sha256", "sha384", "sha512"]>>;
     minify: z.ZodOptional<z.ZodBoolean>;
     title: z.ZodOptional<z.ZodString>;
     favicon: z.ZodOptional<z.ZodString>;
     meta: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodRecord<z.ZodString, z.ZodString>]>>>;
+    hash: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     filename?: string | undefined;
     publicPath?: string | undefined;
+    hash?: boolean | undefined;
     chunks?: string[] | undefined;
     template?: string | undefined;
     templateContent?: string | undefined;
     templateParameters?: Record<string, string> | undefined;
     inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | undefined;
-    excludedChunks?: string[] | undefined;
+    excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
     minify?: boolean | undefined;
     title?: string | undefined;
@@ -4660,13 +4664,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }, {
     filename?: string | undefined;
     publicPath?: string | undefined;
+    hash?: boolean | undefined;
     chunks?: string[] | undefined;
     template?: string | undefined;
     templateContent?: string | undefined;
     templateParameters?: Record<string, string> | undefined;
     inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | undefined;
-    excludedChunks?: string[] | undefined;
+    excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
     minify?: boolean | undefined;
     title?: string | undefined;

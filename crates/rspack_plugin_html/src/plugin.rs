@@ -7,6 +7,7 @@ use std::{
 
 use anyhow::Context;
 use dojang::dojang::Dojang;
+use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
@@ -22,7 +23,10 @@ use crate::{
   config::{HtmlInject, HtmlRspackPluginOptions},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
-  visitors::asset::{AssetWriter, HTMLPluginTag},
+  visitors::{
+    asset::{AssetWriter, HTMLPluginTag},
+    utils::append_hash,
+  },
 };
 
 #[plugin]
@@ -100,8 +104,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(included_chunks) = &config.chunks {
         included = included_chunks.iter().any(|c| c.eq(entry_name));
       }
-      if let Some(excluded_chunks) = &config.excluded_chunks {
-        included = included && !excluded_chunks.iter().any(|c| c.eq(entry_name));
+      if let Some(exclude_chunks) = &config.exclude_chunks {
+        included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
       }
       included
     })
@@ -121,11 +125,19 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // if inject is 'false', don't do anything
   if !matches!(config.inject, HtmlInject::False) {
     for (asset_name, asset) in included_assets {
-      if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = format!(
-          "{}{asset_name}",
+      if let Some(extension) =
+        Path::new(asset_name.split("?").next().unwrap_or_default()).extension()
+      {
+        let mut asset_uri = format!(
+          "{}{}",
           config.get_public_path(compilation, &self.config.filename),
+          url_encode_path(&asset_name)
         );
+        if config.hash {
+          if let Some(hash) = compilation.get_hash() {
+            asset_uri = append_hash(&asset_uri, hash);
+          }
+        }
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
           tag = Some(HTMLPluginTag::create_style(&asset_uri, HtmlInject::Head));
@@ -160,7 +172,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut visitor = AssetWriter::new(config, &tags, compilation);
   current_ast.visit_mut_with(&mut visitor);
 
-  let source = parser.codegen(&mut current_ast)?;
+  let source = parser
+    .codegen(&mut current_ast)?
+    .replace("$$RSPACK_URL_AMP$$", "&");
   let hash = hash_for_source(&source);
   let html_file_name = FilenameTemplate::from(config.filename.clone());
   // Use the same filename as template
@@ -242,4 +256,28 @@ fn hash_for_source(source: &str) -> String {
   let mut hasher = DefaultHasher::new();
   source.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
+}
+
+fn url_encode_path(file_path: &str) -> String {
+  let query_string_start = file_path.find('?');
+  let url_path = if let Some(query_string_start) = query_string_start {
+    file_path[..query_string_start].to_string()
+  } else {
+    file_path.to_string()
+  };
+  let query_string = if let Some(query_string_start) = query_string_start {
+    file_path[query_string_start..].to_string()
+  } else {
+    "".to_string()
+  };
+
+  format!(
+    "{}{}",
+    url_path
+      .split('/')
+      .map(|p| { urlencoding::encode(p) })
+      .join("/"),
+    // element.outerHTML will escape '&' so need to add a placeholder here
+    query_string.replace("&", "$$RSPACK_URL_AMP$$")
+  )
 }

@@ -1244,12 +1244,13 @@ export interface RawHtmlRspackPluginOptions {
   scriptLoading: "blocking" | "defer" | "module"
   /** entry_chunk_name (only entry chunks are supported) */
   chunks?: Array<string>
-  excludedChunks?: Array<string>
+  excludeChunks?: Array<string>
   sri?: "sha256" | "sha384" | "sha512"
   minify?: boolean
   title?: string
   favicon?: string
   meta?: Record<string, Record<string, string>>
+  hash?: boolean
 }
 
 export interface RawHttpExternalsRspackPluginOptions {
