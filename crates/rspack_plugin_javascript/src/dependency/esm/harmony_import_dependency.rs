@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_core::DependencyRange;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
@@ -12,8 +13,8 @@ use rspack_core::{
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
+use rspack_error::DiagnosticExt;
 use rspack_error::{Diagnostic, TraceableError};
-use rspack_error::{DiagnosticExt, ErrorLocation};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -44,9 +45,8 @@ pub struct HarmonyImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
-  pub loc: ErrorLocation,
-  pub span: ErrorSpan,
-  pub source_span: ErrorSpan,
+  pub range: DependencyRange,
+  pub range_src: DependencyRange,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   attributes: Option<ImportAttributes>,
@@ -58,9 +58,8 @@ impl HarmonyImportSideEffectDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
-    loc: ErrorLocation,
-    span: ErrorSpan,
-    source_span: ErrorSpan,
+    range: DependencyRange,
+    range_src: DependencyRange,
     dependency_type: DependencyType,
     export_all: bool,
     attributes: Option<ImportAttributes>,
@@ -71,9 +70,8 @@ impl HarmonyImportSideEffectDependency {
       id: DependencyId::new(),
       source_order,
       request,
-      loc,
-      span,
-      source_span,
+      range,
+      range_src,
       dependency_type,
       export_all,
       attributes,
@@ -376,12 +374,12 @@ impl Dependency for HarmonyImportSideEffectDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    Some(self.span)
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -442,7 +440,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   }
 
   fn source_span(&self) -> Option<ErrorSpan> {
-    Some(self.source_span)
+    Some(ErrorSpan::new(self.range_src.start, self.range_src.end))
   }
 
   fn set_request(&mut self, request: String) {

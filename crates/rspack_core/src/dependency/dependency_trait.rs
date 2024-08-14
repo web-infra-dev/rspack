@@ -3,7 +3,6 @@ use std::{any::Any, fmt::Debug};
 use dyn_clone::{clone_trait_object, DynClone};
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
-use rspack_error::ErrorLocation;
 use rspack_util::ext::AsAny;
 use swc_core::ecma::atoms::Atom;
 
@@ -67,7 +66,7 @@ pub trait Dependency:
     ConnectionState::Bool(true)
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
+  fn loc(&self) -> Option<String> {
     None
   }
 

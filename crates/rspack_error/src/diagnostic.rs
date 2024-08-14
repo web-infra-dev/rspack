@@ -96,7 +96,7 @@ impl ErrorLocation {
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
-  loc: Option<ErrorLocation>,
+  loc: Option<String>,
   file: Option<PathBuf>,
   hide_stack: Option<bool>,
   chunk: Option<u32>,
@@ -199,33 +199,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn format_location(&self) -> Option<String> {
-    if let Some(loc) = &self.loc {
-      if loc.start.line == loc.end.line {
-        if loc.start.column == loc.end.column {
-          return Some(format!("{}:{}", loc.start.line, loc.start.column));
-        }
-
-        return Some(format!(
-          "{}:{}-{}",
-          loc.start.line, loc.start.column, loc.end.column
-        ));
-      }
-
-      return Some(format!(
-        "{}:{}-{}:{}",
-        loc.start.line, loc.start.column, loc.end.line, loc.end.column
-      ));
-    }
-
-    None
+  pub fn loc(&self) -> Option<String> {
+    self.loc.clone()
   }
 
-  pub fn loc(&self) -> Option<ErrorLocation> {
-    self.loc
-  }
-
-  pub fn with_loc(mut self, loc: Option<ErrorLocation>) -> Self {
+  pub fn with_loc(mut self, loc: Option<String>) -> Self {
     self.loc = loc;
     self
   }

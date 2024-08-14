@@ -3,12 +3,11 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyType, ErrorSpan, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
+  DependencyRange, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
   HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
-use rspack_error::ErrorLocation;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -21,13 +20,13 @@ pub enum DeclarationId {
 
 #[derive(Debug, Clone)]
 pub struct DeclarationInfo {
-  range: ErrorSpan,
+  range: DependencyRange,
   prefix: String,
   suffix: String,
 }
 
 impl DeclarationInfo {
-  pub fn new(range: ErrorSpan, prefix: String, suffix: String) -> Self {
+  pub fn new(range: DependencyRange, prefix: String, suffix: String) -> Self {
     Self {
       range,
       prefix,
@@ -39,21 +38,18 @@ impl DeclarationInfo {
 #[derive(Debug, Clone)]
 pub struct HarmonyExportExpressionDependency {
   id: DependencyId,
-  loc: ErrorLocation,
-  range: ErrorSpan,
-  range_stmt: ErrorSpan,
+  range: DependencyRange,
+  range_stmt: DependencyRange,
   declaration: Option<DeclarationId>,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
-    loc: ErrorLocation,
-    range: ErrorSpan,
-    range_stmt: ErrorSpan,
+    range: DependencyRange,
+    range_stmt: DependencyRange,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {
-      loc,
       range,
       range_stmt,
       declaration,
@@ -71,8 +67,8 @@ impl Dependency for HarmonyExportExpressionDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
   }
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {

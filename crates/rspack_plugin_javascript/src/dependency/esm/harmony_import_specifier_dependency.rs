@@ -2,13 +2,13 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
-use rspack_error::{Diagnostic, ErrorLocation};
+use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
@@ -23,8 +23,7 @@ pub struct HarmonyImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  loc: ErrorLocation,
-  span: ErrorSpan,
+  range: DependencyRange,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
@@ -44,8 +43,7 @@ impl HarmonyImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    loc: ErrorLocation,
-    span: ErrorSpan,
+    range: DependencyRange,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
@@ -62,8 +60,7 @@ impl HarmonyImportSpecifierDependency {
       source_order,
       shorthand,
       asi_safe,
-      loc,
-      span,
+      range,
       ids,
       call,
       direct_import,
@@ -144,9 +141,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       // TODO do this by PureExpressionDependency.
       let value = format!("/* \"{}\" unused */null", self.request);
       if self.shorthand {
-        source.insert(self.span.end, &format!(": {value}"), None);
+        source.insert(self.range.end, &format!(": {value}"), None);
       } else {
-        source.replace(self.span.start, self.span.end, &value, None)
+        source.replace(self.range.start, self.range.end, &value, None)
       }
       return;
     }
@@ -203,9 +200,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     };
 
     if self.shorthand {
-      source.insert(self.span.end, format!(": {export_expr}").as_str(), None);
+      source.insert(self.range.end, format!(": {export_expr}").as_str(), None);
     } else {
-      source.replace(self.span.start, self.span.end, export_expr.as_str(), None);
+      source.replace(self.range.start, self.range.end, export_expr.as_str(), None);
     }
   }
 
@@ -219,12 +216,15 @@ impl Dependency for HarmonyImportSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
   }
 
   fn span(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(self.span)
+    Some(rspack_core::ErrorSpan::new(
+      self.range.start,
+      self.range.end,
+    ))
   }
 
   fn source_order(&self) -> Option<i32> {
