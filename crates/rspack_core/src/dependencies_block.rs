@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  fmt::Display,
-  hash::{Hash, Hasher},
-  sync::Arc,
-};
+use std::{borrow::Cow, fmt::Display, hash::Hash, sync::Arc};
 
 use derivative::Derivative;
 use rspack_collections::Identifier;

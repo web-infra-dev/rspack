@@ -1,8 +1,7 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::marker::PhantomData;
 
 use rspack_collections::Identifier;
 use rspack_core::{rspack_sources::Source, Compilation, RuntimeModule};
-use rspack_error::Result;
 use rspack_macros::impl_runtime_module;
 
 #[allow(dead_code)]
@@ -12,15 +11,6 @@ fn with_generic() {
   #[derive(Debug)]
   struct Foo<T: std::fmt::Debug + Send + Sync + Eq + 'static> {
     marker: PhantomData<T>,
-  }
-
-  impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> Foo<T> {
-    fn name(&self) -> Identifier {
-      String::new().into()
-    }
-    fn generate_with_custom(&self, _compilation: &Compilation) -> Result<Arc<dyn Source>> {
-      todo!()
-    }
   }
 
   impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {

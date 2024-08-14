@@ -250,7 +250,7 @@ impl AssetParserAndGenerator {
         .chunk_graph(&compilation.chunk_graph)
         .content_hash_optional(contenthash)
         .hash_optional(contenthash)
-        .filename(&source_file_name),
+        .filename(source_file_name),
     )?;
     let public_path = PublicPath::ensure_ends_with_slash(public_path);
     Ok((public_path, info))

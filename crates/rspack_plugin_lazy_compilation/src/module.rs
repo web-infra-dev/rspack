@@ -1,4 +1,4 @@
-use std::{hash::Hash, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -28,7 +28,6 @@ pub(crate) struct LazyCompilationProxyModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   factory_meta: Option<FactoryMeta>,
-  original_module: ModuleIdentifier,
   cacheable: bool,
 
   readable_identifier: String,
@@ -76,7 +75,6 @@ impl LazyCompilationProxyModule {
       build_info: None,
       build_meta: None,
       cacheable,
-      original_module,
       create_data,
       readable_identifier,
       resource,

@@ -2,14 +2,14 @@
 
 use std::hash::{Hash, Hasher};
 
-use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
+use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use tracing::instrument;
 
 use crate::{
-  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
+  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals,
   RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };

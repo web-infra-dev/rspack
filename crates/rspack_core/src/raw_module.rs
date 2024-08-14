@@ -1,9 +1,7 @@
 use std::borrow::Cow;
-use std::hash::Hash;
 
 use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
@@ -108,7 +106,7 @@ impl Module for RawModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {

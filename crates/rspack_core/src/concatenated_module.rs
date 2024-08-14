@@ -1,14 +1,13 @@
 use std::{
   borrow::Cow,
-  collections::hash_map::{DefaultHasher, Entry},
+  collections::hash_map::Entry,
   fmt::Debug,
-  hash::{BuildHasherDefault, Hash, Hasher},
+  hash::{BuildHasherDefault, Hasher},
   sync::{Arc, LazyLock, Mutex},
 };
 
 use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
@@ -137,7 +136,6 @@ impl ConcatenationEntry {
 #[derive(Debug)]
 struct ConcatenationEntryConcatenated {
   module: ModuleIdentifier,
-  runtime_condition: RuntimeCondition,
 }
 
 #[derive(Debug)]
@@ -363,7 +361,6 @@ pub struct ConcatenatedModule {
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
 
   diagnostics: Mutex<Vec<Diagnostic>>,
-  cached_hash: OnceCell<u64>,
   build_info: Option<BuildInfo>,
 }
 
@@ -386,7 +383,6 @@ impl ConcatenatedModule {
       blocks: vec![],
       cached_source_sizes: DashMap::default(),
       diagnostics: Mutex::new(vec![]),
-      cached_hash: OnceCell::default(),
       build_info: None,
       source_map_kind: SourceMapKind::empty(),
     }
@@ -529,7 +525,7 @@ impl Module for ConcatenatedModule {
   /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let compilation = compilation.expect("should pass compilation");
@@ -1494,7 +1490,6 @@ impl ConcatenatedModule {
     list.push(ConcatenationEntry::Concatenated(
       ConcatenationEntryConcatenated {
         module: root_module,
-        runtime_condition: RuntimeCondition::Boolean(true),
       },
     ));
     list
@@ -1542,7 +1537,6 @@ impl ConcatenatedModule {
       list.push(ConcatenationEntry::Concatenated(
         ConcatenationEntryConcatenated {
           module: *con.module_identifier(),
-          runtime_condition,
         },
       ));
     } else {

@@ -1,23 +1,19 @@
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
-use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
-use std::sync::LazyLock;
 
 use either::Either;
 use itertools::Itertools;
 use rspack_collections::impl_item_ukey;
 use rspack_collections::Ukey;
-use rspack_collections::UkeyDashMap;
 use rspack_collections::UkeySet;
 use rspack_util::atom::Atom;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
-use rustc_hash::FxHasher;
 use serde::Serialize;
 
 use crate::Compilation;
@@ -25,9 +21,6 @@ use crate::{
   property_access, ConnectionState, DependencyCondition, DependencyId, ModuleGraph,
   ModuleIdentifier, Nullable, RuntimeSpec,
 };
-
-static EXPORTS_INFO_HASH: LazyLock<UkeyDashMap<ExportsInfo, u64>> =
-  LazyLock::new(UkeyDashMap::default);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfo(Ukey);
@@ -1553,7 +1546,6 @@ impl ExportInfo {
 pub struct ExportInfoData {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   name: Option<Atom>,
-  usage_state: UsageState,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<Atom>,
   target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
@@ -1688,7 +1680,6 @@ impl ExportInfoData {
       .unwrap_or_default();
     Self {
       name,
-      usage_state: UsageState::Unknown,
       used_name,
       used_in_runtime,
       target,

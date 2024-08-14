@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
@@ -12,7 +11,6 @@ use rspack_core::{
   RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
 use rspack_util::source_map::SourceMapKind;
 
 use super::fallback_item_dependency::FallbackItemDependency;
@@ -119,7 +117,7 @@ impl Module for FallbackModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let build_info = BuildInfo {

@@ -754,11 +754,11 @@ impl Compilation {
 
     fn run_iteration(
       compilation: &mut Compilation,
-      codegen_cache_counter: &mut Option<CacheCount>,
+      cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
       let results = compilation.code_generation_modules(
-        codegen_cache_counter,
+        cache_counter,
         compilation
           .get_module_graph()
           .modules()
@@ -794,7 +794,7 @@ impl Compilation {
 
   pub(crate) fn code_generation_modules(
     &mut self,
-    codegen_cache_counter: &mut Option<CacheCount>,
+    cache_counter: &mut Option<CacheCount>,
     modules: IdentifierSet,
   ) -> Result<Vec<ModuleIdentifier>> {
     let chunk_graph = &self.chunk_graph;
@@ -855,24 +855,34 @@ impl Compilation {
             let module = module_graph
               .module_by_identifier(&module)
               .expect("should have module");
-            module.code_generation(self, Some(&runtime), None)
+            module.code_generation(self, Some(runtime), None)
           })
-          .map(|(res, runtimes)| (module, res, runtimes))
+          .map(|(res, runtimes, from_cache)| (module, res, runtimes, from_cache))
       })
       .collect::<Result<Vec<_>>>()?;
-    let results = results.into_iter().map(|(module, codegen_res, runtimes)| {
-      let codegen_res_id = codegen_res.id;
-      self
-        .code_generation_results
-        .module_generation_result_map
-        .insert(codegen_res_id, codegen_res);
-      for runtime in runtimes {
+    let results = results
+      .into_iter()
+      .map(|(module, codegen_res, runtimes, from_cache)| {
+        if let Some(counter) = cache_counter {
+          if from_cache {
+            counter.hit();
+          } else {
+            counter.miss();
+          }
+        }
+
+        let codegen_res_id = codegen_res.id;
         self
           .code_generation_results
-          .add(module, runtime, codegen_res_id);
-      }
-      module
-    });
+          .module_generation_result_map
+          .insert(codegen_res_id, codegen_res);
+        for runtime in runtimes {
+          self
+            .code_generation_results
+            .add(module, runtime, codegen_res_id);
+        }
+        module
+      });
 
     Ok(results.collect())
   }

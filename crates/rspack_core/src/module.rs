@@ -7,10 +7,10 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::RspackHashDigest;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
-use rspack_util::ext::{AsAny, DynEq, DynHash};
+use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -597,7 +597,6 @@ pub struct LibIdentOptions<'me> {
 #[cfg(test)]
 mod test {
   use std::borrow::Cow;
-  use std::hash::Hash;
 
   use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{Diagnosable, Diagnostic, Result};

@@ -1,7 +1,5 @@
 mod hot_module_replacement;
 
-use std::hash::Hash;
-
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{IdentifierSet, UkeyMap};
@@ -12,10 +10,9 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
   DependencyType, LoaderContext, NormalModuleLoader, PathData, Plugin, PluginContext,
-  RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};

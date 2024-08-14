@@ -9,7 +9,7 @@ use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
   Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
   StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
