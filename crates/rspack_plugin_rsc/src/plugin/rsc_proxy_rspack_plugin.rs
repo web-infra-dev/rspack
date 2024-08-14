@@ -26,7 +26,7 @@ impl RSCProxyRspackPlugin {
       "rsc-server-action-entry-loader.js?from={}&name={}",
       "server-entry", "server-entry"
     );
-    let entry = Box::new(EntryDependency::new(request, context.clone(), false));
+    let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
     compilation
       .add_include(
         entry,

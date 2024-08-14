@@ -45,7 +45,7 @@ impl RSCClientReferenceManifestRspackPlugin {
       "rsc-client-entry-loader.js?from={}&name={}",
       "client-entry", "server-entry"
     );
-    let entry = Box::new(EntryDependency::new(request, context.clone(), false));
+    let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
     compilation
       .add_include(
         entry,
@@ -60,7 +60,7 @@ impl RSCClientReferenceManifestRspackPlugin {
         "rsc-client-entry-loader.js?from={}&name={}",
         "route-entry", name
       );
-      let entry = Box::new(EntryDependency::new(request, context.clone(), false));
+      let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
       compilation
         .add_include(
           entry,
@@ -189,9 +189,11 @@ impl RSCClientReferenceManifest {
           {
             continue;
           }
-          let resource = &resolved_data
+          let resource = resolved_data
             .expect("TODO:")
             .resource_path
+            .as_ref()
+            .expect("TODO:")
             .to_str()
             .expect("TODO:");
           if !self.is_client_request(&resource).await {
@@ -199,11 +201,12 @@ impl RSCClientReferenceManifest {
           }
           if let Some(module_id) = module_id {
             let exports_info = mg.get_exports_info(&module.identifier());
-            let module_exported_keys = exports_info.get_ordered_exports().filter_map(|id| {
-              let info = id.get_export_info(&mg);
-              if let Some(provided) = info.provided {
+            let module_exported_keys = exports_info.ordered_exports(&mg).filter_map(|id| {
+              let provided = id.provided(&mg);
+              let name = id.name(&mg);
+              if let Some(provided) = provided {
                 match provided {
-                  ExportInfoProvided::True => Some(info.name.clone()),
+                  ExportInfoProvided::True => Some(name.clone()),
                   _ => None,
                 }
               } else {

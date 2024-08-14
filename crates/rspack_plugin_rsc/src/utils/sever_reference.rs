@@ -56,7 +56,7 @@ impl RSCServerReferenceManifest {
   }
   fn add_server_action_ref(
     &self,
-    module_id: &Option<String>,
+    module_id: Option<&str>,
     chunk_group_name: &str,
     server_actions_ref: &mut HashMap<String, HashMap<String, String>>,
   ) {
@@ -118,10 +118,9 @@ impl RSCServerReferenceManifest {
             Some(build_info) => has_server_directive(&build_info.directives),
             None => false,
           };
-          let resource = &resolved_data
-            .expect("TODO:")
-            .resource_path
-            .to_str()
+          let resource = resolved_data
+            .and_then(|f| f.resource_path.as_ref())
+            .and_then(|f| f.to_str())
             .expect("TODO:");
 
           if chunk_group.name().is_some() {
@@ -134,11 +133,12 @@ impl RSCServerReferenceManifest {
           }
           if let Some(module_id) = module_id {
             let exports_info = mg.get_exports_info(&module.identifier());
-            let module_exported_keys = exports_info.get_ordered_exports().filter_map(|id| {
-              let info = id.get_export_info(&mg);
-              if let Some(provided) = info.provided {
+            let module_exported_keys = exports_info.ordered_exports(&mg).filter_map(|id| {
+              let provided = id.provided(&mg);
+              let name = id.name(&mg);
+              if let Some(provided) = provided {
                 match provided {
-                  ExportInfoProvided::True => Some(info.name.clone()),
+                  ExportInfoProvided::True => Some(name.clone()),
                   _ => None,
                 }
               } else {
