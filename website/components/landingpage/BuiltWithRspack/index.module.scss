@@ -47,17 +47,43 @@
 
     flex: 1 0 0;
     align-self: stretch;
-    img {
-    }
   }
 }
 
-.bitDevText {
-  color: var(--Text-primary-color, #0b0c0e);
-  text-align: center;
-  font-family: 'Open Sans';
-  font-size: 24px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 28px; /* 116.667% */
+.bitDevContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+
+  .bitDevLogo {
+    width: 40px;
+    height: 40px;
+  }
+  .bitDevText {
+    color: var(--Text-primary-color, #0b0c0e);
+    text-align: center;
+    font-family: 'Open Sans';
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 28px; /* 116.667% */
+  }
+}
+
+.microsoftLogo {
+  width: 180px;
+  max-width: 180px; // override the img { max-width: 100%;}
+}
+.amazonLogo {
+  width: 120px;
+  max-width: 120px; // override the img { max-width: 100%;}
+}
+.bytedanceLogo {
+  width: 200px;
+  max-width: 200px; // override the img { max-width: 100%;}
+}
+.inituitLogo {
+  width: 140px;
+  max-width: 140px; // override the img { max-width: 100%;}
 }

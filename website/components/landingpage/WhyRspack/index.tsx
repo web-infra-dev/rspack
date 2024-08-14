@@ -1,6 +1,6 @@
 import Bg from './assets/Bg.svg';
 import Compatible from './assets/Compatible.svg';
-import FrameWork from './assets/FrameWork.svg';
+import FrameCheck from './assets/FrameCheck.svg';
 import Lightning from './assets/Lightning.svg';
 import Speedometer from './assets/Speedometer.svg';
 import styles from './index.module.scss';
@@ -50,7 +50,7 @@ const Features = () => {
 
           <div className={styles.featureCard}>
             <div className={styles.featureIcon}>
-              <img src={FrameWork} alt="FrameWork" />
+              <img src={FrameCheck} alt="FrameWork" />
             </div>
             <div className={styles.featureContent}>
               <h3 className={styles.featureTitle}>Framework Agnostic</h3>

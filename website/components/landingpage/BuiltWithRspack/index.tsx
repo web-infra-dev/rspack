@@ -11,21 +11,29 @@ const BuiltWithRsPack: React.FC = () => {
       <div className={styles.innerContainer}>
         <h2 className={styles.title}>Built with Rspack</h2>
         <div className={styles.logos}>
-          <div className={styles.logo}>
-            <img src={bitDevLogo} alt="bit.dev" />
+          <div className={`${styles.logo} ${styles.bitDevContainer}`}>
+            <img src={bitDevLogo} alt="bit.dev" className={styles.bitDevLogo} />
             <span className={styles.bitDevText}>bit.dev</span>
           </div>
-          <div className={styles.logo}>
-            <img src={microsoftLogo} alt="Microsoft" />
+          <div className={`${styles.logo}`}>
+            <img
+              src={microsoftLogo}
+              alt="Microsoft"
+              className={styles.microsoftLogo}
+            />
           </div>
           <div className={styles.logo}>
-            <img src={amazonLogo} alt="Amazon" />
+            <img src={amazonLogo} alt="Amazon" className={styles.amazonLogo} />
           </div>
           <div className={styles.logo}>
-            <img src={bytedanceLogo} alt="ByteDance" />
+            <img
+              src={bytedanceLogo}
+              alt="ByteDance"
+              className={styles.bytedanceLogo}
+            />
           </div>
           <div className={styles.logo}>
-            <img src={intuitLogo} alt="Intuit" />
+            <img src={intuitLogo} alt="Intuit" className={styles.inituitLogo} />
           </div>
         </div>
       </div>

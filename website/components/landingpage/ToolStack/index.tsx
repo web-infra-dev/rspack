@@ -15,6 +15,14 @@ const ToolStack: React.FC = () => {
       url: 'https://rspack.dev',
     },
     {
+      name: 'Rsbuild',
+      desc: isEn
+        ? 'An Rspack-based build tool that provides out-of-the-box setup for enjoyable development experience.'
+        : '基于 Rspack 的构建工具，包含开箱即用的预设配置，带来愉悦的开发体验。',
+      logo: 'https://assets.rspack.dev/rsbuild/rsbuild-logo.svg',
+      url: 'https://rsbuild.dev',
+    },
+    {
       name: 'Rspress',
       desc: isEn
         ? 'A static site generator based on Rsbuild and MDX for creating elegant documentation sites.'
@@ -30,14 +38,7 @@ const ToolStack: React.FC = () => {
       logo: 'https://assets.rspack.dev/rsdoctor/rsdoctor-logo-480x480.png',
       url: 'https://rsdoctor.dev',
     },
-    {
-      name: 'Rsbuild',
-      desc: isEn
-        ? 'An Rspack-based build tool that provides out-of-the-box setup for enjoyable development experience.'
-        : '基于 Rspack 的构建工具，包含开箱即用的预设配置，带来愉悦的开发体验。',
-      logo: 'https://assets.rspack.dev/rsbuild/rsbuild-logo.svg',
-      url: 'https://rsbuild.dev',
-    },
+
     {
       name: 'Rslib',
       desc: isEn
