@@ -133,7 +133,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      [/<script defer="defer" src="index_bundle.js"><\/script>[\s]*<\/head>/],
+      [/<script defer src="index_bundle.js"><\/script>[\s]*<\/head>/],
       null,
       done,
     );
@@ -152,7 +152,7 @@ describe("HtmlWebpackPlugin", () => {
   //       plugins: [new HtmlWebpackPlugin()],
   //     },
   //     [
-  //       /<script defer="defer" src="foo\/very%20fancy%2Bname.js"><\/script>[\s]*<\/head>/,
+  //       /<script defer src="foo\/very%20fancy%2Bname.js"><\/script>[\s]*<\/head>/,
   //     ],
   //     null,
   //     done,
@@ -175,7 +175,7 @@ describe("HtmlWebpackPlugin", () => {
   //         plugins: [new HtmlWebpackPlugin()],
   //       },
   //       [
-  //         '<script defer="defer" src="fo%3Ao/very%20fancy%2Bfile-name.js?path=/home?value=abc&value=def#zzz">',
+  //         '<script defer src="fo%3Ao/very%20fancy%2Bfile-name.js?path=/home?value=abc&value=def#zzz">',
   //       ],
   //       null,
   //       done,
@@ -198,8 +198,8 @@ describe("HtmlWebpackPlugin", () => {
         plugins: [new HtmlWebpackPlugin()],
       },
       [
-        '<script defer="defer" src="util_bundle.js"',
-        '<script defer="defer" src="app_bundle.js"',
+        '<script defer src="util_bundle.js"',
+        '<script defer src="app_bundle.js"',
       ],
       null,
       done,
@@ -309,7 +309,7 @@ describe("HtmlWebpackPlugin", () => {
   //         }),
   //       ],
   //     },
-  //     ['<script defer="defer" src="app_bundle.js"'],
+  //     ['<script defer src="app_bundle.js"'],
   //     null,
   //     done,
   //   );
@@ -358,7 +358,7 @@ describe("HtmlWebpackPlugin", () => {
   //         }),
   //       ],
   //     },
-  //     ['<script defer="defer" src="app_bundle.js'],
+  //     ['<script defer src="app_bundle.js'],
   //     "app.html",
   //     done,
   //   );
@@ -382,7 +382,7 @@ describe("HtmlWebpackPlugin", () => {
   //         }),
   //       ],
   //     },
-  //     ['<script defer="defer" src="app_bundle.js'],
+  //     ['<script defer src="app_bundle.js'],
   //     "app.html",
   //     done,
   //   );
@@ -403,7 +403,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin()],
   //     },
-  //     ['<script defer="defer" src="app_bundle.js', "src/index.ejs"],
+  //     ['<script defer src="app_bundle.js', "src/index.ejs"],
   //     null,
   //     done,
   //   );
@@ -429,8 +429,8 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer="defer" src="util_bundle.js"',
-        '<script defer="defer" src="app_bundle.js"',
+        '<script defer src="util_bundle.js"',
+        '<script defer src="app_bundle.js"',
       ],
       null,
       done,
@@ -457,8 +457,8 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer="defer" src="util_bundle.js"',
-        '<script defer="defer" src="app_bundle.js"',
+        '<script defer src="util_bundle.js"',
+        '<script defer src="app_bundle.js"',
       ],
       null,
       done,
@@ -485,8 +485,8 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer="defer" src="util_bundle.js"',
-        '<script defer="defer" src="app_bundle.js"',
+        '<script defer src="util_bundle.js"',
+        '<script defer src="app_bundle.js"',
       ],
       null,
       done,
@@ -513,7 +513,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="app_bundle.js"'],
+      ['<script defer src="app_bundle.js"'],
       null,
       done,
     );
@@ -540,7 +540,7 @@ describe("HtmlWebpackPlugin", () => {
   //         }),
   //       ],
   //     },
-  //     ['<script defer="defer" src="app_bundle.js"'],
+  //     ['<script defer src="app_bundle.js"'],
   //     null,
   //     done,
   //   );
@@ -625,7 +625,7 @@ describe("HtmlWebpackPlugin", () => {
   //         }),
   //       ],
   //     },
-  //     ['<script defer="defer" src="app_bundle.js"'],
+  //     ['<script defer src="app_bundle.js"'],
   //     null,
   //     done,
   //   );
@@ -644,8 +644,8 @@ describe("HtmlWebpackPlugin", () => {
         plugins: [new HtmlWebpackPlugin()],
       },
       // DIFF: ['<script defer src="index_bundle.js"']
-      // `prodution` use html-minify-terser to convert `defer` to `defer="defer"`
-      ['<script defer="defer" src="index_bundle.js"'],
+      // `prodution` use html-minify-terser to convert `defer` to `defer`
+      ['<script defer src="index_bundle.js"'],
       null,
       done,
     );
@@ -662,7 +662,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      [/<script defer="defer" src="index_bundle_[0-9a-f]+\.js"*/],
+      [/<script defer src="index_bundle_[0-9a-f]+\.js"*/],
       null,
       done,
     );
@@ -681,7 +681,7 @@ describe("HtmlWebpackPlugin", () => {
         plugins: [new HtmlWebpackPlugin()],
       },
       [
-        /<script defer="defer" src="\/dist\/[0-9a-f]+\/index_bundle_[0-9a-f]+\.js"*/,
+        /<script defer src="\/dist\/[0-9a-f]+\/index_bundle_[0-9a-f]+\.js"*/,
       ],
       null,
       done,
@@ -700,7 +700,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin({ hash: true })],
   //     },
-  //     ['<script defer="defer" src="index_bundle.js?%hash%"'],
+  //     ['<script defer src="index_bundle.js?%hash%"'],
   //     null,
   //     done,
   //   );
@@ -718,7 +718,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin({ hash: true, inject: true })],
   //     },
-  //     ['<script defer="defer" src="index_bundle.js?%hash%"'],
+  //     ['<script defer src="index_bundle.js?%hash%"'],
   //     null,
   //     done,
   //   );
@@ -772,7 +772,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer="defer" src="main.js"',
+        '<script defer src="main.js"',
         "<title>Example Plain file</title>",
       ],
       null,
@@ -1068,7 +1068,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="/index_bundle.js"'],
+      ['<script defer src="/index_bundle.js"'],
       null,
       done,
     );
@@ -1086,7 +1086,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="/some/index_bundle.js"'],
+      ['<script defer src="/some/index_bundle.js"'],
       null,
       done,
     );
@@ -1104,7 +1104,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="/some/index_bundle.js"'],
+      ['<script defer src="/some/index_bundle.js"'],
       null,
       done,
     );
@@ -1122,7 +1122,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="some/index_bundle.js"'],
+      ['<script defer src="some/index_bundle.js"'],
       null,
       done,
     );
@@ -1139,7 +1139,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="index_bundle.js"'],
+      ['<script defer src="index_bundle.js"'],
       null,
       done,
     );
@@ -1160,13 +1160,13 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="../index_bundle.js"'],
+      ['<script defer src="../index_bundle.js"'],
       path.join("subfolder", "test.html"),
       done,
     );
   });
 
-  it('prepends the publicPath to script defer="defer" src', (done) => {
+  it('prepends the publicPath to script defer src', (done) => {
     testHtmlPlugin(
       {
         mode: "production",
@@ -1179,7 +1179,7 @@ describe("HtmlWebpackPlugin", () => {
         plugins: [new HtmlWebpackPlugin()],
       },
       [
-        '<script defer="defer" src="http://cdn.example.com/assets/index_bundle.js"',
+        '<script defer src="http://cdn.example.com/assets/index_bundle.js"',
       ],
       null,
       done,
@@ -1198,7 +1198,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="/assets/index_bundle.js"'],
+      ['<script defer src="/assets/index_bundle.js"'],
       null,
       done,
     );
@@ -1220,7 +1220,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="assets/index_bundle.js"'],
+      ['<script defer src="assets/index_bundle.js"'],
       "foo/index.html",
       done,
     );
@@ -1243,7 +1243,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="assets/index_bundle.js"'],
+      ['<script defer src="assets/index_bundle.js"'],
       "foo/index.html",
       done,
     );
@@ -1260,7 +1260,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      ['<script defer="defer" src="assets/index_bundle.js"'],
+      ['<script defer src="assets/index_bundle.js"'],
       null,
       done,
     );
@@ -1281,7 +1281,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="../assets/index_bundle.js"'],
+      ['<script defer src="../assets/index_bundle.js"'],
       path.join("subfolder", "test.html"),
       done,
     );
@@ -1300,7 +1300,7 @@ describe("HtmlWebpackPlugin", () => {
         plugins: [new HtmlWebpackPlugin()],
       },
       [
-        '<script defer="defer" src="http://cdn.example.com/assets/index_bundle.js"',
+        '<script defer src="http://cdn.example.com/assets/index_bundle.js"',
       ],
       null,
       done,
@@ -1335,7 +1335,7 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin({ filename: "test.html" })],
       },
-      ['<script defer="defer" src="index_bundle.js"'],
+      ['<script defer src="index_bundle.js"'],
       "test.html",
       done,
     );
@@ -1356,7 +1356,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="index_bundle.js"'],
+      ['<script defer src="index_bundle.js"'],
       /test-\S+\.html$/,
       done,
     );
@@ -1462,7 +1462,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="../index_bundle.js"'],
+      ['<script defer src="../index_bundle.js"'],
       path.join("subfolder", "test.html"),
       done,
     );
@@ -1483,7 +1483,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="app/index_bundle.js"'],
+      ['<script defer src="app/index_bundle.js"'],
       "test.html",
       done,
     );
@@ -1504,7 +1504,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="app/index_bundle.js"'],
+      ['<script defer src="app/index_bundle.js"'],
       "test.html",
       done,
     );
@@ -1521,14 +1521,14 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin({ filename: "assets/test.html" })],
       },
-      ['<script defer="defer" src="../index_bundle.js"'],
+      ['<script defer src="../index_bundle.js"'],
       "assets/test.html",
       done,
     );
   });
 
   // TODO: win32 path sep "..\\../assets/index_bundle.js"
-  // it('will try to use a relative name if the filename and the script defer="defer" are in a subdirectory', (done) => {
+  // it('will try to use a relative name if the filename and the script defer are in a subdirectory', (done) => {
   //   testHtmlPlugin(
   //     {
   //       mode: "production",
@@ -1539,7 +1539,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin({ filename: "assets/demo/test.html" })],
   //     },
-  //     ['<script defer="defer" src="../../assets/index_bundle.js"'],
+  //     ['<script defer src="../../assets/index_bundle.js"'],
   //     "assets/demo/test.html",
   //     done,
   //   );
@@ -1568,7 +1568,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      ['<script defer="defer" src="index_bundle.js"'],
+      ['<script defer src="index_bundle.js"'],
       null,
       () => {
         expect(fs.existsSync(path.join(OUTPUT_DIR, "second-file.html"))).toBe(
@@ -1609,7 +1609,7 @@ describe("HtmlWebpackPlugin", () => {
   //     },
   //     [
   //       '<link href="styles.css"',
-  //       '<script defer="defer" src="index_bundle.js"',
+  //       '<script defer src="index_bundle.js"',
   //     ],
   //     null,
   //     done,
@@ -1725,7 +1725,7 @@ describe("HtmlWebpackPlugin", () => {
   //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
   //     },
   //     [
-  //       /[\s]*<script defer="defer" src="app_bundle.js" specialattribute><\/script>[\s]*<\/head>/,
+  //       /[\s]*<script defer src="app_bundle.js" specialattribute><\/script>[\s]*<\/head>/,
   //     ],
   //     null,
   //     done,
@@ -1769,7 +1769,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
   //     },
-  //     [/<script defer="defer" src="app_bundle.js"><\/script>[\s]*<\/head>/],
+  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
   //     null,
   //     done,
   //     false,
@@ -1812,7 +1812,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
   //     },
-  //     [/<script defer="defer" src="app_bundle.js"><\/script>[\s]*<\/head>/],
+  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
   //     null,
   //     done,
   //     false,
@@ -1855,7 +1855,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
   //     },
-  //     [/<script defer="defer" src="app_bundle.js"><\/script>[\s]*<\/head>/],
+  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
   //     null,
   //     done,
   //     false,
@@ -1895,7 +1895,7 @@ describe("HtmlWebpackPlugin", () => {
   //         examplePlugin,
   //       ],
   //     },
-  //     [/<script defer="defer" src="app_bundle.js"><\/script>[\s]*<\/head>/],
+  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
   //     null,
   //     () => {
   //       expect(eventArgs.plugin.options.foo).toBe("bar");
@@ -1933,7 +1933,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
   //     },
-  //     [/<script defer="defer" src="app_bundle.js"><\/script>[\s]*<\/head>/],
+  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
   //     null,
   //     () => {
   //       expect(eventArgs.outputName).toBe("index.html");
@@ -2435,7 +2435,7 @@ describe("HtmlWebpackPlugin", () => {
   //       },
   //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
   //     },
-  //     ['<script defer="defer" src="funky-script.js"'],
+  //     ['<script defer src="funky-script.js"'],
   //     null,
   //     () => {
   //       expect(eventFired).toBe(true);
@@ -2524,8 +2524,8 @@ describe("HtmlWebpackPlugin", () => {
         plugins: [new HtmlWebpackPlugin()],
       },
       [
-        /<script defer="defer" src="common_bundle.js">[\s\S]*<script defer="defer" src="util_bundle.js">/,
-        /<script defer="defer" src="common_bundle.js"[\s\S]*<script defer="defer" src="index_bundle.js">/,
+        /<script defer src="common_bundle.js">[\s\S]*<script defer src="util_bundle.js">/,
+        /<script defer src="common_bundle.js"[\s\S]*<script defer src="index_bundle.js">/,
       ],
       null,
       done,
@@ -2643,7 +2643,7 @@ describe("HtmlWebpackPlugin", () => {
   //       plugins: [new HtmlWebpackPlugin()],
   //     },
   //     [
-  //       /<head><meta charset="utf-8"\/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"><title>src\/index\.ejs<\/title><script defer="defer" src="index_bundle.js"><\/script><\/head>/,
+  //       /<head><meta charset="utf-8"\/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"><title>src\/index\.ejs<\/title><script defer src="index_bundle.js"><\/script><\/head>/,
   //     ],
   //     null,
   //     done,
@@ -2986,7 +2986,7 @@ describe("HtmlWebpackPlugin", () => {
   //       ],
   //     },
   //     [
-  //       /(<script defer="defer" src="common_bundle.js">.+<script defer="defer" src="util_bundle.js">.+<script defer="defer" src="index_bundle.js">)|(<script defer="defer" src="common_bundle.js">.+<script defer="defer" src="index_bundle.js">.+<script defer="defer" src="util_bundle.js">)/,
+  //       /(<script defer src="common_bundle.js">.+<script defer src="util_bundle.js">.+<script defer src="index_bundle.js">)|(<script defer src="common_bundle.js">.+<script defer src="index_bundle.js">.+<script defer src="util_bundle.js">)/,
   //     ],
   //     null,
   //     done,
@@ -3022,7 +3022,7 @@ describe("HtmlWebpackPlugin", () => {
   //       ],
   //     },
   //     [
-  //       /<script defer="defer" src="c_bundle.js">.+<script defer="defer" src="b_bundle.js">.+<script defer="defer" src="a_bundle.js">/,
+  //       /<script defer src="c_bundle.js">.+<script defer src="b_bundle.js">.+<script defer src="a_bundle.js">/,
   //     ],
   //     null,
   //     done,
@@ -3066,7 +3066,7 @@ describe("HtmlWebpackPlugin", () => {
   //       ],
   //     },
   //     [
-  //       /<script defer="defer" src="common_bundle.js">.+<script defer="defer" src="a_bundle.js">.+<script defer="defer" src="b_bundle.js">.+<script defer="defer" src="c_bundle.js">/,
+  //       /<script defer src="common_bundle.js">.+<script defer src="a_bundle.js">.+<script defer src="b_bundle.js">.+<script defer src="c_bundle.js">/,
   //     ],
   //     null,
   //     done,
@@ -3237,7 +3237,7 @@ describe("HtmlWebpackPlugin", () => {
   //         }),
   //       ],
   //     },
-  //     [/^<head><script defer="defer" src="app_bundle\.js"><\/script><\/head>$/],
+  //     [/^<head><script defer src="app_bundle\.js"><\/script><\/head>$/],
   //     null,
   //     done,
   //   );
@@ -3260,7 +3260,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        /<body>[\s]*<script defer="defer" src="index_bundle.js"><\/script>[\s]*<\/body>/,
+        /<body>[\s]*<script defer src="index_bundle.js"><\/script>[\s]*<\/body>/,
       ],
       null,
       done,
@@ -3283,7 +3283,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<script defer="defer" src="index_bundle.js"><\/script>[\s]*<\/head>/],
+      [/<script defer src="index_bundle.js"><\/script>[\s]*<\/head>/],
       null,
       done,
     );
@@ -3418,7 +3418,7 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  it('should allow to inject scripts with a defer="defer" attribute', (done) => {
+  it('should allow to inject scripts with a defer attribute', (done) => {
     testHtmlPlugin(
       {
         mode: "production",
@@ -3433,7 +3433,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<script defer="defer" .+\s+<body>/],
+      [/<script defer .+\s+<body>/],
       null,
       done,
     );
@@ -3484,7 +3484,7 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  it('should allow to inject scripts with a defer="defer" attribute to the body', (done) => {
+  it('should allow to inject scripts with a defer attribute to the body', (done) => {
     testHtmlPlugin(
       {
         mode: "production",
@@ -3500,13 +3500,13 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<body>.*\s+<script defer="defer"/],
+      [/<body>.*\s+<script defer/],
       null,
       done,
     );
   });
 
-  it('should allow to inject scripts with a defer="defer" in front of styles', (done) => {
+  it('should allow to inject scripts with a defer in front of styles', (done) => {
     testHtmlPlugin(
       {
         mode: "production",
@@ -3530,7 +3530,7 @@ describe("HtmlWebpackPlugin", () => {
           new MiniCssExtractPlugin({ filename: "styles.css" }),
         ],
       },
-      [/<script defer="defer".+<link href="styles.css"/],
+      [/<script defer.+<link href="styles.css"/],
       null,
       done,
     );
@@ -3594,7 +3594,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer="defer" src="index_bundle.js"></script><link href="styles.css" rel="stylesheet" /></head>',
+        '<script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet" /></head>',
       ],
       null,
       done,
@@ -3668,7 +3668,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer="defer" src="index_bundle.js"></script><link href="styles.css" rel="stylesheet" /></head>',
+        '<script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet" /></head>',
       ],
       null,
       done,
@@ -3707,7 +3707,7 @@ describe("HtmlWebpackPlugin", () => {
   //       ],
   //     },
   //     [
-  //       '<head><script defer="defer" src="index_bundle.js"></script><link href="styles.css" rel="stylesheet"></head>',
+  //       '<head><script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet"></head>',
   //     ],
   //     null,
   //     done,
@@ -3727,7 +3727,7 @@ describe("HtmlWebpackPlugin", () => {
         experiments: { outputModule: true },
         plugins: [new HtmlWebpackPlugin({})],
       },
-      ['<script defer="defer" src="index_bundle.js"></script>'],
+      ['<script defer src="index_bundle.js"></script>'],
       null,
       done,
     );

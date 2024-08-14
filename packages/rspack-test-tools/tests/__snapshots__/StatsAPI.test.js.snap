@@ -1565,12 +1565,16 @@ Object {
       "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js|test",
       "index": 1,
       "index2": 0,
-      "issuer": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/abc.js|test",
-      "issuerName": "./fixtures/abc.js",
+      "issuer": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/c.js|test",
+      "issuerName": "./fixtures/c.js",
       "issuerPath": Array [
         Object {
           "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/abc.js|test",
           "name": "./fixtures/abc.js",
+        },
+        Object {
+          "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/c.js|test",
+          "name": "./fixtures/c.js",
         },
       ],
       "layer": "test",

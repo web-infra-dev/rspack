@@ -50,7 +50,7 @@ impl HTMLPluginTag {
       HtmlScriptLoading::Defer => {
         attributes.push(HtmlPluginAttribute {
           attr_name: "defer".to_string(),
-          attr_value: Some("defer".to_string()),
+          attr_value: None,
         });
       }
       HtmlScriptLoading::Module => {

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>rspack</title>
-  <link rel="icon" href="/favicon.ico" /><script defer="defer" src="/runtime.js"></script><script defer="defer" src="/index.js"></script></head>
+  <link rel="icon" href="/favicon.ico" /><script defer src="/runtime.js"></script><script defer src="/index.js"></script></head>
   <body>
   
 </body></html>
