@@ -1,0 +1,40 @@
+.title {
+  color: var(--rp-c-text-1);
+}
+
+.desc {
+  color: var(--rp-c-text-2);
+}
+
+.bottomLink {
+  display: block;
+  margin-top: 16px;
+  font-size: 16px;
+  color: var(--rp-c-text-2);
+
+  &:hover {
+    color: var(--rp-c-link);
+  }
+}
+
+.button {
+  display: flex;
+  padding: var(--Button-horizontal-padding, 12px) 24px;
+
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+
+  // style
+  border-radius: 25px;
+  border: 2px solid var(--orange-gradient, #ff8b00);
+  // text
+  color: var(--dark-bg-70, #0b0c0e);
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 24px */
+  text-transform: capitalize;
+}

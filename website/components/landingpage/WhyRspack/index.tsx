@@ -1,3 +1,4 @@
+import Bg from './assets/Bg.svg';
 import Compatible from './assets/Compatible.svg';
 import FrameWork from './assets/FrameWork.svg';
 import Lightning from './assets/Lightning.svg';
@@ -17,6 +18,7 @@ const Features = () => {
                 compatible with the webpack ecosystem and offering
                 lightning-fast build speeds.
               </p>
+              <img className={styles.whyRspackBg} src={Bg} alt="bg" />
             </div>
           </div>
           <div className={styles.featureCard}>

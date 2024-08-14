@@ -1,6 +1,7 @@
 import { useDark } from 'rspress/runtime';
-import { Benchmark } from '../../theme/components/Benchmark';
 import BackgroundSvg from './Background.png';
+import { Benchmark } from './Benchmark';
+import BuiltWithRspack from './BuiltWithRspack';
 import FullyFeatured from './FullyFeatured';
 import Hero from './Hero';
 import WhyRspack from './WhyRspack';
@@ -21,6 +22,7 @@ const LandingPage = () => {
       <WhyRspack />
       <Benchmark />
       <FullyFeatured />
+      <BuiltWithRspack />
     </div>
   );
 };
