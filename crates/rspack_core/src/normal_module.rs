@@ -640,9 +640,12 @@ impl Module for NormalModule {
       .expect("should update_hash after build")
       .hash
       .dyn_hash(hasher);
-    self
-      .parser_and_generator
-      .update_hash(self, hasher, compilation, runtime)?;
+    // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
+    if matches!(&self.source, NormalModuleSource::BuiltSucceed(_)) {
+      self
+        .parser_and_generator
+        .update_hash(self, hasher, compilation, runtime)?;
+    }
     module_update_hash(self, hasher, compilation, runtime);
     Ok(())
   }
