@@ -929,12 +929,18 @@ importers:
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
+      html-loader:
+        specifier: 2.1.1
+        version: 2.1.1(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0)))
       jsdom:
         specifier: ^24.0.0
         version: 24.0.0
       memfs:
         specifier: 4.8.1
         version: 4.8.1
+      pug-loader:
+        specifier: 2.4.0
+        version: 2.4.0(pug@2.0.4)
       sass-embedded:
         specifier: ^1.77.8
         version: 1.77.8
@@ -5678,11 +5684,22 @@ packages:
   html-escaper@2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
 
+  html-loader@2.1.1:
+    resolution: {integrity: sha512-L6HUVgr2aeGMyiool2raoBQb8Lue2UTAhUsHvsMLyNxfBHMtOz1NJL1GyE4VbyAoYBK5PJp1I9Aw+FqS3d2eTA==}
+    engines: {node: '>= 10.13.0'}
+    peerDependencies:
+      webpack: ^5.0.0
+
   html-loader@5.0.0:
     resolution: {integrity: sha512-puaGKdjdVVIFRtgIC2n5dt5bt0N5j6heXlAQZ4Do1MLjHmOT1gCE1Ogg7XZNeJlnOVHHsrZKGs5dfh+XwZ3XPw==}
     engines: {node: '>= 18.12.0'}
     peerDependencies:
       webpack: ^5.0.0
+
+  html-minifier-terser@5.1.1:
+    resolution: {integrity: sha512-ZPr5MNObqnV/T9akshPKbVgyOqLmy+Bxo7juKCfTfnjNniTAMdy4hz21YQqoofMBJD2kdREaqPPdThoR78Tgxg==}
+    engines: {node: '>=6'}
+    hasBin: true
 
   html-minifier-terser@6.1.0:
     resolution: {integrity: sha512-YXxSlJBZTP7RS3tWnQw74ooKa6L9b9i9QYXY21eUEvhZ3u9XLfv6OnFsQq6RxkhHygsaUMvYsZRV5rU/OVNZxw==}
@@ -7099,6 +7116,9 @@ packages:
 
   parse-svg-path@0.1.2:
     resolution: {integrity: sha512-JyPSBnkTJ0AI8GGJLfMXvKq42cj5c006fnLz6fXy6zfoVjJizi8BNTpu8on8ziI1cKy9d9DGNuY17Ce7wuejpQ==}
+
+  parse5@6.0.1:
+    resolution: {integrity: sha512-Ofn/CTFzRGTTxwpNEs9PP93gXShHcTq255nzRYSKe8AkVpZY7e1fpmTfOyoIvjP5HG7Z2ZM7VS9PPhQGW2pOpw==}
 
   parse5@7.1.2:
     resolution: {integrity: sha512-Czj1WaSVpaoj0wbhMzLmWD69anp2WH7FXMB9n1Sy8/ZFF9jolSQVMu1Ij5WIyGmcBmhk7EOndpO4mIpihVqAXw==}
@@ -8551,6 +8571,11 @@ packages:
         optional: true
       uglify-js:
         optional: true
+
+  terser@4.8.1:
+    resolution: {integrity: sha512-4GnLC0x667eJG0ewJTa6z/yXrbLGv80D9Ru6HIpCQmO+Q4PfEtBFi0ObSckqwL6VyQv/7ENJieXHo2ANmdQwgw==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
 
   terser@5.27.2:
     resolution: {integrity: sha512-sHXmLSkImesJ4p5apTeT63DsV4Obe1s37qT8qvwHRmVxKTBH7Rv9Wr26VcAMmLbmk9UliiwK8z+657NyJHHy/w==}
@@ -15387,11 +15412,27 @@ snapshots:
 
   html-escaper@2.0.2: {}
 
+  html-loader@2.1.1(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
+    dependencies:
+      html-minifier-terser: 5.1.1
+      parse5: 6.0.1
+      webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
+
   html-loader@5.0.0(webpack@5.92.0(webpack-cli@5.1.4(webpack@5.92.0))):
     dependencies:
       html-minifier-terser: 7.2.0
       parse5: 7.1.2
       webpack: 5.92.0(webpack-cli@5.1.4(webpack@5.92.0))
+
+  html-minifier-terser@5.1.1:
+    dependencies:
+      camel-case: 4.1.2
+      clean-css: 4.2.4
+      commander: 4.1.1
+      he: 1.2.0
+      param-case: 3.0.4
+      relateurl: 0.2.7
+      terser: 4.8.1
 
   html-minifier-terser@6.1.0:
     dependencies:
@@ -17033,6 +17074,8 @@ snapshots:
   parse-node-version@1.0.1: {}
 
   parse-svg-path@0.1.2: {}
+
+  parse5@6.0.1: {}
 
   parse5@7.1.2:
     dependencies:
@@ -18677,6 +18720,13 @@ snapshots:
       serialize-javascript: 6.0.2
       terser: 5.27.2
       webpack: 5.92.0(webpack-cli@5.1.4)
+
+  terser@4.8.1:
+    dependencies:
+      acorn: 8.11.3
+      commander: 2.20.3
+      source-map: 0.6.1
+      source-map-support: 0.5.21
 
   terser@5.27.2:
     dependencies:

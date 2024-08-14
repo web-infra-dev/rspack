@@ -45,15 +45,12 @@ impl HTMLPluginTag {
     append_to: HtmlInject,
     script_loading: &HtmlScriptLoading,
   ) -> HTMLPluginTag {
-    let mut attributes = vec![HtmlPluginAttribute {
-      attr_name: "src".to_string(),
-      attr_value: Some(src.to_string()),
-    }];
+    let mut attributes = vec![];
     match script_loading {
       HtmlScriptLoading::Defer => {
         attributes.push(HtmlPluginAttribute {
           attr_name: "defer".to_string(),
-          attr_value: None,
+          attr_value: Some("defer".to_string()),
         });
       }
       HtmlScriptLoading::Module => {
@@ -64,6 +61,11 @@ impl HTMLPluginTag {
       }
       _ => {}
     }
+
+    attributes.push(HtmlPluginAttribute {
+      attr_name: "src".to_string(),
+      attr_value: Some(src.to_string()),
+    });
 
     HTMLPluginTag {
       tag_name: "script".to_string(),
