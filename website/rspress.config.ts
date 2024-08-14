@@ -115,6 +115,9 @@ export default defineConfig({
     ],
   },
   builderConfig: {
+    dev: {
+      lazyCompilation: true,
+    },
     plugins: [
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({

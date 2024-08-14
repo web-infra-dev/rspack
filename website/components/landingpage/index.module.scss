@@ -1,4 +1,14 @@
 .landingPage {
-  background: url('./Background.svg') no-repeat;
+  // background: url('./Background.svg') no-repeat;
   background-size: contain;
+  position: relative;
+}
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(2px);
 }

@@ -72,29 +72,14 @@
   }
 
   .featureIcon {
-    background: url('./assets/CardBg.svg') cover no-repeat;
+    background: url('./assets/CardBg.svg') no-repeat;
+    background-size: contain;
 
     display: flex;
     justify-content: center;
     align-items: center;
     height: 150px;
     width: 300px;
-    // style
-    border-radius: 20px;
-    border: 1px solid var(--card-stroke, #e6e8ea);
-    background: var(
-      --Light-card-gradient,
-      conic-gradient(
-        from 225deg at 50% 50%,
-        rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
-        #fff 360deg
-      )
-    );
-
-    // text
-    font-size: 2rem;
-    color: #ff6347;
-    margin-bottom: 10px;
   }
 
   .featureContent {

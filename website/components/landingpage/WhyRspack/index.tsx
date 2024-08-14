@@ -1,3 +1,7 @@
+import Compatible from './assets/Compatible.svg';
+import FrameWork from './assets/FrameWork.svg';
+import Lightning from './assets/Lightning.svg';
+import Speedometer from './assets/Speedometer.svg';
 import styles from './index.module.scss';
 
 const Features = () => {
@@ -16,7 +20,9 @@ const Features = () => {
             </div>
           </div>
           <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>🚀</div>
+            <div className={styles.featureIcon}>
+              <img src={Speedometer} alt="Speedometer" />
+            </div>
             <div className={styles.featureContent}>
               <h3 className={styles.featureTitle}>Fast Startup</h3>
               <p className={styles.featureDescription}>
@@ -28,7 +34,9 @@ const Features = () => {
         </div>
         <div className={styles.features}>
           <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>⚡</div>
+            <div className={styles.featureIcon}>
+              <img src={Lightning} alt="Lightning" />
+            </div>
             <div className={styles.featureContent}>
               <h3 className={styles.featureTitle}>Lightning HMR</h3>
               <p className={styles.featureDescription}>
@@ -39,7 +47,9 @@ const Features = () => {
           </div>
 
           <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>✔️</div>
+            <div className={styles.featureIcon}>
+              <img src={FrameWork} alt="FrameWork" />
+            </div>
             <div className={styles.featureContent}>
               <h3 className={styles.featureTitle}>Framework Agnostic</h3>
               <p className={styles.featureDescription}>
@@ -48,7 +58,9 @@ const Features = () => {
             </div>
           </div>
           <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>🔄</div>
+            <div className={styles.featureIcon}>
+              <img src={Compatible} alt="Compatible" />
+            </div>
             <div className={styles.featureContent}>
               <h3 className={styles.featureTitle}>Webpack Compatible</h3>
               <p className={styles.featureDescription}>

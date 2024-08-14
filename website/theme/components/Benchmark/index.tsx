@@ -98,10 +98,10 @@ export function Benchmark() {
         <a
           href="https://github.com/rspack-contrib/performance-compare"
           target="_blank"
-          className={`${styles.bottomLink} hover:text-brand transition-colors duration-300 font-medium p-2`}
+          className={styles.button}
           rel="noreferrer"
         >
-          👉 {t('benchmarkDetail')}
+          {t('benchmarkDetail')}
         </a>
       </div>
     </div>
