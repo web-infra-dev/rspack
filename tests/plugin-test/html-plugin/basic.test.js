@@ -1527,7 +1527,7 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  it('will try to use a relative name if the filename and the script defer="defer" are in a subdirectory', (done) => {
+  itUnixOnly('will try to use a relative name if the filename and the script defer="defer" are in a subdirectory', (done) => {
     testHtmlPlugin(
       {
         mode: "production",
