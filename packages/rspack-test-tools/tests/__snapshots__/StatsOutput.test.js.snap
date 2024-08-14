@@ -1,8 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
-"(node:31749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-PublicPath: auto
+"PublicPath: auto
 asset bundle.js 2.27 KiB {909} [emitted] (name: main)
 asset 2710c5e36f8babb0a3a4.png 7 bytes ({909}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
 Entrypoint main 2.27 KiB (7 bytes) = bundle.js 2.27 KiB (2710c5e36f8babb0a3a4.png 7 bytes)
