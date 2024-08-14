@@ -1,8 +1,8 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
-use std::hash::Hasher;
+use std::hash::{Hash, Hasher};
 
-use rspack_collections::{IdentifierMap, UkeySet};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
@@ -10,8 +10,8 @@ use tracing::instrument;
 
 use crate::{
   get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ExportsHash, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
@@ -183,17 +183,10 @@ impl ChunkGraph {
   pub fn set_module_hashes(
     &mut self,
     module_identifier: ModuleIdentifier,
-    runtime: &RuntimeSpec,
-    hash: RspackHashDigest,
+    hashes: RuntimeSpecMap<RspackHashDigest>,
   ) {
     let cgm = self.get_chunk_graph_module_mut(module_identifier);
-    if let Some(hashes) = &mut cgm.hashes {
-      hashes.set(runtime.clone(), hash);
-    } else {
-      let mut hashes = RuntimeSpecMap::new();
-      hashes.set(runtime.clone(), hash);
-      cgm.hashes = Some(hashes);
-    }
+    cgm.hashes = Some(hashes);
   }
 
   #[instrument(name = "chunk_graph:get_module_graph_hash", skip_all)]
@@ -201,108 +194,52 @@ impl ChunkGraph {
     &self,
     module: &dyn Module,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-    with_connections: bool,
-  ) -> String {
+    runtime: Option<&RuntimeSpec>,
+  ) -> u64 {
+    let mut visited_modules = IdentifierSet::default();
+    visited_modules.insert(module.identifier());
     let mut hasher = FxHasher::default();
-    let mut connection_hash_cache: IdentifierMap<u64> = IdentifierMap::default();
-    let module_graph = &compilation.get_module_graph();
-
-    let process_module_graph_module = |module: &dyn Module, strict: Option<bool>| -> u64 {
-      let mut hasher = FxHasher::default();
-      module.identifier().dyn_hash(&mut hasher);
-      module.source_types().dyn_hash(&mut hasher);
-      module_graph
-        .is_async(&module.identifier())
-        .dyn_hash(&mut hasher);
-
-      module_graph
-        .get_exports_info(&module.identifier())
-        .export_info_hash(&mut hasher, module_graph, &mut UkeySet::default());
-
-      // NOTE:
-      // Webpack use module.getExportsType() to generate hash
-      // but the module graph may be modified in it
-      // and exports type is calculated from build meta and exports info
-      // so use them to generate hash directly to avoid mutable access to module graph
-      if let Some(strict) = strict {
-        if let Some(build_meta) = module.build_meta() {
-          strict.dyn_hash(&mut hasher);
-          build_meta.default_object.dyn_hash(&mut hasher);
-          build_meta.exports_type.dyn_hash(&mut hasher);
-        }
+    self
+      .get_module_graph_hash_without_connections(module, compilation, runtime)
+      .hash(&mut hasher);
+    let strict = module.get_strict_harmony_module();
+    let mg = compilation.get_module_graph();
+    let connections = mg
+      .get_outgoing_connections(&module.identifier())
+      .into_iter()
+      .collect::<Vec<_>>();
+    for connection in connections {
+      let module_identifier = connection.module_identifier();
+      if visited_modules.contains(module_identifier) {
+        continue;
       }
-
-      hasher.finish()
-    };
-
-    // hash module build_info
-    module_graph
-      .get_module_hash(&module.identifier())
-      .dyn_hash(&mut hasher);
-    // hash module graph module
-    process_module_graph_module(module, None).dyn_hash(&mut hasher);
-
-    let strict: bool = module_graph
-      .module_by_identifier(&module.identifier())
-      .unwrap_or_else(|| {
-        panic!(
-          "Module({}) should be added before using",
-          module.identifier()
-        )
-      })
-      .get_strict_harmony_module();
-
-    if with_connections {
-      let mut connections = module_graph
-        .get_outgoing_connections(&module.identifier())
-        .into_iter()
-        .collect::<Vec<_>>();
-
-      connections.sort_by(|a, b| a.module_identifier().cmp(b.module_identifier()));
-
-      // hash connection module graph modules
-      for connection in connections {
-        if let Some(connection_hash) = connection_hash_cache.get(connection.module_identifier()) {
-          connection_hash.dyn_hash(&mut hasher)
-        } else {
-          let connection_hash = process_module_graph_module(
-            module_graph
-              .module_by_identifier(connection.module_identifier())
-              .unwrap_or_else(|| {
-                panic!(
-                  "Module({}) should be added before using",
-                  connection.module_identifier()
-                )
-              })
-              .as_ref(),
-            Some(strict),
-          );
-          connection_hash.dyn_hash(&mut hasher);
-          connection_hash_cache.insert(*connection.module_identifier(), connection_hash);
-        }
+      if connection.get_active_state(&mg, runtime).is_false() {
+        continue;
       }
+      visited_modules.insert(*module_identifier);
+      let module = mg
+        .module_by_identifier(module_identifier)
+        .expect("should have module")
+        .as_ref();
+      module.get_exports_type(&mg, strict).hash(&mut hasher);
+      self.get_module_graph_hash_without_connections(module, compilation, runtime);
     }
-
-    format!("{:016x}", hasher.finish())
+    hasher.finish()
   }
 
   fn get_module_graph_hash_without_connections(
     &self,
     module: &dyn Module,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) -> u64 {
     let mg = compilation.get_module_graph();
     let mut hasher = FxHasher::default();
     module.identifier().dyn_hash(&mut hasher);
     module.source_types().dyn_hash(&mut hasher);
     mg.is_async(&module.identifier()).dyn_hash(&mut hasher);
-    mg.get_exports_info(&module.identifier()).export_info_hash(
-      &mut hasher,
-      &mg,
-      &mut UkeySet::default(),
-    );
+    mg.get_exports_info(&module.identifier())
+      .update_hash(&mg, &mut hasher, compilation, runtime);
     hasher.finish()
   }
 }

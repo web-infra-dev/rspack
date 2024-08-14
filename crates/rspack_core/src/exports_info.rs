@@ -20,6 +20,7 @@ use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde::Serialize;
 
+use crate::Compilation;
 use crate::{
   property_access, ConnectionState, DependencyCondition, DependencyId, ModuleGraph,
   ModuleIdentifier, Nullable, RuntimeSpec,
@@ -697,6 +698,42 @@ impl ExportsInfo {
       }
     }
     false
+  }
+
+  pub fn update_hash(
+    &self,
+    mg: &ModuleGraph,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    self.update_hash_with_visited(mg, hasher, compilation, runtime, &mut UkeySet::default());
+  }
+
+  fn update_hash_with_visited(
+    &self,
+    mg: &ModuleGraph,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+    visited: &mut UkeySet<ExportsInfo>,
+  ) {
+    visited.insert(*self);
+    let data = self.as_exports_info(mg);
+    for export_info in self.ordered_exports(mg) {
+      if export_info.has_info(mg, data.other_exports_info, runtime) {
+        export_info.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+      }
+    }
+    data
+      .side_effects_only_info
+      .update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    data
+      .other_exports_info
+      .update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    if let Some(redirect_to) = data.redirect_to {
+      redirect_to.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    }
   }
 }
 
@@ -1471,6 +1508,43 @@ impl ExportInfo {
           None
         }
       }
+    }
+  }
+
+  pub fn has_info(
+    &self,
+    mg: &ModuleGraph,
+    base_info: ExportInfo,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    let data = self.as_export_info(mg);
+    data.used_name.is_some()
+      || data.provided.is_some()
+      || data.terminal_binding
+      || (self.get_used(mg, runtime) != base_info.get_used(mg, runtime))
+  }
+
+  fn update_hash_with_visited(
+    &self,
+    mg: &ModuleGraph,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+    visited: &mut UkeySet<ExportsInfo>,
+  ) {
+    let data = self.as_export_info(mg);
+    if let Some(used_name) = &data.used_name {
+      used_name.dyn_hash(hasher);
+    } else {
+      data.name.dyn_hash(hasher);
+    }
+    self.get_used(mg, runtime).dyn_hash(hasher);
+    data.provided.dyn_hash(hasher);
+    data.terminal_binding.dyn_hash(hasher);
+    if let Some(exports_info) = data.exports_info
+      && !visited.contains(&exports_info)
+    {
+      exports_info.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
     }
   }
 }

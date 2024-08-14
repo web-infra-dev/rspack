@@ -36,7 +36,7 @@ use crate::{
   DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
   ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
   ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -1152,7 +1152,15 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    self.create_module_hashes();
+    self.create_module_hashes(
+      self
+        .get_module_graph()
+        .modules()
+        .keys()
+        .copied()
+        .collect::<Vec<_>>()
+        .into_par_iter(),
+    )?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1575,36 +1583,37 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:create_module_hashes", skip_all)]
-  fn create_module_hashes(&mut self) {
-    let results: Vec<(ModuleIdentifier, RuntimeSpec, RspackHashDigest)> = self
-      .get_module_graph()
-      .modules()
-      .keys()
-      .flat_map(|module| {
-        self
-          .chunk_graph
-          .get_module_runtimes(*module, &self.chunk_by_ukey)
-          .into_values()
-          .map(|runtime| (*module, runtime))
-      })
-      .par_bridge()
-      .map(|(module_identifier, runtime)| {
-        let mut hasher = RspackHash::from(&self.options.output);
-        let mg = self.get_module_graph();
-        let module = mg
-          .module_by_identifier(&module_identifier)
-          .expect("should have module");
-        module.update_hash(&mut hasher, self, &runtime);
+  pub fn create_module_hashes(
+    &mut self,
+    modules: impl ParallelIterator<Item = ModuleIdentifier>,
+  ) -> Result<()> {
+    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules
+      .map(|module| {
         (
-          module_identifier,
-          runtime,
-          hasher.digest(&self.options.output.hash_digest),
+          module,
+          self
+            .chunk_graph
+            .get_module_runtimes(module, &self.chunk_by_ukey),
         )
       })
-      .collect();
-    for (module, runtime, hash) in results {
-      self.chunk_graph.set_module_hashes(module, &runtime, hash);
+      .map(|(module_identifier, runtimes)| {
+        let mut hashes = RuntimeSpecMap::new();
+        for runtime in runtimes.into_values() {
+          let mut hasher = RspackHash::from(&self.options.output);
+          let mg = self.get_module_graph();
+          let module = mg
+            .module_by_identifier(&module_identifier)
+            .expect("should have module");
+          module.update_hash(&mut hasher, self, Some(&runtime))?;
+          hashes.set(runtime, hasher.digest(&self.options.output.hash_digest));
+        }
+        Ok((module_identifier, hashes))
+      })
+      .collect::<Result<_>>()?;
+    for (module, hashes) in results {
+      self.chunk_graph.set_module_hashes(module, hashes);
     }
+    Ok(())
   }
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]

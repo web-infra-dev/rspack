@@ -12,13 +12,14 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
   CssExportsConvention, Dependency, DependencyId, DependencyTemplate, ErrorSpan, GenerateContext,
   LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext,
-  UsageState,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SourceType,
+  TemplateContext, UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 
 use crate::utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions};
@@ -561,10 +562,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   fn update_hash(
     &self,
-    _hasher: &mut dyn std::hash::Hasher,
+    _module: &NormalModule,
+    hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
-  ) {
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    self.es_module.dyn_hash(hasher);
+    Ok(())
   }
 }
 

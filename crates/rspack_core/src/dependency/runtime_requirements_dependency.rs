@@ -29,7 +29,7 @@ impl DependencyTemplate for RuntimeRequirementsDependency {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) {
     self.runtime_requirements.dyn_hash(hasher);
   }

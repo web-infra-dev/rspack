@@ -83,7 +83,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) {
     self.decorator.dyn_hash(hasher);
     self.allow_exports_access.dyn_hash(hasher);

@@ -215,9 +215,10 @@ impl Module for ProvideSharedModule {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-  ) {
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
     module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
   }
 }
 

@@ -126,7 +126,7 @@ impl DependencyTemplate for ProvideDependency {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) {
     self.identifier.dyn_hash(hasher);
     self.ids.dyn_hash(hasher);

@@ -230,7 +230,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
     &self,
     _hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) {
   }
 }

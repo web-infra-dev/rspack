@@ -323,6 +323,10 @@ impl NormalModule {
     build_meta.hash(&mut hasher);
     hasher.digest(&output_options.hash_digest)
   }
+
+  pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
+    self.generator_options.as_ref()
+  }
 }
 
 impl Identifiable for NormalModule {
@@ -582,7 +586,6 @@ impl Module for NormalModule {
           self,
           &mut GenerateContext {
             compilation,
-            module_generator_options: self.generator_options.as_ref(),
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
@@ -629,8 +632,8 @@ impl Module for NormalModule {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-  ) {
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
     self
       .build_info
       .as_ref()
@@ -639,8 +642,9 @@ impl Module for NormalModule {
       .dyn_hash(hasher);
     self
       .parser_and_generator
-      .update_hash(hasher, compilation, runtime);
+      .update_hash(self, hasher, compilation, runtime)?;
     module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {

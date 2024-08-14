@@ -279,8 +279,8 @@ pub trait Module:
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-  );
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()>;
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
@@ -470,10 +470,12 @@ pub fn module_update_hash(
   module: &dyn Module,
   hasher: &mut dyn std::hash::Hasher,
   compilation: &Compilation,
-  runtime: &RuntimeSpec,
+  runtime: Option<&RuntimeSpec>,
 ) {
   let chunk_graph = &compilation.chunk_graph;
-  chunk_graph.get_module_graph_hash(module, compilation, runtime, true);
+  chunk_graph
+    .get_module_graph_hash(module, compilation, runtime)
+    .dyn_hash(hasher);
   if let Some(deps) = module.get_presentational_dependencies() {
     for dep in deps {
       dep.update_hash(hasher, compilation, runtime);
@@ -681,8 +683,8 @@ mod test {
           &self,
           _hasher: &mut dyn std::hash::Hasher,
           _compilation: &Compilation,
-          _runtime: &RuntimeSpec,
-        ) {
+          _runtime: Option<&RuntimeSpec>,
+        ) -> Result<()> {
           unreachable!()
         }
 

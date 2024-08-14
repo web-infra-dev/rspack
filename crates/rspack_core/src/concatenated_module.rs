@@ -1288,9 +1288,11 @@ impl Module for ConcatenatedModule {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    generation_runtime: &RuntimeSpec,
-  ) {
-    let runtime = if let Some(self_runtime) = &self.runtime {
+    generation_runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    let runtime = if let Some(self_runtime) = &self.runtime
+      && let Some(generation_runtime) = generation_runtime
+    {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
@@ -1298,7 +1300,7 @@ impl Module for ConcatenatedModule {
           .collect::<RuntimeSpec>(),
       ))
     } else {
-      Some(Cow::Borrowed(generation_runtime))
+      generation_runtime.map(Cow::Borrowed)
     };
     let runtime = runtime.as_deref();
     for info in self.create_concatenation_list(
@@ -1312,16 +1314,17 @@ impl Module for ConcatenatedModule {
           .get_module_graph()
           .module_by_identifier(&e.module)
           .expect("should have module")
-          .update_hash(hasher, compilation, generation_runtime),
+          .update_hash(hasher, compilation, generation_runtime)?,
         ConcatenationEntry::External(e) => {
           compilation
             .chunk_graph
             .get_module_id(e.module(&compilation.get_module_graph()))
             .dyn_hash(hasher);
         }
-      }
+      };
     }
-    module_update_hash(self, hasher, compilation, generation_runtime)
+    module_update_hash(self, hasher, compilation, generation_runtime);
+    Ok(())
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {

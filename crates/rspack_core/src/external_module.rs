@@ -561,12 +561,13 @@ impl Module for ExternalModule {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-  ) {
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
     self.id.dyn_hash(hasher);
     let is_optional = compilation.get_module_graph().is_optional(&self.id);
     is_optional.dyn_hash(hasher);
     module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
   }
 }
 

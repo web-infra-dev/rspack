@@ -201,14 +201,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   ) -> Option<Cow<'static, str>> {
     None
   }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
-  ) {
-  }
 }
 
 #[derive(Debug)]

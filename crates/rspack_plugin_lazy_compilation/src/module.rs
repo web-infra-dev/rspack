@@ -292,11 +292,12 @@ impl Module for LazyCompilationProxyModule {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-  ) {
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
     module_update_hash(self, hasher, compilation, runtime);
     self.active.dyn_hash(hasher);
     self.data.dyn_hash(hasher);
+    Ok(())
   }
 }
 

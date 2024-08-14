@@ -177,8 +177,8 @@ impl Module for CssModule {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
-  ) {
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
     module_update_hash(self, hasher, compilation, runtime);
     self
       .build_info
@@ -186,6 +186,7 @@ impl Module for CssModule {
       .expect("should update_hash after build")
       .hash
       .dyn_hash(hasher);
+    Ok(())
   }
 }
 

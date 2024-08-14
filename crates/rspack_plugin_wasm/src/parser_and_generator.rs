@@ -291,14 +291,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   ) -> Option<Cow<'static, str>> {
     Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
   }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
-  ) {
-  }
 }
 
 fn render_wasm_name(

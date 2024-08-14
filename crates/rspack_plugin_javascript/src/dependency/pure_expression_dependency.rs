@@ -115,9 +115,9 @@ impl DependencyTemplate for PureExpressionDependency {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) {
-    let runtime_condition = self.get_runtime_condition(compilation, Some(runtime));
+    let runtime_condition = self.get_runtime_condition(compilation, runtime);
     runtime_condition.dyn_hash(hasher);
   }
 }

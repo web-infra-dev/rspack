@@ -55,7 +55,7 @@ pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency + As
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   );
 }
 

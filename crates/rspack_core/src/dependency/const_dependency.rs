@@ -51,7 +51,7 @@ impl DependencyTemplate for ConstDependency {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) {
     self.start.dyn_hash(hasher);
     self.end.dyn_hash(hasher);

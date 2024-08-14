@@ -33,7 +33,7 @@ pub fn dependencies_block_update_hash(
   blocks: &[AsyncDependenciesBlockIdentifier],
   hasher: &mut dyn std::hash::Hasher,
   compilation: &Compilation,
-  runtime: &RuntimeSpec,
+  runtime: Option<&RuntimeSpec>,
 ) {
   let mg = compilation.get_module_graph();
   for dep_id in deps {
@@ -203,7 +203,7 @@ impl AsyncDependenciesBlock {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) {
     self.group_options.dyn_hash(hasher);
     if let Some(chunk_group) = compilation

@@ -168,15 +168,13 @@ pub fn impl_runtime_module(
         &self,
         hasher: &mut dyn std::hash::Hasher,
         compilation: &::rspack_core::Compilation,
-        _runtime: &::rspack_core::RuntimeSpec,
-      ) {
+        _runtime: Option<&::rspack_core::RuntimeSpec>,
+      ) -> ::rspack_error::Result<()> {
         use rspack_util::ext::DynHash;
         self.name().dyn_hash(hasher);
         self.stage().dyn_hash(hasher);
-        match self.get_generated_code(compilation) {
-          Ok(code) => code.dyn_hash(hasher),
-          Err(e) => e.to_string().dyn_hash(hasher),
-        }
+        self.get_generated_code(compilation)?.dyn_hash(hasher);
+        Ok(())
       }
     }
 

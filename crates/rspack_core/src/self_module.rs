@@ -135,9 +135,10 @@ impl Module for SelfModule {
     &self,
     _hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
-  ) {
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
     // do nothing, since this is self reference, the module itself (parent module of this self module) should take effects
+    Ok(())
   }
 }
 

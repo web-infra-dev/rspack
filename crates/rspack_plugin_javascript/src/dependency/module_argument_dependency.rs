@@ -60,7 +60,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
     &self,
     hasher: &mut dyn std::hash::Hasher,
     _compilation: &Compilation,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) {
     self.id.dyn_hash(hasher);
     self.span.dyn_hash(hasher);
