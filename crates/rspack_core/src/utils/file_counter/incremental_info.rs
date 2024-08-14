@@ -43,11 +43,13 @@ impl IncrementalInfo {
 
 #[cfg(test)]
 mod test {
+  use std::path::PathBuf;
+
   use super::IncrementalInfo;
   #[test]
   fn incremental_info_is_available() {
     let mut info = IncrementalInfo::default();
-    let file_a = std::path::PathBuf::from("/a");
+    let file_a = PathBuf::from("/a");
 
     info.add(&file_a);
     info.add(&file_a);

@@ -2,7 +2,6 @@ use std::sync::LazyLock;
 use std::{
   fmt::Display,
   ops::Deref,
-  path::PathBuf,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -14,6 +13,7 @@ use derivative::Derivative;
 use regex::Regex;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
+use rspack_paths::Utf8PathBuf;
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::LoaderContext;
@@ -29,7 +29,7 @@ pub struct LoaderItem<Context> {
   /// The absolute path is used to represent a loader stayed on the JS side.
   /// `$` split chain may be used to represent a composed loader chain from the JS side.
   /// Virtual path with a builtin protocol to represent a loader from the native side. e.g "builtin:".
-  path: PathBuf,
+  path: Utf8PathBuf,
   /// Query of a loader, starts with `?`
   query: Option<String>,
   /// Fragment of a loader, starts with `#`.
@@ -201,7 +201,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
 
 #[derive(Debug)]
 pub struct ResourceParsedData {
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
   pub query: Option<String>,
   pub fragment: Option<String>,
 }

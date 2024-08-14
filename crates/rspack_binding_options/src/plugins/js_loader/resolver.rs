@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -11,6 +11,7 @@ use rspack_loader_lightningcss::LIGHTNINGCSS_LOADER_IDENTIFIER;
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
+use rspack_paths::Utf8Path;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -81,15 +82,15 @@ pub(crate) async fn resolve_loader(
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,
 ) -> Result<Option<BoxLoader>> {
-  let context = context.as_ref();
+  let context = context.as_path();
   let loader_request = &l.loader;
   let loader_options = l.options.as_deref();
   let mut rest = None;
   let prev = if let Some(index) = loader_request.find('?') {
     rest = Some(&loader_request[index..]);
-    Path::new(&loader_request[0..index])
+    Utf8Path::new(&loader_request[0..index])
   } else {
-    Path::new(loader_request)
+    Utf8Path::new(loader_request)
   };
 
   // FIXME: not belong to napi
@@ -98,16 +99,12 @@ pub(crate) async fn resolve_loader(
   }
 
   let resolve_result = resolver
-    .resolve(context, &prev.to_string_lossy())
-    .map_err(|err| {
-      let loader_request = prev.display();
-      let context = context.display();
-      error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
-    })?;
+    .resolve(context.as_std_path(), prev.as_str())
+    .map_err(|err| error!("Failed to resolve loader: {prev} in {context}, error: {err:?}"))?;
 
   match resolve_result {
     ResolveResult::Resource(resource) => {
-      let path = resource.path.to_string_lossy().to_ascii_lowercase();
+      let path = resource.path.as_str();
       let r#type = if path.ends_with(".mjs") {
         Some("module")
       } else if path.ends_with(".cjs") {
@@ -119,7 +116,7 @@ pub(crate) async fn resolve_loader(
           .and_then(|data| data.json().get("type").and_then(|t| t.as_str()))
       };
       // TODO: Should move this logic to `resolver`, since `resolve.alias` may contain query or fragment too.
-      let resource = resource.path.to_string_lossy().to_string() + rest.unwrap_or_default();
+      let resource = resource.path.as_str().to_owned() + rest.unwrap_or_default();
       let ident = if let Some(ty) = r#type {
         format!("{ty}|{resource}")
       } else {
@@ -127,12 +124,8 @@ pub(crate) async fn resolve_loader(
       };
       Ok(Some(Arc::new(JsLoader(ident.into()))))
     }
-    ResolveResult::Ignored => {
-      let loader_request = prev.display();
-      let context = context.to_string_lossy();
-      Err(error!(
-        "Failed to resolve loader: loader_request={loader_request}, context={context}"
-      ))
-    }
+    ResolveResult::Ignored => Err(error!(
+      "Failed to resolve loader: loader_request={prev}, context={context}"
+    )),
   }
 }

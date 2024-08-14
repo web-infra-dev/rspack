@@ -125,7 +125,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ModuleType::CssModule => css_module_lexer::Mode::Local,
       ModuleType::CssAuto
         if let Some(resource_path) = resource_path
-          && REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().as_ref()) =>
+          && REGEX_IS_MODULES.is_match(resource_path.as_str()) =>
       {
         css_module_lexer::Mode::Local
       }

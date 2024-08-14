@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use derivative::Derivative;
 use napi::{bindgen_prelude::Buffer, Either};
 use napi_derive::napi;
@@ -20,7 +18,7 @@ type RawTo = Either<String, RawToFn>;
 #[napi(object)]
 pub struct RawToOptions {
   pub context: String,
-  pub absolute_filename: Option<String>,
+  pub absolute_filename: String,
 }
 
 #[derive(Derivative)]
@@ -103,14 +101,14 @@ impl From<RawCopyPattern> for CopyPattern {
           let f = f.clone();
           Box::pin(async move {
             f.call(RawToOptions {
-              context: ctx.context.to_owned(),
-              absolute_filename: ctx.absolute_filename.map(|filename| filename.to_owned()),
+              context: ctx.context.as_str().to_owned(),
+              absolute_filename: ctx.absolute_filename.as_str().to_owned(),
             })
             .await
           })
         })),
       }),
-      context: context.map(PathBuf::from),
+      context: context.map(Into::into),
       to_type: if let Some(to_type) = to_type {
         match to_type.to_lowercase().as_str() {
           "dir" => Some(ToType::Dir),

@@ -1,8 +1,7 @@
-use std::borrow::Cow;
-
 use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
+use rspack_paths::Utf8Path;
 
 use crate::{DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect};
 
@@ -51,32 +50,30 @@ pub async fn module_rule_matcher<'a>(
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
-  let resource_path = || {
-    resource_data
-      .resource_path
-      .as_deref()
-      .map(|p| p.to_string_lossy())
-      .unwrap_or_else(|| Cow::Borrowed(""))
-  };
+  let resource_path = resource_data
+    .resource_path
+    .as_deref()
+    .unwrap_or_else(|| Utf8Path::new(""))
+    .as_str();
 
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.try_match((&resource_path()).into()).await?
+    && !test_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.try_match((&resource_path()).into()).await?
+    && !resource_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule.try_match((&resource_path()).into()).await?
+    && !include_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.try_match((&resource_path()).into()).await?
+    && exclude_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   }

@@ -70,6 +70,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             .resource_path
             .as_deref()?
             .parent()?
+            .as_std_path()
             .relative(&parser.compiler_options.context)
             .to_string_lossy()
             .to_string(),
@@ -123,6 +124,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             .resource_data
             .resource_path
             .as_deref()?
+            .as_std_path()
             .relative(&parser.compiler_options.context)
             .to_string_lossy()
             .to_string(),

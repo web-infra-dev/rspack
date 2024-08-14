@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use napi_derive::napi;
 use rspack_core::{
@@ -158,7 +158,7 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
   type Error = rspack_error::Error;
   fn try_from(value: RawResolveTsconfigOptions) -> Result<Self, Self::Error> {
     let references = match value.references_type.as_str() {
-      "manual" => TsconfigReferences::Paths(value.references.unwrap_or_default().into_iter().map(PathBuf::from).collect()),
+      "manual" => TsconfigReferences::Paths(value.references.unwrap_or_default().into_iter().map(Into::into).collect()),
       "auto" => TsconfigReferences::Auto,
       "disabled" => TsconfigReferences::Disabled,
       _ => panic!(
@@ -167,7 +167,7 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
       )
   };
     Ok(TsconfigOptions {
-      config_file: PathBuf::from(value.config_file),
+      config_file: value.config_file.into(),
       references,
     })
   }

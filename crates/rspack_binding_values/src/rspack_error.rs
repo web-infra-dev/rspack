@@ -52,7 +52,7 @@ impl JsRspackError {
       message: diagnostic.render_report(colored)?,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
       loc: diagnostic.loc(),
-      file: diagnostic.file().map(|f| f.to_string_lossy().to_string()),
+      file: diagnostic.file().map(|f| f.as_str().to_string()),
       stack: diagnostic.stack(),
       hide_stack: diagnostic.hide_stack(),
     })

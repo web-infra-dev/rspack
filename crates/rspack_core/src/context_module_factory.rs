@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
+use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 use tracing::instrument;
 
@@ -41,7 +42,7 @@ pub enum AfterResolveResult {
 
 #[derive(Clone)]
 pub struct AfterResolveData {
-  pub resource: String,
+  pub resource: Utf8PathBuf,
   pub context: String,
   // dependencies
   // layer
@@ -234,7 +235,7 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let options = ContextModuleOptions {
           addon: loader_request.to_string(),
-          resource: resource.path.to_string_lossy().to_string(),
+          resource: resource.path,
           resource_query: resource.query,
           resource_fragment: resource.fragment,
           layer: data.issuer_layer.clone(),

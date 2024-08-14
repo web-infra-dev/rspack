@@ -35,7 +35,7 @@ pub fn create_context_dependency(
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
-        data.path.to_string_lossy().to_string(),
+        data.path.as_str().to_string(),
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
@@ -135,7 +135,7 @@ pub fn create_context_dependency(
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
-        data.path.to_string_lossy().to_string(),
+        data.path.as_str().to_string(),
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),

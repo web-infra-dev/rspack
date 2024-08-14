@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 use std::{
+  borrow::Cow,
   fmt::Display,
   fs,
   hash::Hash,
@@ -20,6 +21,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_util::infallible::ResultInfallibleExt as _;
 use sugar_path::SugarPath;
 
@@ -77,8 +79,8 @@ pub enum Transformer {
 }
 
 pub struct ToFnCtx<'a> {
-  pub context: &'a str,
-  pub absolute_filename: Option<&'a str>,
+  pub context: &'a Utf8Path,
+  pub absolute_filename: &'a Utf8Path,
 }
 
 pub type ToFn = Box<dyn for<'a> Fn(ToFnCtx<'a>) -> BoxFuture<'a, Result<String>> + Sync + Send>;
@@ -94,7 +96,7 @@ pub struct CopyPattern {
   pub from: String,
   #[derivative(Debug = "ignore")]
   pub to: Option<ToOption>,
-  pub context: Option<PathBuf>,
+  pub context: Option<Utf8PathBuf>,
   pub to_type: Option<ToType>,
   pub no_error_on_missing: bool,
   pub info: Option<Info>,
@@ -114,8 +116,8 @@ pub struct CopyGlobOptions {
 
 #[derive(Debug, Clone)]
 pub struct RunPatternResult {
-  pub source_filename: PathBuf,
-  pub absolute_filename: PathBuf,
+  pub source_filename: Utf8PathBuf,
+  pub absolute_filename: Utf8PathBuf,
   pub filename: String,
   pub source: RawSource,
   pub info: Option<Info>,
@@ -159,10 +161,10 @@ impl CopyRspackPlugin {
 
   #[allow(clippy::too_many_arguments)]
   async fn analyze_every_entry(
-    entry: PathBuf,
+    entry: Utf8PathBuf,
     pattern: &CopyPattern,
-    context: &Path,
-    output_path: &Path,
+    context: &Utf8Path,
+    output_path: &Utf8Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &Mutex<Vec<Diagnostic>>,
@@ -174,16 +176,14 @@ impl CopyRspackPlugin {
       return None;
     }
     if let Some(ignore) = &pattern.glob_options.ignore
-      && ignore
-        .iter()
-        .any(|ignore| ignore.matches(&entry.to_string_lossy()))
+      && ignore.iter().any(|ignore| ignore.matches(entry.as_str()))
     {
       return None;
     }
 
-    let from = entry.as_path().to_path_buf();
+    let from = entry;
 
-    logger.debug(format!("found '{}'", from.display()));
+    logger.debug(format!("found '{from}'"));
 
     let absolute_filename = if from.is_absolute() {
       from.clone()
@@ -195,29 +195,25 @@ impl CopyRspackPlugin {
       let to = match to {
         ToOption::String(s) => s.to_owned(),
         ToOption::Fn(r) => {
-          if let Some(context) = context.to_str() {
-            let to_result = r(ToFnCtx {
-              context,
-              absolute_filename: absolute_filename.to_str(),
-            })
-            .await;
-            let to = match to_result {
-              Ok(to) => to,
-              Err(e) => {
-                diagnostics
-                  .lock()
-                  .expect("failed to obtain lock of `diagnostics`")
-                  .push(Diagnostic::error(
-                    "Run copy to fn error".into(),
-                    e.to_string(),
-                  ));
-                "".to_string()
-              }
-            };
-            to
-          } else {
-            "".to_string()
-          }
+          let to_result = r(ToFnCtx {
+            context,
+            absolute_filename: &absolute_filename,
+          })
+          .await;
+          let to = match to_result {
+            Ok(to) => to,
+            Err(e) => {
+              diagnostics
+                .lock()
+                .expect("failed to obtain lock of `diagnostics`")
+                .push(Diagnostic::error(
+                  "Run copy to fn error".into(),
+                  e.to_string(),
+                ));
+              "".to_string()
+            }
+          };
+          to
         }
       };
 
@@ -242,10 +238,10 @@ impl CopyRspackPlugin {
 
     logger.log(format!("'to' option '{to}' determined as '{to_type}'"));
 
-    let relative = pathdiff::diff_paths(&absolute_filename, context);
+    let relative = pathdiff::diff_utf8_paths(&absolute_filename, context);
     let filename = if matches!(to_type, ToType::Dir) {
       if let Some(relative) = &relative {
-        PathBuf::from(&to).join(relative)
+        Utf8PathBuf::from(&to).join(relative)
       } else {
         to.into()
       }
@@ -254,37 +250,32 @@ impl CopyRspackPlugin {
     };
 
     let filename = if filename.is_absolute() {
-      pathdiff::diff_paths(filename, output_path)?
+      pathdiff::diff_utf8_paths(filename, output_path)?
     } else {
       filename
     };
 
     logger.log(format!(
-      "determined that '{}' should write to '{}'",
-      from.display(),
-      filename.display()
+      "determined that '{from}' should write to '{filename}'"
     ));
 
     let source_filename = relative?;
 
     // If this came from a glob or dir, add it to the file dependencies
     if matches!(from_type, FromType::Dir | FromType::Glob) {
-      logger.debug(format!(
-        "added '{}' as a file dependency",
-        absolute_filename.display()
-      ));
+      logger.debug(format!("added '{absolute_filename}' as a file dependency",));
 
-      file_dependencies.insert(absolute_filename.clone());
+      file_dependencies.insert(absolute_filename.clone().into_std_path_buf());
     }
 
     // TODO cache
 
-    logger.debug(format!("reading '{}'...", absolute_filename.display()));
+    logger.debug(format!("reading '{}'...", absolute_filename));
     // TODO inputFileSystem
 
     let source_vec = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
-        logger.debug(format!("read '{}'...", absolute_filename.display()));
+        logger.debug(format!("read '{}'...", absolute_filename));
 
         data
       }
@@ -302,25 +293,23 @@ impl CopyRspackPlugin {
     let mut source = RawSource::Buffer(source_vec.clone());
 
     if let Some(transform) = &pattern.transform {
-      if let Some(absolute_filename) = absolute_filename.to_str() {
-        match transform {
-          Transformer::Fn(transformer) => {
-            let transformed = transformer(source_vec, absolute_filename).await;
-            match transformed {
-              Ok(code) => {
-                source = code;
-              }
-              Err(e) => {
-                diagnostics
-                  .lock()
-                  .expect("failed to obtain lock of `diagnostics`")
-                  .push(Diagnostic::error(
-                    "Run copy transform fn error".into(),
-                    e.to_string(),
-                  ));
-              }
-            };
-          }
+      match transform {
+        Transformer::Fn(transformer) => {
+          let transformed = transformer(source_vec, absolute_filename.as_str()).await;
+          match transformed {
+            Ok(code) => {
+              source = code;
+            }
+            Err(e) => {
+              diagnostics
+                .lock()
+                .expect("failed to obtain lock of `diagnostics`")
+                .push(Diagnostic::error(
+                  "Run copy transform fn error".into(),
+                  e.to_string(),
+                ));
+            }
+          };
         }
       }
     }
@@ -328,8 +317,7 @@ impl CopyRspackPlugin {
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(
         "interpolating template '{}' for '${}'...`",
-        filename.display(),
-        source_filename.display()
+        filename, source_filename
       ));
 
       let content_hash = Self::get_content_hash(
@@ -341,9 +329,9 @@ impl CopyRspackPlugin {
       let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
       let template_str = compilation
         .get_asset_path(
-          &FilenameTemplate::from(filename.to_string_lossy().to_string()),
+          &FilenameTemplate::from(filename.to_string()),
           PathData::default()
-            .filename(&source_filename.to_string_lossy())
+            .filename(source_filename.as_str())
             .content_hash(content_hash)
             .hash_optional(compilation.get_hash()),
         )
@@ -351,12 +339,12 @@ impl CopyRspackPlugin {
 
       logger.log(format!(
         "interpolated template '{template_str}' for '{}'",
-        filename.display()
+        filename
       ));
 
       template_str
     } else {
-      filename.normalize().to_string_lossy().to_string()
+      filename.as_str().normalize().to_string_lossy().to_string()
     };
 
     Some(RunPatternResult {
@@ -380,27 +368,25 @@ impl CopyRspackPlugin {
     logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
-    let normalized_orig_from = PathBuf::from(orig_from);
+    let normalized_orig_from = Utf8PathBuf::from(orig_from);
 
     let pattern_context = if pattern.context.is_none() {
-      Some(compilation.options.context.as_path().into())
-    } else if let Some(ctx) = pattern.context.clone()
+      Some(Cow::Borrowed(compilation.options.context.as_path()))
+    } else if let Some(ref ctx) = pattern.context
       && !ctx.is_absolute()
     {
-      Some(compilation.options.context.as_path().join(ctx))
+      Some(Cow::Owned(compilation.options.context.as_path().join(ctx)))
     } else {
-      pattern.context.clone()
+      pattern.context.as_deref().map(Into::into)
     };
-
-    let mut context = pattern_context
-      .clone()
-      .unwrap_or(compilation.options.context.as_path().to_path_buf());
 
     logger.log(format!(
       "starting to process a pattern from '{}' using '{:?}' context",
-      normalized_orig_from.display(),
-      pattern_context.as_ref().map(|p| p.display())
+      normalized_orig_from, pattern_context
     ));
+
+    let mut context =
+      pattern_context.unwrap_or_else(|| Cow::Borrowed(compilation.options.context.as_path()));
 
     let abs_from = if normalized_orig_from.is_absolute() {
       normalized_orig_from
@@ -408,24 +394,21 @@ impl CopyRspackPlugin {
       context.join(&normalized_orig_from)
     };
 
-    logger.debug(format!("getting stats for '{}'...", abs_from.display()));
+    logger.debug(format!("getting stats for '{}'...", abs_from));
 
     let from_type = if let Ok(meta) = fs::metadata(&abs_from) {
       if meta.is_dir() {
-        logger.debug(format!(
-          "determined '{}' is a directory",
-          abs_from.display()
-        ));
+        logger.debug(format!("determined '{}' is a directory", abs_from));
         FromType::Dir
       } else if meta.is_file() {
-        logger.debug(format!("determined '{}' is a file", abs_from.display()));
+        logger.debug(format!("determined '{}' is a file", abs_from));
         FromType::File
       } else {
-        logger.debug(format!("determined '{}' is a unknown", abs_from.display()));
+        logger.debug(format!("determined '{}' is a unknown", abs_from));
         FromType::Glob
       }
     } else {
-      logger.debug(format!("determined '{}' is a glob", abs_from.display()));
+      logger.debug(format!("determined '{}' is a glob", abs_from));
       FromType::Glob
     };
 
@@ -439,44 +422,35 @@ impl CopyRspackPlugin {
     let mut need_add_context_to_dependency = false;
     let glob_query = match from_type {
       FromType::Dir => {
-        logger.debug(format!(
-          "added '{}' as a context dependency",
-          abs_from.display()
-        ));
-        context_dependencies.insert(abs_from.clone());
-        context = abs_from.clone();
+        logger.debug(format!("added '{}' as a context dependency", abs_from));
+        context_dependencies.insert(abs_from.clone().into_std_path_buf());
+        context = abs_from.as_path().into();
 
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let mut escaped = PathBuf::from(escape_glob_chars(abs_from.to_str()?));
+        let mut escaped = Utf8PathBuf::from(escape_glob_chars(abs_from.as_str()));
         escaped.push("**/*");
 
-        escaped.to_string_lossy().to_string()
+        escaped.as_str().to_string()
       }
       FromType::File => {
-        logger.debug(format!(
-          "added '{}' as a file dependency",
-          abs_from.display()
-        ));
-        file_dependencies.insert(abs_from.clone());
-        context = abs_from
-          .parent()
-          .map(|p| p.to_path_buf())
-          .unwrap_or(PathBuf::new());
+        logger.debug(format!("added '{}' as a file dependency", abs_from));
+        file_dependencies.insert(abs_from.clone().into_std_path_buf());
+        context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
 
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
 
-        escape_glob_chars(abs_from.to_str()?)
+        escape_glob_chars(abs_from.as_str())
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
         if Path::new(orig_from).is_absolute() {
           orig_from.into()
         } else {
-          context.join(orig_from).to_string_lossy().to_string()
+          context.join(orig_from).as_str().to_string()
         }
       }
     };
@@ -496,15 +470,13 @@ impl CopyRspackPlugin {
       Ok(entries) => {
         let entries: Vec<_> = entries
           .filter_map(|entry| {
-            let entry = entry.ok()?;
+            let entry = entry.ok()?.assert_utf8();
 
             let filters = pattern.glob_options.ignore.as_ref();
 
             if let Some(filters) = filters {
               // If filters length is 0, exist is true by default
-              let exist = filters
-                .iter()
-                .all(|filter| !filter.matches(&entry.to_string_lossy()));
+              let exist = filters.iter().all(|filter| !filter.matches(entry.as_str()));
               exist.then_some(entry)
             } else {
               Some(entry)
@@ -517,7 +489,7 @@ impl CopyRspackPlugin {
             &entries.iter().map(|it| it.as_path()).collect::<Vec<_>>(),
           )
         {
-          context_dependencies.insert(common_dir);
+          context_dependencies.insert(common_dir.into_std_path_buf());
         }
 
         if entries.is_empty() {
@@ -588,8 +560,8 @@ impl CopyRspackPlugin {
 
           logger.log(format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
-            PathBuf::from(orig_from).display(),
-            context.display(),
+            Utf8PathBuf::from(orig_from),
+            context,
             to,
           ));
 
@@ -701,14 +673,14 @@ impl Plugin for CopyRspackPlugin {
   }
 }
 
-fn get_closest_common_parent_dir(paths: &[&Path]) -> Option<PathBuf> {
+fn get_closest_common_parent_dir(paths: &[&Utf8Path]) -> Option<Utf8PathBuf> {
   // If there are no matching files, return `None`.
   if paths.is_empty() {
     return None;
   }
 
   // Get the first file path and use it as the initial value for the common parent directory.
-  let mut parent_dir: PathBuf = paths[0].parent()?.into();
+  let mut parent_dir: Utf8PathBuf = paths[0].parent()?.to_path_buf();
 
   // Iterate over the remaining file paths, updating the common parent directory as necessary.
   for path in paths.iter().skip(1) {

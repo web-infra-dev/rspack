@@ -3,13 +3,13 @@ mod hmr;
 mod make;
 mod module_executor;
 
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -249,8 +249,11 @@ where
           .iter()
           .filter_map(|(filename, _version)| {
             if !assets.contains_key(filename) {
-              let file_path = Path::new(&self.options.output.path).join(filename);
-              Some(self.output_filesystem.remove_file(&file_path))
+              let filename = filename.to_owned();
+              Some(async {
+                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let _ = self.output_filesystem.remove_file(&filename).await;
+              })
             } else {
               None
             }
@@ -303,7 +306,7 @@ where
 
   async fn emit_asset(
     &self,
-    output_path: &Path,
+    output_path: &Utf8Path,
     filename: &str,
     asset: &CompilationAsset,
   ) -> Result<()> {
@@ -312,13 +315,13 @@ where
         .split_once('?')
         .map(|(filename, _query)| filename)
         .unwrap_or(filename);
-      let file_path = Path::new(&output_path).join(filename);
+      let file_path = output_path.join(filename);
       self
         .output_filesystem
         .create_dir_all(
           file_path
             .parent()
-            .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
+            .unwrap_or_else(|| panic!("The parent of {file_path} can't found")),
         )
         .await?;
 
@@ -369,6 +372,6 @@ pub struct CompilationParams {
 #[derive(Debug)]
 pub struct AssetEmittedInfo {
   pub source: BoxSource,
-  pub output_path: PathBuf,
-  pub target_path: PathBuf,
+  pub output_path: Utf8PathBuf,
+  pub target_path: Utf8PathBuf,
 }

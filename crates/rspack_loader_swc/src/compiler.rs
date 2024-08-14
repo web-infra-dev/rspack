@@ -577,18 +577,6 @@ Help:
       }
     }
   }
-
-  pub fn comments(&self) -> &SingleThreadedComments {
-    &self.comments
-  }
-
-  pub fn options(&self) -> &Options {
-    &self.options
-  }
-
-  pub fn cm(&self) -> &Arc<SourceMap> {
-    &self.cm
-  }
 }
 
 pub(crate) trait IntoJsAst {

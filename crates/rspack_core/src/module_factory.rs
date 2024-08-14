@@ -33,9 +33,7 @@ impl ModuleFactoryCreateData {
   }
 
   pub fn add_file_dependency(&mut self, file: PathBuf) {
-    if file.is_absolute() {
-      self.file_dependencies.insert(file);
-    }
+    self.file_dependencies.insert(file);
   }
 
   pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {

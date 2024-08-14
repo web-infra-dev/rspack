@@ -16,6 +16,7 @@ once_cell          = { workspace = true }
 regex              = { workspace = true }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_error       = { version = "0.1.0", path = "../rspack_error" }
+rspack_paths       = { version = "0.1.0", path = "../rspack_paths" }
 rspack_sources     = { workspace = true }
 rspack_util        = { version = "0.1.0", path = "../rspack_util" }
 serde_json         = { workspace = true }

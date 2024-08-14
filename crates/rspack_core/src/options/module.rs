@@ -1,5 +1,4 @@
 use std::{
-  borrow::{Borrow, Cow},
   fmt::{self, Debug},
   sync::Arc,
 };
@@ -539,12 +538,6 @@ pub enum DataRef<'a> {
 impl<'s> From<&'s str> for DataRef<'s> {
   fn from(value: &'s str) -> Self {
     Self::Str(value)
-  }
-}
-
-impl<'s> From<&'s Cow<'_, str>> for DataRef<'s> {
-  fn from(value: &'s Cow<'_, str>) -> Self {
-    Self::Str(value.borrow())
   }
 }
 

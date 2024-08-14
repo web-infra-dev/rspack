@@ -112,7 +112,7 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
       }),
       message: stats.message,
       loc: stats.loc,
-      file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      file: stats.file.map(|f| f.as_str().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,
@@ -164,7 +164,7 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
         .into()
       }),
       message: stats.message,
-      file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      file: stats.file.map(|f| f.as_str().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,

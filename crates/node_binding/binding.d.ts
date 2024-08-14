@@ -1733,7 +1733,7 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
 
 export interface RawToOptions {
   context: string
-  absoluteFilename?: string
+  absoluteFilename: string
 }
 
 export interface RawTrustedTypes {

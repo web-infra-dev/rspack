@@ -17,10 +17,16 @@ optional = true
 path     = "../rspack_error"
 version  = "0.1.0"
 
+
+[dependencies.rspack_paths]
+path    = "../rspack_paths"
+version = "0.1.0"
+
 [dependencies.futures]
 optional  = true
 workspace = true
 
 [dependencies.tokio]
+features  = ["fs"]
 optional  = true
 workspace = true

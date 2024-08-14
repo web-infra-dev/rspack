@@ -11,13 +11,14 @@ derivative     = { workspace = true }
 futures        = { workspace = true }
 glob           = { workspace = true }
 lazy_static    = "1.4.0"
-pathdiff       = { workspace = true }
+pathdiff       = { workspace = true, features = ["camino"] }
 regex          = { workspace = true }
 rspack_core    = { version = "0.1.0", path = "../rspack_core" }
 rspack_error   = { version = "0.1.0", path = "../rspack_error" }
 rspack_futures = { version = "0.1.0", path = "../rspack_futures" }
 rspack_hash    = { version = "0.1.0", path = "../rspack_hash" }
 rspack_hook    = { version = "0.1.0", path = "../rspack_hook" }
+rspack_paths   = { version = "0.1.0", path = "../rspack_paths" }
 rspack_util    = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }

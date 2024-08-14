@@ -47,7 +47,7 @@ impl LightningCssLoader {
       return Ok(());
     };
 
-    let filename = resource_path.to_string_lossy().into_owned();
+    let filename = resource_path.as_str().to_string();
 
     let Some(content) = std::mem::take(&mut loader_context.content) else {
       return Ok(());

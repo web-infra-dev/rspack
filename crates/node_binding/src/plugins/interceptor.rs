@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   hash::Hash,
-  path::PathBuf,
   sync::{Arc, RwLock},
 };
 
@@ -56,6 +55,7 @@ use rspack_core::{
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_paths::Utf8PathBuf;
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
 
 #[napi(object)]
@@ -881,8 +881,8 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
       .function
       .call_with_promise(JsAssetEmittedArgs {
         filename: filename.to_string(),
-        output_path: info.output_path.to_string_lossy().into_owned(),
-        target_path: info.target_path.to_string_lossy().into_owned(),
+        output_path: info.output_path.as_str().to_owned(),
+        target_path: info.target_path.as_str().to_owned(),
       })
       .await
   }
@@ -1290,7 +1290,7 @@ impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForScheme
       })
       .await?;
     resource_data.set_resource(new_resource_data.resource);
-    resource_data.set_path_optional(new_resource_data.path.map(PathBuf::from));
+    resource_data.set_path_optional(new_resource_data.path.map(Utf8PathBuf::from));
     resource_data.set_query_optional(new_resource_data.query);
     resource_data.set_fragment_optional(new_resource_data.fragment);
     Ok(bail)
@@ -1440,7 +1440,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
       AfterResolveResult::Ignored => JsContextModuleFactoryAfterResolveResult::A(false),
       AfterResolveResult::Data(d) => {
         JsContextModuleFactoryAfterResolveResult::B(JsContextModuleFactoryAfterResolveData {
-          resource: d.resource.to_owned(),
+          resource: d.resource.as_str().to_owned(),
           context: d.context.to_owned(),
           request: d.request.to_owned(),
           reg_exp: d.reg_exp.clone().map(|r| r.into()),
@@ -1451,7 +1451,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
       napi::Either::A(_) => Ok(AfterResolveResult::Ignored),
       napi::Either::B(d) => {
         let data = AfterResolveData {
-          resource: d.resource,
+          resource: d.resource.into(),
           context: d.context,
           request: d.request,
           reg_exp: match d.reg_exp {

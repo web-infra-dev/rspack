@@ -1,11 +1,6 @@
+use std::path::PathBuf;
 use std::sync::LazyLock;
-use std::{
-  borrow::Cow,
-  fs,
-  hash::Hash,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{borrow::Cow, fs, hash::Hash, sync::Arc};
 
 use indoc::formatdoc;
 use itertools::Itertools;
@@ -13,6 +8,7 @@ use regex::{Captures, Regex};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
@@ -143,7 +139,7 @@ pub struct ContextOptions {
 #[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
-  pub resource: String,
+  pub resource: Utf8PathBuf,
   pub resource_query: String,
   pub resource_fragment: String,
   pub context_options: ContextOptions,
@@ -856,7 +852,7 @@ impl Module for ContextModule {
       id += layer;
       id += ")/";
     }
-    id += &contextify(options.context, &self.options.resource);
+    id += &contextify(options.context, self.options.resource.as_str());
     id.push(' ');
     id.push_str(self.options.context_options.mode.as_str());
     if self.options.context_options.recursive {
@@ -877,7 +873,7 @@ impl Module for ContextModule {
     let (dependencies, blocks) = self.resolve_dependencies()?;
 
     let mut context_dependencies: HashSet<PathBuf> = Default::default();
-    context_dependencies.insert(PathBuf::from(&self.options.resource));
+    context_dependencies.insert(self.options.resource.clone().into_std_path_buf());
 
     let build_info = BuildInfo {
       context_dependencies,
@@ -990,7 +986,7 @@ static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
 impl ContextModule {
   fn visit_dirs(
     ctx: &str,
-    dir: &Path,
+    dir: &Utf8Path,
     dependencies: &mut Vec<ContextElementDependency>,
     options: &ContextModuleOptions,
     resolve_options: &ResolveInnerOptions,
@@ -1001,11 +997,11 @@ impl ContextModule {
     let include = &options.context_options.include;
     let exclude = &options.context_options.exclude;
     for entry in fs::read_dir(dir).into_diagnostic()? {
-      let path = entry.into_diagnostic()?.path();
-      let path_str = path.to_string_lossy().to_string();
+      let path = entry.into_diagnostic()?.path().assert_utf8();
+      let path_str = path.as_str();
 
       if let Some(exclude) = exclude
-        && exclude.test(&path_str)
+        && exclude.test(path_str)
       {
         // ignore excluded files
         continue;
@@ -1015,15 +1011,12 @@ impl ContextModule {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
         }
-      } else if path
-        .file_name()
-        .map_or(false, |name| name.to_string_lossy().starts_with('.'))
-      {
+      } else if path.file_name().map_or(false, |name| name.starts_with('.')) {
         // ignore hidden files
         continue;
       } else {
         if let Some(include) = include
-          && !include.test(&path_str)
+          && !include.test(path_str)
         {
           // ignore not included files
           continue;
@@ -1031,8 +1024,8 @@ impl ContextModule {
 
         // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
         let relative_path = {
+          let mut path_str = path_str.to_owned();
           let p = path_str
-            .clone()
             .drain(ctx.len()..)
             .collect::<String>()
             .replace('\\', "/");
@@ -1071,7 +1064,7 @@ impl ContextModule {
             layer: options.layer.clone(),
             options: options.context_options.clone(),
             resource_identifier: ContextElementDependency::create_resource_identifier(
-              &options.resource,
+              options.resource.as_str(),
               &path,
               options.context_options.attributes.as_ref(),
             ),
@@ -1099,8 +1092,8 @@ impl ContextModule {
 
     let mut context_element_dependencies = vec![];
     Self::visit_dirs(
+      self.options.resource.as_str(),
       &self.options.resource,
-      Path::new(&self.options.resource),
       &mut context_element_dependencies,
       &self.options,
       &resolver.options(),
@@ -1192,7 +1185,7 @@ impl ContextModule {
 }
 
 fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  let mut id = String::from(&options.resource);
+  let mut id = options.resource.as_str().to_owned();
   if !options.resource_query.is_empty() {
     id += "|";
     id += &options.resource_query;

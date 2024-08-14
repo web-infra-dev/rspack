@@ -1,12 +1,8 @@
-use std::{
-  fmt,
-  ops::Deref,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{fmt, ops::Deref, sync::Arc};
 
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_collections::Identifier;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use swc_core::common::{SourceMap, Span};
 
 use crate::{graphical::GraphicalReportHandler, Error};
@@ -97,7 +93,7 @@ pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
   loc: Option<String>,
-  file: Option<PathBuf>,
+  file: Option<Utf8PathBuf>,
   hide_stack: Option<bool>,
   chunk: Option<u32>,
   stack: Option<String>,
@@ -208,11 +204,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn file(&self) -> Option<&Path> {
+  pub fn file(&self) -> Option<&Utf8Path> {
     self.file.as_deref()
   }
 
-  pub fn with_file(mut self, file: Option<PathBuf>) -> Self {
+  pub fn with_file(mut self, file: Option<Utf8PathBuf>) -> Self {
     self.file = file;
     self
   }

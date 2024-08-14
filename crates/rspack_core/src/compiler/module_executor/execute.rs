@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
@@ -33,10 +34,10 @@ pub type ExecuteModuleId = u32;
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
   pub cacheable: bool,
-  pub file_dependencies: HashSet<std::path::PathBuf>,
-  pub context_dependencies: HashSet<std::path::PathBuf>,
-  pub missing_dependencies: HashSet<std::path::PathBuf>,
-  pub build_dependencies: HashSet<std::path::PathBuf>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
   pub code_generated_modules: IdentifierSet,
   pub assets: HashSet<String>,
   pub id: ExecuteModuleId,

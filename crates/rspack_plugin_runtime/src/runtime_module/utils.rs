@@ -137,7 +137,7 @@ pub fn get_output_dir(
   )?;
   Ok(get_undo_path(
     output_dir.as_str(),
-    compilation.options.output.path.display().to_string(),
+    compilation.options.output.path.as_str().to_string(),
     enforce_relative,
   ))
 }
