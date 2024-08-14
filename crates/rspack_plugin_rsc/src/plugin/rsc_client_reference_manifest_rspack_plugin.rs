@@ -180,6 +180,12 @@ impl RSCClientReferenceManifest {
             .as_normal_module()
             .and_then(|m| Some(m.resource_resolved_data()));
 
+          println!(
+            "isclient {}, {:?}, {:?}",
+            module.identifier(),
+            dbg!(module),
+            resolved_data
+          );
           if resolved_data.is_none() {
             continue;
           }
