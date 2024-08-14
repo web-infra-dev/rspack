@@ -17,6 +17,9 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-         "force": true,
+		+         "force": false,
+		@@ ... @@
 		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
 		+     "chunkLoadingGlobal": "webpackChunkmyLib",
 		@@ ... @@

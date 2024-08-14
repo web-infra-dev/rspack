@@ -211,8 +211,7 @@ const applybundlerInfoDefaults = (
 	library?: Library
 ) => {
 	if (typeof rspackFuture === "object") {
-		// don't inject for library mode
-		D(rspackFuture, "bundlerInfo", library ? undefined : {});
+		D(rspackFuture, "bundlerInfo", {});
 		if (typeof rspackFuture.bundlerInfo === "object") {
 			D(
 				rspackFuture.bundlerInfo,
@@ -220,7 +219,8 @@ const applybundlerInfoDefaults = (
 				require("../../package.json").version
 			);
 			D(rspackFuture.bundlerInfo, "bundler", "rspack");
-			D(rspackFuture.bundlerInfo, "force", true);
+			// don't inject for library mode
+			D(rspackFuture.bundlerInfo, "force", !library);
 		}
 	}
 };
