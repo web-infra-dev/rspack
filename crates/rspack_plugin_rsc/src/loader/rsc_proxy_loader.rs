@@ -39,8 +39,8 @@ pub const RSC_PROXY_LOADER_IDENTIFIER: &str = "builtin:rsc-proxy-loader";
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for RSCProxyLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let resource_path = loader_context.resource_path().to_path_buf();
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
+    let resource_path = loader_context.resource_path().and_then(|f| f.to_str());
 
     let rsc_info = loader_context.additional_data.get::<RSCAdditionalData>();
     if let Some(RSCAdditionalData {
@@ -62,7 +62,7 @@ const {{ __esModule, $$typeof }} = proxy;
 const __default__ = proxy.default
         "#,
           self.options.client_proxy,
-          resource_path.to_str().unwrap()
+          resource_path.unwrap()
         );
         let mut cnt = 0;
         for export in exports.into_iter() {

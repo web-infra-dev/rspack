@@ -24,7 +24,6 @@ use swc_node_comments::SwcComments;
 use crate::dependency::HarmonyCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, ScanDependenciesResult};
-use crate::ReactServerComponentsVisitor;
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {

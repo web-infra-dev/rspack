@@ -273,11 +273,11 @@ export function getRawLibrary(library: LibraryOptions): JsLibraryOptions {
 		auxiliaryComment:
 			typeof auxiliaryComment === "string"
 				? {
-					commonjs: auxiliaryComment,
-					commonjs2: auxiliaryComment,
-					amd: auxiliaryComment,
-					root: auxiliaryComment
-				}
+						commonjs: auxiliaryComment,
+						commonjs2: auxiliaryComment,
+						amd: auxiliaryComment,
+						root: auxiliaryComment
+					}
 				: auxiliaryComment,
 		libraryType: type,
 		name: isNil(name) ? name : getRawLibraryName(name),
@@ -419,19 +419,19 @@ const getRawModuleRule = (
 			: undefined,
 		descriptionData: rule.descriptionData
 			? Object.fromEntries(
-				Object.entries(rule.descriptionData).map(([k, v]) => [
-					k,
-					getRawRuleSetCondition(v)
-				])
-			)
+					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+				)
 			: undefined,
 		with: rule.with
 			? Object.fromEntries(
-				Object.entries(rule.with).map(([k, v]) => [
-					k,
-					getRawRuleSetCondition(v)
-				])
-			)
+					Object.entries(rule.with).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+				)
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -458,23 +458,23 @@ const getRawModuleRule = (
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
-				getRawModuleRule(
-					rule,
-					`${path}.oneOf[${index}]`,
-					options,
-					rule.type ?? upperType
+					getRawModuleRule(
+						rule,
+						`${path}.oneOf[${index}]`,
+						options,
+						rule.type ?? upperType
+					)
 				)
-			)
 			: undefined,
 		rules: rule.rules
 			? rule.rules.map((rule, index) =>
-				getRawModuleRule(
-					rule,
-					`${path}.rules[${index}]`,
-					options,
-					rule.type ?? upperType
+					getRawModuleRule(
+						rule,
+						`${path}.rules[${index}]`,
+						options,
+						rule.type ?? upperType
+					)
 				)
-			)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -859,12 +859,12 @@ function getRawOptimization(
 ): RawOptions["optimization"] {
 	assert(
 		!isNil(optimization.removeAvailableModules) &&
-		!isNil(optimization.sideEffects) &&
-		!isNil(optimization.realContentHash) &&
-		!isNil(optimization.providedExports) &&
-		!isNil(optimization.usedExports) &&
-		!isNil(optimization.innerGraph) &&
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph, optimization.concatenateModules should not be nil after defaults"
+			!isNil(optimization.sideEffects) &&
+			!isNil(optimization.realContentHash) &&
+			!isNil(optimization.providedExports) &&
+			!isNil(optimization.usedExports) &&
+			!isNil(optimization.innerGraph) &&
+			"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph, optimization.concatenateModules should not be nil after defaults"
 	);
 	return {
 		removeAvailableModules: optimization.removeAvailableModules,
