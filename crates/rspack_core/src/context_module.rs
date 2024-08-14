@@ -23,14 +23,14 @@ use swc_core::atoms::Atom;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
-  returning_function, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
-  BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
-  ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
-  DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
-  FakeNamespaceObjectMode, GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer,
-  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  module_update_hash, returning_function, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
+  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyType,
+  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -171,14 +171,6 @@ pub struct ContextModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
 }
-
-impl PartialEq for ContextModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier == other.identifier
-  }
-}
-
-impl Eq for ContextModule {}
 
 impl ContextModule {
   pub fn new(options: ContextModuleOptions, resolve_factory: Arc<ResolverFactory>) -> Self {
@@ -880,19 +872,15 @@ impl Module for ContextModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let (dependencies, blocks) = self.resolve_dependencies()?;
-
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
 
     let mut context_dependencies: HashSet<PathBuf> = Default::default();
     context_dependencies.insert(PathBuf::from(&self.options.resource));
 
     let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       context_dependencies,
       ..Default::default()
     };
@@ -972,6 +960,15 @@ impl Module for ContextModule {
     );
     Ok(code_generation_result)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  ) {
+    module_update_hash(self, hasher, compilation, runtime);
+  }
 }
 
 impl_empty_diagnosable_trait!(ContextModule);
@@ -979,13 +976,6 @@ impl_empty_diagnosable_trait!(ContextModule);
 impl Identifiable for ContextModule {
   fn identifier(&self) -> Identifier {
     self.identifier
-  }
-}
-
-impl Hash for ContextModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__ContextModule".hash(state);
-    self.identifier.hash(state);
   }
 }
 

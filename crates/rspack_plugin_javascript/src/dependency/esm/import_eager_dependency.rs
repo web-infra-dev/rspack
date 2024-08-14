@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ImportAttributes, ModuleDependency,
-  TemplateContext, TemplateReplaceSource,
+  module_namespace_promise, AsContextDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ImportAttributes, ModuleDependency,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -120,6 +120,14 @@ impl DependencyTemplate for ImportEagerDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

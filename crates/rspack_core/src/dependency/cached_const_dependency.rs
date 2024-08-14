@@ -1,6 +1,8 @@
+use rspack_util::ext::DynHash;
+
 use crate::{
-  AsDependency, DependencyTemplate, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyTemplate, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, NormalInitFragment, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -43,6 +45,18 @@ impl DependencyTemplate for CachedConstDependency {
 
   fn dependency_id(&self) -> Option<crate::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
+    self.identifier.dyn_hash(hasher);
+    self.start.dyn_hash(hasher);
+    self.end.dyn_hash(hasher);
+    self.content.dyn_hash(hasher);
   }
 }
 

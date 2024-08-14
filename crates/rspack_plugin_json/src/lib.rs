@@ -13,9 +13,9 @@ use json::{
 use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
-  GenerateContext, Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec,
-  SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, CompilerOptions,
+  ExportsInfo, GenerateContext, Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals,
+  RuntimeSpec, SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -200,6 +200,14 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

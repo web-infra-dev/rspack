@@ -160,7 +160,7 @@ impl CssPlugin {
             continue;
           }
           let last_module = *list.last().expect("TODO:");
-          if last_module == selected_module {
+          if last_module.identifier() == selected_module.identifier() {
             continue;
           }
           if !set.contains(&selected_module.identifier()) {
@@ -214,11 +214,15 @@ impl CssPlugin {
       // Remove the selected module from all lists
       for SortedModules { set, list } in &mut modules_by_chunk_group {
         let last_module = list.last();
-        if last_module.map_or(false, |last_module| last_module == &selected_module) {
+        if last_module.map_or(false, |last_module| {
+          last_module.identifier() == selected_module.identifier()
+        }) {
           list.pop();
           set.remove(&selected_module.identifier());
         } else if has_failed.is_some() && set.contains(&selected_module.identifier()) {
-          let idx = list.iter().position(|m| m == &selected_module);
+          let idx = list
+            .iter()
+            .position(|m| m.identifier() == selected_module.identifier());
           if let Some(idx) = idx {
             list.remove(idx);
           }

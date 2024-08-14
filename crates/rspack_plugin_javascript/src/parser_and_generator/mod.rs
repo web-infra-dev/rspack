@@ -7,8 +7,8 @@ use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
   Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt,
-  TemplateContext, TemplateReplaceSource,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SideEffectsBailoutItem, SourceType,
+  SpanExt, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -367,6 +367,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some(format!("Module uses {bailout}").into());
     }
     None
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

@@ -1,6 +1,7 @@
 use rspack_core::{
-  create_exports_object_referenced, module_namespace_promise, DependencyType, ErrorSpan,
-  ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph, ReferencedExport,
+  create_exports_object_referenced, module_namespace_promise, Compilation, DependencyType,
+  ErrorSpan, ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph,
+  ReferencedExport, RuntimeSpec,
 };
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -161,6 +162,14 @@ impl DependencyTemplate for ImportDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

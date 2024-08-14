@@ -106,6 +106,13 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>>;
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  );
 }
 
 impl dyn ParserAndGenerator + '_ {

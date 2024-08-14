@@ -4,7 +4,7 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
@@ -122,12 +122,8 @@ impl Module for FallbackModule {
     build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
     let build_info = BuildInfo {
       strict: true,
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       ..Default::default()
     };
 
@@ -145,7 +141,6 @@ impl Module for FallbackModule {
     })
   }
 
-  #[allow(clippy::unwrap_in_result)]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -189,21 +184,15 @@ module.exports = loop();
     codegen = codegen.with_javascript(RawSource::from(code).boxed());
     Ok(codegen)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  ) {
+    module_update_hash(self, hasher, compilation, runtime);
+  }
 }
 
 impl_empty_diagnosable_trait!(FallbackModule);
-
-impl Hash for FallbackModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__FallbackModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for FallbackModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for FallbackModule {}

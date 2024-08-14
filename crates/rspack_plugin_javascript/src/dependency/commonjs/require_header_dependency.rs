@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_core::{AsContextDependency, AsModuleDependency, Dependency};
+use rspack_core::{AsContextDependency, AsModuleDependency, Compilation, Dependency, RuntimeSpec};
 use rspack_core::{DependencyId, DependencyLocation};
 use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
 use swc_core::common::SourceMap;
@@ -51,5 +51,13 @@ impl DependencyTemplate for RequireHeaderDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }

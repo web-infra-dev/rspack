@@ -2,7 +2,7 @@ use std::{hash::Hash, path::PathBuf, sync::Arc};
 
 use rspack_collections::Identifiable;
 use rspack_core::{
-  impl_module_meta_info, module_namespace_promise,
+  impl_module_meta_info, module_namespace_promise, module_update_hash,
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
@@ -12,7 +12,10 @@ use rspack_core::{
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
-use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
+use rspack_util::{
+  ext::DynHash,
+  source_map::{ModuleSourceMapConfig, SourceMapKind},
+};
 use rustc_hash::FxHashSet;
 
 use crate::dependency::LazyCompilationDependency;
@@ -42,27 +45,6 @@ pub(crate) struct LazyCompilationProxyModule {
   pub data: String,
   pub client: String,
 }
-
-impl Hash for LazyCompilationProxyModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.build_meta.hash(state);
-    self.original_module.hash(state);
-    self.readable_identifier.hash(state);
-    self.identifier.hash(state);
-    self.blocks.hash(state);
-    self.dependencies.hash(state);
-  }
-}
-
-impl PartialEq for LazyCompilationProxyModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.original_module == other.original_module
-      && self.readable_identifier == other.readable_identifier
-      && self.identifier == other.identifier
-  }
-}
-
-impl Eq for LazyCompilationProxyModule {}
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
   fn get_source_map_kind(&self) -> &SourceMapKind {
@@ -304,6 +286,17 @@ impl Module for LazyCompilationProxyModule {
     );
 
     Ok(codegen_result)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  ) {
+    module_update_hash(self, hasher, compilation, runtime);
+    self.active.dyn_hash(hasher);
+    self.data.dyn_hash(hasher);
   }
 }
 

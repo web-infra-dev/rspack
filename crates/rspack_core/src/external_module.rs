@@ -6,12 +6,12 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
-use rspack_util::{json_stringify, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, impl_module_meta_info, property_access,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
@@ -452,15 +452,12 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
     let (_, external_type) = self.get_request_and_external_type();
 
     let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       top_level_declarations: Some(FxHashSet::default()),
       strict: true,
       ..Default::default()
@@ -559,21 +556,18 @@ impl Module for ExternalModule {
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     Some(Cow::Borrowed(self.user_request.as_str()))
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  ) {
+    self.id.dyn_hash(hasher);
+    let is_optional = compilation.get_module_graph().is_optional(&self.id);
+    is_optional.dyn_hash(hasher);
+    module_update_hash(self, hasher, compilation, runtime);
+  }
 }
 
 impl_empty_diagnosable_trait!(ExternalModule);
-
-impl Hash for ExternalModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__ExternalModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for ExternalModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for ExternalModule {}

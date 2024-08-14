@@ -1,10 +1,8 @@
 use std::borrow::Cow;
-use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
@@ -109,12 +107,8 @@ impl Module for SelfModule {
     build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
     let build_info = BuildInfo {
       strict: true,
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       ..Default::default()
     };
 
@@ -136,21 +130,15 @@ impl Module for SelfModule {
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
   }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
+    // do nothing, since this is self reference, the module itself (parent module of this self module) should take effects
+  }
 }
 
 impl_empty_diagnosable_trait!(SelfModule);
-
-impl Hash for SelfModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__SelfModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for SelfModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for SelfModule {}

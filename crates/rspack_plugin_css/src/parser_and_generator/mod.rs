@@ -9,10 +9,11 @@ use regex::Regex;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConstDependency, CssExportsConvention,
-  Dependency, DependencyId, DependencyTemplate, ErrorSpan, GenerateContext, LocalIdentName, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
+  CssExportsConvention, Dependency, DependencyId, DependencyTemplate, ErrorSpan, GenerateContext,
+  LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SourceType, TemplateContext,
+  UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
@@ -556,6 +557,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     Some("Module Concatenation is not implemented for CssParserAndGenerator".into())
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

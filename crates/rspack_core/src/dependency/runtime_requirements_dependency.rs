@@ -1,5 +1,8 @@
+use rspack_util::ext::DynHash;
+
 use crate::{
-  AsDependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyTemplate, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -20,6 +23,15 @@ impl DependencyTemplate for RuntimeRequirementsDependency {
 
   fn dependency_id(&self) -> Option<crate::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
+    self.runtime_requirements.dyn_hash(hasher);
   }
 }
 impl AsDependency for RuntimeRequirementsDependency {}

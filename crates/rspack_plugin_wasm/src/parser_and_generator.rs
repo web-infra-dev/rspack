@@ -9,7 +9,7 @@ use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
   Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
+  ParserAndGenerator, PathData, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
   StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -290,6 +290,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     _cg: &rspack_core::ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

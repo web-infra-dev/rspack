@@ -3,16 +3,17 @@
 use std::hash::Hasher;
 
 use rspack_collections::{IdentifierMap, UkeySet};
+use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
+use tracing::instrument;
 
-use crate::update_hash::{UpdateHashContext, UpdateRspackHash};
-use crate::ChunkGraph;
 use crate::{
   get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ExportsHash, ModuleIdentifier,
   RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
+use crate::{ChunkGraph, Module};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
@@ -21,7 +22,7 @@ pub struct ChunkGraphModule {
   pub chunks: UkeySet<ChunkUkey>,
   pub(crate) runtime_requirements: Option<RuntimeSpecMap<RuntimeGlobals>>,
   pub(crate) runtime_in_chunks: UkeySet<ChunkUkey>,
-  // pub(crate) hashes: Option<RuntimeSpecMap<u64>>,
+  pub(crate) hashes: Option<RuntimeSpecMap<RspackHashDigest>>,
 }
 
 impl ChunkGraphModule {
@@ -32,7 +33,7 @@ impl ChunkGraphModule {
       chunks: Default::default(),
       runtime_requirements: None,
       runtime_in_chunks: Default::default(),
-      // hashes: None,
+      hashes: None,
     }
   }
 }
@@ -165,18 +166,49 @@ impl ChunkGraph {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
   }
 
+  pub fn get_module_hash(
+    &self,
+    module_identifier: ModuleIdentifier,
+    runtime: &RuntimeSpec,
+  ) -> Option<&RspackHashDigest> {
+    let cgm = self.get_chunk_graph_module(module_identifier);
+    if let Some(hashes) = &cgm.hashes {
+      if let Some(hash) = hashes.get(runtime) {
+        return Some(hash);
+      }
+    }
+    None
+  }
+
+  pub fn set_module_hashes(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    runtime: &RuntimeSpec,
+    hash: RspackHashDigest,
+  ) {
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    if let Some(hashes) = &mut cgm.hashes {
+      hashes.set(runtime.clone(), hash);
+    } else {
+      let mut hashes = RuntimeSpecMap::new();
+      hashes.set(runtime.clone(), hash);
+      cgm.hashes = Some(hashes);
+    }
+  }
+
+  #[instrument(name = "chunk_graph:get_module_graph_hash", skip_all)]
   pub fn get_module_graph_hash(
     &self,
-    module: &BoxModule,
+    module: &dyn Module,
     compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
+    runtime: &RuntimeSpec,
     with_connections: bool,
   ) -> String {
     let mut hasher = FxHasher::default();
     let mut connection_hash_cache: IdentifierMap<u64> = IdentifierMap::default();
     let module_graph = &compilation.get_module_graph();
 
-    let process_module_graph_module = |module: &BoxModule, strict: Option<bool>| -> u64 {
+    let process_module_graph_module = |module: &dyn Module, strict: Option<bool>| -> u64 {
       let mut hasher = FxHasher::default();
       module.identifier().dyn_hash(&mut hasher);
       module.source_types().dyn_hash(&mut hasher);
@@ -187,20 +219,6 @@ impl ChunkGraph {
       module_graph
         .get_exports_info(&module.identifier())
         .export_info_hash(&mut hasher, module_graph, &mut UkeySet::default());
-
-      module
-        .get_blocks()
-        .iter()
-        .filter_map(|id| module_graph.block_by_id(id))
-        .for_each(|block| {
-          block.update_hash(
-            &mut hasher,
-            &UpdateHashContext {
-              compilation,
-              runtime,
-            },
-          )
-        });
 
       // NOTE:
       // Webpack use module.getExportsType() to generate hash
@@ -256,7 +274,8 @@ impl ChunkGraph {
                   "Module({}) should be added before using",
                   connection.module_identifier()
                 )
-              }),
+              })
+              .as_ref(),
             Some(strict),
           );
           connection_hash.dyn_hash(&mut hasher);
@@ -266,5 +285,24 @@ impl ChunkGraph {
     }
 
     format!("{:016x}", hasher.finish())
+  }
+
+  fn get_module_graph_hash_without_connections(
+    &self,
+    module: &dyn Module,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  ) -> u64 {
+    let mg = compilation.get_module_graph();
+    let mut hasher = FxHasher::default();
+    module.identifier().dyn_hash(&mut hasher);
+    module.source_types().dyn_hash(&mut hasher);
+    mg.is_async(&module.identifier()).dyn_hash(&mut hasher);
+    mg.get_exports_info(&module.identifier()).export_info_hash(
+      &mut hasher,
+      &mg,
+      &mut UkeySet::default(),
+    );
+    hasher.finish()
   }
 }

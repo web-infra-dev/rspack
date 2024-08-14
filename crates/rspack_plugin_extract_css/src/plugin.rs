@@ -533,8 +533,7 @@ async fn content_hash(
   let used_modules =
     rspack_plugin_css::CssPlugin::get_modules_in_order(chunk, rendered_modules, compilation)
       .0
-      .into_iter()
-      .filter_map(|module| module.downcast_ref::<CssModule>());
+      .into_iter();
 
   let mut hasher = hashes
     .entry(SOURCE_TYPE[0])
@@ -542,15 +541,11 @@ async fn content_hash(
 
   used_modules
     .map(|m| {
-      m.build_info()
-        .expect("css module built")
-        .hash
-        .as_ref()
-        .expect("css module should have hash")
+      compilation
+        .chunk_graph
+        .get_module_hash(m.identifier(), &chunk.runtime)
     })
-    .for_each(|current| {
-      current.hash(&mut hasher);
-    });
+    .for_each(|current| current.hash(&mut hasher));
 
   Ok(())
 }

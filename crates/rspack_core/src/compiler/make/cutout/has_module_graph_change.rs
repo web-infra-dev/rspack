@@ -180,6 +180,15 @@ mod t {
     fn dependency_id(&self) -> Option<DependencyId> {
       None
     }
+
+    fn update_hash(
+      &self,
+      _hasher: &mut dyn std::hash::Hasher,
+      _compilation: &Compilation,
+      _runtime: &RuntimeSpec,
+    ) {
+      todo!()
+    }
   }
 
   impl ModuleDependency for TestDep {
@@ -286,6 +295,15 @@ mod t {
       _runtime: Option<&RuntimeSpec>,
       _concatenation_scope: Option<ConcatenationScope>,
     ) -> Result<CodeGenerationResult> {
+      todo!()
+    }
+
+    fn update_hash(
+      &self,
+      _hasher: &mut dyn std::hash::Hasher,
+      _compilation: &Compilation,
+      _runtime: &RuntimeSpec,
+    ) {
       todo!()
     }
   }

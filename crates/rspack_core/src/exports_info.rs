@@ -25,15 +25,6 @@ use crate::{
   ModuleIdentifier, Nullable, RuntimeSpec,
 };
 
-pub trait ExportsHash {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  );
-}
-
 static EXPORTS_INFO_HASH: LazyLock<UkeyDashMap<ExportsInfo, u64>> =
   LazyLock::new(UkeyDashMap::default);
 
@@ -43,19 +34,6 @@ pub struct ExportsInfo(Ukey);
 static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 impl_item_ukey!(ExportsInfo);
-
-impl ExportsHash for ExportsInfo {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    if let Some(exports_info) = module_graph.try_get_exports_info_by_id(self) {
-      exports_info.export_info_hash(hasher, module_graph, already_visited);
-    }
-  }
-}
 
 impl ExportsInfo {
   #[allow(clippy::new_without_default)]
@@ -731,38 +709,6 @@ pub struct ExportsInfoData {
   id: ExportsInfo,
 }
 
-impl ExportsHash for ExportsInfoData {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    if let Some(hash) = EXPORTS_INFO_HASH.get(&self.id) {
-      hash.dyn_hash(hasher);
-      return;
-    };
-    let mut default_hash = FxHasher::default();
-    for (name, export_info_id) in &self.exports {
-      name.dyn_hash(&mut default_hash);
-      export_info_id.export_info_hash(&mut default_hash, module_graph, already_visited);
-    }
-    self
-      .other_exports_info
-      .export_info_hash(&mut default_hash, module_graph, already_visited);
-    self
-      .side_effects_only_info
-      .export_info_hash(&mut default_hash, module_graph, already_visited);
-
-    if let Some(redirect_to) = self.redirect_to {
-      redirect_to.export_info_hash(&mut default_hash, module_graph, already_visited);
-    }
-    let hash = default_hash.finish();
-    EXPORTS_INFO_HASH.insert(self.id, hash);
-    hash.dyn_hash(hasher);
-  }
-}
-
 pub enum ProvidedExports {
   Null,
   True,
@@ -829,24 +775,6 @@ pub struct ExportInfo(Ukey);
 static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 impl_item_ukey!(ExportInfo);
-
-impl ExportsHash for ExportInfo {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    if already_visited.contains(self) {
-      return;
-    }
-    already_visited.insert(*self);
-
-    if let Some(export_info) = module_graph.try_get_export_info_by_id(self) {
-      export_info.export_info_hash(hasher, module_graph, already_visited);
-    }
-  }
-}
 
 impl ExportInfo {
   fn new() -> Self {
@@ -1567,31 +1495,6 @@ pub struct ExportInfoData {
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
   used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
-}
-
-impl ExportsHash for ExportInfoData {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    self.name.dyn_hash(hasher);
-    self.usage_state.dyn_hash(hasher);
-    self.used_name.dyn_hash(hasher);
-    for (name, value) in &self.target {
-      name.dyn_hash(hasher);
-      value.dyn_hash(hasher);
-    }
-    self.provided.dyn_hash(hasher);
-    self.can_mangle_provide.dyn_hash(hasher);
-    self.terminal_binding.dyn_hash(hasher);
-    self.target_is_set.dyn_hash(hasher);
-    if let Some(exports_info_id) = self.exports_info {
-      exports_info_id.export_info_hash(hasher, module_graph, already_visited);
-    }
-    self.exports_info_owned.dyn_hash(hasher);
-  }
 }
 
 #[derive(Debug, Hash, Clone, Copy)]

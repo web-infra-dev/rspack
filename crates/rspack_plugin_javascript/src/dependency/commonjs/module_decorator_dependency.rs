@@ -1,8 +1,10 @@
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, Dependency,
-  DependencyId, DependencyTemplate, DependencyType, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, Compilation,
+  Dependency, DependencyId, DependencyTemplate, DependencyType, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
+use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct ModuleDecoratorDependency {
@@ -75,6 +77,16 @@ impl DependencyTemplate for ModuleDecoratorDependency {
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
+    self.decorator.dyn_hash(hasher);
+    self.allow_exports_access.dyn_hash(hasher);
   }
 }
 

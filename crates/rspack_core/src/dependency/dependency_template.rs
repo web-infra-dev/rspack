@@ -50,6 +50,13 @@ pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency + As
   );
 
   fn dependency_id(&self) -> Option<DependencyId>;
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  );
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;

@@ -3688,6 +3688,7 @@ dependencies = [
  "ropey",
  "rspack_core",
  "rspack_error",
+ "rspack_util",
 ]
 
 [[package]]

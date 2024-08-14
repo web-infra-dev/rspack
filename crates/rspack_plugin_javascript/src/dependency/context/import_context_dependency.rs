@@ -1,4 +1,4 @@
-use rspack_core::{AsModuleDependency, ContextDependency};
+use rspack_core::{AsModuleDependency, Compilation, ContextDependency, RuntimeSpec};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
@@ -108,6 +108,14 @@ impl DependencyTemplate for ImportContextDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: &RuntimeSpec,
+  ) {
   }
 }
 

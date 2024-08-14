@@ -1,6 +1,6 @@
 use crate::{
-  AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsContextDependency, AsDependencyTemplate, Compilation, Context, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency, RuntimeSpec,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]

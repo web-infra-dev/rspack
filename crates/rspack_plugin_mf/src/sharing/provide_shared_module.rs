@@ -3,11 +3,12 @@ use std::{borrow::Cow, hash::Hash};
 use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  async_module_factory, impl_module_meta_info, impl_source_map_config, rspack_sources::Source,
-  sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  async_module_factory, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::Source, sync_module_factory, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -142,10 +143,6 @@ impl Module for ProvideSharedModule {
     build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-    let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
-
     let mut blocks = vec![];
     let mut dependencies = vec![];
     let dep = Box::new(ProvideForSharedDependency::new(self.request.clone()));
@@ -158,7 +155,6 @@ impl Module for ProvideSharedModule {
 
     Ok(BuildResult {
       build_info: BuildInfo {
-        hash: Some(hash),
         strict: true,
         ..Default::default()
       },
@@ -214,21 +210,15 @@ impl Module for ProvideSharedModule {
       });
     Ok(code_generation_result)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  ) {
+    module_update_hash(self, hasher, compilation, runtime);
+  }
 }
 
 impl_empty_diagnosable_trait!(ProvideSharedModule);
-
-impl Hash for ProvideSharedModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__ProvideSharedModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for ProvideSharedModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for ProvideSharedModule {}

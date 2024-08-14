@@ -186,30 +186,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
       hot_update_chunk.id = Some(chunk_id.to_string());
       hot_update_chunk.runtime = new_runtime.clone();
-      let mut chunk_hash = RspackHash::from(&compilation.options.output);
       let ukey = hot_update_chunk.ukey;
+
       if let Some(current_chunk) = current_chunk {
         current_chunk
           .groups
           .iter()
           .for_each(|group| hot_update_chunk.add_group(*group))
       }
-
-      for module_identifier in new_modules.iter() {
-        if let Some(module) = compilation
-          .get_module_graph()
-          .module_by_identifier(module_identifier)
-        {
-          module.hash(&mut chunk_hash);
-        }
-      }
-      let digest = chunk_hash.digest(&compilation.options.output.hash_digest);
-      hot_update_chunk
-        .content_hash
-        .insert(SourceType::JavaScript, digest.clone());
-      hot_update_chunk
-        .content_hash
-        .insert(SourceType::Css, digest);
 
       compilation.chunk_by_ukey.add(hot_update_chunk);
       compilation.chunk_graph.add_chunk(ukey);

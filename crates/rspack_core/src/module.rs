@@ -15,6 +15,7 @@ use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::concatenated_module::ConcatenatedModule;
+use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
@@ -174,8 +175,6 @@ pub trait Module:
   + Sync
   + Any
   + AsAny
-  + DynHash
-  + DynEq
   + Identifiable
   + DependenciesBlock
   + Diagnosable
@@ -201,19 +200,11 @@ pub trait Module:
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
-    let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
-      ..Default::default()
-    };
-
     Ok(BuildResult {
-      build_info,
+      build_info: Default::default(),
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
@@ -280,10 +271,16 @@ pub trait Module:
     None
   }
 
-  /// Apply module hash to the provided hasher.
-  fn update_hash(&self, state: &mut dyn std::hash::Hasher) {
-    self.dyn_hash(state);
-  }
+  /// Update hash for cgm.hash (chunk graph module hash)
+  /// Different cgm code generation result should have different cgm.hash,
+  /// so this also accept compilation (mainly chunk graph) and runtime as args.
+  /// (Difference with `impl Hash for Module`: this is just a part for calculating cgm.hash, not for Module itself)
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+  );
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
@@ -469,6 +466,28 @@ fn get_exports_type_impl(
   }
 }
 
+pub fn module_update_hash(
+  module: &dyn Module,
+  hasher: &mut dyn std::hash::Hasher,
+  compilation: &Compilation,
+  runtime: &RuntimeSpec,
+) {
+  let chunk_graph = &compilation.chunk_graph;
+  chunk_graph.get_module_graph_hash(module, compilation, runtime, true);
+  if let Some(deps) = module.get_presentational_dependencies() {
+    for dep in deps {
+      dep.update_hash(hasher, compilation, runtime);
+    }
+  }
+  dependencies_block_update_hash(
+    module.get_dependencies(),
+    module.get_blocks(),
+    hasher,
+    compilation,
+    runtime,
+  );
+}
+
 pub trait ModuleExt {
   fn boxed(self) -> Box<dyn Module>;
 }
@@ -486,20 +505,6 @@ impl Identifiable for Box<dyn Module> {
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
     self.as_ref().identifier()
-  }
-}
-
-impl PartialEq for dyn Module {
-  fn eq(&self, other: &Self) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-
-impl Eq for dyn Module {}
-
-impl Hash for dyn Module {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
   }
 }
 
@@ -604,35 +609,11 @@ mod test {
     RuntimeSpec, SourceType,
   };
 
-  #[derive(Debug, Eq)]
+  #[derive(Debug)]
   struct RawModule(&'static str);
 
-  impl PartialEq for RawModule {
-    fn eq(&self, other: &Self) -> bool {
-      self.identifier() == other.identifier()
-    }
-  }
-
-  #[derive(Debug, Eq)]
+  #[derive(Debug)]
   struct ExternalModule(&'static str);
-
-  impl PartialEq for ExternalModule {
-    fn eq(&self, other: &Self) -> bool {
-      self.identifier() == other.identifier()
-    }
-  }
-
-  impl Hash for RawModule {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-      self.identifier().hash(state);
-    }
-  }
-
-  impl Hash for ExternalModule {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-      self.identifier().hash(state);
-    }
-  }
 
   macro_rules! impl_noop_trait_module_type {
     ($ident: ident) => {
@@ -696,6 +677,15 @@ mod test {
           vec![]
         }
 
+        fn update_hash(
+          &self,
+          _hasher: &mut dyn std::hash::Hasher,
+          _compilation: &Compilation,
+          _runtime: &RuntimeSpec,
+        ) {
+          unreachable!()
+        }
+
         fn code_generation(
           &self,
           _compilation: &Compilation,
@@ -756,41 +746,5 @@ mod test {
     let b = b.as_ref();
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
-  }
-
-  #[test]
-  fn hash_should_work() {
-    let e1: Box<dyn Module> = ExternalModule("e").boxed();
-    let e2: Box<dyn Module> = ExternalModule("e").boxed();
-
-    let mut state1 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-    let mut state2 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-    e1.hash(&mut state1);
-    e2.hash(&mut state2);
-
-    let hash1 = state1.digest(&rspack_hash::HashDigest::Hex);
-    let hash2 = state2.digest(&rspack_hash::HashDigest::Hex);
-    assert_eq!(hash1, hash2);
-
-    let e3: Box<dyn Module> = ExternalModule("e3").boxed();
-    let mut state3 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-    e3.hash(&mut state3);
-
-    let hash3 = state3.digest(&rspack_hash::HashDigest::Hex);
-    assert_ne!(hash1, hash3);
-  }
-
-  #[test]
-  fn eq_should_work() {
-    let e1 = ExternalModule("e");
-    let e2 = ExternalModule("e");
-
-    assert_eq!(e1, e2);
-    assert_eq!(&e1.boxed(), &e2.boxed());
-
-    let r1 = RawModule("r1");
-    let r2 = RawModule("r2");
-    assert_ne!(r1, r2);
-    assert_ne!(&r1.boxed(), &r2.boxed());
   }
 }

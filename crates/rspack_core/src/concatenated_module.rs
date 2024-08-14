@@ -19,7 +19,7 @@ use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableErr
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_hook::define_hook;
 use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
-use rspack_util::{source_map::SourceMapKind, swc::join_atom};
+use rspack_util::{ext::DynHash, source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
@@ -35,7 +35,7 @@ use swc_node_comments::SwcComments;
 
 use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, property_access, property_name,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
@@ -114,43 +114,45 @@ pub struct ConcatenatedInnerModule {
   pub shorten_id: String,
 }
 
-#[derive(Debug)]
-pub enum ConcatenationEntryType {
-  Concatenated,
-  External,
-}
+static REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  let pattern = r"\.+\/|(\/index)?\.([a-zA-Z0-9]{1,4})($|\s|\?)|\s*\+\s*\d+\s*modules";
+  Regex::new(pattern).expect("should construct the regex")
+});
 
 #[derive(Debug)]
-pub enum ConnectionOrModuleIdent {
-  Module(ModuleIdentifier),
-  Connection(ConnectionId),
+enum ConcatenationEntry {
+  Concatenated(ConcatenationEntryConcatenated),
+  External(ConcatenationEntryExternal),
 }
 
-impl ConnectionOrModuleIdent {
-  fn get_module_id(&self, mg: &ModuleGraph) -> ModuleIdentifier {
+impl ConcatenationEntry {
+  pub fn module(&self, mg: &ModuleGraph) -> ModuleIdentifier {
     match self {
-      ConnectionOrModuleIdent::Module(m) => *m,
-      ConnectionOrModuleIdent::Connection(c) => {
-        let con = mg
-          .connection_by_connection_id(c)
-          .expect("should have connection");
-        *con.module_identifier()
-      }
+      ConcatenationEntry::Concatenated(c) => c.module,
+      ConcatenationEntry::External(e) => e.module(mg),
     }
   }
 }
 
-pub static REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  let pattern = r"\.+\/|(\/index)?\.([a-zA-Z0-9]{1,4})($|\s|\?)|\s*\+\s*\d+\s*modules";
-  Regex::new(pattern).expect("should construct the regex")
-});
 #[derive(Debug)]
-pub struct ConcatenationEntry {
-  ty: ConcatenationEntryType,
-  /// I do want to align with webpack, but https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1018-L1027
-  /// you know ..
-  connection_or_module_id: ConnectionOrModuleIdent,
+struct ConcatenationEntryConcatenated {
+  module: ModuleIdentifier,
   runtime_condition: RuntimeCondition,
+}
+
+#[derive(Debug)]
+struct ConcatenationEntryExternal {
+  connection: ConnectionId,
+  runtime_condition: RuntimeCondition,
+}
+
+impl ConcatenationEntryExternal {
+  pub fn module(&self, mg: &ModuleGraph) -> ModuleIdentifier {
+    let con = mg
+      .connection_by_connection_id(&self.connection)
+      .expect("should have connection");
+    *con.module_identifier()
+  }
 }
 
 #[derive(Debug)]
@@ -549,12 +551,6 @@ impl Module for ConcatenatedModule {
       module_concatenation_bailout: Default::default(),
     };
     self.clear_diagnostics();
-
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-    self.build_meta().hash(&mut hasher);
-
-    build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
 
     let module_graph = compilation.get_module_graph();
     let modules = self
@@ -1288,6 +1284,46 @@ impl Module for ConcatenatedModule {
     Ok(code_generation_result)
   }
 
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    generation_runtime: &RuntimeSpec,
+  ) {
+    let runtime = if let Some(self_runtime) = &self.runtime {
+      Some(Cow::Owned(
+        generation_runtime
+          .intersection(self_runtime)
+          .cloned()
+          .collect::<RuntimeSpec>(),
+      ))
+    } else {
+      Some(Cow::Borrowed(generation_runtime))
+    };
+    let runtime = runtime.as_deref();
+    for info in self.create_concatenation_list(
+      self.root_module_ctxt.id,
+      IndexSet::from_iter(self.modules.iter().map(|item| item.id)),
+      runtime,
+      &compilation.get_module_graph(),
+    ) {
+      match info {
+        ConcatenationEntry::Concatenated(e) => compilation
+          .get_module_graph()
+          .module_by_identifier(&e.module)
+          .expect("should have module")
+          .update_hash(hasher, compilation, generation_runtime),
+        ConcatenationEntry::External(e) => {
+          compilation
+            .chunk_graph
+            .get_module_id(e.module(&compilation.get_module_graph()))
+            .dyn_hash(hasher);
+        }
+      }
+    }
+    module_update_hash(self, hasher, compilation, generation_runtime)
+  }
+
   fn name_for_condition(&self) -> Option<Box<str>> {
     self.root_module_ctxt.name_for_condition.clone()
   }
@@ -1365,14 +1401,6 @@ impl Diagnosable for ConcatenatedModule {
   }
 }
 
-impl PartialEq for ConcatenatedModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for ConcatenatedModule {}
-
 impl ConcatenatedModule {
   fn clear_diagnostics(&mut self) {
     self
@@ -1397,16 +1425,14 @@ impl ConcatenatedModule {
     let mut list = vec![];
     let mut map = IdentifierIndexMap::default();
     for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
-      let module_id = concatenation_entry
-        .connection_or_module_id
-        .get_module_id(mg);
+      let module_id = concatenation_entry.module(mg);
       match map.entry(module_id) {
         indexmap::map::Entry::Occupied(_) => {
           list.push(module_id);
         }
         indexmap::map::Entry::Vacant(vac) => {
-          match concatenation_entry.ty {
-            ConcatenationEntryType::Concatenated => {
+          match concatenation_entry {
+            ConcatenationEntry::Concatenated(_) => {
               let info = ConcatenatedModuleInfo {
                 index: i,
                 module: module_id,
@@ -1415,11 +1441,11 @@ impl ConcatenatedModule {
               vac.insert(ModuleInfo::Concatenated(info));
               list.push(module_id);
             }
-            ConcatenationEntryType::External => {
+            ConcatenationEntry::External(e) => {
               let info = ExternalModuleInfo {
                 index: i,
                 module: module_id,
-                runtime_condition: concatenation_entry.runtime_condition,
+                runtime_condition: e.runtime_condition,
                 interop_namespace_object_used: false,
                 interop_namespace_object_name: None,
                 interop_namespace_object2_used: false,
@@ -1462,11 +1488,12 @@ impl ConcatenatedModule {
         &mut list,
       );
     }
-    list.push(ConcatenationEntry {
-      ty: ConcatenationEntryType::Concatenated,
-      connection_or_module_id: ConnectionOrModuleIdent::Module(root_module),
-      runtime_condition: RuntimeCondition::Boolean(true),
-    });
+    list.push(ConcatenationEntry::Concatenated(
+      ConcatenationEntryConcatenated {
+        module: root_module,
+        runtime_condition: RuntimeCondition::Boolean(true),
+      },
+    ));
     list
   }
 
@@ -1509,11 +1536,12 @@ impl ConcatenatedModule {
           list,
         );
       }
-      list.push(ConcatenationEntry {
-        ty: ConcatenationEntryType::Concatenated,
-        runtime_condition,
-        connection_or_module_id: ConnectionOrModuleIdent::Module(*con.module_identifier()),
-      });
+      list.push(ConcatenationEntry::Concatenated(
+        ConcatenationEntryConcatenated {
+          module: *con.module_identifier(),
+          runtime_condition,
+        },
+      ));
     } else {
       if let Some(cond) = exist_entry {
         let reduced_runtime_condition =
@@ -1525,23 +1553,20 @@ impl ConcatenatedModule {
       } else {
         exists_entry.insert(*con.module_identifier(), runtime_condition.clone());
       }
-      if let Some(last) = list.last_mut() {
-        if matches!(last.ty, ConcatenationEntryType::External)
-          && last.connection_or_module_id.get_module_id(mg) == *con.module_identifier()
-        {
-          last.runtime_condition =
-            merge_runtime_condition(&last.runtime_condition, &runtime_condition, runtime);
-          return;
-        }
+      if let Some(ConcatenationEntry::External(last)) = list.last_mut()
+        && last.module(mg) == *con.module_identifier()
+      {
+        last.runtime_condition =
+          merge_runtime_condition(&last.runtime_condition, &runtime_condition, runtime);
+        return;
       }
       let con_id = mg
         .connection_id_by_dependency_id(&con.dependency_id)
         .expect("should have dep id");
-      list.push(ConcatenationEntry {
-        ty: ConcatenationEntryType::External,
+      list.push(ConcatenationEntry::External(ConcatenationEntryExternal {
+        connection: *con_id,
         runtime_condition,
-        connection_or_module_id: ConnectionOrModuleIdent::Connection(*con_id),
-      })
+      }));
     }
   }
 
@@ -2173,31 +2198,6 @@ impl ConcatenatedModule {
         }
       }
     }
-  }
-}
-
-impl Hash for ConcatenatedModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    if let Some(h) = self.cached_hash.get() {
-      h.hash(state);
-      return;
-    }
-
-    let mut temp_state = DefaultHasher::default();
-
-    "__rspack_internal__ConcatenatedModule".hash(&mut temp_state);
-    // the module has been sorted, so the has should be consistent
-    for module in self.modules.iter() {
-      if let Some(ref original_source_hash) = module.original_source_hash {
-        temp_state.write_u64(*original_source_hash);
-      }
-    }
-    let res = temp_state.finish();
-    res.hash(state);
-    self
-      .cached_hash
-      .set(res)
-      .expect("should set hash of ConcatenatedModule")
   }
 }
 
