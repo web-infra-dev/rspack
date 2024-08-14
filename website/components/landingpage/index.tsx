@@ -4,6 +4,7 @@ import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';
 import FullyFeatured from './FullyFeatured';
 import Hero from './Hero';
+import ToolStack from './ToolStack';
 import WhyRspack from './WhyRspack';
 import styles from './index.module.scss';
 
@@ -14,7 +15,6 @@ const Background = () => {
 };
 
 const LandingPage = () => {
-  const isDark = useDark();
   return (
     <div className={styles.landingPage}>
       <Background />
@@ -22,6 +22,7 @@ const LandingPage = () => {
       <WhyRspack />
       <Benchmark />
       <FullyFeatured />
+      <ToolStack />
       <BuiltWithRspack />
     </div>
   );
