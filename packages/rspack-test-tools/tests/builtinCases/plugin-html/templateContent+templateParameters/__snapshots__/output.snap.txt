@@ -1,5 +1,5 @@
 ```html title=index.html
 <!DOCTYPE html>
 <html>
-<head><script src="/runtime.js" defer></script><script src="/index.js" defer></script></head><body><div>bar</div></body></html>
+<head><script defer="defer" src="/runtime.js"></script><script defer="defer" src="/index.js"></script></head><body><div>bar</div></body></html>
 ```
