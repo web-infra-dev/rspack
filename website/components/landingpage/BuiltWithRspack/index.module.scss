@@ -12,7 +12,9 @@
   justify-content: center;
   align-items: center;
   gap: 24px;
-  align-self: stretch;
+  background: url('./assets/bg.png') no-repeat;
+  background-size: 100% 100%;
+  background-position: center center;
 }
 
 .title {

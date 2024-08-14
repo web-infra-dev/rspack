@@ -82,7 +82,7 @@ const BENCHMARK_DATA: BenchmarkData = {
 export function Benchmark() {
   const t = useI18n();
   return (
-    <div className="relative flex flex-col justify-center pt-24 pb-10 h-auto">
+    <div className={styles.container}>
       <div className="flex flex-center flex-col">
         <h2 className={`${styles.title} font-bold text-3xl sm:text-5xl mt-16`}>
           {t('benchmarkTitle')}

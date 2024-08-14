@@ -1,5 +1,21 @@
+.container {
+  display: flex;
+  padding: 64px 144px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
 .title {
   color: var(--rp-c-text-1);
+  color: var(--Text-primary-color, #0b0c0e);
+  text-align: center;
+  /* Style 10 */
+  font-family: 'Open Sans';
+  font-size: 48px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 48px; /* 100% */
 }
 
 .desc {
