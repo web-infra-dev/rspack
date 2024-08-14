@@ -169,7 +169,7 @@ impl Module for ConsumeSharedModule {
     })
   }
 
-  #[allow(clippy::unwrap_in_result)]
+  #[tracing::instrument(name = "ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

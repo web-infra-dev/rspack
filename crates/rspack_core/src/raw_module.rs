@@ -120,6 +120,7 @@ impl Module for RawModule {
     })
   }
 
+  #[tracing::instrument(name = "RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &crate::Compilation,

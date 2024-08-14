@@ -121,7 +121,7 @@ impl Module for SelfModule {
     })
   }
 
-  #[allow(clippy::unwrap_in_result)]
+  #[tracing::instrument(name = "SelfModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     _compilation: &Compilation,
