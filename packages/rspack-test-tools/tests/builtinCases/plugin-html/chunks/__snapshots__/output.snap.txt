@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Rspack App</title>
-<script src="/runtime.js" defer></script><script src="/chunk1.js" defer></script></head>
+<script defer src="/runtime.js"></script><script defer src="/chunk1.js"></script></head>
 
 <body>
 

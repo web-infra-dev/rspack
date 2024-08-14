@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>Rspack title</title>
-  <script src="/runtime.js" defer></script><script src="/index.js" defer></script></head>
+  <script defer src="/runtime.js"></script><script defer src="/index.js"></script></head>
   <body>
   
 </body></html>
