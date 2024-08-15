@@ -2,6 +2,9 @@ import { defineConfig } from "@rspack/cli";
 import { type RspackPluginFunction, rspack } from "@rspack/core";
 import { VueLoaderPlugin } from "vue-loader";
 
+// Target browsers, see: https://github.com/browserslist/browserslist
+const targets = ["chrome >= 87", "edge >= 88", "firefox >= 78", "safari >= 14"];
+
 export default defineConfig({
 	context: __dirname,
 	entry: {
@@ -10,16 +13,6 @@ export default defineConfig({
 	resolve: {
 		extensions: ["...", ".ts", ".vue"]
 	},
-	plugins: [
-		new VueLoaderPlugin() as RspackPluginFunction,
-		new rspack.HtmlRspackPlugin({
-			template: "./index.html"
-		}),
-		new rspack.DefinePlugin({
-			__VUE_OPTIONS_API__: true,
-			__VUE_PROD_DEVTOOLS__: false
-		})
-	],
 	module: {
 		rules: [
 			{
@@ -41,14 +34,7 @@ export default defineConfig({
 									syntax: "typescript"
 								}
 							},
-							env: {
-								targets: [
-									"chrome >= 87",
-									"edge >= 88",
-									"firefox >= 78",
-									"safari >= 14"
-								]
-							}
+							env: { targets }
 						}
 					}
 				]
@@ -57,6 +43,24 @@ export default defineConfig({
 				test: /\.svg/,
 				type: "asset/resource"
 			}
+		]
+	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		}),
+		new rspack.DefinePlugin({
+			__VUE_OPTIONS_API__: true,
+			__VUE_PROD_DEVTOOLS__: false
+		}),
+		new VueLoaderPlugin() as RspackPluginFunction
+	],
+	optimization: {
+		minimizer: [
+			new rspack.SwcJsMinimizerRspackPlugin(),
+			new rspack.LightningCssMinimizerRspackPlugin({
+				minimizerOptions: { targets }
+			})
 		]
 	},
 	experiments: {
