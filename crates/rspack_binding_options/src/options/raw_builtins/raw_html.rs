@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use napi_derive::napi;
 use rspack_plugin_html::config::HtmlInject;
+use rspack_plugin_html::config::HtmlRspackPluginBaseOptions;
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_plugin_html::config::HtmlScriptLoading;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
@@ -27,8 +28,8 @@ pub struct RawHtmlRspackPluginOptions {
   pub inject: RawHtmlInject,
   /// path or `auto`
   pub public_path: Option<String>,
-  /// `blocking`, `defer`, or `module`
-  #[napi(ts_type = "\"blocking\" | \"defer\" | \"module\"")]
+  /// `blocking`, `defer`, `module` or `systemjs-module`
+  #[napi(ts_type = "\"blocking\" | \"defer\" | \"module\" | \"systemjs-module\"")]
   pub script_loading: RawHtmlScriptLoading,
 
   /// entry_chunk_name (only entry chunks are supported)
@@ -41,6 +42,7 @@ pub struct RawHtmlRspackPluginOptions {
   pub favicon: Option<String>,
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
   pub hash: Option<bool>,
+  pub base: Option<RawHtmlRspackPluginBaseOptions>,
 }
 
 impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
@@ -65,11 +67,29 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
       chunks: value.chunks,
       exclude_chunks: value.exclude_chunks,
       sri,
-      minify: value.minify.unwrap_or_default(),
+      minify: value.minify,
       title: value.title,
       favicon: value.favicon,
       meta: value.meta,
-      hash: value.hash.unwrap_or_default(),
+      hash: value.hash,
+      base: value.base.map(|v| v.into()),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawHtmlRspackPluginBaseOptions {
+  pub href: Option<String>,
+  #[napi(ts_type = "\"_self\" | \"_blank\" | \"_parent\" | \"_top\"")]
+  pub target: Option<String>,
+}
+
+impl From<RawHtmlRspackPluginBaseOptions> for HtmlRspackPluginBaseOptions {
+  fn from(value: RawHtmlRspackPluginBaseOptions) -> Self {
+    HtmlRspackPluginBaseOptions {
+      href: value.href,
+      target: value.target,
     }
   }
 }

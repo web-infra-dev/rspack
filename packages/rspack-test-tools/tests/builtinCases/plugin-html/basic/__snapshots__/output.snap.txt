@@ -1,11 +1,3 @@
 ```html title=index.html
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>rspack</title>
-  <script defer src="/runtime.js"></script><script defer src="/main.js"></script><link href="/main.css" rel="stylesheet" /></head>
-  <body>
-  
-</body></html>
+<!doctype html><html><head><meta charset="utf-8"><title>rspack</title><script defer src="/runtime.js"></script><script defer src="/main.js"></script><link href="/main.css" rel="stylesheet"></head><body></body></html>
 ```

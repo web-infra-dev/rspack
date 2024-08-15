@@ -1,3 +1,6 @@
+use std::{borrow::Cow, env};
+
+use regex::Regex;
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Element, Namespace};
 
@@ -45,4 +48,13 @@ pub fn append_hash(url: &str, hash: &str) -> String {
     },
     hash
   )
+}
+
+pub fn generate_posix_path(path: &str) -> Cow<'_, str> {
+  if env::consts::OS == "windows" {
+    let reg = Regex::new(r"[/\\]").expect("Invalid RegExp");
+    reg.replace_all(path, "/")
+  } else {
+    path.into()
+  }
 }

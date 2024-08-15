@@ -16,7 +16,7 @@ module.exports = {
 			{
 				template: "index.html",
 				chunks: ["chunk1", "chunk2"],
-				excludedChunks: ["chunk2"]
+				excludeChunks: ["chunk2"]
 			}
 		]
 	}

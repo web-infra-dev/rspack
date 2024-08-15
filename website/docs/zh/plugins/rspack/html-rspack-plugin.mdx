@@ -74,7 +74,7 @@ type HtmlRspackPluginOptions = {
   publicPath?: string;
   scriptLoading?: 'blocking' | 'defer' | 'module';
   chunks?: string[];
-  excludedChunks?: string[];
+  excludeChunks?: string[];
   sri?: 'sha256' | 'sha384' | 'sha512';
   minify?: boolean;
   favicon?: string;
@@ -160,7 +160,7 @@ type HtmlRspackPluginOptions = {
       description: '配置需要注入的 chunk，默认注入所有 chunk',
     },
     {
-      name: '`excludedChunks`',
+      name: '`excludeChunks`',
       type: '`string[]|undefined`',
       default: 'undefined',
       description: '配置需要跳过注入的 chunk',

@@ -1229,6 +1229,11 @@ export interface RawGeneratorOptions {
   cssModule?: RawCssModuleGeneratorOptions
 }
 
+export interface RawHtmlRspackPluginBaseOptions {
+  href?: string
+  target?: "_self" | "_blank" | "_parent" | "_top"
+}
+
 export interface RawHtmlRspackPluginOptions {
   /** emitted file name in output path */
   filename?: string
@@ -1240,8 +1245,8 @@ export interface RawHtmlRspackPluginOptions {
   inject: "head" | "body" | "false"
   /** path or `auto` */
   publicPath?: string
-  /** `blocking`, `defer`, or `module` */
-  scriptLoading: "blocking" | "defer" | "module"
+  /** `blocking`, `defer`, `module` or `systemjs-module` */
+  scriptLoading: "blocking" | "defer" | "module" | "systemjs-module"
   /** entry_chunk_name (only entry chunks are supported) */
   chunks?: Array<string>
   excludeChunks?: Array<string>
@@ -1251,6 +1256,7 @@ export interface RawHtmlRspackPluginOptions {
   favicon?: string
   meta?: Record<string, Record<string, string>>
   hash?: boolean
+  base?: RawHtmlRspackPluginBaseOptions
 }
 
 export interface RawHttpExternalsRspackPluginOptions {

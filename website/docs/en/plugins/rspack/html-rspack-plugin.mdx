@@ -74,7 +74,7 @@ type HtmlRspackPluginOptions = {
   publicPath?: string;
   scriptLoading?: 'blocking' | 'defer' | 'module';
   chunks?: string[];
-  excludedChunks?: string[];
+  excludeChunks?: string[];
   sri?: 'sha256' | 'sha384' | 'sha512';
   minify?: boolean;
   favicon?: string;
@@ -162,7 +162,7 @@ type HtmlRspackPluginOptions = {
       description: 'Allows you to add only some chunks.',
     },
     {
-      name: '`excludedChunks`',
+      name: '`excludeChunks`',
       type: '`string[]|undefined`',
       default: 'undefined',
       description: 'Allows you to skip some chunks.',
