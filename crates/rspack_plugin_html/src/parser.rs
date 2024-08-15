@@ -11,8 +11,8 @@ use swc_html::{
   },
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
-use swc_html_minifier::minify_document;
-pub use swc_html_minifier::option::MinifyOptions;
+use swc_html_minifier::option::MinifyOptions;
+use swc_html_minifier::{minify_document_with_custom_css_minifier, MinifyCss};
 
 use crate::config::HtmlRspackPluginOptions;
 
@@ -55,7 +55,11 @@ impl<'a> HtmlCompiler<'a> {
     if minify {
       // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
       GLOBALS.set(&Default::default(), || {
-        minify_document(ast, &MinifyOptions::default());
+        minify_document_with_custom_css_minifier(
+          ast,
+          &MinifyOptions::<()>::default(),
+          &NoopCssMinifier,
+        );
       })
     }
 
@@ -82,4 +86,19 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
   .with_kind(DiagnosticKind::Html);
   //Use this `Error` conversion could avoid eagerly clone source file.
   traceable_error.into()
+}
+
+struct NoopCssMinifier;
+
+impl MinifyCss for NoopCssMinifier {
+  type Options = ();
+
+  fn minify_css(
+    &self,
+    _options: &swc_html_minifier::option::MinifyCssOption<Self::Options>,
+    data: String,
+    _mode: swc_html_minifier::CssMinificationMode,
+  ) -> Option<String> {
+    Some(data)
+  }
 }

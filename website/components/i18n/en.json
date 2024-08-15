@@ -9,7 +9,7 @@
   "copy-plugin-desc": "Use [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead",
   "mini-css-extract-plugin-desc": "Use [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead",
   "terser-webpack-plugin-desc": "Rspack provides [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) to deliver better performance",
-  "css-minimizer-webpack-plugin-desc": "Rspack provides [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) and [SwcCssMinimizerRspackPlugin](/plugins/rspack/swc-css-minimizer-rspack-plugin) to deliver better performance",
+  "css-minimizer-webpack-plugin-desc": "Rspack provides [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to deliver better performance",
   "tsconfig-paths-webpack-plugin-desc": "Use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead",
   "image-minimizer-webpack-plugin-desc": "Only supports using [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) standalone",
   "case-sensitive-paths-webpack-plugin-desc": "`useBeforeEmitHook` option not supported",
