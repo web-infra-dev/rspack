@@ -5,7 +5,7 @@ use std::time::Instant;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::EntryOptions;
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets, CompilerFinishMake,
+  AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets, CompilerMake,
   EntryDependency, ExportInfoProvided, Plugin, PluginContext,
 };
 use rspack_error::Result;
@@ -18,7 +18,6 @@ use crate::utils::decl::{
   ClientRef, ClientReferenceManifest, ReactRoute, ServerRef, ServerReferenceManifest,
 };
 use crate::utils::file::generate_asset_version;
-use crate::utils::has_client_directive;
 use crate::utils::shared_data::{SHARED_CLIENT_IMPORTS, SHARED_DATA};
 
 #[derive(Debug, Default, Clone)]
@@ -84,8 +83,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   plugin.process_assets_stage_optimize_hash(compilation).await
 }
 
-#[plugin_hook(CompilerFinishMake for RSCClientReferenceManifestRspackPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilerMake for RSCClientReferenceManifestRspackPlugin)]
+async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   self.add_entry(compilation).await?;
   Ok(())
 }
@@ -175,34 +174,27 @@ impl RSCClientReferenceManifest {
       for chunk in &chunk_group.chunks {
         let chunk_modules = compilation.chunk_graph.get_chunk_modules(chunk, &mg);
         for module in chunk_modules {
-          let module_id = compilation.chunk_graph.get_module_id(module.identifier());
-          let resolved_data = module
+          let request = module
             .as_normal_module()
-            .and_then(|m| Some(m.resource_resolved_data()));
+            .and_then(|f| Some(f.user_request()));
+          let module_id = compilation.chunk_graph.get_module_id(module.identifier());
+          // FIXME: module maybe not a normal module, e.g. concatedmodule, not contain user_request
+          // use name_for_condition as fallback
+          // should be care user_request has resource query but name_for_condition not contain resource_query
+          let name_for_condition = module.name_for_condition();
 
-          println!(
-            "isclient {}, {:?}, {:?}",
-            module.identifier(),
-            dbg!(module),
-            resolved_data
-          );
-          if resolved_data.is_none() {
+          let resource_path = request.or_else(|| name_for_condition.as_deref());
+          if resource_path.is_none() {
             continue;
           }
-          // Skip non client modules
-          if let Some(build_info) = module.build_info()
-            && !has_client_directive(&build_info.directives)
-          {
+
+          if module.build_info().is_none() {
             continue;
           }
-          let resource = resolved_data
-            .expect("TODO:")
-            .resource_path
-            .as_ref()
-            .expect("TODO:")
-            .to_str()
-            .expect("TODO:");
-          if !self.is_client_request(&resource).await {
+          let resource = resource_path.unwrap();
+          let is_client = self.is_client_request(&resource).await;
+
+          if !is_client {
             continue;
           }
           if let Some(module_id) = module_id {
@@ -222,14 +214,14 @@ impl RSCClientReferenceManifest {
             let ssr_module_path = relative(context.as_path(), resource.as_path());
             let ssr_module_id = self.normalize_module_id(&ssr_module_path);
             self.add_client_ref(
-              resource,
+              &resource,
               module_id,
               "*",
               &chunks,
               &mut client_manifest.client_modules,
             );
             self.add_client_ref(
-              resource,
+              &resource,
               module_id,
               "",
               &chunks,
@@ -252,7 +244,7 @@ impl RSCClientReferenceManifest {
             for name in module_exported_keys {
               if let Some(name) = name {
                 self.add_client_ref(
-                  resource,
+                  &resource,
                   module_id,
                   name.as_str(),
                   &chunks,
@@ -305,11 +297,7 @@ impl Plugin for RSCClientReferenceManifestRspackPlugin {
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
     _options: &mut rspack_core::CompilerOptions,
   ) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
+    ctx.context.compiler_hooks.make.tap(make::new(self));
     ctx
       .context
       .compilation_hooks

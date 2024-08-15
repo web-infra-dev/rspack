@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, Compilation, CompilerFinishMake, CompilerOptions, EntryDependency, EntryOptions,
-  Plugin, PluginContext,
+  ApplyContext, Compilation, CompilerMake, CompilerOptions, EntryDependency, EntryOptions, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -40,8 +40,8 @@ impl RSCProxyRspackPlugin {
   }
 }
 
-#[plugin_hook(CompilerFinishMake for RSCProxyRspackPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilerMake for RSCProxyRspackPlugin)]
+async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   self.add_entry(compilation).await?;
   Ok(())
 }
@@ -53,11 +53,7 @@ impl Plugin for RSCProxyRspackPlugin {
     ctx: PluginContext<&mut ApplyContext>,
     _options: &mut CompilerOptions,
   ) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
+    ctx.context.compiler_hooks.make.tap(make::new(self));
     Ok(())
   }
 }
