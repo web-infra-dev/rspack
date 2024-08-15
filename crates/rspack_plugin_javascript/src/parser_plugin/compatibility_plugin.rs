@@ -52,6 +52,25 @@ impl CompatibilityPlugin {
     parser.presentational_dependencies.push(Box::new(dep));
     Some(true)
   }
+
+  fn tag_nested_require_data(
+    &self,
+    parser: &mut JavascriptParser,
+    name: String,
+    rename: String,
+    start: u32,
+    end: u32,
+  ) {
+    parser.tag_variable(
+      name,
+      NESTED_WEBPACK_IDENTIFIER_TAG,
+      Some(NestedRequireData {
+        name: rename,
+        update: false,
+        loc: DependencyLocation::new(start, end, Some(parser.source_map.clone())),
+      }),
+    );
+  }
 }
 
 impl JavascriptParserPlugin for CompatibilityPlugin {
@@ -74,6 +93,29 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     None
   }
 
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    decl: &swc_core::ecma::ast::VarDeclarator,
+    _statement: &swc_core::ecma::ast::VarDecl,
+  ) -> Option<bool> {
+    if let Some(ident) = decl.name.as_ident()
+      && ident.sym.as_str() == RuntimeGlobals::REQUIRE.name()
+    {
+      let start = ident.span().real_lo();
+      let end = ident.span().real_hi();
+      self.tag_nested_require_data(
+        parser,
+        ident.sym.to_string(),
+        format!("__nested_webpack_require_{start}_{end}__"),
+        start,
+        end,
+      );
+      return Some(true);
+    }
+    None
+  }
+
   fn pattern(
     &self,
     parser: &mut JavascriptParser,
@@ -81,35 +123,23 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == RuntimeGlobals::EXPORTS.name() {
-      parser.tag_variable(
+      self.tag_nested_require_data(
+        parser,
         ident.sym.to_string(),
-        NESTED_WEBPACK_IDENTIFIER_TAG,
-        Some(NestedRequireData {
-          name: "__nested_webpack_exports__".to_string(),
-          update: false,
-          loc: DependencyLocation::new(
-            ident.span().real_lo(),
-            ident.span().real_hi(),
-            Some(parser.source_map.clone()),
-          ),
-        }),
+        "__nested_webpack_exports__".to_string(),
+        ident.span().real_lo(),
+        ident.span().real_hi(),
       );
       return Some(true);
     } else if for_name == RuntimeGlobals::REQUIRE.name() {
-      let low = ident.span().lo().0;
-      let hi = ident.span().hi().0;
-      parser.tag_variable(
+      let start = ident.span().real_lo();
+      let end = ident.span().real_hi();
+      self.tag_nested_require_data(
+        parser,
         ident.sym.to_string(),
-        NESTED_WEBPACK_IDENTIFIER_TAG,
-        Some(NestedRequireData {
-          name: format!("__nested_webpack_require_{low}_{hi}__"),
-          update: false,
-          loc: DependencyLocation::new(
-            ident.span().real_lo(),
-            ident.span().real_hi(),
-            Some(parser.source_map.clone()),
-          ),
-        }),
+        format!("__nested_webpack_require_{start}_{end}__"),
+        start,
+        end,
       );
       return Some(true);
     }
@@ -123,18 +153,13 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     if name != RuntimeGlobals::REQUIRE.name() {
       None
     } else {
-      let low = fn_decl.span().lo().0;
-      let hi = fn_decl.span().hi().0;
-      let data = NestedRequireData {
-        name: format!("__nested_webpack_require_{low}_{hi}__"),
-        update: false,
-        loc: DependencyLocation::new(
-          ident.span().real_lo(),
-          ident.span().real_hi(),
-          Some(parser.source_map.clone()),
-        ),
-      };
-      parser.tag_variable(name.to_string(), NESTED_WEBPACK_IDENTIFIER_TAG, Some(data));
+      self.tag_nested_require_data(
+        parser,
+        name.to_string(),
+        format!("__nested_webpack_require_{}__", fn_decl.span().real_lo()),
+        ident.span().real_lo(),
+        ident.span().real_hi(),
+      );
       Some(true)
     }
   }
