@@ -1,6 +1,7 @@
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
+import discordLogo from './assets/discord.svg';
 import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import styles from './index.module.scss';
@@ -34,6 +35,13 @@ const BuiltWithRsPack: React.FC = () => {
           </div>
           <div className={styles.logo}>
             <img src={intuitLogo} alt="Intuit" className={styles.inituitLogo} />
+          </div>
+          <div className={styles.logo}>
+            <img
+              src={discordLogo}
+              alt="discord"
+              className={styles.discordLogo}
+            />
           </div>
         </div>
       </div>

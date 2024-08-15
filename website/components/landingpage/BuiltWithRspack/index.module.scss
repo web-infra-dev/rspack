@@ -41,7 +41,7 @@
 
   .logo {
     display: flex;
-    padding: 48px;
+    padding: 48px 36px 48px 36px;
     justify-content: center;
     align-items: center;
 
@@ -80,10 +80,14 @@
   max-width: 120px; // override the img { max-width: 100%;}
 }
 .bytedanceLogo {
-  width: 200px;
-  max-width: 200px; // override the img { max-width: 100%;}
+  width: 175px;
+  max-width: 175px; // override the img { max-width: 100%;}
 }
 .inituitLogo {
+  width: 120px;
+  max-width: 120px; // override the img { max-width: 100%;}
+}
+.discordLogo {
   width: 140px;
   max-width: 140px; // override the img { max-width: 100%;}
 }
