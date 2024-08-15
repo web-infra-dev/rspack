@@ -1,4 +1,4 @@
-const { SwcJsMinimizerRspackPlugin, SwcCssMinimizerRspackPlugin } = require("@rspack/core")
+const { SwcJsMinimizerRspackPlugin } = require("@rspack/core")
 
 /**
  * @type {import("@rspack/core").Configuration}
