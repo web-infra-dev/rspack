@@ -13,6 +13,7 @@ testing = ["dep:schemars"]
 anyhow            = { workspace = true }
 dojang            = "0.1.6"
 itertools         = { workspace = true }
+lightningcss      = { workspace = true }
 path-clean        = { workspace = true }
 rayon             = { workspace = true }
 regex             = { workspace = true }

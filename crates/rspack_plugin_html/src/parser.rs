@@ -99,6 +99,6 @@ impl MinifyCss for NoopCssMinifier {
     data: String,
     _mode: swc_html_minifier::CssMinificationMode,
   ) -> Option<String> {
-    return Some(data);
+    Some(data)
   }
 }

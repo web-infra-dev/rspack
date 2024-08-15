@@ -9752,7 +9752,6 @@ declare namespace rspackExports {
         CssExtractRspackPluginOptions,
         HtmlRspackPlugin,
         SwcJsMinimizerRspackPlugin,
-        SwcCssMinimizerRspackPlugin,
         LightningCssMinimizerRspackPlugin,
         CopyRspackPlugin,
         SourceMapDevToolPlugin,
@@ -14867,24 +14866,6 @@ export type StrictModuleExceptionHandling = z.infer<typeof strictModuleException
 
 // @public (undocumented)
 const strictModuleExceptionHandling: z.ZodBoolean;
-
-// @public (undocumented)
-export const SwcCssMinimizerRspackPlugin: {
-    new (options?: SwcCssMinimizerRspackPluginOptions | undefined): {
-        name: BuiltinPluginName;
-        _args: [options?: SwcCssMinimizerRspackPluginOptions | undefined];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
-
-// @public (undocumented)
-type SwcCssMinimizerRspackPluginOptions = {
-    test?: AssetConditions;
-    exclude?: AssetConditions;
-    include?: AssetConditions;
-};
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
