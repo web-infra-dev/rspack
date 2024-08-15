@@ -58,13 +58,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str()),
     );
 
-    let content = fs::read_to_string(&resolved_template)
-      .context(format!(
-        "failed to read `{}` from `{}`",
-        resolved_template.display(),
-        &compilation.options.context
-      ))
-      .map_err(AnyhowError::from)?;
+    let content = if let Some(template_compile_fn) = &config.internal_template_compile_fn {
+      let res = template_compile_fn(vec![template.clone()]).await?;
+      res
+        .get(template)
+        .unwrap_or_else(|| panic!("can not get template content"))
+        .to_owned()
+    } else {
+      fs::read_to_string(&resolved_template)
+        .context(format!(
+          "failed to read `{}` from `{}`",
+          resolved_template.display(),
+          &compilation.options.context
+        ))
+        .map_err(AnyhowError::from)?
+    };
 
     let url = resolved_template.to_string_lossy().to_string();
     compilation.file_dependencies.insert(resolved_template);

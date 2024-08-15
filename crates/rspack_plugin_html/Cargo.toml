@@ -11,7 +11,9 @@ testing = ["dep:schemars"]
 
 [dependencies]
 anyhow            = { workspace = true }
+derivative        = { workspace = true }
 dojang            = "0.1.6"
+futures           = { workspace = true }
 itertools         = { workspace = true }
 path-clean        = { workspace = true }
 rayon             = { workspace = true }

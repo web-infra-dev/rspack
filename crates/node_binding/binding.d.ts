@@ -1256,6 +1256,7 @@ export interface RawHtmlRspackPluginOptions {
   meta?: Record<string, Record<string, string>>
   hash?: boolean
   base?: RawHtmlRspackPluginBaseOptions
+  internalTemplateCompileFn?: (request: string[]) => Promise<Record<string, string>>
 }
 
 export interface RawHttpExternalsRspackPluginOptions {

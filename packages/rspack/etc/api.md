@@ -4591,7 +4591,7 @@ export const HtmlRspackPlugin: {
         chunks?: string[] | undefined;
         template?: string | undefined;
         templateContent?: string | undefined;
-        templateParameters?: Record<string, string> | undefined;
+        templateParameters?: Record<string, string> | ((args_0: any, ...args_1: unknown[]) => Record<string, string> | Promise<Record<string, string>>) | undefined;
         inject?: boolean | "head" | "body" | undefined;
         base?: string | {
             target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
@@ -4613,7 +4613,7 @@ export const HtmlRspackPlugin: {
             chunks?: string[] | undefined;
             template?: string | undefined;
             templateContent?: string | undefined;
-            templateParameters?: Record<string, string> | undefined;
+            templateParameters?: Record<string, string> | ((args_0: any, ...args_1: unknown[]) => Record<string, string> | Promise<Record<string, string>>) | undefined;
             inject?: boolean | "head" | "body" | undefined;
             base?: string | {
                 target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
@@ -4628,8 +4628,8 @@ export const HtmlRspackPlugin: {
             meta?: Record<string, string | Record<string, string>> | undefined;
         } | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
     };
 };
 
@@ -4641,7 +4641,7 @@ const htmlRspackPluginOptions: z.ZodObject<{
     filename: z.ZodOptional<z.ZodString>;
     template: z.ZodOptional<z.ZodString>;
     templateContent: z.ZodOptional<z.ZodString>;
-    templateParameters: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    templateParameters: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodString>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodString>, z.ZodPromise<z.ZodRecord<z.ZodString, z.ZodString>>]>>]>>;
     inject: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["head", "body"]>, z.ZodBoolean]>>;
     publicPath: z.ZodOptional<z.ZodString>;
     base: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -4670,7 +4670,7 @@ const htmlRspackPluginOptions: z.ZodObject<{
     chunks?: string[] | undefined;
     template?: string | undefined;
     templateContent?: string | undefined;
-    templateParameters?: Record<string, string> | undefined;
+    templateParameters?: Record<string, string> | ((args_0: any, ...args_1: unknown[]) => Record<string, string> | Promise<Record<string, string>>) | undefined;
     inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
@@ -4690,7 +4690,7 @@ const htmlRspackPluginOptions: z.ZodObject<{
     chunks?: string[] | undefined;
     template?: string | undefined;
     templateContent?: string | undefined;
-    templateParameters?: Record<string, string> | undefined;
+    templateParameters?: Record<string, string> | ((args_0: any, ...args_1: unknown[]) => Record<string, string> | Promise<Record<string, string>>) | undefined;
     inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;

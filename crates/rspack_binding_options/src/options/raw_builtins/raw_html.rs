@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use derivative::Derivative;
 use napi_derive::napi;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_html::config::HtmlInject;
 use rspack_plugin_html::config::HtmlRspackPluginBaseOptions;
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
@@ -13,8 +15,11 @@ pub type RawHtmlInject = String;
 pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = String;
 
-#[derive(Debug)]
-#[napi(object)]
+type RawTemplateCompileFn = ThreadsafeFunction<Vec<String>, HashMap<String, String>>;
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+#[napi(object, object_to_js = false)]
 pub struct RawHtmlRspackPluginOptions {
   /// emitted file name in output path
   #[napi(ts_type = "string")]
@@ -43,6 +48,8 @@ pub struct RawHtmlRspackPluginOptions {
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
   pub hash: Option<bool>,
   pub base: Option<RawHtmlRspackPluginBaseOptions>,
+  #[napi(ts_type = "(request: string[]) => Promise<Record<string, string>>")]
+  pub internal_template_compile_fn: Option<RawTemplateCompileFn>,
 }
 
 impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
@@ -73,6 +80,14 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
       meta: value.meta,
       hash: value.hash,
       base: value.base.map(|v| v.into()),
+      internal_template_compile_fn: if let Some(inner_fn) = value.internal_template_compile_fn {
+        Some(Box::new(move |request| {
+          let f = inner_fn.clone();
+          Box::pin(async move { f.call(request).await })
+        }))
+      } else {
+        None
+      },
     }
   }
 }

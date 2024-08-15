@@ -1,8 +1,9 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+use derivative::Derivative;
+use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};
-#[cfg(feature = "testing")]
-use schemars::JsonSchema;
+use rspack_error::Result;
 use serde::Deserialize;
 use sugar_path::SugarPath;
 
@@ -65,32 +66,23 @@ impl FromStr for HtmlScriptLoading {
   }
 }
 
-#[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug)]
 pub struct HtmlRspackPluginBaseOptions {
   pub href: Option<String>,
   pub target: Option<String>,
 }
 
-#[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct HtmlRspackPluginOptions {
-  /// emitted file name in output path
-  #[serde(default = "default_filename")]
   pub filename: String,
   /// template html file
   pub template: Option<String>,
   pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
-  /// `head`, `body`, `false`
-  #[serde(default = "default_inject")]
   pub inject: HtmlInject,
   /// path or `auto`
   pub public_path: Option<String>,
-  /// `blocking`, `defer`, or `module`
-  #[serde(default = "default_script_loading")]
   pub script_loading: HtmlScriptLoading,
 
   /// entry_chunk_name (only entry chunks are supported)
@@ -100,14 +92,18 @@ pub struct HtmlRspackPluginOptions {
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
   pub sri: Option<HtmlSriHashFunction>,
-  #[serde(default)]
   pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
   pub hash: Option<bool>,
   pub base: Option<HtmlRspackPluginBaseOptions>,
+  #[derivative(Debug = "ignore")]
+  pub internal_template_compile_fn: Option<TemplateCompileFn>,
 }
+
+type TemplateCompileFn =
+  Box<dyn Fn(Vec<String>) -> BoxFuture<'static, Result<HashMap<String, String>>> + Sync + Send>;
 
 fn default_filename() -> String {
   String::from("index.html")
@@ -140,6 +136,7 @@ impl Default for HtmlRspackPluginOptions {
       meta: None,
       hash: None,
       base: None,
+      internal_template_compile_fn: None,
     }
   }
 }

@@ -204,7 +204,7 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: template with loader
+  // TODO: template engine
   // it("allows you to specify a custom loader without injection", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -259,7 +259,7 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: template with loaders
+  // TODO: template engine
   // it("uses a custom loader from webpack config", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -313,7 +313,7 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: ejs template params: `<%=htmlWebpackPlugin.files.js[0]%>`
+  // TODO: template engine
   // it("allows you to specify your own HTML template file", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -544,7 +544,7 @@ describe("HtmlWebpackPlugin", () => {
   });
 
 
-  // TODO: ejs template params `<%= webpackConfig.output.publicPath %>`
+  // TODO: template engine
   // it("allows you to use chunkhash with asset into a given html file", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -3055,50 +3055,49 @@ describe("HtmlWebpackPlugin", () => {
   // });
 
   // TODO: support js template
-  // it("should add the webpack compilation object as a property of the templateParam object", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should add the webpack compilation object as a property of the templateParam object", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+          }),
+        ],
+      },
+      ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support cjs template
-  // it("should add the webpack compilation object as a property of the templateParam object with cjs", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.cjs"),
-  //           inject: false,
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should add the webpack compilation object as a property of the templateParam object with cjs", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.cjs"),
+            inject: false,
+          }),
+        ],
+      },
+      ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
+      null,
+      done,
+    );
+  });
 
   // TODO: support boolean templateParameters
   // it("should allow to disable template parameters", (done) => {
@@ -3124,83 +3123,80 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: support js template
-  // it("should allow to set specific template parameters", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: { foo: "bar" },
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       'templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin,foo"',
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to set specific template parameters", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: { foo: "bar" },
+          }),
+        ],
+      },
+      [
+        'templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin,foo"',
+      ],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support js template
-  // it("should allow to set specific template parameters using a function", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: function () {
-  //             return { foo: "bar" };
-  //           },
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "foo"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to set specific template parameters using a function", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: function () {
+              return { foo: "bar" };
+            },
+          }),
+        ],
+      },
+      ['templateParams keys: "foo"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support js template
-  // it("should allow to set specific template parameters using a async function", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: function () {
-  //             return Promise.resolve({ foo: "bar" });
-  //           },
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "foo"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to set specific template parameters using a async function", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: function () {
+              return Promise.resolve({ foo: "bar" });
+            },
+          }),
+        ],
+      },
+      ['templateParams keys: "foo"'],
+      null,
+      done,
+    );
+  });
 
   it("should not treat templateContent set to an empty string as missing", (done) => {
     testHtmlPlugin(
