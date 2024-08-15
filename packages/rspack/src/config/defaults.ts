@@ -46,6 +46,7 @@ import type {
 	Optimization,
 	Performance,
 	ResolveOptions,
+	RspackFutureOptions,
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
@@ -110,6 +111,11 @@ export const applyRspackOptionsDefaults = (
 		entry: options.entry,
 		futureDefaults: options.experiments.futureDefaults!
 	});
+	// bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
+	applybundlerInfoDefaults(
+		options.experiments.rspackFuture,
+		options.output.library
+	);
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
 		targetProperties
@@ -197,16 +203,24 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
-	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "bundlerInfo", {});
-		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
+	// rspackFuture.bundlerInfo default value is applied after applyDefaults
+};
+
+const applybundlerInfoDefaults = (
+	rspackFuture?: RspackFutureOptions,
+	library?: Library
+) => {
+	if (typeof rspackFuture === "object") {
+		D(rspackFuture, "bundlerInfo", {});
+		if (typeof rspackFuture.bundlerInfo === "object") {
 			D(
-				experiments.rspackFuture.bundlerInfo,
+				rspackFuture.bundlerInfo,
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "bundler", "rspack");
-			D(experiments.rspackFuture.bundlerInfo, "force", true);
+			D(rspackFuture.bundlerInfo, "bundler", "rspack");
+			// don't inject for library mode
+			D(rspackFuture.bundlerInfo, "force", !library);
 		}
 	}
 };
