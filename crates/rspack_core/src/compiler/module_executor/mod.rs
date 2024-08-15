@@ -167,6 +167,7 @@ impl ModuleExecutor {
   pub async fn import_module(
     &self,
     request: String,
+    layer: Option<String>,
     public_path: Option<PublicPath>,
     base_uri: Option<String>,
     original_module_context: Option<Context>,
@@ -198,6 +199,7 @@ impl ModuleExecutor {
         param,
         ExecuteTask {
           entry_dep_id: dep_id,
+          layer,
           public_path,
           base_uri,
           result_sender: tx,

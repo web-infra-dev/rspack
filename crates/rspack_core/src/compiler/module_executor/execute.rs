@@ -45,6 +45,7 @@ pub struct ExecuteModuleResult {
 #[derive(Debug)]
 pub struct ExecuteTask {
   pub entry_dep_id: DependencyId,
+  pub layer: Option<String>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub result_sender: Sender<(
@@ -63,6 +64,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       entry_dep_id,
+      layer,
       public_path,
       base_uri,
       result_sender,
@@ -118,7 +120,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         filename: None,
         library: None,
         depend_on: None,
-        layer: None,
+        layer,
       }),
     });
 
