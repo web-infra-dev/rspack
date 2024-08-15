@@ -6,7 +6,7 @@
   gap: 32px;
 
   text-align: center;
-  padding: 64px 144px;
+  padding: 64px 144px 32px 144px; //TODO: adjust with See All features
   border-radius: 15px;
 }
 
@@ -38,6 +38,14 @@
     font-weight: 400;
     line-height: 28px; /* 140% */
   }
+}
+
+.main {
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
 }
 
 .features {

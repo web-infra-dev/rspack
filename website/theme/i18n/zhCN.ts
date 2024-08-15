@@ -29,6 +29,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   fullyFeaturedDesc:
     '作为 webpack 的升级替代品，带来更强大的功能和卓越的生产力。',
   fullyfeaturedDetail: '查看所有功能',
+  foldFullyfeaturedDetail: '收起所有功能',
 
   featureCodeSplitting:
     '将代码拆分成更小的 bundles，实现按需加载并提高页面性能。',
@@ -52,5 +53,18 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Tool Stack
   toolStackTitle: '工具栈',
   toolStackDesc: '围绕 Rspack 打造的高性能工具栈，助力现代 Web 开发',
-  // recruit: 'Rspack 团队正在招聘中，欢迎加入👏🏻',
+
+  // HomeFooter
+  coldStart: '冷启动（dev）',
+  coldBuild: '冷构建',
+  hmr: '热更新',
+  guide: '指南',
+  quickStart: '快速开始',
+  features: '核心特性',
+  compatibility: 'webpack 兼容性',
+  migration: '迁移指南',
+  cli: 'CLI',
+  ecosystem: '生态',
+  community: '社区',
+  recruit: 'Rspack 团队正在招聘中，欢迎加入👏🏻',
 };

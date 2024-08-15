@@ -75,12 +75,12 @@ export function Featured() {
             <h2
               className={`${styles.title} font-bold text-3xl sm:text-5xl mt-16`}
             >
-              {t('featuredTitle')}
+              {t('fullyFeaturedTitle')}
             </h2>
             <p
               className={`${styles.desc} mt-8 mb-5 mx-6 text-center text-lg max-w-3xl`}
             >
-              {t('featuredDesc')}
+              {t('fullyFeaturedDesc')}
             </p>
           </div>
           <div className={styles.list}>

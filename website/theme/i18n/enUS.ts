@@ -30,6 +30,7 @@ export const EN_US = {
   fullyFeaturedDesc:
     'Launched as a drop-in replacement for webpack, with more powerful features and exceptional productivity.',
   fullyfeaturedDetail: 'See All Features',
+  foldFullyfeaturedDetail: 'See Less Features',
 
   featureCodeSplitting:
     'Split code into smaller bundles to enable on-demand loading and improve performance.',
@@ -63,5 +64,18 @@ export const EN_US = {
   toolStackTitle: 'Tool Stack',
   toolStackDesc:
     'High-performance tool stack built around Rspack to boost modern web development',
-  // recruit: 'The Rspack team is hiring. Come and join us!',
+  recruit: 'The Rspack team is hiring. Come and join us!',
+
+  // HomeFooter
+  coldStart: 'Cold Start',
+  coldBuild: 'Cold Build',
+  hmr: 'HMR',
+  guide: 'Guide',
+  quickStart: 'Quick Start',
+  features: 'Features',
+  compatibility: 'Compatibility',
+  migration: 'Migration',
+  cli: 'CLI',
+  ecosystem: 'Ecosystem',
+  community: 'Community',
 } as const;
