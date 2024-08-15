@@ -1,5 +1,5 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
+  AsContextDependency, Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
@@ -77,5 +77,13 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }

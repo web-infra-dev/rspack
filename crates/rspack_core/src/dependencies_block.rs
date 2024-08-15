@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  fmt::Display,
-  hash::{Hash, Hasher},
-  sync::Arc,
-};
+use std::{borrow::Cow, fmt::Display, hash::Hash, sync::Arc};
 
 use derivative::Derivative;
 use rspack_collections::Identifier;
@@ -11,11 +6,11 @@ use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
+use rspack_util::ext::DynHash;
 use swc_core::common::{BytePos, SourceMap};
 
 use crate::{
-  update_hash::{UpdateHashContext, UpdateRspackHash},
-  BoxDependency, DependencyId, GroupOptions, ModuleIdentifier,
+  BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -26,6 +21,26 @@ pub trait DependenciesBlock {
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
   fn get_dependencies(&self) -> &[DependencyId];
+}
+
+pub fn dependencies_block_update_hash(
+  deps: &[DependencyId],
+  blocks: &[AsyncDependenciesBlockIdentifier],
+  hasher: &mut dyn std::hash::Hasher,
+  compilation: &Compilation,
+  runtime: Option<&RuntimeSpec>,
+) {
+  let mg = compilation.get_module_graph();
+  for dep_id in deps {
+    let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+    if let Some(dep) = dep.as_dependency_template() {
+      dep.update_hash(hasher, compilation, runtime);
+    }
+  }
+  for block_id in blocks {
+    let block = mg.block_by_id_expect(block_id);
+    block.update_hash(hasher, compilation, runtime);
+  }
 }
 
 #[derive(Derivative)]
@@ -178,6 +193,28 @@ impl AsyncDependenciesBlock {
   pub fn request(&self) -> &Option<String> {
     &self.request
   }
+
+  pub fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    self.group_options.dyn_hash(hasher);
+    if let Some(chunk_group) = compilation
+      .chunk_graph
+      .get_block_chunk_group(&self.id, &compilation.chunk_group_by_ukey)
+    {
+      chunk_group.id(compilation).dyn_hash(hasher);
+    }
+    dependencies_block_update_hash(
+      self.get_dependencies(),
+      self.get_blocks(),
+      hasher,
+      compilation,
+      runtime,
+    );
+  }
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
@@ -196,22 +233,6 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
-  }
-}
-
-impl UpdateRspackHash for AsyncDependenciesBlock {
-  fn update_hash<H: Hasher>(&self, state: &mut H, context: &UpdateHashContext) {
-    self.group_options.hash(state);
-    if let Some(chunk_group) = context
-      .compilation
-      .chunk_graph
-      .get_block_chunk_group(&self.id, &context.compilation.chunk_group_by_ukey)
-    {
-      chunk_group.id(context.compilation).hash(state);
-    }
-    for block in &self.blocks {
-      block.update_hash(state, context);
-    }
   }
 }
 

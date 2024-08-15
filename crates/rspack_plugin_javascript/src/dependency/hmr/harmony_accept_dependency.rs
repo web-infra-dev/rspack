@@ -1,6 +1,7 @@
 use rspack_core::{
-  import_statement, runtime_condition_expression, AsDependency, DependencyId, DependencyTemplate,
-  ErrorSpan, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  import_statement, runtime_condition_expression, AsDependency, Compilation, DependencyId,
+  DependencyTemplate, ErrorSpan, RuntimeCondition, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::ErrorLocation;
 
@@ -123,6 +124,14 @@ impl DependencyTemplate for HarmonyAcceptDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

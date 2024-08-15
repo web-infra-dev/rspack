@@ -78,7 +78,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .expect("should have module")
       .identifier();
     let mut queue = vec![entry_module_identifier];
-    let mut modules = HashSet::default();
+    let mut modules = IdentifierSet::default();
 
     while let Some(m) = queue.pop() {
       modules.insert(m);
@@ -159,8 +159,10 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
+    compilation.create_module_hashes(modules.par_iter().copied())?;
+
     let code_generation_results =
-      compilation.code_generation_modules(&mut None, false, modules.par_iter().copied())?;
+      compilation.code_generation_modules(&mut None, modules.clone())?;
 
     code_generation_results
       .iter()

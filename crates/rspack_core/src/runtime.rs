@@ -287,6 +287,15 @@ pub struct RuntimeSpecMap<T> {
 }
 
 impl<T> RuntimeSpecMap<T> {
+  pub fn new() -> Self {
+    Self {
+      mode: RuntimeMode::Empty,
+      map: Default::default(),
+      single_runtime: None,
+      single_value: None,
+    }
+  }
+
   pub fn size(&self) -> usize {
     let mode = self.mode as usize;
 

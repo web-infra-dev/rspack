@@ -387,13 +387,13 @@ impl MergeFrom for AssetGeneratorDataUrl {
   }
 }
 
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Hash)]
 pub struct AssetGeneratorDataUrlOptions {
   pub encoding: Option<DataUrlEncoding>,
   pub mimetype: Option<String>,
 }
 
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Hash)]
 pub enum DataUrlEncoding {
   None,
   Base64,

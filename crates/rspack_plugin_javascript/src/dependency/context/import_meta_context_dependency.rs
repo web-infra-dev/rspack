@@ -1,4 +1,4 @@
-use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
+use rspack_core::{module_raw, AsModuleDependency, Compilation, ContextDependency, RuntimeSpec};
 use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
 use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
@@ -109,6 +109,14 @@ impl DependencyTemplate for ImportMetaContextDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

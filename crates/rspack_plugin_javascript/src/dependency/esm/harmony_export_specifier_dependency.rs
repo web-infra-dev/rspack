@@ -1,9 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ExportNameOrSpec,
+  ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -114,6 +114,14 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

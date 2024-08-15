@@ -1,17 +1,15 @@
 use std::borrow::Cow;
-use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -136,15 +134,11 @@ impl Module for RemoteModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
     let build_info = BuildInfo {
       strict: true,
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       ..Default::default()
     };
 
@@ -166,7 +160,7 @@ impl Module for RemoteModule {
     })
   }
 
-  #[allow(clippy::unwrap_in_result)]
+  #[tracing::instrument(name = "RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -187,21 +181,16 @@ impl Module for RemoteModule {
     });
     Ok(codegen)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
+  }
 }
 
 impl_empty_diagnosable_trait!(RemoteModule);
-
-impl Hash for RemoteModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__RemoteModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for RemoteModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for RemoteModule {}

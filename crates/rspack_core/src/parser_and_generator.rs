@@ -12,9 +12,8 @@ use swc_core::common::Span;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
-  Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  Compilation, CompilerOptions, DependencyTemplate, Module, ModuleDependency, ModuleIdentifier,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -77,7 +76,6 @@ pub struct ParseResult {
 #[derive(Debug)]
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
@@ -106,6 +104,16 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>>;
+
+  fn update_hash(
+    &self,
+    _module: &NormalModule,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    Ok(())
+  }
 }
 
 impl dyn ParserAndGenerator + '_ {

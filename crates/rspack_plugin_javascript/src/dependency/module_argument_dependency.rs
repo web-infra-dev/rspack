@@ -1,8 +1,9 @@
 use rspack_core::{
-  AsDependency, DependencyTemplate, ErrorSpan, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  AsDependency, Compilation, DependencyTemplate, ErrorSpan, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::ErrorLocation;
+use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
@@ -53,6 +54,16 @@ impl DependencyTemplate for ModuleArgumentDependency {
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.id.dyn_hash(hasher);
+    self.span.dyn_hash(hasher);
   }
 }
 

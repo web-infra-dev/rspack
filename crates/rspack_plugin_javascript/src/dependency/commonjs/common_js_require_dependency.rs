@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_core::module_id;
+use rspack_core::{module_id, Compilation, RuntimeSpec};
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
@@ -94,6 +94,14 @@ impl DependencyTemplate for CommonJsRequireDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

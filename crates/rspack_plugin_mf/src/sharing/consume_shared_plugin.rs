@@ -21,7 +21,7 @@ use super::{
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,

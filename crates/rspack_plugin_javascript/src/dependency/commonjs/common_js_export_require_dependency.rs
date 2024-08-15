@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rspack_core::{
-  module_raw, process_export_info, property_access, AsContextDependency, Dependency,
+  module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
   ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable,
@@ -431,6 +431,14 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

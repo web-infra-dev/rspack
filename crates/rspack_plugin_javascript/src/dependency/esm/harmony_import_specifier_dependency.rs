@@ -1,9 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
+  get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsedByExports,
 };
@@ -208,6 +208,14 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

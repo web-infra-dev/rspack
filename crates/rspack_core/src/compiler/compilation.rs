@@ -32,11 +32,11 @@ use crate::{
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey,
-  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, DependencyId,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
-  ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpec, SharedPluginDriver, SourceType, Stats,
+  CodeGenerationJob, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
+  DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
+  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -754,23 +754,18 @@ impl Compilation {
 
     fn run_iteration(
       compilation: &mut Compilation,
-      codegen_cache_counter: &mut Option<CacheCount>,
+      cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
-      // If the runtime optimization is not opt out, a module codegen should be executed for each runtime.
-      // Else, share same codegen result for all runtimes.
-      let used_exports_optimization = compilation.options.optimization.used_exports.is_true();
       let results = compilation.code_generation_modules(
-        codegen_cache_counter,
-        used_exports_optimization,
+        cache_counter,
         compilation
           .get_module_graph()
           .modules()
           .into_iter()
           .filter(filter_op)
           .map(|(id, _)| id)
-          .collect::<Vec<_>>()
-          .into_par_iter(),
+          .collect(),
       )?;
 
       results.iter().for_each(|module_identifier| {
@@ -799,76 +794,94 @@ impl Compilation {
 
   pub(crate) fn code_generation_modules(
     &mut self,
-    codegen_cache_counter: &mut Option<CacheCount>,
-    used_exports_optimization: bool,
-    modules: impl ParallelIterator<Item = ModuleIdentifier>,
+    cache_counter: &mut Option<CacheCount>,
+    modules: IdentifierSet,
   ) -> Result<Vec<ModuleIdentifier>> {
     let chunk_graph = &self.chunk_graph;
     let module_graph = self.get_module_graph();
-    #[allow(clippy::type_complexity)]
-    let results = modules
-      .filter_map(|module_identifier| {
-        let runtimes = chunk_graph.get_module_runtimes(module_identifier, &self.chunk_by_ukey);
-        if runtimes.is_empty() {
-          return None;
+    let mut jobs = Vec::new();
+    for module in modules {
+      let runtimes = chunk_graph.get_module_runtimes(module, &self.chunk_by_ukey);
+      if runtimes.is_empty() {
+        continue;
+      }
+      if runtimes.len() == 1 {
+        let runtime = runtimes
+          .into_values()
+          .next()
+          .expect("should have first value");
+        let hash = chunk_graph
+          .get_module_hash(module, &runtime)
+          .expect("should have cgm.hash in code generation")
+          .clone();
+        jobs.push(CodeGenerationJob {
+          module,
+          hash,
+          runtime: runtime.clone(),
+          runtimes: vec![runtime],
+        })
+      } else {
+        let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+        for runtime in runtimes.into_values() {
+          let hash = chunk_graph
+            .get_module_hash(module, &runtime)
+            .expect("should have cgm.hash in code generation")
+            .clone();
+          if let Some(job) = map.get_mut(&hash) {
+            job.runtimes.push(runtime);
+          } else {
+            map.insert(
+              hash.clone(),
+              CodeGenerationJob {
+                module,
+                hash,
+                runtime: runtime.clone(),
+                runtimes: vec![runtime],
+              },
+            );
+          }
         }
-
-        let module = module_graph
-          .module_by_identifier(&module_identifier)
-          .expect("module should exist");
-        let res = self
+        jobs.extend(map.into_values());
+      }
+    }
+    let results = jobs
+      .into_par_iter()
+      .map(|job| {
+        let module = job.module;
+        self
           .old_cache
           .code_generate_occasion
-          .use_cache(module, runtimes, self, |module, runtimes| {
-            let take_length = if used_exports_optimization {
-              runtimes.len()
-            } else {
-              // Only codegen once
-              1
-            };
-            let mut codegen_list = vec![];
-            for runtime in runtimes.into_values().take(take_length) {
-              codegen_list.push((module.code_generation(self, Some(&runtime), None)?, runtime));
-            }
-            Ok(codegen_list)
+          .use_cache(job, |module, runtime| {
+            let module = module_graph
+              .module_by_identifier(&module)
+              .expect("should have module");
+            module.code_generation(self, Some(runtime), None)
           })
-          .map(|(result, from_cache)| (module_identifier, result, from_cache));
-        Some(res)
+          .map(|(res, runtimes, from_cache)| (module, res, runtimes, from_cache))
       })
       .collect::<Result<Vec<_>>>()?;
     let results = results
       .into_iter()
-      .map(|(module_identifier, item, from_cache)| {
-        item.into_iter().for_each(|(result, runtime)| {
-          if let Some(counter) = codegen_cache_counter {
-            if from_cache {
-              counter.hit();
-            } else {
-              counter.miss();
-            }
+      .map(|(module, codegen_res, runtimes, from_cache)| {
+        if let Some(counter) = cache_counter {
+          if from_cache {
+            counter.hit();
+          } else {
+            counter.miss();
           }
+        }
 
-          let runtimes = self
-            .chunk_graph
-            .get_module_runtimes(module_identifier, &self.chunk_by_ukey);
-          let result_id = result.id;
+        let codegen_res_id = codegen_res.id;
+        self
+          .code_generation_results
+          .module_generation_result_map
+          .insert(codegen_res_id, codegen_res);
+        for runtime in runtimes {
           self
             .code_generation_results
-            .module_generation_result_map
-            .insert(result_id, result);
-          if used_exports_optimization {
-            self
-              .code_generation_results
-              .add(module_identifier, runtime, result_id);
-          } else {
-            for runtime in runtimes.into_values() {
-              self
-                .code_generation_results
-                .add(module_identifier, runtime, result_id);
-            }
-          }
-        });
-        module_identifier
+            .add(module, runtime, codegen_res_id);
+        }
+        module
       });
 
     Ok(results.collect())
@@ -1148,6 +1161,16 @@ impl Compilation {
     logger.time_end(start);
 
     self.assign_runtime_ids();
+
+    self.create_module_hashes(
+      self
+        .get_module_graph()
+        .modules()
+        .keys()
+        .copied()
+        .collect::<Vec<_>>()
+        .into_par_iter(),
+    )?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1569,31 +1592,39 @@ impl Compilation {
     Ok((chunk_hash, content_hashes))
   }
 
-  // #[instrument(name = "compilation:create_module_hash", skip_all)]
-  // pub fn create_module_hash(&mut self) {
-  //   let module_hash_map: HashMap<ModuleIdentifier, u64> = self
-  //     .get_module_graph()
-  //     .module_identifier_to_module
-  //     .par_iter()
-  //     .map(|(identifier, module)| {
-  //       let mut hasher = RspackHash::new();
-  //       module.hash(&mut hasher);
-  //       (*identifier, hasher.finish())
-  //     })
-  //     .collect();
-
-  //   for (identifier, hash) in module_hash_map {
-  //     for runtime in self
-  //       .chunk_graph
-  //       .get_module_runtimes(identifier, &self.chunk_by_ukey)
-  //       .values()
-  //     {
-  //       self
-  //         .chunk_graph
-  //         .set_module_hashes(identifier, runtime, hash);
-  //     }
-  //   }
-  // }
+  #[instrument(name = "compilation:create_module_hashes", skip_all)]
+  pub fn create_module_hashes(
+    &mut self,
+    modules: impl ParallelIterator<Item = ModuleIdentifier>,
+  ) -> Result<()> {
+    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules
+      .map(|module| {
+        (
+          module,
+          self
+            .chunk_graph
+            .get_module_runtimes(module, &self.chunk_by_ukey),
+        )
+      })
+      .map(|(module_identifier, runtimes)| {
+        let mut hashes = RuntimeSpecMap::new();
+        for runtime in runtimes.into_values() {
+          let mut hasher = RspackHash::from(&self.options.output);
+          let mg = self.get_module_graph();
+          let module = mg
+            .module_by_identifier(&module_identifier)
+            .expect("should have module");
+          module.update_hash(&mut hasher, self, Some(&runtime))?;
+          hashes.set(runtime, hasher.digest(&self.options.output.hash_digest));
+        }
+        Ok((module_identifier, hashes))
+      })
+      .collect::<Result<_>>()?;
+    for (module, hashes) in results {
+      self.chunk_graph.set_module_hashes(module, hashes);
+    }
+    Ok(())
+  }
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
   pub fn create_runtime_module_hash(&mut self) -> Result<()> {

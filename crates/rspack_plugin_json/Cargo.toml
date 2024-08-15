@@ -12,3 +12,4 @@ json         = { workspace = true }
 ropey        = "1.6.1"
 rspack_core  = { version = "0.1.0", path = "../rspack_core" }
 rspack_error = { version = "0.1.0", path = "../rspack_error" }
+rspack_util  = { version = "0.1.0", path = "../rspack_util" }

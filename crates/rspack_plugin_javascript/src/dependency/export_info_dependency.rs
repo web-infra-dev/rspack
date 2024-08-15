@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsDependency, DependencyTemplate, ExportProvided, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedExports, UsedName,
+  AsDependency, Compilation, DependencyTemplate, ExportProvided, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -37,6 +37,14 @@ impl DependencyTemplate for ExportInfoDependency {
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

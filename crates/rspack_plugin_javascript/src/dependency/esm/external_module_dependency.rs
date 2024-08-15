@@ -1,7 +1,8 @@
 use rspack_core::{
-  AsDependency, DependencyId, DependencyTemplate, ExternalModuleInitFragment, InitFragmentExt,
-  InitFragmentStage, TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyId, DependencyTemplate, ExternalModuleInitFragment,
+  InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct ExternalModuleDependency {
@@ -45,6 +46,17 @@ impl DependencyTemplate for ExternalModuleDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.module.dyn_hash(hasher);
+    self.import_specifier.dyn_hash(hasher);
+    self.default_import.dyn_hash(hasher);
   }
 }
 

@@ -6,10 +6,10 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo,
-  ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ErrorSpan, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec,
+  ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource,
@@ -954,7 +954,7 @@ impl HarmonyExportImportedSpecifierDependency {
         else {
           continue;
         };
-        if conflicting_module == imported_module {
+        if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
         let Some(conflicting_export_info) =
@@ -1034,6 +1034,14 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

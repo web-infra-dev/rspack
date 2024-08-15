@@ -3596,7 +3596,6 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
- "rspack_hash",
  "rspack_hook",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3689,6 +3688,7 @@ dependencies = [
  "ropey",
  "rspack_core",
  "rspack_error",
+ "rspack_util",
 ]
 
 [[package]]
@@ -3776,7 +3776,6 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
- "rspack_hash",
  "rspack_hook",
  "rspack_loader_runner",
  "rspack_plugin_runtime",

@@ -1,8 +1,10 @@
 use rspack_core::{
-  get_chunk_from_ukey, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  get_chunk_from_ukey, AsContextDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
+  ModuleDependency, ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
+use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct WorkerDependency {
@@ -124,6 +126,15 @@ impl DependencyTemplate for WorkerDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.public_path.dyn_hash(hasher);
   }
 }
 

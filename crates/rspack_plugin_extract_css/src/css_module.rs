@@ -5,14 +5,16 @@ use std::sync::LazyLock;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::rspack_sources::Source;
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, AsyncDependenciesBlockIdentifier, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions,
-  ConcatenationScope, DependenciesBlock, DependencyId, DependencyType, FactoryMeta, Module,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
+  DependencyId, DependencyType, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 
 use crate::css_dependency::CssDependency;
@@ -46,20 +48,6 @@ pub(crate) struct CssModule {
   missing_dependencies: FxHashSet<PathBuf>,
   build_dependencies: FxHashSet<PathBuf>,
 }
-
-impl Hash for CssModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.identifier.hash(state);
-  }
-}
-
-impl PartialEq for CssModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier == other.identifier
-  }
-}
-
-impl Eq for CssModule {}
 
 impl CssModule {
   pub fn new(dep: CssDependency) -> Self {
@@ -172,6 +160,7 @@ impl Module for CssModule {
     })
   }
 
+  #[tracing::instrument(name = "ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     _compilation: &Compilation,
@@ -183,6 +172,22 @@ impl Module for CssModule {
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    module_update_hash(self, hasher, compilation, runtime);
+    self
+      .build_info
+      .as_ref()
+      .expect("should update_hash after build")
+      .hash
+      .dyn_hash(hasher);
+    Ok(())
   }
 }
 

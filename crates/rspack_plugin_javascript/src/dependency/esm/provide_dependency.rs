@@ -1,12 +1,13 @@
 use itertools::Itertools;
 use rspack_core::{
-  create_exports_object_referenced, module_raw, ExtendedReferencedExport, ModuleGraph,
+  create_exports_object_referenced, module_raw, Compilation, ExtendedReferencedExport, ModuleGraph,
   NormalInitFragment, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
+use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone)]
@@ -119,6 +120,16 @@ impl DependencyTemplate for ProvideDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.identifier.dyn_hash(hasher);
+    self.ids.dyn_hash(hasher);
   }
 }
 
