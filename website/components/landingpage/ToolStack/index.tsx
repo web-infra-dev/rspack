@@ -1,9 +1,11 @@
 import type React from 'react';
 import { useLang } from 'rspress/runtime';
+import { useI18n } from '../../../theme/i18n';
 import styles from './index.module.scss';
 
 const ToolStack: React.FC = () => {
   const lang = useLang();
+  const t = useI18n();
   const isEn = lang === 'en';
   const tools = [
     {
@@ -52,11 +54,8 @@ const ToolStack: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        <h2 className={styles.title}>Tool Stack</h2>
-        <p className={styles.description}>
-          High-performance tool stack built around Rspack to boost modern web
-          development
-        </p>
+        <h2 className={styles.title}>{t('toolStackTitle')}</h2>
+        <p className={styles.description}>{t('toolStackDesc')}</p>
       </div>
       <div className={styles.tools}>
         {tools.map(({ name, desc, logo, url }) => {

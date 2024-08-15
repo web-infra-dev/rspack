@@ -1,4 +1,3 @@
-import { useDark } from 'rspress/runtime';
 import BackgroundSvg from './Background.png';
 import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';
