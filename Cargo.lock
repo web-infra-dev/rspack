@@ -3494,7 +3494,6 @@ dependencies = [
  "anyhow",
  "dojang",
  "itertools 0.13.0",
- "lightningcss",
  "path-clean 1.0.1",
  "rayon",
  "regex",
