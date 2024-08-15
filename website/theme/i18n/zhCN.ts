@@ -8,11 +8,14 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   learnMore: '深入了解',
 
   // whyRspack
+  whyRspack: '为什么使用 Rspack？',
+  whyRspackDesc:
+    'Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具， 它提供对 webpack 生态良好的兼容性，能够无缝替换 webpack， 并提供闪电般的构建速度。',
   FastStartup: '启动速度极快',
   FastStartupDesc: '基于 Rust，项目启动速度极快，带给你极致的开发体验。',
   LightningHMR: '闪电般的 HMR',
   LightningHMRDesc: '内置增量编译机制，HMR 速度极快，完全胜任大型项目的开发。',
-  FrameworkAgnostic: 'Framework Agnostic',
+  FrameworkAgnostic: '框架无关',
   FrameworkAgnosticDesc: '不和任何前端框架绑定，保证足够的灵活性。',
   WebpackCompatible: '兼容 webpack',
   WebpackCompatibleDesc:
@@ -53,6 +56,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Tool Stack
   toolStackTitle: '工具栈',
   toolStackDesc: '围绕 Rspack 打造的高性能工具栈，助力现代 Web 开发',
+
+  // Built with Rspack
+  builtWithRspack: '谁在使用 Rspack',
 
   // HomeFooter
   coldStart: '冷启动（dev）',

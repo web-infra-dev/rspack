@@ -6,6 +6,9 @@ export const EN_US = {
   learnMore: 'Learn More',
 
   // whyRspack
+  whyRspack: 'Why Rspack?',
+  whyRspackDesc:
+    'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build speeds.',
   FastStartup: 'Fast Startup',
   FastStartupDesc:
     'Combining TypeScript and Rust with a parallelized architecture to bring you the ultimate developer experience.',
@@ -50,7 +53,6 @@ export const EN_US = {
   featureDevServer:
     'Provides a mature, high-performance dev server for local development.',
 
-  // TODO: featureSwc or featureLightning
   featureSwc:
     'Utilizes the Rust-based SWC for faster JavaScript and TypeScript transpilation.',
   featureLightningCss:
@@ -65,6 +67,9 @@ export const EN_US = {
   toolStackDesc:
     'High-performance tool stack built around Rspack to boost modern web development',
   recruit: 'The Rspack team is hiring. Come and join us!',
+
+  // Built with Rspack
+  builtWithRspack: 'Built with Rspack',
 
   // HomeFooter
   coldStart: 'Cold Start',

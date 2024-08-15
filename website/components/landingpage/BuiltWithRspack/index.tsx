@@ -1,3 +1,4 @@
+import { useI18n } from '../../../theme/i18n';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
@@ -7,10 +8,11 @@ import microsoftLogo from './assets/microsoft.svg';
 import styles from './index.module.scss';
 
 const BuiltWithRsPack: React.FC = () => {
+  const t = useI18n();
   return (
     <div className={styles.container}>
       <div className={styles.innerContainer}>
-        <h2 className={styles.title}>Built with Rspack</h2>
+        <h2 className={styles.title}>{t('builtWithRspack')}</h2>
         <div className={styles.logos}>
           <div className={`${styles.logo} ${styles.bitDevContainer}`}>
             <img src={bitDevLogo} alt="bit.dev" className={styles.bitDevLogo} />

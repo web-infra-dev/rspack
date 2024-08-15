@@ -1,8 +1,10 @@
 import { useDark } from 'rspress/runtime';
+import { useI18n } from '../../../theme/i18n';
 import styles from './index.module.scss';
 
 const Hero = () => {
   const isDark = useDark();
+  const t = useI18n();
   return (
     <div className={styles.hero}>
       <div className={styles.innerHero}>
@@ -16,16 +18,14 @@ const Hero = () => {
           className={styles.logo}
         />
         <h1 className={styles.title}>Rspack</h1>
-        <p className={styles.subtitle}>The fast Rust-based web bundler</p>
-        <p className={styles.description}>
-          Seamlessly replace webpack with compatible API
-        </p>
+        <p className={styles.subtitle}>{t('heroSlogan')}</p>
+        <p className={styles.description}>{t('heroSubSlogan')}</p>
         <div className={styles.buttons}>
           <button className={styles.buttonPrimary} type="button">
-            Get Started
+            {t('getStarted')}
           </button>
           <button className={styles.buttonSecondary} type="button">
-            Learn More
+            {t('learnMore')}
           </button>
         </div>
       </div>
