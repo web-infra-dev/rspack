@@ -1630,7 +1630,7 @@ export interface CssExtractRspackLoaderOptions {
     // (undocumented)
     esModule?: boolean;
     // (undocumented)
-    layer?: boolean;
+    layer?: string;
     // (undocumented)
     publicPath?: string | ((resourcePath: string, context: string) => string);
 }
@@ -5825,6 +5825,7 @@ export interface LoaderContext<OptionsType = {}> {
     hot?: boolean;
     // (undocumented)
     importModule(request: string, options: {
+        layer?: string;
         publicPath?: PublicPath;
         baseUri?: string;
     }, callback: (err?: Error, res?: any) => void): void;

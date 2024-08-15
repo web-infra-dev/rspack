@@ -470,6 +470,7 @@ impl JsCompilation {
     &'static self,
     env: Env,
     request: String,
+    layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
     original_module: Option<String>,
@@ -485,6 +486,7 @@ impl JsCompilation {
       let result = module_executor
         .import_module(
           request,
+          layer,
           public_path.map(|p| p.into()),
           base_uri,
           original_module_context.map(rspack_core::Context::from),
