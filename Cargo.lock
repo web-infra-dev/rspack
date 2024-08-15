@@ -391,7 +391,8 @@ dependencies = [
 [[package]]
 name = "camino"
 version = "1.1.7"
-source = "git+https://github.com/h-a-n-a/camino.git?branch=perf-as-str#0b3c118bacf96c8c4b4903a1c29e7d821c501a1b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0ec6b951b160caa93cc0c7b209e5a3bff7aae9062213451ac99493cd844c239"
 
 [[package]]
 name = "cargo_toml"
