@@ -1,7 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId, DependencyRange,
   DependencyTemplate, DependencyType, ErrorSpan, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, DependencyRange
+  TemplateReplaceSource,
 };
 
 // Remove `export` label.

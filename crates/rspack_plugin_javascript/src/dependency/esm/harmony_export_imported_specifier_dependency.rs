@@ -7,13 +7,13 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo,
-  ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ErrorSpan, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec,
+  ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, DependencyRange
+  UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},

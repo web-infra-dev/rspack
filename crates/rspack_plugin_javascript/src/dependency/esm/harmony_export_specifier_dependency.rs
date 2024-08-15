@@ -1,9 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, DependencyRange
+  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ExportNameOrSpec,
+  ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 

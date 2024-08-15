@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
-use rspack_core::DependencyRange;
 use rspack_core::Compilation;
+use rspack_core::DependencyRange;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
