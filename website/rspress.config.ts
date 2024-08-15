@@ -28,6 +28,9 @@ export default defineConfig({
   route: {
     cleanUrls: true,
   },
+  ssg: {
+    strict: true,
+  },
   plugins: [
     pluginSitemap({
       domain: PUBLISH_URL,
@@ -75,7 +78,7 @@ export default defineConfig({
         content: 'https://discord.gg/sYK4QjyZ4V',
       },
       {
-        icon: 'twitter',
+        icon: 'x',
         mode: 'link',
         content: 'https://twitter.com/rspack_dev',
       },
