@@ -70,13 +70,13 @@ napi-derive = { version = "2" }
 
 # Must be pinned with the same swc versions
 #rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
-swc_config          = { version = "=0.1.14" }
-swc_core            = { version = "0.99.5", default-features = false }
-swc_ecma_minifier   = { version = "=0.200.3", default-features = false }
-swc_error_reporters = { version = "=0.20.0" }
-swc_html            = { version = "=0.145.0" }
-# swc_html_minifier   = { version = "=0.142.2" }
-swc_node_comments = { version = "=0.23.0" }
+swc_config          = { version = "=0.1.15" }
+swc_core            = { version = "=0.100.7", default-features = false }
+swc_ecma_minifier   = { version = "=0.201.0", default-features = false }
+swc_error_reporters = { version = "=0.21.0" }
+swc_html            = { version = "=0.146.1" }
+swc_html_minifier   = { version = "=0.143.1", default-features = false }
+swc_node_comments   = { version = "=0.24.0" }
 
 
 [workspace.metadata.release]

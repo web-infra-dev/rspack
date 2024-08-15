@@ -28,7 +28,7 @@ sha2              = "0.10.8"
 sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }
-swc_html_minifier = { workspace = true }
+swc_html_minifier = { workspace = true, features = ["custom-css-minifier"] }
 tracing           = { workspace = true }
 urlencoding       = { workspace = true }
 
