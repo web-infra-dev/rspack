@@ -31,7 +31,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         "node-module" => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          let external_dep = ExternalModuleDependency::new(
+          let external_url_dep = ExternalModuleDependency::new(
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
@@ -40,18 +40,27 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             None,
           );
 
+          let external_path_dep = ExternalModuleDependency::new(
+            "path".to_string(),
+            vec![("dirname".to_string(), "__webpack_dirname__".to_string())],
+            None,
+          );
+
           let const_dep = CachedConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
             DIR_NAME.into(),
-            "__webpack_fileURLToPath__(import.meta.url + '/..').slice(0, -1)"
+            "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))"
               .to_string()
               .into(),
           );
 
           parser
             .presentational_dependencies
-            .push(Box::new(external_dep));
+            .push(Box::new(external_url_dep));
+          parser
+            .presentational_dependencies
+            .push(Box::new(external_path_dep));
           parser.presentational_dependencies.push(Box::new(const_dep));
           return Some(true);
         }
