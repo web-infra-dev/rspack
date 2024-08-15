@@ -3,9 +3,9 @@ use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportPresenceMode, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
