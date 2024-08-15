@@ -69,6 +69,12 @@ use MatchResult::{EntirePatternDoesntMatch, Match, SubPatternDoesntMatch};
 use PatternToken::AnyExcept;
 use PatternToken::{AnyChar, AnyPattern, AnyRecursiveSequence, AnySequence, AnyWithin, Char};
 
+static DEFAULT_MATCH_OPTIONS: MatchOptions = MatchOptions {
+  case_sensitive: false,
+  require_literal_separator: false,
+  require_literal_leading_dot: false,
+};
+
 /// An iterator that yields `Path`s from the filesystem that match a particular
 /// pattern.
 ///
@@ -79,10 +85,10 @@ use PatternToken::{AnyChar, AnyPattern, AnyRecursiveSequence, AnySequence, AnyWi
 ///
 /// See the `glob` function for more details.
 #[derive(Debug)]
-pub struct Paths {
+pub struct Paths<'a> {
   dir_patterns: Vec<Pattern>,
   require_dir: bool,
-  options: MatchOptions,
+  options: &'a MatchOptions,
   todo: Vec<Result<(PathWrapper, usize), GlobError>>,
   scope: Option<PathWrapper>,
 }
@@ -149,7 +155,7 @@ pub struct Paths {
 /// ```
 /// Paths are yielded in alphabetical order.
 pub fn glob(pattern: &str) -> Result<Paths, PatternError> {
-  glob_with(pattern, MatchOptions::new())
+  glob_with(pattern, &DEFAULT_MATCH_OPTIONS)
 }
 
 /// Return an iterator that produces all the `Path`s that match the given
@@ -165,7 +171,7 @@ pub fn glob(pattern: &str) -> Result<Paths, PatternError> {
 /// passed to this function.
 ///
 /// Paths are yielded in alphabetical order.
-pub fn glob_with(pattern: &str, options: MatchOptions) -> Result<Paths, PatternError> {
+pub fn glob_with<'a>(pattern: &str, options: &'a MatchOptions) -> Result<Paths<'a>, PatternError> {
   #[cfg(windows)]
   fn check_windows_verbatim(p: &Path) -> bool {
     match p.components().next() {
@@ -364,7 +370,7 @@ impl AsRef<Path> for PathWrapper {
 /// such as failing to read a particular directory's contents.
 pub type GlobResult = Result<PathBuf, GlobError>;
 
-impl Iterator for Paths {
+impl Iterator for Paths<'_> {
   type Item = GlobResult;
 
   fn next(&mut self) -> Option<GlobResult> {

@@ -60,7 +60,7 @@ fn main() {
   }
 
   fn glob_with_vec(pattern: &str, options: rspack_glob::MatchOptions) -> Vec<PathBuf> {
-    glob_with(pattern, options)
+    glob_with(pattern, &options)
       .unwrap()
       .map(|r| r.unwrap())
       .collect()
