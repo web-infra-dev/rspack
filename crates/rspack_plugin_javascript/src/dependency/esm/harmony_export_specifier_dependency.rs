@@ -1,28 +1,28 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyRange, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
+  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
-use rspack_error::ErrorLocation;
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  loc: ErrorLocation,
+  range: DependencyRange,
   pub name: Atom,
   pub value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(name: Atom, value: Atom, loc: ErrorLocation) -> Self {
+  pub fn new(name: Atom, value: Atom, range: DependencyRange) -> Self {
     Self {
-      id: DependencyId::new(),
-      loc,
       name,
       value,
+      range,
+      id: DependencyId::new(),
     }
   }
 }
@@ -32,8 +32,8 @@ impl Dependency for HarmonyExportSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
   }
 
   fn category(&self) -> &DependencyCategory {

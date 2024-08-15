@@ -51,7 +51,7 @@ impl JsRspackError {
       }),
       message: diagnostic.render_report(colored)?,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
-      loc: diagnostic.format_location(),
+      loc: diagnostic.loc(),
       file: diagnostic.file().map(|f| f.to_string_lossy().to_string()),
       stack: diagnostic.stack(),
       hide_stack: diagnostic.hide_stack(),

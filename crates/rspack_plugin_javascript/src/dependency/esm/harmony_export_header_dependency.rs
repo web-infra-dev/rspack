@@ -1,8 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::ErrorLocation;
 
 // Remove `export` label.
 // Before: `export const a = 1`
@@ -10,17 +9,15 @@ use rspack_error::ErrorLocation;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportHeaderDependency {
   id: DependencyId,
-  loc: ErrorLocation,
-  range: Option<ErrorSpan>,
-  range_stmt: ErrorSpan,
+  range: DependencyRange,
+  range_decl: Option<DependencyRange>,
 }
 
 impl HarmonyExportHeaderDependency {
-  pub fn new(loc: ErrorLocation, range: Option<ErrorSpan>, range_stmt: ErrorSpan) -> Self {
+  pub fn new(range: DependencyRange, range_decl: Option<DependencyRange>) -> Self {
     Self {
-      loc,
       range,
-      range_stmt,
+      range_decl,
       id: DependencyId::default(),
     }
   }
@@ -31,8 +28,8 @@ impl Dependency for HarmonyExportHeaderDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
   }
 
   fn dependency_type(&self) -> &DependencyType {
@@ -47,11 +44,11 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
     _code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
-      self.range_stmt.start,
-      if let Some(range) = self.range {
+      self.range.start,
+      if let Some(range) = &self.range_decl {
         range.start
       } else {
-        self.range_stmt.end
+        self.range.end
       },
       "",
       None,

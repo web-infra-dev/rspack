@@ -570,7 +570,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.format_location(),
+          loc: d.loc(),
           file: d.file().map(ToOwned::to_owned),
 
           chunk_name: chunk.and_then(|c| c.name.clone()),
@@ -621,7 +621,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.format_location(),
+          loc: d.loc(),
           file: d.file().map(ToOwned::to_owned),
 
           chunk_name: chunk.and_then(|c| c.name.clone()),

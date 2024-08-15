@@ -7,16 +7,17 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportInfoProvided,
-  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo,
+  ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
-  Diagnostic, DiagnosticExt, ErrorLocation, TraceableError,
+  Diagnostic, DiagnosticExt, TraceableError,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -40,8 +41,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub export_all: bool,
   pub source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
-  loc: ErrorLocation,
-  span: ErrorSpan,
+  range: DependencyRange,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
@@ -56,8 +56,7 @@ impl HarmonyExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
-    loc: ErrorLocation,
-    span: ErrorSpan,
+    range: DependencyRange,
     export_presence_mode: ExportPresenceMode,
     attributes: Option<ImportAttributes>,
   ) -> Self {
@@ -72,8 +71,7 @@ impl HarmonyExportImportedSpecifierDependency {
       resource_identifier,
       export_all,
       other_star_exports,
-      loc,
-      span,
+      range,
       export_presence_mode,
       attributes,
     }
@@ -1044,12 +1042,12 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    Some(self.span)
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn category(&self) -> &DependencyCategory {
