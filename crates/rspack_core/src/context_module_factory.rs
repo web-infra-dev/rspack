@@ -211,7 +211,7 @@ impl ContextModuleFactory {
         );
         (request, resource)
       }
-      None => ("".to_string(), request),
+      None => (String::new(), request),
     };
 
     let resolve_args = ResolveArgs {
@@ -282,9 +282,9 @@ impl ContextModuleFactory {
   ) -> Result<Option<ModuleFactoryResult>> {
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
-      resource: context_module_options.resource.to_owned(),
-      context: context_options.context.to_owned(),
-      request: context_options.request.to_owned(),
+      resource: context_module_options.resource.clone(),
+      context: context_options.context.clone(),
+      request: context_options.request.clone(),
       reg_exp: context_options.reg_exp.clone(),
     };
 

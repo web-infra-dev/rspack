@@ -254,7 +254,7 @@ impl ContextModule {
 
   fn get_fake_map_init_statement(&self, fake_map: &FakeMapValue) -> String {
     match fake_map {
-      FakeMapValue::Bit(_) => "".to_string(),
+      FakeMapValue::Bit(_) => String::new(),
       FakeMapValue::Map(map) => format!("var fakeMap = {}", json_stringify(map)),
     }
   }
@@ -1253,7 +1253,7 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
 
 pub fn normalize_context(str: &str) -> String {
   if str == "./" || str == "." {
-    return "".to_string();
+    return String::new();
   }
   if str.ends_with('/') {
     return str.to_string();

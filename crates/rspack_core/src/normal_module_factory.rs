@@ -657,11 +657,11 @@ impl NormalModuleFactory {
   fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
     let mut side_effect_res = None;
     // side_effects from module rule has higher priority
-    module_rules.iter().for_each(|rule| {
+    for rule in module_rules.iter() {
       if rule.side_effects.is_some() {
         side_effect_res = rule.side_effects;
       }
-    });
+    }
     side_effect_res
   }
 
@@ -736,11 +736,11 @@ impl NormalModuleFactory {
     module_rules: &[&ModuleRuleEffect],
   ) -> ModuleType {
     let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
-    module_rules.iter().for_each(|module_rule| {
+    for module_rule in module_rules.iter() {
       if let Some(module_type) = module_rule.r#type {
         resolved_module_type = module_type;
       };
-    });
+    }
 
     resolved_module_type
   }
@@ -751,11 +751,11 @@ impl NormalModuleFactory {
     module_rules: &[&ModuleRuleEffect],
   ) -> Option<ModuleLayer> {
     let mut resolved_module_layer = issuer_layer;
-    module_rules.iter().for_each(|module_rule| {
+    for module_rule in module_rules.iter() {
       if let Some(module_layer) = &module_rule.layer {
         resolved_module_layer = Some(module_layer);
       };
-    });
+    }
 
     resolved_module_layer.cloned()
   }

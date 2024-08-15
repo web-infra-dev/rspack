@@ -180,13 +180,13 @@ fn to_rspack_resolver_options(
 ) -> rspack_resolver::ResolveOptions {
   let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.into());
-  let enforce_extension = options
-    .enforce_extension
-    .map(|e| match e {
-      true => rspack_resolver::EnforceExtension::Enabled,
-      false => rspack_resolver::EnforceExtension::Disabled,
-    })
-    .unwrap_or(rspack_resolver::EnforceExtension::Auto);
+  let enforce_extension =
+    options
+      .enforce_extension
+      .map_or(rspack_resolver::EnforceExtension::Auto, |e| match e {
+        true => rspack_resolver::EnforceExtension::Enabled,
+        false => rspack_resolver::EnforceExtension::Disabled,
+      });
   let description_files = options
     .description_files
     .unwrap_or_else(|| vec!["package.json".to_string()]);

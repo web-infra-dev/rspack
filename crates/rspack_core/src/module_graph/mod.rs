@@ -414,7 +414,7 @@ impl<'a> ModuleGraph<'a> {
     // avoid violating rustc borrow rules
     let mut add_outgoing_connection = vec![];
     let mut delete_outgoing_connection = vec![];
-    for connection_id in outgoing_connections.into_iter() {
+    for connection_id in outgoing_connections {
       let connection = match self.connection_by_connection_id(&connection_id) {
         Some(con) => con,
         // removed
@@ -455,7 +455,7 @@ impl<'a> ModuleGraph<'a> {
     // avoid violating rustc borrow rules
     let mut add_incoming_connection = vec![];
     let mut delete_incoming_connection = vec![];
-    for connection_id in old_mgm.incoming_connections().clone().into_iter() {
+    for connection_id in old_mgm.incoming_connections().clone() {
       let connection = match self.connection_by_connection_id(&connection_id) {
         Some(con) => con,
         None => continue,

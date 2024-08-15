@@ -79,7 +79,7 @@ pub fn parse_to_url(url: &str) -> url::Url {
 /// ```
 pub fn join_string_component(mut components: Vec<String>) -> String {
   match components.len() {
-    0 => "".to_string(),
+    0 => String::new(),
     1 => std::mem::take(&mut components[0]),
     2 => {
       format!("{} and {}", components[0], components[1])

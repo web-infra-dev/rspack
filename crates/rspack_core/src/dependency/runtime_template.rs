@@ -229,7 +229,7 @@ pub fn export_from_import(
     let comment = if *used_name != export_name {
       to_normal_comment(&property_access(&export_name, 0))
     } else {
-      "".to_string()
+      String::new()
     };
     let property = property_access(&*used_name, 0);
     let access = format!("{import_var}{comment}{property}");
@@ -373,7 +373,7 @@ pub fn import_statement(
     .module_identifier_by_dependency_id(id)
     .is_none()
   {
-    return (missing_module_statement(request), "".to_string());
+    return (missing_module_statement(request), String::new());
   };
 
   let module_id_expr = module_id(compilation, id, request, false);
@@ -400,7 +400,7 @@ pub fn import_statement(
       ),
     );
   }
-  (import_content, "".to_string())
+  (import_content, String::new())
 }
 
 pub fn module_namespace_promise(

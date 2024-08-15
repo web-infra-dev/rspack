@@ -163,7 +163,7 @@ mod t {
       self
         .ids
         .iter()
-        .map(|id| id.to_string().into())
+        .map(|id| (*id).to_string().into())
         .collect_vec()
     }
   }

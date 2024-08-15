@@ -924,7 +924,7 @@ impl Compilation {
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    for result in chunk_ukey_and_manifest.into_iter() {
+    for result in chunk_ukey_and_manifest {
       let (chunk_ukey, manifest, diagnostics) = result?;
       self.extend_diagnostics(diagnostics);
 
@@ -1005,7 +1005,7 @@ impl Compilation {
         // so use filter_map to ignore them
         module_graph
           .module_identifier_by_dependency_id(dep_id)
-          .cloned()
+          .copied()
       })
       .collect()
   }
@@ -1031,7 +1031,7 @@ impl Compilation {
           .values()
           .flat_map(|item| item.all_dependencies())
           .chain(self.global_entry.all_dependencies())
-          .cloned()
+          .copied()
           .collect(),
       )],
     )?;

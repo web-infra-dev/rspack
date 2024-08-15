@@ -409,7 +409,7 @@ impl ConcatenatedModule {
     for m in modules {
       identifiers.push(m.shorten_id.as_str());
     }
-    identifiers.sort();
+    identifiers.sort_unstable();
     let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
     if let Some(id) = identifiers.first() {
       hash.write(id.as_bytes());
@@ -646,7 +646,7 @@ impl Module for ConcatenatedModule {
       .collect::<Vec<_>>();
 
     let mut updated_pairs = vec![];
-    for item in tmp.into_iter() {
+    for item in tmp {
       updated_pairs.push(item?);
     }
 
@@ -990,8 +990,7 @@ impl Module for ConcatenatedModule {
 
       let exports_argument = self
         .build_meta()
-        .map(|meta| meta.exports_argument)
-        .unwrap_or(ExportsArgument::Exports);
+        .map_or(ExportsArgument::Exports, |meta| meta.exports_argument);
 
       let should_skip_render_definitions = compilation
         .plugin_driver
@@ -2169,7 +2168,7 @@ impl ConcatenatedModule {
         {
           let used_name = used_name.to_used_name_vec();
           let comment = if used_name == export_name {
-            "".to_string()
+            String::new()
           } else {
             Template::to_normal_comment(&join_atom(export_name.iter(), ","))
           };
@@ -2244,7 +2243,7 @@ pub fn find_new_name(
       "{}{}",
       info_part,
       if name.is_empty() {
-        "".to_string()
+        String::new()
       } else {
         format!("_{name}")
       }

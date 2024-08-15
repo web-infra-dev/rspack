@@ -28,7 +28,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
-    dependencies.into_iter().for_each(|dependency_id| {
+    for dependency_id in dependencies {
       let dependency = module_graph
         .dependency_by_id(&dependency_id)
         .expect("should have dependency");
@@ -59,7 +59,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
           .or_insert(vec![])
           .push(dependency_id);
       }
-    });
+    }
 
     let module = module_graph
       .module_by_identifier(&original_module_identifier)

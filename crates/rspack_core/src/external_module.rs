@@ -333,7 +333,7 @@ if(typeof {global} !== "undefined") return resolve();
           load_script = RuntimeGlobals::LOAD_SCRIPT.name()
         )
       }
-      _ => "".to_string(),
+      _ => String::new(),
     };
     Ok((
       RawSource::from(source).boxed(),

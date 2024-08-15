@@ -395,7 +395,7 @@ impl<'me> CodeSplitter<'me> {
             .compilation
             .get_module_graph()
             .module_identifier_by_dependency_id(dep)
-            .cloned()
+            .copied()
         })
         .collect::<Vec<_>>();
 
@@ -849,7 +849,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .get_module_graph()
       .modules()
       .keys()
-      .cloned()
+      .copied()
       .collect::<Vec<_>>();
     for module_identifier in ids {
       self.compilation.chunk_graph.add_module(module_identifier)
@@ -1278,8 +1278,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               entry_options
                 .chunk_loading
                 .as_ref()
-                .map(|x| !matches!(x, ChunkLoading::Disable))
-                .unwrap_or(item_chunk_group_info.chunk_loading),
+                .map_or(item_chunk_group_info.chunk_loading, |x| {
+                  !matches!(x, ChunkLoading::Disable)
+                }),
               entry_options
                 .async_chunks
                 .unwrap_or(item_chunk_group_info.async_chunks),
@@ -1554,7 +1555,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_group_ukey = chunk_group_info.chunk_group;
 
       // 1. Add new targets to the list of children
-      chunk_group_info.children.extend(targets.iter().cloned());
+      chunk_group_info.children.extend(targets.iter().copied());
 
       // 2. Calculate resulting available modules
       let resulting_available_modules = chunk_group_info

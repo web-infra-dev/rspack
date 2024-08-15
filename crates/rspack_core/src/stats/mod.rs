@@ -1113,8 +1113,7 @@ impl Stats<'_> {
       .compilation
       .runtime_module_code_generation_results
       .get(identifier)
-      .map(|(_, source)| source.size() as f64)
-      .unwrap_or(0 as f64);
+      .map_or(0 as f64, |(_, source)| source.size() as f64);
 
     let mut stats = StatsModule {
       r#type: "module",
