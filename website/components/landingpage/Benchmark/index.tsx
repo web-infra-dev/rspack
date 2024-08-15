@@ -96,7 +96,7 @@ export function Benchmark() {
       <BaseBenchmark data={BENCHMARK_DATA} />
       <div className="flex flex-col items-center">
         <a
-          href="misc/benchmark.html"
+          href="https://github.com/rspack-contrib/performance-compare"
           target="_blank"
           className={styles.button}
           rel="noreferrer"

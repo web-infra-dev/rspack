@@ -1,3 +1,4 @@
+import { Link } from 'rspress/theme';
 import { useI18n } from '../../../theme/i18n';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
@@ -14,37 +15,40 @@ const BuiltWithRsPack: React.FC = () => {
       <div className={styles.innerContainer}>
         <h2 className={styles.title}>{t('builtWithRspack')}</h2>
         <div className={styles.logos}>
-          <div className={`${styles.logo} ${styles.bitDevContainer}`}>
+          <Link
+            className={`${styles.logo} ${styles.bitDevContainer}`}
+            href="https://bit.dev/"
+          >
             <img src={bitDevLogo} alt="bit.dev" className={styles.bitDevLogo} />
             <span className={styles.bitDevText}>bit.dev</span>
-          </div>
-          <div className={`${styles.logo}`}>
+          </Link>
+          <Link className={`${styles.logo}`} href="https://www.microsoft.com">
             <img
               src={microsoftLogo}
               alt="Microsoft"
               className={styles.microsoftLogo}
             />
-          </div>
-          <div className={styles.logo}>
+          </Link>
+          <Link className={styles.logo} href="https://amazon.com/">
             <img src={amazonLogo} alt="Amazon" className={styles.amazonLogo} />
-          </div>
-          <div className={styles.logo}>
+          </Link>
+          <Link className={styles.logo} href="https://www.bytedance.com">
             <img
               src={bytedanceLogo}
               alt="ByteDance"
               className={styles.bytedanceLogo}
             />
-          </div>
-          <div className={styles.logo}>
+          </Link>
+          <Link className={styles.logo} href="https://www.intuit.com">
             <img src={intuitLogo} alt="Intuit" className={styles.inituitLogo} />
-          </div>
-          <div className={styles.logo}>
+          </Link>
+          <Link className={styles.logo} href="https://discord.com">
             <img
               src={discordLogo}
               alt="discord"
               className={styles.discordLogo}
             />
-          </div>
+          </Link>
         </div>
       </div>
     </div>

@@ -1,19 +1,28 @@
-import { useDark } from 'rspress/runtime';
-import { useI18n } from '../../../theme/i18n';
+import { useCallback } from 'react';
+import { useDark, useLang, useNavigate } from 'rspress/runtime';
+import { useI18n, useI18nUrl } from '../../../theme/i18n';
 import styles from './index.module.scss';
 
 const Hero = () => {
   const isDark = useDark();
+
+  const tUrl = useI18nUrl();
   const t = useI18n();
+
+  const navigate = useNavigate();
+  const handleClickGetStarted = useCallback(() => {
+    navigate(tUrl('/guide/start/quick-start'));
+  }, [tUrl, navigate]);
+
+  const handleClickLearnMore = useCallback(() => {
+    navigate(tUrl('/guide/start/introduction'));
+  }, [tUrl, navigate]);
+
   return (
     <div className={styles.hero}>
       <div className={styles.innerHero}>
         <img
-          src={
-            isDark
-              ? 'https://assets.rspack.dev/rspack/rspack-logo.svg'
-              : 'https://assets.rspack.dev/rspack/rspack-logo.svg'
-          }
+          src="https://assets.rspack.dev/rspack/rspack-logo.svg"
           alt="logo"
           className={styles.logo}
         />
@@ -21,10 +30,18 @@ const Hero = () => {
         <p className={styles.subtitle}>{t('heroSlogan')}</p>
         <p className={styles.description}>{t('heroSubSlogan')}</p>
         <div className={styles.buttons}>
-          <button className={styles.buttonPrimary} type="button">
+          <button
+            className={styles.buttonPrimary}
+            type="button"
+            onClick={handleClickGetStarted}
+          >
             {t('getStarted')}
           </button>
-          <button className={styles.buttonSecondary} type="button">
+          <button
+            className={styles.buttonSecondary}
+            type="button"
+            onClick={handleClickLearnMore}
+          >
             {t('learnMore')}
           </button>
         </div>

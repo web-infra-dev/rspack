@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useLang } from 'rspress/runtime';
-import { useI18n } from '../../../theme/i18n';
+import { useState } from 'react';
+import { Link } from 'rspress/theme';
+import { useI18n, useI18nUrl } from '../../../theme/i18n';
 import arrow from './assets/arrow.svg';
 import javascriptApi from './assets/javascriptApi.svg';
 import layer from './assets/layer.svg';
@@ -19,30 +19,37 @@ type Feature = {
   icon: string;
   title: string;
   description: string;
+  link: string;
 };
 
 const FullyFeatured = () => {
   const t = useI18n();
+  const tUrl = useI18nUrl();
+
   const FeatureRow1: Feature[] = [
     {
       icon: arrow,
       title: 'Code Splitting',
       description: t('featureCodeSplitting'),
+      link: tUrl('/guide/optimization/code-splitting'),
     },
     {
       icon: tree,
       title: 'Tree Shaking',
       description: t('featureTreeShaking'),
+      link: tUrl('/guide/optimization/tree-shaking'),
     },
     {
       icon: layer,
       title: 'Plugins',
       description: t('featurePlugins'),
+      link: tUrl('/guide/features/plugin'),
     },
     {
       icon: moduleFederation,
       title: 'Module Federation',
       description: t('featureModuleFederation'),
+      link: tUrl('/guide/features/module-federation'),
     },
   ];
 
@@ -51,21 +58,25 @@ const FullyFeatured = () => {
       icon: setting,
       title: 'Asset Management',
       description: t('featureAssetManagement'),
+      link: tUrl('/guide/features/asset-module'),
     },
     {
       icon: loader,
       title: 'Loaders',
       description: t('featureLoaders'),
+      link: tUrl('/guide/features/loader'),
     },
     {
       icon: reload,
       title: 'HMR',
       description: t('featureHmr'),
+      link: tUrl('/api/runtime-api/hmr'),
     },
     {
       icon: server,
       title: 'Dev Server',
       description: t('featureDevServer'),
+      link: tUrl('/guide/features/dev-server'),
     },
   ];
 
@@ -74,21 +85,25 @@ const FullyFeatured = () => {
       icon: parallel,
       title: 'Parallel Builds',
       description: t('featureParallelBuilds'),
+      link: tUrl('/api/javascript-api#multicompiler'),
     },
     {
       icon: swc,
       title: 'SWC',
       description: t('featureSwc'),
+      link: tUrl('/guide/features/builtin-swc-loader'),
     },
     {
       icon: lightningcss,
       title: 'Lightning CSS',
       description: t('featureLightningCss'),
+      link: tUrl('/plugins/rspack/lightning-css-minimizer-rspack-plugin'),
     },
     {
       icon: javascriptApi,
       title: 'JavaScript API',
       description: t('featureJavaScriptApi'),
+      link: tUrl('/api/javascript-api'),
     },
   ];
 
@@ -105,20 +120,18 @@ const FullyFeatured = () => {
           (row, index) => {
             return (
               <div className={styles.features} key={index}>
-                {row.map((feature, index) => (
-                  <div key={index} className={styles.featureCard}>
+                {row.map(({ icon, description, link, title }, index) => (
+                  <Link key={index} className={styles.featureCard} href={link}>
                     <img
-                      src={feature.icon}
+                      src={icon}
                       alt={index.toString()}
                       className={styles.icon}
                     />
                     <div className={styles.featureContent}>
-                      <h2 className={styles.featureTitle}>{feature.title}</h2>
-                      <p className={styles.featureDescription}>
-                        {feature.description}
-                      </p>
+                      <h2 className={styles.featureTitle}>{title}</h2>
+                      <p className={styles.featureDescription}>{description}</p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             );

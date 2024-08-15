@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useLang } from 'rspress/runtime';
+import { Link } from 'rspress/theme';
 import { useI18n } from '../../../theme/i18n';
 import styles from './index.module.scss';
 
@@ -60,17 +61,11 @@ const ToolStack: React.FC = () => {
       <div className={styles.tools}>
         {tools.map(({ name, desc, logo, url }) => {
           return (
-            <div
-              className={styles.tool}
-              key={name}
-              onClick={() => {
-                window.location.href = url;
-              }}
-            >
+            <Link className={styles.tool} key={name} href={url}>
               <img src={logo} alt={name} className={styles.logo} />
               <h3 className={styles.toolTitle}>{name}</h3>
               <p className={styles.toolDescription}>{desc}</p>
-            </div>
+            </Link>
           );
         })}
       </div>

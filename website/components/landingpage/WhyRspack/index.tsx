@@ -1,4 +1,5 @@
-import { useI18n } from '../../../theme/i18n';
+import { Link } from 'rspress/theme';
+import { useI18n, useI18nUrl } from '../../../theme/i18n';
 import Bg from './assets/Bg.svg';
 import Compatible from './assets/Compatible.svg';
 import FrameCheck from './assets/FrameCheck.svg';
@@ -8,6 +9,7 @@ import styles from './index.module.scss';
 
 const Features = () => {
   const t = useI18n();
+  const tUrl = useI18nUrl();
   return (
     <div className={styles.featuresContainer}>
       <div className={styles.featuresContainerInner}>
@@ -21,7 +23,10 @@ const Features = () => {
               <img className={styles.whyRspackBg} src={Bg} alt="bg" />
             </div>
           </div>
-          <div className={styles.featureCard}>
+          <Link
+            className={styles.featureCard}
+            href={tUrl('/guide/start/introduction')}
+          >
             <div className={styles.featureIcon}>
               <img src={Speedometer} alt="Speedometer" />
             </div>
@@ -31,10 +36,13 @@ const Features = () => {
                 {t('FastStartupDesc')}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
         <div className={styles.features}>
-          <div className={styles.featureCard}>
+          <Link
+            className={styles.featureCard}
+            href={tUrl('/guide/start/introduction')}
+          >
             <div className={styles.featureIcon}>
               <img src={Lightning} alt="Lightning" />
             </div>
@@ -44,9 +52,9 @@ const Features = () => {
                 {t('LightningHMRDesc')}
               </p>
             </div>
-          </div>
+          </Link>
 
-          <div className={styles.featureCard}>
+          <Link className={styles.featureCard} href={tUrl('/guide/tech/react')}>
             <div className={styles.featureIcon}>
               <img src={FrameCheck} alt="FrameWork" />
             </div>
@@ -56,8 +64,11 @@ const Features = () => {
                 {t('FrameworkAgnosticDesc')}
               </p>
             </div>
-          </div>
-          <div className={styles.featureCard}>
+          </Link>
+          <Link
+            className={styles.featureCard}
+            href={tUrl('/guide/compatibility/plugin')}
+          >
             <div className={styles.featureIcon}>
               <img src={Compatible} alt="Compatible" />
             </div>
@@ -67,7 +78,7 @@ const Features = () => {
                 {t('WebpackCompatibleDesc')}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </div>
