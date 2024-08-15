@@ -7,6 +7,7 @@ use std::{
 
 use anyhow::Context;
 use dojang::dojang::Dojang;
+use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
@@ -22,7 +23,10 @@ use crate::{
   config::{HtmlInject, HtmlRspackPluginOptions},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
-  visitors::asset::{AssetWriter, HTMLPluginTag},
+  visitors::{
+    asset::{AssetWriter, HTMLPluginTag},
+    utils::{append_hash, generate_posix_path},
+  },
 };
 
 #[plugin]
@@ -75,7 +79,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   // process with template parameters
-  let template_result = if let Some(template_parameters) = &self.config.template_parameters {
+  let mut template_result = if let Some(template_parameters) = &self.config.template_parameters {
     let mut dj = Dojang::new();
     dj.add(url.clone(), content)
       .expect("failed to add template");
@@ -84,6 +88,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   } else {
     content
   };
+
+  let has_doctype = template_result.contains("!DOCTYPE") || template_result.contains("!doctype");
+  if !has_doctype {
+    template_result = format!("<!DOCTYPE html>{template_result}");
+  }
 
   let ast_with_diagnostic = parser.parse_file(&url, template_result)?;
 
@@ -100,8 +109,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(included_chunks) = &config.chunks {
         included = included_chunks.iter().any(|c| c.eq(entry_name));
       }
-      if let Some(excluded_chunks) = &config.excluded_chunks {
-        included = included && !excluded_chunks.iter().any(|c| c.eq(entry_name));
+      if let Some(exclude_chunks) = &config.exclude_chunks {
+        included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
       }
       included
     })
@@ -121,17 +130,28 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // if inject is 'false', don't do anything
   if !matches!(config.inject, HtmlInject::False) {
     for (asset_name, asset) in included_assets {
-      if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = format!(
-          "{}{asset_name}",
+      if let Some(extension) =
+        Path::new(asset_name.split("?").next().unwrap_or_default()).extension()
+      {
+        let mut asset_uri = format!(
+          "{}{}",
           config.get_public_path(compilation, &self.config.filename),
+          url_encode_path(&asset_name)
         );
+        if config.hash.unwrap_or_default() {
+          if let Some(hash) = compilation.get_hash() {
+            asset_uri = append_hash(&asset_uri, hash);
+          }
+        }
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
-          tag = Some(HTMLPluginTag::create_style(&asset_uri, HtmlInject::Head));
+          tag = Some(HTMLPluginTag::create_style(
+            &generate_posix_path(&asset_uri),
+            HtmlInject::Head,
+          ));
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
           tag = Some(HTMLPluginTag::create_script(
-            &asset_uri,
+            &generate_posix_path(&asset_uri),
             config.inject,
             &config.script_loading,
           ))
@@ -157,18 +177,39 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let tags = tags.into_iter().map(|(tag, _)| tag).collect::<Vec<_>>();
-  let mut visitor = AssetWriter::new(config, &tags, compilation);
-  current_ast.visit_mut_with(&mut visitor);
-
-  let source = parser.codegen(&mut current_ast)?;
-  let hash = hash_for_source(&source);
-  let html_file_name = FilenameTemplate::from(config.filename.clone());
   // Use the same filename as template
   let output_path = compilation
     .options
     .output
     .path
     .join(normalized_template_name);
+
+  let html_file_name = FilenameTemplate::from(
+    config
+      .filename
+      .replace("[templatehash]", "[contenthash]")
+      .clone(),
+  );
+  // use to calculate relative favicon path when no publicPath
+  let fake_html_file_name = compilation
+    .get_path(
+      &html_file_name,
+      PathData::default().filename(&output_path.to_string_lossy()),
+    )
+    .always_ok();
+
+  let mut visitor = AssetWriter::new(config, &tags, compilation, &fake_html_file_name);
+  current_ast.visit_mut_with(&mut visitor);
+
+  let mut source = parser
+    .codegen(&mut current_ast, compilation)?
+    .replace("$$RSPACK_URL_AMP$$", "&");
+
+  if !has_doctype {
+    source = source.replace("<!DOCTYPE html>", "");
+  }
+  let hash = hash_for_source(&source);
+
   let (output_path, asset_info) = compilation
     .get_path_with_info(
       &html_file_name,
@@ -242,4 +283,28 @@ fn hash_for_source(source: &str) -> String {
   let mut hasher = DefaultHasher::new();
   source.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
+}
+
+fn url_encode_path(file_path: &str) -> String {
+  let query_string_start = file_path.find('?');
+  let url_path = if let Some(query_string_start) = query_string_start {
+    &file_path[..query_string_start]
+  } else {
+    file_path
+  };
+  let query_string = if let Some(query_string_start) = query_string_start {
+    &file_path[query_string_start..]
+  } else {
+    ""
+  };
+
+  format!(
+    "{}{}",
+    url_path
+      .split('/')
+      .map(|p| { urlencoding::encode(p) })
+      .join("/"),
+    // element.outerHTML will escape '&' so need to add a placeholder here
+    query_string.replace("&", "$$RSPACK_URL_AMP$$")
+  )
 }

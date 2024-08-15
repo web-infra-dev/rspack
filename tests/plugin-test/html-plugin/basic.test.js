@@ -139,49 +139,47 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: url encodes the file name
-  // it("properly encodes file names in emitted URIs", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "foo/very fancy+name.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin()],
-  //     },
-  //     [
-  //       /<script defer src="foo\/very%20fancy%2Bname.js"><\/script>[\s]*<\/head>/,
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("properly encodes file names in emitted URIs", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "foo/very fancy+name.js",
+        },
+        plugins: [new HtmlWebpackPlugin()],
+      },
+      [
+        /<script defer src="foo\/very%20fancy%2Bname.js"><\/script>[\s]*<\/head>/,
+      ],
+      null,
+      done,
+    );
+  });
 
-  // TODO: url encodes the file name
-  // itUnixOnly(
-  //   "properly encodes file names in emitted URIs but keeps the querystring",
-  //   (done) => {
-  //     testHtmlPlugin(
-  //       {
-  //         mode: "production",
-  //         entry: path.join(__dirname, "fixtures/index.js"),
-  //         output: {
-  //           path: OUTPUT_DIR,
-  //           filename:
-  //             "fo:o/very fancy+file-name.js?path=/home?value=abc&value=def#zzz",
-  //         },
-  //         plugins: [new HtmlWebpackPlugin()],
-  //       },
-  //       [
-  //         '<script defer src="fo%3Ao/very%20fancy%2Bfile-name.js?path=/home?value=abc&value=def#zzz">',
-  //       ],
-  //       null,
-  //       done,
-  //     );
-  //   },
-  // );
+  itUnixOnly(
+    "properly encodes file names in emitted URIs but keeps the querystring",
+    (done) => {
+      testHtmlPlugin(
+        {
+          mode: "production",
+          entry: path.join(__dirname, "fixtures/index.js"),
+          output: {
+            path: OUTPUT_DIR,
+            filename:
+              "fo:o/very fancy+file-name.js?path=/home?value=abc&value=def#zzz",
+          },
+          plugins: [new HtmlWebpackPlugin()],
+        },
+        [
+          '<script defer src="fo%3Ao/very%20fancy%2Bfile-name.js?path=/home?value=abc&value=def#zzz">',
+        ],
+        null,
+        done,
+      );
+    },
+  );
 
   it("generates a default index.html file with multiple entry points", (done) => {
     testHtmlPlugin(
@@ -519,32 +517,31 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: Support excludeChunks
-  // it("allows you to inject a specified asset into a given html file", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         util: path.join(__dirname, "fixtures/util.js"),
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           inject: true,
-  //           excludeChunks: ["util"],
-  //           template: path.join(__dirname, "fixtures/plain.html"),
-  //         }),
-  //       ],
-  //     },
-  //     ['<script defer src="app_bundle.js"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows you to inject a specified asset into a given html file", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          util: path.join(__dirname, "fixtures/util.js"),
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            inject: true,
+            excludeChunks: ["util"],
+            template: path.join(__dirname, "fixtures/plain.html"),
+          }),
+        ],
+      },
+      ['<script defer src="app_bundle.js"'],
+      null,
+      done,
+    );
+  });
 
 
   // TODO: ejs template params `<%= webpackConfig.output.publicPath %>`
@@ -597,8 +594,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      // DIFF ["<body></body>"],
-      [/<body>\s*<\/body>/],
+      ["<body></body>"],
       null,
       done,
     );
@@ -643,8 +639,6 @@ describe("HtmlWebpackPlugin", () => {
         },
         plugins: [new HtmlWebpackPlugin()],
       },
-      // DIFF: ['<script defer src="index_bundle.js"']
-      // `prodution` use html-minify-terser to convert `defer` to `defer`
       ['<script defer src="index_bundle.js"'],
       null,
       done,
@@ -688,41 +682,39 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support hash config
-  // it("allows to append hashes to the assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ hash: true })],
-  //     },
-  //     ['<script defer src="index_bundle.js?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows to append hashes to the assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ hash: true })],
+      },
+      ['<script defer src="index_bundle.js?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("allows to append hashes to the assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ hash: true, inject: true })],
-  //     },
-  //     ['<script defer src="index_bundle.js?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows to append hashes to the assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ hash: true, inject: true })],
+      },
+      ['<script defer src="index_bundle.js?%hash%"'],
+      null,
+      done,
+    );
+  });
 
   it("should work with the css extract plugin", (done) => {
     testHtmlPlugin(
@@ -746,7 +738,7 @@ describe("HtmlWebpackPlugin", () => {
           new MiniCssExtractPlugin({ filename: "styles.css" }),
         ],
       },
-      ['<link href="styles.css" rel="stylesheet" />'],
+      ['<link href="styles.css" rel="stylesheet">'],
       null,
       done,
     );
@@ -809,159 +801,154 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //         publicPath: "/some/",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           hash: true,
-  //           filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
-  //         }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="/some/styles.css?%hash%"'],
-  //     path.join("subfolder", "test.html"),
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          publicPath: "/some/",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            hash: true,
+            filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
+          }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="/some/styles.css?%hash%"'],
+      path.join("subfolder", "test.html"),
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //         publicPath: "/some",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="/some/styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          publicPath: "/some",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="/some/styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //         publicPath: "some/",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="some/styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          publicPath: "some/",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="some/styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with the css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           hash: true,
-  //           filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
-  //         }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="../styles.css?%hash%"'],
-  //     path.join("subfolder", "test.html"),
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with the css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            hash: true,
+            filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
+          }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="../styles.css?%hash%"'],
+      path.join("subfolder", "test.html"),
+      done,
+    );
+  });
 
   it("should inject css files when using the extract text plugin", (done) => {
     testHtmlPlugin(
@@ -991,34 +978,33 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support hash config
-  // it("should allow to add cache hashes to with injected css assets", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ hash: true, inject: true }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     ['<link href="styles.css?%hash%"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to add cache hashes to with injected css assets", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ hash: true, inject: true }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      ['<link href="styles.css?%hash%"'],
+      null,
+      done,
+    );
+  });
 
   // TODO: support xhtml and minify config
   // it("should output xhtml link stylesheet tag", (done) => {
@@ -1405,47 +1391,47 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // it("will replace [contenthash] in the filename with a content hash of 32 hex characters", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         index: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ filename: "index.[contenthash].html" }),
-  //       ],
-  //     },
-  //     [],
-  //     /index\.[a-f0-9]{20}\.html/,
-  //     done,
-  //   );
-  // });
+  it("will replace [contenthash] in the filename with a content hash of 32 hex characters", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          index: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ filename: "index.[contenthash].html" }),
+        ],
+      },
+      [],
+      /index\.[a-f0-9]{16}\.html/,
+      done,
+    );
+  });
 
-  // it("will replace [templatehash] in the filename with a content hash of 32 hex characters", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         index: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({ filename: "index.[templatehash].html" }),
-  //       ],
-  //     },
-  //     [],
-  //     /index\.[a-f0-9]{20}\.html/,
-  //     done,
-  //   );
-  // });
+  it("will replace [templatehash] in the filename with a content hash of 32 hex characters", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          index: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({ filename: "index.[templatehash].html" }),
+        ],
+      },
+      [],
+      /index\.[a-f0-9]{16}\.html/,
+      done,
+    );
+  });
 
   it("allows you to use an absolute output filename", (done) => {
     testHtmlPlugin(
@@ -1527,23 +1513,22 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: win32 path sep "..\\../assets/index_bundle.js"
-  // it('will try to use a relative name if the filename and the script defer are in a subdirectory', (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "assets/index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ filename: "assets/demo/test.html" })],
-  //     },
-  //     ['<script defer src="../../assets/index_bundle.js"'],
-  //     "assets/demo/test.html",
-  //     done,
-  //   );
-  // });
+  it('will try to use a relative name if the filename and the script defer are in a subdirectory', (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "assets/index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ filename: "assets/demo/test.html" })],
+      },
+      ['<script defer src="../../assets/index_bundle.js"'],
+      "assets/demo/test.html",
+      done,
+    );
+  });
 
   it("allows you write multiple HTML files", (done) => {
     testHtmlPlugin(
@@ -1582,39 +1567,38 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: empty html
-  // it("should inject js css files even if the html file is incomplete", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/empty_html.html"),
-  //         }),
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //       ],
-  //     },
-  //     [
-  //       '<link href="styles.css"',
-  //       '<script defer src="index_bundle.js"',
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should inject js css files even if the html file is incomplete", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/empty_html.html"),
+          }),
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+        ],
+      },
+      [
+        '<link href="styles.css"',
+        '<script defer src="index_bundle.js"',
+      ],
+      null,
+      done,
+    );
+  });
 
   // TODO: ejs template params `<%= webpackConfig.output.publicPath %>`
   // it("exposes the webpack configuration to templates", (done) => {
@@ -2547,58 +2531,56 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[^"]+\.ico" \/>/],
+      [/<link rel="icon" href="[^"]+\.ico">/],
       null,
       done,
     );
   });
 
-  // TODO: support base config
-  // it("adds a base tag with attributes", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           base: {
-  //             href: "http://example.com/page.html",
-  //             target: "_blank",
-  //           },
-  //         }),
-  //       ],
-  //     },
-  //     [/<base href="http:\/\/example\.com\/page\.html" target="_blank">/],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("adds a base tag with attributes", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            base: {
+              href: "http://example.com/page.html",
+              target: "_blank",
+            },
+          }),
+        ],
+      },
+      [/<base href="http:\/\/example\.com\/page\.html" target="_blank">/],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support base config
-  // it("adds a base tag short syntax", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           base: "http://example.com/page.html",
-  //         }),
-  //       ],
-  //     },
-  //     [/<base href="http:\/\/example\.com\/page\.html">/],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("adds a base tag short syntax", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            base: "http://example.com/page.html",
+          }),
+        ],
+      },
+      [/<base href="http:\/\/example\.com\/page\.html">/],
+      null,
+      done,
+    );
+  });
 
   it("adds a meta tag", (done) => {
     testHtmlPlugin(
@@ -2622,14 +2604,14 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        /<meta content="width=device-width,initial-scale=1,shrink-to-fit=no" name="viewport" \/>/,
+        /<meta content="width=device-width,initial-scale=1,shrink-to-fit=no" name="viewport">/,
       ],
       null,
       done,
     );
   });
 
-  // TODO: multiple meta in default.html
+  // Deprecated: will be removed in next major release of html-webpack-plugin, https://github.com/jantimon/html-webpack-plugin/blob/main/index.js#L222
   // it("avoid duplicate meta tags for default template", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -2668,7 +2650,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        /<meta content="width=device-width,initial-scale=1,shrink-to-fit=no" name="viewport" \/>/,
+        /<meta content="width=device-width,initial-scale=1,shrink-to-fit=no" name="viewport">/,
       ],
       null,
       done,
@@ -2691,7 +2673,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\/some\/+[^"]+\.ico" \/>/],
+      [/<link rel="icon" href="\/some\/+[^"]+\.ico">/],
       null,
       done,
     );
@@ -2713,7 +2695,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\/some\/+[^"]+\.ico" \/>/],
+      [/<link rel="icon" href="\/some\/+[^"]+\.ico">/],
       null,
       done,
     );
@@ -2735,13 +2717,13 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="some\/+[^"]+\.ico" \/>/],
+      [/<link rel="icon" href="some\/+[^"]+\.ico">/],
       null,
       done,
     );
   });
 
-  it("adds a favicon with publicPath undefined", (done) => {
+  it("adds a favicon with publicPath undefined root", (done) => {
     testHtmlPlugin(
       {
         mode: "production",
@@ -2756,34 +2738,33 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[^"]+\.ico" \/>/],
+      [/<link rel="icon" href="[^"]+\.ico">/],
       null,
       done,
     );
   });
 
-  // TODO: favicon with public path undefined
-  // it("adds a favicon with publicPath undefined", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           favicon: path.join(__dirname, "fixtures/favicon.ico"),
-  //           filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
-  //         }),
-  //       ],
-  //     },
-  //     [/<link rel="icon" href="\.\.\/[^"]+\.ico" \/>/],
-  //     path.join("subfolder", "test.html"),
-  //     done,
-  //   );
-  // });
+  it("adds a favicon with publicPath undefined subfolder", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            favicon: path.join(__dirname, "fixtures/favicon.ico"),
+            filename: path.resolve(OUTPUT_DIR, "subfolder", "test.html"),
+          }),
+        ],
+      },
+      [/<link rel="icon" href="\.\.\/[^"]+\.ico">/],
+      path.join("subfolder", "test.html"),
+      done,
+    );
+  });
 
   it("adds a favicon with a publicPath set to /[hash]/ and replaces the hash", (done) => {
     testHtmlPlugin(
@@ -2801,7 +2782,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\/[a-z0-9]{20}\/favicon\.ico" \/>/],
+      [/<link rel="icon" href="\/[a-z0-9]{20}\/favicon\.ico">/],
       null,
       done,
     );
@@ -2823,7 +2804,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[a-z0-9]{20}\/favicon\.ico" \/>/],
+      [/<link rel="icon" href="[a-z0-9]{20}\/favicon\.ico">/],
       null,
       done,
     );
@@ -2845,7 +2826,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[^"]+\.ico" \/>/],
+      [/<link rel="icon" href="[^"]+\.ico">/],
       null,
       done,
     );
@@ -3221,27 +3202,26 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: support tempty templateContent
-  // it("should not treat templateContent set to an empty string as missing", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: { app: path.join(__dirname, "fixtures/index.js") },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "app_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           templateContent: "",
-  //         }),
-  //       ],
-  //     },
-  //     [/^<head><script defer src="app_bundle\.js"><\/script><\/head>$/],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should not treat templateContent set to an empty string as missing", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: { app: path.join(__dirname, "fixtures/index.js") },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "app_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            templateContent: "",
+          }),
+        ],
+      },
+      [/<head><script defer src="app_bundle\.js"><\/script><\/head>/],
+      null,
+      done,
+    );
+  });
 
   it("allows you to inject the assets into the body of the given spaced closing tag template", (done) => {
     testHtmlPlugin(
@@ -3289,23 +3269,22 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: html minify when production
-  // it("should minify by default when mode is production", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin()],
-  //     },
-  //     [/<!doctype html><html><head><meta charset="utf-8">/],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should minify by default when mode is production", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin()],
+      },
+      [/<!doctype html><html><head><meta charset="utf-8">/],
+      null,
+      done,
+    );
+  });
 
   it("should not minify by default when mode is development", (done) => {
     testHtmlPlugin(
@@ -3324,41 +3303,39 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: minify correctly
-  // it("should minify in production if options.minify is true", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "development",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ minify: true })],
-  //     },
-  //     [/<!doctype html><html><head><meta charset="utf-8">/],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should minify in production if options.minify is true", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "development",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ minify: true })],
+      },
+      [/<!doctype html><html><head><meta charset="utf-8">/],
+      null,
+      done,
+    );
+  });
 
-  // TODO: minify correctly
-  // it("should minify in development if options.minify is true", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "development",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin({ minify: true })],
-  //     },
-  //     [/<!doctype html><html><head><meta charset="utf-8">/],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should minify in development if options.minify is true", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "development",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin({ minify: true })],
+      },
+      [/<!doctype html><html><head><meta charset="utf-8">/],
+      null,
+      done,
+    );
+  });
 
   it("should not minify in production if options.minify is false", (done) => {
     testHtmlPlugin(
@@ -3433,7 +3410,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<script defer .+\s+<body>/],
+      [/<script defer .+<body>/],
       null,
       done,
     );
@@ -3454,35 +3431,34 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<script type="module" src="index_bundle.js"><\/script>.+\s+<body>/],
+      [/<script type="module" src="index_bundle.js"><\/script>.+<body>/],
       null,
       done,
     );
   });
 
-  // TODO: support scriptLoading=systemjs-module
-  // it('should allow to inject scripts with a type="systemjs-module" attribute', (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           scriptLoading: "systemjs-module",
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       /<script type="systemjs-module" src="index_bundle.js"><\/script>.+\s+<body>/,
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it('should allow to inject scripts with a type="systemjs-module" attribute', (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            scriptLoading: "systemjs-module",
+          }),
+        ],
+      },
+      [
+        /<script type="systemjs-module" src="index_bundle.js"><\/script>.+<body>/,
+      ],
+      null,
+      done,
+    );
+  });
 
   it('should allow to inject scripts with a defer attribute to the body', (done) => {
     testHtmlPlugin(
@@ -3500,7 +3476,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<body>.*\s+<script defer/],
+      [/<body>.*<script defer/],
       null,
       done,
     );
@@ -3536,7 +3512,7 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: doctype
+  // TODO: swc allow self closing 
   // it("should keep closing slashes from the template", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -3594,7 +3570,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet" /></head>',
+        '<script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet"></head>',
       ],
       null,
       done,
@@ -3668,7 +3644,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        '<script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet" /></head>',
+        '<script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet"></head>',
       ],
       null,
       done,

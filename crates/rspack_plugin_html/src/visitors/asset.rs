@@ -1,14 +1,13 @@
-use std::env;
 use std::path::PathBuf;
 
 use itertools::Itertools;
-use regex::Regex;
 use rspack_core::Compilation;
+use sugar_path::SugarPath;
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
-use super::utils::create_element;
+use super::utils::{append_hash, create_element, generate_posix_path};
 use crate::config::{HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading};
 
 // the tag
@@ -59,6 +58,12 @@ impl HTMLPluginTag {
           attr_value: Some("module".to_string()),
         });
       }
+      HtmlScriptLoading::SystemjsModule => {
+        attributes.push(HtmlPluginAttribute {
+          attr_name: "type".to_string(),
+          attr_value: Some("systemjs-module".to_string()),
+        });
+      }
       _ => {}
     }
 
@@ -91,6 +96,7 @@ pub struct AssetWriter<'a, 'c> {
   head_tags: Vec<&'a HTMLPluginTag>,
   body_tags: Vec<&'a HTMLPluginTag>,
   compilation: &'c Compilation,
+  html_path: &'a str,
 }
 
 impl<'a, 'c> AssetWriter<'a, 'c> {
@@ -98,6 +104,7 @@ impl<'a, 'c> AssetWriter<'a, 'c> {
     config: &'a HtmlRspackPluginOptions,
     tags: &'a [HTMLPluginTag],
     compilation: &'c Compilation,
+    html_path: &'a str,
   ) -> AssetWriter<'a, 'c> {
     let mut head_tags: Vec<&HTMLPluginTag> = vec![];
     let mut body_tags: Vec<&HTMLPluginTag> = vec![];
@@ -117,6 +124,7 @@ impl<'a, 'c> AssetWriter<'a, 'c> {
       head_tags,
       body_tags,
       compilation,
+      html_path,
     }
   }
 }
@@ -160,7 +168,48 @@ impl VisitMut for AssetWriter<'_, '_> {
           }
         }
 
-        // add favicon
+        // add basic tag
+        if let Some(base) = &self.config.base {
+          let mut attributes = vec![];
+
+          if let Some(href) = &base.href {
+            attributes.push(Attribute {
+              span: Default::default(),
+              namespace: None,
+              prefix: None,
+              name: "href".into(),
+              raw_name: None,
+              value: Some(href.to_string().into()),
+              raw_value: None,
+            });
+          }
+
+          if let Some(target) = &base.target {
+            attributes.push(Attribute {
+              span: Default::default(),
+              namespace: None,
+              prefix: None,
+              name: "target".into(),
+              raw_name: None,
+              value: Some(target.to_string().into()),
+              raw_value: None,
+            });
+          }
+
+          if !attributes.is_empty() {
+            n.children.push(Child::Element(Element {
+              tag_name: Atom::from("base"),
+              children: vec![],
+              is_self_closing: true,
+              namespace: Namespace::HTML,
+              span: DUMMY_SP,
+              attributes,
+              content: None,
+            }));
+          }
+        }
+
+        // add favicon link
         if let Some(favicon) = &self.config.favicon {
           let favicon = PathBuf::from(favicon)
             .file_name()
@@ -171,18 +220,29 @@ impl VisitMut for AssetWriter<'_, '_> {
           let favicon_relative_path =
             PathBuf::from(self.config.get_relative_path(self.compilation, &favicon));
 
-          let mut favicon_path = PathBuf::from(self.config.get_public_path(
+          let mut favicon_path: PathBuf = PathBuf::from(self.config.get_public_path(
             self.compilation,
             favicon_relative_path.to_string_lossy().to_string().as_str(),
           ));
 
-          favicon_path.push(favicon_relative_path);
+          if favicon_path.to_str().unwrap_or_default().is_empty() {
+            favicon_path = self
+              .compilation
+              .options
+              .output
+              .path
+              .join(favicon_relative_path)
+              .relative(PathBuf::from(self.html_path).join(".."));
+          } else {
+            favicon_path.push(favicon_relative_path);
+          }
 
           let mut favicon_link_path = favicon_path.to_string_lossy().to_string();
 
-          if env::consts::OS == "windows" {
-            let reg = Regex::new(r"[/\\]").expect("Invalid RegExp");
-            favicon_link_path = reg.replace_all(favicon_link_path.as_str(), "/").to_string();
+          if self.config.hash.unwrap_or_default() {
+            if let Some(hash) = self.compilation.get_hash() {
+              favicon_link_path = append_hash(&favicon_link_path, hash);
+            }
           }
 
           n.children.push(Child::Element(Element {
@@ -207,7 +267,7 @@ impl VisitMut for AssetWriter<'_, '_> {
                 prefix: None,
                 name: "href".into(),
                 raw_name: None,
-                value: Some(favicon_link_path.into()),
+                value: Some(generate_posix_path(&favicon_link_path).into()),
                 raw_value: None,
               },
             ],

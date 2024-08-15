@@ -42,6 +42,7 @@ pub enum HtmlScriptLoading {
   Blocking,
   Defer,
   Module,
+  SystemjsModule,
 }
 
 impl FromStr for HtmlScriptLoading {
@@ -54,12 +55,22 @@ impl FromStr for HtmlScriptLoading {
       Ok(HtmlScriptLoading::Defer)
     } else if s.eq("module") {
       Ok(HtmlScriptLoading::Module)
+    } else if s.eq("systemjs-module") {
+      Ok(HtmlScriptLoading::SystemjsModule)
     } else {
       Err(anyhow::Error::msg(
         "scriptLoading in html config only support 'blocking', 'defer' or 'module'",
       ))
     }
   }
+}
+
+#[cfg_attr(feature = "testing", derive(JsonSchema))]
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HtmlRspackPluginBaseOptions {
+  pub href: Option<String>,
+  pub target: Option<String>,
 }
 
 #[cfg_attr(feature = "testing", derive(JsonSchema))]
@@ -84,16 +95,18 @@ pub struct HtmlRspackPluginOptions {
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
-  pub excluded_chunks: Option<Vec<String>>,
+  pub exclude_chunks: Option<Vec<String>>,
 
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
   pub sri: Option<HtmlSriHashFunction>,
   #[serde(default)]
-  pub minify: bool,
+  pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
+  pub hash: Option<bool>,
+  pub base: Option<HtmlRspackPluginBaseOptions>,
 }
 
 fn default_filename() -> String {
@@ -119,12 +132,14 @@ impl Default for HtmlRspackPluginOptions {
       public_path: None,
       script_loading: default_script_loading(),
       chunks: None,
-      excluded_chunks: None,
+      exclude_chunks: None,
       sri: None,
-      minify: false,
+      minify: None,
       title: None,
       favicon: None,
       meta: None,
+      hash: None,
+      base: None,
     }
   }
 }

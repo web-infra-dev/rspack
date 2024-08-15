@@ -3628,6 +3628,7 @@ dependencies = [
  "swc_html",
  "swc_html_minifier",
  "tracing",
+ "urlencoding",
 ]
 
 [[package]]

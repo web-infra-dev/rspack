@@ -1,2 +1,2 @@
 pub mod asset;
-mod utils;
+pub mod utils;

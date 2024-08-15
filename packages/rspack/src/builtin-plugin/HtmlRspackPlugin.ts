@@ -14,14 +14,26 @@ const htmlRspackPluginOptions = z.strictObject({
 	templateParameters: z.record(z.string()).optional(),
 	inject: z.enum(["head", "body"]).or(z.boolean()).optional(),
 	publicPath: z.string().optional(),
-	scriptLoading: z.enum(["blocking", "defer", "module"]).optional(),
+	base: z
+		.string()
+		.or(
+			z.strictObject({
+				href: z.string().optional(),
+				target: z.enum(["_self", "_blank", "_parent", "_top"]).optional()
+			})
+		)
+		.optional(),
+	scriptLoading: z
+		.enum(["blocking", "defer", "module", "systemjs-module"])
+		.optional(),
 	chunks: z.string().array().optional(),
-	excludedChunks: z.string().array().optional(),
+	excludeChunks: z.string().array().optional(),
 	sri: z.enum(["sha256", "sha384", "sha512"]).optional(),
 	minify: z.boolean().optional(),
 	title: z.string().optional(),
 	favicon: z.string().optional(),
-	meta: z.record(z.string().or(z.record(z.string()))).optional()
+	meta: z.record(z.string().or(z.record(z.string()))).optional(),
+	hash: z.boolean().optional()
 });
 export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 export const HtmlRspackPlugin = create(
@@ -53,11 +65,13 @@ export const HtmlRspackPlugin = create(
 				: configInject === false
 					? "false"
 					: configInject;
+		const base = typeof c.base === "string" ? { href: c.base } : c.base;
 		return {
 			...c,
 			meta,
 			scriptLoading,
-			inject
+			inject,
+			base
 		};
 	}
 );
