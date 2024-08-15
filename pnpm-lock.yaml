@@ -151,8 +151,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: 1.0.0-beta.5
-        version: 1.0.0-beta.5(react-refresh@0.14.0)
+        specifier: 1.0.0
+        version: 1.0.0(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.2.48
         version: 18.2.75
@@ -182,8 +182,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: 1.0.0-beta.5
-        version: 1.0.0-beta.5(react-refresh@0.14.0)
+        specifier: 1.0.0
+        version: 1.0.0(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.2.48
         version: 18.2.75
@@ -295,8 +295,8 @@ importers:
         specifier: workspace:*
         version: link:../rspack-dev-server
       '@rspack/plugin-react-refresh':
-        specifier: 1.0.0-beta.5
-        version: 1.0.0-beta.5(react-refresh@0.14.0)
+        specifier: 1.0.0
+        version: 1.0.0(react-refresh@0.14.0)
       '@swc/helpers':
         specifier: 0.5.8
         version: 0.5.8
@@ -358,8 +358,8 @@ importers:
         specifier: workspace:*
         version: link:../../crates/node_binding
       '@rspack/lite-tapable':
-        specifier: 1.0.0-beta.5
-        version: 1.0.0-beta.5
+        specifier: 1.0.0
+        version: 1.0.0
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.8
@@ -526,8 +526,8 @@ importers:
         specifier: workspace:*
         version: 'link:'
       '@rspack/plugin-react-refresh':
-        specifier: 1.0.0-beta.5
-        version: 1.0.0-beta.5(react-refresh@0.14.0)
+        specifier: 1.0.0
+        version: 1.0.0(react-refresh@0.14.0)
       '@types/connect-history-api-fallback':
         specifier: 1.5.4
         version: 1.5.4
@@ -867,8 +867,8 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/rspack
       '@rspack/plugin-react-refresh':
-        specifier: 1.0.0-beta.5
-        version: 1.0.0-beta.5(react-refresh@0.14.0)
+        specifier: 1.0.0
+        version: 1.0.0(react-refresh@0.14.0)
       '@svgr/webpack':
         specifier: ^8.0.0
         version: 8.1.0(typescript@5.4.2)
@@ -2819,12 +2819,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rspack/lite-tapable@1.0.0-beta.5':
-    resolution: {integrity: sha512-jTmLhUeZgR3u+cHp5Z46FuTWUg+6VWWwbWkIzgVvQoN7YK9ntFfm7k5+cImTEQ0qe1r6P43uV0qD606SoZspKg==}
+  '@rspack/lite-tapable@1.0.0':
+    resolution: {integrity: sha512-7MZf4lburSUZoEenwazwUDKHhqyfnLCGnQ/tKcUtztfmVzfjZfRn/EaiT0AKkYGnL2U8AGsw89oUeVyvaOLVCw==}
     engines: {node: '>=16.0.0'}
 
-  '@rspack/plugin-react-refresh@1.0.0-beta.5':
-    resolution: {integrity: sha512-7pP8OBOkGa/D/ZnkXI7/atWIc5QJDlLHju/qpPGaomdE+Ut0qSzpW6Loya63CDwB0Ok8AQUGe1GsnbsRNset6w==}
+  '@rspack/plugin-react-refresh@1.0.0':
+    resolution: {integrity: sha512-WvXkLewW5G0Mlo5H1b251yDh5FFiH4NDAbYlFpvFjcuXX2AchZRf9zdw57BDE/ADyWsJgA8kixN/zZWBTN3iYA==}
     peerDependencies:
       react-refresh: '>=0.10.0 <1.0.0'
     peerDependenciesMeta:
@@ -11486,9 +11486,9 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.17.2':
     optional: true
 
-  '@rspack/lite-tapable@1.0.0-beta.5': {}
+  '@rspack/lite-tapable@1.0.0': {}
 
-  '@rspack/plugin-react-refresh@1.0.0-beta.5(react-refresh@0.14.0)':
+  '@rspack/plugin-react-refresh@1.0.0(react-refresh@0.14.0)':
     dependencies:
       error-stack-parser: 2.1.4
       html-entities: 2.5.2
