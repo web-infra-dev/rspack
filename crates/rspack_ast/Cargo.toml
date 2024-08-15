@@ -21,12 +21,6 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_module",
   "swc_ecma_codegen",
   "swc_ecma_visit",
-  "css_ast",
-  "css_codegen",
-  "css_parser",
-  "css_utils",
-  "css_visit",
-  "css_modules",
 ] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }

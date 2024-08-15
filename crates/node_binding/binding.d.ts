@@ -267,7 +267,6 @@ export enum BuiltinPluginName {
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
-  SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
@@ -1713,12 +1712,6 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
-}
-
-export interface RawSwcCssMinimizerRspackPluginOptions {
-  test?: string | RegExp | (string | RegExp)[]
-  include?: string | RegExp | (string | RegExp)[]
-  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawSwcJsMinimizerOptions {

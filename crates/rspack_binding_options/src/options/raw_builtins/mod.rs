@@ -11,13 +11,11 @@ mod raw_mf;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
-mod raw_swc_css_minimizer;
 mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
-use raw_swc_css_minimizer::RawSwcCssMinimizerRspackPluginOptions;
 use rspack_binding_values::entry::JsEntryPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
@@ -68,7 +66,6 @@ use rspack_plugin_runtime::{
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
-use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
@@ -170,7 +167,6 @@ pub enum BuiltinPluginName {
   CopyRspackPlugin,
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
-  SwcCssMinimizerRspackPlugin,
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
@@ -445,13 +441,6 @@ impl BuiltinPlugin {
       BuiltinPluginName::SwcJsMinimizerRspackPlugin => {
         let plugin = SwcJsMinimizerRspackPlugin::new(
           downcast_into::<RawSwcJsMinimizerRspackPluginOptions>(self.options)?.try_into()?,
-        )
-        .boxed();
-        plugins.push(plugin);
-      }
-      BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        let plugin = SwcCssMinimizerRspackPlugin::new(
-          downcast_into::<RawSwcCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
         )
         .boxed();
         plugins.push(plugin);

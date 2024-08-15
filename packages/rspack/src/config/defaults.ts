@@ -941,7 +941,7 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	D(optimization, "concatenateModules", production);
-	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
+	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `LightningCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
 		new LightningCssMinimizerRspackPlugin()
