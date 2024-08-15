@@ -344,30 +344,39 @@ impl PluginCssExtract {
         if let Some(header) = header {
           external_source.add(header);
         }
-        if !module.media.is_empty() {
+        if let Some(media) = &module.media {
           static MEDIA_RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), &module.media);
+          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
           external_source.add(RawSource::from(new_content.to_string() + "\n"));
         } else {
           external_source.add(RawSource::from(content.to_string() + "\n"));
         }
       } else {
+        let mut need_supports = false;
+        let mut need_media = false;
+
         if let Some(header) = header {
           source.add(header);
         }
-        if !module.supports.is_empty() {
-          source.add(RawSource::from(format!(
-            "@supports ({}) {{\n",
-            &module.supports
-          )));
+
+        if let Some(supports) = &module.supports
+          && !supports.is_empty()
+        {
+          need_supports = true;
+          source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
         }
 
-        if !module.media.is_empty() {
-          source.add(RawSource::from(format!("@media {} {{\n", &module.media)));
+        if let Some(media) = &module.media
+          && !media.is_empty()
+        {
+          need_media = true;
+          source.add(RawSource::from(format!("@media {} {{\n", media)));
         }
 
-        // TODO: layer support
+        if let Some(layer) = &module.layer {
+          source.add(RawSource::from(format!("@layer {} {{\n", layer)));
+        }
 
         let undo_path = get_undo_path(
           &filename,
@@ -391,21 +400,27 @@ impl PluginCssExtract {
             .unwrap_or(&undo_path),
         );
 
-        if !module.source_map.is_empty() {
+        if let Some(source_map) = &module.source_map {
           source.add(SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
-            source_map: SourceMap::from_json(&module.source_map).expect("invalid sourcemap"),
+            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
           }))
         } else {
           source.add(RawSource::from(content.to_string()));
         }
 
         source.add(RawSource::from("\n"));
-        if !module.media.is_empty() {
+
+        if need_media {
           source.add(RawSource::from("}\n"));
         }
-        if !module.supports.is_empty() {
+
+        if need_supports {
+          source.add(RawSource::from("}\n"));
+        }
+
+        if module.layer.is_some() {
           source.add(RawSource::from("}\n"));
         }
       }

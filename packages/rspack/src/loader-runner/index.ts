@@ -410,6 +410,7 @@ export async function runLoaders(
 					._lastCompilation!.__internal_getInner()
 					.importModule(
 						request,
+						options.layer,
 						options.publicPath,
 						options.baseUri,
 						context._module.moduleIdentifier,
@@ -443,6 +444,7 @@ export async function runLoaders(
 			._lastCompilation!.__internal_getInner()
 			.importModule(
 				request,
+				options.layer,
 				options.publicPath,
 				options.baseUri,
 				context._module.moduleIdentifier,

@@ -135,7 +135,7 @@ export interface LoaderContext<OptionsType = {}> {
 	addBuildDependency(file: string): void;
 	importModule(
 		request: string,
-		options: { publicPath?: PublicPath; baseUri?: string },
+		options: { layer?: string; publicPath?: PublicPath; baseUri?: string },
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;

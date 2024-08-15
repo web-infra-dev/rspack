@@ -29,9 +29,10 @@ pub(crate) struct CssModule {
   pub(crate) identifier: String,
   pub(crate) content: String,
   pub(crate) _context: String,
-  pub(crate) media: String,
-  pub(crate) supports: String,
-  pub(crate) source_map: String,
+  pub(crate) media: Option<String>,
+  pub(crate) supports: Option<String>,
+  pub(crate) source_map: Option<String>,
+  pub(crate) layer: Option<String>,
   pub(crate) identifier_index: u32,
 
   factory_meta: Option<FactoryMeta>,
@@ -52,14 +53,19 @@ pub(crate) struct CssModule {
 impl CssModule {
   pub fn new(dep: CssDependency) -> Self {
     let identifier__ = format!(
-      "css|{}|{}|{}|{}}}",
-      dep.identifier, dep.identifier_index, dep.supports, dep.media,
+      "css|{}|{}|{}|{}|{}}}",
+      dep.identifier,
+      dep.identifier_index,
+      dep.layer.as_deref().unwrap_or_default(),
+      dep.supports.as_deref().unwrap_or_default(),
+      dep.media.as_deref().unwrap_or_default(),
     )
     .into();
 
     Self {
       identifier: dep.identifier,
       content: dep.content,
+      layer: dep.layer.clone(),
       _context: dep.context,
       media: dep.media,
       supports: dep.supports,
@@ -84,8 +90,12 @@ impl CssModule {
     let mut hasher = RspackHash::from(&options.output);
 
     self.content.hash(&mut hasher);
+    if let Some(layer) = &self.layer {
+      layer.hash(&mut hasher);
+    }
     self.supports.hash(&mut hasher);
     self.media.hash(&mut hasher);
+    self.source_map.hash(&mut hasher);
 
     hasher.digest(&options.output.hash_digest)
   }
@@ -97,22 +107,31 @@ impl Module for CssModule {
 
   fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<str> {
     std::borrow::Cow::Owned(format!(
-      "css {}{}{}{}",
+      "css {}{}{}{}{}",
       context.shorten(&self.identifier),
       if self.identifier_index > 0 {
         format!("({})", self.identifier_index)
       } else {
         "".into()
       },
-      if self.supports.is_empty() {
-        "".into()
+      if let Some(layer) = &self.layer {
+        format!(" (layer {})", layer)
       } else {
-        format!(" (supports {})", self.supports)
+        "".into()
       },
-      if self.media.is_empty() {
-        "".into()
+      if let Some(supports) = &self.supports
+        && !supports.is_empty()
+      {
+        format!(" (supports {})", supports)
       } else {
-        format!(" (media {})", self.media)
+        "".into()
+      },
+      if let Some(media) = &self.media
+        && !media.is_empty()
+      {
+        format!(" (media {})", media)
+      } else {
+        "".into()
       }
     ))
   }

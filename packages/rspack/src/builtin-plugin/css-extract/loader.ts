@@ -29,9 +29,7 @@ export interface CssExtractRspackLoaderOptions {
 	publicPath?: string | ((resourcePath: string, context: string) => string);
 	emit?: boolean;
 	esModule?: boolean;
-
-	// TODO: support layer
-	layer?: boolean;
+	layer?: string;
 	defaultExport?: boolean;
 }
 
@@ -274,16 +272,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		if (dependencies.length > 0) {
 			additionalData[CssExtractRspackPlugin.pluginName] = dependencies
 				.map(dep => {
-					return [
-						dep.identifier,
-						dep.content,
-						dep.context,
-						dep.media,
-						dep.supports,
-						dep.sourceMap,
-						dep.identifierIndex,
-						dep.filepath
-					].join(SERIALIZE_SEP);
+					return JSON.stringify(dep);
 				})
 				.join(SERIALIZE_SEP);
 		}
@@ -294,6 +283,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	this.importModule(
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{
+			layer: options.layer,
 			publicPath: /** @type {Filename} */ publicPathForExtract,
 			baseUri: `${BASE_URI}/`
 		},
