@@ -1,7 +1,7 @@
 use crate::{
-  CacheOptions, Context, DevServerOptions, Experiments, IncrementalRebuildMakeState, Mode,
-  ModuleOptions, NodeOption, Optimization, OutputOptions, Resolve, SnapshotOptions, StatsOptions,
-  Target,
+  CacheOptions, Context, DevServerOptions, Experiments, ExternalsPresets,
+  IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
+  Resolve, SnapshotOptions, StatsOptions, Target,
 };
 
 #[derive(Debug)]
@@ -23,6 +23,7 @@ pub struct CompilerOptions {
   pub optimization: Optimization,
   pub profile: bool,
   pub bail: bool,
+  pub externals_presets: ExternalsPresets,
   pub __references: References,
 }
 

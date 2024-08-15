@@ -1190,12 +1190,14 @@ export interface RawExternalsPluginOptions {
 }
 
 export interface RawExternalsPresets {
-  node: boolean
-  web: boolean
-  electron: boolean
-  electronMain: boolean
-  electronPreload: boolean
-  electronRenderer: boolean
+  web?: boolean
+  webAsync?: boolean
+  node?: boolean
+  electron?: boolean
+  electronMain?: boolean
+  electronPreload?: boolean
+  electronRenderer?: boolean
+  nwjs?: boolean
 }
 
 export interface RawExtractComments {
@@ -1471,6 +1473,7 @@ export interface RawOptions {
   node?: RawNodeOption
   profile: boolean
   bail: boolean
+  externalsPreset: RawExternalsPresets
   __references: Record<string, any>
 }
 

@@ -3,8 +3,8 @@ use std::fmt::Debug;
 
 use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
-use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
+use rspack_core::{ExternalItemFnCtx, ExternalsPresets};
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
@@ -114,10 +114,27 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawExternalsPresets {
-  pub node: bool,
-  pub web: bool,
-  pub electron: bool,
-  pub electron_main: bool,
-  pub electron_preload: bool,
-  pub electron_renderer: bool,
+  pub web: Option<bool>,
+  pub web_async: Option<bool>,
+  pub node: Option<bool>,
+  pub electron: Option<bool>,
+  pub electron_main: Option<bool>,
+  pub electron_preload: Option<bool>,
+  pub electron_renderer: Option<bool>,
+  pub nwjs: Option<bool>,
+}
+
+impl From<RawExternalsPresets> for ExternalsPresets {
+  fn from(value: RawExternalsPresets) -> Self {
+    Self {
+      web: value.web.unwrap_or(false),
+      web_async: value.web_async.unwrap_or(false),
+      node: value.node.unwrap_or(false),
+      electron: value.electron.unwrap_or(false),
+      electron_main: value.electron_main.unwrap_or(false),
+      electron_preload: value.electron_preload.unwrap_or(false),
+      electron_renderer: value.electron_renderer.unwrap_or(false),
+      nwjs: value.nwjs.unwrap_or(false),
+    }
+  }
 }

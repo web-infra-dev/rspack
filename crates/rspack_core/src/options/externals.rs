@@ -73,3 +73,15 @@ impl From<RspackRegex> for ExternalItem {
 }
 
 pub type ExternalType = String;
+
+#[derive(Debug, Default, Clone)]
+pub struct ExternalsPresets {
+  pub web: bool,
+  pub web_async: bool,
+  pub node: bool,
+  pub electron: bool,
+  pub electron_main: bool,
+  pub electron_preload: bool,
+  pub electron_renderer: bool,
+  pub nwjs: bool,
+}

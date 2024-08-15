@@ -55,6 +55,7 @@ pub struct RawOptions {
   pub node: Option<RawNodeOption>,
   pub profile: bool,
   pub bail: bool,
+  pub externals_preset: RawExternalsPresets,
   #[napi(js_name = "__references", ts_type = "Record<string, any>")]
   pub __references: References,
 }
@@ -88,6 +89,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let stats = value.stats.into();
     let snapshot = value.snapshot.into();
     let node = value.node.map(|n| n.into());
+    let externals_presets = value.externals_preset.into();
 
     Ok(CompilerOptions {
       context,
@@ -106,6 +108,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
+      externals_presets,
       __references: value.__references,
     })
   }
