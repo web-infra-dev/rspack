@@ -151,7 +151,7 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.2.48
@@ -182,7 +182,7 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0(react-refresh@0.14.0)
       '@types/react':
         specifier: ^18.2.48
@@ -295,7 +295,7 @@ importers:
         specifier: workspace:*
         version: link:../rspack-dev-server
       '@rspack/plugin-react-refresh':
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0(react-refresh@0.14.0)
       '@swc/helpers':
         specifier: 0.5.8
@@ -358,7 +358,7 @@ importers:
         specifier: workspace:*
         version: link:../../crates/node_binding
       '@rspack/lite-tapable':
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0
       '@swc/helpers':
         specifier: '>=0.5.1'
@@ -526,7 +526,7 @@ importers:
         specifier: workspace:*
         version: 'link:'
       '@rspack/plugin-react-refresh':
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0(react-refresh@0.14.0)
       '@types/connect-history-api-fallback':
         specifier: 1.5.4
@@ -867,7 +867,7 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0(react-refresh@0.14.0)
       '@svgr/webpack':
         specifier: ^8.0.0
