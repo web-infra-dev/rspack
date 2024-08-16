@@ -1,5 +1,3 @@
-import { useEffect, useMemo } from 'react';
-import { useDark } from 'rspress/runtime';
 import BackgroundUrl from './Background.simple.png';
 import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';

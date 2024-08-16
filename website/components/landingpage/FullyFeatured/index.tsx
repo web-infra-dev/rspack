@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useDark } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../theme/i18n';
 import arrow from './assets/arrow.svg';
@@ -109,7 +108,6 @@ const FullyFeatured = () => {
   ];
 
   const [isFolded, setIsFolded] = useState(true);
-  const isDark = useDark();
 
   return (
     <div className={styles.container}>
@@ -128,7 +126,6 @@ const FullyFeatured = () => {
                       src={icon}
                       alt={index.toString()}
                       className={styles.icon}
-                      style={isDark ? { filter: 'invert(1)' } : {}}
                     />
                     <div className={styles.featureContent}>
                       <h2 className={styles.featureTitle}>{title}</h2>

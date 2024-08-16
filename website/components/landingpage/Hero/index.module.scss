@@ -40,7 +40,7 @@
 }
 
 .subtitle {
-  color: var(--title-color, #0b0c0e);
+  color: var(--landingpage-title-color, #0b0c0e);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 50px;
@@ -50,7 +50,7 @@
 }
 
 .description {
-  color: var(--desc-color, #6b7075);
+  color: var(--landingpage-desc-color, #6b7075);
   text-align: center;
   /* Style 5 */
   font-family: 'Open Sans';
@@ -104,7 +104,7 @@
   border: 2px solid var(--orange-gradient, #ff8b00);
 
   // text
-  color: var(--title-color, #0b0c0e);
+  color: var(--landingpage-title-color, #0b0c0e);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 16px;

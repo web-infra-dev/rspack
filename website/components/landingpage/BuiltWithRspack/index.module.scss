@@ -39,6 +39,8 @@
   align-items: flex-start;
   align-self: stretch;
 
+  filter: var(--landingpage-invert-filter);
+
   .logo {
     display: flex;
     padding: 48px 36px 48px 36px;

@@ -1,4 +1,3 @@
-import { useDark } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../theme/i18n';
 import amazonLogo from './assets/amazon.svg';
@@ -11,15 +10,11 @@ import styles from './index.module.scss';
 
 const BuiltWithRsPack: React.FC = () => {
   const t = useI18n();
-  const isDark = useDark();
   return (
     <div className={styles.container}>
       <div className={styles.innerContainer}>
         <h2 className={styles.title}>{t('builtWithRspack')}</h2>
-        <div
-          className={styles.logos}
-          style={isDark ? { filter: 'brightness(100)' } : {}}
-        >
+        <div className={styles.logos}>
           <Link
             className={`${styles.logo} ${styles.bitDevContainer}`}
             href="https://bit.dev/"

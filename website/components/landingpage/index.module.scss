@@ -1,7 +1,8 @@
 :global {
   html:not(.dark) {
-    --title-color: #0b0c0e;
-    --desc-color: #6b7075;
+    --landingpage-title-color: #0b0c0e;
+    --landingpage-desc-color: #6b7075;
+    --landingpage-invert-filter: none;
 
     --why-rspack-card-stroke: #e6e8ea;
     --why-rspack-card-gradient: var(
@@ -14,8 +15,10 @@
   }
 
   html.dark {
-    --title-color: white;
-    --desc-color: #c6cacd;
+    --landingpage-title-color: white;
+    --landingpage-desc-color: #c6cacd;
+
+    --landingpage-invert-filter: invert(1);
 
     --why-rspack-card-stroke: #23272f;
     --why-rspack-card-gradient: var(

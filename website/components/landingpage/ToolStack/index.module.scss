@@ -23,7 +23,7 @@
   gap: 32px;
   align-self: stretch;
   .title {
-    color: var(--title-color);
+    color: var(--landingpage-title-color);
     text-align: center;
 
     /* Style 10 */
@@ -35,7 +35,7 @@
   }
 
   .description {
-    color: var(--desc-color);
+    color: var(--landingpage-desc-color);
     text-align: center;
 
     /* Style 11 */
@@ -80,7 +80,7 @@
 }
 
 .toolTitle {
-  color: var(--title-color);
+  color: var(--landingpage-title-color);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 22px;
@@ -90,7 +90,7 @@
 }
 
 .toolDescription {
-  color: var(--desc-color);
+  color: var(--landingpage-desc-color);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 15px;

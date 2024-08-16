@@ -18,7 +18,7 @@
   gap: 32px;
 
   .title {
-    color: var(--title-color);
+    color: var(--landingpage-title-color);
     text-align: center;
     /* Style 10 */
     font-family: 'Open Sans';
@@ -29,7 +29,7 @@
   }
 
   .subtitle {
-    color: var(--desc-color);
+    color: var(--landingpage-desc-color);
     text-align: center;
     /* Style 11 */
     font-family: 'Open Sans';
@@ -63,6 +63,7 @@
   gap: 16px;
 
   .icon {
+    filter: var(--landingpage-invert-filter);
     display: flex;
     width: 32px;
     height: 32px;
@@ -78,7 +79,7 @@
     gap: 8px;
 
     .featureTitle {
-      color: var(--title-color);
+      color: var(--landingpage-title-color);
       font-family: 'Open Sans';
       font-size: 18px;
       font-style: normal;
@@ -87,7 +88,7 @@
     }
 
     .featureDescription {
-      color: var(--desc-color);
+      color: var(--landingpage-desc-color);
       font-family: 'Open Sans';
       font-size: 15px;
       font-style: normal;
@@ -109,7 +110,7 @@
   border-radius: 25px;
   border: 2px solid var(--orange-gradient, #ff8b00);
   // text
-  color: var(--title-color);
+  color: var(--landingpage-title-color);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 16px;

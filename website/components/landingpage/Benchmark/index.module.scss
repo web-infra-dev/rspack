@@ -7,7 +7,7 @@
 }
 
 .title {
-  color: var(--title-color);
+  color: var(--landingpage-title-color);
   text-align: center;
   /* Style 10 */
   font-family: 'Open Sans';
@@ -18,14 +18,14 @@
 }
 
 .desc {
-  color: var(--desc-color);
+  color: var(--landingpage-desc-color);
 }
 
 .bottomLink {
   display: block;
   margin-top: 16px;
   font-size: 16px;
-  color: var(--title-color);
+  color: var(--landingpage-title-color);
 
   &:hover {
     color: var(--rp-c-link);
@@ -44,7 +44,7 @@
   border-radius: 25px;
   border: 2px solid var(--orange-gradient, #ff8b00);
   // text
-  color: var(--title-color, #0b0c0e);
+  color: var(--landingpage-title-color, #0b0c0e);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 16px;

@@ -1,11 +1,9 @@
 import { useCallback } from 'react';
-import { useDark, useLang, useNavigate } from 'rspress/runtime';
+import { useNavigate } from 'rspress/runtime';
 import { useI18n, useI18nUrl } from '../../../theme/i18n';
 import styles from './index.module.scss';
 
 const Hero = () => {
-  const isDark = useDark();
-
   const tUrl = useI18nUrl();
   const t = useI18n();
 
