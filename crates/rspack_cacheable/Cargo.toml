@@ -1,0 +1,24 @@
+[package]
+edition = "2021"
+license = "MIT"
+name    = "rspack_cacheable"
+version = "0.1.0"
+
+[dependencies]
+camino          = { workspace = true }
+dashmap         = { workspace = true }
+hashlink        = { workspace = true }
+indexmap        = { workspace = true }
+inventory       = { workspace = true }
+json            = { workspace = true }
+lightningcss    = { workspace = true }
+once_cell       = { workspace = true }
+ptr_meta        = { workspace = true }
+rkyv            = { workspace = true, features = ["validation", "strict"] }
+rspack_macros   = { path = "../rspack_macros" }
+rspack_resolver = { workspace = true }
+rspack_sources  = { workspace = true }
+serde_json      = { workspace = true }
+smol_str        = { workspace = true }
+swc_core        = { workspace = true, features = ["ecma_ast"] }
+ustr            = { workspace = true }
