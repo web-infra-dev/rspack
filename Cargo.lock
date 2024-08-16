@@ -1229,12 +1229,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
-name = "fast-glob"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "239ce881ea1fc42c19951979aa7fc75d740f6cd553101922b4d1f48d68429234"
-
-[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3464,7 +3458,6 @@ name = "rspack_glob"
 version = "0.1.0"
 dependencies = [
  "codspeed-criterion-compat",
- "fast-glob",
  "tempdir",
 ]
 

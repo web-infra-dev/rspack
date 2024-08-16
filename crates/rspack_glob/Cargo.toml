@@ -10,9 +10,4 @@ ignored = ["tempdir"]
 
 [dev-dependencies]
 codspeed-criterion-compat = "2.6.0"
-fast-glob                 = "0.3.2"
 tempdir                   = "0.3"
-
-[[bench]]
-harness = false
-name    = "bench"
