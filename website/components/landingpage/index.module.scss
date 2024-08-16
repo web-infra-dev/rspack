@@ -31,13 +31,12 @@
 }
 
 .landingPage {
-  background-size: contain;
   position: relative;
 }
 
 .background {
   position: absolute;
-  top: 0;
+  top: calc(-1 * var(--rp-nav-height));
   left: 0;
   width: 100%;
   z-index: -1;

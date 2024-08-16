@@ -1,3 +1,5 @@
+import { useEffect, useMemo } from 'react';
+import { useDark } from 'rspress/runtime';
 import BackgroundUrl from './Background.simple.png';
 import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';
@@ -16,6 +18,17 @@ const Background = () => {
 const LandingPage = () => {
   return (
     <div className={styles.landingPage}>
+      <style>
+        {`:root {
+              --rp-c-bg: #0b0c0e;
+          }
+          :root:not(.dark) {
+              --rp-c-bg: #fff;
+          }
+          .rspress-nav {
+            background: transparent !important;
+          }`}
+      </style>
       <Background />
       <Hero />
       <WhyRspack />
