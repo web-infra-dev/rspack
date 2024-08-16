@@ -1,4 +1,4 @@
-import BackgroundSvg from './Background.png';
+import BackgroundUrl from './Background.simple.png';
 import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';
 import FullyFeatured from './FullyFeatured';
@@ -9,7 +9,7 @@ import styles from './index.module.scss';
 
 const Background = () => {
   return (
-    <img className={styles.background} src={BackgroundSvg} alt="background" />
+    <img className={styles.background} src={BackgroundUrl} alt="background" />
   );
 };
 

@@ -1,3 +1,12 @@
+:global {
+  html:not(.dark) {
+    --tool-stack-shadow-color: #f9f9f9;
+  }
+  html.dark {
+    --tool-stack-shadow-color: #23272f;
+  }
+}
+
 .container {
   display: flex;
   padding: 64px 144px;
@@ -14,7 +23,7 @@
   gap: 32px;
   align-self: stretch;
   .title {
-    color: var(--Text-primary-color, #0b0c0e);
+    color: var(--title-color);
     text-align: center;
 
     /* Style 10 */
@@ -26,7 +35,7 @@
   }
 
   .description {
-    color: var(--Text-secondary-color, #6b7075);
+    color: var(--desc-color);
     text-align: center;
 
     /* Style 11 */
@@ -56,16 +65,9 @@
 
   // style
   border-radius: 10px;
-  border: 1px solid var(--Card-Stroke, #e6e8ea);
-  background: var(
-    --Light-card-gradient,
-    conic-gradient(
-      from 225deg at 50% 50%,
-      rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
-      #fff 360deg
-    )
-  );
-  box-shadow: 0px -2px 10px 0px #f9f9f9;
+  border: 1px solid var(--why-rspack-card-stroke);
+  background: var(--why-rspack-card-gradient);
+  box-shadow: 0px -2px 10px 0px var(--tool-stack-shadow-color);
 }
 
 .tool:hover {
@@ -78,7 +80,7 @@
 }
 
 .toolTitle {
-  color: var(--dark-bg-70, #0b0c0e);
+  color: var(--title-color);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 22px;
@@ -88,7 +90,7 @@
 }
 
 .toolDescription {
-  color: var(--secondary-text-light, #6b7075);
+  color: var(--desc-color);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 15px;

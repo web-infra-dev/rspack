@@ -1,8 +1,40 @@
+:global {
+  html:not(.dark) {
+    --title-color: #0b0c0e;
+    --desc-color: #6b7075;
+
+    --why-rspack-card-stroke: #e6e8ea;
+    --why-rspack-card-gradient: var(
+      conic-gradient(
+        from 225deg at 50% 50%,
+        rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
+        #fff 360deg
+      )
+    );
+  }
+
+  html.dark {
+    --title-color: white;
+    --desc-color: #c6cacd;
+
+    --why-rspack-card-stroke: #23272f;
+    --why-rspack-card-gradient: var(
+      --Flipped-Angular-gradient,
+      conic-gradient(
+        from 225deg at 50.02% 50.04%,
+        rgba(255, 255, 255, 0) 0deg,
+        rgba(255, 255, 255, 0.06) 360deg
+      ),
+      rgba(11, 12, 14, 0.8)
+    );
+  }
+}
+
 .landingPage {
-  // background: url('./Background.svg') no-repeat;
   background-size: contain;
   position: relative;
 }
+
 .background {
   position: absolute;
   top: 0;

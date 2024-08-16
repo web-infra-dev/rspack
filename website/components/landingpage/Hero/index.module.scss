@@ -1,15 +1,3 @@
-:global {
-  html:not(.dark) {
-    --text-color: #0b0c0e;
-    --desc-color: #6b7075;
-  }
-
-  html.dark {
-    --text-color: white;
-    --desc-color: #c6cacd;
-  }
-}
-
 .hero {
   display: flex;
   justify-content: center;
@@ -52,7 +40,7 @@
 }
 
 .subtitle {
-  color: var(--text-color, #0b0c0e);
+  color: var(--title-color, #0b0c0e);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 50px;
@@ -116,7 +104,7 @@
   border: 2px solid var(--orange-gradient, #ff8b00);
 
   // text
-  color: var(--text-color, #0b0c0e);
+  color: var(--title-color, #0b0c0e);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 16px;

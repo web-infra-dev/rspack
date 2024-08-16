@@ -7,8 +7,7 @@
 }
 
 .title {
-  color: var(--rp-c-text-1);
-  color: var(--Text-primary-color, #0b0c0e);
+  color: var(--title-color);
   text-align: center;
   /* Style 10 */
   font-family: 'Open Sans';
@@ -19,14 +18,14 @@
 }
 
 .desc {
-  color: var(--rp-c-text-2);
+  color: var(--desc-color);
 }
 
 .bottomLink {
   display: block;
   margin-top: 16px;
   font-size: 16px;
-  color: var(--rp-c-text-2);
+  color: var(--title-color);
 
   &:hover {
     color: var(--rp-c-link);
@@ -45,7 +44,7 @@
   border-radius: 25px;
   border: 2px solid var(--orange-gradient, #ff8b00);
   // text
-  color: var(--dark-bg-70, #0b0c0e);
+  color: var(--title-color, #0b0c0e);
   text-align: center;
   font-family: 'Open Sans';
   font-size: 16px;
