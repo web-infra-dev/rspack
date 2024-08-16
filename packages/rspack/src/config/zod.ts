@@ -1365,7 +1365,8 @@ const experiments = z.strictObject({
 	css: z.boolean().optional(),
 	layers: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional()
+	rspackFuture: rspackFutureOptions.optional(),
+	rsc: z.boolean().optional()
 });
 export type Experiments = z.infer<typeof experiments>;
 //#endregion

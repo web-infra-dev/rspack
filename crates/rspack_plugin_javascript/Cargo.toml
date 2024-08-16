@@ -27,6 +27,7 @@ rspack_error = { version = "0.1.0", path = "../rspack_error" }
 rspack_hash = { version = "0.1.0", path = "../rspack_hash" }
 rspack_hook = { version = "0.1.0", path = "../rspack_hook" }
 rspack_ids = { version = "0.1.0", path = "../rspack_ids/" }
+rspack_plugin_rsc = { path = "../rspack_plugin_rsc" }
 rspack_regex = { version = "0.1.0", path = "../rspack_regex" }
 rspack_util = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash = { workspace = true }

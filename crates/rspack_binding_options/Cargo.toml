@@ -56,6 +56,7 @@ rspack_plugin_mf                      = { version = "0.1.0", path = "../rspack_p
 rspack_plugin_progress                = { version = "0.1.0", path = "../rspack_plugin_progress" }
 rspack_plugin_real_content_hash       = { version = "0.1.0", path = "../rspack_plugin_real_content_hash" }
 rspack_plugin_remove_empty_chunks     = { version = "0.1.0", path = "../rspack_plugin_remove_empty_chunks" }
+rspack_plugin_rsc                     = { version = "0.1.0", path = "../rspack_plugin_rsc" }
 rspack_plugin_runtime                 = { version = "0.1.0", path = "../rspack_plugin_runtime" }
 rspack_plugin_runtime_chunk           = { version = "0.1.0", path = "../rspack_plugin_runtime_chunk" }
 rspack_plugin_schemes                 = { version = "0.1.0", path = "../rspack_plugin_schemes" }

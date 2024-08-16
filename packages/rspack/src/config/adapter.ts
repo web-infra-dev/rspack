@@ -886,13 +886,14 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, layers, rspackFuture } = experiments;
+	const { topLevelAwait, layers, rspackFuture, rsc = false } = experiments;
 	assert(!isNil(topLevelAwait) && !isNil(rspackFuture) && !isNil(layers));
 
 	return {
 		layers,
 		topLevelAwait,
-		rspackFuture: getRawRspackFutureOptions(rspackFuture)
+		rspackFuture: getRawRspackFutureOptions(rspackFuture),
+		rsc
 	};
 }
 

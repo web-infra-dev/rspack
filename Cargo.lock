@@ -2956,6 +2956,7 @@ dependencies = [
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
+ "rspack_plugin_rsc",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
@@ -3207,6 +3208,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_plugin_javascript",
+ "rspack_plugin_rsc",
  "rspack_util",
  "serde",
  "serde_json",
@@ -3553,6 +3555,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_ids",
+ "rspack_plugin_rsc",
  "rspack_regex",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3710,6 +3713,41 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rsc"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bitflags 2.5.0",
+ "dashmap 5.5.3",
+ "futures",
+ "indexmap 2.2.6",
+ "itertools 0.13.0",
+ "linked_hash_set",
+ "num-bigint",
+ "once_cell",
+ "rayon",
+ "regex",
+ "rspack_ast",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_ids",
+ "rspack_loader_runner",
+ "rspack_regex",
+ "rspack_util",
+ "rustc-hash 1.1.0",
+ "serde",
+ "serde_json",
+ "sugar_path",
+ "swc_core",
+ "swc_node_comments",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -4667,6 +4705,7 @@ dependencies = [
  "swc_ecma_transforms_compat",
  "swc_ecma_transforms_module",
  "swc_ecma_transforms_optimization",
+ "swc_ecma_transforms_proposal",
  "swc_ecma_transforms_react",
  "swc_ecma_transforms_typescript",
  "swc_ecma_utils",

@@ -522,6 +522,7 @@ export interface ExperimentsNormalized {
 	layers?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
+	rsc?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
