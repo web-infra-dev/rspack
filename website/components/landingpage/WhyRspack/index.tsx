@@ -1,10 +1,10 @@
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../theme/i18n';
-import Bg from './assets/Bg.svg';
 import Compatible from './assets/Compatible.svg';
 import FrameCheck from './assets/FrameCheck.svg';
 import Lightning from './assets/Lightning.svg';
 import Speedometer from './assets/Speedometer.svg';
+import WhyRspackBg from './assets/WhyRspackBg.png';
 import styles from './index.module.scss';
 
 const Features = () => {
@@ -20,7 +20,7 @@ const Features = () => {
               <p className={styles.whyRspackDescription}>
                 {t('whyRspackDesc')}
               </p>
-              <img className={styles.whyRspackBg} src={Bg} alt="bg" />
+              <img className={styles.whyRspackBg} src={WhyRspackBg} alt="bg" />
             </div>
           </div>
           <Link

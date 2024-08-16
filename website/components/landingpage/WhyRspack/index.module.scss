@@ -18,6 +18,8 @@
   position: relative;
 
   .whyRspackBg {
+    width: 250px;
+    height: 250px;
     position: absolute;
     bottom: 32px;
     right: 32px;
@@ -81,7 +83,7 @@
   }
 
   .featureIcon {
-    background: url('./assets/CardBg.svg') no-repeat;
+    background: url('./assets/CardBg.png') no-repeat;
     background-size: contain;
 
     display: flex;

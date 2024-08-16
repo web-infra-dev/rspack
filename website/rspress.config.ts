@@ -156,17 +156,5 @@ export default defineConfig({
         },
       ],
     },
-    output: {
-      copy: {
-        patterns: [
-          {
-            from: path.join(__dirname, 'docs', 'public', '_redirects'),
-          },
-          {
-            from: path.join(__dirname, 'docs', 'public', '_headers'),
-          },
-        ],
-      },
-    },
   },
 });
