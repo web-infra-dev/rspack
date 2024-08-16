@@ -15,7 +15,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
-  add_connection_states, assign_depth, assign_depths, get_entry_runtime,
+  add_connection_states, assign_depth, assign_depths, get_entry_runtime, merge_runtime,
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
   EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
@@ -791,7 +791,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_by_ukey
           .entry(*chunk_ukey)
           .and_modify(|chunk| {
-            chunk.runtime.extend(cgi.runtime.clone());
+            chunk.runtime = merge_runtime(&chunk.runtime, &cgi.runtime);
           });
       }
     }

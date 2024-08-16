@@ -61,7 +61,7 @@ define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut 
 define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
-define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &mut Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
@@ -757,7 +757,7 @@ impl Compilation {
       cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
-      let results = compilation.code_generation_modules(
+      compilation.code_generation_modules(
         cache_counter,
         compilation
           .get_module_graph()
@@ -766,15 +766,7 @@ impl Compilation {
           .filter(filter_op)
           .map(|(id, _)| id)
           .collect(),
-      )?;
-
-      results.iter().for_each(|module_identifier| {
-        compilation
-          .code_generated_modules
-          .insert(*module_identifier);
-      });
-
-      Ok(())
+      )
     }
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
@@ -796,7 +788,7 @@ impl Compilation {
     &mut self,
     cache_counter: &mut Option<CacheCount>,
     modules: IdentifierSet,
-  ) -> Result<Vec<ModuleIdentifier>> {
+  ) -> Result<()> {
     let chunk_graph = &self.chunk_graph;
     let module_graph = self.get_module_graph();
     let mut jobs = Vec::new();
@@ -860,31 +852,28 @@ impl Compilation {
           .map(|(res, runtimes, from_cache)| (module, res, runtimes, from_cache))
       })
       .collect::<Result<Vec<_>>>()?;
-    let results = results
-      .into_iter()
-      .map(|(module, codegen_res, runtimes, from_cache)| {
-        if let Some(counter) = cache_counter {
-          if from_cache {
-            counter.hit();
-          } else {
-            counter.miss();
-          }
+    for (module, codegen_res, runtimes, from_cache) in results {
+      if let Some(counter) = cache_counter {
+        if from_cache {
+          counter.hit();
+        } else {
+          counter.miss();
         }
+      }
 
-        let codegen_res_id = codegen_res.id;
+      let codegen_res_id = codegen_res.id;
+      self
+        .code_generation_results
+        .module_generation_result_map
+        .insert(codegen_res_id, codegen_res);
+      for runtime in runtimes {
         self
           .code_generation_results
-          .module_generation_result_map
-          .insert(codegen_res_id, codegen_res);
-        for runtime in runtimes {
-          self
-            .code_generation_results
-            .add(module, runtime, codegen_res_id);
-        }
-        module
-      });
-
-    Ok(results.collect())
+          .add(module, runtime, codegen_res_id);
+      }
+      self.code_generated_modules.insert(module);
+    }
+    Ok(())
   }
 
   #[instrument(name = "compilation::create_module_assets", skip_all)]
@@ -1324,52 +1313,49 @@ impl Compilation {
 
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
-    let mut module_runtime_requirements = modules
+    let results: Vec<(ModuleIdentifier, RuntimeSpec, RuntimeGlobals)> = modules
       .into_par_iter()
-      .filter_map(|module_identifier| {
-        if self
-          .chunk_graph
-          .get_number_of_module_chunks(module_identifier)
-          > 0
-        {
-          let mut module_runtime_requirements: Vec<(RuntimeSpec, RuntimeGlobals)> = vec![];
-          for runtime in self
-            .chunk_graph
-            .get_module_runtimes(module_identifier, &self.chunk_by_ukey)
-            .values()
-          {
-            let runtime_requirements = self
-              .code_generation_results
-              .get_runtime_requirements(&module_identifier, Some(runtime));
-            module_runtime_requirements.push((runtime.clone(), runtime_requirements));
-          }
-          return Some((module_identifier, module_runtime_requirements));
-        }
-        None
-      })
-      .collect::<Vec<_>>();
-
-    for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
-      for (runtime, requirements) in runtime_requirements.iter_mut() {
-        process_runtime_requirement_hook(
-          requirements,
-          |runtime_requirements, runtime_requirements_mut| {
-            plugin_driver
-              .compilation_hooks
-              .runtime_requirement_in_module
-              .call(
-                self,
-                module_identifier,
-                runtime_requirements,
-                runtime_requirements_mut,
-              )?;
-            Ok(())
-          },
-        )?;
+      .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
+      .flat_map(|module| {
         self
           .chunk_graph
-          .add_module_runtime_requirements(*module_identifier, runtime, *requirements)
-      }
+          .get_module_runtimes(module, &self.chunk_by_ukey)
+          .into_values()
+          .map(|runtime| (module, runtime))
+          .collect::<Vec<_>>()
+      })
+      .map(|(module, runtime)| {
+        let runtime_requirements = self
+          .old_cache
+          .process_runtime_requirements_occasion
+          .use_cache(module, &runtime, self, |module, runtime| {
+            let mut runtime_requirements = self
+              .code_generation_results
+              .get_runtime_requirements(&module, Some(runtime));
+            process_runtime_requirement_hook(
+              &mut runtime_requirements,
+              |runtime_requirements, runtime_requirements_mut| {
+                plugin_driver
+                  .compilation_hooks
+                  .runtime_requirement_in_module
+                  .call(
+                    self,
+                    &module,
+                    runtime_requirements,
+                    runtime_requirements_mut,
+                  )?;
+                Ok(())
+              },
+            )?;
+            Ok(runtime_requirements)
+          })?;
+        Ok((module, runtime, runtime_requirements))
+      })
+      .collect::<Result<_>>()?;
+    for (module, runtime, runtime_requirements) in results {
+      self
+        .chunk_graph
+        .add_module_runtime_requirements(module, &runtime, runtime_requirements);
     }
     logger.time_end(start);
 
