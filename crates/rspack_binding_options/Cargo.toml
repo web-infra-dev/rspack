@@ -53,6 +53,7 @@ rspack_plugin_lightning_css_minimizer = { version = "0.1.0", path = "../rspack_p
 rspack_plugin_limit_chunk_count       = { version = "0.1.0", path = "../rspack_plugin_limit_chunk_count" }
 rspack_plugin_merge_duplicate_chunks  = { version = "0.1.0", path = "../rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                      = { version = "0.1.0", path = "../rspack_plugin_mf" }
+rspack_plugin_no_emit_on_errors       = { version = "0.1.0", path = "../rspack_plugin_no_emit_on_errors" }
 rspack_plugin_progress                = { version = "0.1.0", path = "../rspack_plugin_progress" }
 rspack_plugin_real_content_hash       = { version = "0.1.0", path = "../rspack_plugin_real_content_hash" }
 rspack_plugin_remove_empty_chunks     = { version = "0.1.0", path = "../rspack_plugin_remove_empty_chunks" }

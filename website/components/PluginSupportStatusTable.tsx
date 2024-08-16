@@ -103,7 +103,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NoEmitOnErrorsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'NormalModuleReplacementPlugin',

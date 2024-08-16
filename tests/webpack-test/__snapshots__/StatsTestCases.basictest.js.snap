@@ -756,7 +756,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-trace-disabled-in-error 1`] = `
-"asset main.js 1.58 KiB [emitted] (name: main)
+"assets by status 1.58 KiB [cached] 1 asset
 modules with errors 53 bytes [errors]
   ./not-existing.js 26 bytes [built] [code generated] [1 error]
   ./parse-error.js 27 bytes [built] [code generated] [1 error]
@@ -789,7 +789,7 @@ Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-trace-enabled-in-error 1`] = `
-"asset main.js 1.58 KiB [emitted] (name: main)
+"assets by status 1.58 KiB [cached] 1 asset
 modules with errors 53 bytes [errors]
   ./not-existing.js 26 bytes [built] [code generated] [1 error]
   ./parse-error.js 27 bytes [built] [code generated] [1 error]
@@ -904,7 +904,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
-"asset main.js 1.41 KiB [emitted] (name: main)
+"assets by status 1.41 KiB [cached] 1 asset
 orphan modules 30 bytes [orphan] 2 modules
 cacheable modules 85 bytes
   ./index.js + 1 modules 30 bytes [code generated]

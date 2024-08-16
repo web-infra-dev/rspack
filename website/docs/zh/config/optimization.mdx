@@ -345,3 +345,15 @@ module.exports = {
 :::tip
 当 [mode](/config/mode) 被设置为 `'none'` 时，`optimization.nodeEnv` 默认为 `false`。
 :::
+
+## optimization.emitOnErrors
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
+  ]}
+/>
+
+开启 optimization.emitOnErrors 时，即使编译过程中发生错误也会生成产物。关键错误会被注入到产物代码中，运行它们时会抛出错误。

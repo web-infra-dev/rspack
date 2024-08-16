@@ -101,6 +101,7 @@ ngtools
 noimport
 nosources
 nwjs
+optimizationemitonerrors
 optionsrspackexperiments
 outputdevtoolfallbackmodulefilenametemplate
 outputdevtoolmodulefilenametemplate

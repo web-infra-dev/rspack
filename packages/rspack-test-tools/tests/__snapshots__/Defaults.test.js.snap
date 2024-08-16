@@ -236,6 +236,7 @@ Object {
   "optimization": Object {
     "chunkIds": "natural",
     "concatenateModules": false,
+    "emitOnErrors": true,
     "innerGraph": false,
     "mangleExports": false,
     "mergeDuplicateChunks": true,
