@@ -16,7 +16,7 @@ import MultiWatching from "./MultiWatching";
 import type { WatchOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import ArrayQueue from "./util/ArrayQueue";
-import type { WatchFileSystem } from "./util/fs";
+import type { InputFileSystem, WatchFileSystem } from "./util/fs";
 
 interface Node<T> {
 	compiler: Compiler;
@@ -162,7 +162,7 @@ export class MultiCompiler {
 		throw new Error("Cannot read outputFileSystem of a MultiCompiler");
 	}
 
-	set inputFileSystem(value) {
+	set inputFileSystem(value: InputFileSystem) {
 		for (const compiler of this.compilers) {
 			compiler.inputFileSystem = value;
 		}
@@ -540,9 +540,7 @@ export class MultiCompiler {
 
 	purgeInputFileSystem() {
 		for (const compiler of this.compilers) {
-			if (compiler.inputFileSystem?.purge) {
-				compiler.inputFileSystem.purge();
-			}
+			compiler.inputFileSystem?.purge?.();
 		}
 	}
 
