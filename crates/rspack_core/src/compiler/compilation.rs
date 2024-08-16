@@ -1277,7 +1277,7 @@ impl Compilation {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
-    UkeySet::from_iter(entries.chain(async_entries))
+    entries.chain(async_entries).collect()
   }
 
   #[allow(clippy::unwrap_in_result)]

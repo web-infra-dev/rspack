@@ -7,7 +7,7 @@ use std::{
 };
 
 use dashmap::DashMap;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
@@ -656,7 +656,7 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|s| Atom::new(*s)));
+    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
 
     for module_info_id in modules_with_info.iter() {
@@ -1042,10 +1042,10 @@ impl Module for ConcatenatedModule {
       for module_info_id in needed_namespace_objects.clone().iter() {
         if visited.contains(module_info_id) {
           continue;
-        } else {
-          visited.insert(*module_info_id);
-          changed = true;
         }
+        visited.insert(*module_info_id);
+        changed = true;
+
         let module_info = module_to_info_map
           .get(module_info_id)
           .map(|m| m.as_concatenated())
@@ -1301,7 +1301,7 @@ impl Module for ConcatenatedModule {
     let runtime = runtime.as_deref();
     for info in self.create_concatenation_list(
       self.root_module_ctxt.id,
-      IndexSet::from_iter(self.modules.iter().map(|item| item.id)),
+      self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
     ) {
@@ -1417,7 +1417,7 @@ impl ConcatenatedModule {
   ) -> (Vec<ModuleIdentifier>, IdentifierIndexMap<ModuleInfo>) {
     let ordered_concatenation_list = self.create_concatenation_list(
       self.root_module_ctxt.id,
-      IndexSet::from_iter(self.modules.iter().map(|item| item.id)),
+      self.modules.iter().map(|item| item.id).collect(),
       runtime,
       mg,
     );

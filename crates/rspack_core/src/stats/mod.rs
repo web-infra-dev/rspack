@@ -273,7 +273,7 @@ impl Stats<'_> {
           .into_iter()
           .collect::<IdentifierSet>();
 
-        let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
+        let mut auxiliary_files = c.auxiliary_files.iter().cloned().collect::<Vec<_>>();
         auxiliary_files.sort_unstable();
 
         let chunk_modules = if options.chunk_modules {

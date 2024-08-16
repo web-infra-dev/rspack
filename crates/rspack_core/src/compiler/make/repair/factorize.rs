@@ -203,7 +203,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       context_dependencies,
       missing_dependencies,
       diagnostics,
-      ..
     } = *self;
     let artifact = &mut context.artifact;
     if !diagnostics.is_empty() {
