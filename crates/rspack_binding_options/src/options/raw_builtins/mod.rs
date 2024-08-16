@@ -505,7 +505,7 @@ impl BuiltinPlugin {
         ) as Box<dyn Plugin>)
       }
       BuiltinPluginName::NoEmitOnErrorsPlugin => {
-        plugins.push(NoEmitOnErrorsPlugin::new().boxed());
+        plugins.push(NoEmitOnErrorsPlugin::default().boxed());
       }
     }
     Ok(())

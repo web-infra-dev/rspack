@@ -10,8 +10,8 @@ use rspack_hook::{plugin, plugin_hook};
 #[derive(Debug)]
 pub struct NoEmitOnErrorsPlugin {}
 
-impl NoEmitOnErrorsPlugin {
-  pub fn new() -> Self {
+impl Default for NoEmitOnErrorsPlugin {
+  fn default() -> Self {
     Self::new_inner()
   }
 }
