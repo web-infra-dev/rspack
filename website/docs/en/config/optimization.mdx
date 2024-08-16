@@ -351,3 +351,15 @@ module.exports = {
 :::tip
 When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
 :::
+
+## optimization.emitOnErrors
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
+  ]}
+/>
+
+Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. Critical errors are emitted into the generated code and will cause errors at runtime.
