@@ -85,7 +85,7 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/css-concat-error should print correct stats for 1`] = `
-"asset main.js 49 bytes [emitted] (name: main)
+"assets by status 49 bytes [cached] 1 asset
 
 ERROR in × Module not found: Can't resolve './src' in 'Xdir/css-concat-error'
 
@@ -380,7 +380,7 @@ exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
 `;
 
 exports[`statsOutput statsOutput/resolve-overflow-error should print correct stats for 1`] = `
-"asset main.js 348 bytes [emitted] (name: main)
+"assets by status 348 bytes [cached] 1 asset
 ./index.js 51 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-34

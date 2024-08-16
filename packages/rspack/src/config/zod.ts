@@ -1308,7 +1308,8 @@ const optimization = z.strictObject({
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
-	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
+	nodeEnv: z.union([z.string(), z.literal(false)]).optional(),
+	emitOnErrors: z.boolean().optional()
 });
 export type Optimization = z.infer<typeof optimization>;
 //#endregion

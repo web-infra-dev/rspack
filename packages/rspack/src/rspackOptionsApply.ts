@@ -54,6 +54,7 @@ import {
 	NamedModuleIdsPlugin,
 	NaturalChunkIdsPlugin,
 	NaturalModuleIdsPlugin,
+	NoEmitOnErrorsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -173,6 +174,10 @@ export class RspackOptionsApply {
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
 			new RuntimeChunkPlugin(runtimeChunk).apply(compiler);
+		}
+
+		if (!options.optimization.emitOnErrors) {
+			new NoEmitOnErrorsPlugin().apply(compiler);
 		}
 
 		if (options.devtool) {

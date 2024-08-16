@@ -56,6 +56,7 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
+use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
@@ -160,6 +161,7 @@ pub enum BuiltinPluginName {
   APIPlugin,
   RuntimeChunkPlugin,
   SizeLimitsPlugin,
+  NoEmitOnErrorsPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -501,6 +503,9 @@ impl BuiltinPlugin {
             options.imports,
           ),
         ) as Box<dyn Plugin>)
+      }
+      BuiltinPluginName::NoEmitOnErrorsPlugin => {
+        plugins.push(NoEmitOnErrorsPlugin::new().boxed());
       }
     }
     Ok(())

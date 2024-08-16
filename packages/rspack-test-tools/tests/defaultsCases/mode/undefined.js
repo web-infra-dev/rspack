@@ -13,10 +13,12 @@ module.exports = {
 		@@ ... @@
 		-     "chunkIds": "natural",
 		-     "concatenateModules": false,
+		-     "emitOnErrors": true,
 		-     "innerGraph": false,
 		-     "mangleExports": false,
 		+     "chunkIds": "deterministic",
 		+     "concatenateModules": true,
+		+     "emitOnErrors": false,
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
