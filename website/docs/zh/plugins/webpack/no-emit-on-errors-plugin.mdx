@@ -1,0 +1,11 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# NoEmitOnErrorsPlugin
+
+<ApiMeta addedVersion={'1.0.0'} />
+
+此插件用来在编译错误时阻止产物生成，[`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) 底层使用了该插件。
+
+```js
+new rspack.NoEmitOnErrorsPlugin();
+```
