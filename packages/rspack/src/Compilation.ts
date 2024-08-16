@@ -50,6 +50,7 @@ import { StatsPrinter } from "./stats/StatsPrinter";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
+import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
@@ -224,7 +225,7 @@ export class Compilation {
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
 	logging: Map<string, LogEntry[]>;

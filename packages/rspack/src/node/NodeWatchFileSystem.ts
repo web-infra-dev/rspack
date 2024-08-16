@@ -131,7 +131,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			getAggregatedRemovals: util.deprecate(
 				() => {
 					const items = this.watcher?.aggregatedRemovals;
-					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
+					if (items && this.inputFileSystem?.purge) {
 						const fs = this.inputFileSystem;
 						for (const item of items) {
 							fs.purge?.(item);
@@ -145,7 +145,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			getAggregatedChanges: util.deprecate(
 				() => {
 					const items = this.watcher?.aggregatedChanges;
-					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
+					if (items && this.inputFileSystem?.purge) {
 						const fs = this.inputFileSystem;
 						for (const item of items) {
 							fs.purge?.(item);

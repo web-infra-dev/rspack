@@ -6,6 +6,7 @@
 
 /// <reference types="node" />
 
+import type { Abortable } from 'node:events';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -765,6 +766,17 @@ export type BaseUri = z.infer<typeof baseUri>;
 const baseUri: z.ZodString;
 
 // @public (undocumented)
+type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
+
+// @public (undocumented)
+type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
+
+// @public (undocumented)
+type BufferEncodingOption = "buffer" | {
+    encoding: "buffer";
+};
+
+// @public (undocumented)
 class Cache_2 {
     constructor();
     // (undocumented)
@@ -1142,7 +1154,7 @@ export class Compilation {
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
     // (undocumented)
-    inputFileSystem: any;
+    inputFileSystem: InputFileSystem | null;
     // (undocumented)
     logging: Map<string, LogEntry[]>;
     // (undocumented)
@@ -1298,7 +1310,7 @@ export class Compiler {
     // (undocumented)
     infrastructureLogger: any;
     // (undocumented)
-    inputFileSystem: any;
+    inputFileSystem: InputFileSystem | null;
     // (undocumented)
     intermediateFileSystem: any;
     // (undocumented)
@@ -1986,6 +1998,9 @@ const EnableWasmLoadingPlugin: {
         apply(compiler: Compiler_2): void;
     };
 };
+
+// @public (undocumented)
+type EncodingOption = ObjectEncodingOptions | BufferEncoding | undefined | null;
 
 // @public (undocumented)
 export type Entry = z.infer<typeof entry>;
@@ -4706,6 +4721,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
+type IBigIntStats = IStatsBase<bigint> & {
+    atimeNs: bigint;
+    mtimeNs: bigint;
+    ctimeNs: bigint;
+    birthtimeNs: bigint;
+};
+
+// @public (undocumented)
 interface IDirent {
     // (undocumented)
     isBlockDevice: () => boolean;
@@ -4797,6 +4820,28 @@ const infrastructureLogging: z.ZodObject<{
     level?: "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     stream?: NodeJS.WritableStream | undefined;
 }>;
+
+// @public (undocumented)
+type InputFileSystem = {
+    readFile: ReadFile;
+    readFileSync?: ReadFileSync;
+    readlink: Readlink;
+    readlinkSync?: ReadlinkSync;
+    readdir: Readdir;
+    readdirSync?: ReaddirSync;
+    stat: Stat;
+    statSync?: StatSync;
+    lstat?: LStat;
+    lstatSync?: LStatSync;
+    realpath?: RealPath;
+    realpathSync?: RealPathSync;
+    readJson?: ReadJson;
+    readJsonSync?: ReadJsonSync;
+    purge?: Purge;
+    join?: (path1: string, path2: string) => string;
+    relative?: (from: string, to: string) => string;
+    dirname?: (path: string) => string;
+};
 
 // @public (undocumented)
 type IStats = IStatsBase<number>;
@@ -4955,6 +5000,22 @@ interface JsFormatOptions {
     wrapFuncArgs?: boolean;
     wrapIife?: boolean;
 }
+
+// @public (undocumented)
+type JsonArray = JsonValue[];
+
+// @public (undocumented)
+type JsonObject = {
+    [Key in string]: JsonValue;
+} & {
+    [Key in string]?: JsonValue | undefined;
+};
+
+// @public (undocumented)
+type JsonPrimitive = string | number | boolean | null;
+
+// @public (undocumented)
+type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -6032,6 +6093,42 @@ const LogType: Readonly<{
 type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 
 // @public (undocumented)
+type LStat = {
+    (path: PathLike, callback: StatsCallback): void;
+    (path: PathLike, options: (StatOptions & {
+        bigint?: false;
+    }) | undefined, callback: StatsCallback): void;
+    (path: PathLike, options: StatOptions & {
+        bigint: true;
+    }, callback: BigIntStatsCallback): void;
+    (path: PathLike, options: StatOptions | undefined, callback: StatsOrBigIntStatsCallback): void;
+};
+
+// @public (undocumented)
+type LStatSync = {
+    (path: PathLike, options?: undefined): IStats;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+        throwIfNoEntry: false;
+    }): IStats | undefined;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+        throwIfNoEntry: false;
+    }): IBigIntStats | undefined;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+    }): IStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+    }): IBigIntStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: boolean;
+        throwIfNoEntry?: false;
+    }): IStats | IBigIntStats;
+    (path: PathLike, options?: StatSyncOptions): IStats | IBigIntStats | undefined;
+};
+
+// @public (undocumented)
 type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public
@@ -7063,8 +7160,8 @@ export class MultiCompiler {
         infrastructureLog: liteTapable.MultiHook<liteTapable.SyncBailHook<[string, string, any[]], true>>;
     };
     // (undocumented)
-    get inputFileSystem(): void;
-    set inputFileSystem(value: void);
+    get inputFileSystem(): InputFileSystem;
+    set inputFileSystem(value: InputFileSystem);
     // (undocumented)
     get intermediateFileSystem(): void;
     set intermediateFileSystem(value: void);
@@ -7295,6 +7392,11 @@ export class NormalModuleReplacementPlugin {
     // (undocumented)
     readonly resourceRegExp: RegExp;
 }
+
+// @public (undocumented)
+type ObjectEncodingOptions = {
+    encoding?: BufferEncoding | null;
+};
 
 // @public (undocumented)
 export type Optimization = z.infer<typeof optimization>;
@@ -9298,6 +9400,12 @@ export type Pathinfo = z.infer<typeof pathinfo>;
 const pathinfo: z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>;
 
 // @public (undocumented)
+type PathLike = string | Buffer | URL;
+
+// @public (undocumented)
+type PathOrFileDescriptor = PathLike | number;
+
+// @public (undocumented)
 type Performance_2 = z.infer<typeof performance_2>;
 export { Performance_2 as Performance }
 
@@ -9458,6 +9566,9 @@ export type PublicPath = z.infer<typeof publicPath>;
 const publicPath: z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>;
 
 // @public (undocumented)
+type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
 type RawReactOptions = {
     runtime?: "automatic" | "classic";
     importSource?: string;
@@ -9483,6 +9594,133 @@ type RawSourceMap = {
 
 // @public (undocumented)
 type ReactOptions = RawReactOptions | undefined;
+
+// @public (undocumented)
+type Readdir = {
+    (path: PathLike, options: {
+        encoding: BufferEncoding | null;
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | BufferEncoding | null | undefined, callback: ReaddirStringCallback): void;
+    (path: PathLike, options: {
+        encoding: "buffer";
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | "buffer", callback: ReaddirBufferCallback): void;
+    (path: PathLike, callback: ReaddirStringCallback): void;
+    (path: PathLike, options: (ObjectEncodingOptions & {
+        withFileTypes: true;
+        recursive?: boolean;
+    }) | BufferEncoding | null | undefined, callback: ReaddirStringOrBufferCallback): void;
+    (path: PathLike, options: ObjectEncodingOptions & {
+        withFileTypes: true;
+        recursive?: boolean;
+    }, callback: ReaddirDirentCallback): void;
+};
+
+// @public (undocumented)
+type ReaddirBufferCallback = (err: NodeJS.ErrnoException | null, files?: Buffer[]) => void;
+
+// @public (undocumented)
+type ReaddirDirentCallback = (err: NodeJS.ErrnoException | null, files?: IDirent[]) => void;
+
+// @public (undocumented)
+type ReaddirStringCallback = (err: NodeJS.ErrnoException | null, files?: string[]) => void;
+
+// @public (undocumented)
+type ReaddirStringOrBufferCallback = (err: NodeJS.ErrnoException | null, files?: string[] | Buffer[]) => void;
+
+// @public (undocumented)
+type ReaddirSync = {
+    (path: PathLike, options: {
+        encoding: BufferEncoding | null;
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | BufferEncoding | null): string[];
+    (path: PathLike, options: {
+        encoding: "buffer";
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | "buffer"): Buffer[];
+    (path: PathLike, options: (ObjectEncodingOptions & {
+        withFileTypes?: false;
+        recursive?: boolean;
+    }) | BufferEncoding | null): string[] | Buffer[];
+    (path: PathLike, options: ObjectEncodingOptions & {
+        withFileTypes: true;
+        recursive?: boolean;
+    }): IDirent[];
+};
+
+// @public (undocumented)
+type ReadFile = {
+    (path: PathOrFileDescriptor, options: ({
+        encoding: null | undefined;
+        flag?: string;
+    } & Abortable) | null | undefined, callback: BufferCallback): void;
+    (path: PathOrFileDescriptor, options: ({
+        encoding: BufferEncoding;
+        flag?: string;
+    } & Abortable) | BufferEncoding, callback: StringCallback): void;
+    (path: PathOrFileDescriptor, options: (ObjectEncodingOptions & {
+        flag?: string;
+    } & Abortable) | BufferEncoding | null | undefined, callback: StringOrBufferCallback): void;
+    (path: PathOrFileDescriptor, callback: BufferCallback): void;
+};
+
+// @public (undocumented)
+type ReadFileSync = {
+    (path: PathOrFileDescriptor, options: {
+        encoding: null | undefined;
+        flag?: string;
+    } | null): Buffer;
+    (path: PathOrFileDescriptor, options: {
+        encoding: BufferEncoding;
+        flag?: string;
+    } | BufferEncoding): string;
+    (path: PathOrFileDescriptor, options: (ObjectEncodingOptions & {
+        flag?: string;
+    }) | BufferEncoding | null): string | Buffer;
+};
+
+// @public (undocumented)
+type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
+
+// @public (undocumented)
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
+
+// @public (undocumented)
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
+
+// @public (undocumented)
+type Readlink = {
+    (path: PathLike, options: EncodingOption, callback: StringCallback): void;
+    (path: PathLike, options: BufferEncodingOption, callback: BufferCallback): void;
+    (path: PathLike, options: EncodingOption, callback: StringOrBufferCallback): void;
+    (path: PathLike, callback: StringCallback): void;
+};
+
+// @public (undocumented)
+type ReadlinkSync = {
+    (path: PathLike, options: EncodingOption): string;
+    (path: PathLike, options: BufferEncodingOption): Buffer;
+    (path: PathLike, options: EncodingOption): string | Buffer;
+};
+
+// @public (undocumented)
+type RealPath = {
+    (path: PathLike, options: EncodingOption, callback: StringCallback): void;
+    (path: PathLike, options: BufferEncodingOption, callback: BufferCallback): void;
+    (path: PathLike, options: EncodingOption, callback: StringOrBufferCallback): void;
+    (path: PathLike, callback: StringCallback): void;
+};
+
+// @public (undocumented)
+type RealPathSync = {
+    (path: PathLike, options?: EncodingOption): string;
+    (path: PathLike, options: BufferEncodingOption): Buffer;
+    (path: PathLike, options?: EncodingOption): string | Buffer;
+};
 
 // @public (undocumented)
 type RecursiveArrayOrRecord<T> = {
@@ -14272,6 +14510,23 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
+type Stat = {
+    (path: PathLike, callback: StatsCallback): void;
+    (path: PathLike, options: (StatOptions & {
+        bigint?: false;
+    }) | undefined, callback: StatsCallback): void;
+    (path: PathLike, options: StatOptions & {
+        bigint: true;
+    }, callback: BigIntStatsCallback): void;
+    (path: PathLike, options: StatOptions | undefined, callback: StatsOrBigIntStatsCallback): void;
+};
+
+// @public (undocumented)
+type StatOptions = {
+    bigint?: boolean;
+};
+
+// @public (undocumented)
 export class Stats {
     constructor(compilation: Compilation);
     // (undocumented)
@@ -14294,6 +14549,9 @@ export class Stats {
 
 // @public (undocumented)
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
+
+// @public (undocumented)
+type StatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats) => void;
 
 // @public (undocumented)
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
@@ -14593,6 +14851,9 @@ const statsOptions: z.ZodObject<{
 }>;
 
 // @public (undocumented)
+type StatsOrBigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats | IBigIntStats) => void;
+
+// @public (undocumented)
 class StatsPrinter {
     constructor();
     // (undocumented)
@@ -14857,6 +15118,36 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
 }>]>;
 
 // @public (undocumented)
+type StatSync = {
+    (path: PathLike, options?: undefined): IStats;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+        throwIfNoEntry: false;
+    }): IStats | undefined;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+        throwIfNoEntry: false;
+    }): IBigIntStats | undefined;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+    }): IStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+    }): IBigIntStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: boolean;
+        throwIfNoEntry?: false;
+    }): IStats | IBigIntStats;
+    (path: PathLike, options?: StatSyncOptions): IStats | IBigIntStats | undefined;
+};
+
+// @public (undocumented)
+type StatSyncOptions = {
+    bigint?: boolean;
+    throwIfNoEntry?: boolean;
+};
+
+// @public (undocumented)
 export type StrictModuleErrorHandling = z.infer<typeof strictModuleErrorHandling>;
 
 // @public (undocumented)
@@ -14867,6 +15158,12 @@ export type StrictModuleExceptionHandling = z.infer<typeof strictModuleException
 
 // @public (undocumented)
 const strictModuleExceptionHandling: z.ZodBoolean;
+
+// @public (undocumented)
+type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void;
+
+// @public (undocumented)
+type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {

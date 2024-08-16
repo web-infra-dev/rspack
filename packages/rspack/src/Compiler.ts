@@ -63,7 +63,11 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginInstance
 } from "./config";
-import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
+import type {
+	InputFileSystem,
+	OutputFileSystem,
+	WatchFileSystem
+} from "./util/fs";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -134,7 +138,7 @@ class Compiler {
 	infrastructureLogger: any;
 	watching?: Watching;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	intermediateFileSystem: any;
 	outputFileSystem: OutputFileSystem | null;
 	watchFileSystem: WatchFileSystem | null;
@@ -508,9 +512,7 @@ class Compiler {
 	}
 
 	purgeInputFileSystem() {
-		if (this.inputFileSystem?.purge) {
-			this.inputFileSystem.purge();
-		}
+		this.inputFileSystem?.purge?.();
 	}
 
 	/**

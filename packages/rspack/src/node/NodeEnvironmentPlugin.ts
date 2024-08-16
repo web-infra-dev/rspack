@@ -44,17 +44,16 @@ export default class NodeEnvironmentPlugin {
 					stream: infrastructureLogging.stream!
 				}) as LoggerConsole)
 		});
-		compiler.inputFileSystem = new CachedInputFileSystem(fs, 60000);
-		const inputFileSystem = compiler.inputFileSystem;
+
+		const inputFileSystem = new CachedInputFileSystem(fs, 60000);
+		compiler.inputFileSystem = inputFileSystem;
 		compiler.outputFileSystem = fs;
 		compiler.intermediateFileSystem = fs;
-		compiler.watchFileSystem = new NodeWatchFileSystem(
-			compiler.inputFileSystem
-		);
+		compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
 				compiler.fsStartTime = Date.now();
-				inputFileSystem.purge();
+				inputFileSystem?.purge();
 			}
 		});
 	}
