@@ -19,7 +19,4 @@ class Plugin {
 module.exports = {
 	context: __dirname,
 	plugins: [new Plugin()],
-	optimization: {
-		emitOnErrors: true
-	}
 };
