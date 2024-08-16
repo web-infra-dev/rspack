@@ -782,7 +782,7 @@ impl Pattern {
   /// Return if the given `str` matches this `Pattern` using the specified
   /// match options.
   pub fn matches_with(&self, str: &str, options: &MatchOptions) -> bool {
-    fast_glob::glob_match_with_brace(&self.original, str)
+    fast_glob::glob_match_with_brace(&self.original, str, options)
   }
 
   /// Return if the given `Path`, when converted to a `str`, matches this
@@ -1238,20 +1238,20 @@ mod test {
     assert!(Pattern::new(&Pattern::escape(s)).unwrap().matches(s));
   }
 
-  // #[test]
-  // fn test_pattern_matches_case_insensitive() {
-  //   let pat = Pattern::new("aBcDeFg").unwrap();
-  //   let options = MatchOptions {
-  //     case_sensitive: false,
-  //     require_literal_separator: false,
-  //     require_literal_leading_dot: false,
-  //   };
+  #[test]
+  fn test_pattern_matches_case_insensitive() {
+    let pat = Pattern::new("aBcDeFg").unwrap();
+    let options = MatchOptions {
+      case_sensitive: false,
+      require_literal_separator: false,
+      require_literal_leading_dot: false,
+    };
 
-  //   assert!(pat.matches_with("aBcDeFg", &options));
-  //   assert!(pat.matches_with("abcdefg", &options));
-  //   assert!(pat.matches_with("ABCDEFG", &options));
-  //   assert!(pat.matches_with("AbCdEfG", &options));
-  // }
+    assert!(pat.matches_with("aBcDeFg", &options));
+    assert!(pat.matches_with("abcdefg", &options));
+    assert!(pat.matches_with("ABCDEFG", &options));
+    assert!(pat.matches_with("AbCdEfG", &options));
+  }
 
   // #[test]
   // fn test_pattern_matches_case_insensitive_range() {

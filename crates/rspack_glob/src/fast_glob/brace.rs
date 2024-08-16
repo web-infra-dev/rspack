@@ -1,12 +1,12 @@
 #[derive(Debug, Default, Clone)]
 pub(crate) struct Pattern {
-  pub value: Vec<u8>,
+  pub value: Vec<char>,
   pub branch: Vec<(u8, u8)>,
   pub shadow: Vec<(usize, usize)>,
 }
 
 impl Pattern {
-  pub fn parse(glob: &[u8]) -> Option<Vec<(u8, u8)>> {
+  pub fn parse(glob: &[char]) -> Option<Vec<(u8, u8)>> {
     let mut depth = 0;
     let mut current = 0;
     let mut in_brackets = false;
@@ -16,16 +16,16 @@ impl Pattern {
 
     while current < glob.len() {
       match glob[current] {
-        b'\\' => current += 1,
-        b']' if in_brackets => in_brackets = false,
-        b'[' if !in_brackets => in_brackets = true,
-        b',' if !in_brackets && depth > 0 => {
+        '\\' => current += 1,
+        ']' if in_brackets => in_brackets = false,
+        '[' if !in_brackets => in_brackets = true,
+        ',' if !in_brackets && depth > 0 => {
           branch[stack[depth - 1]].1 += 1;
         }
-        b'}' if !in_brackets && depth > 0 => {
+        '}' if !in_brackets && depth > 0 => {
           depth -= 1;
         }
-        b'{' if !in_brackets => {
+        '{' if !in_brackets => {
           branch.push((0, 1));
 
           stack[depth] = branch.len() - 1;
@@ -43,7 +43,7 @@ impl Pattern {
     }
   }
 
-  pub fn new(glob: &[u8]) -> Option<Self> {
+  pub fn new(glob: &[char]) -> Option<Self> {
     if let Some(branch) = Self::parse(glob) {
       if branch.is_empty() {
         let value = Vec::new();
@@ -71,7 +71,7 @@ impl Pattern {
     None
   }
 
-  pub fn track(&mut self, glob: &[u8]) {
+  pub fn track(&mut self, glob: &[char]) {
     let mut index = 0;
 
     let mut depth = 0;
@@ -87,7 +87,7 @@ impl Pattern {
 
     while current < glob.len() {
       match glob[current] {
-        b',' if !in_brackets && depth > 0 => {
+        ',' if !in_brackets && depth > 0 => {
           if len == depth {
             let (i, idx) = &mut stack[len - 1];
 
@@ -95,14 +95,14 @@ impl Pattern {
             is_valid = self.branch[*idx].0 == *i;
           }
         }
-        b'}' if !in_brackets && depth > 0 => {
+        '}' if !in_brackets && depth > 0 => {
           if len == depth {
             len -= 1;
             is_valid = true;
           }
           depth -= 1;
         }
-        b'{' if !in_brackets => {
+        '{' if !in_brackets => {
           if is_valid {
             stack[len] = (0, index);
 
@@ -120,14 +120,14 @@ impl Pattern {
             self.value.push(c);
           }
 
-          if c == b'\\' {
+          if c == '\\' {
             current += 1;
             if is_valid && current < glob.len() {
               self.value.push(glob[current]);
             }
-          } else if c == b']' && in_brackets {
+          } else if c == ']' && in_brackets {
             in_brackets = false;
-          } else if c == b'[' && !in_brackets {
+          } else if c == '[' && !in_brackets {
             in_brackets = true;
           }
         }
@@ -137,7 +137,7 @@ impl Pattern {
     }
   }
 
-  pub fn trigger(&mut self, glob: &[u8], target: usize) -> bool {
+  pub fn trigger(&mut self, glob: &[char], target: usize) -> bool {
     for &(idx, position) in self.shadow.iter().rev() {
       if target >= position {
         self.branch[idx].0 += 1;
@@ -166,12 +166,13 @@ mod tests {
 
   #[test]
   fn brace_expansion() {
-    let glob = b"some/{a,b{c,d}f,e}/ccc.{png,jpg}";
-    let mut pattern = Pattern::new(glob).unwrap();
+    let glob = "some/{a,b{c,d}f,e}/ccc.{png,jpg}"
+      .chars()
+      .collect::<Vec<_>>();
+    let mut pattern = Pattern::new(&glob).unwrap();
 
     loop {
-      println!("{:?}", String::from_utf8(pattern.value.clone()).unwrap());
-      if !pattern.trigger(glob, pattern.value.len()) {
+      if !pattern.trigger(&glob, pattern.value.len()) {
         break;
       }
     }

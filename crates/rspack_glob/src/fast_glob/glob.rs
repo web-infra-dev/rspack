@@ -8,6 +8,8 @@
  */
 use std::path::is_separator;
 
+use crate::{chars_eq, MatchOptions};
+
 #[derive(Clone, Copy, Debug, Default)]
 struct State {
   path_index: usize,
@@ -25,19 +27,19 @@ struct Wildcard {
 }
 
 #[inline(always)]
-fn unescape(c: &mut u8, glob: &[u8], state: &mut State) -> bool {
-  if *c == b'\\' {
+fn unescape(c: &mut char, glob: &[char], state: &mut State) -> bool {
+  if *c == '\\' {
     state.glob_index += 1;
     state.longest_index += 1;
     if state.glob_index >= glob.len() {
       return false;
     }
     *c = match glob[state.glob_index] {
-      b'a' => b'\x61',
-      b'b' => b'\x08',
-      b'n' => b'\n',
-      b'r' => b'\r',
-      b't' => b'\t',
+      'a' => '\x61',
+      'b' => '\x08',
+      'n' => '\n',
+      'r' => '\r',
+      't' => '\t',
       c => c,
     }
   }
@@ -52,14 +54,23 @@ impl State {
   }
 
   #[inline(always)]
-  fn skip_globstars(&mut self, glob: &[u8]) {
+  fn skip_globstars(&mut self, glob: &[char]) {
     let mut glob_index = self.glob_index + 2;
 
-    while glob_index + 4 <= glob.len() && &glob[glob_index..glob_index + 4] == b"/**/" {
+    while glob_index + 4 <= glob.len()
+      && glob[glob_index] == '/'
+      && glob[glob_index + 1] == '*'
+      && glob[glob_index + 2] == '*'
+      && glob[glob_index + 3] == '/'
+    {
       glob_index += 3;
     }
 
-    if glob_index + 3 == glob.len() && &glob[glob_index..] == b"/**" {
+    if glob_index + 3 == glob.len()
+      && glob[glob_index] == '/'
+      && glob[glob_index + 1] == '*'
+      && glob[glob_index + 2] == '*'
+    {
       glob_index += 3;
     }
 
@@ -68,7 +79,7 @@ impl State {
   }
 
   #[inline(always)]
-  fn skip_to_separator(&mut self, path: &[u8], is_end_invalid: bool) {
+  fn skip_to_separator(&mut self, path: &[char], is_end_invalid: bool) {
     if self.path_index == path.len() {
       self.wildcard.path_index += 1;
       return;
@@ -88,11 +99,15 @@ impl State {
   }
 }
 
-pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
+pub(crate) fn glob_match_normal(
+  glob: &[char],
+  path: &[char],
+  options: &MatchOptions,
+) -> (bool, usize) {
   let mut state = State::default();
 
   let mut negated = false;
-  while state.glob_index < glob.len() && glob[state.glob_index] == b'!' {
+  while state.glob_index < glob.len() && glob[state.glob_index] == '!' {
     negated = !negated;
     state.glob_index += 1;
     state.longest_index = state.longest_index.max(state.glob_index);
@@ -101,8 +116,8 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
   while state.glob_index < glob.len() || state.path_index < path.len() {
     if state.glob_index < glob.len() {
       match glob[state.glob_index] {
-        b'*' => {
-          let is_globstar = state.glob_index + 1 < glob.len() && glob[state.glob_index + 1] == b'*';
+        '*' => {
+          let is_globstar = state.glob_index + 1 < glob.len() && glob[state.glob_index + 1] == '*';
           if is_globstar {
             state.skip_globstars(glob);
           }
@@ -116,8 +131,8 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
 
             let is_end_invalid = state.glob_index != glob.len();
 
-            if (state.glob_index < 3 || glob[state.glob_index - 3] == b'/')
-              && (!is_end_invalid || glob[state.glob_index] == b'/')
+            if (state.glob_index < 3 || glob[state.glob_index - 3] == '/')
+              && (!is_end_invalid || glob[state.glob_index] == '/')
             {
               if is_end_invalid {
                 state.glob_index += 1;
@@ -141,7 +156,7 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
 
           continue;
         }
-        b'?' if state.path_index < path.len() => {
+        '?' if state.path_index < path.len() => {
           if !is_separator(path[state.path_index] as char) {
             state.glob_index += 1;
             state.path_index += 1;
@@ -149,11 +164,11 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
             continue;
           }
         }
-        b'[' if state.path_index < path.len() => {
+        '[' if state.path_index < path.len() => {
           state.glob_index += 1;
 
           let mut negated = false;
-          if state.glob_index < glob.len() && matches!(glob[state.glob_index], b'^' | b'!') {
+          if state.glob_index < glob.len() && matches!(glob[state.glob_index], '^' | '!') {
             negated = true;
             state.glob_index += 1;
           }
@@ -163,7 +178,7 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
           let mut first = true;
           let mut is_match = false;
           let c = path[state.path_index];
-          while state.glob_index < glob.len() && (first || glob[state.glob_index] != b']') {
+          while state.glob_index < glob.len() && (first || glob[state.glob_index] != ']') {
             let mut low = glob[state.glob_index];
             if !unescape(&mut low, glob, &mut state) {
               return (false, state.longest_index);
@@ -173,8 +188,8 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
             state.longest_index = state.longest_index.max(state.glob_index);
 
             let high = if state.glob_index + 1 < glob.len()
-              && glob[state.glob_index] == b'-'
-              && glob[state.glob_index + 1] != b']'
+              && glob[state.glob_index] == '-'
+              && glob[state.glob_index + 1] != ']'
             {
               state.glob_index += 1;
               state.longest_index = state.longest_index.max(state.glob_index);
@@ -213,18 +228,12 @@ pub(crate) fn glob_match_normal(glob: &[u8], path: &[u8]) -> (bool, usize) {
             return (false, state.longest_index);
           }
 
-          let is_match = if c == b'/' {
-            is_separator(path[state.path_index] as char)
-          } else {
-            path[state.path_index] == c
-          };
-
-          if is_match {
+          if chars_eq(path[state.path_index], c, options.case_sensitive) {
             state.glob_index += 1;
             state.path_index += 1;
             state.longest_index = state.longest_index.max(state.glob_index);
 
-            if c == b'/' {
+            if c == '/' {
               state.wildcard = state.globstar;
             }
 
