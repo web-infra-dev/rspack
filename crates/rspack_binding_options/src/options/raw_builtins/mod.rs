@@ -463,7 +463,7 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::HtmlRspackPlugin => {
         let plugin =
-          HtmlRspackPlugin::new(downcast_into::<RawHtmlRspackPluginOptions>(self.options)?.into())
+          HtmlRspackPlugin::new(downcast_into::<RawHtmlRspackPluginOptions>(self.options)?.into())?
             .boxed();
         plugins.push(plugin);
       }

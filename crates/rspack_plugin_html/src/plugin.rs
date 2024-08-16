@@ -3,18 +3,20 @@ use std::{
   fs,
   hash::{Hash, Hasher},
   path::{Path, PathBuf},
+  sync::LazyLock,
 };
 
 use anyhow::Context;
 use dojang::dojang::Dojang;
 use itertools::Itertools;
 use rayon::prelude::*;
+use regex::Regex;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
   Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
 };
-use rspack_error::{AnyhowError, Result};
+use rspack_error::{miette, AnyhowError, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_html::visit::VisitMutWith;
@@ -29,6 +31,10 @@ use crate::{
   },
 };
 
+static MATCH_DOJANG_FRAGMENT: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r#"<%[-=]?\s*([\w.]+)\s*%>"#).expect("Failed to initialize `MATCH_DOJANG_FRAGMENT`")
+});
+
 #[plugin]
 #[derive(Debug)]
 pub struct HtmlRspackPlugin {
@@ -36,14 +42,16 @@ pub struct HtmlRspackPlugin {
 }
 
 impl HtmlRspackPlugin {
-  pub fn new(config: HtmlRspackPluginOptions) -> Self {
-    Self::new_inner(config)
+  pub fn new(config: HtmlRspackPluginOptions) -> Result<Self> {
+    Ok(Self::new_inner(config))
   }
 }
 
 #[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let config = &self.config;
+
+  let mut error_content = vec![];
 
   let parser = HtmlCompiler::new(config);
   let (content, url, normalized_template_name) = if let Some(content) = &config.template_content {
@@ -60,16 +68,28 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     let content = fs::read_to_string(&resolved_template)
       .context(format!(
-        "failed to read `{}` from `{}`",
-        resolved_template.display(),
-        &compilation.options.context
+        "HtmlRspackPlugin: could not load file `{}` from `{}`",
+        template, &compilation.options.context
       ))
-      .map_err(AnyhowError::from)?;
+      .map_err(AnyhowError::from);
 
-    let url = resolved_template.to_string_lossy().to_string();
-    compilation.file_dependencies.insert(resolved_template);
+    match content {
+      Ok(content) => {
+        let url = resolved_template.to_string_lossy().to_string();
+        compilation.file_dependencies.insert(resolved_template);
 
-    (content, url, template.clone())
+        (content, url, template.clone())
+      }
+      Err(err) => {
+        error_content.push(err.to_string());
+        compilation.push_diagnostic(Diagnostic::from(miette::Error::from(err)));
+        (
+          default_template().to_owned(),
+          parse_to_url("default.html").path().to_string(),
+          template.clone(),
+        )
+      }
+    }
   } else {
     (
       default_template().to_owned(),
@@ -88,6 +108,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   } else {
     content
   };
+
+  // dojang will not throw error when replace failed https://github.com/kev0960/dojang/issues/2
+  if let Some(captures) = MATCH_DOJANG_FRAGMENT.captures(&template_result) {
+    if let Some(name) = captures.get(1).map(|m| m.as_str()) {
+      let error_msg = format!("ReferenceError: {name} is not defined");
+      error_content.push(error_msg.clone());
+      compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(error_msg)));
+    }
+  }
 
   let has_doctype = template_result.contains("!DOCTYPE") || template_result.contains("!doctype");
   if !has_doctype {
@@ -201,9 +230,56 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut visitor = AssetWriter::new(config, &tags, compilation, &fake_html_file_name);
   current_ast.visit_mut_with(&mut visitor);
 
-  let mut source = parser
-    .codegen(&mut current_ast, compilation)?
-    .replace("$$RSPACK_URL_AMP$$", "&");
+  if let Some(favicon) = &self.config.favicon {
+    let url = parse_to_url(favicon);
+    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
+      .file_name()
+      .expect("Should have favicon file name")
+      .to_string_lossy()
+      .to_string();
+
+    let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
+
+    let content = fs::read(resolved_favicon)
+      .context(format!(
+        "HtmlRspackPlugin: could not load file `{}` from `{}`",
+        favicon, &compilation.options.context
+      ))
+      .map_err(AnyhowError::from);
+
+    match content {
+      Ok(content) => {
+        compilation.emit_asset(
+          favicon_file_path,
+          CompilationAsset::from(RawSource::from(content).boxed()),
+        );
+      }
+      Err(err) => {
+        error_content.push(err.to_string());
+        compilation.push_diagnostic(Diagnostic::from(miette::Error::from(err)));
+      }
+    };
+  }
+
+  let mut source = if !error_content.is_empty() {
+    format!(
+      r#"Html Rspack Plugin:\n{}"#,
+      error_content
+        .iter()
+        .map(|msg| format!(
+          r#"
+    <pre>
+      Error: {msg}
+    </pre>
+    "#
+        ))
+        .join("\n")
+    )
+  } else {
+    parser
+      .codegen(&mut current_ast, compilation)?
+      .replace("$$RSPACK_URL_AMP$$", "&")
+  };
 
   if !has_doctype {
     source = source.replace("<!DOCTYPE html>", "");
@@ -222,28 +298,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     output_path,
     CompilationAsset::new(Some(RawSource::from(source).boxed()), asset_info),
   );
-
-  if let Some(favicon) = &self.config.favicon {
-    let url = parse_to_url(favicon);
-    let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
-      .file_name()
-      .expect("Should have favicon file name")
-      .to_string_lossy()
-      .to_string();
-
-    let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
-    let content = fs::read(resolved_favicon)
-      .context(format!(
-        "failed to read `{}` from `{}`",
-        url.path(),
-        &compilation.options.context
-      ))
-      .map_err(AnyhowError::from)?;
-    compilation.emit_asset(
-      favicon_file_path,
-      CompilationAsset::from(RawSource::from(content).boxed()),
-    );
-  }
 
   Ok(())
 }

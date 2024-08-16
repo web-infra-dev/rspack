@@ -230,34 +230,34 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: optimization.emitOnErrors
-  // it("should pass through loader errors", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       optimization: {
-  //         emitOnErrors: true,
-  //       },
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           inject: false,
-  //           template: path.join(__dirname, "fixtures/invalid.html"),
-  //         }),
-  //       ],
-  //     },
-  //     ["ReferenceError: foo is not defined"],
-  //     null,
-  //     done,
-  //     true,
-  //   );
-  // });
+  it("should pass through loader errors", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        optimization: {
+          emitOnErrors: true,
+        },
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            inject: false,
+            template: path.join(__dirname, "fixtures/invalid.html"),
+          }),
+        ],
+      },
+      // DIFF: ["ReferenceError: foo is not defined"],
+      ["ReferenceError: foo.bar is not defined"],
+      null,
+      done,
+      true,
+    );
+  });
 
   // TODO: template with loaders
   // it("uses a custom loader from webpack config", (done) => {
@@ -2859,32 +2859,31 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: support optimization.emitOnErrors
-  // it("shows an error if the favicon could not be load", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       optimization: {
-  //         emitOnErrors: true,
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           inject: true,
-  //           favicon: path.join(__dirname, "fixtures/does_not_exist.ico"),
-  //         }),
-  //       ],
-  //     },
-  //     ["Error: HtmlWebpackPlugin: could not load file"],
-  //     null,
-  //     done,
-  //     true,
-  //   );
-  // });
+  it("shows an error if the favicon could not be load", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        optimization: {
+          emitOnErrors: true,
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            inject: true,
+            favicon: path.join(__dirname, "fixtures/does_not_exist.ico"),
+          }),
+        ],
+      },
+      ["Error: HtmlRspackPlugin: could not load file"],
+      null,
+      done,
+      true,
+    );
+  });
 
   it("works with webpack BannerPlugin", (done) => {
     testHtmlPlugin(
@@ -2906,35 +2905,36 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: compilation error: Module not found
-  // it("shows an error when a template fails to load", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "development",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(
-  //             __dirname,
-  //             "fixtures/non-existing-template.html",
-  //           ),
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       Number(webpackMajorVersion) >= 5
-  //         ? "Child compilation failed:\n  Module not found:"
-  //         : "Child compilation failed:\n  Entry module not found:",
-  //     ],
-  //     null,
-  //     done,
-  //     true,
-  //   );
-  // });
+  it("shows an error when a template fails to load", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "development",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(
+              __dirname,
+              "fixtures/non-existing-template.html",
+            ),
+          }),
+        ],
+      },
+      [
+        // DIFF:
+        // Number(webpackMajorVersion) >= 5
+        //   ? "Child compilation failed:\n  Module not found:"
+        //   : "Child compilation failed:\n  Entry module not found:",
+        "Error: HtmlRspackPlugin: could not load file",
+      ],
+      null,
+      done,
+      true,
+    );
+  });
 
   // TODO: support `chunksSortMode`
   // it("should sort the chunks in auto mode", (done) => {
