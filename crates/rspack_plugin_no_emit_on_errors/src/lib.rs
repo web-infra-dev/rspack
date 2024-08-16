@@ -18,7 +18,11 @@ impl NoEmitOnErrorsPlugin {
 
 #[plugin_hook(CompilerShouldEmit for NoEmitOnErrorsPlugin)]
 async fn should_emit(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  Ok(Some(compilation.get_errors().next().is_none()))
+  if compilation.get_errors().next().is_some() {
+    Ok(Some(false))
+  } else {
+    Ok(None)
+  }
 }
 
 impl Plugin for NoEmitOnErrorsPlugin {
