@@ -100,11 +100,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     chunk.id = chunk.name.clone();
     chunk.ids = vec![chunk.id.clone().expect("id is set")];
-    let runtime = {
-      let mut runtime = RuntimeSpec::default();
-      runtime.insert("build time".into());
-      runtime
-    };
+    let runtime = RuntimeSpec::from_iter(once("build time".into()));
 
     chunk.runtime = runtime.clone();
 
@@ -163,21 +159,12 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     compilation.create_module_hashes(modules.par_iter().copied())?;
 
-    let code_generation_results =
-      compilation.code_generation_modules(&mut None, modules.clone())?;
-
-    code_generation_results
-      .iter()
-      .for_each(|module_identifier| {
-        compilation
-          .code_generated_modules
-          .insert(*module_identifier);
-      });
+    compilation.code_generation_modules(&mut None, modules.clone())?;
 
     Handle::current().block_on(async {
       compilation
         .process_runtime_requirements(
-          modules.clone(),
+          Vec::from_iter(modules.iter().copied()),
           once(chunk_ukey),
           once(chunk_ukey),
           compilation.plugin_driver.clone(),

@@ -41,7 +41,8 @@ impl From<CodeGenerationResults> for JsCodegenerationResults {
             rspack_core::RuntimeMode::Empty => {}
             rspack_core::RuntimeMode::SingleEntry => {
               runtime_map.insert(
-                get_runtime_key(runtime_result_map.single_runtime.expect("exist")),
+                get_runtime_key(runtime_result_map.single_runtime.as_ref().expect("exist"))
+                  .to_string(),
                 id_result_map
                   .get(&runtime_result_map.single_value.expect("TODO"))
                   .expect("TODO")
