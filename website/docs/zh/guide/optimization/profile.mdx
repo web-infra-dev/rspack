@@ -36,6 +36,10 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 [less-loader](https://github.com/webpack-contrib/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack-contrib/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
 
+### html-webpack-plugin
+
+[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
+
 ## Rspack Profile
 
 <ApiMeta addedVersion={'0.3.0'} />
