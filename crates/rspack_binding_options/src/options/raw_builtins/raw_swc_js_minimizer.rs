@@ -26,6 +26,7 @@ pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub exclude: Option<RawAssetConditions>,
   pub extract_comments: Option<RawExtractComments>,
   pub minimizer_options: RawSwcJsMinimizerOptions,
+  pub minify: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -81,6 +82,7 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
       test: value.test.map(into_asset_conditions),
       include: value.include.map(into_asset_conditions),
       exclude: value.exclude.map(into_asset_conditions),
+      minify: value.minify,
       minimizer_options: MinimizerOptions {
         compress,
         mangle,

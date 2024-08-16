@@ -315,7 +315,7 @@ pub fn minify(
               names: source_map_names,
             },
             None,
-            true,
+            opts.minify,
             Some(&comments),
             &opts.format,
           )

@@ -1728,6 +1728,7 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
   extractComments?: RawExtractComments
   minimizerOptions: RawSwcJsMinimizerOptions
+  minify?: boolean
 }
 
 export interface RawToOptions {
