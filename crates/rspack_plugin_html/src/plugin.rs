@@ -42,8 +42,8 @@ pub struct HtmlRspackPlugin {
 }
 
 impl HtmlRspackPlugin {
-  pub fn new(config: HtmlRspackPluginOptions) -> Result<Self> {
-    Ok(Self::new_inner(config))
+  pub fn new(config: HtmlRspackPluginOptions) -> Self {
+    Self::new_inner(config)
   }
 }
 
