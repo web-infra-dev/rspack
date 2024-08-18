@@ -1,3 +1,4 @@
+mod amd;
 mod commonjs;
 mod context;
 mod esm;
