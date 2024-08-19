@@ -514,14 +514,6 @@ async function foo() {
 
 Note that there will be an `import` or `import()` statement in the output bundle.
 
-When a module is not imported via `import` or `import()`, Rspack will determine which type of external to use as fallback based on the configuration of [`externalsPresets`](#externalspresets). When one of the previous `externalsPresets` type is enabled, the following `externalsPresets` type will no longer apply. The order is listed below.
-
-- When `externalsPresets.web` is `true`, use `module`.
-- When `externalsPresets.webAsync` is `true`, use `import`.
-- When Node.js related (`electron`, `electronMain`, `electronPreload`, `electronRenderer`, `node`, `nwjs`) externalsPresets is true, use `node-commonjs`.
-
-When none of the above `externalsPresets` type is enabled or can be derived, Rspack will use `commonjs` as the default type.
-
 ### externalsType['node-commonjs']
 
 Specify the default type of externals as `'node-commonjs'`. Rspack will import [`createRequire`](https://nodejs.org/api/module.html#module_module_createrequire_filename) from `'module'` to construct a require function for loading externals used in a module.

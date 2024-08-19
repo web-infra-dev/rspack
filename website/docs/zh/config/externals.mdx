@@ -513,14 +513,6 @@ async function foo() {
 
 请注意，在输出产物中将有 `import` 或 `import()` 语句。
 
-当模块不是通过 `import` 或 `import()` 导入时，Rspack 将根据 [`externalsPresets`](#externalspresets) 的配置来确定使用哪种外部类型作为 external type。当启用了前面的 `externalsPresets` 类型之一时，后面的 `externalsPresets` 类型将不再适用。顺序如下所示。
-
-- 当 `externalsPresets.web` 为 `true` 时，使用 `module`。
-- 当 `externalsPresets.webAsync` 为 `true` 时，使用 `import`。
-- 当启用了 Node.js 相关的（`electron`、`electronMain`、`electronPreload`、`electronRenderer`、`node`、`nwjs`）`externalsPresets` 时，使用 `node-commonjs`。
-
-当没有启用或无法推断出上述任何 `externalsPresets` 类型时，Rspack 将使用 `commonjs` 作为默认类型。
-
 ### externalsType['node-commonjs']
 
 将 externals 类型设置为 `'node-commonjs'`，Rspack 将从 `module` 中导入 [`createRequire`](https://nodejs.org/api/module.html#module_module_createrequire_filename) 来构造一个 require 函数，用于加载模块中使用的外部对象。

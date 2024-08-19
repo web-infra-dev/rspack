@@ -121,7 +121,6 @@ export const getRawOptions = (
 		profile: options.profile!,
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		bail: options.bail!,
-		externalsPreset: options.externalsPresets,
 		__references: {}
 	};
 };

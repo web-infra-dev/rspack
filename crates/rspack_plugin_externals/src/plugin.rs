@@ -5,8 +5,8 @@ use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, CompilerOptions, ContextInfo, DependencyMeta, ExternalItem,
   ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue,
-  ExternalType, ExternalTypeEnum, ExternalsPresets, ModuleDependency, ModuleExt,
-  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
+  ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -32,7 +32,6 @@ impl ExternalsPlugin {
     config: &ExternalItemValue,
     r#type: Option<String>,
     dependency: &dyn ModuleDependency,
-    externals_presets: &ExternalsPresets,
   ) -> Option<ExternalModule> {
     let (external_module_config, external_module_type) = match config {
       ExternalItemValue::String(config) => {
@@ -121,7 +120,6 @@ impl ExternalsPlugin {
           None
         }
       },
-      externals_presets: externals_presets.clone(),
     };
 
     Some(ExternalModule::new(
@@ -135,7 +133,6 @@ impl ExternalsPlugin {
 
 #[plugin_hook(NormalModuleFactoryFactorize for ExternalsPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
-  let presets = &data.options.externals_presets;
   let dependency = data
     .dependency
     .as_module_dependency()
@@ -147,7 +144,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         let request = dependency.request();
 
         if let Some(value) = eh.get(request) {
-          let maybe_module = self.handle_external(value, None, dependency, presets);
+          let maybe_module = self.handle_external(value, None, dependency);
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
@@ -158,7 +155,6 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             &ExternalItemValue::String(request.to_string()),
             None,
             dependency,
-            presets,
           );
           return Ok(maybe_module.map(|i| i.boxed()));
         }
@@ -170,7 +166,6 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             &ExternalItemValue::String(request.to_string()),
             None,
             dependency,
-            presets,
           );
           return Ok(maybe_module.map(|i| i.boxed()));
         }
@@ -190,7 +185,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         })
         .await?;
         if let Some(r) = result.result {
-          let maybe_module = self.handle_external(&r, result.external_type, dependency, presets);
+          let maybe_module = self.handle_external(&r, result.external_type, dependency);
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
