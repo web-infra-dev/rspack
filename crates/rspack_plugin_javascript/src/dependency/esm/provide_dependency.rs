@@ -92,7 +92,8 @@ impl DependencyTemplate for ProvideDependency {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
     let Some(con) = module_graph.connection_by_dependency(&self.id) else {
-      unreachable!();
+      // not find connection, maybe because it's not resolved in make phase, and `bail` is false
+      return;
     };
     let exports_info = module_graph.get_exports_info(con.module_identifier());
     let used_name =
