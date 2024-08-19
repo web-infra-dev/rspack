@@ -19,11 +19,13 @@ const Hero = () => {
   return (
     <div className={styles.hero}>
       <div className={styles.innerHero}>
-        <img
-          src="https://assets.rspack.dev/rspack/rspack-logo.svg"
-          alt="logo"
-          className={styles.logo}
-        />
+        <div className={styles.logo}>
+          <img
+            src="https://assets.rspack.dev/rspack/rspack-logo.svg"
+            alt="rspack-logo"
+          />
+          <div className={styles.ovalBg} />
+        </div>
         <h1 className={styles.title}>Rspack</h1>
         <p className={styles.subtitle}>{t('heroSlogan')}</p>
         <p className={styles.description}>{t('heroSubSlogan')}</p>

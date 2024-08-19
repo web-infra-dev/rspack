@@ -1,3 +1,12 @@
+:global {
+  html:not(.dark) {
+    --landingpage-hero-oval-bg: url('./lightOvalBg.svg');
+  }
+
+  html.dark {
+    --landingpage-hero-oval-bg: url('./darkOvalBg.svg');
+  }
+}
 .hero {
   display: flex;
   justify-content: center;
@@ -19,6 +28,21 @@
 .logo {
   width: 216.225px;
   height: 180px;
+  position: relative;
+
+  .ovalBg {
+    width: 302.7164px; // 216.225px * 1.4
+    height: 252px; // 180px * 1.4
+    z-index: -1;
+    position: absolute;
+    top: 50%;
+    left: calc(50% + 5px);
+    transform: translate(-50%, -50%);
+    background-image: var(--landingpage-hero-oval-bg);
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-position: center;
+  }
 }
 
 .title {
