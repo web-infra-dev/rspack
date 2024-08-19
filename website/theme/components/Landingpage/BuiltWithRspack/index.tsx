@@ -1,5 +1,5 @@
 import { Link } from 'rspress/theme';
-import { useI18n } from '../../../theme/i18n';
+import { useI18n } from '../../../i18n';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';

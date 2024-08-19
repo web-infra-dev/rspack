@@ -1,5 +1,5 @@
 import { Link } from 'rspress/theme';
-import { useI18n, useI18nUrl } from '../../../theme/i18n';
+import { useI18n, useI18nUrl } from '../../../i18n';
 import Compatible from './assets/Compatible.svg';
 import FrameCheck from './assets/FrameCheck.svg';
 import Lightning from './assets/Lightning.svg';

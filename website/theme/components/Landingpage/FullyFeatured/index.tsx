@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'rspress/theme';
-import { useI18n, useI18nUrl } from '../../../theme/i18n';
+import { useI18n, useI18nUrl } from '../../../i18n';
 import arrow from './assets/arrow.svg';
 import javascriptApi from './assets/javascriptApi.svg';
 import layer from './assets/layer.svg';

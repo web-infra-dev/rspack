@@ -2,7 +2,7 @@ import {
   Benchmark as BaseBenchmark,
   type BenchmarkData,
 } from '@rstack-dev/doc-ui/benchmark';
-import { useI18n } from '../../../theme/i18n';
+import { useI18n } from '../../../i18n';
 import styles from './index.module.scss';
 
 // Benchmark data for different cases

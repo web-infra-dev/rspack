@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useLang } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
-import { useI18n } from '../../../theme/i18n';
+import { useI18n } from '../../../i18n';
 import styles from './index.module.scss';
 
 const ToolStack: React.FC = () => {

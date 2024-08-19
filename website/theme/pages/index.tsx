@@ -1,11 +1,6 @@
-// import { HomeLayout as BasicHomeLayout } from 'rspress/theme';
-// import { Benchmark } from '../components/Benchmark';
-// import { Featured } from '../components/Featured';
-import { HomeFooter } from '../components/HomeFooter/index';
-// import { ToolStack } from '../components/ToolStack/ToolStack';
-
 import { usePageData } from 'rspress/runtime';
-import LandingPage from '../../components/landingpage';
+import { HomeFooter } from '../components/HomeFooter/index';
+import LandingPage from '../components/Landingpage';
 
 const CopyRight = () => {
   const { siteData } = usePageData();
