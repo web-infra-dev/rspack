@@ -124,17 +124,7 @@ impl<'a> Visit for InsertedSemicolons<'a> {
     n.visit_children_with(self)
   }
 
-  fn visit_export_decl(&mut self, n: &swc_core::ecma::ast::ExportDecl) {
-    self.post_semi(&n.span);
-    n.visit_children_with(self)
-  }
-
   fn visit_named_export(&mut self, n: &swc_core::ecma::ast::NamedExport) {
-    self.post_semi(&n.span);
-    n.visit_children_with(self)
-  }
-
-  fn visit_export_default_decl(&mut self, n: &swc_core::ecma::ast::ExportDefaultDecl) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
