@@ -1720,6 +1720,7 @@ export interface RawSwcJsMinimizerOptions {
   mangle: any
   format: any
   module?: boolean
+  minify?: boolean
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
@@ -1728,7 +1729,6 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
   extractComments?: RawExtractComments
   minimizerOptions: RawSwcJsMinimizerOptions
-  minify?: boolean
 }
 
 export interface RawToOptions {

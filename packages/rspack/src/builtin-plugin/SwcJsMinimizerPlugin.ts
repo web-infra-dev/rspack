@@ -22,8 +22,8 @@ export type SwcJsMinimizerRspackPluginOptions = {
 	exclude?: AssetConditions;
 	include?: AssetConditions;
 	extractComments?: ExtractCommentsOptions | undefined;
-	minify?: boolean;
 	minimizerOptions?: {
+		minify?: boolean;
 		compress?: TerserCompressOptions | boolean;
 		mangle?: TerserMangleOptions | boolean;
 		format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
@@ -289,7 +289,6 @@ export const SwcJsMinimizerRspackPlugin = create(
 		}
 
 		return {
-			minify: options?.minify,
 			test: options?.test,
 			include: options?.include,
 			exclude: options?.exclude,
@@ -298,6 +297,7 @@ export const SwcJsMinimizerRspackPlugin = create(
 				compress,
 				mangle,
 				format,
+				minify: options?.minimizerOptions?.minify,
 				module: options?.minimizerOptions?.module
 			}
 		};

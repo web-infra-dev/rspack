@@ -15,8 +15,8 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			minify: false,
 			minimizerOptions: {
+				minify: false,
 				mangle: false
 			}
 		})

@@ -26,7 +26,6 @@ pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub exclude: Option<RawAssetConditions>,
   pub extract_comments: Option<RawExtractComments>,
   pub minimizer_options: RawSwcJsMinimizerOptions,
-  pub minify: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -36,6 +35,7 @@ pub struct RawSwcJsMinimizerOptions {
   pub mangle: serde_json::Value,
   pub format: serde_json::Value,
   pub module: Option<bool>,
+  pub minify: Option<bool>,
 }
 
 fn try_deserialize_into<T>(value: serde_json::Value) -> Result<T>
@@ -82,12 +82,12 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
       test: value.test.map(into_asset_conditions),
       include: value.include.map(into_asset_conditions),
       exclude: value.exclude.map(into_asset_conditions),
-      minify: value.minify,
       minimizer_options: MinimizerOptions {
         compress,
         mangle,
         format: try_deserialize_into(value.minimizer_options.format)?,
         module: value.minimizer_options.module,
+        minify: value.minimizer_options.minify,
         ..Default::default()
       },
     })
