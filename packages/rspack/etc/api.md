@@ -15202,8 +15202,8 @@ export type SwcJsMinimizerRspackPluginOptions = {
     exclude?: AssetConditions;
     include?: AssetConditions;
     extractComments?: ExtractCommentsOptions | undefined;
-    minify?: boolean;
     minimizerOptions?: {
+        minify?: boolean;
         compress?: TerserCompressOptions | boolean;
         mangle?: TerserMangleOptions | boolean;
         format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
