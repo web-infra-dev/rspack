@@ -15189,12 +15189,7 @@ type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string 
 export const SwcJsMinimizerRspackPlugin: {
     new (options?: SwcJsMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: SwcJsMinimizerRspackPluginOptions | undefined]; /**
-        * - `false`: removes all comments
-        * - `'some'`: preserves some comments
-        * - `'all'`: preserves all comments
-        * @default false
-        */
+        _args: [options?: SwcJsMinimizerRspackPluginOptions | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -15208,6 +15203,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
     include?: AssetConditions;
     extractComments?: ExtractCommentsOptions | undefined;
     minimizerOptions?: {
+        minify?: boolean;
         compress?: TerserCompressOptions | boolean;
         mangle?: TerserMangleOptions | boolean;
         format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;

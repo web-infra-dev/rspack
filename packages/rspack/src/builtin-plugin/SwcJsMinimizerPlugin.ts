@@ -23,6 +23,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
 	include?: AssetConditions;
 	extractComments?: ExtractCommentsOptions | undefined;
 	minimizerOptions?: {
+		minify?: boolean;
 		compress?: TerserCompressOptions | boolean;
 		mangle?: TerserMangleOptions | boolean;
 		format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
@@ -296,6 +297,7 @@ export const SwcJsMinimizerRspackPlugin = create(
 				compress,
 				mangle,
 				format,
+				minify: options?.minimizerOptions?.minify,
 				module: options?.minimizerOptions?.module
 			}
 		};

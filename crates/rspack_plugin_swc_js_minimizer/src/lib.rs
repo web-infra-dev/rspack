@@ -45,6 +45,7 @@ pub struct PluginOptions {
 
 #[derive(Debug, Default)]
 pub struct MinimizerOptions {
+  pub minify: Option<bool>,
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,
@@ -199,6 +200,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
 
         let js_minify_options = JsMinifyOptions {
+          minify: minimizer_options.minify.unwrap_or(true),
           compress: minimizer_options.compress.clone(),
           mangle: minimizer_options.mangle.clone(),
           format: minimizer_options.format.clone(),
@@ -321,6 +323,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
 
 #[derive(Debug, Clone, Default)]
 pub struct JsMinifyOptions {
+  pub minify: bool,
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,

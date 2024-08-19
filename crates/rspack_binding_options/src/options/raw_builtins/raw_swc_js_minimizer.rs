@@ -35,6 +35,7 @@ pub struct RawSwcJsMinimizerOptions {
   pub mangle: serde_json::Value,
   pub format: serde_json::Value,
   pub module: Option<bool>,
+  pub minify: Option<bool>,
 }
 
 fn try_deserialize_into<T>(value: serde_json::Value) -> Result<T>
@@ -86,6 +87,7 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
         mangle,
         format: try_deserialize_into(value.minimizer_options.format)?,
         module: value.minimizer_options.module,
+        minify: value.minimizer_options.minify,
         ..Default::default()
       },
     })

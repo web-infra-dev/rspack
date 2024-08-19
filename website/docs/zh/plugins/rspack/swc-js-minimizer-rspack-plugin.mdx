@@ -28,6 +28,7 @@ module.exports = {
     include?: AssetConditions;
     extractComments?: boolean | RegExp;
     minimizerOptions?: {
+      minify?: boolean;
       compress?: TerserCompressOptions | boolean;
       mangle?: TerserMangleOptions | boolean;
       module?: boolean;

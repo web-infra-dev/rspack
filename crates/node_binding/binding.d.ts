@@ -1720,6 +1720,7 @@ export interface RawSwcJsMinimizerOptions {
   mangle: any
   format: any
   module?: boolean
+  minify?: boolean
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
