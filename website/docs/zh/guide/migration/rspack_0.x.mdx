@@ -1,0 +1,219 @@
+# 从 Rspack 0.x 迁移
+
+当前文档列出了从 Rspack v0.7 到 v1.0 的所有不兼容更新，你可以参考此文档来迁移。
+
+> 查看 [Breaking changes in Rspack v1.0.0](https://github.com/web-infra-dev/rspack/discussions/6626) 了解更多细节。
+
+## 配置项默认值调整
+
+在 Rspack 1.x 中，我们对齐了 Webpack 的配置项默认值。
+
+### [重要] experiments.css
+
+默认值从 `true` 调整为 `false`。
+
+在 Rspack 0.x 中，`experiments.css` 默认开启，这意味着以 `*.css` 结尾的文件会默认被视为 `type: 'css/auto'`，不需要手动引入其他 loader 来处理 css 文件。
+
+如果你依赖这种内置能力，现在需要手动开启 `experiments.css`。
+
+### [重要] optimization.concatenateModules
+
+默认值由 `false` 调整为：
+
+- 当 `mode` 为 `'production'` 时，默认为 `true`。
+- `mode` 为其他值时，默认值为 `false`。
+
+在 Rspack 1.x 中，模块拼接优化变得更加稳定。现在，在生产环境中默认开启该优化，以允许将多个模块拼接成单个模块以降低产物体积，提升压缩效率。
+
+### devtool
+
+默认值由 `false` 调整为：
+
+- 当 `mode` 为 `'development'` 时，默认为 `'eval'`。
+- `mode` 为其他值时，默认值为 `false`。
+
+### experiments.asyncWebAssembly
+
+默认值从 `false` 调整为依赖 `experiments.futureDefaults` 配置项，当 `experiments.futureDefaults` 为 `true` 时才默认开启。
+
+如果你使用 WebAssembly 模块作为异步模块，现在需要手动将 `experiments.asyncWebAssembly` 设置为 `true`。
+
+### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+
+默认值从 `true` 调整为 `false`。
+
+### optimization.moduleIds
+
+当 `mode` 为 `none` 时，默认值调整为 `'natural'`。
+
+### optimization.chunkIds
+
+当 `mode` 为 `none` 时，默认值调整为 `'natural'`。
+
+## 移除的配置项
+
+### [重要] 移除 resolve.tsConfigPath
+
+请使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 代替。
+
+### output.amdContainer
+
+请使用 [output.library.amdContainer](/config/output#outputlibraryamdcontainer) 代替。
+
+## builtin:swc-loader 的调整
+
+Rspack 1.x 为了精简核心，将内置的 SWC 插件移除，现在你需要手动引入它们。
+
+### [重要] 移除 rspackExperiments.styledComponents
+
+使用 [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### [重要] 移除 rspackExperiments.emotion
+
+使用 [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           emotion: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-emotion", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### [重要] 移除 rspackExperiments.relay
+
+使用 [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           relay: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-relay", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### [重要] 移除 rspackExperiments.preact
+
+使用 [@swc/plugin-prefresh](https://www.npmjs.com/package/@swc/plugin-prefresh) 代替。
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           preact: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-prefresh", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## 内置插件的调整
+
+### rspack.SwcJsMinimizerRspackPlugin
+
+这是 Rspack 内置并默认启用的 JS 压缩插件。我们已将其配置与 [SWC 的压缩配置](https://swc.rs/docs/configuration/minification)对齐，不兼容的配置如下：
+
+- `minimizerOptions.passes`：移动到 `minimizerOptions.compress.passes`
+- `minimizerOptions.dropConsole`：移动到 `minimizerOptions.compress.drop_console`
+- `minimizerOptions.pureFuncs`：移动到 `minimizerOptions.compress.pure_funcs`
+- `minimizerOptions.keepClassNames`：移动到 `minimizerOptions.mangle.keep_classnames`
+- `minimizerOptions.keepFnNames`：移动到 `minimizerOptions.mangle.keep_fnames`
+- `minimizerOptions.comments`：移动到 `minimizerOptions.format.comments`
+- `minimizerOptions.asciiOnly`：移动到 `minimizerOptions.format.ascii_only`
+
+默认值的变化：
+
+- `comments` (`options.format.comments`)：默认值从 `false` 改为 `"some"`
+
+### rspack.HtmlRspackPlugin
+
+我们将其配置与 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 对齐，不兼容的配置如下：
+
+- `excludedChunks` 更名为 `excludeChunks`
+- 当 `mode` 为 `'production'` 时，`minify` 默认为 `true`
+
+## 其他
+
+### [重要] @rspack/cli
+
+`@rspack/cli` 已将其依赖的 `webpack-dev-server` 从 v4 升级至 v5。如果你使用 `@rspack/cli`，请注意以下不兼容的变更：
+
+- webpack-dev-server v5 最低支持的 Node.js 版本为 18.12.0。
+- 配置选项发生了若干变更，请参阅 [webpack-dev-server v5 的迁移指南](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md)。
+
+### [重要] ResolverFactory 和 Resolver 使用 Rust 重构
+
+`ResolverFactory` 和 `Resolver` 已被使用 Rust 进行重构，以统一 JS 侧和 Rust 侧的实现。由于这一变更，目前 ResolverFactory 和 Resolver 并不支持任何钩子。
+
+此外，目前 `Resolver` 仅支持以下方法：
+
+- `resolveSync`
+- `resolve`
+- `withOptions`
+
+此变更可能会导致某些插件无法正常使用。
