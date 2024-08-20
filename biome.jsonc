@@ -48,9 +48,6 @@
 			"performance": {
 				"noDelete": "off"
 			},
-			"security": {
-				"noGlobalEval": "off"
-			},
 			"suspicious": {
 				"noFallthroughSwitchClause": "off",
 				"noConfusingVoidType": "off",
