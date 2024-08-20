@@ -59,7 +59,7 @@ At this time, Rspack will use the built-in CSS processor for post-processing.
 If you don't want to generate CSS files, you can also use a combination of [`css-loader`](https://github.com/webpack-contrib/css-loader) and [`vue-style-loader`](https://github.com/vuejs/vue-style-loader):
 
 ```js
-const config = {
+module.exports = {
   module: {
     rules: [
       {
@@ -73,7 +73,6 @@ const config = {
     css: false, // At this point, you need to turn off `experiments.css` to adapt to the internal processing logic of `vue-loader`
   },
 };
-module.exports = config;
 ```
 
 Besides, as Rspack has built-in TS support, we also support `lang="ts"` configuration by default:
