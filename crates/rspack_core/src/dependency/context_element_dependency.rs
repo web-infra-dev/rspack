@@ -1,6 +1,5 @@
-use std::path::Path;
-
 use itertools::Itertools;
+use rspack_paths::Utf8Path;
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
@@ -32,10 +31,10 @@ pub struct ContextElementDependency {
 impl ContextElementDependency {
   pub fn create_resource_identifier(
     resource: &str,
-    path: &Path,
+    path: &Utf8Path,
     attributes: Option<&ImportAttributes>,
   ) -> String {
-    let mut ident = format!("context{}|{}", resource, path.display());
+    let mut ident = format!("context{}|{}", resource, path);
     if let Some(attributes) = attributes {
       ident += &json_stringify(&attributes);
     }

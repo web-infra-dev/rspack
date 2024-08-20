@@ -1,5 +1,5 @@
 use std::sync::LazyLock;
-use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
@@ -378,16 +378,7 @@ impl PluginCssExtract {
           source.add(RawSource::from(format!("@layer {} {{\n", layer)));
         }
 
-        let undo_path = get_undo_path(
-          &filename,
-          compilation
-            .options
-            .output
-            .path
-            .to_str()
-            .expect("should have output.path"),
-          false,
-        );
+        let undo_path = get_undo_path(&filename, compilation.options.output.path.as_str(), false);
 
         let content = ABSOLUTE_PUBLIC_PATH_RE.replace_all(&content, "");
         let content = SINGLE_DOT_PATH_SEGMENT_RE.replace_all(&content, ".");
@@ -655,7 +646,7 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
             .join("\n")
         ),
       )
-      .with_file(Some(PathBuf::from(render_result.filename())))
+      .with_file(Some(render_result.filename().to_owned().into()))
       .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }

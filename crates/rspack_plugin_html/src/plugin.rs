@@ -18,6 +18,7 @@ use rspack_core::{
 };
 use rspack_error::{miette, AnyhowError, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::AssertUtf8;
 use rspack_util::infallible::ResultInfallibleExt as _;
 use swc_html::visit::VisitMutWith;
 
@@ -63,8 +64,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   } else if let Some(template) = &config.template {
     // TODO: support loader query form
     let resolved_template = path_clean::clean(
-      AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str()),
-    );
+      compilation
+        .options
+        .context
+        .as_path()
+        .join(template.as_str()),
+    )
+    .assert_utf8();
 
     let content = fs::read_to_string(&resolved_template)
       .context(format!(
@@ -75,8 +81,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     match content {
       Ok(content) => {
-        let url = resolved_template.to_string_lossy().to_string();
-        compilation.file_dependencies.insert(resolved_template);
+        let url = resolved_template.as_str().to_string();
+        compilation
+          .file_dependencies
+          .insert(resolved_template.into_std_path_buf());
 
         (content, url, template.clone())
       }
@@ -223,7 +231,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let fake_html_file_name = compilation
     .get_path(
       &html_file_name,
-      PathData::default().filename(&output_path.to_string_lossy()),
+      PathData::default().filename(output_path.as_str()),
     )
     .always_ok();
 
@@ -290,7 +298,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .get_path_with_info(
       &html_file_name,
       PathData::default()
-        .filename(&output_path.to_string_lossy())
+        .filename(output_path.as_str())
         .content_hash(&hash),
     )
     .always_ok();

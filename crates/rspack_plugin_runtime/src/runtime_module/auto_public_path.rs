@@ -62,7 +62,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 }
 
 fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
-  let output_path = output.path.display().to_string();
+  let output_path = output.path.as_str().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
   let assign = if undo_path.is_empty() {
     format!("{} = scriptUrl", RuntimeGlobals::PUBLIC_PATH)

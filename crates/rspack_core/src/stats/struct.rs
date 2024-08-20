@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
-use std::path::PathBuf;
 
+use rspack_paths::Utf8PathBuf;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
@@ -45,7 +45,7 @@ pub struct StatsError<'s> {
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
   pub loc: Option<String>,
-  pub file: Option<PathBuf>,
+  pub file: Option<Utf8PathBuf>,
 
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
@@ -63,7 +63,7 @@ pub struct StatsWarning<'s> {
   pub module_name: Option<Cow<'s, str>>,
   pub module_id: Option<&'s str>,
   pub loc: Option<String>,
-  pub file: Option<PathBuf>,
+  pub file: Option<Utf8PathBuf>,
 
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,

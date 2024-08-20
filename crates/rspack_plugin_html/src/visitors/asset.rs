@@ -231,6 +231,7 @@ impl VisitMut for AssetWriter<'_, '_> {
               .options
               .output
               .path
+              .as_std_path()
               .join(favicon_relative_path)
               .relative(PathBuf::from(self.html_path).join(".."));
           } else {

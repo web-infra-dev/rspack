@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 use std::fmt::Debug;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -12,6 +11,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::AssertUtf8;
+use rspack_paths::Utf8Path;
 use sugar_path::SugarPath;
 use swc_core::common::comments::Comments;
 // use rspack_core::Plugin;
@@ -56,15 +57,13 @@ impl SideEffects {
   }
 }
 
-fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: PathBuf) -> bool {
+fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: &Utf8Path) -> bool {
   match side_effects {
     SideEffects::Bool(s) => s,
-    SideEffects::String(s) => {
-      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy())
-    }
+    SideEffects::String(s) => glob_match_with_normalized_pattern(&s, relative_path.as_str()),
     SideEffects::Array(patterns) => patterns
       .iter()
-      .any(|pattern| glob_match_with_normalized_pattern(pattern, &relative_path.to_string_lossy())),
+      .any(|pattern| glob_match_with_normalized_pattern(pattern, relative_path.as_str())),
   }
 }
 
@@ -644,8 +643,11 @@ async fn nmf_module(
   let Some(side_effects) = SideEffects::from_description(description.json()) else {
     return Ok(());
   };
-  let relative_path = resource_path.relative(package_path);
-  let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path);
+  let relative_path = resource_path
+    .as_std_path()
+    .relative(package_path)
+    .assert_utf8();
+  let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path.as_path());
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
   });
@@ -833,7 +835,7 @@ mod test_side_effects {
     relative_path: &str,
   ) -> bool {
     assert!(!side_effects_config.is_empty());
-    let relative_path = PathBuf::from(relative_path);
+    let relative_path = Utf8Path::new(relative_path);
     let side_effects = if side_effects_config.len() > 1 {
       SideEffects::Array(
         side_effects_config

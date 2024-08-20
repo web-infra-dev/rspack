@@ -9,6 +9,7 @@ use rspack_error::{
   DiagnosticExt, Severity, TraceableError,
 };
 use rspack_loader_runner::DescriptionData;
+use rspack_paths::AssertUtf8;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource};
@@ -129,7 +130,7 @@ impl Resolver {
     match self {
       Self::RspackResolver(resolver) => match resolver.resolve(path, request) {
         Ok(r) => Ok(ResolveResult::Resource(Resource {
-          path: r.path().to_path_buf(),
+          path: r.path().to_path_buf().assert_utf8(),
           query: r.query().unwrap_or_default().to_string(),
           fragment: r.fragment().unwrap_or_default().to_string(),
           description_data: r
@@ -161,7 +162,7 @@ impl Resolver {
           .extend(context.missing_dependencies);
         match result {
           Ok(r) => Ok(ResolveResult::Resource(Resource {
-            path: r.path().to_path_buf(),
+            path: r.path().to_path_buf().assert_utf8(),
             query: r.query().unwrap_or_default().to_string(),
             fragment: r.fragment().unwrap_or_default().to_string(),
             description_data: r
@@ -262,7 +263,7 @@ fn to_rspack_resolver_options(
     .restrictions
     .unwrap_or_default()
     .into_iter()
-    .map(|s| rspack_resolver::Restriction::Path(PathBuf::from(s)))
+    .map(|s| rspack_resolver::Restriction::Path(s.into()))
     .collect();
   let roots = options
     .roots

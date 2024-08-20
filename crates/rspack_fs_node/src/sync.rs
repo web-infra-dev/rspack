@@ -1,7 +1,8 @@
-use std::{marker::PhantomData, path::Path};
+use std::marker::PhantomData;
 
 use napi::Env;
 use rspack_fs::{sync::WritableFileSystem, Error, Result};
+use rspack_paths::Utf8Path;
 
 use crate::node::{NodeFS, NodeFSRef, TryIntoNodeFSRef};
 
@@ -22,15 +23,15 @@ impl NodeWritableFileSystem {
 }
 
 impl WritableFileSystem for NodeWritableFileSystem {
-  fn create_dir(&self, dir: &Path) -> Result<()> {
-    let dir = dir.to_string_lossy();
+  fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
+    let dir = dir.as_str();
     let mkdir = self.fs_ref.mkdir.get().expect("Failed to get mkdir");
     mkdir
       .call(
         None,
         &[self
           .env
-          .create_string(&dir)
+          .create_string(dir)
           .expect("Failed to create string")],
       )
       .map_err(|err| {
@@ -43,15 +44,15 @@ impl WritableFileSystem for NodeWritableFileSystem {
     Ok(())
   }
 
-  fn create_dir_all(&self, dir: &Path) -> Result<()> {
-    let dir = dir.to_string_lossy();
+  fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    let dir = dir.as_str();
     let mkdirp = self.fs_ref.mkdirp.get().expect("Failed to get mkdirp");
     mkdirp
       .call(
         None,
         &[self
           .env
-          .create_string(&dir)
+          .create_string(dir)
           .expect("Failed to create string")],
       )
       .map_err(|err| {
@@ -64,8 +65,8 @@ impl WritableFileSystem for NodeWritableFileSystem {
     Ok(())
   }
 
-  fn write(&self, file: &Path, data: &[u8]) -> Result<()> {
-    let file = file.to_string_lossy();
+  fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
+    let file = file.as_str();
     let buf = data.to_vec();
     let write_file = self
       .fs_ref
@@ -79,7 +80,7 @@ impl WritableFileSystem for NodeWritableFileSystem {
         &[
           self
             .env
-            .create_string(&file)
+            .create_string(file)
             .expect("Failed to create string")
             .into_unknown(),
           self

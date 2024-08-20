@@ -5,7 +5,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::ops::DerefMut;
-use std::path::PathBuf;
 
 use dependencies::DependenciesDTO;
 use entries::JsEntries;
@@ -412,7 +411,7 @@ impl JsCompilation {
     self
       .0
       .file_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -420,7 +419,7 @@ impl JsCompilation {
     self
       .0
       .context_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -428,7 +427,7 @@ impl JsCompilation {
     self
       .0
       .missing_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -436,7 +435,7 @@ impl JsCompilation {
     self
       .0
       .build_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]

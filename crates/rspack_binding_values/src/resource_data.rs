@@ -17,7 +17,7 @@ impl From<ResourceData> for JsResourceData {
   fn from(value: ResourceData) -> Self {
     Self {
       resource: value.resource,
-      path: value.resource_path.map(|p| p.to_string_lossy().to_string()),
+      path: value.resource_path.map(|p| p.as_str().to_string()),
       query: value.resource_query,
       fragment: value.resource_fragment,
     }
@@ -28,10 +28,7 @@ impl From<&ResourceData> for JsResourceData {
   fn from(value: &ResourceData) -> Self {
     Self {
       resource: value.resource.to_owned(),
-      path: value
-        .resource_path
-        .as_ref()
-        .map(|p| p.to_string_lossy().to_string()),
+      path: value.resource_path.as_ref().map(|p| p.as_str().to_string()),
       fragment: value.resource_fragment.as_ref().map(|r| r.to_owned()),
       query: value.resource_query.as_ref().map(|r| r.to_owned()),
     }

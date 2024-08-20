@@ -13,9 +13,9 @@ pub struct FileCounter {
 }
 
 impl FileCounter {
-  /// Add a pathbuf to counter
+  /// Add a [`PathBuf``] to counter
   ///
-  /// It will +1 to the pathbuf in inner hashmap
+  /// It will +1 to the PathBuf in inner hashmap
   fn add_file(&mut self, path: &PathBuf) {
     if let Some(value) = self.inner.get_mut(path) {
       *value += 1;
@@ -25,12 +25,12 @@ impl FileCounter {
     }
   }
 
-  /// Remove a pathbuf from counter
+  /// Remove a [`PathBuf`] from counter
   ///
-  /// It will -1 to the pathbuf in inner hashmap
+  /// It will -1 to the PathBuf in inner hashmap
   ///
-  /// If the pathbuf usage is 0 after reduction, the record will be deleted
-  /// If pathbuf does not exist, panic will occur.
+  /// If the PathBuf usage is 0 after reduction, the record will be deleted
+  /// If PathBuf does not exist, panic will occur.
   fn remove_file(&mut self, path: &PathBuf) {
     if let Some(value) = self.inner.get_mut(path) {
       *value -= 1;
@@ -43,14 +43,14 @@ impl FileCounter {
     }
   }
 
-  /// Add batch pathbuf to counter
+  /// Add batch [`PathBuf``] to counter
   pub fn add_batch_file(&mut self, paths: &HashSet<PathBuf>) {
     for path in paths {
       self.add_file(path);
     }
   }
 
-  /// Remove batch pathbuf to counter
+  /// Remove batch [`PathBuf`] to counter
   pub fn remove_batch_file(&mut self, paths: &HashSet<PathBuf>) {
     for path in paths {
       self.remove_file(path);

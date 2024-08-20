@@ -5,6 +5,7 @@ use regex::Regex;
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
+use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use swc_core::common::Span;
@@ -182,9 +183,10 @@ impl NormalModuleFactory {
                 .context
                 .as_path()
                 .join(resource)
+                .as_std_path()
                 .absolutize()
                 .to_string_lossy()
-                .to_string()
+                .into_owned()
             } else {
               resource.to_owned()
             }
@@ -311,7 +313,7 @@ impl NormalModuleFactory {
     } else {
       // resource without scheme and without path
       if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(resource.to_owned()).path("".into())
+        ResourceData::new(resource.to_owned()).path(Utf8PathBuf::from(""))
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
@@ -609,7 +611,7 @@ impl NormalModuleFactory {
       .await?;
 
     if let Some(file_dependency) = file_dependency {
-      data.add_file_dependency(file_dependency);
+      data.add_file_dependency(file_dependency.into_std_path_buf());
     }
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);

@@ -389,6 +389,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "camino"
+version = "1.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3054fea8a20d8ff3968d5b22cc27501d2b08dc4decdb31b184323f00c5ef23bb"
+
+[[package]]
 name = "cargo_toml"
 version = "0.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2343,6 +2349,9 @@ name = "pathdiff"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
+dependencies = [
+ "camino",
+]
 
 [[package]]
 name = "percent-encoding"
@@ -2932,6 +2941,7 @@ dependencies = [
  "rspack_loader_testing",
  "rspack_napi",
  "rspack_napi_macros",
+ "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
  "rspack_plugin_copy",
@@ -3042,6 +3052,7 @@ dependencies = [
  "rspack_hook",
  "rspack_loader_runner",
  "rspack_macros",
+ "rspack_paths",
  "rspack_regex",
  "rspack_resolver",
  "rspack_sources",
@@ -3069,6 +3080,7 @@ dependencies = [
  "once_cell",
  "owo-colors 3.5.0",
  "rspack_collections",
+ "rspack_paths",
  "swc_core",
  "termcolor",
  "textwrap 0.15.2",
@@ -3082,6 +3094,7 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "rspack_error",
+ "rspack_paths",
  "tokio",
 ]
 
@@ -3095,6 +3108,7 @@ dependencies = [
  "napi-h",
  "rspack_fs",
  "rspack_napi",
+ "rspack_paths",
 ]
 
 [[package]]
@@ -3185,6 +3199,7 @@ dependencies = [
  "regex",
  "rspack_collections",
  "rspack_error",
+ "rspack_paths",
  "rspack_sources",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3294,10 +3309,18 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_napi",
+ "rspack_paths",
  "rspack_plugin_javascript",
  "rspack_tracing",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_paths"
+version = "0.1.0"
+dependencies = [
+ "camino",
 ]
 
 [[package]]
@@ -3349,6 +3372,7 @@ dependencies = [
  "rspack_futures",
  "rspack_hash",
  "rspack_hook",
+ "rspack_paths",
  "rspack_util",
  "rustc-hash 1.1.0",
  "sugar_path",
@@ -3503,6 +3527,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_paths",
  "rspack_util",
  "schemars",
  "serde",
@@ -3554,6 +3579,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_ids",
+ "rspack_paths",
  "rspack_regex",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3763,6 +3789,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_paths",
  "tracing",
  "url",
  "urlencoding",

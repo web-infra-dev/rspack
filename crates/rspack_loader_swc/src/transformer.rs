@@ -1,12 +1,7 @@
-use std::path::Path;
-use std::sync::Arc;
-
 use either::Either;
-use rspack_core::CompilerOptions;
 use swc_core::atoms::Atom;
 use swc_core::common::collections::AHashMap;
 use swc_core::common::BytePos;
-use swc_core::common::{comments::Comments, Mark, SourceMap};
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::visit::{noop_visit_type, Visit};
 use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
@@ -32,16 +27,7 @@ macro_rules! either {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn transform<'a>(
-  _resource_path: &'a Path,
-  _rspack_options: &'a CompilerOptions,
-  _comments: Option<&'a dyn Comments>,
-  _top_level_mark: Mark,
-  _unresolved_mark: Mark,
-  _cm: Arc<SourceMap>,
-  _content: &'a str,
-  rspack_experiments: &'a RspackExperiments,
-) -> impl Fold + 'a {
+pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Fold + '_ {
   either!(rspack_experiments.import, |options| {
     swc_plugin_import::plugin_import(options)
   })

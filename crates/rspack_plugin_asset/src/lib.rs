@@ -122,9 +122,9 @@ impl AssetParserAndGenerator {
       filename: resource_data
         .resource_path
         .as_deref()
-        .map(|p| p.to_string_lossy().to_string())
+        .map(|p| p.as_str().to_string())
         .unwrap_or_default(),
-      content: source.source().into_owned().to_string(),
+      content: source.source().into_owned(),
     };
 
     if let Some(AssetGeneratorDataUrl::Func(data_url)) = data_url {

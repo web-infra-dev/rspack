@@ -1,10 +1,8 @@
-use std::{
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 
 use derivative::Derivative;
 use rspack_error::Diagnostic;
+use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -104,7 +102,7 @@ impl<Context> LoaderContext<Context> {
 
   /// The resource part of the request.
   /// E.g. /abc/resource.js
-  pub fn resource_path(&self) -> Option<&Path> {
+  pub fn resource_path(&self) -> Option<&Utf8Path> {
     self.resource_data.resource_path.as_deref()
   }
 

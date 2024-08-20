@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
-use sugar_path::SugarPath;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{

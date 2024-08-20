@@ -32,6 +32,7 @@ rspack_loader_swc                     = { version = "0.1.0", path = "../rspack_l
 rspack_loader_testing                 = { version = "0.1.0", path = "../rspack_loader_testing" }
 rspack_napi                           = { version = "0.1.0", path = "../rspack_napi" }
 rspack_napi_macros                    = { version = "0.1.0", path = "../rspack_napi_macros" }
+rspack_paths                          = { version = "0.1.0", path = "../rspack_paths" }
 rspack_plugin_asset                   = { version = "0.1.0", path = "../rspack_plugin_asset" }
 rspack_plugin_banner                  = { version = "0.1.0", path = "../rspack_plugin_banner" }
 rspack_plugin_copy                    = { version = "0.1.0", path = "../rspack_plugin_copy" }
