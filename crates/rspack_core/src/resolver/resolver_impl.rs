@@ -77,8 +77,8 @@ impl<'a> ResolveInnerOptions<'a> {
 ///
 /// Internal caches are shared.
 #[derive(Debug)]
-pub enum Resolver {
-  RspackResolver(rspack_resolver::Resolver),
+pub struct Resolver {
+  resolver: rspack_resolver::Resolver,
 }
 
 impl Resolver {
@@ -89,14 +89,12 @@ impl Resolver {
   fn new_rspack_resolver(options: Resolve) -> Self {
     let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
     let resolver = rspack_resolver::Resolver::new(options);
-    Self::RspackResolver(resolver)
+    Self { resolver }
   }
 
   /// Clear cache for all resolver instances
   pub fn clear_cache(&self) {
-    match self {
-      Self::RspackResolver(resolver) => resolver.clear_cache(),
-    }
+    self.resolver.clear_cache();
   }
 
   /// Create a new resolver by cloning its internal cache.
@@ -105,41 +103,34 @@ impl Resolver {
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
   ) -> Self {
-    match self {
-      Self::RspackResolver(resolver) => {
-        let options = to_rspack_resolver_options(
-          options,
-          options_with_dependency_type.resolve_to_context,
-          options_with_dependency_type.dependency_category,
-        );
-        let resolver = resolver.clone_with_options(options);
-        Self::RspackResolver(resolver)
-      }
-    }
+    let resolver = &self.resolver;
+    let options = to_rspack_resolver_options(
+      options,
+      options_with_dependency_type.resolve_to_context,
+      options_with_dependency_type.dependency_category,
+    );
+    let resolver = resolver.clone_with_options(options);
+    Self { resolver }
   }
 
   /// Return the options from the resolver
   pub fn options(&self) -> ResolveInnerOptions<'_> {
-    match self {
-      Self::RspackResolver(resolver) => ResolveInnerOptions::RspackResolver(resolver.options()),
-    }
+    ResolveInnerOptions::RspackResolver(self.resolver.options())
   }
 
   /// Resolve a specifier to a given path.
   pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult, ResolveInnerError> {
-    match self {
-      Self::RspackResolver(resolver) => match resolver.resolve(path, request) {
-        Ok(r) => Ok(ResolveResult::Resource(Resource {
-          path: r.path().to_path_buf().assert_utf8(),
-          query: r.query().unwrap_or_default().to_string(),
-          fragment: r.fragment().unwrap_or_default().to_string(),
-          description_data: r
-            .package_json()
-            .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
-        })),
-        Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
-        Err(error) => Err(ResolveInnerError::RspackResolver(error)),
-      },
+    match self.resolver.resolve(path, request) {
+      Ok(r) => Ok(ResolveResult::Resource(Resource {
+        path: r.path().to_path_buf().assert_utf8(),
+        query: r.query().unwrap_or_default().to_string(),
+        fragment: r.fragment().unwrap_or_default().to_string(),
+        description_data: r
+          .package_json()
+          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+      })),
+      Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
+      Err(error) => Err(ResolveInnerError::RspackResolver(error)),
     }
   }
 
@@ -150,29 +141,26 @@ impl Resolver {
     request: &str,
     resolve_context: &mut ResolveContext,
   ) -> Result<ResolveResult, ResolveInnerError> {
-    match self {
-      Self::RspackResolver(resolver) => {
-        let mut context = Default::default();
-        let result = resolver.resolve_with_context(path, request, &mut context);
-        resolve_context
-          .file_dependencies
-          .extend(context.file_dependencies);
-        resolve_context
-          .missing_dependencies
-          .extend(context.missing_dependencies);
-        match result {
-          Ok(r) => Ok(ResolveResult::Resource(Resource {
-            path: r.path().to_path_buf().assert_utf8(),
-            query: r.query().unwrap_or_default().to_string(),
-            fragment: r.fragment().unwrap_or_default().to_string(),
-            description_data: r
-              .package_json()
-              .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
-          })),
-          Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
-          Err(error) => Err(ResolveInnerError::RspackResolver(error)),
-        }
-      }
+    let resolver = &self.resolver;
+    let mut context = Default::default();
+    let result = resolver.resolve_with_context(path, request, &mut context);
+    resolve_context
+      .file_dependencies
+      .extend(context.file_dependencies);
+    resolve_context
+      .missing_dependencies
+      .extend(context.missing_dependencies);
+    match result {
+      Ok(r) => Ok(ResolveResult::Resource(Resource {
+        path: r.path().to_path_buf().assert_utf8(),
+        query: r.query().unwrap_or_default().to_string(),
+        fragment: r.fragment().unwrap_or_default().to_string(),
+        description_data: r
+          .package_json()
+          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+      })),
+      Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
+      Err(error) => Err(ResolveInnerError::RspackResolver(error)),
     }
   }
 }
