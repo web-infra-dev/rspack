@@ -1,8 +1,8 @@
 use rspack_core::{
-  module_id, property_access, to_normal_comment, Compilation, ExportsType,
+  module_id, property_access, to_normal_comment, Compilation, DependencyRange, ExportsType,
   ExtendedReferencedExport, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
 };
-use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
+use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
@@ -13,8 +13,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   names: Vec<Atom>,
-  range: DependencyLocation,
-  span: Option<ErrorSpan>,
+  range: DependencyRange,
   is_call: bool,
   optional: bool,
   asi_safe: bool,
@@ -24,8 +23,7 @@ impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
     names: Vec<Atom>,
-    range: DependencyLocation,
-    span: Option<ErrorSpan>,
+    range: DependencyRange,
     is_call: bool,
     optional: bool,
     asi_safe: bool,
@@ -35,7 +33,6 @@ impl CommonJsFullRequireDependency {
       request,
       names,
       range,
-      span,
       is_call,
       optional,
       asi_safe,
@@ -56,8 +53,12 @@ impl Dependency for CommonJsFullRequireDependency {
     &DependencyType::CjsRequire
   }
 
+  fn loc(&self) -> Option<String> {
+    self.range.to_loc()
+  }
+
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn get_referenced_exports(
@@ -148,7 +149,7 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
       }
     }
 
-    source.replace(self.range.start(), self.range.end(), &require_expr, None);
+    source.replace(self.range.start, self.range.end, &require_expr, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
