@@ -562,8 +562,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	/**
 	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
-	 *
-	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
 	 */
 	updateAsset(
 		filename: string,
