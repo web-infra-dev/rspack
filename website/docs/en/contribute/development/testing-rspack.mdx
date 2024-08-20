@@ -13,6 +13,8 @@ You can run these test cases in the following ways:
 - Or run `npm run test` from the `packages/rspack-test-tools` directory.
 - To update snapshots, run `npm run test -- -u` from the `packages/rspack-test-tools` directory.
 - To pass specific jest cli arguments, run `npm run test -- {args}` from the `packages/rspack-test-tools` directory.
+- To filter specific test cases, run `npm run test -- -t path-of-spec` from the `packages/rspack-test-tools` directory.
+  - Like `npm run test -- -t config/asset` to only run test cases from the `packages/rspack-test-tools/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
 
 ## Directory Structure
 
