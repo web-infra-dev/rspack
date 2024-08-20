@@ -22,3 +22,12 @@ foo()
 
 debugger
 foo()
+
+export function a() {}
+function bb() {
+  a(), foo();
+}
+
+function d() {}
+export function c() {}
+d(), foo();
