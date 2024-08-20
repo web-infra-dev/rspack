@@ -23,6 +23,7 @@
   "@nx/webpack-desc": "使用 [@nx/rspack](https://www.npmjs.com/package/@nx/rspack) 替代",
   "webpack-filter-warnings-plugin-desc": "使用 [ignoreWarnings](/config/other-options#ignorewarnings) 替代",
   "speed-measure-webpack-plugin-desc": "使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 替代",
+  "eslint-webpack-plugin-desc": "使用 [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) 替代",
   "circular-dependency-plugin-desc": "使用 Eslint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) 规则替代",
   "html-webpack-tags-plugin-desc": "该插件依赖了 webpack 和 html-webpack-plugin",
   "needs-html-webpack-plugin": "该插件依赖了 html-webpack-plugin"

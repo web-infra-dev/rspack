@@ -106,7 +106,8 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'eslint-webpack-plugin',
       url: 'https://github.com/webpack-contrib/eslint-webpack-plugin',
-      status: CompatibleStatus.Compatible,
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['eslint-webpack-plugin-desc'],
     },
     {
       name: 'fork-ts-checker-webpack-plugin',
