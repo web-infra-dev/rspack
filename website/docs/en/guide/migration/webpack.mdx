@@ -21,6 +21,12 @@ Now you can remove the webpack-related dependencies from your project:
 
 <PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
+:::tip
+In some cases, you will still need to keep `webpack` as a dev dependency, such as when using [vue-loader](https://github.com/vuejs/vue-loader) or [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin).
+
+This is because these plugins directly `import` subpaths of webpack and couple with webpack. If you encounter this issue, you can provide feedback to the maintainers of these plugins, asking them if they can make `webpack` an optional dependency.
+:::
+
 ## Updating package.json
 
 Update your build scripts to use Rspack instead of webpack:
