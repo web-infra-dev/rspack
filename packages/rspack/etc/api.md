@@ -3276,10 +3276,10 @@ const environment: z.ZodObject<{
 
 // @public (undocumented)
 export class EnvironmentPlugin {
-    constructor(...keys: string[] | [Record<string, string> | string]);
+    constructor(...keys: string[] | [Record<string, string | undefined | null> | string | string[]]);
     apply(compiler: Compiler): void;
     // (undocumented)
-    defaultValues: Record<string, string>;
+    defaultValues: Record<string, string | undefined | null>;
     // (undocumented)
     keys: string[];
 }
