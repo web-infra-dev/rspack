@@ -273,7 +273,7 @@ impl Stats<'_> {
           .into_iter()
           .collect::<IdentifierSet>();
 
-        let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
+        let mut auxiliary_files = c.auxiliary_files.iter().cloned().collect::<Vec<_>>();
         auxiliary_files.sort_unstable();
 
         let chunk_modules = if options.chunk_modules {
@@ -1113,8 +1113,7 @@ impl Stats<'_> {
       .compilation
       .runtime_module_code_generation_results
       .get(identifier)
-      .map(|(_, source)| source.size() as f64)
-      .unwrap_or(0 as f64);
+      .map_or(0 as f64, |(_, source)| source.size() as f64);
 
     let mut stats = StatsModule {
       r#type: "module",

@@ -96,7 +96,7 @@ impl RuntimeSpec {
       self.key = String::new();
       return;
     }
-    let mut ordered = Vec::from_iter(self.inner.iter().cloned());
+    let mut ordered = self.inner.iter().cloned().collect::<Vec<_>>();
     ordered.sort_unstable();
     self.key = ordered.join("\n")
   }

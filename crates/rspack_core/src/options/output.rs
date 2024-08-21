@@ -317,7 +317,7 @@ impl PublicPath {
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
     let public_path = match Utf8Path::new(filename).parent() {
-      None => "".to_string(),
+      None => String::new(),
       Some(dirname) => compilation
         .options
         .output

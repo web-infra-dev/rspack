@@ -249,8 +249,7 @@ pub trait Module:
     self
       .build_meta()
       .as_ref()
-      .map(|m| m.strict_harmony_module)
-      .unwrap_or(false)
+      .is_some_and(|m| m.strict_harmony_module)
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.

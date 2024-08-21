@@ -417,7 +417,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
     context.add_runtime_requirements(RuntimeGlobals::MODULE);
     if self.promises.is_empty() {
       Ok(InitFragmentContents {
-        start: "".to_string(),
+        start: String::new(),
         end: None,
       })
     } else if self.promises.len() == 1 {
@@ -518,8 +518,8 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ConditionalInitFragment {
         || self.content.is_empty()
       {
         InitFragmentContents {
-          start: "".to_owned(),
-          end: Some("".to_owned()),
+          start: String::new(),
+          end: Some(String::new()),
         }
       } else if matches!(self.runtime_condition, RuntimeCondition::Boolean(true)) {
         InitFragmentContents {
@@ -651,7 +651,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
 
     let mut imports_string: String;
     imports_string = if named_imports.is_empty() {
-      "".to_string()
+      String::new()
     } else {
       format!("{{{}}}", named_imports.join(", "))
     };
@@ -661,7 +661,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
         "{}{}",
         default_import,
         if imports_string.is_empty() {
-          "".to_string()
+          String::new()
         } else {
           format!(", {}", imports_string)
         }

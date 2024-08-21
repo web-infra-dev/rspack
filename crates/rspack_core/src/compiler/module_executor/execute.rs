@@ -101,7 +101,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     chunk.id = chunk.name.clone();
     chunk.ids = vec![chunk.id.clone().expect("id is set")];
-    let runtime = RuntimeSpec::from_iter(once("build time".into()));
+    let runtime: RuntimeSpec = once("build time".into()).collect();
 
     chunk.runtime = runtime.clone();
 
@@ -165,7 +165,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     Handle::current().block_on(async {
       compilation
         .process_runtime_requirements(
-          Vec::from_iter(modules.iter().copied()),
+          modules.iter().copied().collect::<Vec<_>>(),
           once(chunk_ukey),
           once(chunk_ukey),
           compilation.plugin_driver.clone(),
@@ -257,7 +257,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
         result.id = id;
 
-        modules.iter().for_each(|m| {
+        for m in modules.iter() {
           let codegen_result = codegen_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
@@ -270,7 +270,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
               CompilationAsset::new(Some(source.clone()), asset_info.inner().clone()),
             );
           }
-        });
+        }
 
         Ok(result)
       }
@@ -305,8 +305,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
           cacheable: runtime_module.cacheable(),
           size: runtime_module_size
             .get(&identifier)
-            .map(|s| s.to_owned())
-            .unwrap_or(0 as f64),
+            .map_or(0 as f64, |s| s.to_owned()),
         }
       })
       .collect_vec();

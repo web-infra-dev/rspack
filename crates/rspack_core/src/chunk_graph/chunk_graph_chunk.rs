@@ -88,7 +88,7 @@ impl ChunkGraph {
 
     let old_cgm = self.get_chunk_graph_module(*old_module_id);
     // Using clone to avoid using mutable borrow and immutable borrow at the same time.
-    for chunk in old_cgm.chunks.clone().into_iter() {
+    for chunk in old_cgm.chunks.clone() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
       cgc.modules.remove(old_module_id);
       cgc.modules.insert(*new_module_id);
@@ -100,9 +100,9 @@ impl ChunkGraph {
     let old_cgm = self.get_chunk_graph_module_mut(*old_module_id);
     old_cgm.chunks.clear();
 
-    for chunk in old_cgm.entry_in_chunks.clone().into_iter() {
+    for chunk in old_cgm.entry_in_chunks.clone() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
-      if let Some(old) = cgc.entry_modules.get(old_module_id).cloned() {
+      if let Some(old) = cgc.entry_modules.get(old_module_id).copied() {
         let mut new_entry_modules = LinkedHashMap::default();
         for (m, cg) in cgc.entry_modules.iter() {
           if m == old_module_id {
@@ -122,7 +122,7 @@ impl ChunkGraph {
     old_cgm.entry_in_chunks.clear();
     let old_cgm = self.get_chunk_graph_module(*old_module_id);
 
-    for chunk in old_cgm.runtime_in_chunks.clone().into_iter() {
+    for chunk in old_cgm.runtime_in_chunks.clone() {
       let cgc = self.get_chunk_graph_chunk_mut(chunk);
       // delete old module
       cgc.runtime_modules = std::mem::take(&mut cgc.runtime_modules)
@@ -155,7 +155,7 @@ impl ChunkGraph {
   pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk_ukey);
 
-    chunk_graph_chunk.entry_modules.keys().cloned().collect()
+    chunk_graph_chunk.entry_modules.keys().copied().collect()
   }
 
   pub fn get_chunk_entry_modules_with_chunk_group_iterable(
@@ -476,7 +476,7 @@ impl ChunkGraph {
     module_graph: &ModuleGraph,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk);
-    let mut input = cgc.modules.iter().cloned().collect::<Vec<_>>();
+    let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
     input.sort_unstable();
     let mut modules = find_graph_roots(input, |module| {
       let mut set: IdentifierSet = Default::default();
@@ -825,6 +825,6 @@ impl ChunkGraph {
 
         None
       })
-      .unwrap_or(module.source_types().iter().cloned().collect())
+      .unwrap_or(module.source_types().iter().copied().collect())
   }
 }

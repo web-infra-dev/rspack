@@ -108,7 +108,7 @@ impl ExportsInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
-    let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_id_list {
       let export_info = mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.provided.is_none() {
@@ -160,7 +160,7 @@ impl ExportsInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_to = exports_info.redirect_to;
     let other_exports_info = exports_info.other_exports_info;
-    let exports_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let exports_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info in exports_id_list {
       if !can_mangle && export_info.can_mangle_provide(mg) != Some(false) {
         export_info.set_can_mangle_provide(mg, Some(false));
@@ -303,7 +303,7 @@ impl ExportsInfo {
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // this clone aiming to avoid use the mutable ref and immutable ref at the same time.
-    let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info in export_id_list {
       export_info.set_has_use_info(mg);
     }
@@ -325,7 +325,7 @@ impl ExportsInfo {
     let redirect = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // avoid use ref and mut ref at the same time
-    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let flag = export_info_id.set_used_without_info(mg, runtime);
       changed |= flag;
@@ -352,7 +352,7 @@ impl ExportsInfo {
   ) -> bool {
     let mut changed = false;
     let exports_info = mg.get_exports_info_mut_by_id(self);
-    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let export_info = export_info_id.as_export_info_mut(mg);
       if !matches!(export_info.provided, Some(ExportInfoProvided::True)) {
@@ -370,7 +370,7 @@ impl ExportsInfo {
   ) -> bool {
     let mut changed = false;
     let exports_info = mg.get_exports_info_by_id(self);
-    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     for export_info_id in export_info_id_list {
@@ -484,7 +484,7 @@ impl ExportsInfo {
     for export_info_id in info.exports.values() {
       let export_info = export_info_id.as_export_info(mg);
       match export_info.provided {
-        Some(ExportInfoProvided::True) | Some(ExportInfoProvided::Null) | None => {
+        Some(ExportInfoProvided::True | ExportInfoProvided::Null) | None => {
           ret.push(export_info.name.clone().unwrap_or("".into()));
         }
         _ => {}
@@ -524,7 +524,7 @@ impl ExportsInfo {
         UsageState::NoInfo => return UsedExports::Null,
         UsageState::Unknown => return UsedExports::Bool(true),
         UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          if let Some(name) = export_info_id.as_export_info(mg).name.to_owned() {
+          if let Some(name) = export_info_id.as_export_info(mg).name.clone() {
             res.push(name);
           }
         }
@@ -1637,14 +1637,11 @@ impl ExportInfoData {
     let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
     let global_used = init_from.and_then(|init_from| init_from.global_used);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
-    let has_use_in_runtime_info = init_from
-      .map(|init_from| init_from.has_use_in_runtime_info)
-      .unwrap_or(false);
+    let has_use_in_runtime_info =
+      init_from.is_some_and(|init_from| init_from.has_use_in_runtime_info);
 
     let provided = init_from.and_then(|init_from| init_from.provided);
-    let terminal_binding = init_from
-      .map(|init_from| init_from.terminal_binding)
-      .unwrap_or(false);
+    let terminal_binding = init_from.is_some_and(|init_from| init_from.terminal_binding);
     let can_mangle_provide = init_from.and_then(|init_from| init_from.can_mangle_provide);
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
 
