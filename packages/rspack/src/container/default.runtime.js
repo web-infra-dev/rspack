@@ -99,15 +99,26 @@ module.exports = function () {
 							requiredVersion,
 							strictVersion
 						} = stage;
+						const shareConfig = {};
+						const isValidValue = function (val) {
+							return typeof val !== "undefined";
+						};
+						if (isValidValue(singleton)) {
+							shareConfig.singleton = singleton;
+						}
+						if (isValidValue(requiredVersion)) {
+							shareConfig.requiredVersion = requiredVersion;
+						}
+						if (isValidValue(eager)) {
+							shareConfig.eager = eager;
+						}
+						if (isValidValue(strictVersion)) {
+							shareConfig.strictVersion = strictVersion;
+						}
 						const options = {
 							version,
 							scope: [scope],
-							shareConfig: {
-								singleton,
-								requiredVersion,
-								eager,
-								strictVersion
-							},
+							shareConfig,
 							get: factory
 						};
 						if (shared[name]) {
