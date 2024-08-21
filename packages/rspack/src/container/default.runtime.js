@@ -102,10 +102,12 @@ module.exports = function () {
 						const options = {
 							version,
 							scope: [scope],
-							eager,
-							singleton,
-							requiredVersion,
-							strictVersion,
+							shareConfig: {
+								singleton,
+								requiredVersion,
+								eager,
+								strictVersion
+							},
 							get: factory
 						};
 						if (shared[name]) {
