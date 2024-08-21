@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
+import sharedStyles from '../shared.module.scss';
 import arrow from './assets/arrow.svg';
 import javascriptApi from './assets/javascriptApi.svg';
 import layer from './assets/layer.svg';
@@ -110,14 +111,15 @@ const FullyFeatured = () => {
   const [isFolded, setIsFolded] = useState(true);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.content}>
-        <h1 className={styles.title}>{t('fullyFeaturedTitle')}</h1>
-        <p className={styles.subtitle}>{t('fullyFeaturedDesc')}</p>
+    <div className={sharedStyles.container}>
+      <div className={sharedStyles.titleAndDesc}>
+        <h1 className={sharedStyles.title}>{t('fullyFeaturedTitle')}</h1>
+        <p className={sharedStyles.desc}>{t('fullyFeaturedDesc')}</p>
       </div>
       <div className={styles.main}>
-        {[FeatureRow1, FeatureRow2, ...(isFolded ? [] : [FeatureRow3])].map(
-          (row, index) => {
+        {
+          // [FeatureRow1, FeatureRow2, ...(isFolded ? [] : [FeatureRow3])].map(
+          [FeatureRow1, FeatureRow2, FeatureRow3].map((row, index) => {
             return (
               <div className={styles.features} key={index}>
                 {row.map(({ icon, description, link, title }, index) => (
@@ -135,8 +137,8 @@ const FullyFeatured = () => {
                 ))}
               </div>
             );
-          },
-        )}
+          })
+        }
         <button
           type="button"
           className={styles.button}

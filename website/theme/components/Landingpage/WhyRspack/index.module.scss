@@ -4,6 +4,7 @@
   justify-content: center;
   align-items: center;
   gap: 32px;
+
   .featuresContainerInner {
     width: 1440px;
     height: 716px;
@@ -16,6 +17,17 @@
 .whyRspack {
   flex: 2 2 calc(67%) !important;
   position: relative;
+  display: flex;
+  padding: 32px;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  align-self: stretch;
+
+  // style
+  border-radius: 20px;
+  border: 1px solid var(--why-rspack-card-stroke);
+  background: var(--why-rspack-card-gradient);
 
   .whyRspackBg {
     width: 250px;
@@ -27,29 +39,45 @@
     pointer-events: none;
   }
 
-  .whyRspackText {
-    font-family: 'Open Sans';
-    font-size: 50px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: normal;
-    letter-spacing: -2px;
-    // style
-    background: var(
-      --Linear-Text,
-      linear-gradient(278deg, #ff8b00 52.48%, #f93920 98.12%)
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  .whyRspackContent {
+    display: flex;
+    padding: 16px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 16px;
 
-  .whyRspackDescription {
-    font-family: 'Open Sans';
-    font-size: 24px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 40px; /* 166.667% */
+    .whyRspackTitle {
+      font-family: 'Open Sans';
+      font-size: 50px;
+      font-style: normal;
+      font-weight: 700;
+      line-height: normal;
+      letter-spacing: -2px;
+      // style
+      background: var(
+        --Linear-Text,
+        linear-gradient(278deg, #ff8b00 52.48%, #f93920 98.12%)
+      );
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .whyRspackDescription {
+      // text
+      font-family: 'Open Sans';
+      font-size: 24px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 40px; /* 166.667% */
+
+      // style
+      background: var(--why-rspack-description-bg);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   }
 }
 

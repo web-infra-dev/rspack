@@ -14,9 +14,9 @@ const Features = () => {
     <div className={styles.featuresContainer}>
       <div className={styles.featuresContainerInner}>
         <div className={styles.features}>
-          <div className={`${styles.featureCard} ${styles.whyRspack}`}>
-            <div className={styles.featureContent}>
-              <h3 className={styles.whyRspackText}>{t('whyRspack')}</h3>
+          <div className={styles.whyRspack}>
+            <div className={styles.whyRspackContent}>
+              <h3 className={styles.whyRspackTitle}>{t('whyRspack')}</h3>
               <p className={styles.whyRspackDescription}>
                 {t('whyRspackDesc')}
               </p>

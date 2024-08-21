@@ -9,6 +9,7 @@ import {
 //   type BenchmarkData,
 // } from '@rstack-dev/doc-ui/benchmark';
 import { useI18n } from '../../../i18n';
+import sharedStyles from '../shared.module.scss';
 import styles from './index.module.scss';
 
 // Benchmark data for different cases
@@ -88,10 +89,10 @@ const BENCHMARK_DATA: BenchmarkData = {
 export function Benchmark() {
   const t = useI18n();
   return (
-    <div className={styles.container}>
-      <div className={styles.content}>
-        <h1 className={styles.title}>{t('benchmarkTitle')}</h1>
-        <p className={styles.subtitle}>{t('benchmarkDesc')}</p>
+    <div className={sharedStyles.container}>
+      <div className={sharedStyles.titleAndDesc}>
+        <h1 className={sharedStyles.title}>{t('benchmarkTitle')}</h1>
+        <p className={sharedStyles.desc}>{t('benchmarkDesc')}</p>
       </div>
       <BaseBenchmark data={BENCHMARK_DATA} />
       <div className="flex flex-col items-center self-stretch">

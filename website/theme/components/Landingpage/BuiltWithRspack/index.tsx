@@ -1,5 +1,6 @@
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
+import sharedStyles from '../shared.module.scss';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
@@ -11,7 +12,8 @@ import styles from './index.module.scss';
 const BuiltWithRsPack: React.FC = () => {
   const t = useI18n();
   return (
-    <div className={styles.container}>
+    <div className={sharedStyles.container}>
+      {/* innerContainer just for background */}
       <div className={styles.innerContainer}>
         <h2 className={styles.title}>{t('builtWithRspack')}</h2>
         <div className={styles.logos}>

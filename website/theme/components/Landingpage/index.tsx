@@ -1,4 +1,4 @@
-import BackgroundUrl from './Background.simple.png';
+import BackgroundUrl from './Background.compressed.png';
 import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';
 import FullyFeatured from './FullyFeatured';

@@ -2,6 +2,7 @@ import type React from 'react';
 import { useLang } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
+import sharedStyles from '../shared.module.scss';
 import styles from './index.module.scss';
 
 const ToolStack: React.FC = () => {
@@ -53,10 +54,10 @@ const ToolStack: React.FC = () => {
   ];
 
   return (
-    <div className={styles.container}>
-      <div className={styles.content}>
-        <h2 className={styles.title}>{t('toolStackTitle')}</h2>
-        <p className={styles.description}>{t('toolStackDesc')}</p>
+    <div className={sharedStyles.container}>
+      <div className={sharedStyles.titleAndDesc}>
+        <h2 className={sharedStyles.title}>{t('toolStackTitle')}</h2>
+        <p className={sharedStyles.desc}>{t('toolStackDesc')}</p>
       </div>
       <div className={styles.tools}>
         {tools.map(({ name, desc, logo, url }) => {

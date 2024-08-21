@@ -1,0 +1,72 @@
+// XL > 1440
+// L 835 - 1280
+// M 400 - 834
+// S < 400
+
+// XL
+@media only screen and (min-width: 1281px) {
+  .container {
+    padding: 64px 144px;
+  }
+}
+
+// L
+@media only screen and (min-width: 835px) and (max-width: 1280px) {
+  .container {
+    padding: 64px 80px;
+  }
+}
+
+// M
+@media only screen and (min-width: 400px) and (max-width: 834px) {
+  .container {
+    padding: 32px;
+  }
+}
+
+// S
+@media only screen and (max-width: 399px) {
+  .container {
+    padding: 24px;
+  }
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.titleAndDesc {
+  display: flex;
+  padding: 0px 144px 32px 144px;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  align-self: stretch;
+  .title {
+    color: var(--landingpage-title-color);
+    text-align: center;
+
+    /* Style 10 */
+    font-family: 'Open Sans';
+    font-size: 48px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 48px; /* 100% */
+  }
+
+  .desc {
+    color: var(--landingpage-desc-color);
+    text-align: center;
+
+    /* Style 11 */
+    font-family: 'Open Sans';
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px; /* 140% */
+  }
+}
