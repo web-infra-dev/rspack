@@ -199,6 +199,25 @@ export default {
 
 ## 内置插件的调整
 
+### [重要] CSS 压缩插件的调整
+
+在 Rspack 0.x 中我们使用内置的 `rspack.SwcCssMinimizerRspackPlugin` 来压缩 CSS 代码。现在，该插件已被移除，并改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 替代它。
+
+如果你之前手动注册并配置 `rspack.SwcCssMinimizerRspackPlugin`，现在需要使用 `rspack.LightningCssMinimizerRspackPlugin`：
+
+```diff
+module.exports = {
+  optimization: {
+    minimizer: [
+-     new rspack.SwcCssMinimizerRspackPlugin({
++     new rspack.LightningCssMinimizerRspackPlugin({
+        // 选项配置
+      }),
+    ],
+  },
+};
+```
+
 ### rspack.SwcJsMinimizerRspackPlugin
 
 这是 Rspack 内置并默认启用的 JS 压缩插件。我们已将其配置与 [SWC 的压缩配置](https://swc.rs/docs/configuration/minification)对齐，不兼容的配置如下：

@@ -199,6 +199,26 @@ export default {
 
 ## Adjustments to Built-in Plugins
 
+### [Important] CSS Minimizer Plugin Adjustment
+
+In Rspack 0.x, we used the built-in `rspack.SwcCssMinimizerRspackPlugin` to compress CSS size.
+Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to handle the same functionality.
+
+If you previously manually registered and configured `rspack.SwcCssMinimizerRspackPlugin`, you should to switch to `rspack.LightningCssMinimizerRspackPlugin`:
+
+```diff
+module.exports = {
+  optimization: {
+    minimizer: [
+-     new rspack.SwcCssMinimizerRspackPlugin({
++     new rspack.LightningCssMinimizerRspackPlugin({
+        // options
+      }),
+    ],
+  },
+};
+```
+
 ### rspack.SwcJsMinimizerRspackPlugin
 
 Rspack's built-in and default-enabled JavaScript minimizer plugin has had its configuration aligned with [SWC's minification configuration](https://swc.rs/docs/configuration/minification). The breaking changes are as follows:
