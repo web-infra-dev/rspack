@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, SpanExt};
+use rspack_core::{ConstDependency, ErrorSpan, SpanExt};
 use rspack_error::miette::diagnostic;
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rspack_regex::RspackRegex;
@@ -243,7 +243,7 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
 pub fn extract_require_call_info(
   parser: &mut JavascriptParser,
   expr: &MemberExpr,
-) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
+) -> Option<(Vec<Atom>, ExprOrSpread)> {
   let Some((members, args, root)) = parser
     .get_member_expression_info(expr, AllowedMemberTypes::CallExpression)
     .and_then(|info| match info {
@@ -258,15 +258,13 @@ pub fn extract_require_call_info(
   // call require() with no param
   let first_arg = args.first()?;
 
-  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi(), None);
-
   if let ExportedVariableInfo::Name(root) = root {
     if root == "module" && members.first().is_some_and(|m| m == "require") {
       // module.require().x.x
-      Some((members[1..].to_vec(), first_arg.to_owned(), loc))
+      Some((members[1..].to_vec(), first_arg.to_owned()))
     } else if root == "require" {
       // require().x.x
-      Some((members, first_arg.to_owned(), loc))
+      Some((members, first_arg.to_owned()))
     } else {
       None
     }

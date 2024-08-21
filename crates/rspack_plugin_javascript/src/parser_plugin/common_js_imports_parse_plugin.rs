@@ -1,4 +1,6 @@
-use rspack_core::{ConstDependency, ContextMode, DependencyCategory, ErrorSpan, SpanExt};
+use rspack_core::{
+  ConstDependency, ContextMode, DependencyCategory, DependencyRange, ErrorSpan, SpanExt,
+};
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
 use swc_core::common::{Span, Spanned};
@@ -88,15 +90,15 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let (members, first_arg, loc) = extract_require_call_info(parser, mem_expr)?;
+    let (members, first_arg) = extract_require_call_info(parser, mem_expr)?;
 
+    let range: DependencyRange = mem_expr.span.into();
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
         param.string().to_owned(),
         members,
-        loc,
-        Some(mem_expr.span.into()),
+        range.with_source(parser.source_map.clone()),
         is_call,
         parser.in_try,
         !parser.is_asi_position(mem_expr.span_lo()),
