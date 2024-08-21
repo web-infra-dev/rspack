@@ -1,6 +1,7 @@
 use rspack_core::{
-  module_id, property_access, to_normal_comment, Compilation, DependencyRange, ExportsType,
-  ExtendedReferencedExport, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
+  module_id, property_access, to_normal_comment, Compilation, ExportsType,
+  ExtendedReferencedExport, ModuleGraph, RealDependencyRange, RuntimeGlobals, RuntimeSpec,
+  UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
@@ -13,7 +14,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   names: Vec<Atom>,
-  range: DependencyRange,
+  range: RealDependencyRange,
   is_call: bool,
   optional: bool,
   asi_safe: bool,
@@ -23,7 +24,7 @@ impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
     names: Vec<Atom>,
-    range: DependencyRange,
+    range: RealDependencyRange,
     is_call: bool,
     optional: bool,
     asi_safe: bool,

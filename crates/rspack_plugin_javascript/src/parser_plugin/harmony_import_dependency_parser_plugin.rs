@@ -1,5 +1,5 @@
 use rspack_core::{
-  ConstDependency, Dependency, DependencyRange, DependencyType, ImportAttributes, SpanExt,
+  ConstDependency, Dependency, DependencyType, ImportAttributes, RealDependencyRange, SpanExt,
 };
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
@@ -70,7 +70,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
-    let range: DependencyRange = import_decl.span.into();
+    let range: RealDependencyRange = import_decl.span.into();
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
     let dependency = HarmonyImportSideEffectDependency::new(
       source.into(),
@@ -134,7 +134,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
-    let range: DependencyRange = ident.span.into();
+    let range: RealDependencyRange = ident.span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -201,7 +201,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
-    let range: DependencyRange = span.into();
+    let range: RealDependencyRange = span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -265,7 +265,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
-    let range: DependencyRange = span.into();
+    let range: RealDependencyRange = span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
