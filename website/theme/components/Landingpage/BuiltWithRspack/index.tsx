@@ -13,8 +13,9 @@ const BuiltWithRsPack: React.FC = () => {
   const t = useI18n();
   return (
     <div className={sharedStyles.container}>
-      {/* innerContainer just for background */}
-      <div className={styles.innerContainer}>
+      <div
+        className={`${sharedStyles.innerContainer} ${styles.innerContainer}`}
+      >
         <h2 className={styles.title}>{t('builtWithRspack')}</h2>
         <div className={styles.logos}>
           <Link

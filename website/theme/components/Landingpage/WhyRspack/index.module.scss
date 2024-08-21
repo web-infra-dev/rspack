@@ -1,13 +1,13 @@
-.featuresContainer {
+.container {
   display: flex;
   padding: 32px 144px;
   justify-content: center;
   align-items: center;
   gap: 32px;
 
-  .featuresContainerInner {
-    width: 1440px;
-    height: 716px;
+  .innerContainer {
+    width: 100%;
+    max-width: 1440px;
     display: flex;
     flex-wrap: wrap;
     gap: 16px;

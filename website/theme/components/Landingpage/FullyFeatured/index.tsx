@@ -112,42 +112,50 @@ const FullyFeatured = () => {
 
   return (
     <div className={sharedStyles.container}>
-      <div className={sharedStyles.titleAndDesc}>
-        <h1 className={sharedStyles.title}>{t('fullyFeaturedTitle')}</h1>
-        <p className={sharedStyles.desc}>{t('fullyFeaturedDesc')}</p>
-      </div>
-      <div className={styles.main}>
-        {
-          // [FeatureRow1, FeatureRow2, ...(isFolded ? [] : [FeatureRow3])].map(
-          [FeatureRow1, FeatureRow2, FeatureRow3].map((row, index) => {
-            return (
-              <div className={styles.features} key={index}>
-                {row.map(({ icon, description, link, title }, index) => (
-                  <Link key={index} className={styles.featureCard} href={link}>
-                    <img
-                      src={icon}
-                      alt={index.toString()}
-                      className={styles.icon}
-                    />
-                    <div className={styles.featureContent}>
-                      <h2 className={styles.featureTitle}>{title}</h2>
-                      <p className={styles.featureDescription}>{description}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            );
-          })
-        }
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => {
-            setIsFolded(folded => !folded);
-          }}
-        >
-          {isFolded ? t('fullyfeaturedDetail') : t('foldFullyfeaturedDetail')}
-        </button>
+      <div className={sharedStyles.innerContainer}>
+        <div className={sharedStyles.titleAndDesc}>
+          <h1 className={sharedStyles.title}>{t('fullyFeaturedTitle')}</h1>
+          <p className={sharedStyles.desc}>{t('fullyFeaturedDesc')}</p>
+        </div>
+        <div className={styles.main}>
+          {
+            // [FeatureRow1, FeatureRow2, ...(isFolded ? [] : [FeatureRow3])].map(
+            [FeatureRow1, FeatureRow2, FeatureRow3].map((row, index) => {
+              return (
+                <div className={styles.features} key={index}>
+                  {row.map(({ icon, description, link, title }, index) => (
+                    <Link
+                      key={index}
+                      className={styles.featureCard}
+                      href={link}
+                    >
+                      <img
+                        src={icon}
+                        alt={index.toString()}
+                        className={styles.icon}
+                      />
+                      <div className={styles.featureContent}>
+                        <h2 className={styles.featureTitle}>{title}</h2>
+                        <p className={styles.featureDescription}>
+                          {description}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              );
+            })
+          }
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              setIsFolded(folded => !folded);
+            }}
+          >
+            {isFolded ? t('fullyfeaturedDetail') : t('foldFullyfeaturedDetail')}
+          </button>
+        </div>
       </div>
     </div>
   );

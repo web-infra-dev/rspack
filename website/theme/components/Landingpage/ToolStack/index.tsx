@@ -55,20 +55,22 @@ const ToolStack: React.FC = () => {
 
   return (
     <div className={sharedStyles.container}>
-      <div className={sharedStyles.titleAndDesc}>
-        <h2 className={sharedStyles.title}>{t('toolStackTitle')}</h2>
-        <p className={sharedStyles.desc}>{t('toolStackDesc')}</p>
-      </div>
-      <div className={styles.tools}>
-        {tools.map(({ name, desc, logo, url }) => {
-          return (
-            <Link className={styles.tool} key={name} href={url}>
-              <img src={logo} alt={name} className={styles.logo} />
-              <h3 className={styles.toolTitle}>{name}</h3>
-              <p className={styles.toolDescription}>{desc}</p>
-            </Link>
-          );
-        })}
+      <div className={sharedStyles.innerContainer}>
+        <div className={sharedStyles.titleAndDesc}>
+          <h2 className={sharedStyles.title}>{t('toolStackTitle')}</h2>
+          <p className={sharedStyles.desc}>{t('toolStackDesc')}</p>
+        </div>
+        <div className={styles.tools}>
+          {tools.map(({ name, desc, logo, url }) => {
+            return (
+              <Link className={styles.tool} key={name} href={url}>
+                <img src={logo} alt={name} className={styles.logo} />
+                <h3 className={styles.toolTitle}>{name}</h3>
+                <p className={styles.toolDescription}>{desc}</p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

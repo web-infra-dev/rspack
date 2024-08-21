@@ -90,20 +90,22 @@ export function Benchmark() {
   const t = useI18n();
   return (
     <div className={sharedStyles.container}>
-      <div className={sharedStyles.titleAndDesc}>
-        <h1 className={sharedStyles.title}>{t('benchmarkTitle')}</h1>
-        <p className={sharedStyles.desc}>{t('benchmarkDesc')}</p>
-      </div>
-      <BaseBenchmark data={BENCHMARK_DATA} />
-      <div className="flex flex-col items-center self-stretch">
-        <a
-          href="https://github.com/rspack-contrib/performance-compare"
-          target="_blank"
-          className={styles.button}
-          rel="noreferrer"
-        >
-          {t('benchmarkDetail')}
-        </a>
+      <div className={sharedStyles.innerContainer}>
+        <div className={sharedStyles.titleAndDesc}>
+          <h1 className={sharedStyles.title}>{t('benchmarkTitle')}</h1>
+          <p className={sharedStyles.desc}>{t('benchmarkDesc')}</p>
+        </div>
+        <BaseBenchmark data={BENCHMARK_DATA} />
+        <div className="flex flex-col items-center self-stretch">
+          <a
+            href="https://github.com/rspack-contrib/performance-compare"
+            target="_blank"
+            className={styles.button}
+            rel="noreferrer"
+          >
+            {t('benchmarkDetail')}
+          </a>
+        </div>
       </div>
     </div>
   );

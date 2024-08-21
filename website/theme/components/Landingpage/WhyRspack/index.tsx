@@ -10,9 +10,37 @@ import styles from './index.module.scss';
 const Features = () => {
   const t = useI18n();
   const tUrl = useI18nUrl();
+
+  const features = [
+    {
+      img: Speedometer,
+      url: tUrl('/guide/start/introduction'),
+      title: t('FastStartup'),
+      description: t('FastStartupDesc'),
+    },
+    {
+      img: Lightning,
+      url: tUrl('/guide/start/introduction'),
+      title: t('LightningHMR'),
+      description: t('LightningHMRDesc'),
+    },
+    {
+      img: FrameCheck,
+      url: tUrl('/guide/tech/react'),
+      title: t('FrameworkAgnostic'),
+      description: t('FrameworkAgnosticDesc'),
+    },
+    {
+      img: Compatible,
+      url: tUrl('/guide/compatibility/plugin'),
+      title: t('WebpackCompatible'),
+      description: t('WebpackCompatibleDesc'),
+    },
+  ];
+
   return (
-    <div className={styles.featuresContainer}>
-      <div className={styles.featuresContainerInner}>
+    <div className={styles.container}>
+      <div className={styles.innerContainer}>
         <div className={styles.features}>
           <div className={styles.whyRspack}>
             <div className={styles.whyRspackContent}>
@@ -39,46 +67,19 @@ const Features = () => {
           </Link>
         </div>
         <div className={styles.features}>
-          <Link
-            className={styles.featureCard}
-            href={tUrl('/guide/start/introduction')}
-          >
-            <div className={styles.featureIcon}>
-              <img src={Lightning} alt="Lightning" />
-            </div>
-            <div className={styles.featureContent}>
-              <h3 className={styles.featureTitle}>{t('LightningHMR')}</h3>
-              <p className={styles.featureDescription}>
-                {t('LightningHMRDesc')}
-              </p>
-            </div>
-          </Link>
-
-          <Link className={styles.featureCard} href={tUrl('/guide/tech/react')}>
-            <div className={styles.featureIcon}>
-              <img src={FrameCheck} alt="FrameWork" />
-            </div>
-            <div className={styles.featureContent}>
-              <h3 className={styles.featureTitle}>{t('FrameworkAgnostic')}</h3>
-              <p className={styles.featureDescription}>
-                {t('FrameworkAgnosticDesc')}
-              </p>
-            </div>
-          </Link>
-          <Link
-            className={styles.featureCard}
-            href={tUrl('/guide/compatibility/plugin')}
-          >
-            <div className={styles.featureIcon}>
-              <img src={Compatible} alt="Compatible" />
-            </div>
-            <div className={styles.featureContent}>
-              <h3 className={styles.featureTitle}>{t('WebpackCompatible')}</h3>
-              <p className={styles.featureDescription}>
-                {t('WebpackCompatibleDesc')}
-              </p>
-            </div>
-          </Link>
+          {features.slice(1).map(({ img, url, title, description }) => {
+            return (
+              <Link className={styles.featureCard} href={url} key={title}>
+                <div className={styles.featureIcon}>
+                  <img src={img} alt="Lightning" />
+                </div>
+                <div className={styles.featureContent}>
+                  <h3 className={styles.featureTitle}>{title}</h3>
+                  <p className={styles.featureDescription}>{description}</p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
