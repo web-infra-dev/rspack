@@ -3187,6 +3187,8 @@ dependencies = [
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
+ "small-map",
+ "smallvec",
  "sugar_path",
  "swc_core",
  "swc_node_comments",
@@ -4477,6 +4479,17 @@ name = "slice-group-by"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826167069c09b99d56f31e9ae5c99049e932a98c9dc2dac47645b08dbbf76ba7"
+
+[[package]]
+name = "small-map"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5aafd06ff06be157677c1dc018e22f1c9cd642e3f55e2dbb5544edc68c6bf67"
+dependencies = [
+ "ahash 0.8.11",
+ "hashbrown 0.14.5",
+ "rustc-hash 1.1.0",
+]
 
 [[package]]
 name = "smallvec"

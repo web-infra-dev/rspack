@@ -44,6 +44,8 @@ rspack_util = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+small-map = { workspace = true }
+smallvec = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__ecma",

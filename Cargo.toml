@@ -52,6 +52,8 @@ rustc-hash         = { version = "1.1.0" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
 simd-json          = { version = "0.14.0-rc.2" }
+small-map          = { version = "0.1.3" }
+smallvec           = { version = "1.13.2" }
 stacker            = { version = "0.1.15" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.58" }

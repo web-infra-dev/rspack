@@ -614,12 +614,7 @@ impl Module for ConcatenatedModule {
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {
-      Some(Cow::Owned(
-        generation_runtime
-          .intersection(self_runtime)
-          .cloned()
-          .collect::<RuntimeSpec>(),
-      ))
+      Some(Cow::Owned(generation_runtime.intersection(self_runtime)))
     } else {
       generation_runtime.map(Cow::Borrowed)
     };
@@ -1289,12 +1284,7 @@ impl Module for ConcatenatedModule {
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {
-      Some(Cow::Owned(
-        generation_runtime
-          .intersection(self_runtime)
-          .cloned()
-          .collect::<RuntimeSpec>(),
-      ))
+      Some(Cow::Owned(generation_runtime.intersection(self_runtime)))
     } else {
       generation_runtime.map(Cow::Borrowed)
     };
