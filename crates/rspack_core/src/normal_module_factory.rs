@@ -313,7 +313,7 @@ impl NormalModuleFactory {
     } else {
       // resource without scheme and without path
       if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(resource.to_owned()).path(Utf8PathBuf::from(""))
+        ResourceData::new(resource.clone()).path(Utf8PathBuf::from(""))
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {

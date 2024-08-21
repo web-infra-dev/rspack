@@ -313,8 +313,7 @@ where
     if let Some(source) = asset.get_source() {
       let filename = filename
         .split_once('?')
-        .map(|(filename, _query)| filename)
-        .unwrap_or(filename);
+        .map_or(filename, |(filename, _query)| filename);
       let file_path = output_path.join(filename);
       self
         .output_filesystem

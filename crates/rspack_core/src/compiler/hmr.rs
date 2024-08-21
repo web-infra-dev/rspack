@@ -27,14 +27,13 @@ where
     let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation)?;
     // TODO: should use `records`
 
-    let all_old_runtime = RuntimeSpec::from_iter(
-      old
-        .compilation
-        .get_chunk_graph_entries()
-        .into_iter()
-        .filter_map(|entry_ukey| get_chunk_from_ukey(&entry_ukey, &old.compilation.chunk_by_ukey))
-        .flat_map(|entry_chunk| entry_chunk.runtime.clone()),
-    );
+    let all_old_runtime = old
+      .compilation
+      .get_chunk_graph_entries()
+      .into_iter()
+      .filter_map(|entry_ukey| get_chunk_from_ukey(&entry_ukey, &old.compilation.chunk_by_ukey))
+      .flat_map(|entry_chunk| entry_chunk.runtime.clone())
+      .collect();
 
     let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
     for (_, chunk) in old.compilation.chunk_by_ukey.iter() {

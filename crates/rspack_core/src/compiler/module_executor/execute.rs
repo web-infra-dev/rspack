@@ -101,7 +101,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     chunk.id = chunk.name.clone();
     chunk.ids = vec![chunk.id.clone().expect("id is set")];
-    let runtime = RuntimeSpec::from_iter(once("build time".into()));
+    let runtime: RuntimeSpec = once("build time".into()).collect();
 
     chunk.runtime = runtime.clone();
 
@@ -165,7 +165,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     Handle::current().block_on(async {
       compilation
         .process_runtime_requirements(
-          Vec::from_iter(modules.iter().copied()),
+          modules.iter().copied().collect::<Vec<_>>(),
           once(chunk_ukey),
           once(chunk_ukey),
           compilation.plugin_driver.clone(),
