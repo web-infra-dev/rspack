@@ -29,16 +29,16 @@ const Hero = () => {
         <h1 className={styles.title}>Rspack</h1>
         <p className={styles.subtitle}>{t('heroSlogan')}</p>
         <p className={styles.description}>{t('heroSubSlogan')}</p>
-        <div className={styles.buttons}>
+        <div className={styles.buttonGroup}>
           <button
-            className={styles.buttonPrimary}
+            className={`${styles.button} ${styles.buttonPrimary}`}
             type="button"
             onClick={handleClickGetStarted}
           >
             {t('getStarted')}
           </button>
           <button
-            className={styles.buttonSecondary}
+            className={`${styles.button} ${styles.buttonSecondary}`}
             type="button"
             onClick={handleClickLearnMore}
           >

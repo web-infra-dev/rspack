@@ -42,6 +42,7 @@ const Features = () => {
     <div className={styles.container}>
       <div className={styles.innerContainer}>
         <div className={styles.features}>
+          {/* Why Rspack? */}
           <div className={styles.whyRspack}>
             <div className={styles.whyRspackContent}>
               <h3 className={styles.whyRspackTitle}>{t('whyRspack')}</h3>
@@ -65,8 +66,6 @@ const Features = () => {
               </p>
             </div>
           </Link>
-        </div>
-        <div className={styles.features}>
           {features.slice(1).map(({ img, url, title, description }) => {
             return (
               <Link className={styles.featureCard} href={url} key={title}>

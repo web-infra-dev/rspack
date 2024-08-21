@@ -1,3 +1,107 @@
+// ---------- responsive layout
+// XXL
+@media screen and (min-width: 1441px) {
+  .container {
+    padding: 32px 80px !important;
+  }
+  .featureCard {
+    flex: 1 0 30%;
+  }
+}
+
+// XL
+@media screen and (min-width: 1281px) and (max-width: 1440px) {
+  .container {
+    padding: 32px 80px !important;
+  }
+  .featureCard {
+    flex: 1 0 30%;
+  }
+  .whyRspackTitle {
+    font-size: 30px;
+  }
+}
+
+// L
+@media screen and (min-width: 835px) and (max-width: 1280px) {
+  .container {
+    padding: 32px 80px !important;
+  }
+  .featureCard {
+    min-width: 40%;
+    max-width: 50%;
+  }
+}
+
+// M
+@media screen and (min-width: 400px) and (max-width: 834px) {
+  .container {
+    padding: 24px !important;
+  }
+  .featureCard {
+    min-width: 250px !important;
+  }
+  .whyRspack {
+    padding: 16px !important;
+  }
+  .featureCard {
+    padding: 16px !important;
+    min-width: 45% !important;
+    max-width: 50% !important;
+  }
+  .whyRspackTitle {
+    font-size: 32px !important;
+    font-weight: 700 !important;
+    line-height: normal !important;
+    letter-spacing: -1.28px !important;
+  }
+  .whyRspackDescription {
+    font-size: 20px !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    line-height: normal !important;
+  }
+  .featureDescription {
+    font-size: 14px !important;
+  }
+}
+
+// S
+@media screen and (max-width: 500px) {
+  .container {
+    padding: 24px !important;
+  }
+  .featureCard {
+    min-width: 100% !important;
+  }
+  .whyRspack {
+    padding: 16px !important;
+  }
+  .featureCard {
+    padding: 16px !important;
+  }
+  .whyRspackTitle {
+    font-size: 24px !important;
+    font-style: normal !important;
+    font-weight: 700 !important;
+    line-height: normal !important;
+    letter-spacing: -0.96px !important;
+  }
+  .whyRspackDescription {
+    font-size: 16px !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    line-height: normal !important;
+  }
+  .featureDescription {
+    font-size: 14px !important;
+  }
+
+  .whyRspackBg {
+    max-width: 50% !important;
+  }
+}
+
 .container {
   display: flex;
   padding: 32px 144px;
@@ -14,7 +118,7 @@
 }
 
 .whyRspack {
-  flex: 2 0 calc(67%) !important;
+  flex: 2 0 60% !important;
   position: relative;
   display: flex;
   padding: 32px;
@@ -30,7 +134,7 @@
 
   .whyRspackBg {
     width: 250px;
-    height: 250px;
+    height: 75%;
     position: absolute;
     bottom: 32px;
     right: 32px;
@@ -83,14 +187,15 @@
 .features {
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   padding: 0px;
 
   .featureCard {
     display: flex;
-    flex: 1 0 33%;
+    flex: 1 0 30%;
     padding: 32px;
     flex-direction: column;
     align-items: center;
@@ -105,13 +210,14 @@
 
   .featureIcon {
     background: url('./assets/CardBg.png') no-repeat;
-    background-size: contain;
+    background-size: 100% 100%;
 
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100%;
+    width: 100%;
     height: 150px;
-    width: 300px;
   }
 
   .featureContent {

@@ -7,6 +7,45 @@
     --landingpage-hero-oval-bg: url('./darkOvalBg.svg');
   }
 }
+
+@media screen and (max-width: 500px) {
+  .logo {
+    width: 120.125px !important;
+    height: 100px !important;
+  }
+  .ovalBg {
+    width: 168.175px !important;
+    height: 140px !important;
+  }
+  .buttonGroup {
+    display: flex;
+    padding-top: 16px;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    align-self: stretch;
+  }
+  .button {
+    width: 100% !important;
+  }
+  .innerHero {
+    height: auto !important;
+    padding: 24px !important;
+  }
+  .title {
+    font-size: 32px !important;
+    line-height: normal !important;
+  }
+  .subtitle {
+    font-size: 20px !important;
+    line-height: normal !important;
+  }
+  .description {
+    font-size: 16px !important;
+    line-height: 20px;
+  }
+}
+
 .hero {
   display: flex;
   justify-content: center;
@@ -16,7 +55,7 @@
 
 .innerHero {
   display: flex;
-  width: 1152px;
+  width: 100%;
   height: 646px;
   padding: 64px 0px;
   flex-direction: column;
@@ -81,26 +120,34 @@
   font-size: 24px;
   font-style: normal;
   font-weight: 400;
-  line-height: 20px; /* 83.333% */
 }
 
-.buttons {
+.buttonGroup {
   display: flex;
   justify-content: center;
   gap: 10px;
   margin-top: 20px;
 }
 
-.buttonPrimary {
+.button {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   padding: 12px 24px 12px 24px;
-
-  // style
   border-radius: 25px;
   border: 1.5px solid var(--orange-gradient, #ff8b00);
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 24px */
+  text-transform: capitalize;
+}
+
+.buttonPrimary {
+  // style
   background: var(
     --orange-gradient,
     linear-gradient(279deg, #ff8b00 35.21%, #f93920 63.34%)
@@ -108,32 +155,9 @@
 
   // text
   color: #fff;
-  text-align: center;
-  font-family: 'Open Sans';
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 150%; /* 24px */
-  text-transform: capitalize;
 }
 
 .buttonSecondary {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 24px 12px 24px;
-  // style
-  border-radius: 25px;
-  border: 2px solid var(--orange-gradient, #ff8b00);
-
   // text
   color: var(--landingpage-title-color, #0b0c0e);
-  text-align: center;
-  font-family: 'Open Sans';
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 150%; /* 24px */
-  text-transform: capitalize;
 }
