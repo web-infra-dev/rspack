@@ -116,16 +116,13 @@
         "devDependencies"
       ],
       "excludePackagePrefixes": [
-        "webpack",
-        "sass"
+        "webpack"
       ],
       "excludePackageNames": [
-        "@playwright/test",
-        "react",
-        "react-dom",
         "typescript",
         "pnpm"
-      ]
+      ],
+      "rangeStrategy": "bump"
     },
     {
       "groupName": "npm dependencies",
@@ -135,22 +132,7 @@
       "matchDepTypes": [
         "dependencies"
       ],
-      "enabled": false
-    },
-    {
-      "groupName": "npm ignored dependencies",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchPackageNames": [
-        "@playwright/test",
-        "react",
-        "react-dom",
-        "typescript",
-        "pnpm",
-        "sass"
-      ],
-      "enabled": false
+      "rangeStrategy": "bump"
     },
     {
       "groupName": "webpack",
