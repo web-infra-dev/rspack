@@ -10,15 +10,31 @@
 
 ### [重要] experiments.css
 
-默认值从 `true` 调整为 `false`。
+[experiments.css](/config/experiments#experimentscss) 的默认值从 `true` 调整为 `false`。
 
-在 Rspack 0.x 中，`experiments.css` 默认开启，这意味着以 `*.css` 结尾的文件会默认被视为 `type: 'css/auto'`，不需要手动引入其他 loader 来处理 css 文件。
+在 Rspack 0.x 中，`experiments.css` 默认开启，这意味着以 `*.css` 结尾的文件会默认被视为 `type: 'css/auto'`，不需要手动引入其他 loader 来处理 CSS 文件。
 
-如果你依赖这种内置能力，现在需要手动开启 `experiments.css`。
+如果你依赖内置功能来处理 CSS 文件而不使用任何 loader，或者使用了如下的配置来处理 CSS 文件：
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto', // 👈
+        use: ['less-loader'],
+      },
+    ],
+  },
+};
+```
+
+请注意，你现在需要手动启用 `experiments.css`。
 
 ### [重要] optimization.concatenateModules
 
-默认值由 `false` 调整为：
+[optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules) 默认值由 `false` 调整为：
 
 - 当 `mode` 为 `'production'` 时，默认为 `true`。
 - `mode` 为其他值时，默认值为 `false`。
@@ -27,34 +43,43 @@
 
 ### devtool
 
-默认值由 `false` 调整为：
+[devtool](/config/devtool) 默认值由 `false` 调整为：
 
 - 当 `mode` 为 `'development'` 时，默认为 `'eval'`。
 - `mode` 为其他值时，默认值为 `false`。
 
 ### experiments.asyncWebAssembly
 
-默认值从 `false` 调整为依赖 `experiments.futureDefaults` 配置项，当 `experiments.futureDefaults` 为 `true` 时才默认开启。
+[experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) 默认值从 `false` 调整为依赖 `experiments.futureDefaults` 配置项，当 `experiments.futureDefaults` 为 `true` 时才默认开启。
 
 如果你使用 WebAssembly 模块作为异步模块，现在需要手动将 `experiments.asyncWebAssembly` 设置为 `true`。
 
 ### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
 
-默认值从 `true` 调整为 `false`。
+[splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupreuseexistingchunk) 默认值从 `true` 调整为 `false`。
 
 ### optimization.moduleIds
 
-当 `mode` 为 `none` 时，默认值调整为 `'natural'`。
+当 `mode` 为 `none` 时，[optimization.moduleIds](/config/optimization#optimizationmoduleids) 默认值调整为 `'natural'`。
 
 ### optimization.chunkIds
 
-当 `mode` 为 `none` 时，默认值调整为 `'natural'`。
+当 `mode` 为 `none` 时，[optimization.chunkIds](/config/optimization#optimizationchunkids) 默认值调整为 `'natural'`。
 
 ## 移除的配置项
 
 ### [重要] 移除 resolve.tsConfigPath
 
 请使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 代替。
+
+```diff
+module.exports = {
+  resolve: {
+-   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
++   tsConfig: path.resolve(__dirname, './tsconfig.json'),
+  },
+};
+```
 
 ### output.amdContainer
 
