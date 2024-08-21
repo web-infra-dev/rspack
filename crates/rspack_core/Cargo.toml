@@ -46,6 +46,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 small-map = { workspace = true }
 smallvec = { workspace = true }
+smol_str = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__ecma",

@@ -5,6 +5,7 @@ use rspack_util::fx_hash::BuildFxHasher;
 use rustc_hash::FxHashMap;
 use small_map::SmallMap;
 use smallvec::SmallVec;
+use smol_str::SmolStr;
 
 use crate::{EntryOptions, EntryRuntime};
 
@@ -13,7 +14,7 @@ const RUNTIME_SPEC_INLINE: usize = 4;
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   inner: SmallMap<RUNTIME_SPEC_INLINE, Arc<str>, (), BuildFxHasher>,
-  key: String,
+  key: SmolStr,
 }
 
 impl PartialEq for RuntimeSpec {
@@ -85,7 +86,7 @@ impl RuntimeSpec {
   pub fn new(inner: SmallMap<RUNTIME_SPEC_INLINE, Arc<str>, (), BuildFxHasher>) -> Self {
     let mut this = Self {
       inner,
-      key: String::new(),
+      key: SmolStr::default(),
     };
     this.update_key();
     this
@@ -151,12 +152,12 @@ impl RuntimeSpec {
       if self.key.is_empty() {
         return;
       }
-      self.key = String::new();
+      self.key = SmolStr::default();
       return;
     }
     let mut ordered: SmallVec<[_; RUNTIME_SPEC_INLINE]> = self.iter().cloned().collect();
     ordered.sort_unstable();
-    self.key = ordered.join("\n");
+    self.key = SmolStr::new(ordered.join("\n"));
   }
 
   pub fn iter(&self) -> RuntimeSpecIter {
