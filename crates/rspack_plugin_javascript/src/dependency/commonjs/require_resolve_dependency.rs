@@ -60,6 +60,10 @@ impl Dependency for RequireResolveDependency {
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for RequireResolveDependency {

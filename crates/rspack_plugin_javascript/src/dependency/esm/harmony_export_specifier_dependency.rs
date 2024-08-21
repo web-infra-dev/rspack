@@ -64,6 +64,10 @@ impl Dependency for HarmonyExportSpecifierDependency {
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl AsModuleDependency for HarmonyExportSpecifierDependency {}

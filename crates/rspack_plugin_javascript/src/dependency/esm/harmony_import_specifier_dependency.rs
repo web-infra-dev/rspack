@@ -335,6 +335,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
     }
     self.get_referenced_exports_in_destructuring(Some(&ids))
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {

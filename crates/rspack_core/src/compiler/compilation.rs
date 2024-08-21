@@ -30,13 +30,15 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
-  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey,
-  CodeGenerationJob, CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions,
-  DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
+  to_identifier,
+  unaffected_cache::UnaffectedModulesCache,
+  BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationJob,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, DependencyId,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
+  ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
+  RuntimeSpec, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -165,6 +167,8 @@ pub struct Compilation {
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
+  pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
+
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
 
@@ -213,6 +217,7 @@ impl Compilation {
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
     old_cache: Arc<OldCache>,
+    unaffected_modules_cache: Arc<UnaffectedModulesCache>,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
@@ -249,6 +254,7 @@ impl Compilation {
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       old_cache,
+      unaffected_modules_cache,
       code_splitting_cache: Default::default(),
       hash: None,
       used_chunk_ids: Default::default(),
@@ -757,12 +763,23 @@ impl Compilation {
       cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
+      let module_graph = compilation.get_module_graph();
+      let affected_modules = compilation
+        .unaffected_modules_cache
+        .get_affected_modules_with_chunk_graph()
+        .lock()
+        .expect("should lock")
+        .clone();
       compilation.code_generation_modules(
         cache_counter,
-        compilation
-          .get_module_graph()
-          .modules()
+        affected_modules
           .into_iter()
+          .map(|module_identifier| {
+            let module = module_graph
+              .module_by_identifier(&module_identifier)
+              .expect("should have module");
+            (module_identifier, module)
+          })
           .filter(filter_op)
           .map(|(id, _)| id)
           .collect(),
@@ -1036,6 +1053,10 @@ impl Compilation {
       )],
     )?;
 
+    self
+      .unaffected_modules_cache
+      .compute_affected_modules_with_module_graph(&self);
+
     let start = logger.time("finish modules");
     plugin_driver
       .compilation_hooks
@@ -1150,6 +1171,10 @@ impl Compilation {
     logger.time_end(start);
 
     self.assign_runtime_ids();
+
+    self
+      .unaffected_modules_cache
+      .compute_affected_modules_with_chunk_graph(self);
 
     self.create_module_hashes(
       self

@@ -47,4 +47,8 @@ impl Dependency for LazyCompilationDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::LazyImport
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
+  }
 }

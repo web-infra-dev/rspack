@@ -53,6 +53,10 @@ impl Dependency for ImportMetaContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ContextDependency for ImportMetaContextDependency {

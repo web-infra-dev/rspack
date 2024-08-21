@@ -28,6 +28,10 @@ impl Dependency for RequireHeaderDependency {
   fn loc(&self) -> Option<String> {
     Some(self.range.to_string())
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl AsModuleDependency for RequireHeaderDependency {}

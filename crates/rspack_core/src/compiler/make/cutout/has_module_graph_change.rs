@@ -126,10 +126,10 @@ mod t {
   use rspack_util::source_map::SourceMapKind;
 
   use crate::{
-    compiler::make::cutout::has_module_graph_change::ModuleDeps, AsContextDependency, BuildInfo,
-    BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-    Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta, Module,
-    ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
+    compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
+    BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta,
+    Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
     ModuleType, RuntimeSpec, SourceType,
   };
 
@@ -165,6 +165,10 @@ mod t {
         .iter()
         .map(|id| (*id).to_string().into())
         .collect_vec()
+    }
+
+    fn could_affect_referencing_module(&self) -> AffectType {
+      AffectType::True
     }
   }
 

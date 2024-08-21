@@ -12,8 +12,6 @@ pub use chunk_graph_module::ChunkGraphModule;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
-  pub split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
-
   /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
   pub(crate) block_to_chunk_group_ukey: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
 

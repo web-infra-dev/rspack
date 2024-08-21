@@ -1,7 +1,6 @@
 pub mod eval;
 pub mod mangle_exports;
 pub mod object_properties;
-pub(crate) mod queue;
 
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, TraceableError};

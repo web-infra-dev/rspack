@@ -1337,6 +1337,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       }
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
+  }
 }
 
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {

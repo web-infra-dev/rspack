@@ -30,6 +30,10 @@ impl Dependency for FallbackItemDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RemoteToFallbackItem
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for FallbackItemDependency {
