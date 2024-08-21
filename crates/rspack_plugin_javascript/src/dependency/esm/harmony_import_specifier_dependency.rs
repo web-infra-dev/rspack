@@ -2,10 +2,10 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, RealDependencyLocation, ReferencedExport,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
@@ -23,7 +23,7 @@ pub struct HarmonyImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  range: DependencyRange,
+  range: RealDependencyLocation,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
@@ -43,7 +43,7 @@ impl HarmonyImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    range: DependencyRange,
+    range: RealDependencyLocation,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
@@ -225,7 +225,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<rspack_core::ErrorSpan> {

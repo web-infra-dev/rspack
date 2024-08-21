@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyTemplate, DependencyType, RealDependencyLocation, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -9,12 +10,12 @@ use rspack_core::{
 #[derive(Debug, Clone)]
 pub struct HarmonyExportHeaderDependency {
   id: DependencyId,
-  range: DependencyRange,
-  range_decl: Option<DependencyRange>,
+  range: RealDependencyLocation,
+  range_decl: Option<RealDependencyLocation>,
 }
 
 impl HarmonyExportHeaderDependency {
-  pub fn new(range: DependencyRange, range_decl: Option<DependencyRange>) -> Self {
+  pub fn new(range: RealDependencyLocation, range_decl: Option<RealDependencyLocation>) -> Self {
     Self {
       range,
       range_decl,
@@ -29,7 +30,7 @@ impl Dependency for HarmonyExportHeaderDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn dependency_type(&self) -> &DependencyType {

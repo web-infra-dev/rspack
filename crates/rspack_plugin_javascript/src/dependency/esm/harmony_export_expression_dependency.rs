@@ -3,8 +3,8 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyRange, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
+  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
+  ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
@@ -20,13 +20,13 @@ pub enum DeclarationId {
 
 #[derive(Debug, Clone)]
 pub struct DeclarationInfo {
-  range: DependencyRange,
+  range: RealDependencyLocation,
   prefix: String,
   suffix: String,
 }
 
 impl DeclarationInfo {
-  pub fn new(range: DependencyRange, prefix: String, suffix: String) -> Self {
+  pub fn new(range: RealDependencyLocation, prefix: String, suffix: String) -> Self {
     Self {
       range,
       prefix,
@@ -38,15 +38,15 @@ impl DeclarationInfo {
 #[derive(Debug, Clone)]
 pub struct HarmonyExportExpressionDependency {
   id: DependencyId,
-  range: DependencyRange,
-  range_stmt: DependencyRange,
+  range: RealDependencyLocation,
+  range_stmt: RealDependencyLocation,
   declaration: Option<DeclarationId>,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
-    range: DependencyRange,
-    range_stmt: DependencyRange,
+    range: RealDependencyLocation,
+    range_stmt: RealDependencyLocation,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {
@@ -68,7 +68,7 @@ impl Dependency for HarmonyExportExpressionDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
