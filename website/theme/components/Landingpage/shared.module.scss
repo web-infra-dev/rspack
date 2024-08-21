@@ -50,7 +50,6 @@
   // padding: 32px move to mediaQuery
 
   .innerContainer {
-    // for max-width
     display: flex;
     gap: 32px;
     flex-direction: column;
@@ -99,17 +98,15 @@
     --landingpage-invert-filter: none;
 
     --why-rspack-card-stroke: #e6e8ea;
-    --why-rspack-card-gradient: var(
-      --Light-card-gradient,
-      conic-gradient(
-        from 225deg at 50% 50%,
-        rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
-        #fff 360deg
-      )
+    --why-rspack-card-gradient: conic-gradient(
+      from 225deg,
+      rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
+      #fff 360deg
     );
-    --why-rspack-description-bg: var(
-      --Linear-Dark,
-      linear-gradient(90deg, #0b0c0e 0%, rgba(11, 12, 14, 0.4) 100%)
+    --why-rspack-description-bg: linear-gradient(
+      90deg,
+      #0b0c0e 0%,
+      rgba(11, 12, 14, 0.4) 100%
     );
   }
 
@@ -129,9 +126,10 @@
       ),
       rgba(11, 12, 14, 0.8)
     );
-    --why-rspack-description-bg: var(
-      --Text-gradient-white,
-      linear-gradient(87deg, #fff -2.53%, rgba(255, 255, 255, 0.4) 103.84%)
+    --why-rspack-description-bg: linear-gradient(
+      87deg,
+      #fff -2.53%,
+      rgba(255, 255, 255, 0.4) 103.84%
     );
   }
 }
