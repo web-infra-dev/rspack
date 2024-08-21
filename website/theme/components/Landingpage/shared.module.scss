@@ -8,35 +8,50 @@
 // XXL
 @media only screen and (min-width: 1441px) {
   .container {
-    padding: 64px 144px;
+    padding: 64px 144px !important;
+  }
+  .titleAndDesc {
+    padding: 0px 144px 32px 144px !important;
   }
 }
 
 // XL
 @media only screen and (min-width: 1281px) and (max-width: 1440px) {
   .container {
-    padding: 64px 144px;
+    padding: 64px 144px !important;
+  }
+  .titleAndDesc {
+    padding: 0px 144px 32px 144px !important;
   }
 }
 
 // L
 @media only screen and (min-width: 835px) and (max-width: 1280px) {
   .container {
-    padding: 64px 80px;
+    padding: 64px 80px !important;
+  }
+  .titleAndDesc {
+    padding: 0px 16px !important;
   }
 }
 
 // M
 @media only screen and (min-width: 400px) and (max-width: 834px) {
   .container {
-    padding: 32px;
+    padding: 32px !important;
+  }
+  .titleAndDesc {
+    padding: 0px 16px !important;
   }
 }
 
 // S
 @media only screen and (max-width: 399px) {
   .container {
-    padding: 24px;
+    padding: 24px !important;
+  }
+  .titleAndDesc {
+    padding: 0px 16px !important;
   }
 }
 
@@ -47,7 +62,7 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  // padding: 32px move to mediaQuery
+  padding: 32px; //move to mediaQuery
 
   .innerContainer {
     display: flex;
@@ -99,9 +114,9 @@
 
     --why-rspack-card-stroke: #e6e8ea;
     --why-rspack-card-gradient: conic-gradient(
-      from 225deg,
-      rgba(249, 249, 249, 0.8) 0.9960873518139124deg,
-      #fff 360deg
+      from 45deg at 0% 100%,
+      #fff 0deg,
+      rgba(249, 249, 249, 0.8) 360deg
     );
     --why-rspack-description-bg: linear-gradient(
       90deg,
@@ -113,16 +128,15 @@
   html.dark {
     --landingpage-title-color: white;
     --landingpage-desc-color: #c6cacd;
-
     --landingpage-invert-filter: invert(1);
 
     --why-rspack-card-stroke: #23272f;
     --why-rspack-card-gradient: var(
       --Flipped-Angular-gradient,
       conic-gradient(
-        from 225deg at 50.02% 50.04%,
-        rgba(255, 255, 255, 0) 0deg,
-        rgba(255, 255, 255, 0.06) 360deg
+        from 45deg at 0% 100%,
+        rgba(255, 255, 255, 0.06) 0deg,
+        rgba(255, 255, 255, 0) 360deg
       ),
       rgba(11, 12, 14, 0.8)
     );

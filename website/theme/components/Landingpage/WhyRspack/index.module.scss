@@ -3,7 +3,6 @@
   padding: 32px 144px;
   justify-content: center;
   align-items: center;
-  gap: 32px;
 
   .innerContainer {
     width: 100%;
@@ -15,7 +14,7 @@
 }
 
 .whyRspack {
-  flex: 2 2 calc(67%) !important;
+  flex: 2 0 calc(67%) !important;
   position: relative;
   display: flex;
   padding: 32px;
@@ -91,7 +90,7 @@
 
   .featureCard {
     display: flex;
-    flex: 1 1 33%;
+    flex: 1 0 33%;
     padding: 32px;
     flex-direction: column;
     align-items: center;
