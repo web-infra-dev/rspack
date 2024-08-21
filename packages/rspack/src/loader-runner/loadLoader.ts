@@ -31,7 +31,7 @@ export default function loadLoader(
 		try {
 			if (url === undefined) url = require("node:url");
 			const loaderUrl = url!.pathToFileURL(loader.path);
-			const modulePromise = import(JSON.stringify(loaderUrl.toString()));
+			const modulePromise = import(loaderUrl.toString());
 			modulePromise.then((module: LoaderModule) => {
 				handleResult(loader, module, callback);
 			}, callback);
