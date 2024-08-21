@@ -1,0 +1,70 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.title {
+  color: var(--rp-c-text-1);
+}
+
+.desc {
+  color: var(--rp-c-text-2);
+}
+
+.bottomLink {
+  display: block;
+  margin-top: 16px;
+  font-size: 16px;
+  color: var(--rp-c-text-2);
+
+  &:hover {
+    color: var(--rp-c-link);
+  }
+}
+
+.progressName {
+  color: var(--rp-c-text-1);
+  font-size: 17px;
+  font-weight: 600;
+  min-width: 170px;
+}
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: 1.25rem;
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+@media screen and (min-width: 1060px) {
+  .item {
+    flex-direction: row;
+  }
+}
+
+@media screen and (max-width: 1061px) {
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .progressName {
+    width: 180px;
+    margin-bottom: 8px;
+  }
+}
