@@ -1,37 +1,31 @@
-use std::sync::Arc;
-
-use rspack_core::{module_id, Compilation, RuntimeSpec};
-use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
+use rspack_core::{module_id, Compilation, RealDependencyLocation, RuntimeSpec};
+use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
-use swc_core::common::SourceMap;
 
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  loc: DependencyLocation,
-  span: Option<ErrorSpan>,
+  range: Option<RealDependencyLocation>,
+  range_expr: RealDependencyLocation,
 }
 
 impl CommonJsRequireDependency {
   pub fn new(
     request: String,
-    span: Option<ErrorSpan>,
-    start: u32,
-    end: u32,
-    source: Option<Arc<SourceMap>>,
+    range: Option<RealDependencyLocation>,
+    range_expr: RealDependencyLocation,
     optional: bool,
   ) -> Self {
-    let loc = DependencyLocation::new(start, end, source);
     Self {
       id: DependencyId::new(),
       request,
       optional,
-      loc,
-      span,
+      range,
+      range_expr,
     }
   }
 }
@@ -39,6 +33,10 @@ impl CommonJsRequireDependency {
 impl Dependency for CommonJsRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<String> {
+    self.range.clone().map(|range| range.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -50,7 +48,10 @@ impl Dependency for CommonJsRequireDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    self
+      .range
+      .clone()
+      .map(|range| ErrorSpan::new(range.start, range.end))
   }
 }
 
@@ -79,8 +80,8 @@ impl DependencyTemplate for CommonJsRequireDependency {
     code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
-      self.loc.start(),
-      self.loc.end() - 1,
+      self.range_expr.start,
+      self.range_expr.end - 1,
       module_id(
         code_generatable_context.compilation,
         &self.id,

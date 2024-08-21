@@ -16,20 +16,9 @@ use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
-pub struct SyntheticDependencyLocation {
-  pub name: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum OriginLocation {
-  Real(DependencyLocation),
-  Synthetic(SyntheticDependencyLocation),
-}
-
-#[derive(Debug, Clone)]
 pub struct OriginRecord {
   pub module_id: Option<ModuleIdentifier>,
-  pub loc: Option<OriginLocation>,
+  pub loc: Option<DependencyLocation>,
   pub request: Option<String>,
 }
 
@@ -313,7 +302,7 @@ impl ChunkGroup {
   pub fn add_origin(
     &mut self,
     module_id: Option<ModuleIdentifier>,
-    loc: Option<OriginLocation>,
+    loc: Option<DependencyLocation>,
     request: Option<String>,
   ) {
     self.origins.push(OriginRecord {

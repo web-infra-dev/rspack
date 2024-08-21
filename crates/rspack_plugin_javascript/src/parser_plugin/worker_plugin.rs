@@ -5,7 +5,7 @@ use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyLocation, EntryOptions, ErrorSpan,
-  GroupOptions, SpanExt,
+  GroupOptions, RealDependencyLocation, SpanExt,
 };
 use rspack_hash::RspackHash;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -97,13 +97,11 @@ fn add_dependencies(
     output_options.worker_public_path.clone(),
     Some(span),
   ));
+  let loc =
+    RealDependencyLocation::new(span.start, span.end).with_source(parser.source_map.clone());
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
-    Some(DependencyLocation::new(
-      span.start,
-      span.end,
-      Some(parser.source_map.clone()),
-    )),
+    Some(DependencyLocation::Real(loc)),
     None,
     vec![dep],
     None,

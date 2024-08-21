@@ -18,8 +18,8 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey, Compilation,
-  ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, OriginLocation, ProvidedExports,
-  SourceType, UsedExports,
+  ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports, SourceType,
+  UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -350,10 +350,7 @@ impl Stats<'_> {
                 loc: origin
                   .loc
                   .as_ref()
-                  .map(|loc| match loc {
-                    OriginLocation::Real(l) => format!("{l}"),
-                    OriginLocation::Synthetic(l) => l.name.to_string(),
-                  })
+                  .map(|loc| loc.to_string())
                   .unwrap_or_default(),
                 request: origin.request.clone().unwrap_or_default(),
               }

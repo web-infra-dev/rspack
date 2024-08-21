@@ -113,12 +113,11 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     param.is_string().then(|| {
+      let range_expr: RealDependencyLocation = param.range().into();
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
         Some(span.into()),
-        param.range().0,
-        param.range().1,
-        Some(parser.source_map.clone()),
+        range_expr.with_source(parser.source_map.clone()),
         parser.in_try,
       );
       parser.dependencies.push(Box::new(dep));
@@ -177,12 +176,11 @@ impl CommonJsImportsParserPlugin {
         }
       }
       if !is_expression {
+        let range: RealDependencyLocation = call_expr.callee.span().into();
         parser
           .presentational_dependencies
           .push(Box::new(RequireHeaderDependency::new(
-            call_expr.callee.span().real_lo(),
-            call_expr.callee.span().hi().0,
-            Some(parser.source_map.clone()),
+            range.with_source(parser.source_map.clone()),
           )));
         return Some(true);
       }
@@ -195,12 +193,11 @@ impl CommonJsImportsParserPlugin {
     {
       self.process_require_context(parser, call_expr, &param);
     } else {
+      let range: RealDependencyLocation = call_expr.callee.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(RequireHeaderDependency::new(
-          call_expr.callee.span().real_lo(),
-          call_expr.callee.span_hi().0,
-          Some(parser.source_map.clone()),
+          range.with_source(parser.source_map.clone()),
         )));
     }
     Some(true)
