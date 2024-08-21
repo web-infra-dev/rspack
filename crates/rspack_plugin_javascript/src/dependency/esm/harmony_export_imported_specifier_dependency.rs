@@ -12,7 +12,7 @@ use rspack_core::{
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RealDependencyRange, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
+  RealDependencyLocation, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
@@ -41,7 +41,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub export_all: bool,
   pub source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
-  range: RealDependencyRange,
+  range: RealDependencyLocation,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
@@ -56,7 +56,7 @@ impl HarmonyExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
-    range: RealDependencyRange,
+    range: RealDependencyLocation,
     export_presence_mode: ExportPresenceMode,
     attributes: Option<ImportAttributes>,
   ) -> Self {
@@ -1051,7 +1051,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<ErrorSpan> {

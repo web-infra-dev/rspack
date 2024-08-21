@@ -1,29 +1,19 @@
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use derivative::Derivative;
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone)]
-pub struct RealDependencyRange {
+pub struct RealDependencyLocation {
   pub end: u32,
   pub start: u32,
   #[derivative(Debug = "ignore")]
   source: Option<Arc<dyn SourceLocation>>,
 }
 
-impl From<swc_core::common::Span> for RealDependencyRange {
-  fn from(span: swc_core::common::Span) -> Self {
-    Self {
-      start: span.lo.0.saturating_sub(1),
-      end: span.hi.0.saturating_sub(1),
-      source: None,
-    }
-  }
-}
-
-impl RealDependencyRange {
+impl RealDependencyLocation {
   pub fn new(start: u32, end: u32) -> Self {
-    RealDependencyRange {
+    RealDependencyLocation {
       end,
       start,
       source: None,
@@ -34,26 +24,36 @@ impl RealDependencyRange {
     self.source = Some(source);
     self
   }
+}
 
-  pub fn to_loc(&self) -> Option<String> {
-    if let Some(source) = &self.source {
-      let (start, end) = source.look_up_range_pos(self.start, self.end);
+impl From<swc_core::common::Span> for RealDependencyLocation {
+  fn from(span: swc_core::common::Span) -> Self {
+    Self {
+      start: span.lo.0.saturating_sub(1),
+      end: span.hi.0.saturating_sub(1),
+      source: None,
+    }
+  }
+}
 
-      if start.line == end.line {
-        if start.column == end.column {
-          return Some(format!("{}:{}", start.line, start.column));
-        }
+impl fmt::Display for RealDependencyLocation {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    let source = &self.source.clone().expect("missing sourcemap");
+    let (start, end) = source.look_up_range_pos(self.start, self.end);
 
-        return Some(format!("{}:{}-{}", start.line, start.column, end.column));
+    if start.line == end.line {
+      if start.column == end.column {
+        return write!(f, "{}:{}", start.line, start.column);
       }
 
-      return Some(format!(
-        "{}:{}-{}:{}",
-        start.line, start.column, end.line, end.column
-      ));
+      return write!(f, "{}:{}-{}", start.line, start.column, end.column);
     }
 
-    None
+    write!(
+      f,
+      "{}:{}-{}:{}",
+      start.line, start.column, end.line, end.column
+    )
   }
 }
 
@@ -68,25 +68,18 @@ impl SyntheticDependencyName {
       name: name.to_string(),
     }
   }
+}
 
-  pub fn to_loc(&self) -> Option<String> {
-    Some(self.name.clone())
+impl fmt::Display for SyntheticDependencyName {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", self.name)
   }
 }
 
 // #[derive(Debug, Clone)]
 // pub enum DependencyLocation {
-//   Real(RealDependencyRange),
+//   Real(RealDependencyLocation),
 //   Synthetic(SyntheticDependencyName),
-// }
-
-// impl DependencyLocation {
-//   pub fn to_loc(&self) -> Option<String> {
-//     match &self {
-//       DependencyLocation::Real(range) => range.to_loc(),
-//       DependencyLocation::Synthetic(name) => name.to_loc(),
-//     }
-//   }
 // }
 
 #[derive(Debug, Clone, Copy)]

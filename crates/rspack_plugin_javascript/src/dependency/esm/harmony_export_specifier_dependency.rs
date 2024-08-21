@@ -2,7 +2,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RealDependencyRange, RuntimeSpec,
+  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
@@ -11,13 +11,13 @@ use swc_core::ecma::atoms::Atom;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  range: RealDependencyRange,
+  range: RealDependencyLocation,
   pub name: Atom,
   pub value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(name: Atom, value: Atom, range: RealDependencyRange) -> Self {
+  pub fn new(name: Atom, value: Atom, range: RealDependencyLocation) -> Self {
     Self {
       name,
       value,
@@ -33,7 +33,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {

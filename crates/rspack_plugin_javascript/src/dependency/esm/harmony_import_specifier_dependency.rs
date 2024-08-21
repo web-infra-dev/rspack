@@ -4,7 +4,7 @@ use rspack_core::{
   get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, RealDependencyRange, ReferencedExport,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, RealDependencyLocation, ReferencedExport,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
@@ -23,7 +23,7 @@ pub struct HarmonyImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  range: RealDependencyRange,
+  range: RealDependencyLocation,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
@@ -43,7 +43,7 @@ impl HarmonyImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    range: RealDependencyRange,
+    range: RealDependencyLocation,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
@@ -225,7 +225,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<rspack_core::ErrorSpan> {

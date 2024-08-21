@@ -1,6 +1,6 @@
 use rspack_core::{
   module_id, property_access, to_normal_comment, Compilation, ExportsType,
-  ExtendedReferencedExport, ModuleGraph, RealDependencyRange, RuntimeGlobals, RuntimeSpec,
+  ExtendedReferencedExport, ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
   UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
@@ -14,7 +14,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   names: Vec<Atom>,
-  range: RealDependencyRange,
+  range: RealDependencyLocation,
   is_call: bool,
   optional: bool,
   asi_safe: bool,
@@ -24,7 +24,7 @@ impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
     names: Vec<Atom>,
-    range: RealDependencyRange,
+    range: RealDependencyLocation,
     is_call: bool,
     optional: bool,
     asi_safe: bool,
@@ -55,7 +55,7 @@ impl Dependency for CommonJsFullRequireDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<ErrorSpan> {

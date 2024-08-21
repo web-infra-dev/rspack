@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::Compilation;
-use rspack_core::RealDependencyRange;
+use rspack_core::RealDependencyLocation;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
@@ -46,8 +46,8 @@ pub struct HarmonyImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
-  pub range: RealDependencyRange,
-  pub range_src: RealDependencyRange,
+  pub range: RealDependencyLocation,
+  pub range_src: RealDependencyLocation,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   attributes: Option<ImportAttributes>,
@@ -59,8 +59,8 @@ impl HarmonyImportSideEffectDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
-    range: RealDependencyRange,
-    range_src: RealDependencyRange,
+    range: RealDependencyLocation,
+    range_src: RealDependencyLocation,
     dependency_type: DependencyType,
     export_all: bool,
     attributes: Option<ImportAttributes>,
@@ -376,7 +376,7 @@ impl Dependency for HarmonyImportSideEffectDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.to_loc()
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<ErrorSpan> {
