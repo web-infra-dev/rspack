@@ -18,8 +18,8 @@ use crate::{
   add_connection_states, assign_depth, assign_depths, get_entry_runtime, merge_runtime,
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
-  EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, OriginLocation, RuntimeSpec, SyntheticDependencyLocation,
+  DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 #[derive(Debug, Clone)]
@@ -249,7 +249,7 @@ pub(super) struct CodeSplitter<'me> {
 fn add_chunk_in_group(
   group_options: Option<&GroupOptions>,
   module_id: ModuleIdentifier,
-  loc: Option<OriginLocation>,
+  loc: Option<DependencyLocation>,
   request: Option<String>,
 ) -> ChunkGroup {
   let options = ChunkGroupOptions::new(
@@ -419,9 +419,9 @@ impl<'me> CodeSplitter<'me> {
       ));
 
       for request in requests {
-        let loc = Some(OriginLocation::Synthetic(SyntheticDependencyLocation {
-          name: name.clone(),
-        }));
+        let loc = Some(DependencyLocation::Synthetic(
+          SyntheticDependencyLocation::new(&name),
+        ));
         entrypoint.add_origin(None, loc, request);
       }
 
@@ -1248,7 +1248,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_name = block.get_group_options().and_then(|o| o.name());
       let entry_options = block.get_group_options().and_then(|o| o.entry_options());
       let request = block.request().clone();
-      let loc = block.loc().cloned();
+      let loc = block.loc();
 
       let cgi = if let Some(entry_options) = entry_options {
         let cgi =
@@ -1343,7 +1343,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .block_by_id(&block_id)
             .expect("should have block");
           let request = block.request().clone();
-          let loc = block.loc().cloned();
+          let loc = block.loc();
 
           if self
             .compilation
@@ -1367,7 +1367,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           let mut chunk_group = add_chunk_in_group(
             block.get_group_options(),
             module_id,
-            block.loc().map(|l| OriginLocation::Real(l.clone())),
+            block.loc(),
             block.request().clone(),
           );
           let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
@@ -1443,7 +1443,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .compilation
         .chunk_group_by_ukey
         .expect_get_mut(&chunk_group_ukey);
-      chunk_group.add_origin(None, loc.map(OriginLocation::Real), request);
+      chunk_group.add_origin(None, loc, request);
     }
   }
 

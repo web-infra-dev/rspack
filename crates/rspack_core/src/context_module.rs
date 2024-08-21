@@ -22,10 +22,11 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyType,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
+  DependencyType, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType,
+  RealDependencyLocation, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -1110,15 +1111,13 @@ impl ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
+      let loc = RealDependencyLocation::new(
+        self.options.context_options.start,
+        self.options.context_options.end,
+      );
       let mut block = AsyncDependenciesBlock::new(
         self.identifier,
-        Some(
-          (
-            self.options.context_options.start,
-            self.options.context_options.end,
-          )
-            .into(),
-        ),
+        Some(DependencyLocation::Real(loc)),
         None,
         context_element_dependencies
           .into_iter()
@@ -1132,6 +1131,7 @@ impl ContextModule {
       blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
+      // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
       for context_element_dependency in context_element_dependencies {
         let group_options = self
           .options

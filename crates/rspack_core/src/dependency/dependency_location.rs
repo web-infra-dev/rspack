@@ -26,6 +26,16 @@ impl RealDependencyLocation {
   }
 }
 
+impl From<(u32, u32)> for RealDependencyLocation {
+  fn from(range: (u32, u32)) -> Self {
+    Self {
+      start: range.0,
+      end: range.1,
+      source: None,
+    }
+  }
+}
+
 impl From<swc_core::common::Span> for RealDependencyLocation {
   fn from(span: swc_core::common::Span) -> Self {
     Self {
@@ -38,49 +48,62 @@ impl From<swc_core::common::Span> for RealDependencyLocation {
 
 impl fmt::Display for RealDependencyLocation {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    let source = &self.source.clone().expect("missing sourcemap");
-    let (start, end) = source.look_up_range_pos(self.start, self.end);
+    if let Some(source) = &self.source {
+      let (start, end) = source.look_up_range_pos(self.start, self.end);
 
-    if start.line == end.line {
-      if start.column == end.column {
-        return write!(f, "{}:{}", start.line, start.column);
+      if start.line == end.line {
+        if start.column == end.column {
+          return write!(f, "{}:{}", start.line, start.column);
+        }
+
+        return write!(f, "{}:{}-{}", start.line, start.column, end.column);
       }
 
-      return write!(f, "{}:{}-{}", start.line, start.column, end.column);
+      write!(
+        f,
+        "{}:{}-{}:{}",
+        start.line, start.column, end.line, end.column
+      )
+    } else {
+      write!(f, "{}:{}", self.start, self.end)
     }
-
-    write!(
-      f,
-      "{}:{}-{}:{}",
-      start.line, start.column, end.line, end.column
-    )
   }
 }
 
 #[derive(Debug, Clone)]
-pub struct SyntheticDependencyName {
+pub struct SyntheticDependencyLocation {
   pub name: String,
 }
 
-impl SyntheticDependencyName {
+impl SyntheticDependencyLocation {
   pub fn new(name: &str) -> Self {
-    SyntheticDependencyName {
+    SyntheticDependencyLocation {
       name: name.to_string(),
     }
   }
 }
 
-impl fmt::Display for SyntheticDependencyName {
+impl fmt::Display for SyntheticDependencyLocation {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{}", self.name)
   }
 }
 
-// #[derive(Debug, Clone)]
-// pub enum DependencyLocation {
-//   Real(RealDependencyLocation),
-//   Synthetic(SyntheticDependencyName),
-// }
+#[derive(Debug, Clone)]
+pub enum DependencyLocation {
+  Real(RealDependencyLocation),
+  Synthetic(SyntheticDependencyLocation),
+}
+
+impl fmt::Display for DependencyLocation {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    let loc = match self {
+      DependencyLocation::Real(real) => real.to_string(),
+      DependencyLocation::Synthetic(synthetic) => synthetic.to_string(),
+    };
+    write!(f, "{loc}")
+  }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {

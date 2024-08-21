@@ -1,16 +1,15 @@
-use std::{borrow::Cow, fmt::Display, hash::Hash, sync::Arc};
+use std::{borrow::Cow, hash::Hash};
 
-use derivative::Derivative;
 use rspack_collections::Identifier;
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
 use rspack_util::ext::DynHash;
-use swc_core::common::{BytePos, SourceMap};
 
 use crate::{
-  BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier, RuntimeSpec,
+  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -40,53 +39,6 @@ pub fn dependencies_block_update_hash(
   for block_id in blocks {
     let block = mg.block_by_id_expect(block_id);
     block.update_hash(hasher, compilation, runtime);
-  }
-}
-
-#[derive(Derivative)]
-#[derivative(Debug, Clone)]
-pub struct DependencyLocation {
-  start: u32,
-  end: u32,
-  #[derivative(Debug = "ignore")]
-  source: Option<Arc<SourceMap>>,
-}
-
-impl DependencyLocation {
-  pub fn new(start: u32, end: u32, source: Option<Arc<SourceMap>>) -> Self {
-    Self { start, end, source }
-  }
-
-  #[inline]
-  pub fn start(&self) -> u32 {
-    self.start
-  }
-
-  #[inline]
-  pub fn end(&self) -> u32 {
-    self.end
-  }
-}
-
-impl From<(u32, u32)> for DependencyLocation {
-  fn from(value: (u32, u32)) -> Self {
-    Self {
-      start: value.0,
-      end: value.1,
-      source: None,
-    }
-  }
-}
-
-impl Display for DependencyLocation {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if let Some(source) = &self.source {
-      let pos = source.lookup_char_pos(BytePos(self.start + 1));
-      let pos = format!("{}:{}", pos.line, pos.col.0);
-      f.write_str(format!("{}-{}", pos, self.end - self.start).as_str())
-    } else {
-      Ok(())
-    }
   }
 }
 
@@ -124,10 +76,9 @@ impl AsyncDependenciesBlock {
     dependencies: Vec<BoxDependency>,
     request: Option<String>,
   ) -> Self {
-    let loc_str: Cow<str> = loc.clone().map_or_else(
-      || "".into(),
-      |loc| format!("|loc={}:{}", loc.start(), loc.end()).into(),
-    );
+    let loc_str: Cow<str> = loc
+      .clone()
+      .map_or_else(|| "".into(), |loc| format!("|loc={loc}").into());
 
     let modifier_str: Cow<str> = modifier.map_or_else(
       || "".into(),
@@ -182,8 +133,8 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.blocks)
   }
 
-  pub fn loc(&self) -> Option<&DependencyLocation> {
-    self.loc.as_ref()
+  pub fn loc(&self) -> Option<DependencyLocation> {
+    self.loc.clone()
   }
 
   pub fn parent(&self) -> &ModuleIdentifier {

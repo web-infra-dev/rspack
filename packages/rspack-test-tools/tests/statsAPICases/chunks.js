@@ -110,7 +110,7 @@ module.exports = {
 		    ],
 		    "origins": Array [
 		      Object {
-		        "loc": "2:9-46",
+		        "loc": "2:9-55",
 		        "module": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
 		        "moduleId": "725",
 		        "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
