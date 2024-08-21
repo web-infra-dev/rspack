@@ -48,6 +48,8 @@ The default value of [devtool](/config/devtool) has been changed from `false` to
 - `eval` when `mode` is `'development'`.
 - `false` for other values of `mode`.
 
+> `@rspack/cli` overrides the default `devtool` value from `@rspack/core`. Therefore, if you are using `@rspack/cli`, this change will not affect you.
+
 ### experiments.asyncWebAssembly
 
 The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has been changed from `false` to depend on the `experiments.futureDefaults` configuration. It is enabled by default only when `experiments.futureDefaults` is set to `true`.

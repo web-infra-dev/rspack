@@ -48,6 +48,8 @@ module.exports = {
 - 当 `mode` 为 `'development'` 时，默认为 `'eval'`。
 - `mode` 为其他值时，默认值为 `false`。
 
+> `@rspack/cli` 会覆盖 `@rspack/core` 中 `devtool` 的默认值，因此如果你使用 `@rspack/cli`，此变更不受影响。
+
 ### experiments.asyncWebAssembly
 
 [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) 默认值从 `false` 调整为依赖 `experiments.futureDefaults` 配置项，当 `experiments.futureDefaults` 为 `true` 时才默认开启。
