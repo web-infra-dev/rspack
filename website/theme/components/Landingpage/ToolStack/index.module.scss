@@ -2,13 +2,14 @@
   .tools {
     & > :nth-child(1),
     & > :nth-child(2) {
-      flex: 1 0 49%;
-      min-width: 40%;
+      min-width: 40% !important;
+      max-width: 60% !important;
       width: 50%;
     }
     & > .tool {
       max-width: 33%;
       min-width: 30%;
+      flex: 1 0 0;
     }
   }
 }
@@ -46,12 +47,11 @@
 
 .tool {
   display: flex;
-  flex: 1 0 25%;
+  flex: 1 0 0;
   padding: 16px;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  flex: 1 0 0;
   align-self: stretch;
 
   // style
