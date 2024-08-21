@@ -16,7 +16,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
 use rspack_util::identifier::make_paths_absolute;
-use serde_json::json;
 
 use crate::{
   module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplate, ModuleOrSource,
@@ -174,7 +173,11 @@ fn eval_source_map_devtool_plugin_render_module_content(
       let base64 = rspack_base64::encode_to_string(&map_buffer);
       let footer =
         format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
-      RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
+      RawSource::from(format!(
+        "eval({});",
+        simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string")
+      ))
+      .boxed()
     };
     self.cache.insert(origin_source, source.clone());
     render_source.source = source;
