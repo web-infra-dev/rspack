@@ -146,6 +146,8 @@ const FullyFeatured = () => {
               );
             })
           }
+        </div>
+        <div className="flex flex-col items-center self-stretch">
           <button
             type="button"
             className={styles.button}

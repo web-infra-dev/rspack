@@ -1,3 +1,20 @@
+// M
+@media screen and (min-width: 400px) and (max-width: 834px) {
+  .title {
+    font-size: 32px !important;
+    line-height: 48px !important;
+  }
+  .logo {
+  }
+}
+
+// S
+@media screen and (max-width: 500px) {
+  .title {
+    font-size: 32px !important;
+  }
+}
+
 .innerContainer {
   width: 100%;
   display: flex;
@@ -29,19 +46,18 @@
 
 .logos {
   display: flex;
-  height: 136.507px;
   align-items: flex-start;
   align-self: stretch;
-
+  flex-wrap: wrap;
   filter: var(--landingpage-invert-filter);
 
   .logo {
     display: flex;
-    padding: 48px 36px 48px 36px;
     justify-content: center;
     align-items: center;
-
-    flex: 1 0 0;
+    min-width: 200px;
+    min-height: 140px;
+    flex: 1 0;
     align-self: stretch;
   }
 }

@@ -1,3 +1,24 @@
+@media screen and (min-width: 501px) and (max-width: 1024px) {
+  .tools {
+    & > :nth-child(1),
+    & > :nth-child(2) {
+      flex: 1 0 49%;
+      min-width: 40%;
+      width: 50%;
+    }
+    & > .tool {
+      max-width: 33%;
+      min-width: 30%;
+    }
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .tools {
+    flex-direction: column;
+  }
+}
+
 :global {
   html:not(.dark) {
     --tool-stack-shadow-color: #f9f9f9;
@@ -17,13 +38,15 @@
 
 .tools {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
 .tool {
   display: flex;
-  flex: 1 1;
+  flex: 1 0 25%;
   padding: 16px;
   flex-direction: column;
   align-items: center;
