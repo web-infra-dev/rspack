@@ -1,5 +1,5 @@
 use rspack_core::{
-  ConstDependency, ContextMode, DependencyCategory, DependencyRange, ErrorSpan, SpanExt,
+  ConstDependency, ContextMode, DependencyCategory, ErrorSpan, RealDependencyLocation, SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
@@ -92,7 +92,7 @@ impl CommonJsImportsParserPlugin {
 
     let (members, first_arg) = extract_require_call_info(parser, mem_expr)?;
 
-    let range: DependencyRange = mem_expr.span.into();
+    let range: RealDependencyLocation = mem_expr.span.into();
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
