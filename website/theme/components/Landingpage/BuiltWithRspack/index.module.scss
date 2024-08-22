@@ -4,14 +4,13 @@
     font-size: 32px !important;
     line-height: 48px !important;
   }
-  .logo {
-  }
 }
 
 // S
 @media screen and (max-width: 500px) {
   .title {
     font-size: 32px !important;
+    line-height: 48px !important;
   }
 }
 
@@ -36,7 +35,7 @@
   font-size: 48px;
   font-style: normal;
   font-weight: 700;
-  line-height: 48px; /* 100% */
+  line-height: normal; /* 100% */
 
   background: linear-gradient(279deg, #ff8b00 27.12%, #f93920 72.56%);
   background-clip: text;

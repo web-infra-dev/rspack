@@ -20,15 +20,15 @@ const BENCHMARK_DATA: BenchmarkData = {
     label: 'Rspack',
     metrics: [
       {
-        time: 0.49,
+        time: 0.41,
         desc: 'dev',
       },
       {
-        time: 0.36,
+        time: 0.28,
         desc: 'build',
       },
       {
-        time: 0.09,
+        time: 0.08,
         desc: 'hmr',
       },
     ],
@@ -37,11 +37,11 @@ const BENCHMARK_DATA: BenchmarkData = {
     label: 'Vite + SWC',
     metrics: [
       {
-        time: 1.58,
+        time: 1.29,
         desc: 'dev',
       },
       {
-        time: 1.37,
+        time: 1.39,
         desc: 'build',
       },
       {
@@ -54,15 +54,15 @@ const BENCHMARK_DATA: BenchmarkData = {
     label: 'webpack + SWC',
     metrics: [
       {
-        time: 2.4,
+        time: 2.26,
         desc: 'dev',
       },
       {
-        time: 2.12,
+        time: 2.01,
         desc: 'build',
       },
       {
-        time: 0.22,
+        time: 0.2,
         desc: 'hmr',
       },
     ],
@@ -71,15 +71,15 @@ const BENCHMARK_DATA: BenchmarkData = {
     label: 'webpack + Babel',
     metrics: [
       {
-        time: 5.13,
+        time: 5.02,
         desc: 'dev',
       },
       {
-        time: 6.47,
+        time: 6.52,
         desc: 'build',
       },
       {
-        time: 0.22,
+        time: 0.2,
         desc: 'hmr',
       },
     ],
