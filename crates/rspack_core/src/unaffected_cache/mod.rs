@@ -73,7 +73,7 @@ impl UnaffectedModulesCache {
   #[tracing::instrument(skip_all)]
   pub fn compute_affected_modules_with_module_graph(&self, compilation: &Compilation) {
     let mg = compilation.get_module_graph();
-    let modules = IdentifierSet::from_iter(mg.modules().keys().copied());
+    let modules = mg.modules().keys().copied().collect();
     let mut affected_modules = self
       .affected_modules_with_module_graph
       .lock()
@@ -144,18 +144,17 @@ impl UnaffectedModuleWithChunkGraphCache {
     chunk_graph
       .get_module_id(module_identifier)
       .hash(&mut hasher);
-    let module_ids = FxIndexSet::from_iter(
-      module_graph
-        .get_ordered_connections(&module_identifier)
-        .expect("should have module")
-        .into_iter()
-        .filter_map(|c| {
-          let connection = module_graph
-            .connection_by_connection_id(c)
-            .expect("should have connection");
-          chunk_graph.get_module_id(*connection.module_identifier())
-        }),
-    );
+    let module_ids: FxIndexSet<_> = module_graph
+      .get_ordered_connections(&module_identifier)
+      .expect("should have module")
+      .into_iter()
+      .filter_map(|c| {
+        let connection = module_graph
+          .connection_by_connection_id(c)
+          .expect("should have connection");
+        chunk_graph.get_module_id(*connection.module_identifier())
+      })
+      .collect();
     for module_id in module_ids {
       module_id.hash(&mut hasher);
     }
@@ -257,7 +256,7 @@ fn compute_affected_modules_with_module_graph(
     Direct(ModuleIdentifier),
     Transitive(ModuleIdentifier),
   }
-  let mut all_affected_modules = IdentifierSet::from_iter(affected_modules_cache.keys().copied());
+  let mut all_affected_modules: IdentifierSet = affected_modules_cache.keys().copied().collect();
   let affected_modules_cache_iter =
     affected_modules_cache
       .par_iter()
@@ -367,5 +366,5 @@ fn compute_affected_modules_with_chunk_graph(compilation: &Compilation) -> Ident
       },
     );
   }
-  IdentifierSet::from_iter(affected_modules.keys().copied())
+  affected_modules.keys().copied().collect()
 }
