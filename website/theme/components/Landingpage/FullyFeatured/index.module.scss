@@ -1,9 +1,26 @@
-@media screen and (max-width: 500px) {
+// M
+@media screen and (min-width: 601px) and (max-width: 1000px) {
+  .features {
+    flex-wrap: wrap !important;
+    gap: 32px 16px !important;
+  }
+  .featureCard {
+    max-width: 50% !important;
+    flex: 1 0 45% !important;
+  }
+  .main {
+    gap: 32px !important;
+  }
+}
+
+// S
+@media screen and (max-width: 600px) {
   .features {
     flex-wrap: wrap;
   }
   .featureCard {
-    flex: 1 0 45% !important;
+    max-width: 50% !important;
+    flex: 1 0 40% !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
@@ -15,18 +32,9 @@
       display: none !important;
     }
   }
-}
 
-@media screen and (min-width: 500px) and (max-width: 1000px) {
-  .features {
-    flex-wrap: wrap !important;
-    gap: 32px 16px !important;
-  }
-  .featureCard {
-    flex: 1 0 45% !important;
-  }
   .main {
-    gap: 32px !important;
+    gap: 16px !important;
   }
 }
 
@@ -38,6 +46,7 @@
 }
 
 .features {
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-start;

@@ -31,7 +31,7 @@
 }
 
 // M
-@media screen and (min-width: 400px) and (max-width: 834px) {
+@media screen and (min-width: 601px) and (max-width: 834px) {
   .container {
     padding: 24px !important;
   }
@@ -64,7 +64,7 @@
 }
 
 // S
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 600px) {
   .container {
     padding: 24px !important;
   }
@@ -137,7 +137,7 @@
     bottom: 32px;
     right: 32px;
     z-index: 0;
-    pointer-events: none;
+    user-select: none;
   }
 
   .whyRspackContent {
@@ -214,9 +214,12 @@
     height: 100%;
     width: 100%;
     height: 150px;
+
+    user-select: none;
   }
 
   .featureContent {
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;

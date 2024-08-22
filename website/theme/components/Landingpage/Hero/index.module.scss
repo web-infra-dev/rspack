@@ -1,20 +1,11 @@
-:global {
-  html:not(.dark) {
-    --landingpage-hero-oval-bg: url('./lightOvalBg.svg');
-  }
-
-  html.dark {
-    --landingpage-hero-oval-bg: url('./darkOvalBg.svg');
-  }
-}
-
-@media screen and (max-width: 500px) {
+// S
+@media screen and (max-width: 600px) {
   .logo {
-    width: 120.125px !important;
+    width: 120px !important;
     height: 100px !important;
   }
   .ovalBg {
-    width: 168.175px !important;
+    width: 168px !important;
     height: 140px !important;
   }
   .buttonGroup {
@@ -65,19 +56,21 @@
 }
 
 .logo {
-  width: 216.225px;
+  width: 216px;
   height: 180px;
   position: relative;
+  user-select: none;
 
   .ovalBg {
-    width: 302.7164px; // 216.225px * 1.4
+    width: 303px; // 216.225px * 1.4
     height: 252px; // 180px * 1.4
     z-index: -1;
     position: absolute;
-    top: 50%;
+    // our logo center is on the right and down
+    top: calc(50% + 5px);
     left: calc(50% + 5px);
     transform: translate(-50%, -50%);
-    background-image: var(--landingpage-hero-oval-bg);
+    background-image: url('./ovalBg.svg');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     background-position: center;
@@ -136,7 +129,6 @@
   gap: 10px;
   padding: 12px 24px 12px 24px;
   border-radius: 25px;
-  border: 1.5px solid var(--orange-gradient, #ff8b00);
   text-align: center;
 
   font-size: 16px;
@@ -158,6 +150,8 @@
 }
 
 .buttonSecondary {
+  // style
+  border: 1.5px solid var(--orange-gradient, #ff8b00);
   // text
   color: var(--landingpage-title-color, #0b0c0e);
 }

@@ -1,4 +1,4 @@
-@media screen and (min-width: 501px) and (max-width: 1024px) {
+@media screen and (min-width: 601px) and (max-width: 1024px) {
   .tools {
     & > :nth-child(1),
     & > :nth-child(2) {
@@ -14,7 +14,8 @@
   }
 }
 
-@media screen and (max-width: 500px) {
+// S
+@media screen and (max-width: 600px) {
   .tools {
     flex-direction: column;
   }

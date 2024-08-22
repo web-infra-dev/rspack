@@ -2,8 +2,8 @@
 // XXL > 1440
 // XL 1280 - 1440
 // L 835 - 1280
-// M 501 - 834
-// S < 501
+// M 601 - 834
+// S < 601
 
 // XXL
 @media screen and (min-width: 1441px) {
@@ -36,12 +36,16 @@
 }
 
 // M
-@media screen and (min-width: 501px) and (max-width: 834px) {
+@media screen and (min-width: 601px) and (max-width: 834px) {
   .container {
     padding: 64px 32px !important;
+    .innerContainer {
+      gap: 16px !important;
+    }
   }
   .titleAndDesc {
     padding: 0px 16px !important;
+    gap: 16px !important;
     .title {
       font-size: 32px !important;
     }
@@ -53,12 +57,16 @@
 }
 
 // S
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 600px) {
   .container {
     padding: 24px !important;
+    .innerContainer {
+      gap: 16px !important;
+    }
   }
   .titleAndDesc {
     padding: 0px 16px !important;
+    gap: 16px !important;
     .title {
       font-size: 24px !important;
     }
