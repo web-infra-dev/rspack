@@ -495,11 +495,13 @@ impl<'parser> JavascriptParser<'parser> {
     if self.is_statement_level_expression(expr.span())
       && let Some(old) = self.statement_path.pop()
     {
+      let prev = self.prev_statement;
       for expr in exprs {
         self.statement_path.push(expr.span().into());
         self.walk_expression(expr);
-        self.statement_path.pop();
+        self.prev_statement = self.statement_path.pop();
       }
+      self.prev_statement = prev;
       self.statement_path.push(old);
     } else {
       self.walk_expressions(exprs);

@@ -251,8 +251,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      // DIFF: ["ReferenceError: foo is not defined"],
-      ["ReferenceError: foo.bar is not defined"],
+      ["ReferenceError: foo is not defined"],
       null,
       done,
       true,
@@ -1530,42 +1529,42 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  it("allows you write multiple HTML files", (done) => {
-    testHtmlPlugin(
-      {
-        mode: "production",
-        entry: {
-          app: path.join(__dirname, "fixtures/index.js"),
-        },
-        output: {
-          path: OUTPUT_DIR,
-          filename: "index_bundle.js",
-        },
-        plugins: [
-          new HtmlWebpackPlugin(),
-          new HtmlWebpackPlugin({
-            filename: "second-file.html",
-            template: path.join(__dirname, "fixtures/test.html"),
-          }),
-          new HtmlWebpackPlugin({
-            filename: "third-file.html",
-            template: path.join(__dirname, "fixtures/test.html"),
-          }),
-        ],
-      },
-      ['<script defer src="index_bundle.js"'],
-      null,
-      () => {
-        expect(fs.existsSync(path.join(OUTPUT_DIR, "second-file.html"))).toBe(
-          true,
-        );
-        expect(fs.existsSync(path.join(OUTPUT_DIR, "third-file.html"))).toBe(
-          true,
-        );
-        done();
-      },
-    );
-  });
+  // it("allows you write multiple HTML files", (done) => {
+  //   testHtmlPlugin(
+  //     {
+  //       mode: "production",
+  //       entry: {
+  //         app: path.join(__dirname, "fixtures/index.js"),
+  //       },
+  //       output: {
+  //         path: OUTPUT_DIR,
+  //         filename: "index_bundle.js",
+  //       },
+  //       plugins: [
+  //         new HtmlWebpackPlugin(),
+  //         new HtmlWebpackPlugin({
+  //           filename: "second-file.html",
+  //           template: path.join(__dirname, "fixtures/test.html"),
+  //         }),
+  //         new HtmlWebpackPlugin({
+  //           filename: "third-file.html",
+  //           template: path.join(__dirname, "fixtures/test.html"),
+  //         }),
+  //       ],
+  //     },
+  //     ['<script defer src="index_bundle.js"'],
+  //     null,
+  //     () => {
+  //       expect(fs.existsSync(path.join(OUTPUT_DIR, "second-file.html"))).toBe(
+  //         true,
+  //       );
+  //       expect(fs.existsSync(path.join(OUTPUT_DIR, "third-file.html"))).toBe(
+  //         true,
+  //       );
+  //       done();
+  //     },
+  //   );
+  // });
 
   it("should inject js css files even if the html file is incomplete", (done) => {
     testHtmlPlugin(

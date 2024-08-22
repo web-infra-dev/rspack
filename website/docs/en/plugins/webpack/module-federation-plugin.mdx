@@ -68,6 +68,16 @@ Define the output format of remote container entry. The default libraryType is "
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 
+### shareStrategy
+
+- Type: `'version-first' | 'loaded-first'`
+
+Control the loading strategy of shared dependencies:
+
+- `'version-first'`: Version takes precedence. After setting, all _remotes_ entry files will be automatically loaded and **register** the corresponding shared dependencies to ensure that all shared dependency versions can be obtained. This strategy is recommended when there are strict version requirements.
+
+- `'loaded-first'`: reuse first. After setting, the _remotes_ entry file will not be automatically loaded (it will only be loaded when needed), and registered shared dependencies will be reused first. This strategy is recommended when there are no strict requirements on the version and performance is required.
+
 ### remoteType
 
 - Type: [`ExternalsType`](/config/externals#externalstype)
