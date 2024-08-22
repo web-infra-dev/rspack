@@ -25,101 +25,12 @@ struct UnaffectedModuleCache {
   with_chunk_graph_cache: Option<UnaffectedModuleWithChunkGraphCache>,
 }
 
-impl UnaffectedModuleCache {
-  fn new(invalidate_key: u64) -> Self {
-    Self {
-      module_graph_invalidate_key: invalidate_key,
-      with_chunk_graph_cache: None,
-    }
-  }
-}
-
 #[derive(Debug)]
 struct UnaffectedModuleWithChunkGraphCache {
   chunk_graph_invalidate_key: u64,
 }
 
-impl UnaffectedModuleWithChunkGraphCache {
-  fn new(invalidate_key: u64) -> Self {
-    Self {
-      chunk_graph_invalidate_key: invalidate_key,
-    }
-  }
-}
-
-#[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
-fn create_module_graph_invalidate_key(module_graph: &ModuleGraph, module: &dyn Module) -> u64 {
-  let mut hasher = FxHasher::default();
-  module
-    .build_info()
-    .expect("should have build_info after build")
-    .hash
-    .as_ref()
-    .hash(&mut hasher);
-  for connection_id in module_graph
-    .get_ordered_connections(&module.identifier())
-    .expect("should have module")
-  {
-    let connection = module_graph
-      .connection_by_connection_id(connection_id)
-      .expect("should have connection");
-    connection.dependency_id.hash(&mut hasher);
-  }
-  hasher.finish()
-}
-
-#[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
-fn create_chunk_graph_invalidate_key(
-  chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
-  compilation: &Compilation,
-  module: &dyn Module,
-) -> u64 {
-  let module_identifier = module.identifier();
-  let mut hasher = FxHasher::default();
-  chunk_graph
-    .get_module_id(module_identifier)
-    .hash(&mut hasher);
-  let module_ids = FxIndexSet::from_iter(
-    module_graph
-      .get_ordered_connections(&module_identifier)
-      .expect("should have module")
-      .into_iter()
-      .filter_map(|c| {
-        let connection = module_graph
-          .connection_by_connection_id(c)
-          .expect("should have connection");
-        chunk_graph.get_module_id(*connection.module_identifier())
-      }),
-  );
-  for module_id in module_ids {
-    module_id.hash(&mut hasher);
-  }
-  for block_id in module.get_blocks() {
-    let Some(chunk_group) =
-      chunk_graph.get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
-    else {
-      continue;
-    };
-    for chunk in &chunk_group.chunks {
-      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-      chunk.id.as_ref().hash(&mut hasher);
-    }
-  }
-  hasher.finish()
-}
-
 impl UnaffectedModulesCache {
-  // fn iter(
-  //   &self,
-  // ) -> dashmap::iter::Iter<
-  //   ModuleIdentifier,
-  //   UnaffectedModuleCache,
-  //   BuildHasherDefault<IdentifierHasher>,
-  // > {
-  //   self.module_to_cache.iter()
-  // }
-
   fn par_iter(
     &self,
   ) -> dashmap::rayon::map::Iter<
@@ -131,23 +42,17 @@ impl UnaffectedModulesCache {
   }
 
   #[tracing::instrument(skip_all, fields(module = ?key))]
-  fn remove_module_graph_cache(&self, key: &ModuleIdentifier) {
+  fn remove_cache(&self, key: &ModuleIdentifier) {
     self.module_to_cache.remove(key);
   }
 
   #[tracing::instrument(skip_all, fields(module = ?key))]
-  fn module_graph_cache_entry(&self, key: ModuleIdentifier, invalidate_key: u64) {
-    if let Some(mut cache) = self.module_to_cache.get_mut(&key) {
-      cache.module_graph_invalidate_key = invalidate_key;
-    } else {
-      self
-        .module_to_cache
-        .insert(key, UnaffectedModuleCache::new(invalidate_key));
-    }
+  fn insert_cache(&self, key: ModuleIdentifier, value: UnaffectedModuleCache) {
+    self.module_to_cache.insert(key, value);
   }
 
   #[tracing::instrument(skip_all, fields(module = ?key))]
-  fn affect_module_graph_cache(&self, key: &ModuleIdentifier) -> Option<()> {
+  fn affect_cache(&self, key: &ModuleIdentifier) -> Option<()> {
     let mut cache = self.module_to_cache.get_mut(key)?;
     cache.with_chunk_graph_cache = None;
     // remove other cache...
@@ -155,22 +60,14 @@ impl UnaffectedModulesCache {
   }
 
   #[tracing::instrument(skip_all, fields(module = ?key))]
-  fn chunk_graph_cache_entry(&self, key: &ModuleIdentifier, invalidate_key: u64) -> Option<()> {
+  fn insert_chunk_graph_cache(
+    &self,
+    key: &ModuleIdentifier,
+    value: UnaffectedModuleWithChunkGraphCache,
+  ) -> Option<()> {
     let mut cache = self.module_to_cache.get_mut(key)?;
-    if let Some(cache) = &mut cache.with_chunk_graph_cache {
-      cache.chunk_graph_invalidate_key = invalidate_key;
-    } else {
-      cache.with_chunk_graph_cache = Some(UnaffectedModuleWithChunkGraphCache::new(invalidate_key))
-    }
+    cache.with_chunk_graph_cache = Some(value);
     Some(())
-  }
-
-  #[tracing::instrument(skip_all, fields(module = ?key))]
-  fn affect_chunk_graph_cache(&self, key: &ModuleIdentifier) -> Option<()> {
-    let mut cache = self.module_to_cache.get_mut(key)?;
-    cache.with_chunk_graph_cache.as_mut().map(|_cache| {
-      // cache = None
-    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -201,6 +98,79 @@ impl UnaffectedModulesCache {
   #[tracing::instrument(skip_all)]
   pub fn get_affected_modules_with_chunk_graph(&self) -> &Mutex<IdentifierSet> {
     &self.affected_modules_with_chunk_graph
+  }
+}
+
+impl UnaffectedModuleCache {
+  fn new(module_graph_invalidate_key: u64) -> Self {
+    Self {
+      module_graph_invalidate_key,
+      with_chunk_graph_cache: None,
+    }
+  }
+
+  #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
+  fn create_module_graph_invalidate_key(module_graph: &ModuleGraph, module: &dyn Module) -> u64 {
+    let mut hasher = FxHasher::default();
+    module
+      .build_info()
+      .expect("should have build_info after build")
+      .hash
+      .as_ref()
+      .hash(&mut hasher);
+    for connection_id in module_graph
+      .get_ordered_connections(&module.identifier())
+      .expect("should have module")
+    {
+      let connection = module_graph
+        .connection_by_connection_id(connection_id)
+        .expect("should have connection");
+      connection.dependency_id.hash(&mut hasher);
+    }
+    hasher.finish()
+  }
+}
+
+impl UnaffectedModuleWithChunkGraphCache {
+  #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
+  fn create_chunk_graph_invalidate_key(
+    chunk_graph: &ChunkGraph,
+    module_graph: &ModuleGraph,
+    compilation: &Compilation,
+    module: &dyn Module,
+  ) -> u64 {
+    let module_identifier = module.identifier();
+    let mut hasher = FxHasher::default();
+    chunk_graph
+      .get_module_id(module_identifier)
+      .hash(&mut hasher);
+    let module_ids = FxIndexSet::from_iter(
+      module_graph
+        .get_ordered_connections(&module_identifier)
+        .expect("should have module")
+        .into_iter()
+        .filter_map(|c| {
+          let connection = module_graph
+            .connection_by_connection_id(c)
+            .expect("should have connection");
+          chunk_graph.get_module_id(*connection.module_identifier())
+        }),
+    );
+    for module_id in module_ids {
+      module_id.hash(&mut hasher);
+    }
+    for block_id in module.get_blocks() {
+      let Some(chunk_group) =
+        chunk_graph.get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
+      else {
+        continue;
+      };
+      for chunk in &chunk_group.chunks {
+        let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+        chunk.id.as_ref().hash(&mut hasher);
+      }
+    }
+    hasher.finish()
   }
 }
 
@@ -243,7 +213,8 @@ fn compute_affected_modules_with_module_graph(
         let module = module_graph
           .module_by_identifier(module_identifier)
           .expect("should have module");
-        let invalidate_key = create_module_graph_invalidate_key(&module_graph, module.as_ref());
+        let invalidate_key =
+          UnaffectedModuleCache::create_module_graph_invalidate_key(&module_graph, module.as_ref());
         if cache.module_graph_invalidate_key != invalidate_key {
           ModulesCacheOp::Affected(*module_identifier, invalidate_key)
         } else {
@@ -258,7 +229,7 @@ fn compute_affected_modules_with_module_graph(
   for result in results {
     match result {
       ModulesCacheOp::Delete(m) => {
-        modules_cache.remove_module_graph_cache(&m);
+        modules_cache.remove_cache(&m);
       }
       ModulesCacheOp::Unaffected(m) => {
         modules_without_cache.remove(&m);
@@ -275,7 +246,8 @@ fn compute_affected_modules_with_module_graph(
       let module = module_graph
         .module_by_identifier(&module_identifier)
         .expect("should have module");
-      let invalidate_key = create_module_graph_invalidate_key(&module_graph, module.as_ref());
+      let invalidate_key =
+        UnaffectedModuleCache::create_module_graph_invalidate_key(&module_graph, module.as_ref());
       (module_identifier, invalidate_key)
     })
     .collect();
@@ -285,15 +257,15 @@ fn compute_affected_modules_with_module_graph(
     Direct(ModuleIdentifier),
     Transitive(ModuleIdentifier),
   }
-  for (&module_identifier, &invalidate_key) in &affected_modules_cache {
-    modules_cache.module_graph_cache_entry(module_identifier, invalidate_key);
-  }
-
   let mut all_affected_modules = IdentifierSet::from_iter(affected_modules_cache.keys().copied());
   let affected_modules_cache_iter =
     affected_modules_cache
       .par_iter()
-      .flat_map(|(&module_identifier, _)| {
+      .flat_map(|(&module_identifier, &invalidate_key)| {
+        modules_cache.insert_cache(
+          module_identifier,
+          UnaffectedModuleCache::new(invalidate_key),
+        );
         module_graph
           .get_incoming_connections_by_origin_module(&module_identifier)
           .into_iter()
@@ -306,8 +278,14 @@ fn compute_affected_modules_with_module_graph(
             }
             match reduce_affect_type(&module_graph, &connections) {
               AffectType::False => None,
-              AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
-              AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
+              AffectType::True => {
+                modules_cache.affect_cache(&referencing_module);
+                Some(AffectedModuleKind::Direct(referencing_module))
+              }
+              AffectType::Transitive => {
+                modules_cache.affect_cache(&referencing_module);
+                Some(AffectedModuleKind::Transitive(referencing_module))
+              }
             }
           })
           .collect::<Vec<_>>()
@@ -320,20 +298,16 @@ fn compute_affected_modules_with_module_graph(
     })
     .collect();
   let mut transitive_affected_modules: IdentifierSet = affected_modules_cache_iter
+    .clone()
     .filter_map(|k| match k {
       AffectedModuleKind::Transitive(m) => Some(m),
       AffectedModuleKind::Direct(_) => None,
     })
     .collect();
-  let mut transitive_affected_modules_current = IdentifierSet::default();
-
   while !transitive_affected_modules.is_empty() {
-    std::mem::swap(
-      &mut transitive_affected_modules_current,
-      &mut transitive_affected_modules,
-    );
-    for module_identifier in transitive_affected_modules_current.drain() {
-      all_affected_modules.insert(module_identifier);
+    let transitive_affected_modules_current = std::mem::take(&mut transitive_affected_modules);
+    all_affected_modules.extend(transitive_affected_modules_current.iter().copied());
+    for &module_identifier in transitive_affected_modules_current.iter() {
       for (referencing_module, connections) in
         module_graph.get_incoming_connections_by_origin_module(&module_identifier)
       {
@@ -352,15 +326,11 @@ fn compute_affected_modules_with_module_graph(
             transitive_affected_modules.insert(referencing_module);
           }
         };
+        modules_cache.affect_cache(&referencing_module);
       }
     }
   }
   all_affected_modules.extend(direct_affected_modules);
-
-  for module in &all_affected_modules {
-    modules_cache.affect_module_graph_cache(&module);
-  }
-
   all_affected_modules
 }
 
@@ -374,7 +344,7 @@ fn compute_affected_modules_with_chunk_graph(compilation: &Compilation) -> Ident
       let module = module_graph
         .module_by_identifier(module_identifier)
         .expect("should have module");
-      let invalidate_key = create_chunk_graph_invalidate_key(
+      let invalidate_key = UnaffectedModuleWithChunkGraphCache::create_chunk_graph_invalidate_key(
         &compilation.chunk_graph,
         &module_graph,
         compilation,
@@ -391,9 +361,13 @@ fn compute_affected_modules_with_chunk_graph(compilation: &Compilation) -> Ident
       }
     })
     .collect();
-  for (module_identifier, &invalidate_key) in affected_modules.iter() {
-    modules_cache.chunk_graph_cache_entry(module_identifier, invalidate_key);
-    modules_cache.affect_chunk_graph_cache(module_identifier);
+  for (module_identifier, invalidate_key) in affected_modules.iter() {
+    modules_cache.insert_chunk_graph_cache(
+      module_identifier,
+      UnaffectedModuleWithChunkGraphCache {
+        chunk_graph_invalidate_key: *invalidate_key,
+      },
+    );
   }
   IdentifierSet::from_iter(affected_modules.keys().copied())
 }

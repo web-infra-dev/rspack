@@ -764,14 +764,13 @@ impl Compilation {
       filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
       let module_graph = compilation.get_module_graph();
-      let affected_modules = compilation
-        .unaffected_modules_cache
-        .get_affected_modules_with_chunk_graph()
-        .lock()
-        .expect("should lock")
-        .clone();
-      compilation.code_generation_modules(
-        cache_counter,
+      let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
+        let affected_modules = compilation
+          .unaffected_modules_cache
+          .get_affected_modules_with_chunk_graph()
+          .lock()
+          .expect("should lock")
+          .clone();
         affected_modules
           .into_iter()
           .map(|module_identifier| {
@@ -782,8 +781,17 @@ impl Compilation {
           })
           .filter(filter_op)
           .map(|(id, _)| id)
-          .collect(),
-      )
+          .collect()
+      } else {
+        compilation
+          .get_module_graph()
+          .modules()
+          .into_iter()
+          .filter(filter_op)
+          .map(|(id, _)| id)
+          .collect()
+      };
+      compilation.code_generation_modules(cache_counter, modules)
     }
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
@@ -1053,9 +1061,11 @@ impl Compilation {
       )],
     )?;
 
-    self
-      .unaffected_modules_cache
-      .compute_affected_modules_with_module_graph(&self);
+    if self.options.new_incremental_enabled() {
+      self
+        .unaffected_modules_cache
+        .compute_affected_modules_with_module_graph(&self);
+    }
 
     let start = logger.time("finish modules");
     plugin_driver
@@ -1172,9 +1182,11 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    self
-      .unaffected_modules_cache
-      .compute_affected_modules_with_chunk_graph(self);
+    if self.options.new_incremental_enabled() {
+      self
+        .unaffected_modules_cache
+        .compute_affected_modules_with_chunk_graph(self);
+    }
 
     self.create_module_hashes(
       self
