@@ -7,6 +7,12 @@ pub struct Queue<T: Hash + PartialEq + Eq + Clone> {
   set: HashSet<T>,
 }
 
+impl<T: Hash + PartialEq + Eq + Clone> Default for Queue<T> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl<T: Hash + PartialEq + Eq + Clone> Queue<T> {
   pub fn new() -> Self {
     Self {

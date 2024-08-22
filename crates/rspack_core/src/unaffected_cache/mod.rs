@@ -270,9 +270,7 @@ fn compute_affected_modules_with_module_graph(
           .get_incoming_connections_by_origin_module(&module_identifier)
           .into_iter()
           .filter_map(|(referencing_module, connections)| {
-            let Some(referencing_module) = referencing_module else {
-              return None;
-            };
+            let referencing_module = referencing_module?;
             if all_affected_modules.contains(&referencing_module) {
               return None;
             }

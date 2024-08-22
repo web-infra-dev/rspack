@@ -1064,7 +1064,7 @@ impl Compilation {
     if self.options.new_incremental_enabled() {
       self
         .unaffected_modules_cache
-        .compute_affected_modules_with_module_graph(&self);
+        .compute_affected_modules_with_module_graph(self);
     }
 
     let start = logger.time("finish modules");
