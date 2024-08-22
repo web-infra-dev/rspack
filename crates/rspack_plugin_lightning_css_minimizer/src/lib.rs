@@ -234,7 +234,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .map_err(|e| error!(e.to_string()))?;
           let result = stylesheet
             .to_css(PrinterOptions {
-              minify: minimizer_options.minify.unwrap_or(true),
+              minify: minimizer_options.minify.unwrap_or(false),
               source_map: source_map.as_mut(),
               project_root: None,
               targets,
