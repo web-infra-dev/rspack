@@ -5769,6 +5769,7 @@ export type LightningcssFeatureOptions = {
 
 // @public (undocumented)
 export type LightningcssLoaderOptions = {
+    minify?: boolean;
     errorRecovery?: boolean;
     targets?: Targets | string[] | string;
     include?: LightningcssFeatureOptions;
