@@ -25,6 +25,10 @@ new rspack.HtmlRspackPlugin(options);
 
 如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 
+:::warning
+`rspack.HtmlRspackPlugin` 不支持完整的 `ejs` 语法, 仅支持 `ejs` 语法的一个子集，如果对完整的 `ejs` 语法支持有需求，可以直接使用 `html-webpack-plugin`。
+:::
+
 ## 用法
 
 这个插件会为你生成一个 HTML 文件，该文件的 head 包含了所有 JS 产物对应的 `<script>` 标签。

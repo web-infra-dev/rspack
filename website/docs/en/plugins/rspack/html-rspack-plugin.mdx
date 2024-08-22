@@ -25,6 +25,10 @@ The features of `rspack.HtmlRspackPlugin` are a subset of `html-webpack-plugin`.
 
 If its options do not meet your needs, you can also directly use the community [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin).
 
+:::warning
+`rspack.HtmlRspackPlugin` does not support the full `ejs` syntax; it only supports a subset of the `ejs` syntax. If you need full `ejs` syntax support, you can use `html-webpack-plugin` directly.
+:::
+
 ## Usage
 
 The plugin will generate an HTML file for you that includes all your JS outputs in the head using `<script>` tags.
