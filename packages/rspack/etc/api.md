@@ -5769,6 +5769,7 @@ export type LightningcssFeatureOptions = {
 
 // @public (undocumented)
 export type LightningcssLoaderOptions = {
+    minify?: boolean;
     errorRecovery?: boolean;
     targets?: Targets | string[] | string;
     include?: LightningcssFeatureOptions;
@@ -5797,6 +5798,7 @@ export type LightningCssMinimizerRspackPluginOptions = {
     exclude?: AssetConditions;
     removeUnusedLocalIdents?: boolean;
     minimizerOptions?: {
+        minify?: boolean;
         errorRecovery?: boolean;
         targets?: string[] | string;
         include?: LightningcssFeatureOptions;

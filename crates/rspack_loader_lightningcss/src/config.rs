@@ -25,6 +25,7 @@ pub struct PseudoClasses {
 
 #[derive(Debug, Default)]
 pub struct Config {
+  pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
@@ -38,6 +39,7 @@ pub struct Config {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RawConfig {
+  pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
   pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
@@ -52,6 +54,7 @@ impl TryFrom<RawConfig> for Config {
   type Error = rspack_error::Error;
   fn try_from(value: RawConfig) -> Result<Self, Self::Error> {
     Ok(Self {
+      minify: value.minify,
       error_recovery: value.error_recovery,
       targets: value
         .targets

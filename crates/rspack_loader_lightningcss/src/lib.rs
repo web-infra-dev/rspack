@@ -157,7 +157,7 @@ impl LightningCssLoader {
 
     let content = stylesheet
       .to_css(PrinterOptions {
-        minify: false,
+        minify: self.config.minify.unwrap_or(true),
         source_map: if enable_sourcemap {
           Some(&mut source_map)
         } else {

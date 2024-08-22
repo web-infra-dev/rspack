@@ -60,6 +60,7 @@ pub struct PseudoClasses {
 
 #[derive(Debug)]
 pub struct MinimizerOptions {
+  pub minify: Option<bool>,
   pub error_recovery: bool,
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
@@ -233,7 +234,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .map_err(|e| error!(e.to_string()))?;
           let result = stylesheet
             .to_css(PrinterOptions {
-              minify: true,
+              minify: minimizer_options.minify.unwrap_or(true),
               source_map: source_map.as_mut(),
               project_root: None,
               targets,
