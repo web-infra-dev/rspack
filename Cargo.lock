@@ -3634,7 +3634,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash 1.1.0",
- "simd-json",
+ "simd-json 0.13.10",
  "tracing",
 ]
 
@@ -4139,15 +4139,15 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.2.17"
-source = "git+https://github.com/SyMind/rspack-sources.git?rev=096649f#096649fdd3bd05233a334daef6a1a336383352f7"
+source = "git+https://github.com/SyMind/rspack-sources.git?rev=f5854cc#f5854cce7872e446267211c34bd4fa2bd26ca486"
 dependencies = [
- "arrayvec",
  "dashmap 5.5.3",
  "dyn-clone",
  "memchr",
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
+ "simd-json 0.14.0-rc.2",
 ]
 
 [[package]]
@@ -4518,7 +4518,22 @@ dependencies = [
  "serde",
  "serde_json",
  "simdutf8",
- "value-trait",
+ "value-trait 0.8.1",
+]
+
+[[package]]
+name = "simd-json"
+version = "0.14.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89909dd48d17fa49c6fd6ea878b14891f7f2a1a6a12103099f61bb7cb974f8c6"
+dependencies = [
+ "getrandom",
+ "halfbrown",
+ "ref-cast",
+ "serde",
+ "serde_json",
+ "simdutf8",
+ "value-trait 0.9.0-rc.2",
 ]
 
 [[package]]
@@ -6471,6 +6486,18 @@ name = "value-trait"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dad8db98c1e677797df21ba03fca7d3bf9bec3ca38db930954e4fe6e1ea27eb4"
+dependencies = [
+ "float-cmp",
+ "halfbrown",
+ "itoa",
+ "ryu",
+]
+
+[[package]]
+name = "value-trait"
+version = "0.9.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47641b6867a201e598b2f14df9996d97a2ca0af2c34535faded32047e0bc9430"
 dependencies = [
  "float-cmp",
  "halfbrown",
