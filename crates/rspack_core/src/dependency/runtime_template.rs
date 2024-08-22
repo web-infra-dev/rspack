@@ -80,7 +80,7 @@ where
     Some(runtime) => {
       if deterministic_order {
         let mut runtimes = runtime.iter().collect::<Vec<_>>();
-        runtimes.sort();
+        runtimes.sort_unstable();
         for r in runtimes {
           f(Some(&r.to_string()));
         }

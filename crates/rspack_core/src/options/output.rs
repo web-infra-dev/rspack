@@ -264,11 +264,7 @@ impl<'a> PathData<'a> {
   }
 
   pub fn runtime(mut self, v: &'a RuntimeSpec) -> Self {
-    self.runtime = if v.len() == 1 {
-      v.iter().next().map(|v| v.as_ref())
-    } else {
-      None
-    };
+    self.runtime = if v.len() == 1 { v.iter().next() } else { None };
     self
   }
 
