@@ -39,12 +39,12 @@ Escapes the content within the interpolation
 ```
 ```json title="locals"
 {
-  "name": "Timoth<y>"
+  "name": "Rspack<y>"
 }
 ```
 ```html title="html"
-<p>Hello, Timoth&lt;y&gt;.</p>
-<p>Hello, the Most Honorable Timoth&lt;y&gt;.</p>
+<p>Hello, Rspack&lt;y&gt;.</p>
+<p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
 ```
 
 #### [\<%-: Unescaped output](https://github.com/mde/ejs/blob/main/docs/syntax.md#--unescaped-output)
@@ -58,13 +58,13 @@ Does not escape the content within the interpolation
 ```
 ```json title="locals"
 {
-  "myHtml": "<strong>Timothy</strong>"
+  "myHtml": "<strong>Rspacky</strong>"
 , "myMaliciousHtml": "</p><script>document.write()</script><p>"
 }
 ```
 ```html title="html"
-<p>Hello, <strong>Timothy</strong>.</p>
-<p>Hello, &lt;strong&gt;Timothy&lt;/strong&gt;.</p>
+<p>Hello, <strong>Rspacky</strong>.</p>
+<p>Hello, &lt;strong&gt;Rspacky&lt;/strong&gt;.</p>
 
 <p>Hello, </p><script>document.write()</script><p>.</p>
 <p>Hello, &lt;/p&gt;&lt;script&gt;document.write()&lt;/script&gt;&lt;p&gt;.</p>
