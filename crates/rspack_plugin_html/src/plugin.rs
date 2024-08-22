@@ -13,7 +13,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
 };
-use rspack_dojang::dojang::Dojang;
+use rspack_dojang::dojang::{Dojang, DojangOptions};
 use rspack_error::{miette, AnyhowError, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
@@ -102,7 +102,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // process with template parameters
   let mut dj = Dojang::new();
-  dj.add(url.clone(), content.clone())
+  dj.with_options(DojangOptions {
+    escape: "-".to_string(),
+    unescape: "=".to_string(),
+  });
+  dj.add_with_option(url.clone(), content.clone())
     .expect("failed to add template");
   let mut template_result =
     match dj.render(&url, serde_json::json!(&self.config.template_parameters)) {
