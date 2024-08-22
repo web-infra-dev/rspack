@@ -981,16 +981,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dojang"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f07994caf710e9d5fc534432b40c4a9c16ed320aa673bb768eec6c7d5cbfbc32"
-dependencies = [
- "html-escape",
- "serde_json",
-]
-
-[[package]]
 name = "dtoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3279,6 +3269,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_dojang"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fe9848582be010f76babbd87927bbb42966eeae4182b605b9ee98385cad2a7e"
+dependencies = [
+ "html-escape",
+ "serde_json",
+]
+
+[[package]]
 name = "rspack_error"
 version = "0.1.0"
 dependencies = [
@@ -3728,13 +3728,13 @@ name = "rspack_plugin_html"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "dojang",
  "itertools 0.13.0",
  "path-clean 1.0.1",
  "rayon",
  "regex",
  "rspack_base64",
  "rspack_core",
+ "rspack_dojang",
  "rspack_error",
  "rspack_hook",
  "rspack_paths",
