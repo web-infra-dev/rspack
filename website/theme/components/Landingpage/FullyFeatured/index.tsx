@@ -104,14 +104,14 @@ const FullyFeatured = () => {
       icon: javascriptApi,
       title: 'JavaScript API',
       description: t('featureJavaScriptApi'),
-      link: tUrl('/api/javascript-api'),
+      link: tUrl('/api/javascript-api/index'),
     },
   ];
 
   const [isFolded, setIsFolded] = useState(true);
 
   return (
-    <div className={sharedStyles.container}>
+    <section className={sharedStyles.container}>
       <div className={sharedStyles.innerContainer}>
         <div className={sharedStyles.titleAndDesc}>
           <h1 className={sharedStyles.title}>{t('fullyFeaturedTitle')}</h1>
@@ -159,7 +159,7 @@ const FullyFeatured = () => {
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

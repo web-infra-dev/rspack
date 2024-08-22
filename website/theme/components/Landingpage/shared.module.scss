@@ -2,30 +2,23 @@
 // XXL > 1440
 // XL 1280 - 1440
 // L 835 - 1280
-// M 500 - 834
-// S < 500
+// M 501 - 834
+// S < 501
 
 // XXL
 @media screen and (min-width: 1441px) {
   .container {
-    padding: 64px 144px !important;
+    padding: 80px 144px !important;
   }
   .titleAndDesc {
     padding: 0px 144px 32px 144px !important;
-    .title {
-      font-size: 48px !important;
-    }
-    .desc {
-      font-size: 15px !important;
-      line-height: 28px !important; /* 186.667% */
-    }
   }
 }
 
 // XL
 @media screen and (min-width: 1281px) and (max-width: 1440px) {
   .container {
-    padding: 64px 144px !important;
+    padding: 80px 144px !important;
   }
   .titleAndDesc {
     padding: 0px 144px 32px 144px !important;
@@ -35,7 +28,7 @@
 // L
 @media screen and (min-width: 835px) and (max-width: 1280px) {
   .container {
-    padding: 64px 80px !important;
+    padding: 80px 80px !important;
   }
   .titleAndDesc {
     padding: 0px 16px !important;
@@ -45,7 +38,7 @@
 // M
 @media screen and (min-width: 501px) and (max-width: 834px) {
   .container {
-    padding: 32px !important;
+    padding: 64px 32px !important;
   }
   .titleAndDesc {
     padding: 0px 16px !important;
@@ -115,7 +108,7 @@
     text-align: center;
 
     /* Style 11 */
-    font-family: 'Open Sans';
+
     font-size: 20px;
     font-style: normal;
     font-weight: 400;

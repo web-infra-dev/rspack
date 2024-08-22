@@ -39,7 +39,7 @@ const Features = () => {
   ];
 
   return (
-    <div className={styles.container}>
+    <section className={styles.container}>
       <div className={styles.innerContainer}>
         <div className={styles.features}>
           {/* Why Rspack? */}
@@ -81,7 +81,7 @@ const Features = () => {
           })}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

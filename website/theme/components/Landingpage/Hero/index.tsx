@@ -17,7 +17,7 @@ const Hero = () => {
   }, [tUrl, navigate]);
 
   return (
-    <div className={styles.hero}>
+    <section className={styles.hero}>
       <div className={styles.innerHero}>
         <div className={styles.logo}>
           <img
@@ -46,7 +46,7 @@ const Hero = () => {
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

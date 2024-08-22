@@ -12,7 +12,7 @@ import styles from './index.module.scss';
 const BuiltWithRsPack: React.FC = () => {
   const t = useI18n();
   return (
-    <div className={sharedStyles.container}>
+    <section className={sharedStyles.container}>
       <div
         className={`${sharedStyles.innerContainer} ${styles.innerContainer}`}
       >
@@ -54,7 +54,7 @@ const BuiltWithRsPack: React.FC = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

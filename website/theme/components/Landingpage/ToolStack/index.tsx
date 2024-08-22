@@ -54,7 +54,7 @@ const ToolStack: React.FC = () => {
   ];
 
   return (
-    <div className={sharedStyles.container}>
+    <section className={sharedStyles.container}>
       <div className={sharedStyles.innerContainer}>
         <div className={sharedStyles.titleAndDesc}>
           <h2 className={sharedStyles.title}>{t('toolStackTitle')}</h2>
@@ -72,7 +72,7 @@ const ToolStack: React.FC = () => {
           })}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

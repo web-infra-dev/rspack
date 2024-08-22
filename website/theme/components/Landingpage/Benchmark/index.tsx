@@ -89,7 +89,7 @@ const BENCHMARK_DATA: BenchmarkData = {
 export function Benchmark() {
   const t = useI18n();
   return (
-    <div className={sharedStyles.container}>
+    <section className={sharedStyles.container}>
       <div className={sharedStyles.innerContainer}>
         <div className={sharedStyles.titleAndDesc}>
           <h1 className={sharedStyles.title}>{t('benchmarkTitle')}</h1>
@@ -107,6 +107,6 @@ export function Benchmark() {
           </a>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
