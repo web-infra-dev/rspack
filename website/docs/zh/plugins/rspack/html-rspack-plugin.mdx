@@ -29,6 +29,47 @@ new rspack.HtmlRspackPlugin(options);
 `rspack.HtmlRspackPlugin` 不支持完整的 `ejs` 语法, 仅支持 `ejs` 语法的一个子集，如果对完整的 `ejs` 语法支持有需求，可以直接使用 `html-webpack-plugin`。
 :::
 
+### 支持的 `ejs` 语法
+仅支持如下基本的插值表达式,这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 `ejs` 语法目前均不支持。
+#### \<%=: Escaped output
+对插值内容进行 escape
+```html title="ejs"
+<p>Hello, <%= name %>.</p>
+<p>Hello, <%= 'the Most Honorable ' + name %>.</p>
+```
+```json title="locals"
+{
+  "name": "Timoth<y>"
+}
+```
+```html title="html"
+<p>Hello, Timoth&lt;y&gt;.</p>
+<p>Hello, the Most Honorable Timoth&lt;y&gt;.</p>
+
+
+```
+#### \<%-: Unescaped output
+对插值内容不进行 escape
+```html title="ejs"
+<p>Hello, <%- myHtml %>.</p>
+<p>Hello, <%= myHtml %>.</p>
+
+<p>Hello, <%- myMaliciousHtml %>.</p>
+<p>Hello, <%= myMaliciousHtml %>.</p>
+```
+```json title="locals"
+{
+  "myHtml": "<strong>Timothy</strong>"
+, "myMaliciousHtml": "</p><script>document.write()</script><p>"
+}
+```
+```html title="html"
+<p>Hello, <strong>Timothy</strong>.</p>
+<p>Hello, &lt;strong&gt;Timothy&lt;/strong&gt;.</p>
+
+<p>Hello, </p><script>document.write()</script><p>.</p>
+<p>Hello, &lt;/p&gt;&lt;script&gt;document.write()&lt;/script&gt;&lt;p&gt;.</p>
+```
 ## 用法
 
 这个插件会为你生成一个 HTML 文件，该文件的 head 包含了所有 JS 产物对应的 `<script>` 标签。

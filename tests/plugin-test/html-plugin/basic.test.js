@@ -3782,7 +3782,31 @@ describe("HtmlWebpackPlugin", () => {
       done,
     );
   });
-
+  it('syntax-support', (done) => {
+    testHtmlPlugin(
+        {
+          entry: {},
+          output: {
+            path: OUTPUT_DIR,
+            filename: "index_bundle.js",
+            assetModuleFilename: "assets/demo[ext]",
+          },
+          plugins: [new HtmlWebpackPlugin(
+            {
+              minify:false,
+              template: path.resolve(__dirname,'fixtures/syntax.html'),
+              templateParameters: {
+                 switch: "true",
+                 "myHtml": "</p><script>document.write()</script><p>"
+              }
+            })]
+        },
+        [`
+<html>
+<head></head><body><p>
+    &lt;/p&gt;&lt;script&gt;document.write()&lt;/script&gt;&lt;p&gt;</p><script>document.write()</script><p>
+</p></body></html>`], null, done);
+  });
   // TODO: html-webpack-plugin loader
   // it("allows to set custom loader interpolation settings", (done) => {
   //   testHtmlPlugin(
