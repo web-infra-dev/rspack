@@ -3271,7 +3271,7 @@ dependencies = [
 [[package]]
 name = "rspack_dojang"
 version = "0.1.7"
-source = "git+https://github.com/rspack-contrib/rspack-dojang?branch=support-option#56c8e1d2868c0287e954ac34a99db25d0870c51b"
+source = "git+https://github.com/rspack-contrib/rspack-dojang?branch=support-options#82bfce3e7978e6a5d26795c5cc40efdcdc790fdf"
 dependencies = [
  "html-escape",
  "serde_json",

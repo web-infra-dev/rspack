@@ -27,7 +27,63 @@ If its options do not meet your needs, you can also directly use the community [
 
 :::warning
 `rspack.HtmlRspackPlugin` does not support the full `ejs` syntax; it only supports a subset of the `ejs` syntax. If you need full `ejs` syntax support, you can use `html-webpack-plugin` directly.
+In order to align `html-webpack-plugin` default syntax implementation, Rspack change the default `ejs` escape | unescape to be the same as `html-webpack-plugin`'s default syntax.
 :::
+
+### Supported `ejs` Syntax
+
+Only the following basic interpolation expressions are supported. Here, the interpolation expressions only support the most basic string types and do not support arbitrary JavaScript expressions. Other `ejs` syntaxes are currently not supported.
+
+#### \<%-: Escaped output
+
+Escapes the content within the interpolation
+
+```html title="ejs"
+<p>Hello, <%- name %>.</p>
+<p>Hello, <%- 'the Most Honorable ' + name %>.</p>
+```
+
+```json title="locals"
+{
+  "name": "Rspack<y>"
+}
+```
+
+```html title="html"
+<p>Hello, Rspack&lt;y&gt;.</p>
+<p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
+```
+
+#### \<%=: Unescaped output
+
+Does not escape the content within the interpolation
+
+```html title="ejs"
+<p>Hello, <%- myHtml %>.</p>
+<p>Hello, <%= myHtml %>.</p>
+
+<p>Hello, <%- myMaliciousHtml %>.</p>
+<p>Hello, <%= myMaliciousHtml %>.</p>
+```
+
+```json title="locals"
+{
+  "myHtml": "<strong>Rspack</strong>",
+  "myMaliciousHtml": "</p><script>document.write()</script><p>"
+}
+```
+
+```html title="html"
+<p>Hello, &lt;strong&gt;Rspack&lt;/strong&gt;.</p>
+<p>Hello, <strong>Rspack</strong>.</p>
+
+<p>Hello, &lt;/p&gt;&lt;script&gt;document.write()&lt;/script&gt;&lt;p&gt;.</p>
+<p>Hello,</p>
+<script>
+  document.write();
+</script>
+<p>.</p>
+```
 
 ## Usage
 

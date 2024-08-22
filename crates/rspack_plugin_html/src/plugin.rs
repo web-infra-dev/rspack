@@ -102,10 +102,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // process with template parameters
   let mut dj = Dojang::new();
+  // align escape | unescape with lodash.template syntax https://lodash.com/docs/4.17.15#template which is html-webpack-plugin's default behavior
   dj.with_options(DojangOptions {
     escape: "-".to_string(),
     unescape: "=".to_string(),
   });
+
   dj.add_with_option(url.clone(), content.clone())
     .expect("failed to add template");
   let mut template_result =
