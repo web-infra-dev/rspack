@@ -4139,8 +4139,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.2.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d93c575915e8b72d075cd7fc8e72fa3d0805683a775b63915cab4c412ed04aa"
+source = "git+https://github.com/SyMind/rspack-sources.git?rev=096649f#096649fdd3bd05233a334daef6a1a336383352f7"
 dependencies = [
  "arrayvec",
  "dashmap 5.5.3",
@@ -4149,8 +4148,6 @@ dependencies = [
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
- "str_indices",
- "substring",
 ]
 
 [[package]]
@@ -4723,15 +4720,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "substring"
-version = "1.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42ee6433ecef213b2e72f587ef64a2f5943e7cd16fbd82dbe8bc07486c534c86"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "sugar_path"

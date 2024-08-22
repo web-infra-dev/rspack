@@ -23,8 +23,9 @@ pub struct JsCompatSource {
 pub struct CompatSource {
   pub is_raw: bool,
   pub is_buffer: bool,
-  pub source: Vec<u8>,
-  pub map: Option<Vec<u8>>,
+  pub buffer: Vec<u8>,
+  pub value_as_string: String,
+  pub map: Option<SourceMap>,
 }
 
 impl FromNapiValue for CompatSource {
@@ -38,7 +39,7 @@ impl std::hash::Hash for CompatSource {
     "__CompatSource".hash(state);
     self.is_raw.hash(state);
     self.is_buffer.hash(state);
-    self.source.hash(state);
+    self.buffer.hash(state);
     self.map.hash(state);
   }
 }
@@ -47,57 +48,68 @@ impl PartialEq for CompatSource {
   fn eq(&self, other: &Self) -> bool {
     self.is_raw == other.is_raw
       && self.is_buffer == other.is_buffer
-      && self.source == other.source
+      && self.buffer == other.buffer
       && self.map == other.map
   }
 }
 
 impl From<JsCompatSource> for CompatSource {
   fn from(source: JsCompatSource) -> Self {
+    let buffer = source.source.to_vec();
+    let map = source
+      .map
+      .as_ref()
+      .and_then(|m| SourceMap::from_slice(m).ok());
+    let value_as_string = String::from_utf8_lossy(&buffer).to_string();
     Self {
       is_raw: source.is_raw,
       is_buffer: source.is_buffer,
-      source: source.source.into(),
-      map: source.map.map(Into::into),
+      buffer,
+      value_as_string,
+      map,
     }
   }
 }
 
-impl StreamChunks for CompatSource {
+impl<'a> StreamChunks<'a> for CompatSource {
   fn stream_chunks(
-    &self,
+    &'a self,
     options: &MapOptions,
     on_chunk: OnChunk,
-    on_source: OnSource,
-    on_name: OnName,
+    on_source: OnSource<'_, 'a>,
+    on_name: OnName<'_, 'a>,
   ) -> GeneratedInfo {
-    stream_chunks_default(self, options, on_chunk, on_source, on_name)
+    stream_chunks_default(
+      &self.value_as_string,
+      self.map.as_ref(),
+      options,
+      on_chunk,
+      on_source,
+      on_name,
+    )
   }
 }
 
 impl Source for CompatSource {
   fn source(&self) -> Cow<str> {
     // Use UTF-8 lossy for any sources, including `RawSource` as a workaround for not supporting either `Buffer` or `String` in `Source`.
-    String::from_utf8_lossy(&self.source)
+    Cow::Borrowed(&self.value_as_string)
   }
 
   fn buffer(&self) -> Cow<[u8]> {
-    Cow::Borrowed(self.source.as_ref())
+    Cow::Borrowed(&self.buffer)
   }
 
   fn size(&self) -> usize {
-    self.source.len()
+    self.buffer.len()
   }
 
   fn map(&self, _options: &MapOptions) -> Option<SourceMap> {
-    self
-      .map
-      .as_ref()
-      .and_then(|m| SourceMap::from_slice(m).ok())
+    self.map.clone()
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    writer.write_all(&self.source)
+    writer.write_all(&self.buffer)
   }
 }
 
