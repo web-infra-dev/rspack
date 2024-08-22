@@ -1319,7 +1319,6 @@ export interface RawLightningCssBrowsers {
 }
 
 export interface RawLightningCssMinimizerOptions {
-  Minify?: boolean
   errorRecovery: boolean
   targets?: Array<string>
   include?: number

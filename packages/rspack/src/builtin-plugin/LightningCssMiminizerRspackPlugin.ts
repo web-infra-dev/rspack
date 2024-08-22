@@ -19,7 +19,6 @@ export type LightningCssMinimizerRspackPluginOptions = {
 	exclude?: AssetConditions;
 	removeUnusedLocalIdents?: boolean;
 	minimizerOptions?: {
-		minify?: boolean;
 		errorRecovery?: boolean;
 		targets?: string[] | string;
 		include?: FeatureOptions;
@@ -45,7 +44,6 @@ export const LightningCssMinimizerRspackPlugin = create(
 			exclude: options?.exclude,
 			removeUnusedLocalIdents: options?.removeUnusedLocalIdents ?? true,
 			minimizerOptions: {
-				minify: options?.minimizerOptions?.minify,
 				errorRecovery: options?.minimizerOptions?.errorRecovery ?? true,
 				unusedSymbols: options?.minimizerOptions?.unusedSymbols ?? [],
 				include: include ? toFeatures(include) : undefined,

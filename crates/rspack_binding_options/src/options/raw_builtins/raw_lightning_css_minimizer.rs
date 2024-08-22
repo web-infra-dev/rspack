@@ -21,7 +21,6 @@ pub struct RawLightningCssMinimizerRspackPluginOptions {
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawLightningCssMinimizerOptions {
-  pub minify: Option<bool>,
   pub error_recovery: bool,
   pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
@@ -79,7 +78,6 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
       exclude: value.exclude.map(into_asset_conditions),
       remove_unused_local_idents: value.remove_unused_local_idents,
       minimizer_options: MinimizerOptions {
-        minify: value.minimizer_options.minify,
         error_recovery: value.minimizer_options.error_recovery,
         targets: value
           .minimizer_options
