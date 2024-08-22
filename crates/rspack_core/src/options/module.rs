@@ -620,8 +620,10 @@ pub struct FuncUseCtx {
 #[derive(Debug, Clone)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
+  /// Loader ident or query will be appended if it exists.
   pub loader: String,
   /// Loader options
+  /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
 }
 
