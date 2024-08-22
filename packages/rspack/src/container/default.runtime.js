@@ -42,7 +42,7 @@ module.exports = function () {
 			{};
 		const consumesLoadinginstalledModules = {};
 		const initializeSharingInitPromises = [];
-		const initializeSharingInitTokens = [];
+		const initializeSharingInitTokens = {};
 		const containerShareScope =
 			__webpack_require__.initializeExposesData?.shareScope;
 
