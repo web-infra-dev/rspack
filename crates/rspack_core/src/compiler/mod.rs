@@ -84,10 +84,23 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let resolver_factory =
-      resolver_factory.unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve.clone())));
-    let loader_resolver_factory = loader_resolver_factory
-      .unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve_loader.clone())));
+    let resolver_factory = resolver_factory.unwrap_or_else(|| {
+      let pnp_manifest = pnp::find_pnp_manifest(options.context.as_path().as_std_path())
+        .ok()
+        .flatten()
+        .map(Arc::new);
+      Arc::new(ResolverFactory::new(options.resolve.clone(), pnp_manifest))
+    });
+    let loader_resolver_factory = loader_resolver_factory.unwrap_or_else(|| {
+      let pnp_manifest = pnp::find_pnp_manifest(options.context.as_path().as_std_path())
+        .ok()
+        .flatten()
+        .map(Arc::new);
+      Arc::new(ResolverFactory::new(
+        options.resolve_loader.clone(),
+        pnp_manifest,
+      ))
+    });
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();

@@ -6,25 +6,27 @@ name        = "rspack_core"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 [dependencies]
-anymap = { workspace = true }
+anymap          = { workspace = true }
 async-recursion = { workspace = true }
-async-trait = { workspace = true }
-bitflags = { workspace = true }
-dashmap = { workspace = true }
-derivative = { workspace = true }
-dyn-clone = "1.0.17"
-either = "1"
-futures = { workspace = true }
-hashlink = { workspace = true }
-hex = { workspace = true }
-indexmap = { workspace = true, features = ["rayon"] }
-indoc = { workspace = true }
-itertools = { workspace = true }
-json = { workspace = true }
-mime_guess = { workspace = true }
-num-bigint = "0.4.4"
-once_cell = { workspace = true }
-paste = { workspace = true }
+async-trait     = { workspace = true }
+bitflags        = { workspace = true }
+dashmap         = { workspace = true }
+derivative      = { workspace = true }
+dyn-clone       = "1.0.17"
+either          = "1"
+futures         = { workspace = true }
+hashlink        = { workspace = true }
+hex             = { workspace = true }
+indexmap        = { workspace = true, features = ["rayon"] }
+indoc           = { workspace = true }
+itertools       = { workspace = true }
+json            = { workspace = true }
+mime_guess      = { workspace = true }
+num-bigint      = "0.4.4"
+once_cell       = { workspace = true }
+paste           = { workspace = true }
+# yarn pnp support
+pnp = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
@@ -66,7 +68,6 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
-
 [dev-dependencies]
 pretty_assertions = { version = "1.4.0" }
 

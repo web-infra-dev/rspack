@@ -4,6 +4,7 @@ use std::{
   sync::Arc,
 };
 
+use pnp::Manifest;
 use rspack_error::{
   miette::{diagnostic, Diagnostic},
   DiagnosticExt, Severity, TraceableError,
@@ -79,17 +80,27 @@ impl<'a> ResolveInnerOptions<'a> {
 #[derive(Debug)]
 pub struct Resolver {
   resolver: rspack_resolver::Resolver,
+  /// use to load `.pnp.cjs` in project root, we only support on manifest instance in project
+  pnp_manifest: Option<Arc<Manifest>>,
 }
 
 impl Resolver {
-  pub fn new(options: Resolve) -> Self {
-    Self::new_rspack_resolver(options)
+  pub fn new(options: Resolve, pnp_manifest: Option<Arc<Manifest>>) -> Self {
+    Self::new_rspack_resolver(options, pnp_manifest)
   }
 
-  fn new_rspack_resolver(options: Resolve) -> Self {
-    let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
+  fn new_rspack_resolver(options: Resolve, pnp_manifest: Option<Arc<Manifest>>) -> Self {
+    let options = to_rspack_resolver_options(
+      options,
+      false,
+      DependencyCategory::Unknown,
+      pnp_manifest.clone(),
+    );
     let resolver = rspack_resolver::Resolver::new(options);
-    Self { resolver }
+    Self {
+      resolver,
+      pnp_manifest,
+    }
   }
 
   /// Clear cache for all resolver instances
@@ -108,9 +119,13 @@ impl Resolver {
       options,
       options_with_dependency_type.resolve_to_context,
       options_with_dependency_type.dependency_category,
+      self.pnp_manifest.clone(),
     );
     let resolver = resolver.clone_with_options(options);
-    Self { resolver }
+    Self {
+      resolver,
+      pnp_manifest: self.pnp_manifest.clone(),
+    }
   }
 
   /// Return the options from the resolver
@@ -177,6 +192,7 @@ fn to_rspack_resolver_options(
   options: Resolve,
   resolve_to_context: bool,
   dependency_type: DependencyCategory,
+  pnp_manifest: Option<Arc<Manifest>>,
 ) -> rspack_resolver::ResolveOptions {
   let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.into());
@@ -283,7 +299,7 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: false,
     imports_fields,
-    pnp_manifest: None,
+    pnp_manifest: pnp_manifest.map(Arc::unwrap_or_clone),
   }
 }
 

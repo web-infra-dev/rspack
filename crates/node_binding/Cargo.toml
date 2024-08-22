@@ -34,10 +34,10 @@ async-trait = { workspace = true }
 once_cell   = { workspace = true }
 tracing     = { workspace = true }
 
-napi        = { workspace = true }
-napi-derive = { workspace = true }
-
 color-backtrace = "0.6"
+napi            = { workspace = true }
+napi-derive     = { workspace = true }
+pnp             = { workspace = true }
 
 
 [build-dependencies]

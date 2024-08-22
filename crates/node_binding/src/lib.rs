@@ -4,12 +4,12 @@
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
-
 use std::pin::Pin;
 use std::sync::Mutex;
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
+use pnp::find_closest_pnp_manifest_path;
 use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
@@ -59,11 +59,14 @@ impl Rspack {
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
-
-    let resolver_factory =
-      (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
-    let loader_resolver_factory = (*resolver_factory_reference)
-      .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+    let pnp_manifest_path =
+      find_closest_pnp_manifest_path(compiler_options.context.as_path().as_std_path());
+    let resolver_factory = (*resolver_factory_reference)
+      .get_resolver_factory(compiler_options.resolve.clone(), pnp_manifest_path.clone());
+    let loader_resolver_factory = (*resolver_factory_reference).get_loader_resolver_factory(
+      compiler_options.resolve_loader.clone(),
+      pnp_manifest_path.clone(),
+    );
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,

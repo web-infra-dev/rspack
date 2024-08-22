@@ -136,7 +136,7 @@ export class JsResolver {
 
 export class JsResolverFactory {
   constructor()
-  get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
+  get(type: string, options?: RawResolveOptionsWithDependencyType,pnpManifestPath: string|undefined): JsResolver
 }
 
 export class JsStats {

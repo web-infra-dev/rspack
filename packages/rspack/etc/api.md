@@ -9825,9 +9825,11 @@ type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
 
 // @public (undocumented)
 class ResolverFactory {
-    constructor();
+    constructor(context: string);
     // (undocumented)
     static __to_binding(resolver_factory: ResolverFactory): binding.JsResolverFactory;
+    // (undocumented)
+    context: string;
     // (undocumented)
     get(type: string, resolveOptions?: ResolveOptionsWithDependencyType): Resolver;
 }

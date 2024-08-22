@@ -1,6 +1,8 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
+use pnp::fs::{open_zip_via_read, VPath, VPathInfo};
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -39,9 +41,26 @@ async fn process_resource<Context: Send>(
     if let Some(resource_path) = resource_data.resource_path.as_deref()
       && !resource_path.as_str().is_empty()
     {
-      let result = tokio::fs::read(resource_path)
+      async fn read_file(p: &Utf8Path) -> std::io::Result<String> {
+        let pnp_path = VPath::from(p.as_std_path())?;
+        match pnp_path {
+          // The path was virtual and stored within a zip file; we need to read from the zip file
+          // Note that this opens the zip file every time, which is expensive; we'll see how to optimize that
+          VPath::Zip(info) => {
+            // FIXME: add zip cache when moved readfile logic to FileUriPlugin
+            open_zip_via_read(info.physical_base_path())?.read_to_string(&info.zip_path)
+          }
+          // The path was virtual but not a zip file; we just need to read from the provided location
+          VPath::Virtual(info) => tokio::fs::read_to_string(info.physical_base_path()).await,
+
+          // Nothing special to do, it's a regular path
+          VPath::Native(p) => tokio::fs::read_to_string(&p).await,
+        }
+      }
+      let result = read_file(resource_path)
         .await
         .map_err(|e| error!("{e}, failed to read {resource_path}"))?;
+
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
       let resource = &resource_data.resource;

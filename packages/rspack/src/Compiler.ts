@@ -227,7 +227,7 @@ class Compiler {
 		this.records = {};
 
 		this.options = options;
-		this.resolverFactory = new ResolverFactory();
+		this.resolverFactory = new ResolverFactory(context);
 		this.context = context;
 		this.cache = new Cache();
 

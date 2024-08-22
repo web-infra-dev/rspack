@@ -13,6 +13,7 @@ rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
 
 once_cell          = { workspace = true }
+pnp                = { workspace = true }
 regex              = { workspace = true }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_error       = { version = "0.1.0", path = "../rspack_error" }
