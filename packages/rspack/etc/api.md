@@ -6204,6 +6204,8 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     implementation?: string;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
+    // (undocumented)
+    shareStrategy?: "version-first" | "loaded-first";
 }
 
 // @public (undocumented)
