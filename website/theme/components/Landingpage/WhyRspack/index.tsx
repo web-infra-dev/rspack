@@ -15,6 +15,80 @@ type Feature = {
   description: string;
 };
 
+const WhyRspackCard = () => {
+  const t = useI18n();
+  const {
+    container,
+    onMouseEnter,
+    onMouseLeave,
+    onMouseMove,
+    onTouchEnd,
+    onTouchMove,
+    onTouchStart,
+    outerContainer,
+    ref,
+    shine,
+    shineBg,
+  } = useCardAnimation();
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        transform: outerContainer,
+        transformStyle: 'preserve-3d',
+        zIndex: 6,
+        WebkitTapHighlightColor: 'rgba(#000, 0)',
+      }}
+      className={styles.whyRspackCard}
+      ref={ref as any}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onMouseMove={onMouseMove}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchStart={onTouchStart}
+    >
+      <div
+        className={styles.whyRspack}
+        style={{
+          transform: container,
+          position: 'relative',
+          transition: 'all 0.2s ease-out',
+        }}
+      >
+        <div
+          className="shine"
+          style={{
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            borderRadius: '20px',
+            zIndex: '8',
+            ...(shine
+              ? {
+                  transform: shine,
+                }
+              : {}),
+            ...(shineBg
+              ? {
+                  background: shineBg,
+                }
+              : {}),
+          }}
+        />
+        <div className={styles.whyRspackContent}>
+          <h3 className={styles.whyRspackTitle}>{t('whyRspack')}</h3>
+          <p className={styles.whyRspackDescription}>{t('whyRspackDesc')}</p>
+          <img className={styles.whyRspackBg} src={WhyRspackBg} alt="bg" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const FeatureItem = ({ img, url, title, description }: Feature) => {
   const {
     container,
@@ -128,15 +202,7 @@ const WhyRspack = () => {
       <div className={styles.innerContainer}>
         <div className={styles.features}>
           {/* Why Rspack? */}
-          <div className={styles.whyRspack}>
-            <div className={styles.whyRspackContent}>
-              <h3 className={styles.whyRspackTitle}>{t('whyRspack')}</h3>
-              <p className={styles.whyRspackDescription}>
-                {t('whyRspackDesc')}
-              </p>
-              <img className={styles.whyRspackBg} src={WhyRspackBg} alt="bg" />
-            </div>
-          </div>
+          <WhyRspackCard />
           {features.map(({ img, url, title, description }) => {
             return (
               <FeatureItem
