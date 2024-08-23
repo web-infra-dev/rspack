@@ -6,12 +6,97 @@ import Lightning from './assets/Lightning.svg';
 import Speedometer from './assets/Speedometer.svg';
 import WhyRspackBg from './assets/WhyRspackBg.png';
 import styles from './index.module.scss';
+import { useCardAnimation } from './useCardAnimation';
 
-const Features = () => {
+type Feature = {
+  img: string;
+  url: string;
+  title: string;
+  description: string;
+};
+
+const FeatureItem = ({ img, url, title, description }: Feature) => {
+  const {
+    container,
+    onMouseEnter,
+    onMouseLeave,
+    onMouseMove,
+    onTouchEnd,
+    onTouchMove,
+    onTouchStart,
+    outerContainer,
+    ref,
+    shine,
+    shineBg,
+  } = useCardAnimation();
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        transform: outerContainer,
+        cursor: 'pointer',
+        transformStyle: 'preserve-3d',
+        WebkitTapHighlightColor: 'rgba(#000, 0)',
+      }}
+      className={styles.featureCard}
+      ref={ref as any}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onMouseMove={onMouseMove}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchStart={onTouchStart}
+    >
+      <Link
+        href={url}
+        key={title}
+        className={styles.featureCardInner}
+        style={{
+          transform: container,
+          position: 'relative',
+          transition: 'all 0.2s ease-out',
+        }}
+      >
+        <div
+          className="shine"
+          style={{
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            borderRadius: '20px',
+            zIndex: '8',
+            ...(shine
+              ? {
+                  transform: shine,
+                }
+              : {}),
+            ...(shineBg
+              ? {
+                  background: shineBg,
+                }
+              : {}),
+          }}
+        />
+        <div className={styles.featureIcon}>
+          <img src={img} alt="Lightning" />
+        </div>
+        <div className={styles.featureContent}>
+          <h3 className={styles.featureTitle}>{title}</h3>
+          <p className={styles.featureDescription}>{description}</p>
+        </div>
+      </Link>
+    </div>
+  );
+};
+
+const WhyRspack = () => {
   const t = useI18n();
   const tUrl = useI18nUrl();
 
-  const features = [
+  const features: Feature[] = [
     {
       img: Speedometer,
       url: tUrl('/guide/start/introduction'),
@@ -52,31 +137,15 @@ const Features = () => {
               <img className={styles.whyRspackBg} src={WhyRspackBg} alt="bg" />
             </div>
           </div>
-          <Link
-            className={styles.featureCard}
-            href={tUrl('/guide/start/introduction')}
-          >
-            <div className={styles.featureIcon}>
-              <img src={Speedometer} alt="Speedometer" />
-            </div>
-            <div className={styles.featureContent}>
-              <h3 className={styles.featureTitle}>{t('FastStartup')}</h3>
-              <p className={styles.featureDescription}>
-                {t('FastStartupDesc')}
-              </p>
-            </div>
-          </Link>
-          {features.slice(1).map(({ img, url, title, description }) => {
+          {features.map(({ img, url, title, description }) => {
             return (
-              <Link className={styles.featureCard} href={url} key={title}>
-                <div className={styles.featureIcon}>
-                  <img src={img} alt="Lightning" />
-                </div>
-                <div className={styles.featureContent}>
-                  <h3 className={styles.featureTitle}>{title}</h3>
-                  <p className={styles.featureDescription}>{description}</p>
-                </div>
-              </Link>
+              <FeatureItem
+                key={title}
+                img={img}
+                url={url}
+                title={title}
+                description={description}
+              />
             );
           })}
         </div>
@@ -85,4 +154,4 @@ const Features = () => {
   );
 };
 
-export default Features;
+export default WhyRspack;

@@ -33,7 +33,6 @@ export const EN_US = {
   fullyFeaturedDesc:
     'Launched as a drop-in replacement for webpack, with more powerful features and exceptional productivity.',
   fullyfeaturedDetail: 'See All Features',
-  foldFullyfeaturedDetail: 'See Less Features',
 
   featureCodeSplitting:
     'Split code into smaller bundles to enable on-demand loading and improve performance.',

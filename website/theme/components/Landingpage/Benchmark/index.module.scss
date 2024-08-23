@@ -29,4 +29,9 @@
   font-weight: 700;
   line-height: 150%; /* 24px */
   text-transform: capitalize;
+
+  &:hover {
+    transition: all 0.2s;
+    opacity: 0.8;
+  }
 }

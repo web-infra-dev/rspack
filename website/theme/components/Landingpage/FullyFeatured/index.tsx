@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import sharedStyles from '../shared.module.scss';
@@ -26,6 +27,7 @@ type Feature = {
 const FullyFeatured = () => {
   const t = useI18n();
   const tUrl = useI18nUrl();
+  const navigate = useNavigate();
 
   const FeatureRow1: Feature[] = [
     {
@@ -108,8 +110,6 @@ const FullyFeatured = () => {
     },
   ];
 
-  const [isFolded, setIsFolded] = useState(true);
-
   return (
     <section className={sharedStyles.container}>
       <div className={sharedStyles.innerContainer}>
@@ -152,10 +152,10 @@ const FullyFeatured = () => {
             type="button"
             className={styles.button}
             onClick={() => {
-              setIsFolded(folded => !folded);
+              navigate(tUrl('/guide/features/asset-module'));
             }}
           >
-            {isFolded ? t('fullyfeaturedDetail') : t('foldFullyfeaturedDetail')}
+            {t('fullyfeaturedDetail')}
           </button>
         </div>
       </div>

@@ -60,10 +60,11 @@
   border: 1px solid var(--why-rspack-card-stroke);
   background: var(--why-rspack-card-gradient);
   box-shadow: 0px -2px 10px 0px var(--tool-stack-shadow-color);
-}
 
-.tool:hover {
-  transform: translateY(-8px);
+  &:hover {
+    transform: scale3d(1.04, 1.04, 1.04);
+    transition: all 0.2s;
+  }
 }
 
 .logo {

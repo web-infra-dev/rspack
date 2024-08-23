@@ -59,6 +59,12 @@
     gap: 16px;
     min-height: 110px;
 
+    &:hover {
+      transition: all 0.2s;
+      transform: scale(1.04, 1.04);
+      opacity: 0.8;
+    }
+
     .icon {
       filter: var(--landingpage-invert-filter);
       display: flex;
@@ -116,4 +122,9 @@
   font-weight: 700;
   line-height: 150%; /* 24px */
   text-transform: capitalize;
+
+  &:hover {
+    transition: all 0.2s;
+    opacity: 0.8;
+  }
 }
