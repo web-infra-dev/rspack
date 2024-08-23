@@ -35,6 +35,10 @@
     font-size: 16px !important;
     line-height: 20px;
   }
+
+  .backgroundStar {
+    transform: scale(0.6);
+  }
 }
 
 .hero {
@@ -42,6 +46,7 @@
   justify-content: center;
   align-items: center;
   background-size: cover;
+  position: relative;
 }
 
 .innerHero {
@@ -159,4 +164,28 @@
   border: 1.5px solid var(--orange-gradient, #ff8b00);
   // text
   color: var(--landingpage-title-color, #0b0c0e);
+}
+
+.backgroundStarContainer {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  text-align: center;
+  line-height: 20px;
+  z-index: 100;
+
+  user-select: none;
+  pointer-events: none;
+
+  .backgroundStar {
+    transition: all 0.2s;
+    display: inline;
+    flex-shrink: 0;
+
+    user-select: none;
+    pointer-events: none;
+    filter: blur(2px);
+  }
 }
