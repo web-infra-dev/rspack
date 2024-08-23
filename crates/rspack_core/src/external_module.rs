@@ -345,15 +345,13 @@ if(typeof {global} !== "undefined") return resolve();
   fn get_module_import_type<'a>(&self, external_type: &'a ExternalType) -> &'a str {
     match external_type.as_str() {
       "module-import" => {
-        let external_type = self
-          .dependency_meta
-          .external_type
-          .as_ref()
-          .expect("should get \"module\" or \"import\" external type from dependency");
-
-        match external_type {
-          ExternalTypeEnum::Import => "import",
-          ExternalTypeEnum::Module => "module",
+        if let Some(external_type) = self.dependency_meta.external_type.as_ref() {
+          match external_type {
+            ExternalTypeEnum::Import => "import",
+            ExternalTypeEnum::Module => "module",
+          }
+        } else {
+          "module"
         }
       }
       import_or_module => import_or_module,
@@ -479,10 +477,7 @@ impl Module for ExternalModule {
           build_result.build_meta.has_top_level_await = true;
           build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
         }
-        r#type => panic!(
-          "Unhandled external type: {} in \"module-import\" type",
-          r#type
-        ),
+        _ => {}
       },
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
