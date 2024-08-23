@@ -16,7 +16,7 @@ module.exports = {
 		@@ ... @@
 		-       "arrowFunction": true,
 		-       "asyncFunction": true,
-		-       "bigIntLiteral": undefined,
+		-       "bigIntLiteral": true,
 		-       "const": true,
 		-       "destructuring": true,
 		+       "arrowFunction": false,
@@ -50,7 +50,7 @@ module.exports = {
 		@@ ... @@
 		-       "arrowFunction": true,
 		-       "asyncFunction": true,
-		-       "bigIntLiteral": undefined,
+		-       "bigIntLiteral": true,
 		-       "const": true,
 		-       "destructuring": true,
 		+       "arrowFunction": false,

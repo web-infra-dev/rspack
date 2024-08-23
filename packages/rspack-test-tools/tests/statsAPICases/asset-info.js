@@ -98,7 +98,7 @@ module.exports = {
 		    "isOverSizeLimit": false,
 		    "name": "main.js",
 		    "related": Array [],
-		    "size": 2425,
+		    "size": 2763,
 		    "type": "asset",
 		  },
 		]

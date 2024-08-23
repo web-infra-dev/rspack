@@ -802,7 +802,7 @@ const applyOutputDefaults = (
 		(v === undefined && c) || v;
 
 	F(environment, "globalThis", () => tp?.globalThis);
-	F(environment, "bigIntLiteral", () => tp?.bigIntLiteral);
+	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
 	F(environment, "const", () => tp && optimistic(tp.const));
 	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
 	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
