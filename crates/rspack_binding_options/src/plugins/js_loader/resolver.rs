@@ -110,20 +110,20 @@ pub(crate) async fn resolve_loader(
         description_data,
         ..
       } = resource;
+      // Pitfall: `PathBuf::ends_with` is different from `str::ends_with`
+      // So we need to convert `PathBuf` to `&str`
+      // Use `str::ends_with` instead of `PathBuf::ends_with` to avoid unnecessary allocation
+      let path = path.as_str();
 
-      let r#type = path
-        .extension()
-        .and_then(|extension| match extension {
-          "mjs" => Some("module"),
-          "cjs" => Some("commonjs"),
-          _ => None,
-        })
-        .or_else(|| {
-          description_data
-            .as_ref()
-            .and_then(|data| data.json().get("type").and_then(|t| t.as_str()))
-        });
-
+      let r#type = if path.ends_with(".mjs") {
+        Some("module")
+      } else if path.ends_with(".cjs") {
+        Some("commonjs")
+      } else {
+        description_data
+          .as_ref()
+          .and_then(|data| data.json().get("type").and_then(|t| t.as_str()))
+      };
       // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
