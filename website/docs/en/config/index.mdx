@@ -82,6 +82,14 @@ You need to install `ts-node` as `devDependencies` so that Rspack can resolve th
 }
 ```
 
+If the version of Node.js you are using supports the `--experimental-transform-types` feature, you can use the built-in ts transform functionality of Node.js without needing to install `ts-node`.
+
+```json title="package.json"
+{
+  "build": "NODE_OPTIONS=--experimental-transform-types rspack build"
+}
+```
+
 Note that Rspack will first search JavaScript and then TypeScript if the JS file does not exist.
 
 ## Specify the Configuration File
