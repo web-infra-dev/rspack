@@ -110,9 +110,9 @@ pub(crate) async fn resolve_loader(
         description_data,
         ..
       } = resource;
-      // Pitfall: `PathBuf::ends_with` is different from `str::ends_with`
+      // Pitfall: `Path::ends_with` is different from `str::ends_with`
       // So we need to convert `PathBuf` to `&str`
-      // Use `str::ends_with` instead of `PathBuf::extension` to avoid unnecessary allocation
+      // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
       let r#type = if path.ends_with(".mjs") {
