@@ -7,7 +7,6 @@ import styles from './index.module.scss';
 const positions = [
   [91.4, 22.9],
   [36, 67.6],
-  [92.4, 59.2],
   [55.4, 96.7],
   [94.1, 47.7],
   [33.8, 32.5],

@@ -36,7 +36,8 @@
     line-height: 20px;
   }
 
-  .backgroundStar {
+  .backgroundStarContainer {
+    pointer-events: none;
     transform: scale(0.6);
   }
 }
