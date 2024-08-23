@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
@@ -118,34 +117,25 @@ const FullyFeatured = () => {
           <p className={sharedStyles.desc}>{t('fullyFeaturedDesc')}</p>
         </div>
         <div className={styles.main}>
-          {
-            // [FeatureRow1, FeatureRow2, ...(isFolded ? [] : [FeatureRow3])].map(
-            [FeatureRow1, FeatureRow2, FeatureRow3].map((row, index) => {
-              return (
-                <div className={styles.features} key={index}>
-                  {row.map(({ icon, description, link, title }, index) => (
-                    <Link
-                      key={index}
-                      className={styles.featureCard}
-                      href={link}
-                    >
-                      <img
-                        src={icon}
-                        alt={index.toString()}
-                        className={styles.icon}
-                      />
-                      <div className={styles.featureContent}>
-                        <h2 className={styles.featureTitle}>{title}</h2>
-                        <p className={styles.featureDescription}>
-                          {description}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              );
-            })
-          }
+          {[FeatureRow1, FeatureRow2, FeatureRow3].map((row, index) => {
+            return (
+              <div className={styles.features} key={index}>
+                {row.map(({ icon, description, link, title }, index) => (
+                  <Link key={index} className={styles.featureCard} href={link}>
+                    <img
+                      src={icon}
+                      alt={index.toString()}
+                      className={styles.icon}
+                    />
+                    <div className={styles.featureContent}>
+                      <h2 className={styles.featureTitle}>{title}</h2>
+                      <p className={styles.featureDescription}>{description}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
         </div>
         <div className="flex flex-col items-center self-stretch">
           <button
