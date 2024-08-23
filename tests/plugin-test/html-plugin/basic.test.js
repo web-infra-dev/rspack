@@ -3782,7 +3782,28 @@ describe("HtmlWebpackPlugin", () => {
       done,
     );
   });
-
+  it('syntax-support', (done) => {
+    testHtmlPlugin(
+        {
+          entry: {},
+          output: {
+            path: OUTPUT_DIR,
+            filename: "index_bundle.js",
+            assetModuleFilename: "assets/demo[ext]",
+          },
+          plugins: [new HtmlWebpackPlugin(
+            {
+              minify:false,
+              templateContent: '<%= myHtml %><%- myHtml %>',
+              templateParameters: {
+                 "myHtml": "<span>Rspack</span>"
+              }
+            })]
+        },
+        [`
+<html>
+<head></head><body><span>Rspack</span>&lt;span&gt;Rspack&lt;/span&gt;</body></html>`], null, done);
+  });
   // TODO: html-webpack-plugin loader
   // it("allows to set custom loader interpolation settings", (done) => {
   //   testHtmlPlugin(

@@ -3270,9 +3270,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_dojang"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fe9848582be010f76babbd87927bbb42966eeae4182b605b9ee98385cad2a7e"
+checksum = "c6c30cb28551082d3af8dd3250a04660d9f3be94eed10ba0bd78af50248f06e0"
 dependencies = [
  "html-escape",
  "serde_json",
