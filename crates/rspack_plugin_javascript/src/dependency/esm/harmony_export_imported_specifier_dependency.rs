@@ -2,6 +2,10 @@ use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec},
+};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
@@ -32,11 +36,15 @@ use super::{
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
+  #[with(AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
+  #[with(AsOption<AsPreset>)]
   pub name: Option<Atom>,
+  #[with(AsPreset)]
   pub request: Atom,
   pub export_all: bool,
   pub source_order: i32,
@@ -999,6 +1007,7 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
   pub dependency_index: usize,
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   fn apply(
     &self,
@@ -1045,6 +1054,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -1372,6 +1382,7 @@ impl DependencyConditionFn for HarmonyExportImportedSpecifierDependencyCondition
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   fn request(&self) -> &str {
     &self.request

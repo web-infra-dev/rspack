@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 use itertools::Itertools;
+use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_error::{error, Result};
@@ -405,6 +406,7 @@ impl ChunkGroupKind {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EntryRuntime {
   String(String),
@@ -434,7 +436,7 @@ impl EntryRuntime {
 }
 
 // pub type EntryRuntime = String;
-
+#[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryOptions {
   pub name: Option<String>,
@@ -505,6 +507,7 @@ impl Display for ChunkGroupOrderKey {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
@@ -533,6 +536,7 @@ impl ChunkGroupOptions {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),

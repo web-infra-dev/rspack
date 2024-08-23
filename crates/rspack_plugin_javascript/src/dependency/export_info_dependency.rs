@@ -1,15 +1,22 @@
 use itertools::Itertools;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   AsDependency, Compilation, DependencyTemplate, ExportProvided, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExportInfoDependency {
   start: u32,
   end: u32,
+  #[with(AsVec<AsPreset>)]
   export_name: Vec<Atom>,
+  #[with(AsPreset)]
   property: Atom,
 }
 
@@ -24,6 +31,7 @@ impl ExportInfoDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ExportInfoDependency {
   fn apply(&self, source: &mut TemplateReplaceSource, context: &mut TemplateContext) {
     let value = self.get_property(context);

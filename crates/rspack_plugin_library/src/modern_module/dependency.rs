@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{
   Compilation, DependencyType, ErrorSpan, ExternalRequest, ExternalType, ImportAttributes,
@@ -8,6 +9,7 @@ use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModernModuleImportDependency {
   id: DependencyId,
@@ -41,6 +43,7 @@ impl ModernModuleImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ModernModuleImportDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -71,6 +74,7 @@ impl Dependency for ModernModuleImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ModernModuleImportDependency {
   fn request(&self) -> &str {
     &self.request
@@ -85,6 +89,7 @@ impl ModuleDependency for ModernModuleImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ModernModuleImportDependency {
   fn apply(
     &self,

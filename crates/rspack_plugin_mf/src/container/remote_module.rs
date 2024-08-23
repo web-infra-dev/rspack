@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
@@ -21,6 +22,7 @@ use crate::{
 };
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct RemoteModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -96,6 +98,7 @@ impl DependenciesBlock for RemoteModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 impl Module for RemoteModule {
   impl_module_meta_info!();

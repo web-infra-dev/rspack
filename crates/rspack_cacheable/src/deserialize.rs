@@ -73,10 +73,10 @@ impl SharedDeserializeRegistry for CacheableDeserializer {
   }
 }
 
-pub fn from_bytes<'a, T, C>(bytes: &'a [u8], context: &'a C) -> Result<T, DeserializeError>
+pub fn from_bytes<T, C>(bytes: &[u8], context: &C) -> Result<T, DeserializeError>
 where
   T: Archive,
-  T::Archived: 'a + CheckBytes<DefaultValidator<'a>> + Deserialize<T, CacheableDeserializer>,
+  T::Archived: for<'a> CheckBytes<DefaultValidator<'a>> + Deserialize<T, CacheableDeserializer>,
 {
   let mut deserializer = CacheableDeserializer::new(context);
   check_archived_root::<T>(bytes)

@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct RemoteToExternalDependency {
   id: DependencyId,
@@ -18,6 +20,7 @@ impl RemoteToExternalDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for RemoteToExternalDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -36,6 +39,7 @@ impl Dependency for RemoteToExternalDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for RemoteToExternalDependency {
   fn request(&self) -> &str {
     &self.request

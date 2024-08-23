@@ -5,6 +5,7 @@ use std::{convert::From, fmt, ops::Deref};
 use dashmap::{DashMap, DashSet};
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use indexmap::{IndexMap, IndexSet};
+use rspack_cacheable::{cacheable, with::AsPreset};
 use serde::Serialize;
 use ustr::Ustr;
 
@@ -29,8 +30,9 @@ pub type IdentifierIndexSet = IndexSet<Identifier, BuildHasherDefault<Identifier
 pub type IdentifierDashSet = DashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
-pub struct Identifier(Ustr);
+pub struct Identifier(#[with(AsPreset)] Ustr);
 
 impl Deref for Identifier {
   type Target = Ustr;

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsString};
 use rspack_util::ext::DynHash;
 
 use crate::{
@@ -5,10 +6,12 @@ use crate::{
   TemplateReplaceSource,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ConstDependency {
   pub start: u32,
   pub end: u32,
+  #[with(AsString)]
   pub content: Box<str>,
   pub runtime_requirements: Option<RuntimeGlobals>,
 }
@@ -29,6 +32,7 @@ impl ConstDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ConstDependency {
   fn apply(
     &self,

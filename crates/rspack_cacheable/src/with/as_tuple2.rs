@@ -1,5 +1,4 @@
 use rkyv::{
-  collections::util::validation::ArchivedEntryError,
   out_field,
   validation::ArchiveContext,
   with::{ArchiveWith, DeserializeWith, SerializeWith},

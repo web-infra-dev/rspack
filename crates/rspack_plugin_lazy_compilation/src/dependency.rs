@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, ModuleFactoryCreateData,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub(crate) struct LazyCompilationDependency {
   id: DependencyId,
@@ -26,6 +28,7 @@ impl LazyCompilationDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for LazyCompilationDependency {
   fn request(&self) -> &str {
     &self.request
@@ -35,6 +38,7 @@ impl ModuleDependency for LazyCompilationDependency {
 impl AsDependencyTemplate for LazyCompilationDependency {}
 impl AsContextDependency for LazyCompilationDependency {}
 
+#[cacheable_dyn]
 impl Dependency for LazyCompilationDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id

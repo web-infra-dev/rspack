@@ -19,12 +19,18 @@ pub fn impl_runtime_module(
     );
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub custom_source: Option<::rspack_core::rspack_sources::BoxSource> })
+        .parse2(quote! {
+            #[with(rspack_cacheable::with::AsOption<rspack_cacheable::with::AsPreset>)]
+            pub custom_source: Option<::rspack_core::rspack_sources::BoxSource>
+        })
         .expect("Failed to parse new field for custom_source"),
     );
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub cached_generated_code: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>> })
+            .parse2(quote! {
+                #[with(rspack_cacheable::with::Skip)]
+                pub cached_generated_code: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>>
+            })
         .expect("Failed to parse new field for cached_generated_code"),
     );
   }
@@ -47,6 +53,7 @@ pub fn impl_runtime_module(
   };
 
   quote! {
+    #[rspack_cacheable::cacheable]
     #input
 
     impl #impl_generics #name #ty_generics #where_clause {
@@ -105,6 +112,7 @@ pub fn impl_runtime_module(
       }
     }
 
+    #[rspack_cacheable::cacheable_dyn]
     impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
       fn module_type(&self) -> &::rspack_core::ModuleType {
         &::rspack_core::ModuleType::Runtime

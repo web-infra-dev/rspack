@@ -53,7 +53,7 @@ pub use create_script_url::CreateScriptUrlRuntimeModule;
 pub use define_property_getters::DefinePropertyGettersRuntimeModule;
 pub use ensure_chunk::EnsureChunkRuntimeModule;
 pub use export_webpack_require::ExportWebpackRequireRuntimeModule;
-pub use get_chunk_filename::GetChunkFilenameRuntimeModule;
+pub use get_chunk_filename::{GetChunkFilenameRuntimeModule, GetChunkFilenameType};
 pub use get_chunk_update_filename::GetChunkUpdateFilenameRuntimeModule;
 pub use get_full_hash::GetFullHashRuntimeModule;
 pub use get_main_filename::GetMainFilenameRuntimeModule;

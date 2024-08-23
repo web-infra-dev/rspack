@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
@@ -17,6 +18,7 @@ use super::fallback_item_dependency::FallbackItemDependency;
 use crate::utils::json_stringify;
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct FallbackModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -79,6 +81,7 @@ impl DependenciesBlock for FallbackModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 impl Module for FallbackModule {
   impl_module_meta_info!();

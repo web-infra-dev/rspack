@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
   DependencyTemplate, DependencyType, RealDependencyLocation, RuntimeSpec, TemplateContext,
@@ -7,6 +8,7 @@ use rspack_core::{
 // Remove `export` label.
 // Before: `export const a = 1`
 // After: `const a = 1`
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct HarmonyExportHeaderDependency {
   id: DependencyId,
@@ -24,6 +26,7 @@ impl HarmonyExportHeaderDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for HarmonyExportHeaderDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
@@ -42,6 +45,7 @@ impl Dependency for HarmonyExportHeaderDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for HarmonyExportHeaderDependency {
   fn apply(
     &self,

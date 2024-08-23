@@ -6,11 +6,12 @@ use std::fmt;
 pub use context::*;
 pub use plugin_driver::*;
 use rspack_error::Result;
+use rspack_util::ext::AsAny;
 
 use crate::CompilerOptions;
 
 #[async_trait::async_trait]
-pub trait Plugin: fmt::Debug + Send + Sync {
+pub trait Plugin: fmt::Debug + Send + Sync + AsAny {
   fn name(&self) -> &'static str {
     "unknown"
   }
@@ -23,6 +24,8 @@ pub trait Plugin: fmt::Debug + Send + Sync {
     Ok(())
   }
 }
+
+// pub type PluginId = usize;
 
 pub type BoxPlugin = Box<dyn Plugin>;
 

@@ -4,7 +4,9 @@ use rkyv::{
   vec::{ArchivedVec, VecResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
-use rspack_sources::{OriginalSource, RawSource, Source};
+use rspack_sources::{
+  OriginalSource, RawSource, Source, SourceMap, SourceMapSource, SourceMapSourceOptions,
+};
 
 use super::AsPreset;
 use crate::{
@@ -139,6 +141,7 @@ impl ArchiveWith<Arc<dyn Source>> for AsPreset {
   }
 }
 
+// TODO add cacheable to rspack-sources
 impl SerializeWith<Arc<dyn Source>, CacheableSerializer> for AsPreset {
   #[inline]
   fn serialize_with(
@@ -147,31 +150,29 @@ impl SerializeWith<Arc<dyn Source>, CacheableSerializer> for AsPreset {
   ) -> Result<Self::Resolver, SerializeError> {
     let inner = field.as_ref().as_any();
     let context = unsafe { serializer.context::<()>() };
-    let mut bytes = vec![];
-    if let Some(raw_source) = inner.downcast_ref::<RawSource>() {
-      let data = match raw_source {
-        RawSource::Buffer(buf) => {
-          // TODO try avoid clone
-          TypeWrapperRef {
-            type_name: "RawSource::Buffer",
-            bytes: buf,
-          }
-        }
-        RawSource::Source(source) => TypeWrapperRef {
-          type_name: "RawSource::Source",
-          bytes: source.as_bytes(),
-        },
+    let bytes = if let Some(raw_source) = inner.downcast_ref::<RawSource>() {
+      let data = TypeWrapperRef {
+        type_name: "RawSource",
+        bytes: &raw_source.buffer(),
       };
-      bytes = crate::to_bytes(&data, context)?;
-    }
-    if let Some(original_source) = inner.downcast_ref::<OriginalSource>() {
+      crate::to_bytes(&data, context)?
+    } else if let Some(original_source) = inner.downcast_ref::<OriginalSource>() {
       let source = original_source.source();
       let data = Some(TypeWrapperRef {
         type_name: "OriginalSource",
         bytes: source.as_bytes(),
       });
-      bytes = crate::to_bytes(&data, context)?;
-    }
+      crate::to_bytes(&data, context)?
+    } else if let Some(source_map_source) = inner.downcast_ref::<SourceMapSource>() {
+      let source = source_map_source.source();
+      let data = Some(TypeWrapperRef {
+        type_name: "SourceMapSource",
+        bytes: source.as_bytes(),
+      });
+      crate::to_bytes(&data, context)?
+    } else {
+      return Err(SerializeError::SerializeFailed("unsupport rspack source"));
+    };
     Ok(SourceResolver {
       inner: ArchivedVec::serialize_from_slice(&bytes, serializer)?,
       len: bytes.len(),
@@ -189,15 +190,20 @@ impl DeserializeWith<ArchivedVec<u8>, Arc<dyn Source>, CacheableDeserializer> fo
     let TypeWrapper { type_name, bytes } = crate::from_bytes(field, context)?;
     match type_name.as_str() {
       // TODO change to enum
-      "RawSource::Buffer" => Ok(Arc::new(RawSource::Buffer(bytes))),
-      "RawSource::Source" => Ok(Arc::new(RawSource::Source(
-        String::from_utf8(bytes).expect("unexpect bytes"),
-      ))),
+      "RawSource" => Ok(Arc::new(RawSource::from(bytes))),
       // TODO save original source name
       "OriginalSource" => Ok(Arc::new(OriginalSource::new(
         "a",
         String::from_utf8(bytes).expect("unexpect bytes"),
       ))),
+      "SourceMapSource" => Ok(Arc::new(SourceMapSource::new(SourceMapSourceOptions {
+        value: String::from_utf8(bytes).expect("unexpect bytes"),
+        name: String::from("a"),
+        source_map: SourceMap::default(),
+        original_source: None,
+        inner_source_map: None,
+        remove_original_source: true,
+      }))),
       _ => Err(DeserializeError::DeserializeFailed(
         "unsupported box source",
       )),

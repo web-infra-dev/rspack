@@ -5,6 +5,11 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
+use rspack_cacheable::with::AsPreset;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsString, AsTuple2, AsVec},
+};
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_hash::RspackHashDigest;
@@ -37,20 +42,28 @@ pub enum BuildExtraDataType {
   JavaScriptParserAndGenerator,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
+  #[with(AsVec<AsString>)]
   pub file_dependencies: HashSet<PathBuf>,
+  #[with(AsVec<AsString>)]
   pub context_dependencies: HashSet<PathBuf>,
+  #[with(AsVec<AsString>)]
   pub missing_dependencies: HashSet<PathBuf>,
+  #[with(AsVec<AsString>)]
   pub build_dependencies: HashSet<PathBuf>,
+  #[with(AsVec<AsPreset>)]
   pub harmony_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
+  #[with(AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
+  #[with(AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
 }
@@ -75,6 +88,7 @@ impl Default for BuildInfo {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum BuildMetaExportsType {
   #[default]
@@ -93,6 +107,7 @@ pub enum ExportsType {
   Dynamic,
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash)]
 pub enum BuildMetaDefaultObject {
   #[default]
@@ -107,6 +122,7 @@ pub enum BuildMetaDefaultObject {
   },
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash)]
 pub enum ModuleArgument {
   #[default]
@@ -123,6 +139,7 @@ impl Display for ModuleArgument {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ExportsArgument {
   #[default]
@@ -139,6 +156,7 @@ impl Display for ExportsArgument {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
   pub strict_harmony_module: bool,
@@ -149,6 +167,7 @@ pub struct BuildMeta {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub side_effect_free: Option<bool>,
+  #[with(AsOption<AsVec<AsTuple2>>)]
   pub exports_final_name: Option<Vec<(String, String)>>,
 }
 
@@ -163,12 +182,15 @@ pub struct BuildResult {
   pub optimization_bailouts: Vec<String>,
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;
+
+#[cacheable_dyn]
 #[async_trait]
 pub trait Module:
   Debug
@@ -644,6 +666,7 @@ mod test {
         }
       }
 
+      #[::rspack_cacheable::cacheable_dyn]
       #[::async_trait::async_trait]
       impl Module for $ident {
         fn module_type(&self) -> &ModuleType {

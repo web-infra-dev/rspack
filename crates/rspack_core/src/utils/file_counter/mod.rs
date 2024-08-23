@@ -3,17 +3,29 @@ mod incremental_info;
 use std::path::PathBuf;
 
 use incremental_info::IncrementalInfo;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsMap, AsString, Skip},
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Used to count file usage
+#[cacheable]
 #[derive(Debug, Default)]
 pub struct FileCounter {
+  #[with(AsMap<AsString>)]
   inner: HashMap<PathBuf, usize>,
+  #[with(Skip)]
   incremental_info: IncrementalInfo,
 }
 
 impl FileCounter {
-  /// Add a [`PathBuf``] to counter
+  /// Returns `true` if the [`PathBuf`] is in counter.
+  pub fn contains(&self, path: &PathBuf) -> bool {
+    self.inner.contains_key(path)
+  }
+
+  /// Add a [`PathBuf`] to counter
   ///
   /// It will +1 to the PathBuf in inner hashmap
   fn add_file(&mut self, path: &PathBuf) {
@@ -90,21 +102,29 @@ mod test {
     counter.add_file(&file_a);
     counter.add_file(&file_a);
     counter.add_file(&file_b);
+    assert_eq!(counter.contains(&file_a), true);
+    assert_eq!(counter.contains(&file_b), true);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
     assert_eq!(counter.added_files().len(), 2);
     assert_eq!(counter.removed_files().len(), 0);
 
     counter.remove_file(&file_a);
+    assert_eq!(counter.contains(&file_a), true);
+    assert_eq!(counter.contains(&file_b), true);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
     assert_eq!(counter.added_files().len(), 2);
     assert_eq!(counter.removed_files().len(), 0);
 
     counter.remove_file(&file_b);
+    assert_eq!(counter.contains(&file_a), true);
+    assert_eq!(counter.contains(&file_b), false);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 1);
     assert_eq!(counter.added_files().len(), 1);
     assert_eq!(counter.removed_files().len(), 0);
 
     counter.remove_file(&file_a);
+    assert_eq!(counter.contains(&file_a), false);
+    assert_eq!(counter.contains(&file_b), false);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 0);
     assert_eq!(counter.added_files().len(), 0);
     assert_eq!(counter.removed_files().len(), 0);

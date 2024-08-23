@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsTuple2},
+};
 use rspack_core::{
   get_dependency_used_by_exports_condition, module_id, AsContextDependency, Compilation,
   Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
@@ -6,11 +10,14 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct URLDependency {
   id: DependencyId,
+  #[with(AsPreset)]
   request: Atom,
   range: RealDependencyLocation,
+  #[with(AsTuple2)]
   range_url: (u32, u32),
   used_by_exports: Option<UsedByExports>,
   relative: bool,
@@ -34,6 +41,7 @@ impl URLDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for URLDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -56,6 +64,7 @@ impl Dependency for URLDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for URLDependency {
   fn request(&self) -> &str {
     &self.request
@@ -74,6 +83,7 @@ impl ModuleDependency for URLDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for URLDependency {
   fn apply(
     &self,

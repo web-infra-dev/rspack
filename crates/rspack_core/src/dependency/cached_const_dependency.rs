@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
 use crate::{
@@ -5,6 +6,7 @@ use crate::{
   InitFragmentStage, NormalInitFragment, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedConstDependency {
   pub start: u32,
@@ -24,6 +26,7 @@ impl CachedConstDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for CachedConstDependency {
   fn apply(
     &self,

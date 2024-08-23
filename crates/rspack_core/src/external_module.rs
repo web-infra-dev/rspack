@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::iter;
 
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
@@ -23,6 +24,7 @@ use crate::{ChunkGraph, ModuleGraph};
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
 
+#[cacheable]
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum ExternalRequest {
@@ -30,6 +32,7 @@ pub enum ExternalRequest {
   Map(HashMap<String, ExternalRequestValue>),
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExternalRequestValue {
   pub primary: String,
@@ -115,6 +118,7 @@ fn get_source_for_import(
 }
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
@@ -130,6 +134,7 @@ pub struct ExternalModule {
   dependency_meta: DependencyMeta,
 }
 
+#[cacheable]
 #[derive(Debug)]
 pub enum ExternalTypeEnum {
   Import,
@@ -138,6 +143,7 @@ pub enum ExternalTypeEnum {
 
 pub type MetaExternalType = Option<ExternalTypeEnum>;
 
+#[cacheable]
 #[derive(Debug)]
 pub struct DependencyMeta {
   pub external_type: MetaExternalType,
@@ -383,6 +389,7 @@ impl DependenciesBlock for ExternalModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ExternalModule {
   impl_module_meta_info!();

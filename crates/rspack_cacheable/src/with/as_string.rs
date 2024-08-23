@@ -80,7 +80,7 @@ impl AsStringConverter for PathBuf {
   }
 }
 
-// for pathbuf
+// for Box<str>
 impl AsStringConverter for Box<str> {
   fn to_string(&self) -> Result<String, SerializeError> {
     Ok(str::to_string(self))

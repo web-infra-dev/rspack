@@ -14,6 +14,7 @@ rustc-hash  = { workspace = true }
 tokio       = { workspace = true }
 tracing     = { workspace = true }
 
+rspack_cacheable         = { path = "../rspack_cacheable" }
 rspack_collections       = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core              = { version = "0.1.0", path = "../rspack_core" }
 rspack_error             = { version = "0.1.0", path = "../rspack_error" }

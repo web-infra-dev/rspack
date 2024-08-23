@@ -10,6 +10,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
 use crate::{
+  cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   unaffected_cache::UnaffectedModulesCache,
@@ -65,6 +66,7 @@ impl MakeTaskContext {
       None,
       self.old_cache.clone(),
       self.unaffected_modules_cache.clone(),
+      Arc::new(Cache::new(self.compiler_options.clone())),
       None,
       Default::default(),
       Default::default(),

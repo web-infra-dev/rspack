@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec},
+};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
@@ -15,19 +19,24 @@ use swc_core::ecma::atoms::Atom;
 use super::harmony_import_dependency::harmony_import_dependency_get_linking_error;
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
   id: DependencyId,
+  #[with(AsPreset)]
   request: Atom,
+  #[with(AsPreset)]
   name: Atom,
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
   range: RealDependencyLocation,
+  #[with(AsVec<AsPreset>)]
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
+  #[with(AsOption<AsVec<AsPreset>>)]
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
@@ -110,6 +119,7 @@ impl HarmonyImportSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for HarmonyImportSpecifierDependency {
   fn apply(
     &self,
@@ -219,6 +229,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for HarmonyImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -342,6 +353,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for HarmonyImportSpecifierDependency {
   fn request(&self) -> &str {
     &self.request

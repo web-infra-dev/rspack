@@ -144,7 +144,7 @@ impl SharedSerializeRegistry for CacheableSerializer {
   }
 }
 
-pub fn to_bytes<'a, T, C>(data: &'a T, ctx: &'a C) -> Result<Vec<u8>, SerializeError>
+pub fn to_bytes<T, C>(data: &T, ctx: &C) -> Result<Vec<u8>, SerializeError>
 where
   T: Serialize<CacheableSerializer>,
 {

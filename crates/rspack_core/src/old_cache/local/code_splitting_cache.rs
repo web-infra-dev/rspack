@@ -33,7 +33,11 @@ where
     return Ok(());
   }
 
-  if !compilation.has_module_import_export_change() {
+  let is_chunk_graph_empty = compilation
+    .chunk_graph
+    .chunk_graph_module_by_module_identifier
+    .is_empty();
+  if !is_chunk_graph_empty && !compilation.has_module_import_export_change() {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
@@ -14,10 +15,12 @@ use crate::{
 use crate::{module_update_hash, Compilation, ConcatenationScope, FactoryMeta};
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct RawModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
+  #[with(AsPreset)]
   source: BoxSource,
   identifier: ModuleIdentifier,
   readable_identifier: String,
@@ -76,6 +79,7 @@ impl DependenciesBlock for RawModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for RawModule {
   impl_module_meta_info!();

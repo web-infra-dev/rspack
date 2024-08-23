@@ -14,6 +14,7 @@ futures            = { workspace = true }
 miette             = { version = "5", features = ["fancy"] }
 once_cell          = { workspace = true }
 owo-colors         = "3.5.0"
+rspack_cacheable   = { path = "../rspack_cacheable" }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_paths       = { version = "0.1.0", path = "../rspack_paths" }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }

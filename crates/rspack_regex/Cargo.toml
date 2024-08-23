@@ -9,10 +9,11 @@ version     = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex-syntax = { version = "0.8.3", default-features = false, features = ["std"] }
-regress      = "0.10.0"
-rspack_error = { version = "0.1.0", path = "../rspack_error" }
-swc_core     = { workspace = true, features = ["ecma_ast"] }
+regex-syntax     = { version = "0.8.3", default-features = false, features = ["std"] }
+regress          = "0.10.0"
+rspack_cacheable = { path = "../rspack_cacheable" }
+rspack_error     = { version = "0.1.0", path = "../rspack_error" }
+swc_core         = { workspace = true, features = ["ecma_ast"] }
 
 [dev-dependencies]
 swc_core = { workspace = true, features = [

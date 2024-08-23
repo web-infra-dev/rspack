@@ -23,6 +23,7 @@ dashmap                  = { workspace = true }
 either                   = "1"
 jsonc-parser             = { version = "0.23.0", features = ["serde"] }
 rspack_ast               = { version = "0.1.0", path = "../rspack_ast" }
+rspack_cacheable         = { path = "../rspack_cacheable" }
 rspack_core              = { version = "0.1.0", path = "../rspack_core" }
 rspack_error             = { version = "0.1.0", path = "../rspack_error" }
 rspack_loader_runner     = { version = "0.1.0", path = "../rspack_loader_runner" }

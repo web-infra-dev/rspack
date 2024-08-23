@@ -133,6 +133,11 @@ pub struct ModuleGraphPartial {
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 
+// 1. module -> make -> module readonly
+// 2. treeshaking xxx(module -> export info)
+
+// compilation get_module_graph --> moduleGraph == make moduleGraph + XX
+
 #[derive(Debug, Default)]
 pub struct ModuleGraph<'a> {
   partials: Vec<&'a ModuleGraphPartial>,
@@ -1247,5 +1252,34 @@ impl<'a> ModuleGraph<'a> {
         ExportProvided::Null => None,
       }
     })
+  }
+
+  // todo remove it after module_graph_partial remove all of dependency_id_to_*
+  pub fn cache_recovery_connection(&mut self, connection: ModuleGraphConnection) {
+    let condition = self
+      .dependency_by_id(&connection.dependency_id)
+      .and_then(|d| d.as_module_dependency())
+      .and_then(|dep| dep.get_condition());
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial
+      .dependency_id_to_connection_id
+      .insert(connection.dependency_id, Some(connection.id));
+    active_partial.dependency_id_to_module_identifier.insert(
+      connection.dependency_id,
+      Some(*connection.module_identifier()),
+    );
+
+    // recovery condition
+    if let Some(condition) = condition {
+      active_partial
+        .connection_to_condition
+        .insert(connection.id, condition);
+    }
+
+    active_partial
+      .connections
+      .insert(connection.id, Some(connection));
   }
 }

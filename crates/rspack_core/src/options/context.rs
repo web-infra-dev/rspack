@@ -1,13 +1,16 @@
 use std::{fmt, ops::Deref, path::Path};
 
+use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_loader_runner::ResourceData;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::atom::Atom;
 
 use crate::{contextify, parse_resource};
 
+#[cacheable]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Context {
+  #[with(AsPreset)]
   inner: Atom,
 }
 

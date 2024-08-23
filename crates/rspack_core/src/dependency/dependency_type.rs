@@ -1,9 +1,12 @@
 use std::fmt::{Debug, Display};
 
+use rspack_macros::cacheable;
+
 use crate::ContextTypePrefix;
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
+#[cacheable]
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyType {
   #[default]
@@ -95,7 +98,7 @@ pub enum DependencyType {
   LoaderImport,
   LazyImport,
   ModuleDecorator,
-  Custom(&'static str),
+  MiniExtractDep,
 }
 
 impl DependencyType {
@@ -141,7 +144,7 @@ impl DependencyType {
       DependencyType::WasmExportImported => "wasm export imported",
       DependencyType::StaticExports => "static exports",
       DependencyType::LoaderImport => "loader import",
-      DependencyType::Custom(ty) => ty,
+      DependencyType::MiniExtractDep => "mini extract dep",
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",

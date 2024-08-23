@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsTuple2};
 use rspack_core::{
   AsModuleDependency, Compilation, ContextDependency, RealDependencyLocation, RuntimeSpec,
 };
@@ -9,11 +10,13 @@ use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: RealDependencyLocation,
+  #[with(AsTuple2)]
   range_callee: (u32, u32),
   resource_identifier: String,
   optional: bool,
@@ -38,6 +41,7 @@ impl ImportContextDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ImportContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -90,6 +94,7 @@ impl ContextDependency for ImportContextDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ImportContextDependency {
   fn apply(
     &self,

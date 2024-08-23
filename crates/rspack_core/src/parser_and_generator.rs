@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use std::fmt::Debug;
 
 use derivative::Derivative;
+use rspack_cacheable::cacheable_dyn;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
@@ -83,6 +84,7 @@ pub struct GenerateContext<'a> {
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
 
+#[cacheable_dyn]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];

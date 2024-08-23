@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
+#[rspack_cacheable::cacheable]
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyCategory {
   #[default]

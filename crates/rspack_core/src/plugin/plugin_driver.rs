@@ -80,6 +80,16 @@ impl PluginDriver {
     )
   }
 
+  /*  pub fn get_plugin_id(&self, plugin: &dyn Plugin) -> Option<PluginId> {
+    self
+      .plugins
+      .iter()
+      .position(|item| std::ptr::eq(item.as_ref(), plugin))
+  }
+  pub fn get_plugin(&self, id: PluginId) -> Option<&Box<dyn Plugin>> {
+    self.plugins.get(id)
+  }*/
+
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
     let mut diagnostic = self.diagnostics.lock().expect("TODO:");
     std::mem::take(&mut diagnostic)

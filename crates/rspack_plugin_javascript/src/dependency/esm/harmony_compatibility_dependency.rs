@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsDependency, Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage,
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
@@ -7,9 +8,11 @@ use swc_core::atoms::Atom;
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct HarmonyCompatibilityDependency;
 
+#[cacheable_dyn]
 impl DependencyTemplate for HarmonyCompatibilityDependency {
   fn apply(
     &self,

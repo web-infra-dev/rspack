@@ -5,6 +5,11 @@ use std::{borrow::Cow, fs, hash::Hash, sync::Arc};
 use indoc::formatdoc;
 use itertools::Itertools;
 use regex::{Captures, Regex};
+use rspack_cacheable::with::{AsTuple3, Unsupported};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsOption, AsPreset, AsVec},
+};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
@@ -13,8 +18,7 @@ use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::itoa;
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -42,6 +46,7 @@ impl AlternativeRequest {
   }
 }
 
+#[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ContextMode {
   Sync,
@@ -99,6 +104,7 @@ pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ContextNameSpaceObject {
   Bool(bool),
@@ -113,12 +119,31 @@ impl ContextNameSpaceObject {
   }
 }
 
+pub fn context_reg_exp(expr: &str, flags: &str) -> Option<RspackRegex> {
+  if expr.is_empty() {
+    return None;
+  }
+  let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
+  clean_regexp_in_context_module(regexp)
+}
+
+pub fn clean_regexp_in_context_module(regexp: RspackRegex) -> Option<RspackRegex> {
+  if regexp.sticky() || regexp.global() {
+    // TODO: warning
+    None
+  } else {
+    Some(regexp)
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ContextTypePrefix {
   Import,
   Normal,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
@@ -131,22 +156,26 @@ pub struct ContextOptions {
   pub context: String,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
+  #[with(AsVec<AsTuple3>)]
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
+  #[with(AsOption<AsVec<AsPreset>>)]
   pub referenced_exports: Option<Vec<Atom>>,
   pub attributes: Option<ImportAttributes>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
+  #[with(AsPreset)]
   pub resource: Utf8PathBuf,
   pub resource_query: String,
   pub resource_fragment: String,
   pub context_options: ContextOptions,
   pub layer: Option<ModuleLayer>,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Box<Resolve>>, // only used in build, cacheable skip it
   pub type_prefix: ContextTypePrefix,
 }
 
@@ -157,13 +186,15 @@ pub enum FakeMapValue {
 }
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   identifier: Identifier,
   options: ContextModuleOptions,
-  resolve_factory: Arc<ResolverFactory>,
+  #[with(Unsupported)]
+  resolve_factory: Arc<ResolverFactory>, // only used in build, cacheable skip it
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
@@ -819,6 +850,7 @@ impl DependenciesBlock for ContextModule {
   }
 }
 
+#[rspack_cacheable::cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
   impl_module_meta_info!();

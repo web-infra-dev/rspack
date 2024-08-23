@@ -14,6 +14,7 @@ tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros",
 
 once_cell          = { workspace = true }
 regex              = { workspace = true }
+rspack_cacheable   = { path = "../rspack_cacheable" }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_error       = { version = "0.1.0", path = "../rspack_error" }
 rspack_paths       = { version = "0.1.0", path = "../rspack_paths" }

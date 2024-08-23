@@ -3,8 +3,7 @@ use std::sync::LazyLock;
 
 use async_trait::async_trait;
 use rspack_core::{
-  get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
-  ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationParams,
+  has_hash_placeholder, ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationParams,
   CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals,
   RuntimeModuleExt, SourceType,
@@ -15,16 +14,16 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 
 use crate::runtime_module::{
-  chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
-  BaseUriRuntimeModule, ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
+  is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
+  ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
   CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
-  MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
-  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-  RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  GetChunkFilenameRuntimeModule, GetChunkFilenameType, GetChunkUpdateFilenameRuntimeModule,
+  GetFullHashRuntimeModule, GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule,
+  GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule,
+  NonceRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
@@ -316,21 +315,9 @@ fn runtime_requirements_in_tree(
         compilation.add_runtime_module(
           chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
-            "javascript",
-            "javascript",
+            GetChunkFilenameType::Javascript,
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
-            |_| false,
-            |chunk, compilation| {
-              Some(
-                get_js_chunk_filename_template(
-                  chunk,
-                  &compilation.options.output,
-                  &compilation.chunk_group_by_ukey,
-                )
-                .clone(),
-              )
-            },
           )
           .boxed(),
         )?;
@@ -339,23 +326,9 @@ fn runtime_requirements_in_tree(
         compilation.add_runtime_module(
           chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
-            "css",
-            "css",
+            GetChunkFilenameType::Css,
             SourceType::Css,
             RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
-            |runtime_requirements| {
-              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-            },
-            |chunk, compilation| {
-              chunk_has_css(&chunk.ukey, compilation).then(|| {
-                get_css_chunk_filename_template(
-                  chunk,
-                  &compilation.options.output,
-                  &compilation.chunk_group_by_ukey,
-                )
-                .clone()
-              })
-            },
           )
           .boxed(),
         )?;

@@ -1,6 +1,10 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsTuple2, AsVec},
+};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
@@ -23,12 +27,14 @@ use super::{
 use crate::utils::json_stringify;
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
+  #[with(AsVec<AsTuple2>)]
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: String,
   factory_meta: Option<FactoryMeta>,
@@ -89,6 +95,7 @@ impl DependenciesBlock for ContainerEntryModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
   impl_module_meta_info!();

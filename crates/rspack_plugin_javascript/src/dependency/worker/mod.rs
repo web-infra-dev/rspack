@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsTuple2};
 use rspack_core::{
   get_chunk_from_ukey, AsContextDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
@@ -6,12 +7,14 @@ use rspack_core::{
 };
 use rspack_util::ext::DynHash;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct WorkerDependency {
   id: DependencyId,
   request: String,
   public_path: String,
   range: RealDependencyLocation,
+  #[with(AsTuple2)]
   range_path: (u32, u32),
 }
 
@@ -32,6 +35,7 @@ impl WorkerDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for WorkerDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -62,6 +66,7 @@ impl Dependency for WorkerDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for WorkerDependency {
   fn request(&self) -> &str {
     &self.request
@@ -76,6 +81,7 @@ impl ModuleDependency for WorkerDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for WorkerDependency {
   fn apply(
     &self,

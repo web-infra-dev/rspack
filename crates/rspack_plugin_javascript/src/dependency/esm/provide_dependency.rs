@@ -1,4 +1,8 @@
 use itertools::Itertools;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   create_exports_object_referenced, module_raw, Compilation, ExtendedReferencedExport, ModuleGraph,
   NormalInitFragment, RuntimeSpec, UsedName,
@@ -10,13 +14,16 @@ use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ProvideDependency {
   start: u32,
   end: u32,
   id: DependencyId,
+  #[with(AsPreset)]
   request: Atom,
   identifier: String,
+  #[with(AsVec<AsPreset>)]
   ids: Vec<Atom>,
 }
 
@@ -33,6 +40,7 @@ impl ProvideDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ProvideDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -67,6 +75,7 @@ impl Dependency for ProvideDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ProvideDependency {
   fn request(&self) -> &str {
     &self.request
@@ -81,6 +90,7 @@ impl ModuleDependency for ProvideDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ProvideDependency {
   fn apply(
     &self,

@@ -3,12 +3,18 @@ use std::collections::hash_set;
 use std::ops::Deref;
 use std::{cmp::Ordering, fmt::Debug, sync::Arc};
 
+use rspack_cacheable::{
+  cacheable,
+  with::{AsRefStr, AsVec},
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{EntryOptions, EntryRuntime};
 
+#[cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct RuntimeSpec {
+  #[with(AsVec<AsRefStr>)]
   inner: FxHashSet<Arc<str>>,
   key: String,
 }

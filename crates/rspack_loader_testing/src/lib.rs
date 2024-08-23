@@ -1,12 +1,15 @@
 #![feature(let_chains)]
 
 use async_trait::async_trait;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifiable, Identifier};
 use serde_json::json;
 
+#[cacheable]
 pub struct SimpleLoader;
+#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for SimpleLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
@@ -25,7 +28,9 @@ impl Identifiable for SimpleLoader {
 }
 pub const SIMPLE_LOADER_IDENTIFIER: &str = "builtin:test-simple-loader";
 
+#[cacheable]
 pub struct SimpleAsyncLoader;
+#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for SimpleAsyncLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
@@ -43,7 +48,9 @@ impl Identifiable for SimpleAsyncLoader {
 }
 pub const SIMPLE_ASYNC_LOADER_IDENTIFIER: &str = "builtin:test-simple-async-loader";
 
+#[cacheable]
 pub struct PitchingLoader;
+#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for PitchingLoader {
   async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {

@@ -715,6 +715,16 @@ dependencies = [
 
 [[package]]
 name = "ctor"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d2301688392eb071b0bf1a37be05c469d3cc4dbbd95df672fe28ab021e6a096"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ctor"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eed5fff0d93c7559121e9c72bf9c242295869396255071ff2cb1617147b608c5"
@@ -1300,6 +1310,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ghost"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0e085ded9f1267c32176b40921b9754c474f7dd96f7e808d4a982e48aa1e854"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.63",
+]
+
+[[package]]
 name = "gimli"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1601,6 +1622,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "inventory"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0eb5160c60ba1e809707918ee329adb99d222888155835c6feedba19f6c3fd4"
+dependencies = [
+ "ctor 0.1.26",
+ "ghost",
+ "inventory-impl",
+]
+
+[[package]]
+name = "inventory-impl"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e41b53715c6f0c4be49510bb82dee2c1e51c8586d885abe65396e82ed518548"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -2087,7 +2130,7 @@ checksum = "8122073a4a01e851f0a9bbc4322b8f8cdf6f9faafc260f005cfd782098aff4fb"
 dependencies = [
  "anyhow",
  "bitflags 2.5.0",
- "ctor",
+ "ctor 0.2.3",
  "napi-derive",
  "napi-sys",
  "once_cell",
@@ -2948,6 +2991,7 @@ dependencies = [
  "napi-derive",
  "napi-h",
  "rspack_binding_values",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3027,6 +3071,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_cacheable"
+version = "0.1.0"
+dependencies = [
+ "camino",
+ "dashmap 5.5.3",
+ "hashlink",
+ "indexmap 2.2.6",
+ "inventory",
+ "json",
+ "lightningcss",
+ "once_cell",
+ "ptr_meta",
+ "rkyv",
+ "rspack_macros",
+ "rspack_resolver",
+ "rspack_sources",
+ "serde_json",
+ "smol_str",
+ "swc_core",
+ "ustr-fxhash",
+]
+
+[[package]]
+name = "rspack_cacheable_test"
+version = "0.1.0"
+dependencies = [
+ "dashmap 5.5.3",
+ "once_cell",
+ "rspack_cacheable",
+ "rspack_resolver",
+ "rustc-hash 1.1.0",
+]
+
+[[package]]
 name = "rspack_collections"
 version = "0.1.0"
 dependencies = [
@@ -3034,6 +3112,7 @@ dependencies = [
  "hashlink",
  "indexmap 2.2.6",
  "rayon",
+ "rspack_cacheable",
  "serde",
  "ustr-fxhash",
 ]
@@ -3065,6 +3144,7 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_ast",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_error",
  "rspack_fs",
@@ -3110,6 +3190,7 @@ dependencies = [
  "miette 5.10.0",
  "once_cell",
  "owo-colors 3.5.0",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_paths",
  "swc_core",
@@ -3155,6 +3236,7 @@ version = "0.1.0"
 dependencies = [
  "data-encoding",
  "md4",
+ "rspack_cacheable",
  "smol_str",
  "xxhash-rust",
 ]
@@ -3192,6 +3274,7 @@ dependencies = [
  "derivative",
  "lightningcss",
  "parcel_sourcemap",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -3204,6 +3287,7 @@ name = "rspack_loader_preact_refresh"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -3214,6 +3298,7 @@ name = "rspack_loader_react_refresh"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -3228,6 +3313,7 @@ dependencies = [
  "derivative",
  "once_cell",
  "regex",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_error",
  "rspack_paths",
@@ -3249,6 +3335,7 @@ dependencies = [
  "either",
  "jsonc-parser 0.23.0",
  "rspack_ast",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -3269,6 +3356,7 @@ name = "rspack_loader_testing"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -3362,6 +3450,7 @@ dependencies = [
  "mime_guess",
  "rayon",
  "rspack_base64",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -3418,10 +3507,11 @@ dependencies = [
  "async-trait",
  "css-module-lexer",
  "heck 0.5.0",
- "indexmap 1.9.3",
+ "indexmap 2.2.6",
  "once_cell",
  "rayon",
  "regex",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3514,6 +3604,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "regex",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3535,6 +3626,7 @@ name = "rspack_plugin_hmr"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3606,6 +3698,7 @@ dependencies = [
  "regex",
  "ropey",
  "rspack_ast",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3631,6 +3724,7 @@ version = "0.1.0"
 dependencies = [
  "json",
  "ropey",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_util",
@@ -3641,6 +3735,7 @@ name = "rspack_plugin_lazy_compilation"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3719,6 +3814,7 @@ dependencies = [
  "hashlink",
  "itertools 0.13.0",
  "regex",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3790,6 +3886,7 @@ dependencies = [
  "async-trait",
  "indexmap 2.2.6",
  "itertools 0.13.0",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3901,6 +3998,7 @@ dependencies = [
  "dashmap 5.5.3",
  "indexmap 2.2.6",
  "rayon",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3936,6 +4034,7 @@ version = "0.1.0"
 dependencies = [
  "regex-syntax 0.8.3",
  "regress",
+ "rspack_cacheable",
  "rspack_error",
  "swc_core",
 ]
@@ -3993,6 +4092,7 @@ dependencies = [
  "indexmap 2.2.6",
  "itoa",
  "regex",
+ "rspack_cacheable",
  "rspack_regex",
  "rustc-hash 1.1.0",
  "serde",

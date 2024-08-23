@@ -9,10 +9,11 @@ version     = "0.1.0"
 async-trait           = { workspace = true }
 css-module-lexer      = { workspace = true }
 heck                  = { workspace = true }
-indexmap              = { version = "=1.9.3", features = ["serde-1"] }
+indexmap              = { workspace = true }
 once_cell             = { workspace = true }
 rayon                 = { workspace = true }
 regex                 = { workspace = true }
+rspack_cacheable      = { path = "../rspack_cacheable" }
 rspack_collections    = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core           = { version = "0.1.0", path = "../rspack_core" }
 rspack_error          = { version = "0.1.0", path = "../rspack_error" }

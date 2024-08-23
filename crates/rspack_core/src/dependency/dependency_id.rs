@@ -1,11 +1,13 @@
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 
+use rspack_cacheable::cacheable;
 use serde::Serialize;
 use swc_core::ecma::atoms::Atom;
 
 use crate::ModuleGraph;
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
 

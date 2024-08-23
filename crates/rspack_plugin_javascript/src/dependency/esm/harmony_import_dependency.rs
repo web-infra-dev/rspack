@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::Compilation;
 use rspack_core::DependencyConditionFn;
@@ -42,8 +43,10 @@ pub fn get_import_emitted_runtime(
 }
 
 // HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSideEffectDependency {
+  #[with(AsPreset)]
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
@@ -371,6 +374,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   None
 }
 
+#[cacheable_dyn]
 impl Dependency for HarmonyImportSideEffectDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -450,6 +454,7 @@ impl DependencyConditionFn for HarmonyImportSideEffectDependencyCondition {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for HarmonyImportSideEffectDependency {
   fn is_export_all(&self) -> Option<bool> {
     Some(self.export_all)
@@ -481,6 +486,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   // It's from HarmonyImportSideEffectDependency.
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for HarmonyImportSideEffectDependency {
   fn apply(
     &self,

@@ -74,6 +74,7 @@ where
         Some(records),
         self.old_cache.clone(),
         self.unaffected_modules_cache.clone(),
+        self.cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -116,6 +117,7 @@ where
       self.compile().await?;
 
       self.old_cache.begin_idle();
+      self.cache.idle();
     }
 
     self.compile_done().await?;

@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsTuple2, AsVec},
+};
 use rspack_core::{
   property_access, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
@@ -7,11 +11,14 @@ use swc_core::atoms::Atom;
 
 use super::ExportsBase;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CommonJsSelfReferenceDependency {
   id: DependencyId,
+  #[with(AsTuple2)]
   range: (u32, u32),
   base: ExportsBase,
+  #[with(AsVec<AsPreset>)]
   names: Vec<Atom>,
   is_call: bool,
 }
@@ -28,6 +35,7 @@ impl CommonJsSelfReferenceDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CommonJsSelfReferenceDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -68,6 +76,7 @@ impl Dependency for CommonJsSelfReferenceDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CommonJsSelfReferenceDependency {
   fn request(&self) -> &str {
     "self"
@@ -76,6 +85,7 @@ impl ModuleDependency for CommonJsSelfReferenceDependency {
 
 impl AsContextDependency for CommonJsSelfReferenceDependency {}
 
+#[cacheable_dyn]
 impl DependencyTemplate for CommonJsSelfReferenceDependency {
   fn apply(
     &self,
