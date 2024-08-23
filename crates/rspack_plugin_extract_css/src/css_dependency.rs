@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, ModuleDependency, ModuleGraph,
+  AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
+  DependencyCategory, DependencyId, ModuleDependency, ModuleGraph,
 };
 use rustc_hash::FxHashSet;
 
@@ -116,6 +116,10 @@ impl Dependency for CssDependency {
 
   fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {
     self.layer.as_ref()
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::Transitive
   }
 }
 

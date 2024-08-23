@@ -18,6 +18,7 @@ pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
 use crate::old_cache::Cache as OldCache;
+use crate::unaffected_cache::UnaffectedModulesCache;
 use crate::{
   fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
 };
@@ -63,6 +64,7 @@ where
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
+  unaffected_modules_cache: Arc<UnaffectedModulesCache>,
 }
 
 impl<T> Compiler<T>
@@ -90,6 +92,7 @@ where
       .unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve_loader.clone())));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
+    let unaffected_modules_cache = Arc::new(UnaffectedModulesCache::default());
     let module_executor = ModuleExecutor::default();
     Self {
       options: options.clone(),
@@ -100,6 +103,7 @@ where
         loader_resolver_factory.clone(),
         None,
         old_cache.clone(),
+        unaffected_modules_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -110,6 +114,7 @@ where
       loader_resolver_factory,
       old_cache,
       emitted_asset_versions: Default::default(),
+      unaffected_modules_cache,
     }
   }
 
@@ -135,6 +140,7 @@ where
         self.loader_resolver_factory.clone(),
         None,
         self.old_cache.clone(),
+        self.unaffected_modules_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),

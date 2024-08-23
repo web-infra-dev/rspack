@@ -27,6 +27,7 @@ Object {
         "force": true,
         "version": "$version$",
       },
+      "newIncremental": false,
     },
     "topLevelAwait": true,
   },

@@ -30,6 +30,10 @@ impl Dependency for RemoteToExternalDependency {
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for RemoteToExternalDependency {

@@ -72,6 +72,10 @@ impl Dependency for PureExpressionDependency {
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl AsModuleDependency for PureExpressionDependency {}

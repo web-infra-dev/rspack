@@ -1626,7 +1626,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-
+  newIncremental: boolean
 }
 
 export interface RawRuleSetCondition {

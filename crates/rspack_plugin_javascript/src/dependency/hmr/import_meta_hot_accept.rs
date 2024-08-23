@@ -42,6 +42,10 @@ impl Dependency for ImportMetaHotAcceptDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for ImportMetaHotAcceptDependency {

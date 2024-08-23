@@ -116,4 +116,8 @@ impl Dependency for ModuleDecoratorDependency {
       create_no_exports_referenced()
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }

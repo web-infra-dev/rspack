@@ -1325,7 +1325,8 @@ const rspackFutureOptions = z.strictObject({
 				.or(z.array(z.enum(["version", "uniqueId"])))
 				.optional()
 		})
-		.optional()
+		.optional(),
+	newIncremental: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
