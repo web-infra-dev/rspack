@@ -27,7 +27,7 @@ new rspack.HtmlRspackPlugin(options);
 
 :::warning
 `rspack.HtmlRspackPlugin` 不支持完整的 `ejs` 语法, 仅支持 `ejs` 语法的一个子集，如果对完整的 `ejs` 语法支持有需求，可以直接使用 `html-webpack-plugin`。为了和 `html-webpack-plugin` 的默认的插值语法对齐，
-Rspack 修改了 `ejs` escape | unescape 的默认 syntax，其采用了和 `html-webpack-plugin` 相同的 syntax。
+Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `html-webpack-plugin` 相同的语法。
 :::
 
 ### 支持的 EJS 语法
