@@ -88,14 +88,17 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     if ({global}.importScripts) scriptUrl = {global}.location + "";
     var document = {global}.document;
     if (!scriptUrl && document) {{
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {{
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {{
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }}
-        }}
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {{
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {{
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }}
+      }}
       }}
     "#
     )

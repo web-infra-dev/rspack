@@ -48,7 +48,7 @@ Object {
     "environment": Object {
       "arrowFunction": true,
       "asyncFunction": true,
-      "bigIntLiteral": undefined,
+      "bigIntLiteral": true,
       "const": true,
       "destructuring": true,
       "document": true,
@@ -320,7 +320,7 @@ Object {
     "environment": Object {
       "arrowFunction": true,
       "asyncFunction": true,
-      "bigIntLiteral": undefined,
+      "bigIntLiteral": true,
       "const": true,
       "destructuring": true,
       "document": true,
