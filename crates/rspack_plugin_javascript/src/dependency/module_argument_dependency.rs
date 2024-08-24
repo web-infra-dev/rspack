@@ -1,24 +1,22 @@
 use rspack_core::{
-  AsDependency, Compilation, DependencyTemplate, ErrorSpan, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyTemplate, RealDependencyLocation, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::ErrorLocation;
 use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
   id: Option<&'static str>,
-  loc: ErrorLocation,
-  span: ErrorSpan,
+  range: RealDependencyLocation,
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(id: Option<&'static str>, loc: ErrorLocation, span: ErrorSpan) -> Self {
-    Self { id, loc, span }
+  pub fn new(id: Option<&'static str>, range: RealDependencyLocation) -> Self {
+    Self { id, range }
   }
 
-  pub fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  pub fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 }
 
@@ -49,7 +47,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
       format!("{module_argument}")
     };
 
-    source.replace(self.span.start, self.span.end, content.as_str(), None);
+    source.replace(self.range.start, self.range.end, content.as_str(), None);
   }
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
@@ -63,7 +61,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
     _runtime: Option<&RuntimeSpec>,
   ) {
     self.id.dyn_hash(hasher);
-    self.span.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
   }
 }
 

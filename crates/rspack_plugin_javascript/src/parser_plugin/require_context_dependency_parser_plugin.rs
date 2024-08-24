@@ -76,8 +76,6 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       parser
         .dependencies
         .push(Box::new(RequireContextDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
           ContextOptions {
             mode,
             recursive,
@@ -95,7 +93,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
             referenced_exports: None,
             attributes: None,
           },
-          Some(expr.span.into()),
+          expr.span.into(),
           parser.in_try,
         )));
       return Some(true);
