@@ -1,37 +1,33 @@
 use rspack_core::{
   import_statement, runtime_condition_expression, AsDependency, Compilation, DependencyId,
-  DependencyTemplate, ErrorSpan, RuntimeCondition, RuntimeSpec, TemplateContext,
+  DependencyTemplate, RealDependencyLocation, RuntimeCondition, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
-use rspack_error::ErrorLocation;
 
 use crate::dependency::get_import_emitted_runtime;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyAcceptDependency {
-  loc: ErrorLocation,
-  range: ErrorSpan,
+  range: RealDependencyLocation,
   has_callback: bool,
   dependency_ids: Vec<DependencyId>,
 }
 
 impl HarmonyAcceptDependency {
   pub fn new(
-    loc: ErrorLocation,
-    range: ErrorSpan,
+    range: RealDependencyLocation,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
   ) -> Self {
     Self {
-      loc,
       range,
       has_callback,
       dependency_ids,
     }
   }
 
-  pub fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  pub fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 }
 
