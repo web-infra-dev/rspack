@@ -4,6 +4,13 @@
     font-size: 32px !important;
     line-height: 48px !important;
   }
+  .innerContainer {
+    background: url('./assets/bg-m.png') no-repeat !important;
+    background-size: 100% 100% !important;
+  }
+  .logo {
+    min-width: 200px !important;
+  }
 }
 
 // S
@@ -11,6 +18,13 @@
   .title {
     font-size: 32px !important;
     line-height: 48px !important;
+  }
+  .innerContainer {
+    background: url('./assets/bg-m.png') no-repeat !important;
+    background-size: 100% 100% !important;
+  }
+  .logo {
+    min-width: 160px !important;
   }
 }
 
@@ -49,30 +63,20 @@
   align-self: stretch;
   flex-wrap: wrap;
   filter: var(--landingpage-invert-filter);
+  gap: 16px;
 
   .logo {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-width: 200px;
+    gap: 8px;
     min-height: 140px;
     flex: 1 0;
     align-self: stretch;
   }
-}
 
-.bitDevContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-
-  .bitDevLogo {
-    width: 40px;
-    height: 40px;
-  }
-  .bitDevText {
-    color: var(--Text-primary-color, #0b0c0e);
+  .logoText {
+    color: #0b0c0e;
     text-align: center;
 
     font-size: 24px;
@@ -80,25 +84,4 @@
     font-weight: 700;
     line-height: 28px; /* 116.667% */
   }
-}
-
-.microsoftLogo {
-  width: 180px;
-  max-width: 180px; // override the img { max-width: 100%;}
-}
-.amazonLogo {
-  width: 120px;
-  max-width: 120px; // override the img { max-width: 100%;}
-}
-.bytedanceLogo {
-  width: 175px;
-  max-width: 175px; // override the img { max-width: 100%;}
-}
-.inituitLogo {
-  width: 120px;
-  max-width: 120px; // override the img { max-width: 100%;}
-}
-.discordLogo {
-  width: 140px;
-  max-width: 140px; // override the img { max-width: 100%;}
 }

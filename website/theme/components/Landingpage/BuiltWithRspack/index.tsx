@@ -9,6 +9,68 @@ import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import styles from './index.module.scss';
 
+type Company = {
+  name: string;
+  logo: string;
+  url: string;
+  text?: string;
+  width?: string | number;
+};
+
+const companyList: Company[] = [
+  {
+    name: 'bit.dev',
+    logo: bitDevLogo,
+    text: 'bit.dev',
+    url: 'https://bit.dev/',
+    width: 40,
+  },
+  {
+    name: 'Microsoft',
+    logo: microsoftLogo,
+    url: 'https://www.microsoft.com',
+    width: 180,
+  },
+  {
+    name: 'Amazon',
+    logo: amazonLogo,
+    url: 'https://amazon.com/',
+    width: 120,
+  },
+  {
+    name: 'ByteDance',
+    logo: bytedanceLogo,
+    url: 'https://www.bytedance.com',
+    width: 180,
+  },
+  {
+    name: 'Intuit',
+    logo: intuitLogo,
+    url: 'https://www.intuit.com',
+    width: 100,
+  },
+  {
+    name: 'Discord',
+    logo: discordLogo,
+    url: 'https://discord.com',
+    width: 140,
+  },
+];
+
+const CompanyItem = ({ item }: { item: Company }) => {
+  const { logo, name, url, text, width } = item;
+  return (
+    <Link className={styles.logo} href={url}>
+      <img src={logo} alt={name} style={{ width }} />
+      {text !== undefined ? (
+        <span className={styles.logoText}>{text}</span>
+      ) : (
+        <></>
+      )}
+    </Link>
+  );
+};
+
 const BuiltWithRsPack: React.FC = () => {
   const t = useI18n();
   return (
@@ -16,42 +78,16 @@ const BuiltWithRsPack: React.FC = () => {
       <div
         className={`${sharedStyles.innerContainer} ${styles.innerContainer}`}
       >
+        <style>
+          {`:root {
+            --landingpage-built-with-rspack-logo-size: 1;
+            } `}
+        </style>
         <h2 className={styles.title}>{t('builtWithRspack')}</h2>
         <div className={styles.logos}>
-          <Link
-            className={`${styles.logo} ${styles.bitDevContainer}`}
-            href="https://bit.dev/"
-          >
-            <img src={bitDevLogo} alt="bit.dev" className={styles.bitDevLogo} />
-            <span className={styles.bitDevText}>bit.dev</span>
-          </Link>
-          <Link className={`${styles.logo}`} href="https://www.microsoft.com">
-            <img
-              src={microsoftLogo}
-              alt="Microsoft"
-              className={styles.microsoftLogo}
-            />
-          </Link>
-          <Link className={styles.logo} href="https://amazon.com/">
-            <img src={amazonLogo} alt="Amazon" className={styles.amazonLogo} />
-          </Link>
-          <Link className={styles.logo} href="https://www.bytedance.com">
-            <img
-              src={bytedanceLogo}
-              alt="ByteDance"
-              className={styles.bytedanceLogo}
-            />
-          </Link>
-          <Link className={styles.logo} href="https://www.intuit.com">
-            <img src={intuitLogo} alt="Intuit" className={styles.inituitLogo} />
-          </Link>
-          <Link className={styles.logo} href="https://discord.com">
-            <img
-              src={discordLogo}
-              alt="discord"
-              className={styles.discordLogo}
-            />
-          </Link>
+          {companyList.map(i => {
+            return <CompanyItem key={i.name} item={i} />;
+          })}
         </div>
       </div>
     </section>

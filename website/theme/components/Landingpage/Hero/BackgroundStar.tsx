@@ -39,10 +39,10 @@ const BackgroundStar = ({
             gradientUnits="userSpaceOnUse"
             gradientTransform="translate(4 4.49998) scale(3.77871 4.29149)"
           >
-            <stop stop-color="#FF8B00" />
-            <stop offset="0.38" stop-color="#F2A65A" />
-            <stop offset="0.59" stop-color="#FFB966" />
-            <stop offset="0.92" stop-color="#FF8B00" />
+            <stop stopColor="#FF8B00" />
+            <stop offset="0.38" stopColor="#F2A65A" />
+            <stop offset="0.59" stopColor="#FFB966" />
+            <stop offset="0.92" stopColor="#FF8B00" />
           </radialGradient>
         </defs>
       </svg>

@@ -5,7 +5,7 @@
     padding: 32px 80px !important;
   }
   .featureCard {
-    flex: 1 0 30%;
+    flex: 1 0 30% !important;
   }
 }
 
@@ -15,7 +15,7 @@
     padding: 32px 80px !important;
   }
   .featureCard {
-    flex: 1 0 30%;
+    flex: 1 0 30% !important;
   }
 }
 
@@ -25,8 +25,8 @@
     padding: 32px 80px !important;
   }
   .featureCard {
-    min-width: 40%;
-    max-width: 50%;
+    min-width: 40% !important;
+    max-width: 50% !important;
   }
 }
 
@@ -117,6 +117,7 @@
 
 .whyRspackCard {
   flex: 2 0 60% !important;
+  align-self: stretch;
 
   .whyRspack {
     width: 100%;
@@ -127,7 +128,6 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    align-self: stretch;
 
     // style
     border-radius: 20px;
