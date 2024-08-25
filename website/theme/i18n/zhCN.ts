@@ -8,7 +8,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   learnMore: '深入了解',
 
   // whyRspack
-  whyRspack: '为什么使用 Rspack？',
+  whyRspack: '什么是 Rspack？',
   whyRspackDesc:
     'Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具， 它提供对 webpack 生态良好的兼容性，能够无缝替换 webpack， 并提供闪电般的构建速度。',
   FastStartup: '启动速度极快',
