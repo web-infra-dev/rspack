@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use rspack_core::{
-  module_raw, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  module_raw, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -46,6 +46,10 @@ impl Dependency for AmdRequireArrayDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::AmdRequireArray
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::False
   }
 }
 
@@ -91,6 +95,14 @@ impl DependencyTemplate for AmdRequireArrayDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

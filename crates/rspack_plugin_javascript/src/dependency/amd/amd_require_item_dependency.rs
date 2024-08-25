@@ -1,6 +1,7 @@
 use rspack_core::{
-  module_raw, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_raw, AffectType, AsContextDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -33,6 +34,10 @@ impl Dependency for AMDRequireItemDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::AmdRequireItem
   }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
+  }
 }
 
 impl DependencyTemplate for AMDRequireItemDependency {
@@ -55,6 +60,14 @@ impl DependencyTemplate for AMDRequireItemDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

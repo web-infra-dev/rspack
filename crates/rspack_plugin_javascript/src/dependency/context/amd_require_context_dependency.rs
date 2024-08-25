@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  AffectType, AsModuleDependency, Compilation, ContextDependency, ContextOptions,
+  ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 use super::{
@@ -58,6 +59,10 @@ impl Dependency for AMDRequireContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
+  }
 }
 
 impl ContextDependency for AMDRequireContextDependency {
@@ -85,16 +90,16 @@ impl ContextDependency for AMDRequireContextDependency {
     self.optional
   }
 
-  fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
-    rspack_core::ContextTypePrefix::Normal
+  fn type_prefix(&self) -> ContextTypePrefix {
+    ContextTypePrefix::Normal
   }
 }
 
 impl DependencyTemplate for AMDRequireContextDependency {
   fn apply(
     &self,
-    source: &mut rspack_core::TemplateReplaceSource,
-    code_generatable_context: &mut rspack_core::TemplateContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     context_dependency_template_as_require_call(
       self,
@@ -108,6 +113,14 @@ impl DependencyTemplate for AMDRequireContextDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

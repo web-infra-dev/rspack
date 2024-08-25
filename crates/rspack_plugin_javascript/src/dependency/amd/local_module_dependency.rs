@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyTemplate,
-  TemplateContext, TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyTemplate, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 use super::local_module::LocalModule;
@@ -32,6 +32,10 @@ impl Dependency for LocalModuleDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::False
+  }
 }
 
 impl DependencyTemplate for LocalModuleDependency {
@@ -55,6 +59,14 @@ impl DependencyTemplate for LocalModuleDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

@@ -1,7 +1,8 @@
 use bitflags::bitflags;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -230,6 +231,10 @@ impl Dependency for AmdDefineDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::AmdDefine
   }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::False
+  }
 }
 
 impl AmdDefineDependency {
@@ -317,6 +322,14 @@ impl DependencyTemplate for AmdDefineDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 
