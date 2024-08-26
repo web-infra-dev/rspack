@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import { useNavigate } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import sharedStyles from '../shared.module.scss';
@@ -27,7 +26,6 @@ type Feature = {
 const FullyFeatured = memo(() => {
   const t = useI18n();
   const tUrl = useI18nUrl();
-  const navigate = useNavigate();
 
   const FeatureRow1: Feature[] = [
     {
@@ -137,17 +135,6 @@ const FullyFeatured = memo(() => {
               </div>
             );
           })}
-        </div>
-        <div className="flex flex-col items-center self-stretch">
-          <button
-            type="button"
-            className={styles.button}
-            onClick={() => {
-              navigate(tUrl('/guide/features/asset-module'));
-            }}
-          >
-            {t('fullyfeaturedDetail')}
-          </button>
         </div>
       </div>
     </section>
