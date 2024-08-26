@@ -20,7 +20,10 @@ use rspack_error::{miette, AnyhowError, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
 use rspack_util::infallible::ResultInfallibleExt as _;
+<<<<<<< HEAD
 use serde_json::Value;
+=======
+>>>>>>> 882c65472 (feat(html): improve template parameters)
 use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
 
