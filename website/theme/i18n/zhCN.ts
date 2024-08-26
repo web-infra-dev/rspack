@@ -36,5 +36,4 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureJavaScriptApi: '提供对构建 API 的编程接口，允许自定义整个构建流程。',
   toolStackTitle: '工具栈',
   toolStackDesc: '围绕 Rspack 打造的高性能工具栈，助力现代 Web 开发',
-  recruit: 'Rspack 团队正在招聘中，欢迎加入👏🏻',
 };

@@ -44,5 +44,4 @@ export const EN_US = {
   toolStackTitle: 'Tool Stack',
   toolStackDesc:
     'High-performance tool stack built around Rspack to boost modern web development',
-  recruit: 'The Rspack team is hiring. Come and join us!',
 } as const;
