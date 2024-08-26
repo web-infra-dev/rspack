@@ -49,7 +49,6 @@ rayon              = { version = "1.10.0" }
 regex              = { version = "1.10.4" }
 rspack_sources     = { version = "=0.2.17" }
 rustc-hash         = { version = "1.1.0" }
-schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
 simd-json          = { version = "0.14.0-rc.2" }

@@ -96,14 +96,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
   } else {
-    let defualt_src_template =
+    let default_src_template =
       path_clean::clean(compilation.options.context.as_path().join("src/index.ejs")).assert_utf8();
 
-    if let Ok(content) = fs::read_to_string(&defualt_src_template) {
-      let url = defualt_src_template.as_str().to_string();
+    if let Ok(content) = fs::read_to_string(&default_src_template) {
+      let url = default_src_template.as_str().to_string();
       compilation
         .file_dependencies
-        .insert(defualt_src_template.into_std_path_buf());
+        .insert(default_src_template.into_std_path_buf());
 
       (content, url, "src/index.ejs".to_string())
     } else {

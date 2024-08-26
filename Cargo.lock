@@ -3676,7 +3676,6 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_util",
- "schemars",
  "serde",
  "serde_json",
  "sha2",
