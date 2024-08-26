@@ -115,6 +115,9 @@ export default defineConfig({
     ],
   },
   builderConfig: {
+    dev: {
+      lazyCompilation: true,
+    },
     plugins: [
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
@@ -152,18 +155,6 @@ export default defineConfig({
           },
         },
       ],
-    },
-    output: {
-      copy: {
-        patterns: [
-          {
-            from: path.join(__dirname, 'docs', 'public', '_redirects'),
-          },
-          {
-            from: path.join(__dirname, 'docs', 'public', '_headers'),
-          },
-        ],
-      },
     },
   },
 });

@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_core::Compilation;
+use rspack_core::DependencyConditionFn;
 use rspack_core::RealDependencyLocation;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
@@ -431,6 +432,24 @@ impl Dependency for HarmonyImportSideEffectDependency {
   }
 }
 
+struct HarmonyImportSideEffectDependencyCondition;
+
+impl DependencyConditionFn for HarmonyImportSideEffectDependencyCondition {
+  fn get_connection_state(
+    &self,
+    conn: &rspack_core::ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState {
+    let id = *conn.module_identifier();
+    if let Some(module) = module_graph.module_by_identifier(&id) {
+      module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
+    } else {
+      ConnectionState::Bool(true)
+    }
+  }
+}
+
 impl ModuleDependency for HarmonyImportSideEffectDependency {
   fn is_export_all(&self) -> Option<bool> {
     Some(self.export_all)
@@ -455,14 +474,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   // TODO: It's from HarmonyImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::Fn(Arc::new(
-      move |con, _, module_graph: &ModuleGraph| {
-        let id = *con.module_identifier();
-        if let Some(module) = module_graph.module_by_identifier(&id) {
-          module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
-        } else {
-          ConnectionState::Bool(true)
-        }
-      },
+      HarmonyImportSideEffectDependencyCondition,
     )))
   }
 
