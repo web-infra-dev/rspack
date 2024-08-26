@@ -51,6 +51,8 @@ use crate::{
 type ExportsDefinitionArgs = Vec<(String, String)>;
 define_hook!(ConcatenatedModuleExportsDefinitions: SyncSeriesBail(exports_definitions: &mut ExportsDefinitionArgs) -> bool);
 
+const CHARS_REQUIRING_SEMICOLON: [char; 5] = ['[', '(', '+', '-', '/'];
+
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
   pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
@@ -185,6 +187,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  pub prefix_asi: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -892,6 +895,14 @@ impl Module for ConcatenatedModule {
         let source = info.source.as_mut().expect("should have source");
         // range is extended by 2 chars to cover the appended "._"
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
+
+        let add_prefix_asi =
+          matches!(final_name.chars().next(), Some(c) if CHARS_REQUIRING_SEMICOLON.contains(&c));
+
+        if add_prefix_asi {
+          info.prefix_asi = true;
+        }
+
         source.replace(low, high + 2, &final_name, None);
       }
     }
@@ -1166,12 +1177,13 @@ impl Module for ConcatenatedModule {
       match info {
         ModuleInfo::Concatenated(info) => {
           result.add(RawSource::from(
-            format!(
-              "\n;// CONCATENATED MODULE: {}\n",
-              module_readable_identifier
-            )
-            .as_str(),
+            format!("\n// CONCATENATED MODULE: {}\n", module_readable_identifier).as_str(),
           ));
+
+          if info.prefix_asi {
+            result.add(RawSource::from(";"));
+          }
+
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
           result.add(info.source.clone().expect("should have source"));
 
@@ -1692,6 +1704,8 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source();
+      let prefix_asi =
+        matches!(source_code.chars().next(), Some(c) if CHARS_REQUIRING_SEMICOLON.contains(&c));
 
       let cm: Arc<swc_core::common::SourceMap> = Default::default();
       let fm = cm.new_source_file(
@@ -1752,6 +1766,7 @@ impl ConcatenatedModule {
       module_info.global_ctxt = global_ctxt;
       module_info.ast = Some(ast);
       module_info.runtime_requirements = runtime_requirements;
+      module_info.prefix_asi = prefix_asi;
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;

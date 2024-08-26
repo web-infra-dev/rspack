@@ -449,7 +449,7 @@ chunk (runtime: main) trees.js (trees) 215 bytes [rendered]
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warnings 1`] = `
-"asset main.js 1.83 KiB [emitted] (name: main)
+"asset main.js 1.82 KiB [emitted] (name: main)
 orphan modules 794 bytes [orphan] 10 modules
 ./index.js + 9 modules 794 bytes [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -904,7 +904,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
-"assets by status 1.41 KiB [cached] 1 asset
+"assets by status 1.4 KiB [cached] 1 asset
 orphan modules 30 bytes [orphan] 2 modules
 cacheable modules 85 bytes
   ./index.js + 1 modules 30 bytes [code generated]
@@ -1628,7 +1628,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-simple-unused 1`] = `
-"asset main.js 297 bytes [emitted] (name: main)
+"asset main.js 294 bytes [emitted] (name: main)
 modules by path ./node_modules/pmodule/*.js 232 bytes
   ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     [only some exports used: default]
@@ -2278,8 +2278,8 @@ exports[`StatsTestCases should print correct stats for split-chunks-runtime-spec
   asset used-exports-c.js 4.6 KiB [emitted] (name: c)
   asset used-exports-b.js 4.6 KiB [emitted] (name: b)
   asset used-exports-572.js 370 bytes [emitted]
-  asset used-exports-a.js 249 bytes [emitted] (name: a)
-  Entrypoint a 249 bytes = used-exports-a.js
+  asset used-exports-a.js 247 bytes [emitted] (name: a)
+  Entrypoint a 247 bytes = used-exports-a.js
   Entrypoint b 4.96 KiB = used-exports-572.js 370 bytes used-exports-b.js 4.6 KiB
   Entrypoint c 4.96 KiB = used-exports-572.js 370 bytes used-exports-c.js 4.6 KiB
   chunk (runtime: b, c) used-exports-572.js (id hint: ) 72 bytes [initial] [rendered] split chunk (cache group: default)

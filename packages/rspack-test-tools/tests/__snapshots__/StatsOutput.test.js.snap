@@ -78,7 +78,7 @@ Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/concatenated-modules should print correct stats for 1`] = `
-"asset main.js 234 bytes [emitted] (name: main)
+"asset main.js 230 bytes [emitted] (name: main)
 orphan modules 141 bytes [orphan] 4 modules
 ./index.js + 3 modules 141 bytes [code generated]
 Rspack x.x.x compiled successfully in X s"
@@ -428,7 +428,7 @@ Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
-"asset main.js 177 bytes {909} [emitted] (name: main)
+"asset main.js 175 bytes {909} [emitted] (name: main)
 chunk {909} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
 orphan modules 91 bytes [orphan] 2 modules
 ./index.js + 1 modules [911] 91 bytes {909} [code generated]

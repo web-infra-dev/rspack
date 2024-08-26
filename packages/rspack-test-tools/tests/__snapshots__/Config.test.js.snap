@@ -439,13 +439,13 @@ __webpack_require__.o = function (obj, prop) {
 })();
 /************************************************************************/
 
-;// CONCATENATED MODULE: ./e/foo.js
+// CONCATENATED MODULE: ./e/foo.js
 const foo = 'foo'
 
 // EXTERNAL MODULE: ./e/bar.cjs
 var bar = __webpack_require__(\\"997\\");
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
-;// CONCATENATED MODULE: ./e/index.js
+// CONCATENATED MODULE: ./e/index.js
 
 
 
@@ -458,7 +458,7 @@ export { foo, __webpack_exports__bar as bar };
 
 exports[`config config/library/modern-module-force-concaten step  should pass: .mjs should concat 1`] = `
 "
-;// CONCATENATED MODULE: ./d.mjs
+// CONCATENATED MODULE: ./d.mjs
 const d = 'd'
 "
 `;
@@ -541,11 +541,11 @@ __webpack_require__.o = function (obj, prop) {
 // EXTERNAL MODULE: ./f/bar.cjs
 var bar = __webpack_require__(\\"441\\");
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
-;// CONCATENATED MODULE: ./f/foo.js
+// CONCATENATED MODULE: ./f/foo.js
 const foo = 'foo'
 
-;// CONCATENATED MODULE: ./f/index.js
-
+// CONCATENATED MODULE: ./f/index.js
+;
 
 
 const value = foo + (bar_default())
@@ -558,7 +558,7 @@ export { value };
 
 exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat 1`] = `
 "
-;// CONCATENATED MODULE: ./a.js
+// CONCATENATED MODULE: ./a.js
 const a = 'a'
 
 export { a };

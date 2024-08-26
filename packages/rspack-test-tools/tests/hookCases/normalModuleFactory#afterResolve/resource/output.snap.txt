@@ -81,11 +81,11 @@ var a_default = /*#__PURE__*/__webpack_require__.n(a);
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/resource/b.js
 var b = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/b.js");
 var b_default = /*#__PURE__*/__webpack_require__.n(b);
-;// CONCATENATED MODULE: external "fs"
+// CONCATENATED MODULE: external "fs"
 var external_fs_namespaceObject = require("fs");
 var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
-;// CONCATENATED MODULE: ../../normalModuleFactory​#afterResolve/resource/resource.js
-
+// CONCATENATED MODULE: ../../normalModuleFactory​#afterResolve/resource/resource.js
+;
 
 
 
