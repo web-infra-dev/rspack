@@ -1,8 +1,16 @@
 import {
   Benchmark as BaseBenchmark,
   type BenchmarkData,
-} from '@rstack-dev/doc-ui/benchmark';
-import { useI18n } from '../../i18n';
+} from './BaseBenchmark';
+
+import { memo } from 'react';
+// TODO: extract to @rstack-dev/doc-ui/benchmark
+// import {
+//   Benchmark as BaseBenchmark,
+//   type BenchmarkData,
+// } from '@rstack-dev/doc-ui/benchmark';
+import { useI18n } from '../../../i18n';
+import sharedStyles from '../shared.module.scss';
 import styles from './index.module.scss';
 
 // Benchmark data for different cases
@@ -79,32 +87,27 @@ const BENCHMARK_DATA: BenchmarkData = {
   },
 };
 
-export function Benchmark() {
+export const Benchmark = memo(() => {
   const t = useI18n();
-
   return (
-    <div className="relative flex flex-col justify-center pt-24 pb-10 h-auto">
-      <div className="flex flex-center flex-col">
-        <h2 className={`${styles.title} font-bold text-3xl sm:text-5xl mt-16`}>
-          {t('benchmarkTitle')}
-        </h2>
-        <p
-          className={`${styles.desc} mt-8 mb-5 mx-6 text-center text-lg max-w-3xl`}
-        >
-          {t('benchmarkDesc')}
-        </p>
+    <section className={sharedStyles.container}>
+      <div className={sharedStyles.innerContainer}>
+        <div className={sharedStyles.titleAndDesc}>
+          <h1 className={sharedStyles.title}>{t('benchmarkTitle')}</h1>
+          <p className={sharedStyles.desc}>{t('benchmarkDesc')}</p>
+        </div>
+        <BaseBenchmark data={BENCHMARK_DATA} />
+        <div className="flex flex-col items-center self-stretch">
+          <a
+            href="https://github.com/rspack-contrib/performance-compare"
+            target="_blank"
+            className={styles.button}
+            rel="noreferrer"
+          >
+            {t('benchmarkDetail')}
+          </a>
+        </div>
       </div>
-      <BaseBenchmark data={BENCHMARK_DATA} />
-      <div className="flex flex-col items-center">
-        <a
-          href="https://github.com/rspack-contrib/performance-compare"
-          target="_blank"
-          className={`${styles.bottomLink} hover:text-brand transition-colors duration-300 font-medium p-2`}
-          rel="noreferrer"
-        >
-          👉 {t('benchmarkDetail')}
-        </a>
-      </div>
-    </div>
+    </section>
   );
-}
+});

@@ -1,0 +1,260 @@
+// ---------- responsive layout
+// XXL
+@media screen and (min-width: 1441px) {
+  .container {
+    padding: 32px 80px !important;
+  }
+  .featureCard {
+    flex: 1 0 30% !important;
+  }
+}
+
+// XL
+@media screen and (min-width: 1281px) and (max-width: 1440px) {
+  .container {
+    padding: 32px 80px !important;
+  }
+  .featureCard {
+    flex: 1 0 30% !important;
+  }
+}
+
+// L
+@media screen and (min-width: 835px) and (max-width: 1280px) {
+  .container {
+    padding: 32px 80px !important;
+  }
+  .featureCard {
+    min-width: 40% !important;
+    max-width: 50% !important;
+  }
+}
+
+// M
+@media screen and (min-width: 601px) and (max-width: 834px) {
+  .container {
+    padding: 24px !important;
+  }
+  .whyRspack {
+    padding: 16px !important;
+    .whyRspackTitle {
+      font-size: 32px !important;
+      font-weight: 700 !important;
+      line-height: normal !important;
+      letter-spacing: -1.28px !important;
+    }
+    .whyRspackDescription {
+      font-size: 20px !important;
+      font-style: normal !important;
+      font-weight: 400 !important;
+      line-height: normal !important;
+    }
+  }
+  .featureCard {
+    min-width: 45% !important;
+    max-width: 50% !important;
+    .featureCardInner {
+      padding: 16px !important;
+    }
+    .featureDescription {
+      font-size: 14px !important;
+    }
+  }
+}
+
+// S
+@media screen and (max-width: 600px) {
+  .container {
+    padding: 24px !important;
+  }
+  .whyRspack {
+    min-width: 100% !important;
+    padding: 16px !important;
+    .whyRspackTitle {
+      font-size: 24px !important;
+      font-style: normal !important;
+      font-weight: 700 !important;
+      line-height: normal !important;
+      letter-spacing: -0.96px !important;
+    }
+    .whyRspackDescription {
+      font-size: 16px !important;
+      font-style: normal !important;
+      font-weight: 400 !important;
+      line-height: normal !important;
+    }
+  }
+  .featureCard {
+    min-width: 100% !important;
+    .featureCardInner {
+      padding: 16px !important;
+    }
+    .featureDescription {
+      font-size: 14px !important;
+    }
+  }
+
+  // extra
+  .whyRspackBg {
+    max-width: 50% !important;
+  }
+}
+
+.container {
+  display: flex;
+  padding: 32px 144px;
+  justify-content: center;
+  align-items: center;
+
+  .innerContainer {
+    width: 100%;
+    max-width: 1440px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+.whyRspackCard {
+  flex: 2 0 60% !important;
+  align-self: stretch;
+
+  .whyRspack {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    padding: 32px;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+
+    // style
+    border-radius: 20px;
+    border: 1px solid var(--why-rspack-card-stroke);
+    background: var(--why-rspack-card-gradient);
+
+    .whyRspackBg {
+      width: 250px;
+      height: 75%;
+      position: absolute;
+      bottom: 32px;
+      right: 32px;
+      z-index: 0;
+      user-select: none;
+    }
+
+    .whyRspackContent {
+      display: flex;
+      padding: 16px;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 16px;
+
+      .whyRspackTitle {
+        font-size: 42px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: normal;
+        letter-spacing: -2px;
+        // style
+        background: var(
+          --Linear-Text,
+          linear-gradient(278deg, #ff8b00 52.48%, #f93920 98.12%)
+        );
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .whyRspackDescription {
+        // text
+        font-size: 22px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 40px; /* 166.667% */
+
+        // style
+        background: var(--why-rspack-description-bg);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+  }
+}
+
+.features {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 0px;
+
+  .featureCard {
+    display: flex;
+    flex: 1 0 30%;
+    align-self: stretch;
+
+    .featureCardInner {
+      width: 100%;
+      height: 100%;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+
+      // style
+      border-radius: 20px;
+      border: 1px solid var(--why-rspack-card-stroke);
+      background: var(--why-rspack-card-gradient);
+      padding: 32px;
+
+      .featureIcon {
+        background: url('https://assets.rspack.dev/rspack/assets/landingpage-why-rspack-card-bg.png')
+          no-repeat;
+        background-size: 100% 100%;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+        height: 150px;
+
+        user-select: none;
+      }
+
+      .featureContent {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 8px;
+
+        .featureTitle {
+          color: var(--landingpage-title-color);
+
+          font-size: 18px;
+          font-style: normal;
+          font-weight: 700;
+          line-height: normal;
+        }
+
+        .featureDescription {
+          color: var(--landingpage-desc-color);
+
+          font-size: 16px;
+          font-style: normal;
+          font-weight: 400;
+          line-height: 24px; /* 150% */
+        }
+      }
+    }
+  }
+}

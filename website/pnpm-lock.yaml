@@ -20,6 +20,9 @@ importers:
       date-fns:
         specifier: ^2.29.3
         version: 2.30.0
+      framer-motion:
+        specifier: ^11.3.4
+        version: 11.3.4(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       markdown-to-jsx:
         specifier: ^7.2.1
         version: 7.4.3(react@18.2.0)

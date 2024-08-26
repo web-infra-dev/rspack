@@ -1,0 +1,130 @@
+// M
+@media screen and (min-width: 601px) and (max-width: 1000px) {
+  .features {
+    flex-wrap: wrap !important;
+    gap: 32px 16px !important;
+  }
+  .featureCard {
+    max-width: 50% !important;
+    flex: 1 0 45% !important;
+  }
+  .main {
+    gap: 32px !important;
+  }
+}
+
+// S
+@media screen and (max-width: 600px) {
+  .features {
+    flex-wrap: wrap;
+  }
+  .featureCard {
+    max-width: 50% !important;
+    flex: 1 0 40% !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+
+    .featureTitle {
+      text-align: center !important;
+    }
+    .featureDescription {
+      display: none !important;
+    }
+  }
+
+  .main {
+    gap: 16px !important;
+  }
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.features {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+
+  .featureCard {
+    display: flex;
+    flex: 1 0 25%;
+    align-items: flex-start;
+    gap: 16px;
+    min-height: 110px;
+
+    &:hover {
+      transition: all 0.2s;
+      transform: scale(1.04, 1.04);
+      opacity: 0.8;
+    }
+
+    .icon {
+      filter: var(--landingpage-invert-filter);
+      display: flex;
+      width: 32px;
+      height: 32px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .featureContent {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      gap: 8px;
+
+      .featureTitle {
+        color: var(--landingpage-title-color);
+
+        font-size: 18px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 150%; /* 27px */
+      }
+
+      .featureDescription {
+        color: var(--landingpage-desc-color);
+
+        font-size: 15px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 23.8px; /* 158.667% */
+      }
+    }
+  }
+}
+
+.button {
+  display: flex;
+  padding: var(--Button-horizontal-padding, 12px) 24px;
+
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+
+  // style
+  border-radius: 25px;
+  border: 2px solid var(--orange-gradient, #ff8b00);
+  // text
+  color: var(--landingpage-title-color);
+  text-align: center;
+
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 24px */
+  text-transform: capitalize;
+
+  &:hover {
+    transition: all 0.2s;
+    opacity: 0.8;
+  }
+}

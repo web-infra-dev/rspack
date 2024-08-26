@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useLang } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../i18n/index';
@@ -96,7 +97,7 @@ function useFooterData() {
   ];
 }
 
-export function HomeFooter() {
+export const HomeFooter = memo(() => {
   const footerData = useFooterData();
   return (
     <div
@@ -123,4 +124,4 @@ export function HomeFooter() {
       </div>
     </div>
   );
-}
+});
