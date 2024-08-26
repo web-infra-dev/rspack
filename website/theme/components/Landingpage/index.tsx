@@ -55,9 +55,11 @@ const LandingPage = () => {
           :root:not(.dark) {
               --rp-c-bg: #fff;
           }
+          .rspress-nav {
+            transition: background 0.4s;
+          }
           body:not(.notTopArrived) .rspress-nav {
             background: transparent !important;
-            transition: background 0.2s;
           }
           `}
       </style>
