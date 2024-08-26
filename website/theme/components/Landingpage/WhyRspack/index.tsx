@@ -5,7 +5,6 @@ import Compatible from './assets/Compatible.svg';
 import FrameCheck from './assets/FrameCheck.svg';
 import Lightning from './assets/Lightning.svg';
 import Speedometer from './assets/Speedometer.svg';
-import WhyRspackBg from './assets/WhyRspackBg.png';
 import styles from './index.module.scss';
 import { useCardAnimation } from './useCardAnimation';
 
@@ -83,7 +82,11 @@ const WhyRspackCard = () => {
         <div className={styles.whyRspackContent}>
           <h3 className={styles.whyRspackTitle}>{t('whyRspack')}</h3>
           <p className={styles.whyRspackDescription}>{t('whyRspackDesc')}</p>
-          <img className={styles.whyRspackBg} src={WhyRspackBg} alt="bg" />
+          <img
+            className={styles.whyRspackBg}
+            src="https://assets.rspack.dev/rspack/assets/landingpage-why-rspack-card-why-bg.png"
+            alt="bg"
+          />
         </div>
       </div>
     </div>

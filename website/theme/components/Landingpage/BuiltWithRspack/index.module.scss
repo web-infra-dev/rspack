@@ -5,7 +5,8 @@
     line-height: 48px !important;
   }
   .innerContainer {
-    background: url('./assets/bg-m.png') no-repeat !important;
+    background: url('https://assets.rspack.dev/rspack/assets/landingpage-built-with-rspack-bg-m.png')
+      no-repeat !important;
     background-size: 100% 100% !important;
   }
   .logo {
@@ -20,7 +21,8 @@
     line-height: 48px !important;
   }
   .innerContainer {
-    background: url('./assets/bg-m.png') no-repeat !important;
+    background: url('https://assets.rspack.dev/rspack/assets/landingpage-built-with-rspack-bg-m.png')
+      no-repeat !important;
     background-size: 100% 100% !important;
   }
   .logo {
@@ -36,7 +38,8 @@
   justify-content: center;
   align-items: center;
   gap: 24px;
-  background: url('./assets/bg.png') no-repeat;
+  background: url('https://assets.rspack.dev/rspack/assets/landingpage-built-with-rspack-bg.png')
+    no-repeat;
   background-size: 100% 100%;
   background-position: center center;
 }

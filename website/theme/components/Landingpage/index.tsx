@@ -10,7 +10,11 @@ import styles from './index.module.scss';
 
 const Background = () => {
   return (
-    <img className={styles.background} src={BackgroundUrl} alt="background" />
+    <img
+      className={styles.background}
+      src="https://assets.rspack.dev/rspack/assets/landingpage-background-compressed.png"
+      alt="background"
+    />
   );
 };
 
