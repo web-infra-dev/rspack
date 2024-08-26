@@ -5,7 +5,10 @@ use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-use crate::{Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation};
+use crate::{
+  build_chunk_graph::code_splitter::BlockModulesRuntimeMap, Chunk, ChunkGraph, ChunkGroup,
+  ChunkGroupUkey, ChunkUkey, Compilation,
+};
 
 #[derive(Debug, Default)]
 pub struct CodeSplittingCache {
@@ -16,6 +19,7 @@ pub struct CodeSplittingCache {
   async_entrypoints: Vec<ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
+  pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
 }
 
 #[instrument(skip_all)]
