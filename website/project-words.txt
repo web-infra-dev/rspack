@@ -1,5 +1,6 @@
 aarch
 ahabhgk
+Akait
 alexander-akait
 analysable
 ansi
@@ -54,8 +55,8 @@ iife
 Iife
 indicatif
 innovatively
-IWANABETHATGUY
 intlify
+IWANABETHATGUY
 jantimon
 JavaScript
 jerrykingxyz

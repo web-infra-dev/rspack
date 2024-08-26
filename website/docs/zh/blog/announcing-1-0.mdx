@@ -31,3 +31,38 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 下图是 Rspack 0.1 与 Rspack 1.0 在 [benchmark](https://github.com/rspack-contrib/performance-compare) 中的 build 性能对比。可以看到，Rspack 在实现大量新特性的同时，也显著提升了构建性能：
 
 ![Rspack benchmark](https://assets.rspack.dev/rspack/assets/rspack-v1-0-benchmark.png)
+
+值得注意的是，Rspack 当前的架构和代码实现仍有许多优化空间。在 1.0 发布后，我们计划继续将 Rspack 的性能提升数倍 🚀，从而更好地支持大型应用开发。
+
+### 更好的兼容性和易于迁移
+
+在 0.1 刚发布的时候，Rspack 尚未实现很多的 webpack API 和 Hooks，只能兼容有限的 webpack 插件和 loaders，这使我们需要 fork 一些社区库来适配 Rspack，例如早期的 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)、[@rspack/plugin-minify](https://www.npmjs.com/package/@rspack/plugin-minify) 和 [@rspack/plugin-node-polyfill](https://www.npmjs.com/package/@rspack/plugin-node-polyfill)。
+
+随着 API 支持的日益完善，Rspack 适配了越来越多的 webpack 插件和 loaders。目前，Rspack 已经兼容了社区几乎所有的 loader。在社区下载量最高的 50 个 webpack 插件中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
+
+在此基础上，Rspack 也支持了更多的库和框架，包括 React、Preact、Vue、Solid、Svelte、NestJS 等 ，同时，我们也感谢社区的众多插件作者，愿意主动适配 Rspack，如 [unplugin](https://github.com/unjs/unplugin) 和 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 等。这里尤其要感谢 [Alexander Akait](https://github.com/alexander-akait)， 他作为 webpack 的主要维护者之一，帮助我们适配了许多 webpack 社区库和插件。
+
+我们也期望未来能够适配和创造更多的社区插件，使 webpack 和 Rspack 的生态更加繁荣。
+
+### 更成熟的生产环境优化
+
+生产构建的包体积一直是 Rspack 最为关注的核心指标。自 0.1 发布以来，Rspack 逐步对齐了 webpack 的各个产物优化能力，实现了完整的 [split chunks](https://rspack.dev/plugins/webpack/split-chunks-plugin#splitchunksplugin)、[tree shaking](https://rspack.dev/guide/optimization/tree-shaking)、[scope hoisting](https://rspack.dev/config/optimization#optimizationconcatenatemodules)、[mangle exports](https://rspack.dev/config/optimization#optimizationmangleexports) 等重要特性。
+
+当一个项目从 webpack 迁移到 Rspack 后，这些优化能够保障，在提升开发体验的同时，产物的包体积仍与 webpack 处于同一水平。在部分场景下，Rspack 的产物体积已经略优于 webpack。例如，我们在一个真实的中型 web 应用中进行验证，与 Rspack 0.1 相比，Rspack 1.0 的产物体积从 6600KB 优化至 5900KB，与 webpack 基本持平。未来，Rspack 也会继续探索更先进的包体积优化方案。
+
+### 支持模块联邦 2.0
+
+[Module Federation](https://module-federation.io/) 作为最完备的 Micro Frontend 架构，在整个前端生态中得到广泛应用。Rspack 团队和 Module Federation 团队一起合作开发了 Module Federation 2.0。新版本提供了动态 TS 类型提示、Runtime 插件机制、devtools、平台部署协议等功能，使得 Module Federation 可以更好地支持基于微前端架构的大型应用。
+
+此外，Rspack 也保留着对 Module Federation 1.0 的兼容和支持，使 webpack 项目能够更轻松地迁移。
+
+### 稳定的 API 和全新的官网
+
+在 1.0 版本中，我们完成了 API 的稳定性优化， 使 Configuration、JavaScript API、Plugin API 等都趋于稳定，这保证了上层的工具和框架能够更加方便地集成 Rspack。同时，我们还在官网完善了各个配置项和 API 的说明。
+
+Rspack 1.0 还包含一个[全新的文档首页](https://rspack.dev/)，感谢设计师 Emily Jackson 和团队成员 Zack Jackson 为此付出的努力。
+
+TODO: home page snapshot
+
+## 为什么是 Rspack Stack
+
