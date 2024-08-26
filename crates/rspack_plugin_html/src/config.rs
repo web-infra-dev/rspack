@@ -9,9 +9,10 @@ use sugar_path::SugarPath;
 use crate::sri::HtmlSriHashFunction;
 
 #[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlInject {
+  #[default]
   Head,
   Body,
   False,

@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use crate::visitors::asset::{HTMLPluginTag, HtmlPluginAttribute};
+use crate::visitors::{asset::HtmlPluginAttribute, tag::HTMLPluginTag};
 
 #[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug, Clone, Copy)]

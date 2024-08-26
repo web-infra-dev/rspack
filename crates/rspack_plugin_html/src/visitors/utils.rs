@@ -1,10 +1,11 @@
 use std::{borrow::Cow, env};
 
 use regex::Regex;
+use serde_json::Value;
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Element, Namespace};
 
-use super::asset::{HTMLPluginTag, HtmlPluginAttribute};
+use super::{asset::HtmlPluginAttribute, tag::HTMLPluginTag};
 
 pub fn create_attribute(name: &str, value: &Option<String>) -> Attribute {
   Attribute {
@@ -57,4 +58,52 @@ pub fn generate_posix_path(path: &str) -> Cow<'_, str> {
   } else {
     path.into()
   }
+}
+
+pub fn merge_json(a: &mut Value, b: Value) {
+  match (a, b) {
+    (a @ &mut Value::Object(_), Value::Object(b)) => {
+      let a = a.as_object_mut().unwrap();
+      for (k, v) in b {
+        merge_json(a.entry(k).or_insert(Value::Null), v);
+      }
+    }
+    (a, b) => *a = b,
+  }
+}
+
+pub fn html_tag_object_to_string(tag: &HTMLPluginTag) -> String {
+  let attributes = tag
+    .attributes
+    .iter()
+    .map(|attr| {
+      if let Some(attr_value) = &attr.attr_value {
+        format!(r#"{}="{}""#, attr.attr_name, attr_value)
+      } else {
+        attr.attr_name.to_string()
+      }
+    })
+    .collect::<Vec<String>>();
+
+  let res = format!(
+    "<{} {}{}>{}{}",
+    tag.tag_name,
+    attributes.join(" "),
+    if tag.void_tag && tag.content.is_none() {
+      "/"
+    } else {
+      ""
+    },
+    if let Some(content) = &tag.content {
+      content
+    } else {
+      ""
+    },
+    if !tag.void_tag || tag.content.is_some() {
+      format!("</{}>", tag.tag_name)
+    } else {
+      String::new()
+    }
+  );
+  res
 }
