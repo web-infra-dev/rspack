@@ -63,7 +63,9 @@ pub fn generate_posix_path(path: &str) -> Cow<'_, str> {
 pub fn merge_json(a: &mut Value, b: Value) {
   match (a, b) {
     (a @ &mut Value::Object(_), Value::Object(b)) => {
-      let a = a.as_object_mut().unwrap();
+      let a = a
+        .as_object_mut()
+        .unwrap_or_else(|| panic!("merged json is not an object"));
       for (k, v) in b {
         merge_json(a.entry(k).or_insert(Value::Null), v);
       }

@@ -11,7 +11,8 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, Mode, PathData,
+  Plugin,
 };
 use rspack_dojang::dojang::{Dojang, DojangOptions};
 use rspack_error::{miette, AnyhowError, Diagnostic, Result};
@@ -95,11 +96,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
   } else {
-    (
-      default_template().to_owned(),
-      parse_to_url("default.html").path().to_string(),
-      "default.html".to_string(),
-    )
+    let defualt_src_template =
+      path_clean::clean(compilation.options.context.as_path().join("src/index.ejs")).assert_utf8();
+
+    if let Ok(content) = fs::read_to_string(&defualt_src_template) {
+      let url = defualt_src_template.as_str().to_string();
+      compilation
+        .file_dependencies
+        .insert(defualt_src_template.into_std_path_buf());
+
+      (content, url, "src/index.ejs".to_string())
+    } else {
+      (
+        default_template().to_owned(),
+        parse_to_url("default.html").path().to_string(),
+        "default.html".to_string(),
+      )
+    }
   };
 
   let mut asset_tags = vec![];
@@ -253,7 +266,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    tags.push(HTMLPluginTag::create_favicon(favicon_link_path.clone()));
+    tags.push(HTMLPluginTag::create_favicon(&generate_posix_path(
+      &favicon_link_path,
+    )));
 
     Some(favicon_link_path)
   } else {
@@ -306,8 +321,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           "js": assets.entry("js".into()).or_default(),
           "css": assets.entry("css".into()).or_default(),
           "publicPath": config.get_public_path(compilation, &self.config.filename),
+        },
+        "options": &self.config
+      },
+    }),
+  );
+
+  // only support "mode" and some fields of "output"
+  merge_json(
+    &mut render_data,
+    serde_json::json!({
+      "rspackConfig": {
+        "mode": match compilation.options.mode {
+          Mode::Development => "development",
+          Mode::Production => "production",
+          Mode::None => "none",
+        },
+        "output": {
+          "publicPath": config.get_public_path(compilation, &self.config.filename),
+          "crossOriginLoading": format!("{}", compilation.options.output.cross_origin_loading),
         }
-      }
+      },
     }),
   );
 

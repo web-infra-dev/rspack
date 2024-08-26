@@ -312,30 +312,29 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: ejs template params: `<%=htmlWebpackPlugin.files.js[0]%>`
-  // it("allows you to specify your own HTML template file", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/test.html"),
-  //           inject: false,
-  //         }),
-  //       ],
-  //     },
-  //     ['<script src="app_bundle.js', "Some unique text"],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows you to specify your own HTML template file", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/test.html"),
+            inject: false,
+          }),
+        ],
+      },
+      ['<script src="app_bundle.js', "Some unique text"],
+      null,
+      done,
+    );
+  });
 
   // TODO: support function filename
   // it("allows to use a function to map entry names to filenames", (done) => {
@@ -385,26 +384,25 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: ejs support
-  // it("picks up src/index.ejs by default", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       context: path.join(__dirname, "fixtures"),
-  //       entry: {
-  //         app: "./index.js",
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin()],
-  //     },
-  //     ['<script defer src="app_bundle.js', "src/index.ejs"],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("picks up src/index.ejs by default", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        context: path.join(__dirname, "fixtures"),
+        entry: {
+          app: "./index.js",
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin()],
+      },
+      ['<script defer src="app_bundle.js', "src/index.ejs"],
+      null,
+      done,
+    );
+  });
 
   it("allows you to inject the assets into a given html file", (done) => {
     testHtmlPlugin(
@@ -543,36 +541,35 @@ describe("HtmlWebpackPlugin", () => {
   });
 
 
-  // TODO: ejs template params `<%= webpackConfig.output.publicPath %>`
-  // it("allows you to use chunkhash with asset into a given html file", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           inject: false,
-  //           template: path.join(__dirname, "fixtures/webpackconfig.html"),
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       {
-  //         type: "chunkhash",
-  //         chunkName: "app",
-  //         containStr: '<script src="app_bundle.js"',
-  //       },
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows you to use chunkhash with asset into a given html file", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            inject: false,
+            template: path.join(__dirname, "fixtures/webpackconfig.html"),
+          }),
+        ],
+      },
+      [
+        {
+          type: "chunkhash",
+          chunkName: "app",
+          containStr: '<script src="app_bundle.js"',
+        },
+      ],
+      null,
+      done,
+    );
+  });
 
   it("allows you to disable injection", (done) => {
     testHtmlPlugin(
@@ -1529,42 +1526,42 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // it("allows you write multiple HTML files", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin(),
-  //         new HtmlWebpackPlugin({
-  //           filename: "second-file.html",
-  //           template: path.join(__dirname, "fixtures/test.html"),
-  //         }),
-  //         new HtmlWebpackPlugin({
-  //           filename: "third-file.html",
-  //           template: path.join(__dirname, "fixtures/test.html"),
-  //         }),
-  //       ],
-  //     },
-  //     ['<script defer src="index_bundle.js"'],
-  //     null,
-  //     () => {
-  //       expect(fs.existsSync(path.join(OUTPUT_DIR, "second-file.html"))).toBe(
-  //         true,
-  //       );
-  //       expect(fs.existsSync(path.join(OUTPUT_DIR, "third-file.html"))).toBe(
-  //         true,
-  //       );
-  //       done();
-  //     },
-  //   );
-  // });
+  it("allows you write multiple HTML files", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin(),
+          new HtmlWebpackPlugin({
+            filename: "second-file.html",
+            template: path.join(__dirname, "fixtures/test.html"),
+          }),
+          new HtmlWebpackPlugin({
+            filename: "third-file.html",
+            template: path.join(__dirname, "fixtures/test.html"),
+          }),
+        ],
+      },
+      ['<script defer src="index_bundle.js"'],
+      null,
+      () => {
+        expect(fs.existsSync(path.join(OUTPUT_DIR, "second-file.html"))).toBe(
+          true,
+        );
+        expect(fs.existsSync(path.join(OUTPUT_DIR, "third-file.html"))).toBe(
+          true,
+        );
+        done();
+      },
+    );
+  });
 
   it("should inject js css files even if the html file is incomplete", (done) => {
     testHtmlPlugin(
@@ -1599,30 +1596,29 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: ejs template params `<%= webpackConfig.output.publicPath %>`
-  // it("exposes the webpack configuration to templates", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         publicPath: "https://cdn.com",
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/webpackconfig.html"),
-  //         }),
-  //       ],
-  //     },
-  //     ["Public path is https://cdn.com"],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("exposes the webpack configuration to templates", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          publicPath: "https://cdn.com",
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/webpackconfig.html"),
+          }),
+        ],
+      },
+      ["Public path is https://cdn.com"],
+      null,
+      done,
+    );
+  });
 
   // TODO: HtmlWebpackPlugin.getCompilationHooks
   // it("fires the html-webpack-plugin-alter-asset-tags event", (done) => {
@@ -3784,23 +3780,23 @@ describe("HtmlWebpackPlugin", () => {
   });
   it('syntax-support', (done) => {
     testHtmlPlugin(
-        {
-          entry: {},
-          output: {
-            path: OUTPUT_DIR,
-            filename: "index_bundle.js",
-            assetModuleFilename: "assets/demo[ext]",
-          },
-          plugins: [new HtmlWebpackPlugin(
-            {
-              minify:false,
-              templateContent: '<%= myHtml %><%- myHtml %>',
-              templateParameters: {
-                 "myHtml": "<span>Rspack</span>"
-              }
-            })]
+      {
+        entry: {},
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+          assetModuleFilename: "assets/demo[ext]",
         },
-        [`
+        plugins: [new HtmlWebpackPlugin(
+          {
+            minify: false,
+            templateContent: '<%= myHtml %><%- myHtml %>',
+            templateParameters: {
+              "myHtml": "<span>Rspack</span>"
+            }
+          })]
+      },
+      [`
 <html>
 <head></head><body><span>Rspack</span>&lt;span&gt;Rspack&lt;/span&gt;</body></html>`], null, done);
   });

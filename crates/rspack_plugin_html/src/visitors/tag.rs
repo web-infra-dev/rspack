@@ -86,14 +86,14 @@ impl HTMLPluginTag {
     if let Some(href) = &base.href {
       attributes.push(HtmlPluginAttribute {
         attr_name: "href".to_string(),
-        attr_value: Some(href.to_string().into()),
+        attr_value: Some(href.to_string()),
       });
     }
 
     if let Some(target) = &base.target {
       attributes.push(HtmlPluginAttribute {
         attr_name: "target".to_string(),
-        attr_value: Some(target.to_string().into()),
+        attr_value: Some(target.to_string()),
       });
     }
 
@@ -120,7 +120,7 @@ impl HTMLPluginTag {
 
   pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HTMLPluginTag> {
     meta
-      .into_iter()
+      .iter()
       .map(|(_, value)| HTMLPluginTag {
         tag_name: "meta".to_string(),
         attributes: value
@@ -137,7 +137,7 @@ impl HTMLPluginTag {
       .collect_vec()
   }
 
-  pub fn create_favicon(favicon: String) -> HTMLPluginTag {
+  pub fn create_favicon(favicon: &str) -> HTMLPluginTag {
     HTMLPluginTag {
       tag_name: "link".to_string(),
       attributes: vec![
@@ -147,7 +147,7 @@ impl HTMLPluginTag {
         },
         HtmlPluginAttribute {
           attr_name: "href".to_string(),
-          attr_value: Some(favicon),
+          attr_value: Some(favicon.into()),
         },
       ],
       void_tag: true,
