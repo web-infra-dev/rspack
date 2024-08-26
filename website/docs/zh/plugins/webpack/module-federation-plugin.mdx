@@ -158,16 +158,19 @@ module.exports = {
 
 ## 常见问题
 
-- 使用后发现产物中存在未降级语法
+- 构建产物中存在未降级语法？
 
-  添加 `builtin:swc-loader` 进行降级，具体需要包含 `@module-federation/runtime/rspack.js`。示例如下：
+  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation/runtime` 和 `@module-federation/sdk`。示例如下：
 
   ```js
   module.exports = {
     module: {
       rules: [
         {
-          include: '@module-federation/runtime/rspack.js',
+          include: [
+            /@module-federation[\\/]sdk/,
+            /@module-federation[\\/]runtime/,
+          ],
           use: {
             loader: 'builtin:swc-loader',
             options: {

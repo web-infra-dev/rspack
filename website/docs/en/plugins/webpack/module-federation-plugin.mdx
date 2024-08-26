@@ -158,16 +158,19 @@ The SharedConfig can include the following sub-options:
 
 ## FAQ
 
-- Q: Found there is non-downgraded syntax in the output after usage
+- Found non-downgraded syntax in the build output?
 
-  A: add `builtin:swc-loader` for downgrading, specifically it should include `@module-federation/runtime/rspack.js`, for example:
+  If you need to be compatible with legacy browsers, please add [builtin:swc-loader](/guide/features/builtin-swc-loader) for syntax downgrade, and make sure it matches `@module-federation/runtime` and `@module-federation/sdk`. Here is an example:
 
   ```js
   module.exports = {
     module: {
       rules: [
         {
-          include: '@module-federation/runtime/rspack.js',
+          include: [
+            /@module-federation[\\/]sdk/,
+            /@module-federation[\\/]runtime/,
+          ],
           use: {
             loader: 'builtin:swc-loader',
             options: {
