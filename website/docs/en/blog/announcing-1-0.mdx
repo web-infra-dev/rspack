@@ -7,3 +7,29 @@ date: 2024-06-29 16:00:00
 > August 28, 2024
 
 ![](https://assets.rspack.dev/rspack/rspack-banner-v1-0.png)
+
+---
+
+**Rspack 1.0 version released!**
+
+Rspack is a next-generation JavaScript bundler written in Rust, compatible with the webpack API and ecosystem, and is 10 times faster than webpack.
+
+18 months ago, we open-sourced Rspack 0.1 and received a lot of feedback and contributions from the community. During this time, 170 contributors have joined in the development of Rspack, submitting over 5000 pull requests and over 2000 issues, helping Rspack to rapidly release over 80 versions. And Rspack's weekly downloads on npm have exceeded 100,000 🎉.
+
+![Rspack Stats](https://assets.rspack.dev/rspack/assets/rspack-v1-0-stats.png)
+
+Today Rspack has finally reached a new milestone - 1.0. This means that Rspack is production ready, covers most of Webpack's APIs and features, and is now prepared to support more users.
+
+## New Features
+
+Since the release of 0.1, Rspack has introduced many important features and optimizations, including:
+
+### Improved Performance
+
+As a Rust-based bundler, performance has always been a core metric for Rspack. Since the release of Rspack 0.1, we have made numerous performance improvements, optimizing its performance for different scenarios, and supporting key features such as [lazy compilation](https://rspack.dev/config/experiments#experimentslazycompilation) to ensure better performance in large projects.
+
+Here is a comparison of build performance between Rspack 0.1 and Rspack 1.0 from the [benchmark](https://github.com/rspack-contrib/performance-compare). As shown, Rspack has significantly improved build performance while adding many new features:
+
+![Rspack benchmark](https://assets.rspack.dev/rspack/assets/rspack-v1-0-benchmark.png)
+
+Note that the current architecture and implementation of Rspack still have a lot of room for optimization. After the release of 1.0, we plan to further improve the performance by several folds to better support large-scale application development.
