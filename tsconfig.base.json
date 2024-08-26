@@ -10,7 +10,6 @@
     "sourceMap": true,
     "declarationMap": true,
     "composite": true,
-    "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "checkJs": true,
