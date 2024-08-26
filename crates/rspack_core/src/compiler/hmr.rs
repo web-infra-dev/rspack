@@ -99,7 +99,9 @@ where
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+      }
 
+      if self.options.new_incremental_enabled() {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
       }
