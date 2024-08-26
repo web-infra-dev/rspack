@@ -1,3 +1,4 @@
+import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
@@ -29,7 +30,12 @@ export type Dependencies = z.infer<typeof dependencies>;
 //#endregion
 
 //#region Context
-const context = z.string();
+const context = z.string().refine(
+	val => nodePath.isAbsolute(val),
+	val => ({
+		message: `The provided value ${JSON.stringify(val)} must be an absolute path.`
+	})
+);
 export type Context = z.infer<typeof context>;
 //#endregion
 
