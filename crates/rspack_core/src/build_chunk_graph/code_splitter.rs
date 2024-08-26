@@ -120,7 +120,7 @@ impl ChunkGroupInfo {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+pub(crate) struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
 
 impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   fn from(value: Option<RuntimeSpec>) -> Self {
@@ -148,7 +148,7 @@ impl CgiUkey {
   }
 }
 
-type BlockModulesRuntimeMap = IndexMap<
+pub(crate) type BlockModulesRuntimeMap = IndexMap<
   OptionalRuntimeSpec,
   IndexMap<
     DependenciesBlockIdentifier,
@@ -305,6 +305,33 @@ fn get_active_state_of_connections(
 
 impl<'me> CodeSplitter<'me> {
   pub fn new(compilation: &'me mut Compilation) -> Self {
+    let block_modules_runtime_map = if compilation.options.new_incremental_enabled() {
+      // recovery some data from cache
+      let affected_modules = compilation
+        .unaffected_modules_cache
+        .get_affected_modules_with_module_graph()
+        .lock()
+        .expect("should get lock");
+
+      for module in affected_modules.iter() {
+        for map in compilation
+          .code_splitting_cache
+          .block_modules_runtime_map
+          .values_mut()
+        {
+          // invalidate affected modules
+          map.swap_remove(&DependenciesBlockIdentifier::Module(*module));
+        }
+      }
+
+      compilation
+        .code_splitting_cache
+        .block_modules_runtime_map
+        .clone()
+    } else {
+      Default::default()
+    };
+
     // This optimization is inspired from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
     // Thanks!
     let mut ordinal_by_module = IdentifierMap::default();
@@ -350,7 +377,7 @@ impl<'me> CodeSplitter<'me> {
       block_chunk_groups: Default::default(),
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
-      block_modules_runtime_map: Default::default(),
+      block_modules_runtime_map,
       ordinal_by_module,
       mask_by_chunk,
 
@@ -868,6 +895,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     for module_identifier in ids {
       self.compilation.chunk_graph.add_module(module_identifier)
     }
+
+    self
+      .compilation
+      .code_splitting_cache
+      .block_modules_runtime_map = self.block_modules_runtime_map;
 
     logger.log(format!(
       "{} queue items processed ({} blocks)",
@@ -1854,7 +1886,7 @@ struct ProcessEntryBlock {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-enum DependenciesBlockIdentifier {
+pub(crate) enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
