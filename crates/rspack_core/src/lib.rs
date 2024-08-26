@@ -7,6 +7,8 @@
 #![feature(option_get_or_insert_default)]
 
 use std::{fmt, sync::Arc};
+mod cgm_hash_results;
+mod cgm_runtime_requirement_results;
 mod dependencies_block;
 pub mod diagnostics;
 mod unaffected_cache;
