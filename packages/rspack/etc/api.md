@@ -9942,6 +9942,7 @@ declare namespace rspackExports {
         Watching,
         sources,
         config,
+        ValidationError,
         util,
         EntryOptionPlugin,
         OutputFileSystem,
@@ -15600,6 +15601,11 @@ export const util: {
     createHash: (algorithm: (string & {}) | "debug" | "xxhash64" | "md4" | "native-md4" | (new () => default_2)) => default_2;
     cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
+
+// @public (undocumented)
+export class ValidationError extends Error {
+    constructor(message: string);
+}
 
 // @public (undocumented)
 export const version: string;
