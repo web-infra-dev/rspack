@@ -2,14 +2,12 @@ use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rayon::prelude::*;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};
 
-// use tokio::sync::Sender
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -158,14 +156,14 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
-    compilation.create_module_hashes(modules.par_iter().copied())?;
+    compilation.create_module_hashes(modules.clone())?;
 
     compilation.code_generation_modules(&mut None, modules.clone())?;
 
     Handle::current().block_on(async {
       compilation
         .process_runtime_requirements(
-          modules.iter().copied().collect::<Vec<_>>(),
+          modules.clone(),
           once(chunk_ukey),
           once(chunk_ukey),
           compilation.plugin_driver.clone(),
