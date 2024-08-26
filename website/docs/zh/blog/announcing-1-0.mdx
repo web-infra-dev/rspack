@@ -83,23 +83,23 @@ Rspack 当前的目标是：
 Rstack 是 "Rspack Stack" 的缩写，代表以 Rspack 为核心的一整套技术栈，包含以下工具：
 
 - **Rspack** 专注于实现底层的高性能 bundler，兼顾性能和灵活的配置。
-- **Rsbuild** 专注于 Web 应用场景，提供开箱即用的体验，封装最佳实践。
-- **Rslib** 专注于 Library 场景，构建高质量的 ESM 和 CJS 产物。
-- **Rspress** 提供一流的生成文档站等静态站点的工具。
-- **Rsdoctor** 提供白盒化的诊断工具，降低开发者排查构建问题的成本。
+- **Rsbuild** 专注于构建 Web 应用，提供开箱即用的开发体验。
+- **Rslib** 专注于构建 Library，提供高质量的 ESM 和 CJS 产物。
+- **Rspress** 专注于生成静态站点，支持 MDX 来搭建文档站和博客。
+- **Rsdoctor** 专注于构建分析，帮助开发者解决构建相关的问题。
 
-这些工具共同构成了 Rstack 技术栈体系。我们期望为开发者的整个开发流程提供一致的技术体系，为开发者和用户都提供一流的体验。
+这些工具共同构成了 Rstack 技术栈。我们希望通过提供统一的 web 开发工具，为开发者和用户带来一流的体验。
 
 ### 兼容 webpack
 
 Rspack 1.0 是对标 webpack v5 设计的，这帮助了大量使用 webpack 的项目平滑地迁移到 Rspack。但这是一个双刃剑，为了保持对 webpack 的兼容，Rspack 的设计受到了一定限制，在 API、架构、产物格式、构建性能等方面难以达到最优解。
 
-在 Rspack 未来的大版本中，将逐步引入一些对于 webpack v5 的 breaking change。例如，Rspack 2.0 将是我们心中的 webpack v6 应有的样子。这有助于 Rspack 改进自身的 API 设计，进一步提升构建性能，并实现更多强大的新特性。
+在 Rspack 未来的大版本中，将逐步引入一些对于 webpack v5 的 breaking change。这有助于 Rspack 改进自身的 API 设计，进一步提升构建性能，并实现更多强大的新特性。
 
-此外，兼容 webpack 并不意味着 Rspack 放弃对极致性能和现代 Web 标准的追求：
+现阶段，在兼容 webpack 的同时，Rspack 1.0 也在拥抱现代 Web 标准、追求极致的构建性能：
 
-- 性能方面，我们在 1.0 引入了许多的优化方式。例如，当 JavaScript 侧未使用某个 hook 时，Rust 侧就不会触发到 JavaScript 侧的相关通信；再比如，Rspack 对许多通信对象做了懒加载优化，即使通信的对象很大，如果 JavaScript 只消费其中的部分属性，Rspack 也只会传输被消费的数据，将 Rust 和 JavaScript 的通信开销降低到最低。此外，未来 Rspack 会考虑提供更加轻量的 hooks，以实现更加高效的 Rust 和 JavaScript 的通信。
-- Web 标准方面，Rspack 持续在积极拥抱现代 Web 标准的演进，跟进最新的 TC39 和 Web 标准。例如， Rspack 已经支持了通过 [new Worker()](https://developer.mozilla.org/en-US/docs/Web/API/Worker/Worker) 引入 Web Worker、支持通过 [Import Attributes](https://github.com/tc39/proposal-import-attributes) 引入 JSON modules， 支持按照 [CSS Module Scripts](https://web.dev/articles/css-module-scripts) 规范引入 CSS 等。
+- 对于 Web 标准，Rspack 持续在积极拥抱现代 Web 标准的演进，跟进最新的 TC39 和 Web 标准。例如， Rspack 已经支持了通过 [new Worker()](https://developer.mozilla.org/en-US/docs/Web/API/Worker/Worker) 引入 Web Worker、支持通过 [Import Attributes](https://github.com/tc39/proposal-import-attributes) 引入 JSON modules， 支持按照 [CSS Module Scripts](https://web.dev/articles/css-module-scripts) 规范引入 CSS 等。
+- 对于性能，我们在 1.0 引入了许多的优化方式。例如，当 JavaScript 侧未使用某个 hook 时，Rust 侧就不会触发到 JavaScript 侧的相关通信；再比如，Rspack 对许多通信对象做了懒加载优化，即使通信的对象很大，如果 JavaScript 只消费其中的部分属性，Rspack 也只会传输被消费的数据，将 Rust 和 JavaScript 的通信开销降低到最低。此外，未来 Rspack 会考虑提供更加轻量的 hooks，以实现更加高效的 Rust 和 JavaScript 的通信。
 
 ## 谁在使用 Rspack
 
