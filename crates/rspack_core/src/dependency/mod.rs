@@ -137,16 +137,19 @@ impl From<Vec<ReferencedExport>> for ExportsReferencedType {
   }
 }
 
-pub type DependencyConditionFn = Arc<
-  dyn Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
-    + Send
-    + Sync,
->;
+pub trait DependencyConditionFn: Sync + Send {
+  fn get_connection_state(
+    &self,
+    conn: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState;
+}
 
 #[derive(Clone)]
 pub enum DependencyCondition {
   False,
-  Fn(DependencyConditionFn),
+  Fn(Arc<dyn DependencyConditionFn>),
 }
 
 impl std::fmt::Debug for DependencyCondition {
