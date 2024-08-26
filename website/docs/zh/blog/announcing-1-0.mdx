@@ -48,17 +48,19 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 生产构建的包体积一直是 Rspack 最为关注的核心指标。自 0.1 发布以来，Rspack 逐步对齐了 webpack 的各个产物优化能力，实现了完整的 [split chunks](https://rspack.dev/plugins/webpack/split-chunks-plugin#splitchunksplugin)、[tree shaking](https://rspack.dev/guide/optimization/tree-shaking)、[scope hoisting](https://rspack.dev/config/optimization#optimizationconcatenatemodules)、[mangle exports](https://rspack.dev/config/optimization#optimizationmangleexports) 等重要特性。
 
-当一个项目从 webpack 迁移到 Rspack 后，这些优化能够保障，在提升开发体验的同时，产物的包体积仍与 webpack 处于同一水平。在部分场景下，Rspack 的产物体积已经略优于 webpack。例如，我们在一个真实的中型 web 应用中进行验证，与 Rspack 0.1 相比，Rspack 1.0 的产物体积从 6600KB 优化至 5900KB，与 webpack 基本持平。未来，Rspack 也会继续探索更先进的包体积优化方案。
+当一个项目从 webpack 迁移到 Rspack 后，这些优化能够保障，在提升开发体验的同时，产物的包体积仍与 webpack 处于同一水平。在部分场景下，Rspack 的产物体积已经略优于 webpack。
+
+例如，我们在一个真实的中型 web 应用中进行验证，与 Rspack 0.1 相比，Rspack 1.0 的产物体积从 6600KB 优化至 5900KB，与 webpack 持平。未来，Rspack 也会继续探索更先进的包体积优化方案。
 
 ### 支持模块联邦 2.0
 
-[Module Federation](https://module-federation.io/) 作为最完备的 Micro Frontend 架构，在整个前端生态中得到广泛应用。Rspack 团队和 Module Federation 团队一起合作开发了 Module Federation 2.0。新版本提供了动态 TS 类型提示、Runtime 插件机制、devtools、平台部署协议等功能，使得 Module Federation 可以更好地支持基于微前端架构的大型应用。
+[Module Federation](https://module-federation.io/) 作为最完备的 Micro-Frontend 架构，在整个前端生态中得到广泛应用。Rspack 团队和 Module Federation 团队一起合作开发了 Module Federation 2.0。新版本提供了动态 TS 类型提示、Runtime 插件机制、devtools、平台部署协议等功能，使得 Module Federation 可以更好地支持基于微前端架构的大型应用。
 
 此外，Rspack 也保留着对 Module Federation 1.0 的兼容和支持，使 webpack 项目能够更轻松地迁移。
 
 ### 稳定的 API 和全新的官网
 
-在 1.0 版本中，我们完成了 API 的稳定性优化， 使 Configuration、JavaScript API、Plugin API 等都趋于稳定，这保证了上层的工具和框架能够更加方便地集成 Rspack。同时，我们还在官网完善了各个配置项和 API 的说明。
+在 1.0 中，我们改进了 configuration、JavaScript API、plugin API 的稳定性，这保证了上层的工具和框架能够更加轻松地与 Rspack 集成。同时，我们还完善了官网的各个配置项和 API 说明。
 
 Rspack 1.0 还包含一个[全新的文档首页](https://rspack.dev/)，感谢设计师 Emily Jackson 和团队成员 Zack Jackson 为此付出的努力。
 
@@ -66,13 +68,13 @@ TODO: home page snapshot
 
 ## 为什么是 Rspack
 
-目前，社区中涌现了许多出色的 Rust Bundler，它们的性能表现都相当优异。Rspack 在确保卓越性能的同时，也在灵活度、兼容性等方面做到了社区领先。
+近两年，社区中涌现出多个基于 Rust 的 bundler，它们的性能表现都相当优异。Rspack 在确保卓越性能的同时，也在灵活度、兼容性等方面做到了社区领先。
 
-Rspack 的目标是：
+Rspack 当前的目标是：
 
-- 一方面，帮助现有的 webpack 项目能够可控、渐进地迁移到高性能的 bundler 上，使构建性能不再成为项目迭代的瓶颈；另一方面，Rspack 不仅仅适用于 Web 和 Node.js 这种我们熟悉的环境中，它的目标是覆盖所有运行 JavaScript 的场景，这意味着 Rspack 也可以很方便地支持跨平台、小程序、Electron 等一切 JavaScript 可以运行的环境。
-
-- 另一方面，我们发现在单一的工具上兼顾「灵活性」和「开箱即用」是非常困难的事情。因此，在开源 Rspack 之后，我们开发了一套完整的 Rstack 工具链，包含 [Rsbuild](https://github.com/web-infra-dev/rsbuild)、[Rspress](https://github.com/web-infra-dev/rspress)、[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 和 [Rslib](https://github.com/web-infra-dev/rslib) 等项目，它们分别面向不同的使用场景。例如，为了解决 Rspack 配置复杂、上手成本高的问题，我们通过 Rsbuild 来提供开箱即用的开发体验。
+- 帮助现有的 webpack 项目渐进地迁移到高性能的 bundler 上，使构建性能不再成为项目迭代的瓶颈；
+- Rspack 不仅仅适用于 Web 和 Node.js 这种我们熟悉的环境中，它的目标是覆盖所有运行 JavaScript 的场景，这意味着 Rspack 也可以很方便地支持 Deno、Electron、跨平台、小程序等一切 JavaScript 可以运行的环境。
+- 我们发现在单一的工具上兼顾「灵活性」和「开箱即用」是非常困难的事情。因此，在开源 Rspack 之后，我们开发了一套完整的 Rstack 工具链，包含 [Rsbuild](https://github.com/web-infra-dev/rsbuild)、[Rspress](https://github.com/web-infra-dev/rspress)、[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 和 [Rslib](https://github.com/web-infra-dev/rslib) 等项目，它们分别面向不同的使用场景。例如，为了解决 Rspack 配置复杂、上手成本高的问题，我们通过 Rsbuild 来提供开箱即用的开发体验。
 
 ### Rspack Stack
 
