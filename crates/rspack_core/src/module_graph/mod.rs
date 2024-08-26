@@ -1210,7 +1210,7 @@ impl<'a> ModuleGraph<'a> {
       .expect("should have condition");
     match condition {
       DependencyCondition::False => ConnectionState::Bool(false),
-      DependencyCondition::Fn(f) => f(connection, runtime, self),
+      DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
     }
   }
 
