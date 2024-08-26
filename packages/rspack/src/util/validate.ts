@@ -1,6 +1,13 @@
 import type { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
+export class ValidationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "ValidationError";
+	}
+}
+
 export function validate<T extends z.ZodType>(opts: any, schema: T) {
 	const res = schema.safeParse(opts);
 	if (!res.success) {
@@ -17,7 +24,7 @@ export function validate<T extends z.ZodType>(opts: any, schema: T) {
 		// `Configuration error$prefix$xxxx error$issue$yyy error$issue$zzz error`
 		const [prefix, reason] = validationErr.message.split(prefixSeparator);
 		const reasonItem = reason.split(issueSeparator);
-		const friendlyErr = new Error(
+		const friendlyErr = new ValidationError(
 			`${prefix}:\n${reasonItem.map(item => `- ${item}`).join("\n")}`
 		);
 		if (strategy === "loose") {
