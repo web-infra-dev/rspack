@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
 import sharedStyles from '../shared.module.scss';
@@ -71,7 +72,7 @@ const CompanyItem = ({ item }: { item: Company }) => {
   );
 };
 
-const BuiltWithRsPack: React.FC = () => {
+const BuiltWithRsPack: React.FC = memo(() => {
   const t = useI18n();
   return (
     <section className={sharedStyles.container}>
@@ -92,6 +93,6 @@ const BuiltWithRsPack: React.FC = () => {
       </div>
     </section>
   );
-};
+});
 
 export default BuiltWithRsPack;

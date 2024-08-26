@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import BackgroundUrl from './Background.compressed.png';
 import { Benchmark } from './Benchmark';
 import BuiltWithRspack from './BuiltWithRspack';
@@ -13,7 +14,38 @@ const Background = () => {
   );
 };
 
+const useTopArrived = () => {
+  const [scrollY, setScrollY] = useState(0);
+  const topArrived = scrollY < 100;
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll, {
+      capture: false,
+      passive: true,
+    });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  return {
+    topArrived,
+  };
+};
+
 const LandingPage = () => {
+  const { topArrived } = useTopArrived();
+  useEffect(() => {
+    if (topArrived) {
+      document.body.classList.remove('notTopArrived');
+    } else {
+      document.body.classList.add('notTopArrived');
+    }
+  }, [topArrived]);
+
   return (
     <div className={styles.landingPage}>
       <style>
@@ -23,9 +55,11 @@ const LandingPage = () => {
           :root:not(.dark) {
               --rp-c-bg: #fff;
           }
-          .rspress-nav {
+          body:not(.notTopArrived) .rspress-nav {
             background: transparent !important;
-          }`}
+            transition: background 0.2s;
+          }
+          `}
       </style>
       <Background />
       <Hero />

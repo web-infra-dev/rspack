@@ -1,11 +1,12 @@
 import type React from 'react';
+import { memo } from 'react';
 import { useLang } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
 import sharedStyles from '../shared.module.scss';
 import styles from './index.module.scss';
 
-const ToolStack: React.FC = () => {
+const ToolStack: React.FC = memo(() => {
   const lang = useLang();
   const t = useI18n();
   const isEn = lang === 'en';
@@ -74,6 +75,6 @@ const ToolStack: React.FC = () => {
       </div>
     </section>
   );
-};
+});
 
 export default ToolStack;

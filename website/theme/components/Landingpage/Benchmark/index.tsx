@@ -3,6 +3,7 @@ import {
   type BenchmarkData,
 } from './BaseBenchmark';
 
+import { memo } from 'react';
 // TODO: extract to @rstack-dev/doc-ui/benchmark
 // import {
 //   Benchmark as BaseBenchmark,
@@ -86,7 +87,7 @@ const BENCHMARK_DATA: BenchmarkData = {
   },
 };
 
-export function Benchmark() {
+export const Benchmark = memo(() => {
   const t = useI18n();
   return (
     <section className={sharedStyles.container}>
@@ -109,4 +110,4 @@ export function Benchmark() {
       </div>
     </section>
   );
-}
+});

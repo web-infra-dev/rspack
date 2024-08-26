@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useNavigate } from 'rspress/runtime';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
@@ -23,7 +24,7 @@ type Feature = {
   link: string;
 };
 
-const FullyFeatured = () => {
+const FullyFeatured = memo(() => {
   const t = useI18n();
   const tUrl = useI18nUrl();
   const navigate = useNavigate();
@@ -151,6 +152,6 @@ const FullyFeatured = () => {
       </div>
     </section>
   );
-};
+});
 
 export default FullyFeatured;

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { useNavigate } from 'rspress/runtime';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import BackgroundStar from './BackgroundStar';
@@ -55,7 +55,7 @@ const stars = positions.map(([top, left], i) => {
   );
 });
 
-const Hero = () => {
+const Hero = memo(() => {
   const tUrl = useI18nUrl();
   const t = useI18n();
 
@@ -101,6 +101,6 @@ const Hero = () => {
       </div>
     </section>
   );
-};
+});
 
 export default Hero;

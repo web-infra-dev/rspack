@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import Compatible from './assets/Compatible.svg';
@@ -89,7 +90,8 @@ const WhyRspackCard = () => {
   );
 };
 
-const FeatureItem = ({ img, url, title, description }: Feature) => {
+const FeatureItem = memo(({ feature }: { feature: Feature }) => {
+  const { description, img, title, url } = feature;
   const {
     container,
     onMouseEnter,
@@ -164,9 +166,9 @@ const FeatureItem = ({ img, url, title, description }: Feature) => {
       </Link>
     </div>
   );
-};
+});
 
-const WhyRspack = () => {
+const WhyRspack = memo(() => {
   const t = useI18n();
   const tUrl = useI18nUrl();
 
@@ -203,21 +205,13 @@ const WhyRspack = () => {
         <div className={styles.features}>
           {/* Why Rspack? */}
           <WhyRspackCard />
-          {features.map(({ img, url, title, description }) => {
-            return (
-              <FeatureItem
-                key={title}
-                img={img}
-                url={url}
-                title={title}
-                description={description}
-              />
-            );
+          {features.map(feature => {
+            return <FeatureItem key={feature.title} feature={feature} />;
           })}
         </div>
       </div>
     </section>
   );
-};
+});
 
 export default WhyRspack;

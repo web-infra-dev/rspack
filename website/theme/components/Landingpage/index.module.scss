@@ -3,12 +3,14 @@
 }
 
 .background {
+  width: 100%;
   position: absolute;
   top: calc(-1 * var(--rp-nav-height));
   left: 0;
-  width: 100%;
+
   z-index: -1;
-  pointer-events: none;
   filter: blur(2px);
+
+  pointer-events: none;
   user-select: none;
 }
