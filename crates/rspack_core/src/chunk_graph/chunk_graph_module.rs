@@ -20,9 +20,7 @@ pub struct ChunkGraphModule {
   pub id: Option<String>,
   pub(crate) entry_in_chunks: UkeySet<ChunkUkey>,
   pub chunks: UkeySet<ChunkUkey>,
-  pub(crate) runtime_requirements: Option<RuntimeSpecMap<RuntimeGlobals>>,
   pub(crate) runtime_in_chunks: UkeySet<ChunkUkey>,
-  pub(crate) hashes: Option<RuntimeSpecMap<RspackHashDigest>>,
 }
 
 impl ChunkGraphModule {
@@ -31,9 +29,7 @@ impl ChunkGraphModule {
       id: None,
       entry_in_chunks: Default::default(),
       chunks: Default::default(),
-      runtime_requirements: None,
       runtime_in_chunks: Default::default(),
-      hashes: None,
     }
   }
 }
@@ -88,39 +84,24 @@ impl ChunkGraph {
     cgm.chunks.len()
   }
 
-  pub fn add_module_runtime_requirements(
-    &mut self,
+  pub fn set_module_runtime_requirements(
+    compilation: &mut Compilation,
     module_identifier: ModuleIdentifier,
-    runtime: &RuntimeSpec,
-    runtime_requirements: RuntimeGlobals,
+    map: RuntimeSpecMap<RuntimeGlobals>,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
-
-    if let Some(runtime_requirements_map) = &mut cgm.runtime_requirements {
-      if let Some(value) = runtime_requirements_map.get_mut(runtime) {
-        value.insert(runtime_requirements);
-      } else {
-        runtime_requirements_map.set(runtime.clone(), runtime_requirements);
-      }
-    } else {
-      let mut runtime_requirements_map = RuntimeSpecMap::default();
-      runtime_requirements_map.set(runtime.clone(), runtime_requirements);
-      cgm.runtime_requirements = Some(runtime_requirements_map);
-    }
+    compilation
+      .cgm_runtime_requirements_results
+      .set_runtime_requirements(module_identifier, map);
   }
 
-  pub fn get_module_runtime_requirements(
-    &self,
+  pub fn get_module_runtime_requirements<'c>(
+    compilation: &'c Compilation,
     module_identifier: ModuleIdentifier,
     runtime: &RuntimeSpec,
-  ) -> Option<&RuntimeGlobals> {
-    let cgm = self.get_chunk_graph_module(module_identifier);
-    if let Some(runtime_requirements) = &cgm.runtime_requirements {
-      if let Some(runtime_requirements) = runtime_requirements.get(runtime) {
-        return Some(runtime_requirements);
-      }
-    }
-    None
+  ) -> Option<&'c RuntimeGlobals> {
+    compilation
+      .cgm_runtime_requirements_results
+      .get(&module_identifier, runtime)
   }
 
   pub fn get_module_runtimes(
@@ -166,27 +147,24 @@ impl ChunkGraph {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
   }
 
-  pub fn get_module_hash(
-    &self,
+  pub fn get_module_hash<'c>(
+    compilation: &'c Compilation,
     module_identifier: ModuleIdentifier,
     runtime: &RuntimeSpec,
-  ) -> Option<&RspackHashDigest> {
-    let cgm = self.get_chunk_graph_module(module_identifier);
-    if let Some(hashes) = &cgm.hashes {
-      if let Some(hash) = hashes.get(runtime) {
-        return Some(hash);
-      }
-    }
-    None
+  ) -> Option<&'c RspackHashDigest> {
+    compilation
+      .cgm_hash_results
+      .get(&module_identifier, runtime)
   }
 
   pub fn set_module_hashes(
-    &mut self,
+    compilation: &mut Compilation,
     module_identifier: ModuleIdentifier,
     hashes: RuntimeSpecMap<RspackHashDigest>,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
-    cgm.hashes = Some(hashes);
+    compilation
+      .cgm_hash_results
+      .set_hashes(module_identifier, hashes);
   }
 
   #[instrument(name = "chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]

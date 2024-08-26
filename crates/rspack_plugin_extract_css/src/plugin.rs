@@ -3,6 +3,7 @@ use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
+use rspack_core::ChunkGraph;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
@@ -546,11 +547,7 @@ async fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   used_modules
-    .map(|m| {
-      compilation
-        .chunk_graph
-        .get_module_hash(m.identifier(), &chunk.runtime)
-    })
+    .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), &chunk.runtime))
     .for_each(|current| current.hash(&mut hasher));
 
   Ok(())

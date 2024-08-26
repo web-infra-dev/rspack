@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  to_normal_comment, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals,
-  SourceType,
+  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rspack_util::diff_mode::is_diff_mode;
@@ -92,9 +92,8 @@ pub fn render_module(
   let mut sources = ConcatSource::default();
 
   if factory {
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
+    let runtime_requirements =
+      ChunkGraph::get_module_runtime_requirements(compilation, module.identifier(), &chunk.runtime);
 
     let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
     let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));

@@ -2,7 +2,9 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 
 use crate::old_cache::storage;
-use crate::{get_runtime_key, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeSpec};
+use crate::{
+  get_runtime_key, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+};
 
 type Storage = dyn storage::Storage<RuntimeGlobals>;
 
@@ -31,9 +33,7 @@ impl ProcessRuntimeRequirementsOccasion {
         return Ok(res);
       }
     };
-    let hash = compilation
-      .chunk_graph
-      .get_module_hash(module, runtime)
+    let hash = ChunkGraph::get_module_hash(compilation, module, runtime)
       .expect("should have cgm hash in process_runtime_requirements");
     let cache_key = Identifier::from(format!(
       "{}|{}|{}",

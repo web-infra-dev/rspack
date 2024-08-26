@@ -102,8 +102,11 @@ where
       }
 
       if self.options.new_incremental_enabled() {
+        new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
+        new_compilation.cgm_runtime_requirements_results =
+          std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
       }
 
       // FOR BINDING SAFETY:
