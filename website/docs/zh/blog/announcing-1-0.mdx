@@ -38,7 +38,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 在 0.1 刚发布的时候，Rspack 尚未实现许多的 webpack API 和 Hooks，只能兼容有限的 webpack 插件和 loaders，这使我们需要 fork 一些社区库来适配 Rspack，例如早期的 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)、[@rspack/plugin-minify](https://www.npmjs.com/package/@rspack/plugin-minify) 和 [@rspack/plugin-node-polyfill](https://www.npmjs.com/package/@rspack/plugin-node-polyfill)。
 
-随着 API 支持的日益完善，Rspack 适配了越来越多的 webpack 插件和 loaders。目前，Rspack 已经兼容了社区几乎所有的 loader。在下载量最高的 50 个 webpack 插件中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
+随着 API 支持的日益完善，Rspack 适配了越来越多的 webpack 插件和 loaders。目前，Rspack 已经兼容了社区几乎所有的 loader。在下载量最高的 50 个 [webpack 插件](https://rspack.dev/guide/compatibility/plugin) 中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
 
 在此基础上，Rspack 支持了更多的库和框架，包括 React、Preact、Vue、Solid、Svelte、NestJS 等。我们也感谢社区众多插件的维护者主动适配 Rspack，如 [unplugin](https://github.com/unjs/unplugin) 和 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 等。这里尤其要感谢 [Alexander Akait](https://github.com/alexander-akait)，他作为 webpack 的主要维护者之一，帮助我们支持了许多 webpack loaders 和插件。
 
