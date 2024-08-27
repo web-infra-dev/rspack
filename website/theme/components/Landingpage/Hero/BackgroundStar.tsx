@@ -20,18 +20,15 @@ const BackgroundStar = ({
   useEffect(() => {
     if (ref.current) {
       const { x, y } = ref.current.getBoundingClientRect();
-      const { width, height } = ref.current.getBoundingClientRect();
-      const { width: windowWidth, height: windowHeight } =
-        document.body.getBoundingClientRect();
-      const { width: starWidth, height: starHeight } =
-        ref.current.getBoundingClientRect();
 
-      const bodyScrollTop =
-        document.body.scrollTop ||
-        document.getElementsByTagName('html')[0].scrollTop;
-      const bodyScrollLeft = document.body.scrollLeft;
+      console.log(x, y);
+
+      if (pageX && pageY) {
+        setTransformX(-x);
+        setTransformY(-y);
+      }
     }
-  }, []);
+  }, [pageX, pageY]);
 
   return (
     <div

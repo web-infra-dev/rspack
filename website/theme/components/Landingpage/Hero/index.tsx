@@ -48,7 +48,7 @@ const useMouseMove = () => {
   const [pageX, setPageX] = useState<null | number>(null);
   const [pageY, setPageY] = useState<null | number>(null);
 
-  console.log(isHovering, pageX, pageY);
+  // console.log(isHovering, pageX, pageY);
 
   const handleMove = ({ pageX, pageY }: { pageX: number; pageY: number }) => {
     setPageX(pageX);
@@ -87,8 +87,6 @@ const Hero = memo(() => {
 
   const { pageX, pageY, ref, onMouseEnter, onMouseLeave, onMouseMove } =
     useMouseMove();
-
-  console.log(pageX, pageY);
 
   return (
     <section

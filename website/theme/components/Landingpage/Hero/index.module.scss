@@ -179,10 +179,9 @@
 
   .backgroundStar {
     transition: all 0.2s;
-    flex-shrink: 0;
+    filter: blur(2px);
 
     user-select: none;
     pointer-events: none;
-    filter: blur(1px);
   }
 }
