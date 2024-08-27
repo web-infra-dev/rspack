@@ -1,5 +1,4 @@
-import lottie from 'lottie-web';
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import sharedStyles from '../shared.module.scss';
