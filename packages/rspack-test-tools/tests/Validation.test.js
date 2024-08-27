@@ -97,6 +97,29 @@ describe("Validation", () => {
 				expect(log).toMatchInlineSnapshot(`Array []`);
 			}
 		);
+
+		createTestCase(
+			"loose-unrecognized-keys should print warning and error at the same time if both kinds of errors are returned",
+			{
+				context: "./",
+				_additionalProperty: "test"
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+				"Configuration error:
+				- The provided value \\"./\\" must be an absolute path. at \\"context\\""
+			`);
+			},
+			"loose-unrecognized-keys",
+			log => {
+				expect(log).toMatchInlineSnapshot(`
+			Array [
+			  "Configuration error:
+			- Unrecognized key(s) in object: '_additionalProperty'",
+			]
+		`);
+			}
+		);
 	});
 
 	describe("loose", () => {
@@ -109,7 +132,9 @@ describe("Validation", () => {
 					_additionalProperty: "test"
 				}
 			},
-			_ => {},
+			message => {
+				throw new Error("should not have error");
+			},
 			"loose",
 			log => {
 				expect(log).toMatchInlineSnapshot(`
@@ -136,41 +161,9 @@ describe("Validation", () => {
 				- The provided value \\"./\\" must be an absolute path. at \\"context\\""
 			`);
 			},
-			"strict"
-		);
-
-		createTestCase(
-			"unrecognized keys",
-			{
-				context: "./",
-				_additionalProperty: "test",
-				optimization: {
-					_additionalProperty: "test"
-				}
-			},
-			message => {
-				expect(message).toMatchInlineSnapshot(`
-			"Configuration error:
-			- The provided value \\"./\\" must be an absolute path. at \\"context\\"
-			- Unrecognized key(s) in object: '_additionalProperty' at \\"optimization\\"
-			- Unrecognized key(s) in object: '_additionalProperty'"
-		`);
-			},
-			"strict"
-		);
-	});
-
-	describe("default (strict)", () => {
-		createTestCase(
-			"not absolute context",
-			{
-				context: "./"
-			},
-			message => {
-				expect(message).toMatchInlineSnapshot(`
-				"Configuration error:
-				- The provided value \\"./\\" must be an absolute path. at \\"context\\""
-			`);
+			"strict",
+			log => {
+				throw new Error("should not have log");
 			}
 		);
 
@@ -190,6 +183,50 @@ describe("Validation", () => {
 			- Unrecognized key(s) in object: '_additionalProperty' at \\"optimization\\"
 			- Unrecognized key(s) in object: '_additionalProperty'"
 		`);
+			},
+			"strict",
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+	});
+
+	describe("default (strict)", () => {
+		createTestCase(
+			"not absolute context",
+			{
+				context: "./"
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+				"Configuration error:
+				- The provided value \\"./\\" must be an absolute path. at \\"context\\""
+			`);
+			},
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+
+		createTestCase(
+			"unrecognized keys",
+			{
+				context: "./",
+				_additionalProperty: "test",
+				optimization: {
+					_additionalProperty: "test"
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			"Configuration error:
+			- The provided value \\"./\\" must be an absolute path. at \\"context\\"
+			- Unrecognized key(s) in object: '_additionalProperty' at \\"optimization\\"
+			- Unrecognized key(s) in object: '_additionalProperty'"
+		`);
+			},
+			log => {
+				throw new Error("should not have log");
 			}
 		);
 	});
