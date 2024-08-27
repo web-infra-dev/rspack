@@ -25,7 +25,6 @@ export const useLottieAnimation = (
     animation.setSpeed(3);
 
     animationRef.current = animation;
-    console.log(animationRef.current);
   }, [lottieJsonUrl]);
   useEffect(() => {
     if (!animationRef.current || !ref.current) {
