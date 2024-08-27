@@ -183,7 +183,7 @@ Apply entry lazily is deprecating by rspackFuture: [experiments.rspackFuture.dis
 
 When `experiments.rspackFuture.disableApplyEntryLazily` is `false`, `options.entry` can still make valid changes after `rspack(options)` is called, but with `true` it can't, and it's behave the same as webpack5.
 
-This configuration has no effect on users developing applications in Rspack most of the time, but should be noted by developers of Rspack plugins or upper-level frameworks.
+This configuration has no effect on users developing applications in Rspack most of the time, but should be noted by developers of Rspack plugins or higher-level frameworks.
 
 ## Migration Guide
 
@@ -222,7 +222,7 @@ If you are using `@rspack/plugin-react-refresh`, now you need to install `react-
 
 ### Apply rspack.HotModuleReplacementPlugin
 
-If you are using `@rspack/cli`, or rsbuild, or other upper-level framework of Rspack to develop applications, you don't need to worry about this. This should be well handled by the upper-level framework or cli. But if you are using `@rspack/core` with a custom dev server (not `@rspack/dev-server` or `webpack-dev-server`), or developing a custom dev server, you need to notice this.
+If you are using `@rspack/cli`, or rsbuild, or other higher-level framework of Rspack to develop applications, you don't need to worry about this. This should be well handled by the higher-level framework or cli. But if you are using `@rspack/core` with a custom dev server (not `@rspack/dev-server` or `webpack-dev-server`), or developing a custom dev server, you need to notice this.
 
 Before enabling HMR in Rspack is setting `devServer.hot` to `true`, but now you need to apply `HotModuleReplacementPlugin` by yourself in your custom dev server.
 
@@ -239,7 +239,7 @@ class CustomDevServer {
 
 ### Do not change entry options after rspack(options)
 
-If you are using `@rspack/cli`, or rsbuild, or other upper-level framework of Rspack to develop applications, you don't need to worry about this. This should be well handled by the upper-level framework or cli. But if you are developing a plugin or upper-level framework, you need to notice this.
+If you are using `@rspack/cli`, or rsbuild, or other higher-level framework of Rspack to develop applications, you don't need to worry about this. This should be well handled by the higher-level framework or cli. But if you are developing a plugin or higher-level framework, you need to notice this.
 
 Before prepending an extra entry in Rspack is prepending it to `compiler.options.entry`, but now you need to apply `EntryPlugin` by yourself.
 
