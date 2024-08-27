@@ -74,7 +74,7 @@ The current goals of Rspack are:
 
 - To help existing webpack projects progressively migrate to a high performance bundler, so that build performance is no longer a bottleneck for fast iterations.
 - Rspack is not just suitable for environments like Web and Node.js that we are familiar with; its goal is to cover all environments where JavaScript runs. This means that Rspack can easily support Deno, Electron, cross-platform applications, MiniApps, and any other JavaScript runtime.
-- We found that balancing "flexibility" and "out-of-the-box" in a single tool was a challenging task. Therefore, after open-sourcing Rspack, we developed a set of Rstack toolchains, including projects such as [Rsbuild](https://github.com/web-infra-dev/rsbuild), [Rspress](https://github.com/web-infra-dev/rspress), [Rsdoctor](https://github.com/web-infra-dev/rsdoctor), and [Rslib](https://github.com/web-infra-dev/rslib), each targeting different use cases. For example, to reduce the complexity and high barriers to configuring Rspack, we provide Rsbuild for an out-of-the-box development experience.
+- We found that balancing "flexibility" and "out-of-the-box" in a single tool was a challenging task. Therefore, after open-sourcing Rspack, we developed a set of Rstack toolchains, including projects such as Rsbuild, Rspress, Rsdoctor, and Rslib, each targeting different use cases. For example, to reduce the complexity and high barriers to configuring Rspack, we provide Rsbuild for an out-of-the-box development experience.
 
 ### Rspack stack
 
@@ -82,11 +82,11 @@ The current goals of Rspack are:
 
 Rstack is short for "Rspack Stack" and stands for the tech stack built around Rspack. It consists of the following tools:
 
-- **Rspack**: Focuses on implementing the high performance bundler, balancing performance and flexible configuration.
-- **Rsbuild**: Focuses on building web applications, providing an out-of-the-box development experience.
-- **Rslib**: Focuses on building libraries, providing high quality ESM and CJS outputs.
-- **Rspress** Focuses on generating static sites and supports MDX for building documentation sites and blogs.
-- **Rsdoctor** Focuses on build analysis, helping developers resolve build-related issues.
+- [Rspack](https://github.com/web-infra-dev/rspack): Focuses on implementing the high performance bundler, balancing performance and flexible configuration.
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild): Focuses on building web applications, providing an out-of-the-box development experience.
+- [Rslib](https://github.com/web-infra-dev/rslib): Focuses on building libraries, providing high quality ESM and CJS outputs.
+- [Rspress](https://github.com/web-infra-dev/rspress) Focuses on generating static sites and supports MDX for building documentation sites and blogs.
+- [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) Focuses on build analysis, helping developers resolve build-related issues.
 
 Together these tools make up the Rstack. We aim to provide a unified set of web development tools that deliver a top tier experience for both developers and users.
 

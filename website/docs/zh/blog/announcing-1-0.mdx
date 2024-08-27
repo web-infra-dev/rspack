@@ -74,7 +74,7 @@ Rspack 当前的目标是：
 
 - 帮助现有的 webpack 项目渐进地迁移到高性能的 bundler 上，使构建性能不再成为项目迭代的瓶颈；
 - Rspack 不仅仅适用于 Web 和 Node.js 这种我们熟悉的环境中，它的目标是覆盖所有运行 JavaScript 的场景，这意味着 Rspack 也可以很方便地支持 Deno、Electron、跨平台、小程序等一切 JavaScript 可以运行的环境。
-- 我们发现在单一的工具上兼顾「灵活性」和「开箱即用」是非常困难的事情。因此，在开源 Rspack 之后，我们开发了一套完整的 Rstack 工具链，包含 [Rsbuild](https://github.com/web-infra-dev/rsbuild)、[Rspress](https://github.com/web-infra-dev/rspress)、[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 和 [Rslib](https://github.com/web-infra-dev/rslib) 等项目，它们分别面向不同的使用场景。例如，为了解决 Rspack 配置复杂、上手成本高的问题，我们通过 Rsbuild 来提供开箱即用的开发体验。
+- 我们发现在单一的工具上兼顾「灵活性」和「开箱即用」是非常困难的事情。因此，在开源 Rspack 之后，我们开发了一套完整的 Rstack 工具链，包含 Rsbuild、Rspress、Rsdoctor 和 Rslib，它们分别面向不同的使用场景。例如，为了解决 Rspack 配置复杂、上手成本高的问题，我们通过 Rsbuild 来提供开箱即用的开发体验。
 
 ### Rspack Stack
 
@@ -82,11 +82,11 @@ Rspack 当前的目标是：
 
 Rstack 是 "Rspack Stack" 的缩写，代表以 Rspack 为核心的一整套技术栈，包含以下工具：
 
-- **Rspack** 专注于实现底层的高性能 bundler，兼顾性能和灵活的配置。
-- **Rsbuild** 专注于构建 Web 应用，提供开箱即用的开发体验。
-- **Rslib** 专注于构建 Library，提供高质量的 ESM 和 CJS 产物。
-- **Rspress** 专注于生成静态站点，支持 MDX 来搭建文档站和博客。
-- **Rsdoctor** 专注于构建分析，帮助开发者解决构建相关的问题。
+- [Rspack](https://github.com/web-infra-dev/rspack) 专注于实现底层的高性能 bundler，兼顾性能和灵活的配置。
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) 专注于构建 Web 应用，提供开箱即用的开发体验。
+- [Rslib](https://github.com/web-infra-dev/rslib) 专注于构建 library，提供高质量的 ESM 和 CJS 产物。
+- [Rspress](https://github.com/web-infra-dev/rspress) 专注于生成静态站点，支持 MDX 来搭建文档站和博客。
+- [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 专注于构建分析，帮助开发者解决构建相关的问题。
 
 这些工具共同构成了 Rstack 技术栈。我们希望通过提供统一的 web 开发工具，为开发者和用户带来一流的体验。
 
@@ -124,7 +124,7 @@ Rspack 1.0 是一个全新的起点，在本次发布后，Rspack 团队将聚�
 - **开发 Rspack 1.x。** Rspack 将在 1.x 版本迭代 12～18 个月，并带来更多的新特性和改进。
 - **发布 Rsbuild 1.0。** 它基于 Rspack 1.0，并支持[多环境构建](https://rsbuild.dev/guide/advanced/environments)。目前 Rsbuild 已发布 1.0 RC，预计在 9 月发布正式版。
 - **发布 Rsdoctor 1.0。** 该版本将改进对 Vue 项目的支持，并提供适用于 CI / CD 环境的报告模式。
-- **开发 Rslib 0.x。** Rslib 是基于 Rsbuild 的 Library 构建工具，详见 [Rslib 仓库](https://github.com/web-infra-dev/rslib)。
+- **开发 Rslib 0.x。** Rslib 是基于 Rsbuild 的 library 构建工具，详见 [Rslib 仓库](https://github.com/web-infra-dev/rslib)。
 - **开发 Rspress 2.0。** 它将基于 React 19 实现，并改进一些过去不合理的设计，详见 [Rspress v2.0 planning](https://github.com/web-infra-dev/rspress/discussions/1105)。
 
 下面是一些我们计划在 Rspack 1.x 支持的关键能力：
