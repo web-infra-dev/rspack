@@ -26,16 +26,14 @@ impl Identifiable for JsLoader {
   }
 }
 
-pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
+pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    return Arc::new(
-      rspack_loader_swc::SwcLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
-        }),
-      )
+    return Ok(Arc::new(
+      rspack_loader_swc::SwcLoader::new(serde_json::from_str(options.unwrap_or("{}")).map_err(
+        |e| error!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}"),
+      )?)
       .with_identifier(builtin.into()),
-    );
+    ));
   }
 
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
@@ -44,33 +42,35 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
         panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
       });
     // TODO: builtin-loader supports function
-    return Arc::new(rspack_loader_lightningcss::LightningCssLoader::new(
-      None,
-      config.try_into().unwrap_or_else(|e| {
-        panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
-      }),
-      builtin,
+    return Ok(Arc::new(
+      rspack_loader_lightningcss::LightningCssLoader::new(
+        None,
+        config.try_into().unwrap_or_else(|e| {
+          panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
+        }),
+        builtin,
+      ),
     ));
   }
 
   if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
-    return Arc::new(
+    return Ok(Arc::new(
       rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(PREACT_REFRESH_LOADER_IDENTIFIER) {
-    return Arc::new(
+    return Ok(Arc::new(
       rspack_loader_preact_refresh::PreactRefreshLoader::default().with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_testing::SimpleAsyncLoader);
+    return Ok(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
   }
   if builtin.starts_with(rspack_loader_testing::SIMPLE_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_testing::SimpleLoader);
+    return Ok(Arc::new(rspack_loader_testing::SimpleLoader));
   }
   if builtin.starts_with(rspack_loader_testing::PITCHING_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_testing::PitchingLoader);
+    return Ok(Arc::new(rspack_loader_testing::PitchingLoader));
   }
   unreachable!("Unexpected builtin loader: {builtin}")
 }
@@ -95,7 +95,7 @@ pub(crate) async fn resolve_loader(
 
   // FIXME: not belong to napi
   if loader_request.starts_with(BUILTIN_LOADER_PREFIX) {
-    return Ok(Some(get_builtin_loader(loader_request, loader_options)));
+    return get_builtin_loader(loader_request, loader_options).map(Some);
   }
 
   let resolve_result = resolver
