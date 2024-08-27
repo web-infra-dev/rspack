@@ -66,8 +66,6 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ### DynamicEntryPlugin
 
-<ApiMeta addedVersion={'0.6.4'} />
-
 `DynamicEntryPlugin(context, entry)`
 
 与 `EntryPlugin` 类似，但接受一个函数作为 `entry` 参数。该函数在构建过程中的每个 `make` 事件触发时调用，以支持动态决定入口点。
@@ -94,8 +92,6 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ### FetchCompileAsyncWasmPlugin
 
-<ApiMeta addedVersion={'0.7.4'} />
-
 用来提供 WASM 打包的运行时代码，经常配合 childCompiler 一起使用。
 
 `web.FetchCompileAsyncWasmPlugin()`
@@ -106,15 +102,11 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ### ProvidePlugin
 
-<ApiMeta addedVersion={'0.3.3'} />
-
 `ProvidePlugin(name, request)`
 
 如果在模块中使用 `name`，则会由通过填充 `require(<request>)` 来加载它。
 
 ### NodeTargetPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 `node.NodeTargetPlugin()`
 
@@ -127,8 +119,6 @@ import WebpackLicense from '@components/WebpackLicense';
 请注意，只有当 `mode` 设置为 `'none'` 时，才应该使用 `rspack.optimize` 命名空间下的插件。否则，你可能会遇到插件被应用两次而导致问题的情况。
 
 ### LimitChunkCountPlugin
-
-<ApiMeta addedVersion={'0.3.10'} />
 
 `optimize.LimitChunkCountPlugin(options)`
 
@@ -154,30 +144,20 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ### ContainerPlugin
 
-<ApiMeta addedVersion={'0.5.0'} />
-
 `container.ContainerPlugin(options)`
 
 ### ContainerReferencePlugin
-
-<ApiMeta addedVersion={'0.5.0'} />
 
 `container.ContainerReferencePlugin(options)`
 
 ### ConsumeSharedPlugin
 
-<ApiMeta addedVersion={'0.5.0'} />
-
 `sharing.ConsumeSharedPlugin(options)`
 
 ### ProvideSharedPlugin
 
-<ApiMeta addedVersion={'0.5.0'} />
-
 `sharing.ProvideSharedPlugin(options)`
 
 ### SharePlugin
-
-<ApiMeta addedVersion={'0.5.0'} />
 
 `sharing.SharePlugin(options)`

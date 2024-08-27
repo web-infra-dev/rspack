@@ -5,8 +5,6 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 # Web Workers
 
-<ApiMeta addedVersion={'0.2.6'} />
-
 [Web Workers](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API/Using_web_workers) 是 Rspack 的一等公民，这意味着你不需要任何的 Loader 就可以直接使用 Web Workers。
 
 ## 使用方式
@@ -57,8 +55,6 @@ new Worker(new URL('./worker.js', import.meta.url), {
 :::
 
 ## worker-loader
-
-<ApiMeta addedVersion={'0.7.4'} />
 
 :::warning
 worker-loader 仅供作为方便项目迁移至 Rspack 的临时方案，推荐使用 `new Worker()` 语法。

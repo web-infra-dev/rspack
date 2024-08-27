@@ -11,12 +11,10 @@ Here we introduce a concept called Chunk, representing a resource that a browser
 
 ## Dynamic import
 
-Rspack use the `import()` syntax that conforms to the ECMAScript proposal for dynamic imports.
+Rspack use the [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) syntax that conforms to the ECMAScript proposal for dynamic imports.
 
-:::info Inconsistent behaviors with webpack
-
-- Rspack doesn't support `require.ensure`.
-
+:::tip Inconsistent behaviors with webpack
+Rspack doesn't support `require.ensure`.
 :::
 
 In `index.js`, we dynamically import two modules through `import()`, thereby separating into a new chunk.
@@ -141,8 +139,6 @@ Here is an example show the effect of the `name` configuration of cacheGroup.
 ![](https://assets.rspack.dev/rspack/assets/rspack-splitchunks-name-explain.png)
 
 ## Prefetching/Preloading modules
-
-<ApiMeta addedVersion="0.4.5" />
 
 Using these inline directives while declaring your imports allows Rspack to output “Resource Hint” which tells the browser that for:
 

@@ -66,8 +66,6 @@ Adds an entry chunk on compilation. The chunk is named `options.name` and contai
 
 ### DynamicEntryPlugin
 
-<ApiMeta addedVersion={'0.6.4'} />
-
 `DynamicEntryPlugin(context, entry)`
 
 Similar to `EntryPlugin` but accepts a function as the `entry` argument. This function is called during each `make` event in the build process to support dynamically determining the entry points.
@@ -94,8 +92,6 @@ Chunks are loaded by `importScripts`.
 
 ### FetchCompileAsyncWasmPlugin
 
-<ApiMeta addedVersion={'0.7.4'} />
-
 This plugin is used to provide runtime code for WASM bundling and is often used together with a child compiler.
 
 `web.FetchCompileAsyncWasmPlugin()`
@@ -106,15 +102,11 @@ Plugins affecting the source code of modules.
 
 ### ProvidePlugin
 
-<ApiMeta addedVersion={'0.3.3'} />
-
 `ProvidePlugin(name, request)`
 
 If `name` is used in a module it is filled by a module loaded by `require(<request>)`.
 
 ### NodeTargetPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 `node.NodeTargetPlugin()`
 
@@ -127,8 +119,6 @@ If ensures that native modules are loaded correctly even if bundled.
 Note that all plugins under `rspack.optimize` namespace should only be used when `mode` set to `'none'`. Otherwise you might get into trouble where plugins are applied twice.
 
 ### LimitChunkCountPlugin
-
-<ApiMeta addedVersion={'0.3.10'} />
 
 `optimize.LimitChunkCountPlugin(options)`
 
@@ -154,30 +144,20 @@ Internal plugins used with Module Federation, which are the basis of the `Module
 
 ### ContainerPlugin
 
-<ApiMeta addedVersion={'0.5.0'} />
-
 `container.ContainerPlugin(options)`
 
 ### ContainerReferencePlugin
-
-<ApiMeta addedVersion={'0.5.0'} />
 
 `container.ContainerReferencePlugin(options)`
 
 ### ConsumeSharedPlugin
 
-<ApiMeta addedVersion={'0.5.0'} />
-
 `sharing.ConsumeSharedPlugin(options)`
 
 ### ProvideSharedPlugin
 
-<ApiMeta addedVersion={'0.5.0'} />
-
 `sharing.ProvideSharedPlugin(options)`
 
 ### SharePlugin
-
-<ApiMeta addedVersion={'0.5.0'} />
 
 `sharing.SharePlugin(options)`
