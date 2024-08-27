@@ -21,11 +21,16 @@ const BackgroundStar = ({
     if (ref.current) {
       const { x, y } = ref.current.getBoundingClientRect();
 
-      console.log(x, y);
-
       if (pageX && pageY) {
-        setTransformX(-x);
-        setTransformY(-y);
+        const distanceX = pageX - x;
+        const distanceY = pageY - y;
+        if (Math.abs(distanceX) < 100 && Math.abs(distanceY) < 100) {
+          setTransformX(distanceX);
+          setTransformY(distanceY);
+        } else {
+          setTransformX(0);
+          setTransformY(0);
+        }
       }
     }
   }, [pageX, pageY]);
@@ -37,12 +42,15 @@ const BackgroundStar = ({
       style={{
         top,
         left,
-        transform: `translate(${transformX}px, ${transformY}px)`,
       }}
     >
       <svg
         className={styles.backgroundStar}
-        style={{ width: size, height: size }}
+        style={{
+          width: size,
+          height: size,
+          transform: `translate(${transformX}px, ${transformY}px)`,
+        }}
         xmlns="http://www.w3.org/2000/svg"
         width="8"
         height="9"
