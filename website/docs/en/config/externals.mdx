@@ -1,5 +1,5 @@
 import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import { Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/externals/" />
 
@@ -110,8 +110,6 @@ module.exports = {
 ```
 
 ### object
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 :::warning
 An object with `{ root, amd, commonjs, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
@@ -839,8 +837,6 @@ Treat `NW.js` legacy `nw.gui` module as external and load it via `require()` whe
 Treat references to `http(s)://...` and `std:...` as external and load them via `import` when used. **(Note that this changes execution order as externals are executed before any other code in the chunk)**.
 
 ### externalsPresets.webAsync
-
-<ApiMeta addedVersion="0.3.5" />
 
 **Type:** `boolean`
 

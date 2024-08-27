@@ -179,6 +179,9 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
+export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+
+// @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
@@ -195,6 +198,9 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 
 // @public (undocumented)
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
+
+// @public (undocumented)
+export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -451,6 +457,15 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hookOptions: IHookProcessorOptions<T>;
+}
+
+// @public (undocumented)
+export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
+    constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
+    // (undocumented)
+    static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    // (undocumented)
+    protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
 }
 
 // @public (undocumented)
@@ -731,6 +746,12 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
     compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
     options?: (context: ITestContext) => TCompilerOptions<T>;
+}
+
+// @public (undocumented)
+export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    target: TCompilerOptions<T>["target"];
 }
 
 // @public (undocumented)

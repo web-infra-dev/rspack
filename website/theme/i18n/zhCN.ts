@@ -31,7 +31,6 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   fullyFeaturedTitle: '功能完备',
   fullyFeaturedDesc:
     '作为 webpack 的升级替代品，带来更强大的功能和卓越的生产力。',
-  fullyfeaturedDetail: '查看所有功能',
 
   featureCodeSplitting:
     '将代码拆分成更小的 bundles，实现按需加载并提高页面性能。',

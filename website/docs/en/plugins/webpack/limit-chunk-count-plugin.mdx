@@ -1,11 +1,8 @@
-import { ApiMeta } from '@components/ApiMeta.tsx';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/plugins/limit-chunk-count-plugin/" />
 
 # LimitChunkCountPlugin
-
-<ApiMeta addedVersion={'0.3.10'} />
 
 While writing your code, you may have already added many code split points to load stuff on demand. After compiling you might notice that some chunks are too small - creating larger HTTP overhead. `LimitChunkCountPlugin` can post-process your chunks by merging them.
 

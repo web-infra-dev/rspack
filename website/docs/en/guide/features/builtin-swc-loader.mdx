@@ -2,8 +2,6 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # Builtin swc-loader
 
-<ApiMeta addedVersion="0.3.0" />
-
 `builtin:swc-loader` is the Rust version of [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The Loader's [configuration](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader`.
 
 ## Example
@@ -73,8 +71,6 @@ Additionally, you can directly refer to [`example-builtin-swc-loader`](https://g
 
 ## Type declaration
 
-<ApiMeta addedVersion="0.6.3" />
-
 You can enable type hints using the `SwcLoaderOptions` type exported by `@rspack/core`:
 
 - `rspack.config.js`:
@@ -126,7 +122,7 @@ The following is an introduction to some SWC configurations and Rspack specific 
 
 ### jsc.experimental.plugins
 
-<ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} />
 
 :::warning
 The Wasm plugin is deeply coupled with the version of SWC, you need to choose a Wasm plugin that is compatible with the corresponding version of SWC in order to function normally.
@@ -168,13 +164,11 @@ this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8
 
 ### rspackExperiments
 
-<ApiMeta addedVersion="0.4.0" />
-
 Experimental features provided by rspack.
 
 ### rspackExperiments.import
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} />
 
 Ported from [babel-plugin-import](https://github.com/umijs/babel-plugin-import), configurations are basically the same.
 

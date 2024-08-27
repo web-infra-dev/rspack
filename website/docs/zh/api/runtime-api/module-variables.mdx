@@ -272,7 +272,7 @@ __webpack_require__.h = function () {
 
 ### \_\_webpack_runtime_id\_\_
 
-<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 访问当前入口的 runtime chunk 的 id。
 
@@ -313,7 +313,7 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta addedVersion="0.3.3" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 运行时获取或修改 Base URI。
 
 <Columns>
@@ -332,7 +332,7 @@ __webpack_require__.b = document.baseURI || self.location.href;
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Rspack 能够为其加载的所有脚本添加 nonce，即一次性随机数。在入口文件中设置 `__webpack_nonce__` 变量以激活此功能。
 
@@ -454,7 +454,7 @@ __non_webpack_require__('outer.js')
 
 ### \_\_webpack_is_included\_\_
 
-<ApiMeta addedVersion="0.4.5" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 测试给定的模块是否被 Rspack 打包。
 
@@ -534,7 +534,7 @@ if (false) {
 
 ### \_\_webpack_chunkname\_\_
 
-<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 访问当前 chunk 的名称。
 
@@ -633,13 +633,13 @@ __webpack_get_script_filename__ = chunkId => {
 
 ### \_\_webpack_share_scopes\_\_
 
-<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 用于存储 module federation 中的一个远程容器共享作用域 (shared scope) 相关信息。
 
 ### \_\_webpack_init_sharing\_\_
 
-<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 用于初始化 module federation 中的一个远程容器共享作用域 (shared scope) 并加载相关模块。
 
@@ -655,7 +655,7 @@ __webpack_get_script_filename__ = chunkId => {
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta addedVersion="0.5.2" specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} />
 当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过 `experiments.rspackFuture.bundlerInfo.version`
 修改。
 

@@ -1,5 +1,4 @@
 import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/guides/code-splitting/" />
 
@@ -11,12 +10,10 @@ Rspack 支持代码分割特性，允许让你对代码进行分割，控制生�
 
 ## 动态导入（dynamic import）
 
-当涉及到动态代码拆分时， Rspack 选择的方式是使用符合 ECMAScript 提案的 `import()` 语法来实现动态导入。
+当涉及到动态代码拆分时， Rspack 使用符合 ECMAScript 提案的 [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) 语法来实现动态导入。
 
-:::info 与 webpack 的差异点
-
-- Rspack 不支持 `require.ensure` 功能。
-
+:::tip 与 webpack 的差异点
+Rspack 不支持 `require.ensure` 功能。
 :::
 
 我们在 `index.js` 通过 `import()` 来动态导入 2 个模块，从而分离出一个新的 Chunk。
@@ -141,8 +138,6 @@ module.exports = {
 ![](https://assets.rspack.dev/rspack/assets/rspack-splitchunks-name-explain.png)
 
 ## Prefetching/Preloading 模块
-
-<ApiMeta addedVersion="0.4.5" />
 
 声明 `import` 时使用下列内置指令可以让 Rspack 产出标签以触发浏览器：
 

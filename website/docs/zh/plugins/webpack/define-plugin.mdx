@@ -1,11 +1,8 @@
-import { ApiMeta } from '@components/ApiMeta.tsx';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/plugins/define-plugin/" />
 
 # DefinePlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 `DefinePlugin` 在编译时将代码中的变量替换为其他值或表达式。这对于允许开发构建和生产构建之间的不同行为非常有用。如果你在开发构建中执行日志记录，但在生产构建中则不执行，你可能会使用一个全局常量来决定是否进行日志记录。这正是 `DefinePlugin` 的用武之地，为开发和生产构建设置一成不变的规则。
 

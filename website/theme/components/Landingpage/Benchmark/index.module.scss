@@ -34,4 +34,8 @@
     transition: all 0.2s;
     opacity: 0.8;
   }
+
+  &:active {
+    opacity: 0.6;
+  }
 }
