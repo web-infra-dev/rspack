@@ -73,6 +73,7 @@ export const useCardAnimation = () => {
 
   return {
     ref,
+    isHovering,
     shine: isHovering ? shine : '',
     shineBg: isHovering ? shineBg : '',
     container: isHovering ? container : '',
