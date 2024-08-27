@@ -57,11 +57,11 @@ Rspack was initially created to solve performance problems encountered at ByteDa
 
 ## Current status of Rspack
 
-Rspack has been under continuous development since April 2022, and was launched as open source in March 2023. Rspack has already implemented most important features of webpack and these features can meet the needs of most projects. Some ByteDance internal projects have already achieved a 5-10 times improvement moving from webpack to Rspack, and there's still room for future optimizations.
+In August 2024, we released [Rspack 1.0](/blog/announcing-1-0), which is is production-ready and covers most of webpack's APIs and features.
 
-Rspack is compatible with webpack's configuration schema and loader architecture. You can seamlessly use familiar loaders such as `babel-loader`, `less-loader`, `sass-loader`, `vue-loader`, etc.
+Rspack is currently compatible with almost all loaders in the community. For the 50 most downloaded webpack plugins, more than 80% can be used in Rspack or have an alternative.
 
-Currently, Rspack's cache support is relatively simple, only supporting memory-level caching. In the future, we will build stronger cache capabilities, including migratable persistent caching, which will bring greater imagination space, such as reusing Rspack's cloud cache on different machines in monorepos, to improve the cache hit rate of large projects.
+Please refer to the [Rspack blog](/blog/index) for the latest updates on Rspack.
 
 ## The future of Rspack
 
