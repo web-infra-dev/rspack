@@ -133,10 +133,10 @@
     --landingpage-invert-filter: none;
 
     --why-rspack-card-stroke: rgba(226, 232, 240, 0.5);
-    --why-rspack-card-gradient: conic-gradient(
-      from 45deg at 0% 100%,
-      #fff 0deg,
-      rgba(249, 249, 249, 0.8) 360deg
+    --why-rspack-card-gradient: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 1),
+      rgba(249, 249, 249, 0.5)
     );
     --why-rspack-description-bg: linear-gradient(
       90deg,
@@ -151,14 +151,10 @@
     --landingpage-invert-filter: invert(1);
 
     --why-rspack-card-stroke: #23272f;
-    --why-rspack-card-gradient: var(
-      --Flipped-Angular-gradient,
-      conic-gradient(
-        from 45deg at 0% 100%,
-        rgba(255, 255, 255, 0.06) 0deg,
-        rgba(255, 255, 255, 0) 360deg
-      ),
-      rgba(11, 12, 14, 0.8)
+    --why-rspack-card-gradient: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0),
+      rgba(255, 255, 255, 0.03)
     );
     --why-rspack-description-bg: linear-gradient(
       87deg,
