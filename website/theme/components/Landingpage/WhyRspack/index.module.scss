@@ -141,10 +141,11 @@
 
       .whyRspackDescription {
         // text
-        font-size: 22px;
+        font-size: 20px;
         font-style: normal;
         font-weight: 400;
         line-height: 40px; /* 166.667% */
+        margin-top: 4px;
 
         // style
         background: var(--why-rspack-description-bg);
@@ -211,16 +212,16 @@
         .featureTitle {
           color: var(--landingpage-title-color);
 
-          font-size: 18px;
+          font-size: 20px;
           font-style: normal;
           font-weight: 700;
-          line-height: normal;
+          line-height: 1.5;
         }
 
         .featureDescription {
           color: var(--landingpage-desc-color);
 
-          font-size: 16px;
+          font-size: 15px;
           font-style: normal;
           font-weight: 400;
           line-height: 24px; /* 150% */

@@ -130,7 +130,6 @@
 
 .button {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 10px;
   padding: 12px 24px 12px 24px;
@@ -146,6 +145,10 @@
   &:hover {
     transition: all 0.2s;
     opacity: 0.8;
+  }
+
+  &:active {
+    opacity: 0.6;
   }
 }
 
