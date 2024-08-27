@@ -43,31 +43,19 @@ const positions = [
 ];
 
 const useMouseMove = () => {
-  const [isHovering, setIsHovering] = useState(false);
   const ref = useRef<any>();
   const [pageX, setPageX] = useState<null | number>(null);
   const [pageY, setPageY] = useState<null | number>(null);
-
-  // console.log(isHovering, pageX, pageY);
 
   const handleMove = ({ pageX, pageY }: { pageX: number; pageY: number }) => {
     setPageX(pageX);
     setPageY(pageY);
   };
 
-  const handleEnter = () => {
-    setIsHovering(true);
-  };
-  const handleLeave = () => {
-    setIsHovering(false);
-  };
-
   return {
     ref,
     pageX,
     pageY,
-    onMouseEnter: handleEnter,
-    onMouseLeave: handleLeave,
     onMouseMove: handleMove,
   };
 };
@@ -85,17 +73,10 @@ const Hero = memo(() => {
     navigate(tUrl('/guide/start/introduction'));
   }, [tUrl, navigate]);
 
-  const { pageX, pageY, ref, onMouseEnter, onMouseLeave, onMouseMove } =
-    useMouseMove();
+  const { pageX, pageY, ref, onMouseMove } = useMouseMove();
 
   return (
-    <section
-      className={styles.hero}
-      ref={ref}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onMouseMove={onMouseMove}
-    >
+    <section className={styles.hero} ref={ref} onMouseMove={onMouseMove}>
       {positions.map(([top, left], i) => {
         return (
           <BackgroundStar
