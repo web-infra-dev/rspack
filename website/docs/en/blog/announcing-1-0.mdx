@@ -14,7 +14,7 @@ date: 2024-06-29 16:00:00
 
 Rspack is a next-generation JavaScript bundler written in Rust, compatible with the webpack API and ecosystem, and is 10 times faster than webpack.
 
-18 months ago, we open-sourced Rspack 0.1 and received a lot of feedback and contributions from the community. During this time, 170 contributors have joined in the development of Rspack, submitting over 5000 pull requests and more than 2000 issues, helping Rspack to release over 80 versions. And Rspack's weekly downloads on npm have exceeded 100,000 🎉.
+Eighteen months ago, we open-sourced Rspack 0.1 and received substantial feedback and contributions from the community. During this time, 170 contributors have joined in the development of Rspack, submitting over 5000 pull requests and more than 2000 issues, which have helped Rspack release over 80 versions. And Rspack's weekly downloads on npm have exceeded 100,000 🎉.
 
 ![Rspack Stats](https://assets.rspack.dev/rspack/assets/rspack-v1-0-stats.png)
 
@@ -22,21 +22,21 @@ Today Rspack has finally reached a new milestone - 1.0. This means that Rspack i
 
 ## New features
 
-Since the release of 0.1, Rspack has introduced many important features and optimizations, including:
+Since the release of 0.1, Rspack has introduced numerous important features and optimizations, including:
 
 ### Better performance
 
-As a Rust-based bundler, performance has always been a core metric for Rspack. Since the release of Rspack 0.1, we have made numerous performance improvements, optimizing its performance for different scenarios, and supporting key features such as [lazy compilation](https://rspack.dev/config/experiments#experimentslazycompilation) to ensure better performance in large projects.
+As a Rust-based bundler, performance has always been a core focus for Rspack. Since the release of Rspack 0.1, we have made numerous performance improvements, optimizing its performance for different scenarios, and supporting key features such as [lazy compilation](https://rspack.dev/config/experiments#experimentslazycompilation) to ensure better performance in large projects.
 
 Here is a comparison of build performance between Rspack 0.1 and Rspack 1.0 from the [benchmark](https://github.com/rspack-contrib/performance-compare). As shown, Rspack has significantly improved build performance while also adding many new features:
 
 ![Rspack benchmark](https://assets.rspack.dev/rspack/assets/rspack-v1-0-benchmark.png)
 
-Note that the current architecture and implementation of Rspack still have a lot of room for optimization. After the 1.0 release, we plan to further improve the performance by several folds to better support large-scale application.
+Note that the current architecture and implementation of Rspack still have significant room for optimization. After the 1.0 release, we plan to further improve the performance by several folds to better support large-scale application.
 
 ### Better compatibility
 
-When 0.1 was first released, Rspack had not yet implemented many webpack APIs and hooks, so it was only compatible with a limited number of webpack plugins and loaders. This required us to fork some community libraries to adapt them to Rspack, such as the early versions of [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html), [@rspack/plugin-minify](https://www.npmjs.com/package/@rspack/plugin-minify), and [@rspack/plugin-node-polyfill](https://www.npmjs.com/package/@rspack/plugin-node-polyfill).
+When 0.1 was first released, Rspack had not yet implemented many webpack APIs and hooks, limiting its compatibility with webpack plugins and loaders. This required us to fork some community libraries to adapt them for Rspack, such as the early versions of [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html), [@rspack/plugin-minify](https://www.npmjs.com/package/@rspack/plugin-minify), and [@rspack/plugin-node-polyfill](https://www.npmjs.com/package/@rspack/plugin-node-polyfill).
 
 As the API support has gradually improved, Rspack has added support for more and more webpack plugins and loaders. Currently, Rspack is compatible with almost all loaders in the community. Of the 50 most downloaded webpack plugins, more than 80% can be used in Rspack or have an alternative.
 
@@ -46,11 +46,11 @@ We also hope to support and create more community plugins in the future, making 
 
 ### Smaller bundle size
 
-Rspack has always focused on the bundle size of production builds. Since the release of 0.1, Rspack has gradually aligned its optimization capabilities with webpack, implementing features such as [split chunks](https://rspack.dev/plugins/webpack/split-chunks-plugin#splitchunksplugin), [tree shaking](https://rspack.dev/guide/optimization/tree-shaking), [scope hoisting](https://rspack.dev/config/optimization#optimizationconcatenatemodules) and [mangle exports](https://rspack.dev/config/optimization#optimizationmangleexports).
+Rspack has consistently prioritized minimizing the bundle size of production builds. Since the release of 0.1, Rspack has gradually aligned its optimization capabilities with webpack, implementing features such as [split chunks](https://rspack.dev/plugins/webpack/split-chunks-plugin#splitchunksplugin), [tree shaking](https://rspack.dev/guide/optimization/tree-shaking), [scope hoisting](https://rspack.dev/config/optimization#optimizationconcatenatemodules) and [mangle exports](https://rspack.dev/config/optimization#optimizationmangleexports).
 
 When a project migrates from webpack to Rspack, these features ensure that the bundle size remains the same as webpack while improving DX. In some scenarios, the output size of Rspack has even slightly outperformed webpack.
 
-For example, in a real-world medium web application, the bundle size of Rspack 1.0 was optimized from 6600KB to 5900KB compared to Rspack 0.1, which is equivalent to webpack. In the future, Rspack will continue to explore more advanced solutions to optimize bundle size.
+For example, in a real-world medium-sized web application, the bundle size of Rspack 1.0 was optimized from 6600KB to 5900KB compared to Rspack 0.1, which is equivalent to webpack. In the future, Rspack will continue to explore more advanced solutions to optimize bundle size.
 
 ### Support for Module Federation 2.0
 
@@ -60,7 +60,7 @@ Rspack also provides compatibility and support for Module Federation 1.0, making
 
 ### Stable API and new website
 
-In 1.0, we have improved the stability of the configuration, JavaScript API, and plugin API. This ensures that higher level tools and frameworks can more easily integrate with Rspack. We have also improved the documentation of each configuration and API on the official website.
+In 1.0, we have improved the stability of the configuration, JavaScript API, and plugin API. This ensures that higher-level tools and frameworks can more easily integrate with Rspack. We have also improved the documentation of each configuration and API on the official website.
 
 Rspack 1.0 also includes a brand new [homepage](https://rspack.dev/). Many thanks to designer Emily Jackson and team member Zack Jackson for their efforts in making this happen.
 
@@ -68,7 +68,7 @@ Rspack 1.0 also includes a brand new [homepage](https://rspack.dev/). Many thank
 
 ## Why Rspack
 
-Over the past two years, the community has seen the birth of several Rust-based bundlers, all of which have demonstrated remarkable performance. Rspack does not only provides first-class performance. It also leads the community in terms of flexibility and compatibility.
+Over the past two years, the community has seen the birth of several Rust-based bundlers, all of which have demonstrated remarkable performance. Rspack not only provides first-class performance. It also leads the community in terms of flexibility and compatibility.
 
 The current goals of Rspack are:
 
@@ -105,7 +105,7 @@ At this stage, Rspack 1.0 is compatible with webpack, but it also embraces moder
 
 Since Rspack was open-sourced, many enterprises and developers have used Rspack in production. The weekly npm downloads of Rspack have also exceeded 100,000.
 
-Within ByteDance, Rspack's weekly downloads exceed 400,000, and over 1,000 web applications are use Rspack, including TikTok, Douyin, Lark, Coze, and more. These projects have significantly improved build times and iteration efficiency by using Rspack. This has also helped us identify some early design issues with Rspack, prompting us to improve the architecture and strike a balance between migration cost, performance, and flexibility.
+Within ByteDance, Rspack's weekly downloads exceed 400,000, and over 1,000 web applications use Rspack, including TikTok, Douyin, Lark, Coze, and more. These projects have significantly improved build times and iteration efficiency by using Rspack. This has also helped us identify some early design issues with Rspack, prompting us to improve the architecture and strike a balance between migration cost, performance, and flexibility.
 
 We have also seen an increasing number of enterprise users starting to use Rspack, including Microsoft, Amazon, Alibaba, Intuit, Bit.dev, Discord, and others. We are excited that Rspack can help these enterprise users to achieve progressive migration, and we look forward to further cooperation and communication with more enterprises and developers in the future.
 
@@ -119,7 +119,7 @@ If you have never used Rspack before, please see [Quick Start](https://rspack.de
 
 ## What's next
 
-Rspack 1.0 marks a new beginning. After this release, the Rspack team will focus on the following goals:
+Rspack 1.0 marks a new beginning. Following this release, the Rspack team will focus on the following goals:
 
 - **Develop Rspack 1.x.** Rspack 1.x will iterate over 12 to 18 months, bringing more new features and improvements.
 - **Release Rsbuild 1.0.** It is based on Rspack 1.0 and supports [multi-environment builds](https://rsbuild.dev/guide/advanced/environments). Currently, Rsbuild has released version 1.0 RC, and the official release is expected in September.
@@ -135,7 +135,7 @@ Rspack can currently meet the performance requirements for most projects, but th
 
 ### Portable cache
 
-The evolution path for Rspack's caching capabilities follows the sequential implementation of memory cache, persistent cache, and portable cache. Currently, Rspack has implemented a memory cache that provides excellent HMR performance. The next step is to implement a persistent cache based on this foundation to address long cold startup times for large projects and to functionally align with webpack.
+The evolution path of Rspack's caching capabilities follows a sequential implementation of memory cache, persistent cache, and portable cache. Currently, Rspack has implemented a memory cache that provides excellent HMR performance. The next step is to implement a persistent cache based on this foundation to address long cold startup times for large projects and to functionally align with webpack.
 
 After that, we plan to continue implementing the portable cache. This means that Rspack's build cache will not only be persistent, but also portable across environments and machines. This will help teams make better use of the cache and lay the groundwork for distributed builds.
 
@@ -145,9 +145,9 @@ Currently, when Rspack processes TypeScript modules, it first converts them to J
 
 ### Stable Rust API
 
-Currently, upper-layer tools can use the JS API to integrate Rspack, which provides good extensibility. However, there is a communication overhead between Rust and JavaScript that limits the performance of Rspack. We also provide the SWC Wasm plugin to support extensions, but its performance is still slower than native languages.To provide upper-layer tools with more flexible integration options and better performance, we plan to expose Rspack's Rust API for integration.
+Currently, upper-layer tools can use the JS API to integrate Rspack, which provides good extensibility. However, the communication overhead between Rust and JavaScript that limits the performance of Rspack. We also provide the SWC Wasm plugin to support extensions, but its performance is still slower than native languages.To provide upper-layer tools with more flexible integration options and better performance, we plan to expose Rspack's Rust API for integration.
 
-### React Server Components Support
+### React Server Components support
 
 At ByteDance, we have experimentally supported RSC (React Server Components) based on Rspack and validated it in a large web application. In the future, Rspack will provide first-class support for RSC, with more core features to make RSC easier to implement. For example, Rspack now supports the [layer](https://rspack.dev/config/experiments#experimentslayers) feature, which allows to build for multiple environments in a single run.
 
@@ -157,7 +157,7 @@ ESM is the standard for JavaScript modules. We are currently improving Rspack an
 
 ## Acknowledgements
 
-The development of Rspack would not have been possible without the contributions and support of the awesome community. We especially thank:
+The development of Rspack would not have been possible without the contributions and support of the awesome community. Special thanks to:
 
 - The [NX team](https://nx.dev/) for trusting in Rspack and integrating it early during its open-source phase.
 - [Zack Chapple](https://github.com/zackarychapple) and the [Zephyr team](https://www.zephyr-cloud.io/) for helping to promote Rspack.
@@ -185,7 +185,7 @@ Finally, we would like to thank all the developers who have contributed to the R
 
 ### What does the 1.0 release mean?
 
-The 1.0 release means that Rspack has implemented the core features of webpack and its API has reached stability. Over the next 12 to 18 months, we will ensure the stability of the Rspack 1.x API so that developers can confidently build frameworks and tools on top of it. During the 1.x iteration, we may still find some inappropriate designs in Rspack. We will address these through progressive upgrades using [future flags](https://rspack.dev/config/experiments#experimentsrspackfuture).
+The 1.0 release means that Rspack has implemented the core features of webpack and achieved API stability. Over the next 12 to 18 months, we will ensure the stability of the Rspack 1.x API so that developers can confidently build frameworks and tools on top of it. During the 1.x iteration, we may still find some inappropriate designs in Rspack. We will address these through progressive upgrades using [future flags](https://rspack.dev/config/experiments#experimentsrspackfuture).
 
 ### Does Rspack follow semantic versioning?
 
@@ -199,7 +199,7 @@ Rspack provides some experimental features that can be used via the [experiments
 
 #### SWC related features
 
-Rspack is implemented based on SWC, which is currently in the pre-1.0 phase. To keep up with the fixes and improvements in SWC, we regularly update the SWC version. This may include some breaking changes in SWC or break some versions of the SWC Wasm plugins. In such cases, we will release a minor version of Rspack and add a note to the changelog.
+Rspack is built on SWC, which is currently in the pre-1.0 phase. To keep up with the fixes and improvements in SWC, we regularly update the SWC version. This may include some breaking changes in SWC or break some versions of the SWC Wasm plugins. In such cases, we will release a minor version of Rspack and add a note to the changelog.
 
 #### Types
 
