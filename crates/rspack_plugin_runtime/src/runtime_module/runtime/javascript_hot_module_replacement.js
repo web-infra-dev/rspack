@@ -103,15 +103,10 @@ function applyHandler(options) {
 	for (var moduleId in currentUpdate) {
 		if (__webpack_require__.o(currentUpdate, moduleId)) {
 			var newModuleFactory = currentUpdate[moduleId];
-			var result;
-			if (newModuleFactory) {
-				result = getAffectedModuleEffects(moduleId);
-			} else {
-				result = {
-					type: "disposed",
-					moduleId: moduleId
-				};
-			}
+			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
+				type: "disposed",
+				moduleId: moduleId
+			};
 			var abortError = false;
 			var doApply = false;
 			var doDispose = false;
@@ -132,10 +127,10 @@ function applyHandler(options) {
 					if (!options.ignoreDeclined)
 						abortError = new Error(
 							"Aborted because of declined dependency: " +
-								result.moduleId +
-								" in " +
-								result.parentId +
-								chainInfo
+							result.moduleId +
+							" in " +
+							result.parentId +
+							chainInfo
 						);
 					break;
 				case "unaccepted":
@@ -201,7 +196,7 @@ function applyHandler(options) {
 				errorHandler: module.hot._selfAccepted
 			});
 		}
-	}$HOT_TEST_OUTDATED$
+	} $HOT_TEST_OUTDATED$
 
 	var moduleOutdatedDependencies;
 	return {
@@ -221,7 +216,7 @@ function applyHandler(options) {
 				var data = {};
 
 				// Call dispose handlers
-				var disposeHandlers = module.hot._disposeHandlers;$HOT_TEST_DISPOSE$
+				var disposeHandlers = module.hot._disposeHandlers; $HOT_TEST_DISPOSE$
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
@@ -262,7 +257,7 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];$HOT_TEST_UPDATED$
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId]; $HOT_TEST_UPDATED$
 				}
 			}
 
@@ -287,7 +282,7 @@ function applyHandler(options) {
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
-								errorHandlers.push(errorHandler);$HOT_TEST_ACCEPT$
+								errorHandlers.push(errorHandler); $HOT_TEST_ACCEPT$
 								dependenciesForCallbacks.push(dependency);
 							}
 						}
@@ -348,17 +343,17 @@ function applyHandler(options) {
 								moduleId: moduleId,
 								module: __webpack_require__.c[moduleId]
 							});
-						} catch (err2) {
+						} catch (err1) {
 							if (options.onErrored) {
 								options.onErrored({
 									type: "self-accept-error-handler-errored",
 									moduleId: moduleId,
-									error: err2,
+									error: err1,
 									originalError: err
 								});
 							}
 							if (!options.ignoreErrored) {
-								reportError(err2);
+								reportError(err1);
 								reportError(err);
 							}
 						}

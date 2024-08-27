@@ -4,6 +4,7 @@ alexander-akait
 analysable
 ansi
 antd
+arad
 ɑrespæk
 behaviour
 behaviours
@@ -53,9 +54,10 @@ Idents
 iife
 Iife
 indicatif
+inituit
 innovatively
-IWANABETHATGUY
 intlify
+IWANABETHATGUY
 jantimon
 JavaScript
 jerrykingxyz

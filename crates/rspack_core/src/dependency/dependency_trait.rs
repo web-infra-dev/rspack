@@ -18,6 +18,13 @@ use crate::ModuleLayer;
 use crate::RuntimeSpec;
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, UsedByExports};
 
+#[derive(Debug, Clone, Copy)]
+pub enum AffectType {
+  True,
+  False,
+  Transitive,
+}
+
 pub trait Dependency:
   AsDependencyTemplate
   + AsContextDependency
@@ -99,6 +106,8 @@ pub trait Dependency:
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()
   }
+
+  fn could_affect_referencing_module(&self) -> AffectType;
 }
 
 impl dyn Dependency + '_ {

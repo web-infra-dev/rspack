@@ -36,6 +36,10 @@ impl Dependency for HarmonyExportHeaderDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportHeader
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl DependencyTemplate for HarmonyExportHeaderDependency {

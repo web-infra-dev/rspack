@@ -84,6 +84,10 @@ impl Dependency for CommonJsFullRequireDependency {
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for CommonJsFullRequireDependency {

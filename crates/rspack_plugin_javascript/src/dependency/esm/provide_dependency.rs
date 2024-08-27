@@ -61,6 +61,10 @@ impl Dependency for ProvideDependency {
       vec![ExtendedReferencedExport::Array(self.ids.clone())]
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for ProvideDependency {

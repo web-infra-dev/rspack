@@ -10,6 +10,11 @@ exports[`config config/builtin-lightningcss-loader/basic-include exported tests 
 head{--webpack--909:used:-ca56f23580d7bĒ484-ĀĂ/&_368;}"
 `;
 
+exports[`config config/builtin-lightningcss-loader/minify exported tests css content minifyed 1`] = `
+".foo{-webkit-transition:all .5s;transition:all .5s}.bar{padding:0}
+head{--webpack--909:&_487;}"
+`;
+
 exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
   "style": "-ca56f23580d7bbb484-style",

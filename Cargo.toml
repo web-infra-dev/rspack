@@ -52,7 +52,7 @@ rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
-simd-json          = { version = "0.13.10" }
+simd-json          = { version = "0.14.0-rc.2" }
 stacker            = { version = "0.1.15" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.58" }
@@ -73,20 +73,21 @@ napi-derive = { version = "2" }
 # Must be pinned with the same swc versions
 #rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
 swc_config          = { version = "=0.1.15" }
-swc_core            = { version = "=0.100.7", default-features = false }
-swc_ecma_minifier   = { version = "=0.201.0", default-features = false }
+swc_core            = { version = "=0.101.4", default-features = false }
+swc_ecma_minifier   = { version = "=0.203.1", default-features = false }
 swc_error_reporters = { version = "=0.21.0" }
-swc_html            = { version = "=0.146.1" }
-swc_html_minifier   = { version = "=0.143.1", default-features = false }
+swc_html            = { version = "=0.148.0" }
+swc_html_minifier   = { version = "=0.145.0", default-features = false }
 swc_node_comments   = { version = "=0.24.0" }
 
-
+rspack_dojang = { version = "0.1.8" }
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
 [profile.dev]
 codegen-units = 16
-debug         = 2    # debug build will cause runtime panic if codegen-unints is default
+debug         = 2       # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
+panic         = "abort"
 
 [profile.release]
 codegen-units = 1
@@ -94,6 +95,7 @@ debug         = false
 # Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
 lto       = "thin"
 opt-level = 3
+panic     = "abort"
 strip     = true
 
 [profile.release-prod]

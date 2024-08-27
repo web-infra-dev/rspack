@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, RunnerContext, BUILTIN_LOADER_PREFIX,
+  Resolver, Resource, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
@@ -104,19 +104,34 @@ pub(crate) async fn resolve_loader(
 
   match resolve_result {
     ResolveResult::Resource(resource) => {
-      let path = resource.path.as_str();
+      let Resource {
+        path,
+        query,
+        description_data,
+        ..
+      } = resource;
+      // Pitfall: `Path::ends_with` is different from `str::ends_with`
+      // So we need to convert `PathBuf` to `&str`
+      // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
+      let path = path.as_str();
+
       let r#type = if path.ends_with(".mjs") {
         Some("module")
       } else if path.ends_with(".cjs") {
         Some("commonjs")
       } else {
-        resource
-          .description_data
+        description_data
           .as_ref()
           .and_then(|data| data.json().get("type").and_then(|t| t.as_str()))
       };
-      // TODO: Should move this logic to `resolver`, since `resolve.alias` may contain query or fragment too.
-      let resource = resource.path.as_str().to_owned() + rest.unwrap_or_default();
+      // favor explicit loader query over aliased query, see webpack issue-3320
+      let resource = if let Some(rest) = rest
+        && !rest.is_empty()
+      {
+        format!("{path}{rest}")
+      } else {
+        format!("{path}{query}")
+      };
       let ident = if let Some(ty) = r#type {
         format!("{ty}|{resource}")
       } else {

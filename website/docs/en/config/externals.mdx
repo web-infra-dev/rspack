@@ -514,6 +514,24 @@ async function foo() {
 
 Note that there will be an `import` or `import()` statement in the output bundle.
 
+When a module is not imported via `import` or `import()`, Rspack will use `"module"` externals type as fallback. If you want to use a different type of externals as fallback, you can specify it with a function in the `externals` option. For example:
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: "module-import",
+  externals: [
+    function (
+      { request, dependencyType },
+      callback
+    ) {
+      if (dependencyType === "commonjs") {
+        return callback(null, `node-commonjs ${request}`);
+      }
+      callback();
+    },
+  ]
+```
+
 ### externalsType['node-commonjs']
 
 Specify the default type of externals as `'node-commonjs'`. Rspack will import [`createRequire`](https://nodejs.org/api/module.html#module_module_createrequire_filename) from `'module'` to construct a require function for loading externals used in a module.

@@ -105,7 +105,9 @@ function createLoaderObject(
 				obj.ident = ident;
 			}
 
-			obj.type = value.type;
+			// CHANGE: `rspack_core` returns empty string for `undefined` type.
+			// Comply to webpack test case: tests/webpack-test/cases/loaders/cjs-loader-type/index.js
+			obj.type = value.type === "" ? undefined : value.type;
 			if (obj.options === null) obj.query = "";
 			else if (obj.options === undefined) obj.query = "";
 			else if (typeof obj.options === "string") obj.query = `?${obj.options}`;

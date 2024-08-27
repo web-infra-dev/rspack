@@ -335,6 +335,10 @@ impl Dependency for CommonJsExportRequireDependency {
       })
       .collect_vec()
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
+  }
 }
 
 impl DependencyTemplate for CommonJsExportRequireDependency {

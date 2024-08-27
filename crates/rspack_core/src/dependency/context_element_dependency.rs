@@ -3,6 +3,7 @@ use rspack_paths::Utf8Path;
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
+use super::AffectType;
 use crate::{
   create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context,
   ImportAttributes, ModuleLayer,
@@ -86,6 +87,10 @@ impl Dependency for ContextElementDependency {
     } else {
       create_exports_object_referenced()
     }
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 

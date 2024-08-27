@@ -237,6 +237,7 @@ impl<'a> ModuleGraph<'a> {
     res
   }
 
+  #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
@@ -1209,7 +1210,7 @@ impl<'a> ModuleGraph<'a> {
       .expect("should have condition");
     match condition {
       DependencyCondition::False => ConnectionState::Bool(false),
-      DependencyCondition::Fn(f) => f(connection, runtime, self),
+      DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
     }
   }
 

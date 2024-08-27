@@ -85,12 +85,17 @@ impl Dependency for HarmonyExportExpressionDependency {
       exclude_exports: None,
     })
   }
+
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
   }
 }
 

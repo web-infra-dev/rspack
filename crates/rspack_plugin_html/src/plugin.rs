@@ -3,19 +3,17 @@ use std::{
   fs,
   hash::{Hash, Hasher},
   path::{Path, PathBuf},
-  sync::LazyLock,
 };
 
 use anyhow::Context;
-use dojang::dojang::Dojang;
 use itertools::Itertools;
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
   Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, PathData, Plugin,
 };
+use rspack_dojang::dojang::{Dojang, DojangOptions};
 use rspack_error::{miette, AnyhowError, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
@@ -31,10 +29,6 @@ use crate::{
     utils::{append_hash, generate_posix_path},
   },
 };
-
-static MATCH_DOJANG_FRAGMENT: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r#"<%[-=]?\s*([\w.]+)\s*%>"#).expect("Failed to initialize `MATCH_DOJANG_FRAGMENT`")
-});
 
 #[plugin]
 #[derive(Debug)]
@@ -107,24 +101,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   // process with template parameters
-  let mut template_result = if let Some(template_parameters) = &self.config.template_parameters {
-    let mut dj = Dojang::new();
-    dj.add(url.clone(), content)
-      .expect("failed to add template");
-    dj.render(&url, serde_json::json!(template_parameters))
-      .expect("failed to render template")
-  } else {
-    content
-  };
+  let mut dj = Dojang::new();
+  // align escape | unescape with lodash.template syntax https://lodash.com/docs/4.17.15#template which is html-webpack-plugin's default behavior
+  dj.with_options(DojangOptions {
+    escape: "-".to_string(),
+    unescape: "=".to_string(),
+  });
 
-  // dojang will not throw error when replace failed https://github.com/kev0960/dojang/issues/2
-  if let Some(captures) = MATCH_DOJANG_FRAGMENT.captures(&template_result) {
-    if let Some(name) = captures.get(1).map(|m| m.as_str()) {
-      let error_msg = format!("ReferenceError: {name} is not defined");
-      error_content.push(error_msg.clone());
-      compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(error_msg)));
-    }
-  }
+  dj.add_with_option(url.clone(), content.clone())
+    .expect("failed to add template");
+  let mut template_result =
+    match dj.render(&url, serde_json::json!(&self.config.template_parameters)) {
+      Ok(compiled) => compiled,
+      Err(err) => {
+        error_content.push(err.clone());
+        compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(err)));
+        String::default()
+      }
+    };
 
   let has_doctype = template_result.contains("!DOCTYPE") || template_result.contains("!doctype");
   if !has_doctype {

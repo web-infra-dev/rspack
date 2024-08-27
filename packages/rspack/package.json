@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0-rc.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -67,7 +67,7 @@
     "zod-validation-error": "1.3.1"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.2.3",
+    "@module-federation/runtime-tools": "0.5.1",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.0",
     "caniuse-lite": "^1.0.30001616"

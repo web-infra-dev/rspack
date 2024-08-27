@@ -120,6 +120,10 @@ impl Dependency for ImportDependency {
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for ImportDependency {

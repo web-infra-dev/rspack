@@ -89,6 +89,13 @@ function copyFolder(src, dst, targetDir) {
 		_gitignore: ".gitignore"
 	};
 
+	// replace workspace packages with version in package.json
+	const workspacePackages = [
+		"@rspack/cli",
+		"@rspack/core",
+		"@rspack/dev-server"
+	];
+
 	fs.mkdirSync(dst, { recursive: true });
 	for (const file of fs.readdirSync(src)) {
 		if (file === "node_modules") {
@@ -107,14 +114,14 @@ function copyFolder(src, dst, targetDir) {
 				const pkg = require(srcFile);
 				if (pkg.dependencies) {
 					for (const key of Object.keys(pkg.dependencies)) {
-						if (key.startsWith("@rspack/")) {
+						if (workspacePackages.includes(key)) {
 							pkg.dependencies[key] = version;
 						}
 					}
 				}
 				if (pkg.devDependencies) {
 					for (const key of Object.keys(pkg.devDependencies)) {
-						if (key.startsWith("@rspack/")) {
+						if (workspacePackages.includes(key)) {
 							pkg.devDependencies[key] = version;
 						}
 					}

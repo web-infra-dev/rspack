@@ -25,6 +25,66 @@ new rspack.HtmlRspackPlugin(options);
 
 如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 
+:::warning
+`rspack.HtmlRspackPlugin` 不支持完整的 EJS 语法, 仅支持 EJS 语法的一个子集，如果你对完整的 EJS 语法支持有需求，可以直接使用 `html-webpack-plugin`。为了和 `html-webpack-plugin` 的默认的插值语法对齐，
+Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `html-webpack-plugin` 相同的语法。
+:::
+
+### 支持的 EJS 语法
+
+仅支持如下基本的插值表达式,这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 `ejs` 语法目前均不支持。
+
+#### \<%-: Escaped output
+
+对插值内容进行 escape：
+
+```html title="ejs"
+<p>Hello, <%- name %>.</p>
+<p>Hello, <%- 'the Most Honorable ' + name %>.</p>
+```
+
+```json title="locals"
+{
+  "name": "Rspack<y>"
+}
+```
+
+```html title="html"
+<p>Hello, Rspack&lt;y&gt;.</p>
+<p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
+```
+
+#### \<%=: Unescaped output
+
+不对插值内容进行 escape：
+
+```html title="ejs"
+<p>Hello, <%- myHtml %>.</p>
+<p>Hello, <%= myHtml %>.</p>
+
+<p>Hello, <%- myMaliciousHtml %>.</p>
+<p>Hello, <%= myMaliciousHtml %>.</p>
+```
+
+```json title="locals"
+{
+  "myHtml": "<strong>Rspack</strong>",
+  "myMaliciousHtml": "</p><script>document.write()</script><p>"
+}
+```
+
+```html title="html"
+<p>Hello, &lt;strong&gt;Rspack&lt;/strong&gt;.</p>
+<p>Hello, <strong>Rspack</strong>.</p>
+
+<p>Hello, &lt;/p&gt;&lt;script&gt;document.write()&lt;/script&gt;&lt;p&gt;.</p>
+<p>Hello,</p>
+<script>
+  document.write();
+</script>
+<p>.</p>
+```
+
 ## 用法
 
 这个插件会为你生成一个 HTML 文件，该文件的 head 包含了所有 JS 产物对应的 `<script>` 标签。

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0-rc.1",
   "license": "MIT",
   "description": "CLI for rspack",
   "publishConfig": {
@@ -29,7 +29,7 @@
     "directory": "packages/rspack-cli"
   },
   "peerDependencies": {
-    "@rspack/core": "^1.0.0-alpha"
+    "@rspack/core": "^1.0.0-alpha || ^1.x"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",

@@ -73,6 +73,7 @@ where
         self.loader_resolver_factory.clone(),
         Some(records),
         self.old_cache.clone(),
+        self.unaffected_modules_cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -98,6 +99,14 @@ where
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+      }
+
+      if self.options.new_incremental_enabled() {
+        new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
+        new_compilation.code_generation_results =
+          std::mem::take(&mut self.compilation.code_generation_results);
+        new_compilation.cgm_runtime_requirements_results =
+          std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
       }
 
       // FOR BINDING SAFETY:

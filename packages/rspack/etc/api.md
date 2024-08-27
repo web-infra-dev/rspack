@@ -1528,7 +1528,7 @@ export type ContainerReferencePluginOptions = {
 export type Context = z.infer<typeof context>;
 
 // @public (undocumented)
-const context: z.ZodString;
+const context: z.ZodEffects<z.ZodString, string, string>;
 
 // @public (undocumented)
 type ContextInfo = {
@@ -3480,18 +3480,21 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         }>>;
+        newIncremental: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         bundlerInfo?: {
             force?: boolean | ("version" | "uniqueId")[] | undefined;
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     }, {
         bundlerInfo?: {
             force?: boolean | ("version" | "uniqueId")[] | undefined;
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     css?: boolean | undefined;
@@ -3525,6 +3528,7 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     } | undefined;
 }, {
     css?: boolean | undefined;
@@ -3558,6 +3562,7 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     } | undefined;
 }>;
 
@@ -5769,6 +5774,7 @@ export type LightningcssFeatureOptions = {
 
 // @public (undocumented)
 export type LightningcssLoaderOptions = {
+    minify?: boolean;
     errorRecovery?: boolean;
     targets?: Targets | string[] | string;
     include?: LightningcssFeatureOptions;
@@ -6204,6 +6210,8 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     implementation?: string;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
+    // (undocumented)
+    shareStrategy?: "version-first" | "loaded-first";
 }
 
 // @public (undocumented)
@@ -9934,6 +9942,7 @@ declare namespace rspackExports {
         Watching,
         sources,
         config,
+        ValidationError,
         util,
         EntryOptionPlugin,
         OutputFileSystem,
@@ -10224,18 +10233,21 @@ const rspackFutureOptions: z.ZodObject<{
         version?: string | undefined;
         bundler?: string | undefined;
     }>>;
+    newIncremental: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     bundlerInfo?: {
         force?: boolean | ("version" | "uniqueId")[] | undefined;
         version?: string | undefined;
         bundler?: string | undefined;
     } | undefined;
+    newIncremental?: boolean | undefined;
 }, {
     bundlerInfo?: {
         force?: boolean | ("version" | "uniqueId")[] | undefined;
         version?: string | undefined;
         bundler?: string | undefined;
     } | undefined;
+    newIncremental?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -11158,18 +11170,21 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             }>>;
+            newIncremental: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             bundlerInfo?: {
                 force?: boolean | ("version" | "uniqueId")[] | undefined;
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         }, {
             bundlerInfo?: {
                 force?: boolean | ("version" | "uniqueId")[] | undefined;
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
         css?: boolean | undefined;
@@ -11203,6 +11218,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     }, {
         css?: boolean | undefined;
@@ -11236,6 +11252,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     }>>;
     externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
@@ -11391,7 +11408,7 @@ export const rspackOptions: z.ZodObject<{
         stream?: NodeJS.WritableStream | undefined;
     }>>;
     cache: z.ZodOptional<z.ZodBoolean>;
-    context: z.ZodOptional<z.ZodString>;
+    context: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
     devtool: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["eval", "cheap-source-map", "cheap-module-source-map", "source-map", "inline-cheap-source-map", "inline-cheap-module-source-map", "inline-source-map", "inline-nosources-cheap-source-map", "inline-nosources-cheap-module-source-map", "inline-nosources-source-map", "nosources-cheap-source-map", "nosources-cheap-module-source-map", "nosources-source-map", "hidden-nosources-cheap-source-map", "hidden-nosources-cheap-module-source-map", "hidden-nosources-source-map", "hidden-cheap-source-map", "hidden-cheap-module-source-map", "hidden-source-map", "eval-cheap-source-map", "eval-cheap-module-source-map", "eval-source-map", "eval-nosources-cheap-source-map", "eval-nosources-cheap-module-source-map", "eval-nosources-source-map"]>]>>;
     node: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
         __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
@@ -13267,6 +13284,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
@@ -13840,6 +13858,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
@@ -15582,6 +15601,11 @@ export const util: {
     createHash: (algorithm: (string & {}) | "debug" | "xxhash64" | "md4" | "native-md4" | (new () => default_2)) => default_2;
     cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
+
+// @public (undocumented)
+export class ValidationError extends Error {
+    constructor(message: string);
+}
 
 // @public (undocumented)
 export const version: string;

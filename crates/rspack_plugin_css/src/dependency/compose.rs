@@ -36,6 +36,10 @@ impl Dependency for CssComposeDependency {
   fn span(&self) -> Option<ErrorSpan> {
     Some(self.span)
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for CssComposeDependency {

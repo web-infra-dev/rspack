@@ -1,0 +1,16 @@
+.landingPage {
+  position: relative;
+}
+
+.background {
+  width: 100%;
+  position: absolute;
+  top: calc(-1 * var(--rp-nav-height));
+  left: 0;
+
+  z-index: -1;
+  filter: blur(2px);
+
+  pointer-events: none;
+  user-select: none;
+}

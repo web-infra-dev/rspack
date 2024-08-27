@@ -7,9 +7,9 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo,
-  ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec,
+  ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RealDependencyLocation, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
@@ -1337,6 +1337,38 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       }
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
+  }
+}
+
+struct HarmonyExportImportedSpecifierDependencyCondition(DependencyId);
+
+impl DependencyConditionFn for HarmonyExportImportedSpecifierDependencyCondition {
+  fn get_connection_state(
+    &self,
+    _conn: &rspack_core::ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState {
+    let dep = module_graph
+      .dependency_by_id(&self.0)
+      .expect("should have dependency");
+    let down_casted_dep = dep
+      .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+      .expect("should be HarmonyExportImportedSpecifierDependency");
+    let mode = down_casted_dep.get_mode(
+      down_casted_dep.name.clone(),
+      module_graph,
+      &down_casted_dep.id,
+      runtime,
+    );
+    ConnectionState::Bool(!matches!(
+      mode.ty,
+      ExportModeType::Unused | ExportModeType::EmptyStar
+    ))
+  }
 }
 
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
@@ -1363,24 +1395,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::Fn(Arc::new(
-      move |_mc, runtime, module_graph: &ModuleGraph| {
-        let dep = module_graph
-          .dependency_by_id(&id)
-          .expect("should have dependency");
-        let down_casted_dep = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .expect("should be HarmonyExportImportedSpecifierDependency");
-        let mode = down_casted_dep.get_mode(
-          down_casted_dep.name.clone(),
-          module_graph,
-          &down_casted_dep.id,
-          runtime,
-        );
-        ConnectionState::Bool(!matches!(
-          mode.ty,
-          ExportModeType::Unused | ExportModeType::EmptyStar
-        ))
-      },
+      HarmonyExportImportedSpecifierDependencyCondition(id),
     )))
   }
 }

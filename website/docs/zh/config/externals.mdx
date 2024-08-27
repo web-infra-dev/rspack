@@ -513,6 +513,24 @@ async function foo() {
 
 请注意，在输出产物中将有 `import` 或 `import()` 语句。
 
+当一个模块没有通过 `import` 或 `import()` 导入时，Rspack 将使用 `"module"` externals type 作为回退。如果你想使用不同类型的 externals 作为回退，你可以在 `externals` 选项中指定一个函数。例如：
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: "module-import",
+  externals: [
+    function (
+      { request, dependencyType },
+      callback
+    ) {
+      if (dependencyType === "commonjs") {
+        return callback(null, `node-commonjs ${request}`);
+      }
+      callback();
+    },
+  ]
+```
+
 ### externalsType['node-commonjs']
 
 将 externals 类型设置为 `'node-commonjs'`，Rspack 将从 `module` 中导入 [`createRequire`](https://nodejs.org/api/module.html#module_module_createrequire_filename) 来构造一个 require 函数，用于加载模块中使用的外部对象。
