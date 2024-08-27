@@ -86,7 +86,7 @@ const FullyFeatured = memo(() => {
       icon: parallel,
       title: 'Parallel Builds',
       description: t('featureParallelBuilds'),
-      link: tUrl('/api/javascript-api#multicompiler'),
+      link: tUrl('/api/javascript-api/#multicompiler'),
     },
     {
       icon: swc,
