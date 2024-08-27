@@ -146,3 +146,64 @@ Currently, when Rspack processes TypeScript modules, it first converts them to J
 ### Stable Rust API
 
 Currently, upper-layer tools can use the JS API to integrate Rspack, which provides good extensibility. However, there is a communication overhead between Rust and JavaScript that limits the performance of Rspack. We also provide the SWC Wasm plugin to support extensions, but its performance is still slower than native languages.To provide upper-layer tools with more flexible integration options and better performance, we plan to expose Rspack's Rust API for integration.
+
+### React Server Components Support
+
+At ByteDance, we have experimentally supported RSC (React Server Components) based on Rspack and validated it in a large web application. In the future, Rspack will provide first-class support for RSC, with more core features to make RSC easier to implement. For example, Rspack now supports the [layer](https://rspack.dev/config/experiments#experimentslayers) feature, which allows to build for multiple environments in a single run.
+
+### Improved ESM output
+
+ESM is the standard for JavaScript modules. We are currently improving Rspack and webpack's support for ESM output and creating a library build tool based on Rspack called Rslib. This will allow developers to make better use of ESM's static analysis and tree-shaking when building npm packages.
+
+## Acknowledgements
+
+The development of Rspack would not have been possible without the contributions and support of the awesome community. We especially thank:
+
+- The [NX team](https://nx.dev/) for trusting in Rspack and integrating it early during its open-source phase.
+- [Zack Chapple](https://github.com/zackarychapple) and the Zephyr team for helping to promote Rspack.
+- The [Unplugin team](https://github.com/unjs/unplugin) for actively helping to integrate Rspack and enriching the plugin ecosystem.
+- [Brandon Dail](https://github.com/aweary) for using Rspack on Discord and helping us spread the word.
+- [Kaffi Y](https://github.com/xc2) for tirelessly helping users and answering Rspack-related questions on GitHub and Discord.
+
+In the open source community, Rspack won the 2024 [Breakthrough of the Year Award](https://osawards.com/javascript/), which is a great encouragement for the Rspack team. We would like to thank all the developers who voted for Rspack.
+
+![Rspack OSS Awards](https://assets.rspack.dev/rspack/assets/rspack-v1-0-osawards.png)
+
+Since the 0.1 release, we have established good collaborations with several community teams:
+
+- While aligning with webpack, we worked with the webpack team to improve support for native CSS and ESM output. In the process, the Rspack team submitted over 100 commits to webpack. Special thanks to [Alexander Akait](https://github.com/alexander-akait) for his review feedback.
+- We also worked with the SWC team, contributing the Preact Refresh SWC plugin and fixing some transform and minify bugs in SWC. Thanks to [kdy](https://github.com/kdy1) for his review feedback.
+- Rspack has embraced the [unplugin](https://github.com/unjs/unplugin) ecosystem and fully supports the unplugin API. Thanks to [sxzz](https://github.com/sxzz) for his review feedback and [antfu](https://github.com/antfu) for his remarkable creativity.
+
+We are also excited to see Rspack being used or integrated into a wider ecosystem, including [Bazel](https://medium.com/@yanirmanor/why-moving-to-rspack-and-how-to-use-it-with-bazel-9f66139fe493), [Storybook](https://github.com/rspack-contrib/storybook-rsbuild), [Electron](https://github.com/noshower/electron-forge-plugin-rspack), and more.
+
+Finally, we would like to thank all the developers who have contributed to the Rspack ecosystem ❤️:
+
+![Rspack Contributors](https://assets.rspack.dev/rspack/assets/rspack-v1-0-contributors.png)
+
+## FAQ
+
+### What does the 1.0 release mean?
+
+The 1.0 release means that Rspack has implemented the core features of webpack and its API has reached stability. Over the next 12 to 18 months, we will ensure the stability of the Rspack 1.x API so that developers can confidently build frameworks and tools on top of it. During the 1.x iteration, we may still find some inappropriate designs in Rspack. We will address these through progressive upgrades using [future flags](https://rspack.dev/config/experiments#experimentsrspackfuture).
+
+### Does Rspack follow semantic versioning?
+
+Rspack follows to semantic versioning (semver) and will not introduce breaking changes to the public API in minor or patch releases. Note that there are some exceptions:
+
+> If your project has strict requirements for semantic versioning, you can pin Rspack to a minor version.
+
+#### Experimental features
+
+Rspack provides some experimental features that can be used via the [experiments](https://rspack.dev/config/experiments) config. In minor releases, Rspack may make changes to the APIs of these experimental features and provide detailed explanations of these changes in the release notes. So if you are using experimental features, please pay attention to the minor release notes.
+
+#### SWC related features
+
+Rspack is implemented based on SWC, which is currently in the pre-1.0 phase. To keep up with the fixes and improvements in SWC, we regularly update the SWC version. This may include some breaking changes in SWC or break some versions of the SWC Wasm plugins. In such cases, we will release a minor version of Rspack and add a note to the changelog.
+
+#### Types
+
+In minor releases, the types exported by Rspack may change for the following reasons:
+
+- TypeScript itself does not follow semver. It may introduce some breaking changes in minor releases that require Rspack to adjust its types.
+- Rspack may use some features introduced in higher versions of TypeScript, which could affect projects using lower versions of TypeScript.
