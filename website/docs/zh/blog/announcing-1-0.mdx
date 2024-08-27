@@ -22,7 +22,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 ## 谁在使用 Rspack
 
-自 Rspack 开源以来，已经有许多企业和开发者在生产环境使用 Rspack，Rspack 每周的 npm 下载量也突破了 10 万。
+自 Rspack 开源以来，已经有众多企业和开发者在生产环境使用 Rspack，Rspack 每周的 npm 下载量也突破了 10 万。
 
 ![Rspack downloads](https://assets.rspack.dev/rspack/assets/rspack-v1-0-downloads.png)
 
@@ -145,7 +145,7 @@ Rspack 缓存能力的演进路线，是依次实现 memory cache、persistent c
 
 ### 稳定的 Rust API
 
-目前，上层工具可以使用 JS API 来集成 Rspack，这提供了良好的扩展性。但是 Rust 和 JavaScript 存在通信开销，这在一定程度上限制了 Rspack 的性能。我们也提供了 SWC 的 Wasm plugin 以支持扩展，但是 Wasm 的性能相比 native 语言仍然有一定差距，为了给上层工具提供更灵活的接入方式和更好的性能，我们计划开放 Rspack 的 Rust API 用于集成。
+目前，上层工具可以使用 JS API 来集成 Rspack，这提供了良好的扩展性。但是 Rust 和 JavaScript 存在通信开销，这在一定程度上限制了 Rspack 的性能。我们也提供了 [SWC Wasm plugin](https://rspack.dev/guide/features/builtin-swc-loader#jscexperimentalplugins) 以支持扩展，但是 Wasm 的性能相比 native 语言仍然有一定差距，为了给上层工具提供更灵活的接入方式和更好的性能，我们计划开放 Rspack 的 Rust API 用于集成。
 
 ### React Server Components 支持
 
