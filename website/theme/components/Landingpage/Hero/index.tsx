@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'rspress/runtime';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import BackgroundStar from './BackgroundStar';
@@ -7,7 +7,6 @@ import styles from './index.module.scss';
 const positions = [
   [91.4, 22.9],
   [36, 67.6],
-  [55.4, 96.7],
   [94.1, 47.7],
   [33.8, 32.5],
   [43.1, 77.6],
@@ -26,7 +25,6 @@ const positions = [
   [19, 18.4],
   [25.1, 28.1],
   [18.9, 35.6],
-  [39.8, 95.4],
   [32.9, 12.3],
   [21.2, 72.8],
   [83.3, 79.8],
@@ -44,16 +42,35 @@ const positions = [
   [68.2, 41.6],
 ];
 
-const stars = positions.map(([top, left], i) => {
-  return (
-    <BackgroundStar
-      key={i}
-      top={`${top}%`}
-      left={`${left}%`}
-      size={i / 40 + 3}
-    />
-  );
-});
+const useMouseMove = () => {
+  const [isHovering, setIsHovering] = useState(false);
+  const ref = useRef<any>();
+  const [pageX, setPageX] = useState<null | number>(null);
+  const [pageY, setPageY] = useState<null | number>(null);
+
+  console.log(isHovering, pageX, pageY);
+
+  const handleMove = ({ pageX, pageY }: { pageX: number; pageY: number }) => {
+    setPageX(pageX);
+    setPageY(pageY);
+  };
+
+  const handleEnter = () => {
+    setIsHovering(true);
+  };
+  const handleLeave = () => {
+    setIsHovering(false);
+  };
+
+  return {
+    ref,
+    pageX,
+    pageY,
+    onMouseEnter: handleEnter,
+    onMouseLeave: handleLeave,
+    onMouseMove: handleMove,
+  };
+};
 
 const Hero = memo(() => {
   const tUrl = useI18nUrl();
@@ -68,9 +85,31 @@ const Hero = memo(() => {
     navigate(tUrl('/guide/start/introduction'));
   }, [tUrl, navigate]);
 
+  const { pageX, pageY, ref, onMouseEnter, onMouseLeave, onMouseMove } =
+    useMouseMove();
+
+  console.log(pageX, pageY);
+
   return (
-    <section className={styles.hero}>
-      {stars}
+    <section
+      className={styles.hero}
+      ref={ref}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onMouseMove={onMouseMove}
+    >
+      {positions.map(([top, left], i) => {
+        return (
+          <BackgroundStar
+            key={i}
+            top={`${top}%`}
+            left={`${left}%`}
+            size={i / 20 + 3}
+            pageX={pageX}
+            pageY={pageY}
+          />
+        );
+      })}
       <div className={styles.innerHero}>
         <div className={styles.logo}>
           <img

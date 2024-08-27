@@ -1,20 +1,46 @@
+import { useEffect, useRef, useState } from 'react';
 import styles from './index.module.scss';
 
 const BackgroundStar = ({
   top,
   left,
+  pageX,
+  pageY,
   size,
 }: {
   top: number | string;
   left: number | string;
+  pageX: number | null;
+  pageY: number | null;
   size: number;
 }) => {
+  const ref = useRef<any>();
+  const [transformX, setTransformX] = useState<number>(0);
+  const [transformY, setTransformY] = useState<number>(0);
+  useEffect(() => {
+    if (ref.current) {
+      const { x, y } = ref.current.getBoundingClientRect();
+      const { width, height } = ref.current.getBoundingClientRect();
+      const { width: windowWidth, height: windowHeight } =
+        document.body.getBoundingClientRect();
+      const { width: starWidth, height: starHeight } =
+        ref.current.getBoundingClientRect();
+
+      const bodyScrollTop =
+        document.body.scrollTop ||
+        document.getElementsByTagName('html')[0].scrollTop;
+      const bodyScrollLeft = document.body.scrollLeft;
+    }
+  }, []);
+
   return (
     <div
       className={styles.backgroundStarContainer}
+      ref={ref}
       style={{
         top,
         left,
+        transform: `translate(${transformX}px, ${transformY}px)`,
       }}
     >
       <svg
