@@ -1,11 +1,16 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_html::config::HtmlInject;
 use rspack_plugin_html::config::HtmlRspackPluginBaseOptions;
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_plugin_html::config::HtmlScriptLoading;
+use rspack_plugin_html::config::TemplateParameterFn;
+use rspack_plugin_html::config::TemplateParameters;
+use rspack_plugin_html::config::TemplateRenderFn;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
 
 pub type RawHtmlScriptLoading = String;
@@ -13,16 +18,24 @@ pub type RawHtmlInject = String;
 pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = String;
 
+type RawTemplateRenderFn = ThreadsafeFunction<String, String>;
+
+type RawTemplateParameter =
+  Either3<HashMap<String, String>, bool, ThreadsafeFunction<String, String>>;
+
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawHtmlRspackPluginOptions {
   /// emitted file name in output path
   #[napi(ts_type = "string")]
   pub filename: Option<RawHtmlFilename>,
   /// template html file
   pub template: Option<String>,
+  #[napi(ts_type = "(data: string) => Promise<string>")]
+  pub template_fn: Option<RawTemplateRenderFn>,
   pub template_content: Option<String>,
-  pub template_parameters: Option<HashMap<String, String>>,
+  #[napi(ts_type = "boolean | Record<string, any> | ((params: string) => Promise<string>)")]
+  pub template_parameters: Option<RawTemplateParameter>,
   /// "head", "body" or "false"
   #[napi(ts_type = "\"head\" | \"body\" | \"false\"")]
   pub inject: RawHtmlInject,
@@ -59,8 +72,32 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
     HtmlRspackPluginOptions {
       filename: value.filename.unwrap_or_else(|| String::from("index.html")),
       template: value.template,
+      template_fn: value.template_fn.map(|func| TemplateRenderFn {
+        inner: Box::new(move |data| {
+          let f = func.clone();
+          Box::pin(async move { f.call(data).await })
+        }),
+      }),
       template_content: value.template_content,
-      template_parameters: value.template_parameters,
+      template_parameters: match value.template_parameters {
+        Some(parameters) => match parameters {
+          Either3::A(data) => TemplateParameters::Map(data),
+          Either3::B(enabled) => {
+            if enabled {
+              TemplateParameters::Map(Default::default())
+            } else {
+              TemplateParameters::Disabled
+            }
+          }
+          Either3::C(func) => TemplateParameters::Function(TemplateParameterFn {
+            inner: Box::new(move |data| {
+              let f = func.clone();
+              Box::pin(async move { f.call(data).await })
+            }),
+          }),
+        },
+        None => TemplateParameters::Map(Default::default()),
+      },
       inject,
       public_path: value.public_path,
       script_loading,

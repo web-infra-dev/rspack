@@ -1,6 +1,8 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};
+use rspack_error::Result;
 use serde::Serialize;
 use sugar_path::SugarPath;
 
@@ -62,11 +64,44 @@ impl FromStr for HtmlScriptLoading {
   }
 }
 
+type TemplateParameterTsfn =
+  Box<dyn for<'a> Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+
+pub struct TemplateParameterFn {
+  pub inner: TemplateParameterTsfn,
+}
+
+impl std::fmt::Debug for TemplateParameterFn {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("TemplateParameterFn").finish()
+  }
+}
+
+#[derive(Debug)]
+pub enum TemplateParameters {
+  Map(HashMap<String, String>),
+  Function(TemplateParameterFn),
+  Disabled,
+}
+
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HtmlRspackPluginBaseOptions {
   pub href: Option<String>,
   pub target: Option<String>,
+}
+
+type TemplateRenderTsfn =
+  Box<dyn for<'a> Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+
+pub struct TemplateRenderFn {
+  pub inner: TemplateRenderTsfn,
+}
+
+impl std::fmt::Debug for TemplateRenderFn {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("TemplateRenderFn").finish()
+  }
 }
 
 #[derive(Serialize, Debug)]
@@ -77,8 +112,11 @@ pub struct HtmlRspackPluginOptions {
   pub filename: String,
   /// template html file
   pub template: Option<String>,
+  #[serde(skip)]
+  pub template_fn: Option<TemplateRenderFn>,
   pub template_content: Option<String>,
-  pub template_parameters: Option<HashMap<String, String>>,
+  #[serde(skip)]
+  pub template_parameters: TemplateParameters,
   /// `head`, `body`, `false`
   #[serde(default = "default_inject")]
   pub inject: HtmlInject,
@@ -121,8 +159,9 @@ impl Default for HtmlRspackPluginOptions {
     HtmlRspackPluginOptions {
       filename: default_filename(),
       template: None,
+      template_fn: None,
       template_content: None,
-      template_parameters: None,
+      template_parameters: TemplateParameters::Map(Default::default()),
       inject: default_inject(),
       public_path: None,
       script_loading: default_script_loading(),

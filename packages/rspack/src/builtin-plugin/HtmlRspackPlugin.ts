@@ -1,17 +1,46 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
 	BuiltinPluginName,
 	type RawHtmlRspackPluginOptions
 } from "@rspack/binding";
 import { z } from "zod";
 
+import type { Compilation } from "../Compilation";
+import type { Compiler } from "../Compiler";
 import { validate } from "../util/validate";
 import { create } from "./base";
 
+const templateRenderFunction = z
+	.function()
+	.args(z.record(z.string(), z.any()))
+	.returns(z.string().or(z.promise(z.string())));
+
+const templateParamFunction = z
+	.function()
+	.args(z.record(z.string(), z.any()))
+	.returns(
+		z.record(z.string(), z.any()).or(z.promise(z.record(z.string(), z.any())))
+	);
+
 const htmlRspackPluginOptions = z.strictObject({
 	filename: z.string().optional(),
-	template: z.string().optional(),
-	templateContent: z.string().optional(),
-	templateParameters: z.record(z.string()).optional(),
+	template: z
+		.string()
+		.refine(
+			val => !val.includes("!"),
+			() => ({
+				message:
+					"HtmlRspackPlugin does not support template path with loader yet"
+			})
+		)
+		.optional(),
+	templateContent: z.string().or(templateRenderFunction).optional(),
+	templateParameters: z
+		.record(z.string())
+		.or(z.boolean())
+		.or(templateParamFunction)
+		.optional(),
 	inject: z.enum(["head", "body"]).or(z.boolean()).optional(),
 	publicPath: z.string().optional(),
 	base: z
@@ -38,7 +67,10 @@ const htmlRspackPluginOptions = z.strictObject({
 export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 export const HtmlRspackPlugin = create(
 	BuiltinPluginName.HtmlRspackPlugin,
-	(c: HtmlRspackPluginOptions = {}): RawHtmlRspackPluginOptions => {
+	function (
+		this: Compiler,
+		c: HtmlRspackPluginOptions = {}
+	): RawHtmlRspackPluginOptions {
 		validate(c, htmlRspackPluginOptions);
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {
@@ -66,12 +98,91 @@ export const HtmlRspackPlugin = create(
 					? "false"
 					: configInject;
 		const base = typeof c.base === "string" ? { href: c.base } : c.base;
+
+		let compilation: Compilation | null = null;
+		this.hooks.compilation.tap("HtmlRspackPlugin", c => {
+			compilation = c;
+		});
+
+		let templateContent = c.templateContent;
+		let templateFn = undefined;
+		if (typeof templateContent === "function") {
+			templateFn = async (data: string) => {
+				try {
+					const renderer = c.templateContent as (
+						data: Record<string, unknown>
+					) => Promise<string> | string;
+					if (c.templateParameters === false) {
+						return await renderer({});
+					}
+					const json = JSON.parse(data);
+					if (typeof c.templateParameters !== "function") {
+						json.compilation = compilation;
+					}
+					return await renderer(json);
+				} catch (e) {
+					const error = new Error(
+						`HtmlRspackPlugin: render template function failed, ${(e as Error).message}`
+					);
+					error.stack = (e as Error).stack;
+					throw error;
+				}
+			};
+			templateContent = "";
+		} else if (c.template) {
+			const filename = c.template.split("?")[0];
+			if ([".js", ".cjs"].includes(path.extname(filename))) {
+				templateFn = async (data: string) => {
+					const context = this.options.context || process.cwd();
+					const templateFilePath = path.resolve(context, filename);
+					if (!fs.existsSync(templateFilePath)) {
+						throw new Error(
+							`HtmlRspackPlugin: could not load file \`${filename}\` from \`${context}\``
+						);
+					}
+					try {
+						const renderer = require(templateFilePath) as (
+							data: Record<string, unknown>
+						) => Promise<string> | string;
+						if (c.templateParameters === false) {
+							return await renderer({});
+						}
+						const json = JSON.parse(data);
+						if (typeof c.templateParameters !== "function") {
+							json.compilation = compilation;
+						}
+						return await renderer(json);
+					} catch (e) {
+						const error = new Error(
+							`HtmlRspackPlugin: render template function failed, ${(e as Error).message}`
+						);
+						error.stack = (e as Error).stack;
+						throw error;
+					}
+				};
+			}
+		}
+
+		const rawTemplateParameters = c.templateParameters;
+		let templateParameters;
+		if (typeof rawTemplateParameters === "function") {
+			templateParameters = async (data: string) => {
+				const newData = await rawTemplateParameters(JSON.parse(data));
+				return JSON.stringify(newData);
+			};
+		} else {
+			templateParameters = rawTemplateParameters;
+		}
+
 		return {
 			...c,
 			meta,
 			scriptLoading,
 			inject,
-			base
+			base,
+			templateFn,
+			templateContent,
+			templateParameters
 		};
 	}
 );

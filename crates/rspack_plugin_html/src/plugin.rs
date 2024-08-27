@@ -25,7 +25,7 @@ use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
-  config::{HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading},
+  config::{HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading, TemplateParameters},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
   visitors::{
@@ -34,6 +34,11 @@ use crate::{
     utils::{append_hash, generate_posix_path, html_tag_object_to_string, merge_json},
   },
 };
+
+pub enum Renderer {
+  Template(String),
+  Function,
+}
 
 #[plugin]
 #[derive(Debug)]
@@ -54,9 +59,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut error_content = vec![];
 
   let parser = HtmlCompiler::new(config);
+
   let (content, url, normalized_template_name) = if let Some(content) = &config.template_content {
     (
-      content.clone(),
+      if config.template_fn.is_some() {
+        Renderer::Function
+      } else {
+        Renderer::Template(content.clone())
+      },
       parse_to_url("template_content.html").path().to_string(),
       "template_content.html".to_string(),
     )
@@ -70,31 +80,35 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .join(template.as_str()),
     )
     .assert_utf8();
+    let url = resolved_template.as_str().to_string();
 
-    let content = fs::read_to_string(&resolved_template)
-      .context(format!(
-        "HtmlRspackPlugin: could not load file `{}` from `{}`",
-        template, &compilation.options.context
-      ))
-      .map_err(AnyhowError::from);
+    if config.template_fn.is_some() {
+      (Renderer::Function, url, template.clone())
+    } else {
+      let content = fs::read_to_string(&resolved_template)
+        .context(format!(
+          "HtmlRspackPlugin: could not load file `{}` from `{}`",
+          template, &compilation.options.context
+        ))
+        .map_err(AnyhowError::from);
 
-    match content {
-      Ok(content) => {
-        let url = resolved_template.as_str().to_string();
-        compilation
-          .file_dependencies
-          .insert(resolved_template.into_std_path_buf());
+      match content {
+        Ok(content) => {
+          compilation
+            .file_dependencies
+            .insert(resolved_template.into_std_path_buf());
 
-        (content, url, template.clone())
-      }
-      Err(err) => {
-        error_content.push(err.to_string());
-        compilation.push_diagnostic(Diagnostic::from(miette::Error::from(err)));
-        (
-          default_template().to_owned(),
-          parse_to_url("default.html").path().to_string(),
-          template.clone(),
-        )
+          (Renderer::Template(content), url, template.clone())
+        }
+        Err(err) => {
+          error_content.push(err.to_string());
+          compilation.push_diagnostic(Diagnostic::from(miette::Error::from(err)));
+          (
+            Renderer::Template(default_template().to_owned()),
+            parse_to_url("default.html").path().to_string(),
+            template.clone(),
+          )
+        }
       }
     }
   } else {
@@ -107,10 +121,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .file_dependencies
         .insert(default_src_template.into_std_path_buf());
 
-      (content, url, "src/index.ejs".to_string())
+      (
+        Renderer::Template(content),
+        url,
+        "src/index.ejs".to_string(),
+      )
     } else {
       (
-        default_template().to_owned(),
+        Renderer::Template(default_template().to_owned()),
         parse_to_url("default.html").path().to_string(),
         "default.html".to_string(),
       )
@@ -288,81 +306,140 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>(),
   );
 
-  let mut render_data = serde_json::json!(&self.config.template_parameters);
-
-  let mut body_tags = vec![];
-  let mut head_tags = vec![];
-  for tag in &tags {
-    if tag.tag_name == "script" {
-      if matches!(self.config.script_loading, HtmlScriptLoading::Blocking) {
-        body_tags.push(tag);
+  let parameters = if matches!(
+    self.config.template_parameters,
+    TemplateParameters::Disabled
+  ) {
+    serde_json::json!({})
+  } else {
+    let mut res = serde_json::json!({});
+    let mut body_tags = vec![];
+    let mut head_tags = vec![];
+    for tag in &tags {
+      if tag.tag_name == "script" {
+        if matches!(self.config.script_loading, HtmlScriptLoading::Blocking) {
+          body_tags.push(tag);
+        } else {
+          head_tags.push(tag);
+        }
       } else {
         head_tags.push(tag);
       }
-    } else {
-      head_tags.push(tag);
     }
-  }
 
-  merge_json(
-    &mut render_data,
-    serde_json::json!({
-      "htmlRspackPlugin": {
-        "tags": {
-          "headTags": head_tags,
-          "bodyTags": body_tags,
+    merge_json(
+      &mut res,
+      serde_json::json!({
+        "htmlRspackPlugin": {
+          "tags": {
+            "headTags": head_tags,
+            "bodyTags": body_tags,
+          },
+          "files": {
+            "favicon": favicon,
+            "js": assets.entry("js".into()).or_default(),
+            "css": assets.entry("css".into()).or_default(),
+            "publicPath": config.get_public_path(compilation, &self.config.filename),
+          },
+          "options": &self.config
         },
-        "files": {
-          "favicon": favicon,
-          "js": assets.entry("js".into()).or_default(),
-          "css": assets.entry("css".into()).or_default(),
-          "publicPath": config.get_public_path(compilation, &self.config.filename),
-        },
-        "options": &self.config
-      },
-    }),
-  );
+      }),
+    );
 
-  // only support "mode" and some fields of "output"
-  merge_json(
-    &mut render_data,
-    serde_json::json!({
-      "rspackConfig": {
-        "mode": match compilation.options.mode {
-          Mode::Development => "development",
-          Mode::Production => "production",
-          Mode::None => "none",
-        },
-        "output": {
-          "publicPath": config.get_public_path(compilation, &self.config.filename),
+    // only support "mode" and some fields of "output"
+    merge_json(
+      &mut res,
+      serde_json::json!({
+        "rspackConfig": {
+          "mode": match compilation.options.mode {
+            Mode::Development => "development",
+            Mode::Production => "production",
+            Mode::None => "none",
+          },
           "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
               CrossOriginLoading::Disable => "false",
               CrossOriginLoading::Enable(value) => value,
           },
+        },
+      }),
+    );
+
+    match &self.config.template_parameters {
+      TemplateParameters::Map(data) => {
+        merge_json(&mut res, serde_json::json!(&data));
+      }
+      TemplateParameters::Function(func) => {
+        let func_res = (func.inner)(
+          serde_json::to_string(&res).unwrap_or_else(|_| panic!("invalid json to_string")),
+        )
+        .await;
+        match func_res {
+          Ok(new_data) => match serde_json::from_str(&new_data) {
+            Ok(data) => res = data,
+            Err(err) => {
+              error_content.push(format!(
+                "HtmlRspackPlugin: failed to parse template parameters: {err}",
+              ));
+              compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(err)));
+            }
+          },
+          Err(err) => {
+            error_content.push(format!(
+              "HtmlRspackPlugin: failed to generate template parameters: {err}",
+            ));
+            compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(err)));
+          }
         }
-      },
-    }),
-  );
+      }
+      TemplateParameters::Disabled => {}
+    };
 
-  // process with template parameters
-  let mut dj = Dojang::new();
-  // align escape | unescape with lodash.template syntax https://lodash.com/docs/4.17.15#template which is html-webpack-plugin's default behavior
-  dj.with_options(DojangOptions {
-    escape: "-".to_string(),
-    unescape: "=".to_string(),
-  });
+    res
+  };
 
-  dj.add_function_1("toHtml".into(), render_tag)
-    .expect("failed to add template function `renderTag`");
+  let mut template_result = match content {
+    Renderer::Template(content) => {
+      // process with template parameters
+      let mut dj = Dojang::new();
+      // align escape | unescape with lodash.template syntax https://lodash.com/docs/4.17.15#template which is html-webpack-plugin's default behavior
+      dj.with_options(DojangOptions {
+        escape: "-".to_string(),
+        unescape: "=".to_string(),
+      });
 
-  dj.add_with_option(url.clone(), content.clone())
-    .expect("failed to add template");
-  let mut template_result = match dj.render(&url, render_data) {
-    Ok(compiled) => compiled,
-    Err(err) => {
-      error_content.push(err.clone());
-      compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(err)));
-      String::default()
+      dj.add_function_1("toHtml".into(), render_tag)
+        .expect("failed to add template function `renderTag`");
+
+      dj.add_with_option(url.clone(), content.clone())
+        .expect("failed to add template");
+
+      match dj.render(&url, parameters) {
+        Ok(compiled) => compiled,
+        Err(err) => {
+          error_content.push(err.clone());
+          compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(err)));
+          String::default()
+        }
+      }
+    }
+    Renderer::Function => {
+      let res = (config
+        .template_fn
+        .as_ref()
+        .unwrap_or_else(|| unreachable!())
+        .inner)(
+        serde_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
+      )
+      .await;
+
+      match res {
+        Ok(compiled) => compiled,
+        Err(err) => {
+          error_content.push(err.to_string());
+          compilation.push_diagnostic(Diagnostic::from(miette::Error::msg(err)));
+          String::default()
+        }
+      }
     }
   };
 

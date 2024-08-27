@@ -3654,6 +3654,7 @@ name = "rspack_plugin_html"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "futures",
  "itertools 0.13.0",
  "path-clean 1.0.1",
  "rayon",

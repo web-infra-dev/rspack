@@ -258,7 +258,7 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: template with loaders
+  // TODO: template with loader
   // it("uses a custom loader from webpack config", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -596,32 +596,31 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support templateContent function
-  // it("allows you to specify your own HTML template function", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: { app: path.join(__dirname, "fixtures/index.js") },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "app_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           templateContent: function () {
-  //             return fs.readFileSync(
-  //               path.join(__dirname, "fixtures/plain.html"),
-  //               "utf8",
-  //             );
-  //           },
-  //         }),
-  //       ],
-  //     },
-  //     ['<script defer src="app_bundle.js"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("allows you to specify your own HTML template function", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: { app: path.join(__dirname, "fixtures/index.js") },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "app_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            templateContent: function () {
+              return fs.readFileSync(
+                path.join(__dirname, "fixtures/plain.html"),
+                "utf8",
+              );
+            },
+          }),
+        ],
+      },
+      ['<script defer src="app_bundle.js"'],
+      null,
+      done,
+    );
+  });
 
   it("works with source maps", (done) => {
     testHtmlPlugin(
@@ -3049,153 +3048,150 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: support js template
-  // it("should add the webpack compilation object as a property of the templateParam object", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should add the webpack compilation object as a property of the templateParam object", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+          }),
+        ],
+      },
+      // DIFF: ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
+      ['templateParams keys: "compilation,htmlRspackPlugin,rspackConfig"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support cjs template
-  // it("should add the webpack compilation object as a property of the templateParam object with cjs", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.cjs"),
-  //           inject: false,
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should add the webpack compilation object as a property of the templateParam object with cjs", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.cjs"),
+            inject: false,
+          }),
+        ],
+      },
+      // DIFF: ['templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin"'],
+      ['templateParams keys: "compilation,htmlRspackPlugin,rspackConfig"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support boolean templateParameters
-  // it("should allow to disable template parameters", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: false,
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: ""'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to disable template parameters", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: false,
+          }),
+        ],
+      },
+      ['templateParams keys: ""'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support js template
-  // it("should allow to set specific template parameters", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: { foo: "bar" },
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       'templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin,foo"',
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to set specific template parameters", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: { foo: "bar" },
+          }),
+        ],
+      },
+      [
+        // DIFF: 'templateParams keys: "compilation,webpackConfig,htmlWebpackPlugin,foo"',
+        'templateParams keys: "compilation,foo,htmlRspackPlugin,rspackConfig"',
+      ],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support js template
-  // it("should allow to set specific template parameters using a function", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: function () {
-  //             return { foo: "bar" };
-  //           },
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "foo"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to set specific template parameters using a function", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: function () {
+              return { foo: "bar" };
+            },
+          }),
+        ],
+      },
+      ['templateParams keys: "foo"'],
+      null,
+      done,
+    );
+  });
 
-  // TODO: support js template
-  // it("should allow to set specific template parameters using a async function", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/index.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           template: path.join(__dirname, "fixtures/templateParam.js"),
-  //           inject: false,
-  //           templateParameters: function () {
-  //             return Promise.resolve({ foo: "bar" });
-  //           },
-  //         }),
-  //       ],
-  //     },
-  //     ['templateParams keys: "foo"'],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to set specific template parameters using a async function", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/index.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            template: path.join(__dirname, "fixtures/templateParam.js"),
+            inject: false,
+            templateParameters: function () {
+              return Promise.resolve({ foo: "bar" });
+            },
+          }),
+        ],
+      },
+      ['templateParams keys: "foo"'],
+      null,
+      done,
+    );
+  });
 
   it("should not treat templateContent set to an empty string as missing", (done) => {
     testHtmlPlugin(
@@ -3573,45 +3569,52 @@ describe("HtmlWebpackPlugin", () => {
   });
 
   // TODO: support templateContent function
-  // it("should allow to use headTags and bodyTags directly in string literals", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //         new HtmlWebpackPlugin({
-  //           scriptLoading: "blocking",
-  //           inject: false,
-  //           templateContent: ({ htmlWebpackPlugin }) => `
-  //           <html>
-  //             <head>${htmlWebpackPlugin.tags.headTags}</head>
-  //             <body>${htmlWebpackPlugin.tags.bodyTags}</body>
-  //           </html>
-  //           `,
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       '<head><link href="styles.css" rel="stylesheet" /></head>',
-  //       '<script src="index_bundle.js"></script></body>',
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to use headTags and bodyTags directly in string literals", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+          new HtmlWebpackPlugin({
+            scriptLoading: "blocking",
+            inject: false,
+            // DIFF:
+            // templateContent: ({ htmlWebpackPlugin }) => `
+            // <html>
+            //   <head>${htmlWebpackPlugin.tags.headTags}</head>
+            //   <body>${htmlWebpackPlugin.tags.bodyTags}</body>
+            // </html>
+            // `,
+            templateContent: ({ htmlRspackPlugin }) => `
+            <html>
+              <head>${htmlRspackPlugin.tags.headTagsHtml}</head>
+              <body>${htmlRspackPlugin.tags.bodyTagsHtml}</body>
+            </html>
+            `,
+          }),
+        ],
+      },
+      [
+        '<head><link href="styles.css" rel="stylesheet"></head>',
+        '<script src="index_bundle.js"></script></body>',
+      ],
+      null,
+      done,
+    );
+  });
 
   it("should add the javascript assets to the head for inject:true with scriptLoading:defer", (done) => {
     testHtmlPlugin(
@@ -3646,44 +3649,50 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support templateContent function
-  // it("should allow to use headTags and bodyTags directly in string literals", (done) => {
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: path.join(__dirname, "fixtures/theme.js"),
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "index_bundle.js",
-  //       },
-  //       module: {
-  //         rules: [
-  //           {
-  //             test: /\.css$/,
-  //             use: [MiniCssExtractPlugin.loader, "css-loader"],
-  //           },
-  //         ],
-  //       },
-  //       plugins: [
-  //         new MiniCssExtractPlugin({ filename: "styles.css" }),
-  //         new HtmlWebpackPlugin({
-  //           inject: false,
-  //           templateContent: ({ htmlWebpackPlugin }) => `
-  //           <html>
-  //             <head>${htmlWebpackPlugin.tags.headTags}</head>
-  //             <body>${htmlWebpackPlugin.tags.bodyTags}</body>
-  //           </html>
-  //           `,
-  //         }),
-  //       ],
-  //     },
-  //     [
-  //       '<head><script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet"></head>',
-  //     ],
-  //     null,
-  //     done,
-  //   );
-  // });
+  it("should allow to use headTags and bodyTags directly in string literals", (done) => {
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: path.join(__dirname, "fixtures/theme.js"),
+        output: {
+          path: OUTPUT_DIR,
+          filename: "index_bundle.js",
+        },
+        module: {
+          rules: [
+            {
+              test: /\.css$/,
+              use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
+          ],
+        },
+        plugins: [
+          new MiniCssExtractPlugin({ filename: "styles.css" }),
+          new HtmlWebpackPlugin({
+            inject: false,
+            // DIFF:
+            // templateContent: ({ htmlWebpackPlugin }) => `
+            // <html>
+            //   <head>${htmlWebpackPlugin.tags.headTags}</head>
+            //   <body>${htmlWebpackPlugin.tags.bodyTags}</body>
+            // </html>
+            // `,
+            templateContent: ({ htmlRspackPlugin }) => `
+            <html>
+              <head>${htmlRspackPlugin.tags.headTagsHtml}</head>
+              <body>${htmlRspackPlugin.tags.bodyTagsHtml}</body>
+            </html>
+            `,
+          }),
+        ],
+      },
+      [
+        '<head><script defer src="index_bundle.js"></script><link href="styles.css" rel="stylesheet"></head>',
+      ],
+      null,
+      done,
+    );
+  });
 
   it("should allow to use experiments:{outputModule:true}", (done) => {
     testHtmlPlugin(
@@ -3704,7 +3713,7 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: support loader in template
+  // TODO: template with loader
   // it("generates relative path for asset/resource", (done) => {
   //   testHtmlPlugin(
   //     {
@@ -3732,7 +3741,7 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // TODO: support loader in template
+  // TODO: template with loader
   // it("uses the absolute path for asset/resource", (done) => {
   //   testHtmlPlugin(
   //     {
