@@ -44,14 +44,10 @@ describe("Validation", () => {
 		createTestCase(
 			"additional properties in loose-unrecognized-keys should be ignored",
 			{
-				context: "./",
 				_additionalProperty: "test"
 			},
 			message => {
-				expect(message).toMatchInlineSnapshot(`
-				"Configuration error:
-				- The provided value \\"./\\" must be an absolute path. at \\"context\\""
-			`);
+				throw new Error("should not have error");
 			},
 			"loose-unrecognized-keys",
 			log => {
@@ -67,16 +63,12 @@ describe("Validation", () => {
 		createTestCase(
 			"additional properties recursive in loose-unrecognized-keys should be ignored",
 			{
-				context: "./",
 				optimization: {
 					_additionalProperty: "test"
 				}
 			},
 			message => {
-				expect(message).toMatchInlineSnapshot(`
-				"Configuration error:
-				- The provided value \\"./\\" must be an absolute path. at \\"context\\""
-			`);
+				throw new Error("should not have error");
 			},
 			"loose-unrecognized-keys",
 			log => {
