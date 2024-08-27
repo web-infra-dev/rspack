@@ -73,7 +73,7 @@ Over the past two years, the community has seen the birth of several Rust-based 
 The current goals of Rspack are:
 
 - To help existing webpack projects progressively migrate to a high performance bundler, so that build performance is no longer a bottleneck for fast iterations.
-- Rspack is not just suitable for environments like Web and Node.js that we are familiar with; its goal is to cover all environments where JavaScript runs. This means that Rspack can easily support Deno, Electron, cross-platform applications, MiniApps, and any other JavaScript runtime.
+- Rspack is not just suitable for environments like browser and Node.js that we are familiar with; its goal is to cover all environments where JavaScript runs. This means that Rspack can easily support Deno, Electron, cross-platform applications, MiniApps, and any other JavaScript runtime.
 - We found that balancing "flexibility" and "out-of-the-box" in a single tool was a challenging task. Therefore, after open-sourcing Rspack, we developed a set of Rstack toolchains, including projects such as Rsbuild, Rspress, Rsdoctor, and Rslib, each targeting different use cases. For example, to reduce the complexity and high barriers to configuring Rspack, we provide Rsbuild for an out-of-the-box development experience.
 
 ### Rspack stack
@@ -92,18 +92,18 @@ Together these tools make up the Rstack. We aim to provide a unified set of web 
 
 ### Compatibility with webpack
 
-Rspack 1.0 is designed to be compatible with webpack v5, which will help many projects using webpack to migrate smoothly to Rspack. However, this is a double-edged sword. To maintain compatibility with webpack, Rspack's design is limited, making it challenging to reach optimal solutions in terms of API, architecture, output format, and build performance.
-
-Future major releases of Rspack will gradually introduce some breaking changes to webpack v5 compatibility. This will help Rspack improve its API design, further speed up build performance, and introduce more powerful new features.
-
-At this stage, Rspack 1.0 is compatible with webpack, but it also embraces modern web standards and aims for ultimate build performance.
+Rspack 1.0 is designed to be compatible with webpack v5, which will help many projects using webpack to migrate smoothly to Rspack. However, this is a double-edged sword. To maintain compatibility with webpack, Rspack's design is limited, making it challenging to reach optimal solutions in terms of API, architecture, output format, and build performance. While maintaining compatibility with webpack, Rspack 1.0 also embraces modern web standards and aims for ultimate build performance.
 
 - For web standards, Rspack actively follows the evolution of modern web standards and the latest developments from TC39 and web standards. For example, Rspack already supports the use of Web Workers through [new Worker()](https://developer.mozilla.org/en-US/docs/Web/API/Worker/Worker), supports importing JSON modules through [Import Attributes](https://github.com/tc39/proposal-import-attributes), and supports importing CSS based on the [CSS Module Scripts](https://web.dev/articles/css-module-scripts) specification.
 - For performance, we have introduced many optimizations in 1.0. For example, if a JavaScript-side hook is not used, the Rust side will not invokecommunication with the JavaScript side. Also, Rspack performs lazy loading for many message objects. Even if the message object is large, if JavaScript only consumes a subset of its properties, Rspack will only transfer the consumed data, minimizing the communication overhead between Rust and JavaScript. And Rspack plans to provide even more lightweight hooks in the future to achieve more efficient communication between Rust and JavaScript.
 
+In future major releases, Rspack will evolve based on the webpack API to better meet the needs of modern web development.
+
 ## Who's using Rspack
 
 Since Rspack was open-sourced, many enterprises and developers have used Rspack in production. The weekly npm downloads of Rspack have also exceeded 100,000.
+
+![Rspack downloads](https://assets.rspack.dev/rspack/assets/rspack-v1-0-downloads.png)
 
 Within ByteDance, Rspack's weekly downloads exceed 400,000, and over 1,000 web applications use Rspack, including TikTok, Douyin, Lark, Coze, and more. These projects have significantly improved build times and iteration efficiency by using Rspack. This has also helped us identify some early design issues with Rspack, prompting us to improve the architecture and strike a balance between migration cost, performance, and flexibility.
 

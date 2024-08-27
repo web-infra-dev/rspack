@@ -73,7 +73,7 @@ Rspack 1.0 还包含一个[全新的文档首页](https://rspack.dev/)，感谢�
 Rspack 当前的目标是：
 
 - 帮助现有的 webpack 项目渐进地迁移到高性能的 bundler 上，使构建性能不再成为项目迭代的瓶颈；
-- Rspack 不仅仅适用于 Web 和 Node.js 这种我们熟悉的环境中，它的目标是覆盖所有运行 JavaScript 的场景，这意味着 Rspack 也可以很方便地支持 Deno、Electron、跨平台、小程序等一切 JavaScript 可以运行的环境。
+- Rspack 不仅仅适用于浏览器和 Node.js 这种我们熟悉的环境中，它的目标是覆盖所有运行 JavaScript 的场景，这意味着 Rspack 也可以很方便地支持 Deno、Electron、跨平台、小程序等一切 JavaScript 可以运行的环境。
 - 我们发现在单一的工具上兼顾「灵活性」和「开箱即用」是非常困难的事情。因此，在开源 Rspack 之后，我们开发了一套完整的 Rstack 工具链，包含 Rsbuild、Rspress、Rsdoctor 和 Rslib，它们分别面向不同的使用场景。例如，为了解决 Rspack 配置复杂、上手成本高的问题，我们通过 Rsbuild 来提供开箱即用的开发体验。
 
 ### Rspack Stack
@@ -92,18 +92,18 @@ Rstack 是 "Rspack Stack" 的缩写，代表以 Rspack 为核心的一整套技�
 
 ### 兼容 webpack
 
-Rspack 1.0 是对标 webpack v5 设计的，这帮助了大量使用 webpack 的项目平滑地迁移到 Rspack。但这是一个双刃剑，为了保持对 webpack 的兼容，Rspack 的设计受到了一定限制，在 API、架构、产物格式、构建性能等方面难以达到最优解。
-
-在 Rspack 未来的大版本中，将逐步引入一些对于 webpack v5 的 breaking change。这有助于 Rspack 改进自身的 API 设计，进一步提升构建性能，并实现更多强大的新特性。
-
-现阶段，在兼容 webpack 的同时，Rspack 1.0 也在拥抱现代 Web 标准、追求极致的构建性能：
+Rspack 1.0 是对标 webpack v5 设计的，这帮助了大量使用 webpack 的项目平滑地迁移到 Rspack。在兼容 webpack 的同时，Rspack 1.0 也在拥抱现代 Web 标准、追求极致的构建性能：
 
 - 对于 Web 标准，Rspack 持续在积极拥抱现代 Web 标准的演进，跟进最新的 TC39 和 Web 标准。例如， Rspack 已经支持了通过 [new Worker()](https://developer.mozilla.org/en-US/docs/Web/API/Worker/Worker) 引入 Web Worker、支持通过 [Import Attributes](https://github.com/tc39/proposal-import-attributes) 引入 JSON modules， 支持按照 [CSS Module Scripts](https://web.dev/articles/css-module-scripts) 规范引入 CSS 等。
 - 对于性能，我们在 1.0 引入了许多的优化方式。例如，当 JavaScript 侧未使用某个 hook 时，Rust 侧就不会触发到 JavaScript 侧的相关通信；再比如，Rspack 对许多通信对象做了懒加载优化，即使通信的对象很大，如果 JavaScript 只消费其中的部分属性，Rspack 也只会传输被消费的数据，将 Rust 和 JavaScript 的通信开销降低到最低。此外，未来 Rspack 会考虑提供更加轻量的 hooks，以实现更加高效的 Rust 和 JavaScript 的通信。
 
+在 Rspack 未来的 major 版本中，将基于 webpack API 进行演进，使其更符合现代 web 开发的需求。
+
 ## 谁在使用 Rspack
 
 自 Rspack 开源以来，已经有许多企业和开发者在生产环境使用 Rspack，Rspack 每周的 npm 下载量也突破了 10 万。
+
+![Rspack downloads](https://assets.rspack.dev/rspack/assets/rspack-v1-0-downloads.png)
 
 在字节跳动内部，Rspack 的周下载量超过 40 万，有超过 1000 个 Web 应用在使用 Rspack，包括 TikTok、抖音、飞书、Coze 等。这些项目接入 Rspack 后，显著改进了构建耗时和迭代效率。这也帮助我们发现了 Rspack 早期的一些设计问题，促使我们改进架构，在迁移成本、性能和灵活性等方面做好权衡。
 
