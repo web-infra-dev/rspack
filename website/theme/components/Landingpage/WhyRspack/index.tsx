@@ -19,7 +19,7 @@ type Feature = {
   url: string;
   title: string;
   description: string;
-  lottieJsonUrl: any;
+  lottieJsonData: any;
 };
 
 const WhyRspackCard = () => {
@@ -101,7 +101,7 @@ const WhyRspackCard = () => {
 };
 
 const FeatureItem = memo(({ feature }: { feature: Feature }) => {
-  const { description, img, title, url, lottieJsonUrl } = feature;
+  const { description, img, title, url, lottieJsonData } = feature;
   const {
     container,
     isHovering,
@@ -119,7 +119,7 @@ const FeatureItem = memo(({ feature }: { feature: Feature }) => {
 
   const { ref: lottieContainerRef } = useLottieAnimation(
     isHovering,
-    lottieJsonUrl,
+    lottieJsonData,
   );
 
   return (
@@ -207,28 +207,28 @@ const WhyRspack = memo(() => {
         url: tUrl('/guide/start/introduction'),
         title: t('FastStartup'),
         description: t('FastStartupDesc'),
-        lottieJsonUrl: SpeedometerJson,
+        lottieJsonData: SpeedometerJson,
       },
       {
         img: Lightning,
         url: tUrl('/guide/start/introduction'),
         title: t('LightningHMR'),
         description: t('LightningHMRDesc'),
-        lottieJsonUrl: LightningJson,
+        lottieJsonData: LightningJson,
       },
       {
         img: FrameCheck,
         url: tUrl('/guide/tech/react'),
         title: t('FrameworkAgnostic'),
         description: t('FrameworkAgnosticDesc'),
-        lottieJsonUrl: FrameCheckJson,
+        lottieJsonData: FrameCheckJson,
       },
       {
         img: Compatible,
         url: tUrl('/guide/compatibility/plugin'),
         title: t('WebpackCompatible'),
         description: t('WebpackCompatibleDesc'),
-        lottieJsonUrl: CompatibleJson,
+        lottieJsonData: CompatibleJson,
       },
     ],
     [t, tUrl],
