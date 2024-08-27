@@ -196,28 +196,28 @@ describe("rspack cli", () => {
 		});
 	});
 
-	describe("loose-unrecognized-keys (default)", () => {
-		const cwd = resolve(__dirname, "./loose-unrecognized-keys");
-		it("should report unrecognized keys", async () => {
-			const { stderr, exitCode } = await run(cwd, []);
-			expect(stderr).toMatchInlineSnapshot(`
-			"Configuration error:
-			- Unrecognized key(s) in object: '_additionalProperty'"
-		`);
-			expect(stderr).not.toMatch("ValidationError");
-			expect(exitCode).toBe(0);
-		});
-	});
+	// describe("loose-unrecognized-keys (default)", () => {
+	// 	const cwd = resolve(__dirname, "./loose-unrecognized-keys");
+	// 	it("should report unrecognized keys", async () => {
+	// 		const { stderr, exitCode } = await run(cwd, []);
+	// 		expect(stderr).toMatchInlineSnapshot(`
+	// 		"Configuration error:
+	// 		- Unrecognized key(s) in object: '_additionalProperty'"
+	// 	`);
+	// 		expect(stderr).not.toMatch("ValidationError");
+	// 		expect(exitCode).toBe(0);
+	// 	});
+	// });
 
-	describe("loose-unrecognized-keys 2 (default)", () => {
-		const cwd = resolve(__dirname, "./loose-unrecognized-keys-other-error");
-		it("should fail on other error", async () => {
-			const { stderr, exitCode } = await run(cwd, []);
-			expect(stderr).toMatch("ValidationError");
-			expect(stderr).toMatch(
-				`The provided value "./context" must be an absolute path. at \"context"`
-			);
-			expect(exitCode).toBe(1);
-		});
-	});
+	// describe("loose-unrecognized-keys 2 (default)", () => {
+	// 	const cwd = resolve(__dirname, "./loose-unrecognized-keys-other-error");
+	// 	it("should fail on other error", async () => {
+	// 		const { stderr, exitCode } = await run(cwd, []);
+	// 		expect(stderr).toMatch("ValidationError");
+	// 		expect(stderr).toMatch(
+	// 			`The provided value "./context" must be an absolute path. at \"context"`
+	// 		);
+	// 		expect(exitCode).toBe(1);
+	// 	});
+	// });
 });

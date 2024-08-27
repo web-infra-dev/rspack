@@ -41,7 +41,7 @@ export class RspackCLI {
 		rspackCommand: Command,
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
-		process.env.RSPACK_CONFIG_VALIDATE ??= "loose-unrecognized-keys";
+		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
 		process.env.WATCHPACK_WATCHER_LIMIT =
 			process.env.WATCHPACK_WATCHER_LIMIT || "20";
 		const nodeEnv = process?.env?.NODE_ENV;
