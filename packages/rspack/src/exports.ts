@@ -76,6 +76,9 @@ export const config: Config = {
 
 export type * from "./config";
 
+import { ValidationError } from "./util/validate";
+export { ValidationError };
+
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
