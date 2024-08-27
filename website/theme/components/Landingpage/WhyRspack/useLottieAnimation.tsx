@@ -22,7 +22,7 @@ export const useLottieAnimation = (
       autoplay: false,
     });
 
-    animation.setSpeed(1.4);
+    animation.setSpeed(2);
 
     animationRef.current = animation;
     console.log(animationRef.current);
@@ -34,7 +34,6 @@ export const useLottieAnimation = (
 
     if (isHovering) {
       animationRef.current.goToAndPlay(0, true);
-      console.log(111111);
     } else {
       animationRef.current.goToAndStop(0, true);
     }
