@@ -22,7 +22,7 @@ export const useLottieAnimation = (
       autoplay: false,
     });
 
-    animation.setSpeed(2);
+    animation.setSpeed(3);
 
     animationRef.current = animation;
     console.log(animationRef.current);
