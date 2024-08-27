@@ -61,7 +61,7 @@ export const useCardAnimation = () => {
     }) 0%, rgba(255, 255, 255, 0) 50%)`;
 
     container = `rotateX(${xRotate}deg) rotateY(${yRotate}deg) ${
-      isHovering ? ' scale3d(1.04,1.04,1.04)' : ''
+      isHovering ? ' scale3d(1.01,1.01,1.01)' : ''
     }`;
     outerContainer = `perspective(${rootElemWidth * 2}px`;
   } else {
