@@ -1,5 +1,3 @@
-import { ApiMeta } from '@components/ApiMeta.tsx';
-
 # Build performance profile
 
 This chapter introduces some common performance bottlenecks and performance profile methods for Rspack.
@@ -41,8 +39,6 @@ If your project uses the PostCSS plugin for Tailwind CSS v3, you may need to wai
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
 
 ## Rspack Profile
-
-<ApiMeta addedVersion={'0.3.0'} />
 
 The Rspack CLI supports the use of the `RSPACK_PROFILE` environment variable for build performance profile.
 

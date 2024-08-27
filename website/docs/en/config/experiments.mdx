@@ -70,15 +70,11 @@ module.exports = {
 
 ## experiments.topLevelAwait
 
-<ApiMeta addedVersion="0.3.8" />
-
 Enable support for [top level await](https://github.com/tc39/proposal-top-level-await), `top level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
 
 Enabled by default and can be turned off with this configuration.
 
 ## experiments.lazyCompilation
-
-<ApiMeta addedVersion="0.7.0" />
 
 - **Type:** `boolean`, `Object`
 - **Default:** `false`
@@ -201,8 +197,6 @@ The `layer` of the `index.js` module is by default `null`, and its `identifier` 
 By default, a module's layer is `null`, and it will inherit its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and you can add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
 
 ## experiments.rspackFuture
-
-<ApiMeta addedVersion="0.3.2" />
 
 - **Type:** `object`
 

@@ -119,8 +119,6 @@ module.exports = {
 
 #### EntryDescription.chunkLoading
 
-<ApiMeta addedVersion={'0.2.6'} />
-
 <PropertyType
   type="false | string | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'"
   defaultValueList={[{ defaultValue: 'undefined' }]}
@@ -130,15 +128,11 @@ module.exports = {
 
 #### EntryDescription.asyncChunks
 
-<ApiMeta addedVersion={'0.2.6'} />
-
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 是否为当前入口创建按需加载的异步 chunk。
 
 #### EntryDescription.publicPath
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 <PropertyType
   type="'auto' | string | (pathData: PathData, assetInfo?: AssetInfo) => string"
@@ -149,8 +143,6 @@ module.exports = {
 
 #### EntryDescription.baseUri
 
-<ApiMeta addedVersion={'0.2.6'} />
-
 <PropertyType
   type="string"
   defaultValueList={[{ defaultValue: 'undefined' }]}
@@ -159,8 +151,6 @@ module.exports = {
 修改当前入口引用的资源的 baseURI。
 
 #### EntryDescription.filename
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 <PropertyType
   type="string"
@@ -171,8 +161,6 @@ module.exports = {
 
 #### EntryDescription.library
 
-<ApiMeta addedVersion={'0.3.12'} />
-
 <PropertyType
   type="string | string[] | object"
   defaultValueList={[{ defaultValue: 'undefined' }]}
@@ -181,8 +169,6 @@ module.exports = {
 修改当前入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
 
 #### EntryDescription.dependOn
-
-<ApiMeta addedVersion={'0.6.0'} />
 
 <PropertyType
   type="string[] | string"

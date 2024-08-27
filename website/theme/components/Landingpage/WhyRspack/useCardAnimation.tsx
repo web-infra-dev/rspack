@@ -57,11 +57,11 @@ export const useCardAnimation = () => {
 
     shine = `translateX(${offsetX - 0.1}px) translateY(${offsetY - 0.1}px)`;
     shineBg = `linear-gradient(${angle}deg, rgba(255, 255, 255, ${
-      ((pageY - offsets.top - bodyScrollTop) / rootElemHeight) * 0.4
+      ((pageY - offsets.top - bodyScrollTop) / rootElemHeight) * 0.2
     }) 0%, rgba(255, 255, 255, 0) 50%)`;
 
     container = `rotateX(${xRotate}deg) rotateY(${yRotate}deg) ${
-      isHovering ? ' scale3d(1.04,1.04,1.04)' : ''
+      isHovering ? ' scale3d(1.01,1.01,1.01)' : ''
     }`;
     outerContainer = `perspective(${rootElemWidth * 2}px`;
   } else {
@@ -73,6 +73,7 @@ export const useCardAnimation = () => {
 
   return {
     ref,
+    isHovering,
     shine: isHovering ? shine : '',
     shineBg: isHovering ? shineBg : '',
     container: isHovering ? container : '',

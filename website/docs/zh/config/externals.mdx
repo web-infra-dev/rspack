@@ -1,5 +1,5 @@
 import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import { Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/externals/" />
 
@@ -110,8 +110,6 @@ module.exports = {
 ```
 
 ### 对象
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 :::warning
 带有 `{ root, amd, commonjs, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
@@ -833,8 +831,6 @@ jq('.my-element').animate(/* ... */);
 ### externalsPresets.webAsync
 
 **类型：**`boolean`
-
-<ApiMeta addedVersion="0.3.5" />
 
 将对 `http(s)://...` 和 `std:...` 引入的模块视为外部模块，并在使用时通过 `async import()` 来加载它们 **（注意，外部模块的类型是 `async` 模块，对执行有各种影响）**。
 

@@ -274,7 +274,7 @@ __webpack_require__.h = function () {
 
 ### \_\_webpack_runtime_id\_\_
 
-<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Access the runtime id of current entry.
 
@@ -316,7 +316,8 @@ __webpack_require__.p = 'calculated from document/location';
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta addedVersion="0.3.3" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
 Get or change base URI at runtime.
 
 <Columns>
@@ -335,7 +336,7 @@ __webpack_require__.b = document.baseURI || self.location.href;
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Rspack is capable of adding a nonce to all scripts that it loads.
 To activate this feature, set a `__webpack_nonce__` variable and include it in your entry script.
@@ -460,7 +461,7 @@ __non_webpack_require__('outer.js')
 
 ### \_\_webpack_is_included\_\_
 
-<ApiMeta addedVersion="0.4.5" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Test whether or not the given module is bundled by webpack.
 
@@ -541,7 +542,7 @@ if (false) {
 
 ### \_\_webpack_chunkname\_\_
 
-<ApiMeta addedVersion="0.4.4" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 Get current chunk name.
 
@@ -642,13 +643,13 @@ __webpack_get_script_filename__ = chunkId => {
 
 ### \_\_webpack_share_scopes\_\_
 
-<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 This object is used as a shared scope in the remote container and is filled with the provided modules from a host
 
 ### \_\_webpack_init_sharing\_\_
 
-<ApiMeta addedVersion="0.4.1" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 This method is used to initialize modules of a shared scope in the host container.
 
@@ -664,7 +665,7 @@ Context from System.js when `output.libraryTarget="system"`
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta addedVersion="0.5.2" specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} />
 Current Rspack version, default to version in `@rspack/core/package.json`, can be
 modified through experiments.rspackFuture.bundlerInfo.version.
 

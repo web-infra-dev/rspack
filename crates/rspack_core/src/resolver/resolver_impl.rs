@@ -283,6 +283,7 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: false,
     imports_fields,
+    pnp_manifest: None,
   }
 }
 

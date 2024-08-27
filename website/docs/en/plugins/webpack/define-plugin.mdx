@@ -1,11 +1,8 @@
-import { ApiMeta } from '@components/ApiMeta.tsx';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/plugins/define-plugin/" />
 
 # DefinePlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 The `DefinePlugin` replaces variables in your code with other values or expressions at compile time. This can be useful for allowing different behavior between development builds and production builds. If you perform logging in your development build but not in the production build you might use a global constant to determine whether logging takes place. That's where `DefinePlugin` shines, set it and forget it rules for development and production builds.
 

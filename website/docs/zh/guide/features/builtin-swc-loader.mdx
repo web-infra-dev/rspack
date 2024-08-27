@@ -2,8 +2,6 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # 内置 swc-loader
 
-<ApiMeta addedVersion="0.3.0" />
-
 `builtin:swc-loader` 是 [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，Loader 的[配置](https://swc.rs/docs/configuration/compilation)与 JS 版本的 `swc-loader` 保持对齐。
 
 ## 示例
@@ -73,8 +71,6 @@ module.exports = {
 
 ## 类型声明
 
-<ApiMeta addedVersion="0.6.3" />
-
 你可以使用 `@rspack/core` 导出的 `SwcLoaderOptions` 类型来开启类型提示：
 
 - `rspack.config.js`:
@@ -126,7 +122,7 @@ export default {
 
 ### jsc.experimental.plugins
 
-<ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} />
 
 :::warning
 Wasm 插件和 SWC 的版本存在一定的绑定关系，需要选择和对应 SWC 版本兼容的 Wasm 插件才能正常执行, [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x) 里有更多关于如何选择兼容的 Wasm 插件的信息。
@@ -169,7 +165,7 @@ Rspack 内置的实验性功能。
 
 ### rspackExperiments.import
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} />
 
 移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。
 

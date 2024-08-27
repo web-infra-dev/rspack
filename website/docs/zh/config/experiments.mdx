@@ -70,15 +70,11 @@ module.exports = {
 
 ## experiments.topLevelAwait
 
-<ApiMeta addedVersion="0.3.8" />
-
 开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
 默认开启，可通过该配置关闭。
 
 ## experiments.lazyCompilation
-
-<ApiMeta addedVersion="0.7.0" />
 
 - **类型：** `boolean`, `Object`
 - **默认值：** `false`
@@ -199,8 +195,6 @@ new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
 模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
 
 ## experiments.rspackFuture
-
-<ApiMeta addedVersion="0.3.2" />
 
 - **类型：** `object`
 
