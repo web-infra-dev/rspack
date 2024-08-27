@@ -62,7 +62,7 @@ const CompanyItem = ({ item }: { item: Company }) => {
   const { logo, name, url, text, width } = item;
   return (
     <Link className={styles.logo} href={url}>
-      <img src={logo} alt={name} style={{ width }} />
+      <img src={logo} alt={name} style={{ width }} loading="lazy" />
       {text !== undefined ? (
         <span className={styles.logoText}>{text}</span>
       ) : (

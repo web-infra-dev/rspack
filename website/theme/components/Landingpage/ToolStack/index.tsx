@@ -65,7 +65,12 @@ const ToolStack: React.FC = memo(() => {
           {tools.map(({ name, desc, logo, url }) => {
             return (
               <Link className={styles.tool} key={name} href={url}>
-                <img src={logo} alt={name} className={styles.logo} />
+                <img
+                  src={logo}
+                  alt={name}
+                  className={styles.logo}
+                  loading="lazy"
+                />
                 <h3 className={styles.toolTitle}>{name}</h3>
                 <p className={styles.toolDescription}>{desc}</p>
               </Link>

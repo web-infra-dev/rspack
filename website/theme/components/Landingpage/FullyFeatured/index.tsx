@@ -125,6 +125,7 @@ const FullyFeatured = memo(() => {
                       src={icon}
                       alt={index.toString()}
                       className={styles.icon}
+                      loading="lazy"
                     />
                     <div className={styles.featureContent}>
                       <h2 className={styles.featureTitle}>{title}</h2>
