@@ -20,6 +20,18 @@ Eighteen months ago, we open-sourced Rspack 0.1 and received substantial feedbac
 
 Today Rspack has reached a new milestone - 1.0. This means that Rspack is production-ready, covers most of webpack's APIs and features, and is now prepared to support more users.
 
+## Who's using Rspack
+
+Since Rspack was open-sourced, many enterprises and developers have used Rspack in production. The weekly npm downloads of Rspack have also exceeded 100,000.
+
+![Rspack downloads](https://assets.rspack.dev/rspack/assets/rspack-v1-0-downloads.png)
+
+Within ByteDance, Rspack's weekly downloads exceed 400,000, and over 1,000 web applications use Rspack, including TikTok, Douyin, Lark, Coze, and more. These projects have significantly improved build times and iteration efficiency by using Rspack. This has also helped us identify some early design issues with Rspack, prompting us to improve the architecture and strike a balance between migration cost, performance, and flexibility.
+
+We have also seen an increasing number of enterprise users starting to use Rspack, including Microsoft, Amazon, Alibaba, Intuit, Bit.dev, Discord, and others. We are excited that Rspack can help these enterprise users to achieve progressive migration, and we look forward to further cooperation and communication with more enterprises and developers in the future.
+
+![Who is using](https://assets.rspack.dev/rspack/assets/rspack-v1-0-who-is-using.png)
+
 ## New features
 
 Since the release of 0.1, Rspack has introduced numerous important features and optimizations, including:
@@ -98,18 +110,6 @@ Rspack 1.0 is designed to be compatible with webpack v5, which will help many pr
 - For performance, we have introduced many optimizations in 1.0. For example, if a JavaScript-side hook is not used, the Rust side will not invoke communication with the JavaScript side. Also, Rspack performs lazy loading for many message objects. Even if the message object is large, if JavaScript only consumes a subset of its properties, Rspack will only transfer the consumed data, minimizing the communication overhead between Rust and JavaScript. And Rspack plans to provide even more lightweight hooks in the future to achieve more efficient communication between Rust and JavaScript.
 
 In future major releases, Rspack will evolve based on the webpack API to better meet the needs of modern web development.
-
-## Who's using Rspack
-
-Since Rspack was open-sourced, many enterprises and developers have used Rspack in production. The weekly npm downloads of Rspack have also exceeded 100,000.
-
-![Rspack downloads](https://assets.rspack.dev/rspack/assets/rspack-v1-0-downloads.png)
-
-Within ByteDance, Rspack's weekly downloads exceed 400,000, and over 1,000 web applications use Rspack, including TikTok, Douyin, Lark, Coze, and more. These projects have significantly improved build times and iteration efficiency by using Rspack. This has also helped us identify some early design issues with Rspack, prompting us to improve the architecture and strike a balance between migration cost, performance, and flexibility.
-
-We have also seen an increasing number of enterprise users starting to use Rspack, including Microsoft, Amazon, Alibaba, Intuit, Bit.dev, Discord, and others. We are excited that Rspack can help these enterprise users to achieve progressive migration, and we look forward to further cooperation and communication with more enterprises and developers in the future.
-
-![Who is using](https://assets.rspack.dev/rspack/assets/rspack-v1-0-who-is-using.png)
 
 ## How to use 1.0
 
