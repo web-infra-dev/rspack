@@ -59,7 +59,7 @@ function toValidationError(error: z.ZodError): ValidationError {
 	const issueSeparator = "$issue$";
 	const prefixSeparator = "$prefix$";
 	const validationErr = fromZodError(error, {
-		prefix: "Configuration error",
+		prefix: "Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.",
 		prefixSeparator,
 		issueSeparator
 	});
@@ -67,9 +67,8 @@ function toValidationError(error: z.ZodError): ValidationError {
 	// `Configuration error$prefix$xxxx error$issue$yyy error$issue$zzz error`
 	const [prefix, reason] = validationErr.message.split(prefixSeparator);
 	const reasonItem = reason.split(issueSeparator);
-	const friendlyErr = new ValidationError(
-		`${prefix}:\n${reasonItem.map(item => `- ${item}`).join("\n")}`
-	);
+	const message = `${prefix}:\n${reasonItem.map(item => `- ${item}`).join("\n")}`;
+	const friendlyErr = new ValidationError(message);
 	return friendlyErr;
 }
 
