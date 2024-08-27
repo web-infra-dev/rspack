@@ -163,13 +163,13 @@ When the chunk has a name already, each part will get a new name derived from th
 
 `maxSize` option is intended to be used with HTTP/2 and long term caching. It increases the request count for better caching. It could also be used to decrease the file size for faster rebuilding.
 
-:::info Tip
+:::tip
 
 `maxSize` takes higher priority than `maxInitialRequest/maxAsyncRequests`. Actual priority is `maxInitialRequest/maxAsyncRequests < maxSize < minSize`.
 
 :::
 
-:::info Tip
+:::tip
 
 Setting the value for `maxSize` sets the value for both `maxAsyncSize` and `maxInitialSize`.
 

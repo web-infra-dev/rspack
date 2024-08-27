@@ -157,13 +157,13 @@ module.exports = {
 
 `maxSize` 选项旨在与 HTTP/2 和长期缓存一起使用。它增加了请求数量以实现更好的缓存。它还可以用于减小文件大小，以加快二次构建速度。
 
-:::info Tip
+:::tip
 
 `maxSize` 比 `maxInitialRequest`/`maxAsyncRequests` 具有更高的优先级。实际优先级是 `maxInitialRequest`/`maxAsyncRequests` < `maxSize` < `minSize`。
 
 :::
 
-:::info Tip
+:::tip
 
 设置 `maxSize` 的值会同时设置 `maxAsyncSize` 和 `maxInitialSize` 的值。
 
