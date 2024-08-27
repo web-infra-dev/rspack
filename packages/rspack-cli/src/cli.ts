@@ -60,20 +60,20 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		let compiler
+		let compiler;
 		try {
-			compiler = rspack(config, isWatch ? callback : undefined)
-		} catch(e) {
+			compiler = rspack(config, isWatch ? callback : undefined);
+		} catch (e) {
 			// Aligned with webpack-cli
 			// See: https://github.com/webpack/webpack-cli/blob/eea6adf7d34dfbfd3b5b784ece4a4664834f5a6a/packages/webpack-cli/src/webpack-cli.ts#L2394
 			if (e instanceof ValidationError) {
 				this.getLogger().error(e.message);
 				process.exit(2);
 			} else if (e instanceof Error) {
-				callback?.(e)
-				return null
+				callback?.(e);
+				return null;
 			}
-			throw e
+			throw e;
 		}
 		return compiler;
 	}
