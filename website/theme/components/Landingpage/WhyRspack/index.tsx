@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
+import sharedStyles from '../shared.module.scss';
 import Compatible from './assets/Compatible.svg';
 import FrameCheck from './assets/FrameCheck.svg';
 import Lightning from './assets/Lightning.svg';
@@ -203,8 +204,8 @@ const WhyRspack = memo(() => {
   ];
 
   return (
-    <section className={styles.container}>
-      <div className={styles.innerContainer}>
+    <section className={sharedStyles.container}>
+      <div className={sharedStyles.innerContainer}>
         <div className={styles.features}>
           {/* Why Rspack? */}
           <WhyRspackCard />

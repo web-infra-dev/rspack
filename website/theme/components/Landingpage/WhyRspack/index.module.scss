@@ -1,9 +1,6 @@
 // ---------- responsive layout
 // XXL
 @media screen and (min-width: 1441px) {
-  .container {
-    padding: 32px 80px !important;
-  }
   .featureCard {
     flex: 1 0 30% !important;
   }
@@ -11,9 +8,6 @@
 
 // XL
 @media screen and (min-width: 1281px) and (max-width: 1440px) {
-  .container {
-    padding: 32px 80px !important;
-  }
   .featureCard {
     flex: 1 0 30% !important;
   }
@@ -21,9 +15,6 @@
 
 // L
 @media screen and (min-width: 835px) and (max-width: 1280px) {
-  .container {
-    padding: 32px 80px !important;
-  }
   .featureCard {
     min-width: 40% !important;
     max-width: 50% !important;
@@ -32,9 +23,6 @@
 
 // M
 @media screen and (min-width: 601px) and (max-width: 834px) {
-  .container {
-    padding: 24px !important;
-  }
   .whyRspack {
     padding: 16px !important;
     .whyRspackTitle {
@@ -64,9 +52,6 @@
 
 // S
 @media screen and (max-width: 600px) {
-  .container {
-    padding: 24px !important;
-  }
   .whyRspack {
     min-width: 100% !important;
     padding: 16px !important;
@@ -97,21 +82,7 @@
   // extra
   .whyRspackBg {
     max-width: 50% !important;
-  }
-}
-
-.container {
-  display: flex;
-  padding: 32px 144px;
-  justify-content: center;
-  align-items: center;
-
-  .innerContainer {
-    width: 100%;
-    max-width: 1440px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
+    max-height: 50% !important;
   }
 }
 
