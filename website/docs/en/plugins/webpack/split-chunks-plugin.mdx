@@ -140,8 +140,6 @@ The minimum times must a module be shared among chunks before splitting.
 
 ### splitChunks.hidePathInfo
 
-<ApiMeta addedVersion="0.4.3" />
-
 - **Type:** `boolean`
 - **Default:** defaults to `true` if `options.mode` is `'production'`, otherwise defaults to `false`
 
@@ -165,13 +163,13 @@ When the chunk has a name already, each part will get a new name derived from th
 
 `maxSize` option is intended to be used with HTTP/2 and long term caching. It increases the request count for better caching. It could also be used to decrease the file size for faster rebuilding.
 
-:::info Tip
+:::tip
 
 `maxSize` takes higher priority than `maxInitialRequest/maxAsyncRequests`. Actual priority is `maxInitialRequest/maxAsyncRequests < maxSize < minSize`.
 
 :::
 
-:::info Tip
+:::tip
 
 Setting the value for `maxSize` sets the value for both `maxAsyncSize` and `maxInitialSize`.
 
@@ -194,8 +192,6 @@ Like `maxSize`, `maxInitialSize` can be applied globally (`splitChunks.maxInitia
 The difference between `maxInitialSize` and `maxSize` is that `maxInitialSize` will only affect initial load chunks.
 
 ### splitChunks.automaticNameDelimiter
-
-<ApiMeta addedVersion="0.4.3" />
 
 - **Type:** `string`
 - **Default:** `-`
@@ -322,8 +318,6 @@ Tells Rspack to ignore `splitChunks.minSize`, splitChunks`.minChunks`, `splitChu
 Sets the hint for chunk id. It will be added to chunk's filename.
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.filename
-
-<ApiMeta addedVersion="0.4.3" />
 
 - **Type:** `string`
 

@@ -1,11 +1,8 @@
-import { ApiMeta } from '@components/ApiMeta.tsx';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/plugins/limit-chunk-count-plugin/" />
 
 # LimitChunkCountPlugin
-
-<ApiMeta addedVersion={'0.3.10'} />
 
 在编写代码时，你可能已经添加了许多代码分割点以按需加载内容。在编译后，你可能会注意到有些 chunk 太小——造成了较大的 HTTP 开销。`LimitChunkCountPlugin` 可以在处理完毕后通过合并它们来优化你的 chunk。
 

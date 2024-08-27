@@ -3,7 +3,6 @@ import CompilerType from '../../types/compiler.mdx';
 import CompilationType from '../../types/compilation.mdx';
 import StatsType from '../../types/stats.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
-import { ApiMeta } from '@components/ApiMeta';
 import Columns from '@components/Columns';
 import { NoSSR } from 'rspress/runtime';
 
@@ -338,8 +337,6 @@ In the seal phase, Rspack will create chunk graph from the module graph and then
 </Collapse>
 
 ## `shouldEmit`
-
-<ApiMeta addedVersion="0.4.1" />
 
 Called before emitting assets. Should return a boolean telling whether to emit.
 
