@@ -11,8 +11,8 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Compilation, CompilationAsset, CompilationProcessAssets, FilenameTemplate, Mode, PathData,
-  Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, CrossOriginLoading, FilenameTemplate,
+  Mode, PathData, Plugin,
 };
 use rspack_dojang::dojang::{Dojang, DojangOptions};
 use rspack_dojang::Operand;
@@ -335,7 +335,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         },
         "output": {
           "publicPath": config.get_public_path(compilation, &self.config.filename),
-          "crossOriginLoading": format!("{}", compilation.options.output.cross_origin_loading),
+          "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
+              CrossOriginLoading::Disable => "false",
+              CrossOriginLoading::Enable(value) => value,
+          },
         }
       },
     }),

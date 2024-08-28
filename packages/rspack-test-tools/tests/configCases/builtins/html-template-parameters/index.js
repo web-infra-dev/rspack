@@ -48,3 +48,7 @@ it("should inject rspackConfig.mode", () => {
 it("should inject rspackConfig.output.publicPath", () => {
 	expect(htmlContent).toContain(`rspack config publicpath: "http://cdn.com/"`);
 });
+
+it("should inject rspackConfig.output.crossOriginLoading", () => {
+	expect(htmlContent).toContain(`rspack config cross origin loading: "anonymous"`);
+});

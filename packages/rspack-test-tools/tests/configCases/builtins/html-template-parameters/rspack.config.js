@@ -4,7 +4,8 @@ const { CssExtractRspackPlugin, HtmlRspackPlugin } = rspack;
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		publicPath: "http://cdn.com/"
+		publicPath: "http://cdn.com/",
+		crossOriginLoading: "anonymous"
 	},
 	module: {
 		rules: [
