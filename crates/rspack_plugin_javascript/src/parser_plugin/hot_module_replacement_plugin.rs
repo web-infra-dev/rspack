@@ -3,9 +3,9 @@ pub mod hot_module_replacement {
   pub use super::ModuleHotReplacementParserPlugin;
 }
 
-use rspack_core::{BoxDependency, ErrorSpan, SpanExt};
+use rspack_core::{BoxDependency, ErrorSpan, RealDependencyLocation, SpanExt};
 use rspack_error::ErrorLocation;
-use swc_core::common::{BytePos, Span, Spanned};
+use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
 
@@ -81,31 +81,19 @@ impl<'parser> JavascriptParser<'parser> {
     let dependencies = extract_deps(call_expr, create_dependency);
     if self.build_meta.esm && !call_expr.args.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
-      if let Some(callback_arg) = call_expr.args.get(1) {
-        let span = callback_arg.span();
-        self
-          .presentational_dependencies
-          .push(Box::new(HarmonyAcceptDependency::new(
-            ErrorLocation::new(span, &self.source_map),
-            span.into(),
-            true,
-            dependency_ids,
-          )));
+      let callback_arg = call_expr.args.get(1);
+      let range = if let Some(callback) = callback_arg {
+        Into::<RealDependencyLocation>::into(callback.span())
       } else {
-        let span = Span {
-          lo: BytePos(call_expr.span().real_hi()),
-          hi: BytePos(1),
-        };
-
-        self
-          .presentational_dependencies
-          .push(Box::new(HarmonyAcceptDependency::new(
-            ErrorLocation::new(span, &self.source_map),
-            span.into(),
-            false,
-            dependency_ids,
-          )));
-      }
+        RealDependencyLocation::new(call_expr.span().real_hi() - 1, 0)
+      };
+      self
+        .presentational_dependencies
+        .push(Box::new(HarmonyAcceptDependency::new(
+          range.with_source(self.source_map.clone()),
+          callback_arg.is_some(),
+          dependency_ids,
+        )));
     }
     self.dependencies.extend(dependencies);
     self.walk_expr_or_spread(&call_expr.args);
