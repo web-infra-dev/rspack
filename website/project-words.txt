@@ -1,11 +1,11 @@
 aarch
 ahabhgk
-antfu
 Akait
 alexander-akait
 analysable
 ansi
 antd
+antfu
 arad
 ɑrespæk
 bazel
@@ -120,6 +120,7 @@ outputlibraryamdcontainer
 outputlibraryumdnameddefine
 outputwasmloading
 perfetto
+Peschke
 pmmmwh
 proxied
 proxying
@@ -182,7 +183,7 @@ Xeon
 XKKCNZZNJD
 xstyled
 xxhash
+yannik
 Zack
 Zack Jackson
 zackarychapple
-Peschke
