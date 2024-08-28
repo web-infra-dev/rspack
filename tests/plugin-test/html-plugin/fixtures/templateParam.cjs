@@ -17,5 +17,8 @@ module.exports = function (templateParams) {
     throw new Error('Error');
   }
 
-  return 'templateParams keys: "' + Object.keys(templateParams).join(',') + '"';
+  /// DIFF: return 'templateParams keys: "' + Object.keys(templateParams).join(',') + '"';
+  const keys = Object.keys(templateParams);
+  keys.sort();
+  return 'templateParams keys: "' + keys.join(',') + '"';
 };

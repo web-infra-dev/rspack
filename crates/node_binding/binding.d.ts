@@ -1239,8 +1239,9 @@ export interface RawHtmlRspackPluginOptions {
   filename?: string
   /** template html file */
   template?: string
+  templateFn?: (data: string) => Promise<string>
   templateContent?: string
-  templateParameters?: Record<string, string>
+  templateParameters?: boolean | Record<string, any> | ((params: string) => Promise<string>)
   /** "head", "body" or "false" */
   inject: "head" | "body" | "false"
   /** path or `auto` */
