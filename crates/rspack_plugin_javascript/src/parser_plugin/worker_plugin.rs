@@ -4,8 +4,8 @@ use std::sync::LazyLock;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyLocation, EntryOptions, ErrorSpan,
-  GroupOptions, RealDependencyLocation, SpanExt,
+  AsyncDependenciesBlock, ConstDependency, DependencyLocation, EntryOptions, GroupOptions,
+  RealDependencyLocation, SpanExt,
 };
 use rspack_hash::RspackHash;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -89,19 +89,17 @@ fn add_dependencies(
   let range = parsed_options.as_ref().and_then(|options| options.range);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
-  let span = ErrorSpan::from(span);
   let dep = Box::new(WorkerDependency::new(
-    parsed_path.range.0,
-    parsed_path.range.1,
     parsed_path.value,
     output_options.worker_public_path.clone(),
-    Some(span),
+    span.into(),
+    parsed_path.range,
   ));
-  let loc =
-    RealDependencyLocation::new(span.start, span.end).with_source(parser.source_map.clone());
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
-    Some(DependencyLocation::Real(loc)),
+    Some(DependencyLocation::Real(
+      Into::<RealDependencyLocation>::into(span).with_source(parser.source_map.clone()),
+    )),
     None,
     vec![dep],
     None,

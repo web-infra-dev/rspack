@@ -1,11 +1,11 @@
 use itertools::Itertools;
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportInfoProvided,
+  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable,
-  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  RealDependencyLocation, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -18,8 +18,7 @@ pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  span: Option<ErrorSpan>,
-  range: (u32, u32),
+  range: RealDependencyLocation,
   base: ExportsBase,
   names: Vec<Atom>,
   ids: Vec<Atom>,
@@ -30,8 +29,7 @@ impl CommonJsExportRequireDependency {
   pub fn new(
     request: String,
     optional: bool,
-    span: Option<ErrorSpan>,
-    range: (u32, u32),
+    range: RealDependencyLocation,
     base: ExportsBase,
     names: Vec<Atom>,
     result_used: bool,
@@ -40,7 +38,6 @@ impl CommonJsExportRequireDependency {
       id: DependencyId::new(),
       request,
       optional,
-      span,
       range,
       base,
       names,
@@ -425,7 +422,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
         ),
         None => format!("/* unused reexport */ {}", require_expr),
       };
-      source.replace(self.range.0, self.range.1, expr.as_str(), None)
+      source.replace(self.range.start, self.range.end, expr.as_str(), None)
     } else if self.base.is_define_property() {
       panic!("TODO")
     } else {

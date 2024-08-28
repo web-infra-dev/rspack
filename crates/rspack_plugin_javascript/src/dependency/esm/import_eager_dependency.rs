@@ -1,7 +1,7 @@
 use rspack_core::{
   module_namespace_promise, AsContextDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ImportAttributes, ModuleDependency,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -12,11 +12,9 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct ImportEagerDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
   request: Atom,
-  span: Option<ErrorSpan>,
+  range: RealDependencyLocation,
   referenced_exports: Option<Vec<Atom>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
@@ -24,20 +22,16 @@ pub struct ImportEagerDependency {
 
 impl ImportEagerDependency {
   pub fn new(
-    start: u32,
-    end: u32,
     request: Atom,
-    span: Option<ErrorSpan>,
+    range: RealDependencyLocation,
     referenced_exports: Option<Vec<Atom>>,
     attributes: Option<ImportAttributes>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
     Self {
-      start,
-      end,
       request,
-      span,
+      range,
       id: DependencyId::new(),
       referenced_exports,
       attributes,
@@ -68,7 +62,7 @@ impl Dependency for ImportEagerDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn get_referenced_exports(
@@ -107,8 +101,8 @@ impl DependencyTemplate for ImportEagerDependency {
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&self.id);
     source.replace(
-      self.start,
-      self.end,
+      self.range.start,
+      self.range.end,
       module_namespace_promise(
         code_generatable_context,
         &self.id,

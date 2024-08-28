@@ -1,26 +1,22 @@
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, RealDependencyLocation,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssImportDependency {
   id: DependencyId,
   request: String,
-  span: Option<ErrorSpan>,
-  start: u32,
-  end: u32,
+  range: RealDependencyLocation,
 }
 
 impl CssImportDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
+  pub fn new(request: String, range: RealDependencyLocation) -> Self {
     Self {
       id: DependencyId::new(),
       request,
-      span,
-      start,
-      end,
+      range,
     }
   }
 }
@@ -39,7 +35,7 @@ impl Dependency for CssImportDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -67,7 +63,7 @@ impl DependencyTemplate for CssImportDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(self.start, self.end, "", None);
+    source.replace(self.range.start, self.range.end, "", None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

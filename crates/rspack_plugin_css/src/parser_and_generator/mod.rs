@@ -10,10 +10,10 @@ use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
-  CssExportsConvention, Dependency, DependencyId, DependencyTemplate, ErrorSpan, GenerateContext,
+  CssExportsConvention, Dependency, DependencyId, DependencyTemplate, GenerateContext,
   LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SourceType,
-  TemplateContext, UsageState,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RealDependencyLocation, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
@@ -158,9 +158,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let request = normalize_url(request);
           let dep = Box::new(CssUrlDependency::new(
             request,
-            Some(ErrorSpan::new(range.start, range.end)),
-            range.start,
-            range.end,
+            RealDependencyLocation::new(range.start, range.end),
             matches!(kind, css_module_lexer::UrlRangeKind::Function),
           ));
           dependencies.push(dep.clone());
@@ -185,9 +183,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           );
           dependencies.push(Box::new(CssImportDependency::new(
             request.to_string(),
-            Some(ErrorSpan::new(range.start, range.end)),
-            range.start,
-            range.end,
+            RealDependencyLocation::new(range.start, range.end),
           )));
         }
         css_module_lexer::Dependency::Replace { content, range } => presentational_dependencies
@@ -279,8 +275,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
             && from != "global"
           {
             let from = from.trim_matches(|c| c == '\'' || c == '"');
-            let dep =
-              CssComposeDependency::new(from.to_string(), ErrorSpan::new(range.start, range.end));
+            let dep = CssComposeDependency::new(
+              from.to_string(),
+              RealDependencyLocation::new(range.start, range.end),
+            );
             dep_id = Some(*dep.id());
             dependencies.push(Box::new(dep));
           }

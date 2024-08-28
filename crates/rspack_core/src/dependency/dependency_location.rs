@@ -3,11 +3,11 @@ use std::{fmt, sync::Arc};
 use derivative::Derivative;
 
 #[derive(Derivative)]
-#[derivative(Debug, Clone)]
+#[derivative(Debug, Clone, Hash)]
 pub struct RealDependencyLocation {
   pub end: u32,
   pub start: u32,
-  #[derivative(Debug = "ignore")]
+  #[derivative(Debug = "ignore", Hash = "ignore")]
   source: Option<Arc<dyn SourceLocation>>,
 }
 

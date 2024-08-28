@@ -1,5 +1,5 @@
 use rspack_core::{
-  ConstDependency, ContextMode, DependencyCategory, ErrorSpan, RealDependencyLocation, SpanExt,
+  ConstDependency, ContextMode, DependencyCategory, RealDependencyLocation, SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
@@ -21,11 +21,11 @@ fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
   expr: &Expr,
-  callee_start: u32,
-  callee_end: u32,
-  args_end: u32,
-  span: Option<ErrorSpan>,
+  span: Span,
+  callee_span: Span,
 ) -> CommonJsRequireContextDependency {
+  let start = callee_span.real_lo();
+  let end = callee_span.real_hi();
   let result = create_context_dependency(param, expr, parser);
   let options = ContextOptions {
     mode: ContextMode::Sync,
@@ -39,19 +39,12 @@ fn create_commonjs_require_context_dependency(
     namespace_object: ContextNameSpaceObject::Unset,
     group_options: None,
     replaces: result.replaces,
-    start: callee_start,
-    end: callee_end,
+    start,
+    end,
     referenced_exports: None,
     attributes: None,
   };
-  CommonJsRequireContextDependency::new(
-    callee_start,
-    callee_end,
-    args_end,
-    options,
-    span,
-    parser.in_try,
-  )
+  CommonJsRequireContextDependency::new(options, span.into(), (start, end), parser.in_try)
 }
 
 pub struct CommonJsImportsParserPlugin;
@@ -61,14 +54,13 @@ impl CommonJsImportsParserPlugin {
     if !node.args.is_empty()
       && let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit())
     {
+      let range: RealDependencyLocation = node.span.into();
       parser
         .dependencies
         .push(Box::new(RequireResolveDependency::new(
-          node.span.real_lo(),
-          node.span.real_hi(),
           str.value.to_string(),
+          range,
           weak,
-          node.span.into(),
           parser.in_try,
         )));
     }
@@ -138,10 +130,8 @@ impl CommonJsImportsParserPlugin {
       parser,
       param,
       argument_expr,
-      call_expr.callee.span().real_lo(),
-      call_expr.callee.span().real_hi(),
-      call_expr.span.real_hi(),
-      Some(call_expr.span.into()),
+      call_expr.span,
+      call_expr.callee.span(),
     );
     parser.dependencies.push(Box::new(dep));
     Some(true)
@@ -208,10 +198,9 @@ impl CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser,
     ident: &Ident,
   ) -> Option<bool> {
+    let start = ident.span().real_lo();
+    let end = ident.span().real_hi();
     let dep = CommonJsRequireContextDependency::new(
-      ident.span().real_lo(),
-      ident.span().real_hi(),
-      ident.span().real_hi(),
       ContextOptions {
         mode: ContextMode::Sync,
         recursive: true,
@@ -224,12 +213,13 @@ impl CommonJsImportsParserPlugin {
         namespace_object: ContextNameSpaceObject::Unset,
         group_options: None,
         replaces: Vec::new(),
-        start: ident.span().real_lo(),
-        end: ident.span().real_hi(),
+        start,
+        end,
         referenced_exports: None,
         attributes: None,
       },
-      Some(ident.span().into()),
+      ident.span().into(),
+      (start, end),
       parser.in_try,
     );
     parser.warning_diagnostics.push(Box::new(
