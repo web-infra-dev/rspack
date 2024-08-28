@@ -1590,7 +1590,7 @@ pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
   /// using dependency id to retrieve Connection
-  connection: DependencyId,
+  pub connection: DependencyId,
 }
 
 #[derive(Clone, Debug)]
