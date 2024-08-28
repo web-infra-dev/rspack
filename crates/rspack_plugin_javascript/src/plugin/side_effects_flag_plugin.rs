@@ -736,7 +736,7 @@ fn optimize_incoming_connections(
       compilation,
     );
   }
-  // It is possiable to add additional new connections when optimizing module's incoming connections
+  // It is possible to add additional new connections when optimizing module's incoming connections
   while let Some(connections) = new_connections.remove(&module_identifier) {
     for new_connection_id in connections {
       optimize_incoming_connection(
