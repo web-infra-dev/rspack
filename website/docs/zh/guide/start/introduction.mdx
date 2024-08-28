@@ -46,7 +46,7 @@ import rspackAudio from '../../../public/rspack.mp3';
 
 ## 为什么要做 Rspack
 
-我们创建 Rspack 的原因，是为了解决在字节跳动维护构建工具时遇到的各种性能问题。由于字节跳动内部存在许多巨石应用，它们都具有复杂的构建配置，生产环境的构建需要耗费十几分钟，甚至超过半小时；开发环境的耗时也超过十几分钟。
+我们创建 Rspack 的原因，是为了解决在字节跳动维护构建工具时遇到的各种性能问题。在字节跳动内部存在许多巨石应用，它们都具有复杂的构建配置，生产环境的构建需要耗费十几分钟，甚至超过半小时；开发环境的耗时也超过十几分钟。
 
 我们在 webpack 上尝试了多种方法来优化这些巨石应用，但是效果甚微。我们意识到在 webpack 上的优化已经难以为继，必须要从底层改造，才能适应我们的需求。
 
@@ -62,13 +62,13 @@ import rspackAudio from '../../../public/rspack.mp3';
 
 在确定了这四个需求后，我们调查了社区中的所有技术方案，它们通常都能很好的满足其中个别需求，但没有一个方案能同时满足所有条件。因此，我们决定自研 Rspack。
 
-## Rspack 目前的状态
+## Rspack 当前的状态
 
-Rspack 已经实现了 webpack 绝大部分的功能，目前的功能也能够满足大多数项目的需求。同时，我们已经在内部的几百个业务上完成了落地，取得了 5~10 倍编译性能的提升。目前的性能仍然存在较大提升空间，我们会持续对 Rspack 进行更深入的性能优化。
+我们在 2024 年 8 月发布了 [Rspack 1.0 版本](/blog/announcing-1-0)，覆盖了 webpack 绝大多数的 API 和功能，并达到生产稳定。
 
-Rspack 已经完成了对 webpack 主要配置的兼容，并且适配了 webpack 的 loader 架构。目前，你已经可以在 Rspack 中无缝使用你熟悉的各种 loader，如 babel-loader、less-loader、sass-loader、vue-loader 等等。
+目前，Rspack 已经兼容了社区几乎所有的 webpack loader。在下载量最高的 50 个 [webpack 插件](/guide/compatibility/plugin) 中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
 
-目前 Rspack 对缓存支持还比较简单，仅支持了内存级别的缓存，未来我们会建设更强的缓存能力，包括可迁移的持久化缓存，这将带来更大的想象空间，如在 monorepo 里不同的机器上都可以复用 Rspack 的云端缓存，提升大型项目的缓存命中率。
+请参考 [Rspack 博客](/blog/index) 来了解 Rspack 的最新动态。
 
 ## Rspack 的未来
 
@@ -80,7 +80,7 @@ Rspack 作为一个底层依赖，解决了我们在工作中遇到的很多问�
 
 ### 提升插件化能力
 
-目前 Rspack 已经支持了完整的 Loader API 和大部分的 webpack Plugin API。webpack 有着海量的 Plugin API，虽然我们的目标**不是**实现 Plugin API 的 100% 兼容，但是我们会尽可能地实现社区主流需要的 Plugin API，以满足社区的需求。同时我们也在探索更高性能的插件通信方案，减小插件通信成本，以保证可以实现更多的插件 API。
+目前 Rspack 已经支持了完整的 Loader API 和大部分的 webpack plugin API。webpack 有着海量的 plugin API，虽然我们的目标**不是**实现 plugin API 的 100% 兼容，但是我们会尽可能地实现社区主流需要的 plugin API，以满足社区的需求。同时我们也在探索更高性能的插件通信方案，减小插件通信成本，以保证可以实现更多的插件 API。
 
 ### 持续提升性能
 
@@ -88,7 +88,7 @@ Rspack 作为一个底层依赖，解决了我们在工作中遇到的很多问�
 
 ### 建设完善的质量保障体系
 
-目前 Rspack 的主要测试 case 都是复用自 webpack 的测试用例，未来我们会覆盖更多的 webpack 的测试用例，同时建设完善的 CI 体系，持续提升测试覆盖率，与社区项目共建 Ecosystem CI，避免 Rspack 的升级对上游项目造成 break，保障项目长期健康发展。
+Rspack 复用了 webpack 的测试用例，未来我们会覆盖更多的 webpack 的测试用例，同时建设完善的 CI 体系，持续提升测试覆盖率，与社区项目共建 Ecosystem CI，避免 Rspack 的升级对上游项目造成 break，保障项目长期健康发展。
 
 ## 和其他构建工具的对比
 

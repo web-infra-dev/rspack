@@ -70,5 +70,4 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   cli: 'CLI',
   ecosystem: '生态',
   community: '社区',
-  recruit: 'Rspack 团队正在招聘中，欢迎加入👏🏻',
 };

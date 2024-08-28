@@ -1,11 +1,14 @@
 aarch
 ahabhgk
+Akait
 alexander-akait
 analysable
 ansi
 antd
+antfu
 arad
 ɑrespæk
+bazel
 behaviour
 behaviours
 Boshen
@@ -17,12 +20,14 @@ bundleless
 Bundleless
 bvanjoi
 chakra
+chapple
 chenjiahan
 codeva
 commmonjs
 cpuprofile
 CRACO
 cssextractrspackplugin
+dail
 darwin
 devongovett
 devserverdevmiddleware
@@ -65,6 +70,7 @@ jkzing
 jscexperimentalplugins
 JSCPU
 jscpuprofile
+kaffi
 lightningcss
 lingyucoder
 linux
@@ -114,6 +120,7 @@ outputlibraryamdcontainer
 outputlibraryumdnameddefine
 outputwasmloading
 perfetto
+Peschke
 pmmmwh
 proxied
 proxying
@@ -152,6 +159,7 @@ svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
 swcpack
+sxzz
 tailwind
 tailwindcss
 Terser
@@ -175,6 +183,7 @@ Xeon
 XKKCNZZNJD
 xstyled
 xxhash
+yannik
 Zack
 Zack Jackson
 zackarychapple
