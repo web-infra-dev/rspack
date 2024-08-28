@@ -98,7 +98,7 @@ impl VisitMut for AssetWriter<'_> {
                 span: DUMMY_SP,
                 data: Atom::from(
                   tag
-                    .content
+                    .inner_html
                     .as_ref()
                     .unwrap_or_else(|| panic!("should have title content"))
                     .to_string(),

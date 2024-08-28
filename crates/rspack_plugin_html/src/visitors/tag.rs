@@ -1,7 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use serde::{
+  de::{MapAccess, Visitor},
+  ser::SerializeMap,
+  Deserialize, Deserializer, Serialize, Serializer,
+};
 
 use super::asset::HtmlPluginAttribute;
 use crate::config::{HtmlInject, HtmlRspackPluginBaseOptions, HtmlScriptLoading};
@@ -10,12 +14,62 @@ use crate::config::{HtmlInject, HtmlRspackPluginBaseOptions, HtmlScriptLoading};
 #[serde(rename_all = "camelCase")]
 pub struct HTMLPluginTag {
   pub tag_name: String,
+  #[serde(
+    serialize_with = "serialize_attributes",
+    deserialize_with = "deserialize_attributes"
+  )]
   pub attributes: Vec<HtmlPluginAttribute>,
   pub void_tag: bool,
-  pub content: Option<String>,
+  #[serde(rename = "innerHTML")]
+  pub inner_html: Option<String>,
   // `head`, `body`, `false`
   #[serde(skip)]
   pub append_to: HtmlInject,
+}
+
+fn serialize_attributes<S>(x: &Vec<HtmlPluginAttribute>, s: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  let mut map = s.serialize_map(Some(x.len()))?;
+  for attr in x {
+    let attr_value = attr.attr_value.to_owned().unwrap_or("true".to_string());
+    map.serialize_entry(&attr.attr_name, &attr_value)?;
+  }
+  map.end()
+}
+
+fn deserialize_attributes<'de, D>(d: D) -> Result<Vec<HtmlPluginAttribute>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  struct DataVisitor;
+
+  impl<'de> Visitor<'de> for DataVisitor {
+    type Value = Vec<HtmlPluginAttribute>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+      formatter.write_str("html attributes")
+    }
+
+    fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+    where
+      A: MapAccess<'de>,
+    {
+      let mut res = vec![];
+
+      while let Some((k, v)) = access.next_entry::<String, Option<String>>()? {
+        res.push(HtmlPluginAttribute {
+          attr_name: k,
+          attr_value: v.filter(|value| value != "true"),
+        });
+      }
+
+      Ok(res)
+    }
+  }
+
+  d.deserialize_map(DataVisitor)
 }
 
 impl HTMLPluginTag {
@@ -112,7 +166,7 @@ impl HTMLPluginTag {
     HTMLPluginTag {
       tag_name: "title".to_string(),
       void_tag: true,
-      content: Some(title.to_string()),
+      inner_html: Some(title.to_string()),
       ..Default::default()
     }
   }

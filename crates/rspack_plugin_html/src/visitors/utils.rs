@@ -91,17 +91,17 @@ pub fn html_tag_object_to_string(tag: &HTMLPluginTag) -> String {
     "<{} {}{}>{}{}",
     tag.tag_name,
     attributes.join(" "),
-    if tag.void_tag && tag.content.is_none() {
+    if tag.void_tag && tag.inner_html.is_none() {
       "/"
     } else {
       ""
     },
-    if let Some(content) = &tag.content {
-      content
+    if let Some(inner_html) = &tag.inner_html {
+      inner_html
     } else {
       ""
     },
-    if !tag.void_tag || tag.content.is_some() {
+    if !tag.void_tag || tag.inner_html.is_some() {
       format!("</{}>", tag.tag_name)
     } else {
       String::new()
