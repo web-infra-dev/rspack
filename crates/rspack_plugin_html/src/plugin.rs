@@ -15,10 +15,12 @@ use rspack_core::{
   Plugin,
 };
 use rspack_dojang::dojang::{Dojang, DojangOptions};
+use rspack_dojang::Operand;
 use rspack_error::{miette, AnyhowError, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
 use rspack_util::infallible::ResultInfallibleExt as _;
+use serde_json::Value;
 use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
 
@@ -286,10 +288,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>(),
   );
 
-  for tag in tags.iter_mut() {
-    tag.html = Some(html_tag_object_to_string(tag));
-  }
-
   let mut render_data = serde_json::json!(&self.config.template_parameters);
 
   let mut body_tags = vec![];
@@ -312,9 +310,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       "htmlRspackPlugin": {
         "tags": {
           "headTags": head_tags,
-          "headTagsHtml": head_tags.iter().map(|tag| tag.html.clone().unwrap_or_default()).collect::<Vec<_>>().join(""),
           "bodyTags": body_tags,
-          "bodyTagsHtml": body_tags.iter().map(|tag| tag.html.clone().unwrap_or_default()).collect::<Vec<_>>().join(""),
         },
         "files": {
           "favicon": favicon,
@@ -352,6 +348,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     escape: "-".to_string(),
     unescape: "=".to_string(),
   });
+
+  dj.add_function_1("toHtml".into(), render_tag)
+    .expect("failed to add template function `renderTag`");
 
   dj.add_with_option(url.clone(), content.clone())
     .expect("failed to add template");
@@ -513,4 +512,23 @@ fn url_encode_path(file_path: &str) -> String {
     // element.outerHTML will escape '&' so need to add a placeholder here
     query_string.replace("&", "$$RSPACK_URL_AMP$$")
   )
+}
+
+pub fn render_tag(op: Operand) -> Operand {
+  match op {
+    Operand::Value(obj) => match serde_json::from_value::<HTMLPluginTag>(obj) {
+      Ok(tag) => Operand::Value(Value::from(html_tag_object_to_string(&tag))),
+      Err(_) => Operand::Value(Value::from("")),
+    },
+    Operand::Array(obj) => Operand::Value(Value::from(
+      obj
+        .iter()
+        .map(|val| match render_tag(val.to_owned()) {
+          Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
+          _ => "".to_string(),
+        })
+        .join(""),
+    )),
+    _ => Operand::Value(Value::from("")),
+  }
 }

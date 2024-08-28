@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
@@ -9,7 +9,7 @@ use crate::config::{HtmlInject, HtmlRspackPluginOptions};
 
 // attributes are presented as plain string.
 // namespace is not supported currently.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HtmlPluginAttribute {
   pub attr_name: String,

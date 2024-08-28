@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::asset::HtmlPluginAttribute;
 use crate::config::{HtmlInject, HtmlRspackPluginBaseOptions, HtmlScriptLoading};
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HTMLPluginTag {
   pub tag_name: String,
@@ -16,7 +16,6 @@ pub struct HTMLPluginTag {
   // `head`, `body`, `false`
   #[serde(skip)]
   pub append_to: HtmlInject,
-  pub html: Option<String>,
 }
 
 impl HTMLPluginTag {
