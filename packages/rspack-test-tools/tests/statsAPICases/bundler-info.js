@@ -58,9 +58,9 @@ module.exports = {
 		    "preOrderIndex": undefined,
 		    "providedExports": Array [],
 		    "reasons": Array [],
-		    "size": 56,
+		    "size": 51,
 		    "sizes": Object {
-		      "runtime": 56,
+		      "runtime": 51,
 		    },
 		    "type": "module",
 		    "usedExports": null,
@@ -100,9 +100,9 @@ module.exports = {
 		    "preOrderIndex": undefined,
 		    "providedExports": Array [],
 		    "reasons": Array [],
-		    "size": 64,
+		    "size": 59,
 		    "sizes": Object {
-		      "runtime": 64,
+		      "runtime": 59,
 		    },
 		    "type": "module",
 		    "usedExports": null,
