@@ -5,7 +5,8 @@
     <title>Test</title>
   </head>
   <body>
-    <p>Public path is <%= webpackConfig.output.publicPath %></p>
-    <script src="<%= htmlWebpackPlugin.files.js[0] %>"></script>
+    <!-- DIFF: webpackConfig, htmlWebpackPlugin -->
+    <p>Public path is <%= rspackConfig.output.publicPath %></p>
+    <script src="<%= htmlRspackPlugin.files.js[0] %>"></script>
   </body>
 </html>

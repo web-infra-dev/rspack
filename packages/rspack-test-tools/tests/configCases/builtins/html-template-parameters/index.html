@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <%= toHtml(htmlRspackPlugin.tags.headTags) %>
+  
+  <% for tag in htmlRspackPlugin.tags.headTags { %>
+    <% if tag.tagName=="script" { %>
+      <%= toHtml(tag) %>
+    <% } %>
+  <% } %>
+</head>
+
+<body>
+  <div>favicon: "<%= htmlRspackPlugin.files.favicon %>"</div>
+  <div>publicpath: "<%= htmlRspackPlugin.files.publicPath %>"</div>
+  <div>scripts: "<% for script in htmlRspackPlugin.files.js { %><%= script %><% } %>"</div>
+  <div>styles: "<% for style in htmlRspackPlugin.files.css { %><%= style %><% } %>"</div>
+  <div>config title: "<%= htmlRspackPlugin.options.title %>"</div>
+  <div>rspack config publicpath: "<%= rspackConfig.output.publicPath %>"</div>
+  <div>rspack config cross origin loading: "<%= rspackConfig.output.crossOriginLoading %>"</div>
+  <div>rspack config mode: "<%= rspackConfig.mode %>"</div>
+</body>
+
+</html>

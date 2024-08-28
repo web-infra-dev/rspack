@@ -1,17 +1,15 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use rspack_core::{Compilation, PublicPath};
-#[cfg(feature = "testing")]
-use schemars::JsonSchema;
-use serde::Deserialize;
+use serde::Serialize;
 use sugar_path::SugarPath;
 
 use crate::sri::HtmlSriHashFunction;
 
-#[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlInject {
+  #[default]
   Head,
   Body,
   False,
@@ -35,8 +33,7 @@ impl FromStr for HtmlInject {
   }
 }
 
-#[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlScriptLoading {
   Blocking,
@@ -65,16 +62,14 @@ impl FromStr for HtmlScriptLoading {
   }
 }
 
-#[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HtmlRspackPluginBaseOptions {
   pub href: Option<String>,
   pub target: Option<String>,
 }
 
-#[cfg_attr(feature = "testing", derive(JsonSchema))]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HtmlRspackPluginOptions {
   /// emitted file name in output path

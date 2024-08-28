@@ -7,7 +7,6 @@ repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 [features]
 default = []
-testing = ["dep:schemars"]
 
 [dependencies]
 anyhow            = { workspace = true }
@@ -22,7 +21,6 @@ rspack_error      = { version = "0.1.0", path = "../rspack_error" }
 rspack_hook       = { version = "0.1.0", path = "../rspack_hook" }
 rspack_paths      = { version = "0.1.0", path = "../rspack_paths" }
 rspack_util       = { version = "0.1.0", path = "../rspack_util" }
-schemars          = { workspace = true, optional = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 sha2              = "0.10.8"
