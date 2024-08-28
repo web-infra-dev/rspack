@@ -1,48 +1,40 @@
 import { useState } from 'react';
 import { usePageData } from 'rspress/runtime';
 import { useLang } from 'rspress/runtime';
-import { useI18n } from '../../i18n';
 import IconCloseCircle from './close';
+import styles from './index.module.scss';
+
+const LOCAL_STORAGE_KEY = 'rspack-announcement-closed';
+const ANNOUNCEMENT_URL = '/blog/announcing-1-0';
 
 export function Announcement() {
-  const t = useI18n();
   const [disable, setDisable] = useState(
-    window.localStorage.getItem('disabled-hire') ?? false,
+    window.localStorage.getItem(LOCAL_STORAGE_KEY) ?? false,
   );
   const { page } = usePageData();
   const lang = useLang();
+
   // Only display in homepage
   if (page.pageType !== 'home' || disable) {
     return null;
   }
+
   return (
-    <div
-      className="h-8 flex justify-center items-center bg-gradient-to-r from-green-400 via-yellow-300 to-orange-500"
-      style={{
-        height: '2rem',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
+    <div className={`flex justify-center items-center ${styles.bar}`}>
       <a
-        href={`${lang === 'en' ? '' : `/${lang}`}/misc/join-us.html`}
-        className="hover:underline text-gray-700 font-bold"
+        href={lang === 'en' ? ANNOUNCEMENT_URL : `/${lang}${ANNOUNCEMENT_URL}`}
+        className="hover:underline font-bold"
       >
-        {t('recruit')}
+        {lang === 'en'
+          ? 'Rspack v1.0 has been released!'
+          : 'Rspack v1.0 正式发布！'}
       </a>
       <IconCloseCircle
         onClick={() => {
           setDisable(true);
-          window.localStorage.setItem('disabled-hire', 'true');
+          window.localStorage.setItem(LOCAL_STORAGE_KEY, 'true');
         }}
-        style={{
-          right: 10,
-          color: 'white',
-          fontSize: 18,
-          position: 'absolute',
-          cursor: 'pointer',
-        }}
+        className={styles.close}
       />
     </div>
   );

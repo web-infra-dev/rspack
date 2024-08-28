@@ -125,7 +125,7 @@ export default defineConfig({
         type: 'website',
         url: PUBLISH_URL,
         image:
-          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-0-alpha.png',
+          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-0.png',
         description: 'Fast Rust-based Web Bundler',
         twitter: {
           site: '@rspack_dev',
