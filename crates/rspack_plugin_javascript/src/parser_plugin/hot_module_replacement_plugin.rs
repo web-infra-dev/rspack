@@ -3,8 +3,7 @@ pub mod hot_module_replacement {
   pub use super::ModuleHotReplacementParserPlugin;
 }
 
-use rspack_core::{BoxDependency, RealDependencyLocation, RealDependencyLocation, SpanExt};
-use rspack_error::ErrorLocation;
+use rspack_core::{BoxDependency, RealDependencyLocation, SpanExt};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
