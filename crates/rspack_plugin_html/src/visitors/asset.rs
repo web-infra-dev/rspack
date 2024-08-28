@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
-use swc_html::ast::{Child, Element, Namespace, Text};
+use swc_html::ast::{Child, Element, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
 use super::tag::HTMLPluginTag;
 use super::utils::create_element;
-use crate::config::{HtmlInject, HtmlRspackPluginOptions};
+use crate::config::HtmlInject;
 
 // attributes are presented as plain string.
 // namespace is not supported currently.
@@ -19,13 +19,12 @@ pub struct HtmlPluginAttribute {
 
 #[derive(Debug)]
 pub struct AssetWriter<'a> {
-  config: &'a HtmlRspackPluginOptions,
   head_tags: Vec<&'a HTMLPluginTag>,
   body_tags: Vec<&'a HTMLPluginTag>,
 }
 
 impl<'a> AssetWriter<'a> {
-  pub fn new(config: &'a HtmlRspackPluginOptions, tags: &'a [HTMLPluginTag]) -> AssetWriter<'a> {
+  pub fn new(tags: &'a [HTMLPluginTag]) -> AssetWriter<'a> {
     let mut head_tags: Vec<&HTMLPluginTag> = vec![];
     let mut body_tags: Vec<&HTMLPluginTag> = vec![];
     for ele in tags.iter() {
@@ -40,7 +39,6 @@ impl<'a> AssetWriter<'a> {
       }
     }
     AssetWriter {
-      config,
       head_tags,
       body_tags,
     }
@@ -54,38 +52,6 @@ impl VisitMut for AssetWriter<'_> {
 
     match &*n.tag_name {
       "head" => {
-        // add title
-        if let Some(title) = &self.config.title {
-          let title_ele = n.children.iter_mut().find(|child| {
-            if let Child::Element(ele) = child {
-              return ele.tag_name.eq("title");
-            }
-            false
-          });
-
-          if let Some(Child::Element(title_ele)) = title_ele {
-            title_ele.children = vec![Child::Text(Text {
-              span: DUMMY_SP,
-              data: Atom::from(title.as_str()),
-              raw: None,
-            })];
-          } else {
-            n.children.push(Child::Element(Element {
-              tag_name: Atom::from("title"),
-              children: vec![Child::Text(Text {
-                span: DUMMY_SP,
-                data: Atom::from(title.as_str()),
-                raw: None,
-              })],
-              is_self_closing: false,
-              namespace: Namespace::HTML,
-              span: DUMMY_SP,
-              attributes: vec![],
-              content: None,
-            }));
-          }
-        }
-
         for tag in head_tags.iter() {
           if tag.tag_name == "title" {
             if let Some(Child::Element(title_ele)) = n.children.iter_mut().find(|child| {
@@ -105,6 +71,7 @@ impl VisitMut for AssetWriter<'_> {
                 ),
                 raw: None,
               })];
+              continue;
             }
           }
 

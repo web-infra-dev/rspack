@@ -377,7 +377,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   if !matches!(self.config.inject, HtmlInject::False) {
-    let mut visitor = AssetWriter::new(config, &tags);
+    let mut visitor = AssetWriter::new(&tags);
     current_ast.visit_mut_with(&mut visitor);
   }
 
