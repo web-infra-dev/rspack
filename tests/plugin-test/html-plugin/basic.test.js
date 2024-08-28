@@ -3600,8 +3600,8 @@ describe("HtmlWebpackPlugin", () => {
             // `,
             templateContent: ({ htmlRspackPlugin }) => `
             <html>
-              <head>${htmlRspackPlugin.tags.headTagsHtml}</head>
-              <body>${htmlRspackPlugin.tags.bodyTagsHtml}</body>
+              <head>${htmlRspackPlugin.tags.headTags}</head>
+              <body>${htmlRspackPlugin.tags.bodyTags}</body>
             </html>
             `,
           }),
@@ -3679,8 +3679,8 @@ describe("HtmlWebpackPlugin", () => {
             // `,
             templateContent: ({ htmlRspackPlugin }) => `
             <html>
-              <head>${htmlRspackPlugin.tags.headTagsHtml}</head>
-              <body>${htmlRspackPlugin.tags.bodyTagsHtml}</body>
+              <head>${htmlRspackPlugin.tags.headTags}</head>
+              <body>${htmlRspackPlugin.tags.bodyTags}</body>
             </html>
             `,
           }),

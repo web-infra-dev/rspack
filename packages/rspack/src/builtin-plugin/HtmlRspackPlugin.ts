@@ -11,6 +11,14 @@ import type { Compiler } from "../Compiler";
 import { validate } from "../util/validate";
 import { create } from "./base";
 
+type HtmlPluginTag = {
+	tagName: string;
+	attributes: Record<string, string>;
+	voidTag: boolean;
+	innerHTML?: string;
+	toString?: () => string;
+};
+
 const templateRenderFunction = z
 	.function()
 	.args(z.record(z.string(), z.any()))
@@ -104,6 +112,32 @@ export const HtmlRspackPlugin = create(
 			compilation = c;
 		});
 
+		function generateRenderData(data: string): Record<string, unknown> {
+			const json = JSON.parse(data);
+			if (typeof c.templateParameters !== "function") {
+				json.compilation = compilation;
+			}
+			const renderTag = function (this: HtmlPluginTag) {
+				return htmlTagObjectToString(this);
+			};
+			const renderTagList = function (this: HtmlPluginTag[]) {
+				return this.join("");
+			};
+			if (Array.isArray(json.htmlRspackPlugin?.tags?.headTags)) {
+				for (const tag of json.htmlRspackPlugin.tags.headTags) {
+					tag.toString = renderTag;
+				}
+				json.htmlRspackPlugin.tags.headTags.toString = renderTagList;
+			}
+			if (Array.isArray(json.htmlRspackPlugin?.tags?.bodyTags)) {
+				for (const tag of json.htmlRspackPlugin.tags.bodyTags) {
+					tag.toString = renderTag;
+				}
+				json.htmlRspackPlugin.tags.bodyTags.toString = renderTagList;
+			}
+			return json;
+		}
+
 		let templateContent = c.templateContent;
 		let templateFn = undefined;
 		if (typeof templateContent === "function") {
@@ -115,11 +149,7 @@ export const HtmlRspackPlugin = create(
 					if (c.templateParameters === false) {
 						return await renderer({});
 					}
-					const json = JSON.parse(data);
-					if (typeof c.templateParameters !== "function") {
-						json.compilation = compilation;
-					}
-					return await renderer(json);
+					return await renderer(generateRenderData(data));
 				} catch (e) {
 					const error = new Error(
 						`HtmlRspackPlugin: render template function failed, ${(e as Error).message}`
@@ -147,11 +177,7 @@ export const HtmlRspackPlugin = create(
 						if (c.templateParameters === false) {
 							return await renderer({});
 						}
-						const json = JSON.parse(data);
-						if (typeof c.templateParameters !== "function") {
-							json.compilation = compilation;
-						}
-						return await renderer(json);
+						return await renderer(generateRenderData(data));
 					} catch (e) {
 						const error = new Error(
 							`HtmlRspackPlugin: render template function failed, ${(e as Error).message}`
@@ -186,3 +212,24 @@ export const HtmlRspackPlugin = create(
 		};
 	}
 );
+
+function htmlTagObjectToString(tag: {
+	tagName: string;
+	attributes: Record<string, string>;
+	voidTag: boolean;
+	innerHTML?: string;
+}) {
+	const attributes = Object.keys(tag.attributes || {})
+		.filter(
+			attributeName =>
+				tag.attributes[attributeName] === "" || tag.attributes[attributeName]
+		)
+		.map(attributeName => {
+			if (tag.attributes[attributeName] === "true") {
+				return attributeName;
+			}
+			return `${attributeName}="${tag.attributes[attributeName]}"`;
+		});
+	const res = `<${[tag.tagName].concat(attributes).join(" ")}${tag.voidTag && !tag.innerHTML ? "/" : ""}>${tag.innerHTML || ""}${tag.voidTag && !tag.innerHTML ? "" : `</${tag.tagName}>`}`;
+	return res;
+}
