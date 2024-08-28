@@ -356,10 +356,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             Mode::Production => "production",
             Mode::None => "none",
           },
+          "output": {
+            "publicPath": config.get_public_path(compilation, &self.config.filename),
           "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
               CrossOriginLoading::Disable => "false",
               CrossOriginLoading::Enable(value) => value,
           },
+          }
         },
       }),
     );
