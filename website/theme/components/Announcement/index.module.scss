@@ -2,23 +2,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #0b0d0e;
-  background-image: linear-gradient(
-    120deg,
-    hsl(32.71deg 100% 70%),
-    hsl(32.71deg 100% 65%)
+  color: #fff;
+  background-image: var(
+    --orange-gradient,
+    linear-gradient(
+      279deg,
+      hsl(32.71, 100%, 50%) 35.21%,
+      hsl(6.91, 94.76%, 67%) 63.34%
+    )
   );
   height: 36px;
-}
-
-:global(.dark) {
-  .bar {
-    background-image: linear-gradient(
-      120deg,
-      hsl(32.71deg 100% 70%),
-      hsl(32.71deg 100% 60%)
-    );
-  }
 }
 
 .close {
