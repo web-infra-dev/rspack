@@ -99,6 +99,7 @@ function testHtmlPlugin(
       }
       done();
     } catch (e) {
+      console.log(e);
       done(e);
     }
   });
@@ -1619,724 +1620,729 @@ describe("HtmlWebpackPlugin", () => {
     );
   });
 
-  // TODO: HtmlWebpackPlugin.getCompilationHooks
-  // it("fires the html-webpack-plugin-alter-asset-tags event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).alterAssetTags.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (object, callback) => {
-  //             expect(Object.keys(object.assetTags)).toEqual([
-  //               "scripts",
-  //               "styles",
-  //               "meta",
-  //             ]);
-  //             eventFired = true;
-  //             callback();
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
+  it("fires the html-webpack-plugin-alter-asset-tags event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).alterAssetTags.tapAsync(
+            "HtmlWebpackPluginTest",
+            (object, callback) => {
+              expect(Object.keys(object.assetTags)).toEqual([
+                "scripts",
+                "styles",
+                "meta",
+              ]);
+              eventFired = true;
+              callback();
+            },
+          );
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+      false,
+      false,
+    );
+  });
 
-  // it("allows events to add a no-value attribute", (done) => {
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).alterAssetTags.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (pluginArgs, callback) => {
-  //             pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
-  //               (tag) => {
-  //                 if (tag.tagName === "script") {
-  //                   tag.attributes.specialAttribute = true;
-  //                 }
-  //                 return tag;
-  //               },
-  //             );
-  //             callback(null, pluginArgs);
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [
-  //       /[\s]*<script defer src="app_bundle.js" specialattribute><\/script>[\s]*<\/head>/,
-  //     ],
-  //     null,
-  //     done,
-  //     false,
-  //     false,
-  //   );
-  // });
+  it("allows events to add a no-value attribute", (done) => {
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).alterAssetTags.tapAsync(
+            "HtmlWebpackPluginTest",
+            (pluginArgs, callback) => {
+              pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
+                (tag) => {
+                  if (tag.tagName === "script") {
+                    tag.attributes.specialAttribute = true;
+                  }
+                  return tag;
+                },
+              );
+              callback(null, pluginArgs);
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [
+        /[\s]*<script defer specialattribute src="app_bundle.js"><\/script>[\s]*<\/head>/,
+      ],
+      null,
+      done,
+      false,
+      false,
+    );
+  });
 
-  // it("allows events to remove an attribute by setting it to false", (done) => {
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).alterAssetTags.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (pluginArgs, callback) => {
-  //             pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
-  //               (tag) => {
-  //                 if (tag.tagName === "script") {
-  //                   tag.attributes.async = false;
-  //                 }
-  //                 return tag;
-  //               },
-  //             );
-  //             callback(null, pluginArgs);
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
-  //     null,
-  //     done,
-  //     false,
-  //     false,
-  //   );
-  // });
+  it("allows events to remove an attribute by setting it to false", (done) => {
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).alterAssetTags.tapAsync(
+            "HtmlWebpackPluginTest",
+            (pluginArgs, callback) => {
+              pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
+                (tag) => {
+                  if (tag.tagName === "script") {
+                    tag.attributes.async = false;
+                  }
+                  return tag;
+                },
+              );
+              callback(null, pluginArgs);
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
+      null,
+      done,
+      false,
+      false,
+    );
+  });
 
-  // it("allows events to remove an attribute by setting it to null", (done) => {
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).alterAssetTags.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (pluginArgs, callback) => {
-  //             pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
-  //               (tag) => {
-  //                 if (tag.tagName === "script") {
-  //                   tag.attributes.async = null;
-  //                 }
-  //                 return tag;
-  //               },
-  //             );
-  //             callback(null, pluginArgs);
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
-  //     null,
-  //     done,
-  //     false,
-  //     false,
-  //   );
-  // });
+  it("allows events to remove an attribute by setting it to null", (done) => {
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).alterAssetTags.tapAsync(
+            "HtmlWebpackPluginTest",
+            (pluginArgs, callback) => {
+              pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
+                (tag) => {
+                  if (tag.tagName === "script") {
+                    tag.attributes.async = null;
+                  }
+                  return tag;
+                },
+              );
+              callback(null, pluginArgs);
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
+      null,
+      done,
+      false,
+      false,
+    );
+  });
 
-  // it("allows events to remove an attribute by setting it to undefined", (done) => {
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).alterAssetTags.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (pluginArgs, callback) => {
-  //             pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
-  //               (tag) => {
-  //                 if (tag.tagName === "script") {
-  //                   tag.attributes.async = undefined;
-  //                 }
-  //                 return tag;
-  //               },
-  //             );
-  //             callback(null, pluginArgs);
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
-  //     null,
-  //     done,
-  //     false,
-  //     false,
-  //   );
-  // });
+  it("allows events to remove an attribute by setting it to undefined", (done) => {
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).alterAssetTags.tapAsync(
+            "HtmlWebpackPluginTest",
+            (pluginArgs, callback) => {
+              pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
+                (tag) => {
+                  if (tag.tagName === "script") {
+                    tag.attributes.async = undefined;
+                  }
+                  return tag;
+                },
+              );
+              callback(null, pluginArgs);
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
+      null,
+      done,
+      false,
+      false,
+    );
+  });
 
-  // it("provides the options to the afterEmit event", (done) => {
-  //   let eventArgs;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(compilation).afterEmit.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (pluginArgs, callback) => {
-  //             eventArgs = pluginArgs;
-  //             callback(null, pluginArgs);
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [
-  //         new HtmlWebpackPlugin({
-  //           foo: "bar",
-  //         }),
-  //         examplePlugin,
-  //       ],
-  //     },
-  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
-  //     null,
-  //     () => {
-  //       expect(eventArgs.plugin.options.foo).toBe("bar");
-  //       done();
-  //     },
-  //     false,
-  //     false,
-  //   );
-  // });
+  it("provides the options to the afterEmit event", (done) => {
+    let eventArgs;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(compilation).afterEmit.tapAsync(
+            "HtmlWebpackPluginTest",
+            (pluginArgs, callback) => {
+              eventArgs = pluginArgs;
+              callback(null, pluginArgs);
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [
+          new HtmlWebpackPlugin({
+            // DIFF: rspack validate the plugin
+            // foo: "bar",
+            templateParameters: {
+              foo: "bar"
+            }
+          }),
+          examplePlugin,
+        ],
+      },
+      [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
+      null,
+      () => {
+        // DIFF: expect(eventArgs.plugin.options.foo).toBe("bar");
+        expect(eventArgs.plugin.options.templateParameters.foo).toBe("bar");
+        done();
+      },
+      false,
+      false,
+    );
+  });
 
-  // it("provides the outputName to the afterEmit event", (done) => {
-  //   let eventArgs;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(compilation).afterEmit.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (pluginArgs, callback) => {
-  //             eventArgs = pluginArgs;
-  //             callback(null, pluginArgs);
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
-  //     null,
-  //     () => {
-  //       expect(eventArgs.outputName).toBe("index.html");
-  //       done();
-  //     },
-  //     false,
-  //     false,
-  //   );
-  // });
+  it("provides the outputName to the afterEmit event", (done) => {
+    let eventArgs;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(compilation).afterEmit.tapAsync(
+            "HtmlWebpackPluginTest",
+            (pluginArgs, callback) => {
+              eventArgs = pluginArgs;
+              callback(null, pluginArgs);
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [/<script defer src="app_bundle.js"><\/script>[\s]*<\/head>/],
+      null,
+      () => {
+        expect(eventArgs.outputName).toBe("index.html");
+        done();
+      },
+      false,
+      false,
+    );
+  });
 
-  // it("fires the html-webpack-plugin-after-template-execution event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).afterTemplateExecution.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (object, callback) => {
-  //             eventFired = true;
-  //             callback();
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
+  it("fires the html-webpack-plugin-after-template-execution event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).afterTemplateExecution.tapAsync(
+            "HtmlWebpackPluginTest",
+            (object, callback) => {
+              eventFired = true;
+              callback();
+            },
+          );
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
-  // it("fires the html-webpack-plugin-before-emit event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFired = true;
-  //           callback();
-  //         });
-  //       });
-  //     },
-  //   };
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+  it("fires the html-webpack-plugin-before-emit event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFired = true;
+            callback();
+          });
+        });
+      },
+    };
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
-  // it("fires the html-webpack-plugin-after-emit event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(compilation).afterEmit.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (object, callback) => {
-  //             eventFired = true;
-  //             callback();
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //   );
-  // });
+  it("fires the html-webpack-plugin-after-emit event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(compilation).afterEmit.tapAsync(
+            "HtmlWebpackPluginTest",
+            (object, callback) => {
+              eventFired = true;
+              callback();
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+    );
+  });
 
-  // it("allows to modify the html during html-webpack-plugin-before-emit event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFired = true;
-  //           object.html += "Injected by plugin";
-  //           callback();
-  //         });
-  //       });
-  //     },
-  //   };
+  it("allows to modify the html during html-webpack-plugin-before-emit event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFired = true;
+            object.html += "Injected by plugin";
+            callback();
+          });
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     ["Injected by plugin"],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      ["Injected by plugin"],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
-  // it("allows to access all hooks from within a plugin", (done) => {
-  //   let hookNames;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         hookNames = Object.keys(
-  //           HtmlWebpackPlugin.getCompilationHooks(compilation),
-  //         ).sort();
-  //       });
-  //     },
-  //   };
+  it("allows to access all hooks from within a plugin", (done) => {
+    let hookNames;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          hookNames = Object.keys(
+            HtmlWebpackPlugin.getCompilationHooks(compilation),
+          ).sort();
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [],
-  //     null,
-  //     () => {
-  //       expect(hookNames).toEqual([
-  //         "afterEmit",
-  //         "afterTemplateExecution",
-  //         "alterAssetTagGroups",
-  //         "alterAssetTags",
-  //         "beforeAssetTagGeneration",
-  //         "beforeEmit",
-  //       ]);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [],
+      null,
+      () => {
+        expect(hookNames).toEqual([
+          "afterEmit",
+          "afterTemplateExecution",
+          "alterAssetTagGroups",
+          "alterAssetTags",
+          "beforeAssetTagGeneration",
+          "beforeEmit",
+        ]);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
-  // it("allows to modify sequentially the html during html-webpack-plugin-before-emit event by edit the given arguments object", (done) => {
-  //   let eventFiredForFirstPlugin = false;
-  //   let eventFiredForSecondPlugin = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFiredForFirstPlugin = true;
-  //           object.html += "Injected by first plugin";
-  //           callback(null, object);
-  //         });
-  //       });
-  //     },
-  //   };
-  //   const secondExamplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFiredForSecondPlugin = true;
-  //           object.html += " Injected by second plugin";
-  //           callback(null);
-  //         });
-  //       });
-  //     },
-  //   };
+  it("allows to modify sequentially the html during html-webpack-plugin-before-emit event by edit the given arguments object", (done) => {
+    let eventFiredForFirstPlugin = false;
+    let eventFiredForSecondPlugin = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFiredForFirstPlugin = true;
+            object.html += "Injected by first plugin";
+            callback(null, object);
+          });
+        });
+      },
+    };
+    const secondExamplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFiredForSecondPlugin = true;
+            object.html += " Injected by second plugin";
+            callback(null);
+          });
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin],
-  //     },
-  //     ["Injected by first plugin Injected by second plugin"],
-  //     null,
-  //     () => {
-  //       expect(eventFiredForFirstPlugin).toBe(true);
-  //       expect(eventFiredForSecondPlugin).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin],
+      },
+      ["Injected by first plugin Injected by second plugin"],
+      null,
+      () => {
+        expect(eventFiredForFirstPlugin).toBe(true);
+        expect(eventFiredForSecondPlugin).toBe(true);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
-  // it("allows to modify sequentially the html during html-webpack-plugin-before-emit event either by edit the given arguments object or by return a new object in the callback", (done) => {
-  //   let eventFiredForFirstPlugin = false;
-  //   let eventFiredForSecondPlugin = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFiredForFirstPlugin = true;
-  //           const result = _.extend(object, {
-  //             html: object.html + "Injected by first plugin",
-  //           });
-  //           callback(null, result);
-  //         });
-  //       });
-  //     },
-  //   };
-  //   const secondExamplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFiredForSecondPlugin = true;
-  //           object.html += " Injected by second plugin";
-  //           callback(null);
-  //         });
-  //       });
-  //     },
-  //   };
+  it("allows to modify sequentially the html during html-webpack-plugin-before-emit event either by edit the given arguments object or by return a new object in the callback", (done) => {
+    let eventFiredForFirstPlugin = false;
+    let eventFiredForSecondPlugin = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFiredForFirstPlugin = true;
+            const result = _.extend(object, {
+              html: object.html + "Injected by first plugin",
+            });
+            callback(null, result);
+          });
+        });
+      },
+    };
+    const secondExamplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFiredForSecondPlugin = true;
+            object.html += " Injected by second plugin";
+            callback(null);
+          });
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin],
-  //     },
-  //     ["Injected by first plugin Injected by second plugin"],
-  //     null,
-  //     () => {
-  //       expect(eventFiredForFirstPlugin).toBe(true);
-  //       expect(eventFiredForSecondPlugin).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin],
+      },
+      ["Injected by first plugin Injected by second plugin"],
+      null,
+      () => {
+        expect(eventFiredForFirstPlugin).toBe(true);
+        expect(eventFiredForSecondPlugin).toBe(true);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
-  // it("allows to modify sequentially the html during html-webpack-plugin-before-emit event by return a new object in the callback", (done) => {
-  //   let eventFiredForFirstPlugin = false;
-  //   let eventFiredForSecondPlugin = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFiredForFirstPlugin = true;
-  //           const result = _.extend(object, {
-  //             html: object.html + "Injected by first plugin",
-  //           });
-  //           callback(null, result);
-  //         });
-  //       });
-  //     },
-  //   };
-  //   const secondExamplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
-  //           eventFiredForSecondPlugin = true;
-  //           const result = _.extend(object, {
-  //             html: object.html + " Injected by second plugin",
-  //           });
-  //           callback(null, result);
-  //         });
-  //       });
-  //     },
-  //   };
+  it("allows to modify sequentially the html during html-webpack-plugin-before-emit event by return a new object in the callback", (done) => {
+    let eventFiredForFirstPlugin = false;
+    let eventFiredForSecondPlugin = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFiredForFirstPlugin = true;
+            const result = _.extend(object, {
+              html: object.html + "Injected by first plugin",
+            });
+            callback(null, result);
+          });
+        });
+      },
+    };
+    const secondExamplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeEmit.tapAsync("HtmlWebpackPluginTest", (object, callback) => {
+            eventFiredForSecondPlugin = true;
+            const result = _.extend(object, {
+              html: object.html + " Injected by second plugin",
+            });
+            callback(null, result);
+          });
+        });
+      },
+    };
 
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin],
-  //     },
-  //     ["Injected by first plugin Injected by second plugin"],
-  //     null,
-  //     () => {
-  //       expect(eventFiredForFirstPlugin).toBe(true);
-  //       expect(eventFiredForSecondPlugin).toBe(true);
-  //       done();
-  //     },
-  //   );
-  // });
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin],
+      },
+      ["Injected by first plugin Injected by second plugin"],
+      null,
+      () => {
+        expect(eventFiredForFirstPlugin).toBe(true);
+        expect(eventFiredForSecondPlugin).toBe(true);
+        done();
+      },
+    );
+  });
 
-  // it("allows to modify the html during html-webpack-plugin-after-template-execution event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).afterTemplateExecution.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (object, callback) => {
-  //             eventFired = true;
-  //             object.bodyTags.push(
-  //               HtmlWebpackPlugin.createHtmlTagObject("script", {
-  //                 src: "funky-script.js",
-  //               }),
-  //             );
-  //             object.html += "Injected by plugin";
-  //             callback();
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
+  it("allows to modify the html during html-webpack-plugin-after-template-execution event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).afterTemplateExecution.tapAsync(
+            "HtmlWebpackPluginTest",
+            (object, callback) => {
+              eventFired = true;
+              object.bodyTags.push(
+                HtmlWebpackPlugin.createHtmlTagObject("script", {
+                  src: "funky-script.js",
+                }),
+              );
+              // DIFF: swc inject not allow non-space character in page trailer
+              // object.html += "Injected by plugin";
+              object.html = object.html.replace("</body>", "Injected by plugin</body>");
+              callback();
+            },
+          );
+        });
+      },
+    };
 
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     ["Injected by plugin", '<script src="funky-script.js"'],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      ["Injected by plugin", '<script src="funky-script.js"'],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+      false,
+      false,
+    );
+  });
 
+  // TODO: template with loader
   // it("allows to modify the html during html-webpack-plugin-before-asset-tag-generation event", (done) => {
   //   let eventFired = false;
   //   const examplePlugin = {
@@ -2383,98 +2389,98 @@ describe("HtmlWebpackPlugin", () => {
   //   );
   // });
 
-  // it("allows to inject files during html-webpack-plugin-before-asset-tag-generation event", (done) => {
-  //   let eventFired = false;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         HtmlWebpackPlugin.getCompilationHooks(
-  //           compilation,
-  //         ).beforeAssetTagGeneration.tapAsync(
-  //           "HtmlWebpackPluginTest",
-  //           (object, callback) => {
-  //             eventFired = true;
-  //             object.assets.js.push("funky-script.js");
-  //             callback();
-  //           },
-  //         );
-  //       });
-  //     },
-  //   };
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     ['<script defer src="funky-script.js"'],
-  //     null,
-  //     () => {
-  //       expect(eventFired).toBe(true);
-  //       done();
-  //     },
-  //   );
-  // });
+  it("allows to inject files during html-webpack-plugin-before-asset-tag-generation event", (done) => {
+    let eventFired = false;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          HtmlWebpackPlugin.getCompilationHooks(
+            compilation,
+          ).beforeAssetTagGeneration.tapAsync(
+            "HtmlWebpackPluginTest",
+            (object, callback) => {
+              eventFired = true;
+              object.assets.js.push("funky-script.js");
+              callback();
+            },
+          );
+        });
+      },
+    };
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      ['<script defer src="funky-script.js"'],
+      null,
+      () => {
+        expect(eventFired).toBe(true);
+        done();
+      },
+    );
+  });
 
-  // it("fires the events in the correct order", (done) => {
-  //   const hookCallOrder = [
-  //     "beforeAssetTagGeneration",
-  //     "alterAssetTags",
-  //     "alterAssetTagGroups",
-  //     "afterTemplateExecution",
-  //     "beforeEmit",
-  //     "afterEmit",
-  //   ];
-  //   let eventsFired = [];
-  //   let hookLength = 0;
-  //   const examplePlugin = {
-  //     apply: function (compiler) {
-  //       compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
-  //         const hooks = HtmlWebpackPlugin.getCompilationHooks(compilation);
-  //         hookLength = hooks.length;
-  //         // Hook into all hooks
-  //         Object.keys(hooks).forEach((hookName) => {
-  //           hooks[hookName].tapAsync(
-  //             "HtmlWebpackPluginTest",
-  //             (object, callback) => {
-  //               eventsFired.push(hookName);
-  //               callback();
-  //             },
-  //           );
-  //         });
-  //       });
-  //     },
-  //   };
-  //   const shouldExpectWarnings = webpackMajorVersion < 4;
-  //   testHtmlPlugin(
-  //     {
-  //       mode: "production",
-  //       entry: {
-  //         app: path.join(__dirname, "fixtures/index.js"),
-  //       },
-  //       output: {
-  //         path: OUTPUT_DIR,
-  //         filename: "[name]_bundle.js",
-  //       },
-  //       plugins: [new HtmlWebpackPlugin(), examplePlugin],
-  //     },
-  //     [],
-  //     null,
-  //     () => {
-  //       expect(hookLength).not.toBe(0);
-  //       expect(eventsFired).toEqual(hookCallOrder);
-  //       done();
-  //     },
-  //     false,
-  //     shouldExpectWarnings,
-  //   );
-  // });
+  it("fires the events in the correct order", (done) => {
+    const hookCallOrder = [
+      "beforeAssetTagGeneration",
+      "alterAssetTags",
+      "alterAssetTagGroups",
+      "afterTemplateExecution",
+      "beforeEmit",
+      "afterEmit",
+    ];
+    let eventsFired = [];
+    let hookLength = 0;
+    const examplePlugin = {
+      apply: function (compiler) {
+        compiler.hooks.compilation.tap("HtmlWebpackPlugin", (compilation) => {
+          const hooks = HtmlWebpackPlugin.getCompilationHooks(compilation);
+          hookLength = hooks.length;
+          // Hook into all hooks
+          Object.keys(hooks).forEach((hookName) => {
+            hooks[hookName].tapAsync(
+              "HtmlWebpackPluginTest",
+              (object, callback) => {
+                eventsFired.push(hookName);
+                callback();
+              },
+            );
+          });
+        });
+      },
+    };
+    const shouldExpectWarnings = webpackMajorVersion < 4;
+    testHtmlPlugin(
+      {
+        mode: "production",
+        entry: {
+          app: path.join(__dirname, "fixtures/index.js"),
+        },
+        output: {
+          path: OUTPUT_DIR,
+          filename: "[name]_bundle.js",
+        },
+        plugins: [new HtmlWebpackPlugin(), examplePlugin],
+      },
+      [],
+      null,
+      () => {
+        expect(hookLength).not.toBe(0);
+        expect(eventsFired).toEqual(hookCallOrder);
+        done();
+      },
+      false,
+      shouldExpectWarnings,
+    );
+  });
 
   it("works with commons chunk plugin", (done) => {
     testHtmlPlugin(
@@ -2525,7 +2531,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[^"]+\.ico">/],
+      [/<link href="[^"]+\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2667,7 +2673,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\/some\/+[^"]+\.ico">/],
+      [/<link href="\/some\/+[^"]+\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2689,7 +2695,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\/some\/+[^"]+\.ico">/],
+      [/<link href="\/some\/+[^"]+\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2711,7 +2717,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="some\/+[^"]+\.ico">/],
+      [/<link href="some\/+[^"]+\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2732,7 +2738,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[^"]+\.ico">/],
+      [/<link href="[^"]+\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2754,7 +2760,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\.\.\/[^"]+\.ico">/],
+      [/<link href="\.\.\/[^"]+\.ico" rel="icon">/],
       path.join("subfolder", "test.html"),
       done,
     );
@@ -2776,7 +2782,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="\/[a-z0-9]{20}\/favicon\.ico">/],
+      [/<link href="\/[a-z0-9]{20}\/favicon\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2798,7 +2804,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[a-z0-9]{20}\/favicon\.ico">/],
+      [/<link href="[a-z0-9]{20}\/favicon\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2820,7 +2826,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link rel="icon" href="[^"]+\.ico">/],
+      [/<link href="[^"]+\.ico" rel="icon">/],
       null,
       done,
     );
@@ -3422,7 +3428,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<script type="module" src="index_bundle.js"><\/script>.+<body>/],
+      [/<script src="index_bundle.js" type="module"><\/script>.+<body>/],
       null,
       done,
     );
@@ -3444,7 +3450,7 @@ describe("HtmlWebpackPlugin", () => {
         ],
       },
       [
-        /<script type="systemjs-module" src="index_bundle.js"><\/script>.+<body>/,
+        /<script src="index_bundle.js" type="systemjs-module"><\/script>.+<body>/,
       ],
       null,
       done,

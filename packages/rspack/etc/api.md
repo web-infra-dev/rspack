@@ -39,6 +39,7 @@ import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
+import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import type { JsModule } from '@rspack/binding';
@@ -3939,6 +3940,13 @@ type ExtractCommentsObject = {
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
 // @public (undocumented)
+type ExtraPluginHookData = {
+    plugin: {
+        options: HtmlRspackPluginOptions;
+    };
+};
+
+// @public (undocumented)
 export type Falsy = z.infer<typeof falsy>;
 
 // @public (undocumented)
@@ -4659,16 +4667,24 @@ export const HtmlRspackPlugin: {
     };
 } & {
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
+    getCompilationOptions: (compilation: Compilation) => HtmlRspackPluginOptions | void;
+    createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string | undefined) => JsHtmlPluginTag;
 };
 
 // @public (undocumented)
 type HtmlRspackPluginHooks = {
-    beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeAssetTagGenerationData]>;
+    beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<[
+    JsBeforeAssetTagGenerationData & ExtraPluginHookData
+    ]>;
     alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
-    alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagGroupsData]>;
-    afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<[JsAfterTemplateExecutionData]>;
-    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeEmitData]>;
-    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[JsAfterEmitData]>;
+    alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAlterAssetTagGroupsData & ExtraPluginHookData
+    ]>;
+    afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAfterTemplateExecutionData & ExtraPluginHookData
+    ]>;
+    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeEmitData & ExtraPluginHookData]>;
+    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[JsAfterEmitData & ExtraPluginHookData]>;
 };
 
 // @public (undocumented)

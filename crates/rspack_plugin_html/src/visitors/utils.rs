@@ -20,10 +20,12 @@ pub fn create_attribute(name: &str, value: &Option<String>) -> Attribute {
 }
 
 pub fn create_attributes(attrs: &[HtmlPluginAttribute]) -> Vec<Attribute> {
-  attrs
+  let mut res = attrs
     .iter()
     .map(|attr| create_attribute(&attr.attr_name, &attr.attr_value))
-    .collect()
+    .collect::<Vec<_>>();
+  res.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+  return res;
 }
 
 pub fn create_element(tag: &HtmlPluginTag) -> Element {
@@ -75,7 +77,7 @@ pub fn merge_json(a: &mut Value, b: Value) {
 }
 
 pub fn html_tag_object_to_string(tag: &HtmlPluginTag) -> String {
-  let attributes = tag
+  let mut attributes = tag
     .attributes
     .iter()
     .map(|attr| {
@@ -86,6 +88,8 @@ pub fn html_tag_object_to_string(tag: &HtmlPluginTag) -> String {
       }
     })
     .collect::<Vec<String>>();
+
+  attributes.sort();
 
   let res = format!(
     "<{} {}{}>{}{}",

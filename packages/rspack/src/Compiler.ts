@@ -1209,7 +1209,14 @@ class Compiler {
 						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
 							.beforeAssetTagGeneration,
 					queried => async (data: binding.JsBeforeAssetTagGenerationData) => {
-						return await queried.promise(data);
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
 					}
 				),
 			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
@@ -1227,7 +1234,13 @@ class Compiler {
 					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
 						.alterAssetTagGroups,
 				queried => async (data: binding.JsAlterAssetTagGroupsData) => {
-					return await queried.promise(data);
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
 				}
 			),
 			registerHtmlPluginAfterTemplateExecutionTaps:
@@ -1237,7 +1250,14 @@ class Compiler {
 						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
 							.afterTemplateExecution,
 					queried => async (data: binding.JsAfterTemplateExecutionData) => {
-						return await queried.promise(data);
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
 					}
 				),
 			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
@@ -1245,7 +1265,13 @@ class Compiler {
 				() =>
 					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).beforeEmit,
 				queried => async (data: binding.JsBeforeEmitData) => {
-					return await queried.promise(data);
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
 				}
 			),
 			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
@@ -1253,7 +1279,13 @@ class Compiler {
 				() =>
 					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).afterEmit,
 				queried => async (data: binding.JsAfterEmitData) => {
-					return await queried.promise(data);
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
 				}
 			)
 		};

@@ -549,9 +549,9 @@ export interface JsHtmlPluginAssetTags {
 
 export interface JsHtmlPluginTag {
   tagName: string
-  attributes: Record<string, string>
+  attributes: Record<string, string | boolean | undefined | null>
   voidTag: boolean
-  innerHtml?: string
+  innerHTML?: string
   asset?: string
 }
 

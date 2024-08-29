@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_html::{
   visitors::{asset::HtmlPluginAttribute, tag::HtmlPluginTag},
@@ -10,8 +11,9 @@ use rspack_plugin_html::{
 #[napi(object)]
 pub struct JsHtmlPluginTag {
   pub tag_name: String,
-  pub attributes: HashMap<String, String>,
+  pub attributes: HashMap<String, Option<Either<String, bool>>>,
   pub void_tag: bool,
+  #[napi(js_name = "innerHTML")]
   pub inner_html: Option<String>,
   pub asset: Option<String>,
 }
@@ -26,7 +28,11 @@ impl From<HtmlPluginTag> for JsHtmlPluginTag {
         .map(|x| {
           (
             x.attr_name.to_owned(),
-            x.attr_value.to_owned().unwrap_or("true".into()),
+            if let Some(attr_value) = &x.attr_value {
+              Some(Either::A(attr_value.to_owned()))
+            } else {
+              Some(Either::B(true))
+            },
           )
         })
         .collect(),
@@ -44,13 +50,23 @@ impl From<JsHtmlPluginTag> for HtmlPluginTag {
       attributes: value
         .attributes
         .iter()
-        .map(|(key, value)| HtmlPluginAttribute {
-          attr_name: key.to_owned(),
-          attr_value: if value == "true" {
-            None
-          } else {
-            Some(value.to_owned())
-          },
+        .filter_map(|(key, value)| {
+          value.as_ref().and_then(|v| match v {
+            Either::A(x) => Some(HtmlPluginAttribute {
+              attr_name: key.to_ascii_lowercase(),
+              attr_value: Some(x.to_ascii_lowercase()),
+            }),
+            Either::B(x) => {
+              if *x {
+                Some(HtmlPluginAttribute {
+                  attr_name: key.to_ascii_lowercase(),
+                  attr_value: None,
+                })
+              } else {
+                None
+              }
+            }
+          })
         })
         .collect::<Vec<_>>(),
       void_tag: value.void_tag,

@@ -8,6 +8,7 @@ import {
 	type JsAlterAssetTagsData,
 	type JsBeforeAssetTagGenerationData,
 	type JsBeforeEmitData,
+	type JsHtmlPluginTag,
 	type RawHtmlRspackPluginOptions
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
@@ -116,8 +117,13 @@ const HtmlRspackPluginImpl = create(
 		const base = typeof c.base === "string" ? { href: c.base } : c.base;
 
 		let compilation: Compilation | null = null;
-		this.hooks.compilation.tap("HtmlRspackPlugin", c => {
-			compilation = c;
+		this.hooks.compilation.tap("HtmlRspackPlugin", compilationInstance => {
+			compilation = compilationInstance;
+			compilationOptionsMap.set(compilation, c);
+		});
+		this.hooks.done.tap("HtmlRspackPlugin", stats => {
+			compilationHooksMap.delete(stats.compilation);
+			compilationOptionsMap.delete(stats.compilation);
 		});
 
 		function generateRenderData(data: string): Record<string, unknown> {
@@ -209,7 +215,16 @@ const HtmlRspackPluginImpl = create(
 		}
 
 		return {
-			...c,
+			filename: c.filename,
+			template: c.template,
+			hash: c.hash,
+			title: c.title,
+			favicon: c.favicon,
+			publicPath: c.publicPath,
+			chunks: c.chunks,
+			excludeChunks: c.excludeChunks,
+			sri: c.sri,
+			minify: c.minify,
 			meta,
 			scriptLoading,
 			inject,
@@ -242,26 +257,87 @@ function htmlTagObjectToString(tag: {
 	return res;
 }
 
+type ExtraPluginHookData = {
+	plugin: {
+		options: HtmlRspackPluginOptions;
+	};
+};
+
 export type HtmlRspackPluginHooks = {
 	beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<
-		[JsBeforeAssetTagGenerationData]
+		[JsBeforeAssetTagGenerationData & ExtraPluginHookData]
 	>;
 	alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
 	alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<
-		[JsAlterAssetTagGroupsData]
+		[JsAlterAssetTagGroupsData & ExtraPluginHookData]
 	>;
 	afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<
-		[JsAfterTemplateExecutionData]
+		[JsAfterTemplateExecutionData & ExtraPluginHookData]
 	>;
-	beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeEmitData]>;
-	afterEmit: liteTapable.AsyncSeriesWaterfallHook<[JsAfterEmitData]>;
+	beforeEmit: liteTapable.AsyncSeriesWaterfallHook<
+		[JsBeforeEmitData & ExtraPluginHookData]
+	>;
+	afterEmit: liteTapable.AsyncSeriesWaterfallHook<
+		[JsAfterEmitData & ExtraPluginHookData]
+	>;
 };
 
 const compilationHooksMap: WeakMap<Compilation, HtmlRspackPluginHooks> =
 	new WeakMap();
 
+const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
+	new WeakMap();
+
 const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
 	getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
+	getCompilationOptions: (
+		compilation: Compilation
+	) => HtmlRspackPluginOptions | void;
+	createHtmlTagObject: (
+		tagName: string,
+		attributes?: Record<string, string | boolean>,
+		innerHTML?: string | undefined
+	) => JsHtmlPluginTag;
+};
+
+const voidTags = [
+	"area",
+	"base",
+	"br",
+	"col",
+	"embed",
+	"hr",
+	"img",
+	"input",
+	"keygen",
+	"link",
+	"meta",
+	"param",
+	"source",
+	"track",
+	"wbr"
+];
+
+HtmlRspackPlugin.createHtmlTagObject = (
+	tagName: string,
+	attributes?: Record<string, string | boolean>,
+	innerHTML?: string | undefined
+): JsHtmlPluginTag => {
+	return {
+		tagName,
+		voidTag: voidTags.includes(tagName),
+		attributes: attributes || {},
+		innerHTML
+	};
+};
+
+HtmlRspackPlugin.getCompilationOptions = (compilation: Compilation) => {
+	if (!(compilation instanceof Compilation)) {
+		throw new TypeError(
+			"The 'compilation' argument must be an instance of Compilation"
+		);
+	}
+	return compilationOptionsMap.get(compilation);
 };
 
 HtmlRspackPlugin.getCompilationHooks = (compilation: Compilation) => {

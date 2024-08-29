@@ -315,8 +315,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .before_asset_tag_generation
     .call(BeforeAssetTagGenerationData {
       assets: assets_info.0,
-      // TODO: support named html
-      output_name: String::new(),
+      output_name: html_file_name.as_str().to_string(),
     })
     .await?;
 
@@ -402,8 +401,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .call(AlterAssetTagsData {
       asset_tags,
       public_path: public_path.clone(),
-      // TODO: support named html
-      output_name: String::new(),
+      output_name: html_file_name.as_str().to_string(),
     })
     .await?;
 
@@ -411,7 +409,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut head_tags = vec![];
 
   head_tags.extend(alter_asset_tags_data.asset_tags.meta);
-  head_tags.extend(alter_asset_tags_data.asset_tags.styles);
 
   for tag in &alter_asset_tags_data.asset_tags.scripts {
     match self.config.inject {
@@ -427,13 +424,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
+  head_tags.extend(alter_asset_tags_data.asset_tags.styles);
+
   let alter_asset_tag_groups_data = hooks
     .alter_asset_tag_groups
     .call(AlterAssetTagGroupsData {
       head_tags,
       body_tags,
       public_path: public_path.clone(),
-      output_name: String::new(),
+      output_name: html_file_name.as_str().to_string(),
     })
     .await?;
 
@@ -563,9 +562,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .after_template_execution
     .call(AfterTemplateExecutionData {
       html: template_execution_result,
-      head_tags: alter_asset_tag_groups_data.head_tags.clone(),
-      body_tags: alter_asset_tag_groups_data.body_tags.clone(),
-      output_name: String::new(),
+      head_tags: alter_asset_tag_groups_data.head_tags,
+      body_tags: alter_asset_tag_groups_data.body_tags,
+      output_name: html_file_name.as_str().to_string(),
     })
     .await?;
 
@@ -586,8 +585,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   if !matches!(self.config.inject, HtmlInject::False) {
     let mut visitor = AssetWriter::new(
-      &alter_asset_tag_groups_data.head_tags,
-      &alter_asset_tag_groups_data.body_tags,
+      &after_template_execution_data.head_tags,
+      &after_template_execution_data.body_tags,
     );
     current_ast.visit_mut_with(&mut visitor);
   }
@@ -651,7 +650,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .before_emit
     .call(BeforeEmitData {
       html: source,
-      output_name: String::new(),
+      output_name: html_file_name.as_str().to_string(),
     })
     .await?;
 
@@ -666,7 +665,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     )
     .always_ok();
   compilation.emit_asset(
-    output_path,
+    output_path.clone(),
     CompilationAsset::new(
       Some(RawSource::from(before_emit_data.html).boxed()),
       asset_info,
@@ -676,7 +675,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let _ = hooks
     .after_emit
     .call(AfterEmitData {
-      output_name: String::new(),
+      output_name: html_file_name.as_str().to_string(),
     })
     .await?;
 
