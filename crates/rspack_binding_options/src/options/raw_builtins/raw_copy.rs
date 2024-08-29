@@ -142,8 +142,8 @@ impl From<RawCopyPattern> for CopyPattern {
 
           fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
             match input {
-              Either::A(s) => RawSource::Source(s),
-              Either::B(b) => RawSource::Buffer(b.to_vec()),
+              Either::A(s) => RawSource::from(s),
+              Either::B(b) => RawSource::from(b.to_vec()),
             }
           }
 

@@ -287,7 +287,7 @@ pub fn minify(
                 .insert(
                   filename.to_string(),
                   ExtractedCommentsInfo {
-                    source: RawSource::Source(extracted_comments.join("\n\n")).boxed(),
+                    source: RawSource::from(extracted_comments.join("\n\n")).boxed(),
                     comments_file_name: extract_comments.filename.to_string(),
                   },
                 );

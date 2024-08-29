@@ -784,7 +784,7 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
     if content.is_buffer() {
-      return Ok(RawSource::Buffer(content.into_bytes()).boxed());
+      return Ok(RawSource::from(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()

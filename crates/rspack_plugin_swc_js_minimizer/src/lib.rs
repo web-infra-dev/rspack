@@ -259,7 +259,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .contains_key(filename)
         {
           ConcatSource::new([
-            RawSource::Source(banner).boxed(),
+            RawSource::from(banner).boxed(),
             RawSource::from("\n").boxed(),
             source
           ]).boxed()

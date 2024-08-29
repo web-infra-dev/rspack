@@ -15,8 +15,9 @@ use futures::future::BoxFuture;
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
-  CompilationLogger, CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
+  rspack_sources::{RawSource, Source},
+  AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
+  CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -148,14 +149,7 @@ impl CopyRspackPlugin {
     salt: &HashSalt,
   ) -> RspackHashDigest {
     let mut hasher = RspackHash::with_salt(function, salt);
-    match &source {
-      RawSource::Buffer(buffer) => {
-        buffer.hash(&mut hasher);
-      }
-      RawSource::Source(source) => {
-        source.hash(&mut hasher);
-      }
-    }
+    source.buffer().hash(&mut hasher);
     hasher.digest(digest)
   }
 
@@ -290,7 +284,7 @@ impl CopyRspackPlugin {
       }
     };
 
-    let mut source = RawSource::Buffer(source_vec.clone());
+    let mut source = RawSource::from(source_vec.clone());
 
     if let Some(transform) = &pattern.transform {
       match transform {

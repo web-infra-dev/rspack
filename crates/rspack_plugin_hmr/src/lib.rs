@@ -293,7 +293,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       filename,
       CompilationAsset::new(
         Some(
-          RawSource::Source(
+          RawSource::from(
             serde_json::json!({
               "c": c,
               "r": r,
