@@ -1034,7 +1034,11 @@ impl<'a> ModuleGraph<'a> {
       .insert(dep_id, DependencyExtraMeta { ids });
   }
 
-  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+  pub fn update_module(
+    &mut self,
+    dep_id: &DependencyId,
+    module_id: &ModuleIdentifier,
+  ) -> Option<ConnectionId> {
     let connection_id = *self
       .connection_id_by_dependency_id(dep_id)
       .expect("should have connection id");
@@ -1042,7 +1046,7 @@ impl<'a> ModuleGraph<'a> {
       .connection_by_connection_id_mut(&connection_id)
       .expect("should have connection");
     if connection.module_identifier() == module_id {
-      return;
+      return None;
     }
 
     // clone connection
@@ -1097,6 +1101,7 @@ impl<'a> ModuleGraph<'a> {
       mgm.add_incoming_connection(new_connection_id);
       mgm.remove_incoming_connection(&connection_id);
     }
+    Some(new_connection_id)
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {

@@ -1077,20 +1077,11 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
+    logger.time_end(start);
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped (move_target)
-    let module_graph = self.get_module_graph();
-    let diagnostics: Vec<_> = module_graph
-      .module_graph_modules()
-      .par_iter()
-      .flat_map(|(_, mgm)| &mgm.all_dependencies)
-      .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-      .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
-      .flat_map(|ds| ds)
-      .collect();
-    self.extend_diagnostics(diagnostics);
-    logger.time_end(start);
+    self.collect_dependencies_diagnostics();
 
     // take make diagnostics
     let diagnostics = self.make_artifact.take_diagnostics();
@@ -1108,6 +1099,20 @@ impl Compilation {
       .built_modules
       .extend(self.make_artifact.take_built_modules());
     Ok(())
+  }
+
+  #[tracing::instrument(skip_all)]
+  fn collect_dependencies_diagnostics(&mut self) {
+    let module_graph = self.get_module_graph();
+    let diagnostics: Vec<_> = module_graph
+      .module_graph_modules()
+      .par_iter()
+      .flat_map(|(_, mgm)| &mgm.all_dependencies)
+      .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
+      .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+      .flat_map(|ds| ds)
+      .collect();
+    self.extend_diagnostics(diagnostics);
   }
 
   #[instrument(name = "compilation:seal", skip_all)]
