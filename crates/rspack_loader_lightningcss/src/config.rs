@@ -51,7 +51,7 @@ pub struct RawConfig {
 }
 
 impl TryFrom<RawConfig> for Config {
-  type Error = rspack_error::Error;
+  type Error = rspack_error::miette::Report;
   fn try_from(value: RawConfig) -> Result<Self, Self::Error> {
     Ok(Self {
       minify: value.minify,

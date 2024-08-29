@@ -376,7 +376,7 @@ pub fn css_parsing_traceable_error(
   severity: RspackSeverity,
 ) -> TraceableError {
   TraceableError::from_arc_string(
-    source_code,
+    Some(source_code),
     start as usize,
     end as usize,
     match severity {

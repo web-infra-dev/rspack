@@ -20,7 +20,7 @@ pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
 impl EmptyDependency {
   pub fn new(span: ErrorSpan) -> Self {
     Self(
-      TraceableError::from_empty_file(
+      TraceableError::from_lazy_file(
         span.start as usize,
         span.end as usize,
         "Empty dependency".to_string(),
