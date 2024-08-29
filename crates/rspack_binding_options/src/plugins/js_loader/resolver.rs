@@ -5,9 +5,13 @@ use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
   Resolver, Resource, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result};
+use rspack_error::{
+  error,
+  miette::{miette, LabeledSpan, SourceOffset},
+  Result,
+};
 use rspack_hook::plugin_hook;
-use rspack_loader_lightningcss::LIGHTNINGCSS_LOADER_IDENTIFIER;
+use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
@@ -25,31 +29,39 @@ impl Identifiable for JsLoader {
     self.0
   }
 }
-
+// convert serde_error to miette report for pretty error
+pub fn serde_error_to_miette(
+  e: serde_json::Error,
+  content: Arc<str>,
+  msg: &str,
+) -> rspack_error::miette::Report {
+  let offset = SourceOffset::from_location(content.as_ref(), e.line(), e.column());
+  let span = LabeledSpan::at_offset(offset.offset(), e.to_string());
+  miette!(labels = vec![span], "{msg}").with_source_code(content.clone())
+}
 pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
+  let options: Arc<str> = options.unwrap_or("{}").into();
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
     return Ok(Arc::new(
-      rspack_loader_swc::SwcLoader::new(serde_json::from_str(options.unwrap_or("{}")).map_err(
-        |e| error!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}"),
-      )?)
+      rspack_loader_swc::SwcLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(e, options, "failed to parse builtin:swc-loader options")
+      })?)
       .with_identifier(builtin.into()),
     ));
   }
 
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
     let config: rspack_loader_lightningcss::config::RawConfig =
-      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
-      });
+      serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(
+          e,
+          options,
+          "Could not parse builtin:lightningcss-loader options",
+        )
+      })?;
     // TODO: builtin-loader supports function
     return Ok(Arc::new(
-      rspack_loader_lightningcss::LightningCssLoader::new(
-        None,
-        config.try_into().unwrap_or_else(|e| {
-          panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
-        }),
-        builtin,
-      ),
+      rspack_loader_lightningcss::LightningCssLoader::new(None, Config::try_from(config)?, builtin),
     ));
   }
 

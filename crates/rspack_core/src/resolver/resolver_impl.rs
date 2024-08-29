@@ -313,7 +313,7 @@ fn map_resolver_error(
 
   let span = args.span.unwrap_or_default();
   let message = format!("Can't resolve '{request}' in '{context}'");
-  TraceableError::from_empty_file(
+  TraceableError::from_lazy_file(
     span.start as usize,
     span.end as usize,
     "Module not found".to_string(),
