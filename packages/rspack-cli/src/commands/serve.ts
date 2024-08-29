@@ -14,7 +14,30 @@ export class ServeCommand implements RspackCommand {
 		cli.program.command(
 			["serve", "server", "s", "dev"],
 			"run the rspack dev server.",
-			commonOptions,
+			yargs =>
+				commonOptions(yargs).options({
+					hot: {
+						coerce: arg => {
+							if (typeof arg === "boolean" || arg === "only") {
+								return arg;
+							}
+							if (arg === "false") {
+								return false;
+							}
+							return true;
+						},
+						describe: "enables hot module replacement"
+					},
+					port: {
+						type: "number",
+						coerce: arg => (Number.isInteger(arg) ? arg : undefined),
+						describe: "allows to specify a port to use"
+					},
+					host: {
+						type: "string",
+						describe: "allows to specify a hostname to use"
+					}
+				}),
 			async options => {
 				setBuiltinEnvArg(ensureEnvObject(options), "SERVE", true);
 				const rspackOptions = {
@@ -61,7 +84,7 @@ export class ServeCommand implements RspackCommand {
 				 */
 				for (const compiler of compilers) {
 					const devServer = (compiler.options.devServer ??= {});
-					devServer.hot ??= true;
+					devServer.hot = options.hot ?? devServer.hot ?? true;
 					if (devServer.client !== false) {
 						if (devServer.client === true || devServer.client == null) {
 							devServer.client = {};
@@ -80,7 +103,9 @@ export class ServeCommand implements RspackCommand {
 				/**
 				 * Enable this to tell Rspack that we need to enable React Refresh by default
 				 */
-				result.hot ??= true;
+				result.hot = options.hot ?? result.hot ?? true;
+				result.host = options.host || result.host;
+				result.port = options.port || result.port;
 				if (result.client !== false) {
 					if (result.client === true || result.client == null) {
 						result.client = {};
@@ -98,13 +123,15 @@ export class ServeCommand implements RspackCommand {
 				if (devServerOptions.port) {
 					const portNumber = Number(devServerOptions.port);
 
-					if (usedPorts.find(port => portNumber === port)) {
-						throw new Error(
-							"Unique ports must be specified for each devServer option in your rspack configuration. Alternatively, run only 1 devServer config using the --config-name flag to specify your desired config."
-						);
-					}
+					if (!Number.isNaN(portNumber)) {
+						if (usedPorts.find(port => portNumber === port)) {
+							throw new Error(
+								"Unique ports must be specified for each devServer option in your rspack configuration. Alternatively, run only 1 devServer config using the --config-name flag to specify your desired config."
+							);
+						}
 
-					usedPorts.push(portNumber);
+						usedPorts.push(portNumber);
+					}
 				}
 
 				try {
