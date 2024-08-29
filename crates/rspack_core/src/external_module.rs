@@ -32,7 +32,7 @@ pub enum ExternalRequest {
 
 #[derive(Debug, Clone)]
 pub struct ExternalRequestValue {
-  primary: String,
+  pub primary: String,
   rest: Option<Vec<String>>,
 }
 
@@ -121,9 +121,9 @@ pub struct ExternalModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   id: Identifier,
   pub request: ExternalRequest,
-  external_type: ExternalType,
+  pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  pub user_request: String,
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,

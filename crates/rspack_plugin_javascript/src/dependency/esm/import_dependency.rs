@@ -55,8 +55,8 @@ pub fn create_import_dependency_referenced_exports(
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
   id: DependencyId,
-  request: Atom,
-  range: RealDependencyLocation,
+  pub request: Atom,
+  pub range: RealDependencyLocation,
   referenced_exports: Option<Vec<Atom>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
