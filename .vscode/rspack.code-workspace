@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../demo/webpack"
+		},
+		{
+			"path": "../../webpack"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true,
+		"rust-analyzer.procMacro.enable": true,
+		"rust-analyzer.procMacro.attributes.enable": true,
+		"rust-analyzer.linkedProjects": [
+			"Cargo.toml",
+			"crates/node_binding/Cargo.toml",
+			"./crates/rspack_plugin_ensure_chunk_conditions/Cargo.toml"
+		],
+		"files.associations": {
+			"*.snap": "markdown",
+			"*.snap.txt": "markdown",
+			"*.json": "jsonc"
+		}
+	}
+}

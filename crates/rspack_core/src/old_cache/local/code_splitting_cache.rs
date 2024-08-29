@@ -6,8 +6,8 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  build_chunk_graph::code_splitter::BlockModulesRuntimeMap, Chunk, ChunkGraph, ChunkGroup,
-  ChunkGroupUkey, ChunkUkey, Compilation,
+  build_chunk_graph::code_splitter::CodeSplitter, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkUkey, Compilation,
 };
 
 #[derive(Debug, Default)]
@@ -19,7 +19,7 @@ pub struct CodeSplittingCache {
   async_entrypoints: Vec<ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
-  pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) code_splitter: CodeSplitter,
 }
 
 #[instrument(skip_all)]
@@ -37,20 +37,20 @@ where
     return Ok(());
   }
 
-  if !compilation.has_module_import_export_change() {
-    let cache = &mut compilation.code_splitting_cache;
-    rayon::scope(|s| {
-      s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
-      s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
-      s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
-      s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
-      s.spawn(|_| compilation.async_entrypoints = cache.async_entrypoints.clone());
-      s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
-      s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
-    });
+  let cache = &mut compilation.code_splitting_cache;
+  rayon::scope(|s| {
+    s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
+    s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
+    s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
+    s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
+    s.spawn(|_| compilation.async_entrypoints = cache.async_entrypoints.clone());
+    s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
+    s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
+  });
 
-    return Ok(());
-  }
+  // if !compilation.has_module_import_export_change() {
+  //   return Ok(());
+  // }
 
   let compilation = task(compilation).await?;
   let cache = &mut compilation.code_splitting_cache;

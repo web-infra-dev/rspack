@@ -34,7 +34,7 @@ import {
 	EnableChunkLoadingPlugin,
 	EnableLibraryPlugin,
 	EnableWasmLoadingPlugin,
-	EnsureChunkConditionsPlugin,
+	// EnsureChunkConditionsPlugin,
 	EvalDevToolModulePlugin,
 	EvalSourceMapDevToolPlugin,
 	ExternalsPlugin,
@@ -238,7 +238,7 @@ export class RspackOptionsApply {
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);
 
-		new EnsureChunkConditionsPlugin().apply(compiler);
+		// new EnsureChunkConditionsPlugin().apply(compiler);
 		if (options.optimization.mergeDuplicateChunks) {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
