@@ -1181,29 +1181,28 @@ impl Compilation {
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
-      while matches!(
-        plugin_driver
-          .compilation_hooks
-          .optimize_modules
-          .call(compilation)
-          .await?,
-        Some(true)
-      ) {}
-      plugin_driver
-        .compilation_hooks
-        .after_optimize_modules
-        .call(compilation)
-        .await?;
-      while matches!(
-        plugin_driver
-          .compilation_hooks
-          .optimize_chunks
-          .call(compilation)?,
-        Some(true)
-      ) {}
       Ok(compilation)
     })
     .await?;
+
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_modules
+        .call(self)
+        .await?,
+      Some(true)
+    ) {}
+    plugin_driver
+      .compilation_hooks
+      .after_optimize_modules
+      .call(self)
+      .await?;
+    while matches!(
+      plugin_driver.compilation_hooks.optimize_chunks.call(self)?,
+      Some(true)
+    ) {}
+
     logger.time_end(start);
 
     let start = logger.time("optimize");
@@ -1218,7 +1217,6 @@ impl Compilation {
       .optimize_chunk_modules
       .call(self)
       .await?;
-
     logger.time_end(start);
 
     let start = logger.time("module ids");
@@ -1227,6 +1225,7 @@ impl Compilation {
 
     let start = logger.time("chunk ids");
     plugin_driver.compilation_hooks.chunk_ids.call(self)?;
+
     logger.time_end(start);
 
     self.assign_runtime_ids();

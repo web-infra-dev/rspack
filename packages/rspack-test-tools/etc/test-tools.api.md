@@ -107,6 +107,12 @@ export class BuiltinProcessor<T extends ECompilerType> extends SnapshotProcessor
 }
 
 // @public (undocumented)
+export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
+
+// @public (undocumented)
+export function checkChunkRuntime(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
+
+// @public (undocumented)
 export class CommonJsRunner<T extends ECompilerType = ECompilerType.Rspack> extends BasicRunner<T> {
     // (undocumented)
     protected createBaseModuleScope(): IBasicModuleScope;
