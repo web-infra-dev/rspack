@@ -8,11 +8,11 @@ use serde::{
 };
 
 use super::asset::HtmlPluginAttribute;
-use crate::config::{HtmlInject, HtmlRspackPluginBaseOptions, HtmlScriptLoading};
+use crate::config::{HtmlRspackPluginBaseOptions, HtmlScriptLoading};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HTMLPluginTag {
+pub struct HtmlPluginTag {
   pub tag_name: String,
   #[serde(
     serialize_with = "serialize_attributes",
@@ -23,8 +23,7 @@ pub struct HTMLPluginTag {
   #[serde(rename = "innerHTML")]
   pub inner_html: Option<String>,
   // `head`, `body`, `false`
-  #[serde(skip)]
-  pub append_to: HtmlInject,
+  pub asset: Option<String>,
 }
 
 fn serialize_attributes<S>(x: &Vec<HtmlPluginAttribute>, s: S) -> Result<S::Ok, S::Error>
@@ -72,11 +71,10 @@ where
   d.deserialize_map(DataVisitor)
 }
 
-impl HTMLPluginTag {
-  pub fn create_style(href: &str, append_to: HtmlInject) -> HTMLPluginTag {
-    HTMLPluginTag {
+impl HtmlPluginTag {
+  pub fn create_style(href: &str) -> HtmlPluginTag {
+    HtmlPluginTag {
       tag_name: "link".to_string(),
-      append_to,
       attributes: vec![
         HtmlPluginAttribute {
           attr_name: "href".to_string(),
@@ -88,15 +86,12 @@ impl HTMLPluginTag {
         },
       ],
       void_tag: true,
+      asset: Some(href.to_string()),
       ..Default::default()
     }
   }
 
-  pub fn create_script(
-    src: &str,
-    append_to: HtmlInject,
-    script_loading: &HtmlScriptLoading,
-  ) -> HTMLPluginTag {
+  pub fn create_script(src: &str, script_loading: &HtmlScriptLoading) -> HtmlPluginTag {
     let mut attributes = vec![];
     match script_loading {
       HtmlScriptLoading::Defer => {
@@ -125,15 +120,15 @@ impl HTMLPluginTag {
       attr_value: Some(src.to_string()),
     });
 
-    HTMLPluginTag {
+    HtmlPluginTag {
       tag_name: "script".to_string(),
-      append_to,
       attributes,
+      asset: Some(src.to_string()),
       ..Default::default()
     }
   }
 
-  pub fn create_base(base: &HtmlRspackPluginBaseOptions) -> Option<HTMLPluginTag> {
+  pub fn create_base(base: &HtmlRspackPluginBaseOptions) -> Option<HtmlPluginTag> {
     let mut attributes = vec![];
 
     if let Some(href) = &base.href {
@@ -151,7 +146,7 @@ impl HTMLPluginTag {
     }
 
     if !attributes.is_empty() {
-      Some(HTMLPluginTag {
+      Some(HtmlPluginTag {
         tag_name: "base".to_string(),
         attributes,
         void_tag: true,
@@ -162,8 +157,8 @@ impl HTMLPluginTag {
     }
   }
 
-  pub fn create_title(title: &str) -> HTMLPluginTag {
-    HTMLPluginTag {
+  pub fn create_title(title: &str) -> HtmlPluginTag {
+    HtmlPluginTag {
       tag_name: "title".to_string(),
       void_tag: true,
       inner_html: Some(title.to_string()),
@@ -171,10 +166,10 @@ impl HTMLPluginTag {
     }
   }
 
-  pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HTMLPluginTag> {
+  pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HtmlPluginTag> {
     meta
       .iter()
-      .map(|(_, value)| HTMLPluginTag {
+      .map(|(_, value)| HtmlPluginTag {
         tag_name: "meta".to_string(),
         attributes: value
           .iter()
@@ -190,8 +185,8 @@ impl HTMLPluginTag {
       .collect_vec()
   }
 
-  pub fn create_favicon(favicon: &str) -> HTMLPluginTag {
-    HTMLPluginTag {
+  pub fn create_favicon(favicon: &str) -> HtmlPluginTag {
+    HtmlPluginTag {
       tag_name: "link".to_string(),
       attributes: vec![
         HtmlPluginAttribute {

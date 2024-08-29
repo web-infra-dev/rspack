@@ -3,13 +3,12 @@ use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Child, Element, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
-use super::tag::HTMLPluginTag;
+use super::tag::HtmlPluginTag;
 use super::utils::create_element;
-use crate::config::HtmlInject;
 
 // attributes are presented as plain string.
 // namespace is not supported currently.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HtmlPluginAttribute {
   pub attr_name: String,
@@ -19,25 +18,15 @@ pub struct HtmlPluginAttribute {
 
 #[derive(Debug)]
 pub struct AssetWriter<'a> {
-  head_tags: Vec<&'a HTMLPluginTag>,
-  body_tags: Vec<&'a HTMLPluginTag>,
+  head_tags: &'a Vec<HtmlPluginTag>,
+  body_tags: &'a Vec<HtmlPluginTag>,
 }
 
 impl<'a> AssetWriter<'a> {
-  pub fn new(tags: &'a [HTMLPluginTag]) -> AssetWriter<'a> {
-    let mut head_tags: Vec<&HTMLPluginTag> = vec![];
-    let mut body_tags: Vec<&HTMLPluginTag> = vec![];
-    for ele in tags.iter() {
-      match ele.append_to {
-        HtmlInject::Head => {
-          head_tags.push(ele);
-        }
-        HtmlInject::Body => {
-          body_tags.push(ele);
-        }
-        _ => (),
-      }
-    }
+  pub fn new(
+    head_tags: &'a Vec<HtmlPluginTag>,
+    body_tags: &'a Vec<HtmlPluginTag>,
+  ) -> AssetWriter<'a> {
     AssetWriter {
       head_tags,
       body_tags,

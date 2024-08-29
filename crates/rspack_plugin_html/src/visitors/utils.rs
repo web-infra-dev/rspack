@@ -5,7 +5,7 @@ use serde_json::Value;
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Attribute, Element, Namespace};
 
-use super::{asset::HtmlPluginAttribute, tag::HTMLPluginTag};
+use super::{asset::HtmlPluginAttribute, tag::HtmlPluginTag};
 
 pub fn create_attribute(name: &str, value: &Option<String>) -> Attribute {
   Attribute {
@@ -26,7 +26,7 @@ pub fn create_attributes(attrs: &[HtmlPluginAttribute]) -> Vec<Attribute> {
     .collect()
 }
 
-pub fn create_element(tag: &HTMLPluginTag) -> Element {
+pub fn create_element(tag: &HtmlPluginTag) -> Element {
   Element {
     tag_name: Atom::from(&*tag.tag_name),
     attributes: create_attributes(&tag.attributes),
@@ -74,7 +74,7 @@ pub fn merge_json(a: &mut Value, b: Value) {
   }
 }
 
-pub fn html_tag_object_to_string(tag: &HTMLPluginTag) -> String {
+pub fn html_tag_object_to_string(tag: &HtmlPluginTag) -> String {
   let attributes = tag
     .attributes
     .iter()

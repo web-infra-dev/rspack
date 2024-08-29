@@ -26,7 +26,13 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { inspect } from 'node:util';
+import { JsAfterEmitData } from '@rspack/binding';
+import { JsAfterTemplateExecutionData } from '@rspack/binding';
+import { JsAlterAssetTagGroupsData } from '@rspack/binding';
+import { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
+import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
+import { JsBeforeEmitData } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
@@ -4651,6 +4657,18 @@ export const HtmlRspackPlugin: {
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
     };
+} & {
+    getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
+};
+
+// @public (undocumented)
+type HtmlRspackPluginHooks = {
+    beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeAssetTagGenerationData]>;
+    alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
+    alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagGroupsData]>;
+    afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<[JsAfterTemplateExecutionData]>;
+    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeEmitData]>;
+    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[JsAfterEmitData]>;
 };
 
 // @public (undocumented)
