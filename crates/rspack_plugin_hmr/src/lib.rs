@@ -160,7 +160,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       new_modules = compilation
         .chunk_graph
-        .get_chunk_graph_chunk(&current_chunk.ukey)
+        .expect_chunk_graph_chunk(&current_chunk.ukey)
         .modules
         .iter()
         .filter_map(|module| updated_modules.contains(module).then_some(*module))

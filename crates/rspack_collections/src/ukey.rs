@@ -144,6 +144,14 @@ where
     self.inner.entry(id)
   }
 
+  pub fn get(&self, id: &<Item as DatabaseItem>::ItemUkey) -> Option<&Item> {
+    self.inner.get(id)
+  }
+
+  pub fn get_mut(&mut self, id: &<Item as DatabaseItem>::ItemUkey) -> Option<&mut Item> {
+    self.inner.get_mut(id)
+  }
+
   pub fn expect_get(&self, id: &<Item as DatabaseItem>::ItemUkey) -> &Item {
     self
       .inner
@@ -233,5 +241,16 @@ where
     debug_assert!(!self.inner.contains_key(&item.ukey()));
     let ukey = item.ukey();
     self.inner.entry(ukey).or_insert(item)
+  }
+}
+
+impl<Item: DatabaseItem> Database<Item>
+where
+  <Item as DatabaseItem>::ItemUkey: Eq + Ord + Hash + Debug,
+{
+  pub fn ordered_keys(&self) -> Vec<&<Item as DatabaseItem>::ItemUkey> {
+    let mut keys = self.keys().collect::<Vec<_>>();
+    keys.sort();
+    keys
   }
 }
