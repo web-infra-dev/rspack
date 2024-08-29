@@ -6,7 +6,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  build_chunk_graph::code_splitter::BlockModulesRuntimeMap, incremental::IncrementalPasses, Chunk,
+  build_chunk_graph::code_splitter::CodeSplitter, incremental::IncrementalPasses, Chunk,
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
 };
 
@@ -19,7 +19,7 @@ pub struct CodeSplittingCache {
   async_entrypoints: Vec<ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
-  pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) code_splitter: CodeSplitter,
 }
 
 #[instrument(skip_all)]
@@ -39,7 +39,12 @@ where
     return Ok(());
   }
 
-  if !compilation.has_module_import_export_change() {
+  let has_change = compilation.has_module_import_export_change();
+  if !has_change
+    || compilation
+      .incremental
+      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
+  {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
@@ -51,7 +56,9 @@ where
       s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
     });
 
-    return Ok(());
+    if !has_change {
+      return Ok(());
+    }
   }
 
   let compilation = task(compilation).await?;

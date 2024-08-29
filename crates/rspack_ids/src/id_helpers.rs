@@ -338,7 +338,7 @@ pub fn get_short_chunk_name(
     .map(|id| {
       module_graph
         .module_by_identifier(id)
-        .expect("Module not found")
+        .unwrap_or_else(|| panic!("Module not found {}", id))
     })
     .collect::<Vec<_>>();
   let short_module_names = modules

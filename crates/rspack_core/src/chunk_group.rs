@@ -291,12 +291,7 @@ impl ChunkGroup {
   }
 
   pub fn add_parent(&mut self, parent_group: ChunkGroupUkey) -> bool {
-    if self.parents.contains(&parent_group) {
-      false
-    } else {
-      self.parents.insert(parent_group);
-      true
-    }
+    self.parents.insert(parent_group)
   }
 
   pub fn add_origin(
