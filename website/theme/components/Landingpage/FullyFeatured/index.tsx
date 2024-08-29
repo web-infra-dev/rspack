@@ -1,7 +1,14 @@
+import { FullyFeatured as BaseFullyFeatured } from '@rstack-dev/doc-ui/fully-featured';
+import {
+  containerStyle,
+  descStyle,
+  innerContainerStyle,
+  titleAndDescStyle,
+  titleStyle,
+} from '@rstack-dev/doc-ui/section-style';
 import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
-import sharedStyles from '../shared.module.scss';
 import arrow from './assets/arrow.svg';
 import javascriptApi from './assets/javascriptApi.svg';
 import layer from './assets/layer.svg';
@@ -14,7 +21,6 @@ import server from './assets/server.svg';
 import setting from './assets/setting.svg';
 import swc from './assets/swc.svg';
 import tree from './assets/tree.svg';
-import styles from './index.module.scss';
 
 type Feature = {
   icon: string;
@@ -109,34 +115,16 @@ const FullyFeatured = memo(() => {
   ];
 
   return (
-    <section className={sharedStyles.container}>
-      <div className={sharedStyles.innerContainer}>
-        <div className={sharedStyles.titleAndDesc}>
-          <h1 className={sharedStyles.title}>{t('fullyFeaturedTitle')}</h1>
-          <p className={sharedStyles.desc}>{t('fullyFeaturedDesc')}</p>
+    <section className={containerStyle}>
+      <div className={innerContainerStyle}>
+        <div className={titleAndDescStyle}>
+          <h1 className={titleStyle}>{t('fullyFeaturedTitle')}</h1>
+          <p className={descStyle}>{t('fullyFeaturedDesc')}</p>
         </div>
-        <div className={styles.main}>
-          {[FeatureRow1, FeatureRow2, FeatureRow3].map((row, index) => {
-            return (
-              <div className={styles.features} key={index}>
-                {row.map(({ icon, description, link, title }, index) => (
-                  <Link key={index} className={styles.featureCard} href={link}>
-                    <img
-                      src={icon}
-                      alt={index.toString()}
-                      className={styles.icon}
-                      loading="lazy"
-                    />
-                    <div className={styles.featureContent}>
-                      <h2 className={styles.featureTitle}>{title}</h2>
-                      <p className={styles.featureDescription}>{description}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        <BaseFullyFeatured
+          featureRows={[FeatureRow1, FeatureRow2, FeatureRow3]}
+          LinkComp={Link}
+        />
       </div>
     </section>
   );

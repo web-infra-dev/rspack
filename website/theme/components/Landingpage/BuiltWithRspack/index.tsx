@@ -1,14 +1,17 @@
+import { BuiltWithRspack as BaseBuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
+import {
+  containerStyle,
+  innerContainerStyle,
+} from '@rstack-dev/doc-ui/section-style';
 import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
-import sharedStyles from '../shared.module.scss';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
 import discordLogo from './assets/discord.svg';
 import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
-import styles from './index.module.scss';
 
 type Company = {
   name: string;
@@ -58,41 +61,19 @@ const companyList: Company[] = [
   },
 ];
 
-const CompanyItem = ({ item }: { item: Company }) => {
-  const { logo, name, url, text, width } = item;
-  return (
-    <Link className={styles.logo} href={url}>
-      <img src={logo} alt={name} style={{ width }} loading="lazy" />
-      {text !== undefined ? (
-        <span className={styles.logoText}>{text}</span>
-      ) : (
-        <></>
-      )}
-    </Link>
-  );
-};
-
-const BuiltWithRsPack: React.FC = memo(() => {
+const BuiltWithRspack: React.FC = memo(() => {
   const t = useI18n();
   return (
-    <section className={sharedStyles.container}>
-      <div
-        className={`${sharedStyles.innerContainer} ${styles.innerContainer}`}
-      >
-        <style>
-          {`:root {
-            --landingpage-built-with-rspack-logo-size: 1;
-            } `}
-        </style>
-        <h2 className={styles.title}>{t('builtWithRspack')}</h2>
-        <div className={styles.logos}>
-          {companyList.map(i => {
-            return <CompanyItem key={i.name} item={i} />;
-          })}
-        </div>
+    <section className={containerStyle}>
+      <div className={innerContainerStyle}>
+        <BaseBuiltWithRspack
+          companyList={companyList}
+          title={t('builtWithRspack')}
+          LinkComp={Link}
+        />
       </div>
     </section>
   );
 });
 
-export default BuiltWithRsPack;
+export default BuiltWithRspack;

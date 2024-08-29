@@ -1,16 +1,16 @@
 import {
   Benchmark as BaseBenchmark,
   type BenchmarkData,
-} from './BaseBenchmark';
-
+} from '@rstack-dev/doc-ui/benchmark';
+import {
+  containerStyle,
+  descStyle,
+  innerContainerStyle,
+  titleAndDescStyle,
+  titleStyle,
+} from '@rstack-dev/doc-ui/section-style';
 import { memo } from 'react';
-// TODO: extract to @rstack-dev/doc-ui/benchmark
-// import {
-//   Benchmark as BaseBenchmark,
-//   type BenchmarkData,
-// } from '@rstack-dev/doc-ui/benchmark';
 import { useI18n } from '../../../i18n';
-import sharedStyles from '../shared.module.scss';
 import styles from './index.module.scss';
 
 // Benchmark data for different cases
@@ -90,11 +90,11 @@ const BENCHMARK_DATA: BenchmarkData = {
 export const Benchmark = memo(() => {
   const t = useI18n();
   return (
-    <section className={sharedStyles.container}>
-      <div className={sharedStyles.innerContainer}>
-        <div className={sharedStyles.titleAndDesc}>
-          <h1 className={sharedStyles.title}>{t('benchmarkTitle')}</h1>
-          <p className={sharedStyles.desc}>{t('benchmarkDesc')}</p>
+    <section className={containerStyle}>
+      <div className={innerContainerStyle}>
+        <div className={titleAndDescStyle}>
+          <h1 className={titleStyle}>{t('benchmarkTitle')}</h1>
+          <p className={descStyle}>{t('benchmarkDesc')}</p>
         </div>
         <BaseBenchmark data={BENCHMARK_DATA} />
         <div className="flex flex-col items-center self-stretch">
