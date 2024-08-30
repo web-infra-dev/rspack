@@ -125,8 +125,13 @@ export type HtmlRspackPluginOptions = {
 	hash?: boolean;
 };
 
+const templateFilenameFunction = z
+	.function()
+	.args(z.string())
+	.returns(z.string());
+
 const htmlRspackPluginOptions = z.strictObject({
-	filename: z.string().optional(),
+	filename: z.string().or(templateFilenameFunction).optional(),
 	template: z
 		.string()
 		.refine(
@@ -303,8 +308,46 @@ const HtmlRspackPluginImpl = create(
 			templateParameters = rawTemplateParameters;
 		}
 
+		const addedFilename: Set<string> = new Set();
+		let filenames: string[] | undefined = undefined;
+		if (typeof c.filename === "string") {
+			filenames = [];
+			if (c.filename.includes("[name]")) {
+				if (typeof this.options.entry === "object") {
+					for (const entryName of Object.keys(this.options.entry)) {
+						const filename = c.filename.replace(/\[name\]/g, entryName);
+						if (!addedFilename.has(filename)) {
+							filenames.push(filename);
+							addedFilename.add(filename);
+						}
+					}
+				} else {
+					throw new Error(
+						"HtmlRspackPlugin: filename with `[name]` does not support function entry"
+					);
+				}
+			} else {
+				filenames.push(c.filename);
+			}
+		} else if (typeof c.filename === "function") {
+			filenames = [];
+			if (typeof this.options.entry === "object") {
+				for (const entryName of Object.keys(this.options.entry)) {
+					const filename = c.filename(entryName);
+					if (!addedFilename.has(filename)) {
+						filenames.push(filename);
+						addedFilename.add(filename);
+					}
+				}
+			} else {
+				throw new Error(
+					"HtmlRspackPlugin: function filename does not support function entry"
+				);
+			}
+		}
+
 		return {
-			filename: c.filename,
+			filename: filenames,
 			template: c.template,
 			hash: c.hash,
 			title: c.title,

@@ -1372,7 +1372,7 @@ export interface RawHtmlRspackPluginBaseOptions {
 
 export interface RawHtmlRspackPluginOptions {
   /** emitted file name in output path */
-  filename?: string
+  filename?: string[]
   /** template html file */
   template?: string
   templateFn?: (data: string) => Promise<string>
