@@ -26,13 +26,20 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { inspect } from 'node:util';
+import { JsAfterEmitData } from '@rspack/binding';
+import { JsAfterTemplateExecutionData } from '@rspack/binding';
+import { JsAlterAssetTagGroupsData } from '@rspack/binding';
+import { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
+import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
+import { JsBeforeEmitData } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
+import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import type { JsModule } from '@rspack/binding';
@@ -3933,6 +3940,13 @@ type ExtractCommentsObject = {
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
 // @public (undocumented)
+type ExtraPluginHookData = {
+    plugin: {
+        options: HtmlRspackPluginOptions;
+    };
+};
+
+// @public (undocumented)
 export type Falsy = z.infer<typeof falsy>;
 
 // @public (undocumented)
@@ -4651,6 +4665,30 @@ export const HtmlRspackPlugin: {
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
     };
+} & {
+    getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
+    getCompilationOptions: (compilation: Compilation) => HtmlRspackPluginOptions | void;
+    createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string | undefined) => JsHtmlPluginTag;
+};
+
+// @public (undocumented)
+type HtmlRspackPluginHooks = {
+    beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<[
+    JsBeforeAssetTagGenerationData & ExtraPluginHookData
+    ]>;
+    alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
+    alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAlterAssetTagGroupsData & ExtraPluginHookData
+    ]>;
+    afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAfterTemplateExecutionData & ExtraPluginHookData
+    ]>;
+    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[
+    JsBeforeEmitData & ExtraPluginHookData
+    ]>;
+    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAfterEmitData & ExtraPluginHookData
+    ]>;
 };
 
 // @public (undocumented)

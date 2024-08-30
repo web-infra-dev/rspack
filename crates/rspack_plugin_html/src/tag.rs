@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fmt};
+use core::fmt;
+use std::collections::HashMap;
 
 use itertools::Itertools;
 use serde::{
@@ -6,13 +7,38 @@ use serde::{
   ser::SerializeMap,
   Deserialize, Deserializer, Serialize, Serializer,
 };
+use swc_core::{atoms::Atom, common::DUMMY_SP};
+use swc_html::ast::{Attribute, Element, Namespace};
 
-use super::asset::HtmlPluginAttribute;
-use crate::config::{HtmlInject, HtmlRspackPluginBaseOptions, HtmlScriptLoading};
+use crate::config::{HtmlRspackPluginBaseOptions, HtmlScriptLoading};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+// attributes are presented as plain string.
+// namespace is not supported currently.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HTMLPluginTag {
+pub struct HtmlPluginAttribute {
+  pub attr_name: String,
+  // None is ``
+  pub attr_value: Option<String>,
+}
+
+impl From<HtmlPluginAttribute> for Attribute {
+  fn from(attr: HtmlPluginAttribute) -> Self {
+    Attribute {
+      span: Default::default(),
+      namespace: None,
+      prefix: None,
+      name: attr.attr_name.into(),
+      raw_name: None,
+      value: attr.attr_value.as_ref().map(|str| Atom::from(str.as_str())),
+      raw_value: None,
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HtmlPluginTag {
   pub tag_name: String,
   #[serde(
     serialize_with = "serialize_attributes",
@@ -22,9 +48,7 @@ pub struct HTMLPluginTag {
   pub void_tag: bool,
   #[serde(rename = "innerHTML")]
   pub inner_html: Option<String>,
-  // `head`, `body`, `false`
-  #[serde(skip)]
-  pub append_to: HtmlInject,
+  pub asset: Option<String>,
 }
 
 fn serialize_attributes<S>(x: &Vec<HtmlPluginAttribute>, s: S) -> Result<S::Ok, S::Error>
@@ -72,11 +96,10 @@ where
   d.deserialize_map(DataVisitor)
 }
 
-impl HTMLPluginTag {
-  pub fn create_style(href: &str, append_to: HtmlInject) -> HTMLPluginTag {
-    HTMLPluginTag {
+impl HtmlPluginTag {
+  pub fn create_style(href: &str) -> HtmlPluginTag {
+    HtmlPluginTag {
       tag_name: "link".to_string(),
-      append_to,
       attributes: vec![
         HtmlPluginAttribute {
           attr_name: "href".to_string(),
@@ -88,15 +111,12 @@ impl HTMLPluginTag {
         },
       ],
       void_tag: true,
+      asset: Some(href.to_string()),
       ..Default::default()
     }
   }
 
-  pub fn create_script(
-    src: &str,
-    append_to: HtmlInject,
-    script_loading: &HtmlScriptLoading,
-  ) -> HTMLPluginTag {
+  pub fn create_script(src: &str, script_loading: &HtmlScriptLoading) -> HtmlPluginTag {
     let mut attributes = vec![];
     match script_loading {
       HtmlScriptLoading::Defer => {
@@ -125,15 +145,15 @@ impl HTMLPluginTag {
       attr_value: Some(src.to_string()),
     });
 
-    HTMLPluginTag {
+    HtmlPluginTag {
       tag_name: "script".to_string(),
-      append_to,
       attributes,
+      asset: Some(src.to_string()),
       ..Default::default()
     }
   }
 
-  pub fn create_base(base: &HtmlRspackPluginBaseOptions) -> Option<HTMLPluginTag> {
+  pub fn create_base(base: &HtmlRspackPluginBaseOptions) -> Option<HtmlPluginTag> {
     let mut attributes = vec![];
 
     if let Some(href) = &base.href {
@@ -151,7 +171,7 @@ impl HTMLPluginTag {
     }
 
     if !attributes.is_empty() {
-      Some(HTMLPluginTag {
+      Some(HtmlPluginTag {
         tag_name: "base".to_string(),
         attributes,
         void_tag: true,
@@ -162,8 +182,8 @@ impl HTMLPluginTag {
     }
   }
 
-  pub fn create_title(title: &str) -> HTMLPluginTag {
-    HTMLPluginTag {
+  pub fn create_title(title: &str) -> HtmlPluginTag {
+    HtmlPluginTag {
       tag_name: "title".to_string(),
       void_tag: true,
       inner_html: Some(title.to_string()),
@@ -171,10 +191,10 @@ impl HTMLPluginTag {
     }
   }
 
-  pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HTMLPluginTag> {
+  pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HtmlPluginTag> {
     meta
       .iter()
-      .map(|(_, value)| HTMLPluginTag {
+      .map(|(_, value)| HtmlPluginTag {
         tag_name: "meta".to_string(),
         attributes: value
           .iter()
@@ -190,8 +210,8 @@ impl HTMLPluginTag {
       .collect_vec()
   }
 
-  pub fn create_favicon(favicon: &str) -> HTMLPluginTag {
-    HTMLPluginTag {
+  pub fn create_favicon(favicon: &str) -> HtmlPluginTag {
+    HtmlPluginTag {
       tag_name: "link".to_string(),
       attributes: vec![
         HtmlPluginAttribute {
@@ -205,6 +225,65 @@ impl HTMLPluginTag {
       ],
       void_tag: true,
       ..Default::default()
+    }
+  }
+}
+
+impl fmt::Display for HtmlPluginTag {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let mut attributes = self
+      .attributes
+      .iter()
+      .map(|attr| {
+        if let Some(attr_value) = &attr.attr_value {
+          format!(r#"{}="{}""#, attr.attr_name, attr_value)
+        } else {
+          attr.attr_name.to_string()
+        }
+      })
+      .collect::<Vec<String>>();
+
+    attributes.sort();
+
+    let res = format!(
+      "<{} {}{}>{}{}",
+      self.tag_name,
+      attributes.join(" "),
+      if self.void_tag && self.inner_html.is_none() {
+        "/"
+      } else {
+        ""
+      },
+      if let Some(inner_html) = &self.inner_html {
+        inner_html
+      } else {
+        ""
+      },
+      if !self.void_tag || self.inner_html.is_some() {
+        format!("</{}>", self.tag_name)
+      } else {
+        String::new()
+      }
+    );
+    write!(f, "{}", res)
+  }
+}
+
+impl From<HtmlPluginTag> for Element {
+  fn from(tag: HtmlPluginTag) -> Self {
+    Element {
+      tag_name: Atom::from(&*tag.tag_name),
+      attributes: tag
+        .attributes
+        .into_iter()
+        .sorted_unstable_by(|a, b| a.attr_name.cmp(&b.attr_name))
+        .map(Attribute::from)
+        .collect::<Vec<_>>(),
+      children: vec![],
+      content: None,
+      is_self_closing: tag.void_tag,
+      namespace: Namespace::HTML,
+      span: DUMMY_SP,
     }
   }
 }

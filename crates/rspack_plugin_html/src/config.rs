@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
 
 use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};
@@ -15,6 +15,16 @@ pub enum HtmlInject {
   Head,
   Body,
   False,
+}
+
+impl fmt::Display for HtmlInject {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      HtmlInject::Head => "head",
+      HtmlInject::Body => "body",
+      HtmlInject::False => "false",
+    })
+  }
 }
 
 impl FromStr for HtmlInject {

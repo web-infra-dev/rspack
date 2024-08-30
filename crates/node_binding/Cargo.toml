@@ -25,6 +25,7 @@ rspack_hash              = { version = "0.1.0", path = "../rspack_hash" }
 rspack_hook              = { version = "0.1.0", path = "../rspack_hook" }
 rspack_napi              = { version = "0.1.0", path = "../rspack_napi" }
 rspack_paths             = { version = "0.1.0", path = "../rspack_paths" }
+rspack_plugin_html       = { version = "0.1.0", path = "../rspack_plugin_html" }
 rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascript" }
 
 rspack_tracing = { version = "0.1.0", path = "../rspack_tracing" }

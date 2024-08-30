@@ -21,6 +21,7 @@ import {
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
 import {
+	HtmlRspackPlugin,
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin
 } from "./builtin-plugin";
@@ -1199,6 +1200,92 @@ class Compiler {
 					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
 					const digestResult = hash.digest(this.options.output.hashDigest);
 					return Buffer.from(digestResult);
+				}
+			),
+			registerHtmlPluginBeforeAssetTagGenerationTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.beforeAssetTagGeneration,
+					queried => async (data: binding.JsBeforeAssetTagGenerationData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTags,
+				queried => async (data: binding.JsAlterAssetTagsData) => {
+					return await queried.promise(data);
+				}
+			),
+			registerHtmlPluginAlterAssetTagGroupsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTagGroups,
+				queried => async (data: binding.JsAlterAssetTagGroupsData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterTemplateExecutionTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.afterTemplateExecution,
+					queried => async (data: binding.JsAfterTemplateExecutionData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).beforeEmit,
+				queried => async (data: binding.JsBeforeEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAfterEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).afterEmit,
+				queried => async (data: binding.JsAfterEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
 				}
 			)
 		};

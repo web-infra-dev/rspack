@@ -4,7 +4,7 @@ use rspack_core::rspack_sources::{BoxSource, Source};
 use serde::Serialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use crate::visitors::{asset::HtmlPluginAttribute, tag::HTMLPluginTag};
+use crate::tag::{HtmlPluginAttribute, HtmlPluginTag};
 
 #[derive(Serialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
@@ -56,7 +56,7 @@ pub fn create_digest_from_asset(hash_func: &HtmlSriHashFunction, asset: &BoxSour
   }
 }
 
-pub fn add_sri(tag: &mut HTMLPluginTag, sri: &String) {
+pub fn add_sri(tag: &mut HtmlPluginTag, sri: &String) {
   let mut has_crossorigin = false;
   let mut has_integrity = false;
   tag.attributes.iter_mut().for_each(|attribute| {

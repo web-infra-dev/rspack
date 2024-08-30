@@ -11,14 +11,15 @@ use napi::{
 };
 use rspack_binding_values::{
   CompatSource, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-  JsAfterResolveData, JsAfterResolveOutput, JsAssetEmittedArgs, JsBeforeResolveArgs,
-  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilationWrapper,
-  JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
-  JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
-  JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModule,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  ToJsCompatSource, ToJsModule,
+  JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
+  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
+  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
+  JsChunk, JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveData,
+  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveData,
+  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
+  JsFactorizeOutput, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
+  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
+  JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -56,6 +57,14 @@ use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_paths::Utf8PathBuf;
+use rspack_plugin_html::{
+  AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
+  BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginAfterEmit, HtmlPluginAfterEmitHook,
+  HtmlPluginAfterTemplateExecution, HtmlPluginAfterTemplateExecutionHook,
+  HtmlPluginAlterAssetTagGroups, HtmlPluginAlterAssetTagGroupsHook, HtmlPluginAlterAssetTags,
+  HtmlPluginAlterAssetTagsHook, HtmlPluginBeforeAssetTagGeneration,
+  HtmlPluginBeforeAssetTagGenerationHook, HtmlPluginBeforeEmit, HtmlPluginBeforeEmitHook,
+};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
 
 #[napi(object)]
@@ -328,6 +337,12 @@ pub enum RegisterJsTapKind {
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
   JavascriptModulesChunkHash,
+  HtmlPluginBeforeAssetTagGeneration,
+  HtmlPluginAlterAssetTags,
+  HtmlPluginAlterAssetTagGroups,
+  HtmlPluginAfterTemplateExecution,
+  HtmlPluginBeforeEmit,
+  HtmlPluginAfterEmit,
 }
 
 #[derive(Default, Clone)]
@@ -495,6 +510,36 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
   )]
   pub register_javascript_modules_chunk_hash_taps: RegisterFunction<JsChunk, Buffer>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>"
+  )]
+  pub register_html_plugin_before_asset_tag_generation_taps:
+    RegisterFunction<JsBeforeAssetTagGenerationData, Promise<JsBeforeAssetTagGenerationData>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>"
+  )]
+  pub register_html_plugin_alter_asset_tags_taps:
+    RegisterFunction<JsAlterAssetTagsData, Promise<JsAlterAssetTagsData>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>"
+  )]
+  pub register_html_plugin_alter_asset_tag_groups_taps:
+    RegisterFunction<JsAlterAssetTagGroupsData, Promise<JsAlterAssetTagGroupsData>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterTemplateExecutionData) => JsAfterTemplateExecutionData); stage: number; }>"
+  )]
+  pub register_html_plugin_after_template_execution_taps:
+    RegisterFunction<JsAfterTemplateExecutionData, Promise<JsAfterTemplateExecutionData>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeEmitData) => JsBeforeEmitData); stage: number; }>"
+  )]
+  pub register_html_plugin_before_emit_taps:
+    RegisterFunction<JsBeforeEmitData, Promise<JsBeforeEmitData>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>"
+  )]
+  pub register_html_plugin_after_emit_taps:
+    RegisterFunction<JsAfterEmitData, Promise<JsAfterEmitData>>,
 }
 
 /* Compiler Hooks */
@@ -776,6 +821,61 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::JavascriptModulesChunkHash,
+  skip = true,
+);
+
+/* HtmlPlugin Hooks */
+define_register!(
+  RegisterHtmlPluginBeforeAssetTagGenerationTaps,
+  tap = HtmlPluginBeforeAssetTagGenerationTap<JsBeforeAssetTagGenerationData, Promise<JsBeforeAssetTagGenerationData>> @ HtmlPluginBeforeAssetTagGenerationHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::HtmlPluginBeforeAssetTagGeneration,
+  skip = true,
+);
+
+define_register!(
+  RegisterHtmlPluginAlterAssetTagsTaps,
+  tap = HtmlPluginAlterAssetTagsTap<JsAlterAssetTagsData, Promise<JsAlterAssetTagsData>> @ HtmlPluginAlterAssetTagsHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::HtmlPluginAlterAssetTags,
+  skip = true,
+);
+
+define_register!(
+  RegisterHtmlPluginAlterAssetTagGroupsTaps,
+  tap = HtmlPluginAlterAssetTagGroupsTap<JsAlterAssetTagGroupsData, Promise<JsAlterAssetTagGroupsData>> @ HtmlPluginAlterAssetTagGroupsHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::HtmlPluginAlterAssetTagGroups,
+  skip = true,
+);
+
+define_register!(
+  RegisterHtmlPluginAfterTemplateExecutionTaps,
+  tap = HtmlPluginAfterTemplateExecutionTap<JsAfterTemplateExecutionData, Promise<JsAfterTemplateExecutionData>> @ HtmlPluginAfterTemplateExecutionHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::HtmlPluginAfterTemplateExecution,
+  skip = true,
+);
+
+define_register!(
+  RegisterHtmlPluginBeforeEmitTaps,
+  tap = HtmlPluginBeforeEmitTap<JsBeforeEmitData, Promise<JsBeforeEmitData>> @ HtmlPluginBeforeEmitHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::HtmlPluginBeforeEmit,
+  skip = true,
+);
+
+define_register!(
+  RegisterHtmlPluginAfterEmitTaps,
+  tap = HtmlPluginAfterEmitTap<JsAfterEmitData, Promise<JsAfterEmitData>> @ HtmlPluginAfterEmitHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::HtmlPluginAfterEmit,
   skip = true,
 );
 
@@ -1481,6 +1581,105 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
     let result = self.function.call_with_sync(JsChunk::from(chunk)).await?;
     result.hash(hasher);
     Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl HtmlPluginBeforeAssetTagGeneration for HtmlPluginBeforeAssetTagGenerationTap {
+  async fn run(
+    &self,
+    data: BeforeAssetTagGenerationData,
+  ) -> rspack_error::Result<BeforeAssetTagGenerationData> {
+    let result = self
+      .function
+      .call_with_promise(JsBeforeAssetTagGenerationData::from(data))
+      .await?;
+    Ok(result.into())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl HtmlPluginAlterAssetTags for HtmlPluginAlterAssetTagsTap {
+  async fn run(&self, data: AlterAssetTagsData) -> rspack_error::Result<AlterAssetTagsData> {
+    let result = self
+      .function
+      .call_with_promise(JsAlterAssetTagsData::from(data))
+      .await?;
+    Ok(result.into())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl HtmlPluginAlterAssetTagGroups for HtmlPluginAlterAssetTagGroupsTap {
+  async fn run(
+    &self,
+    data: AlterAssetTagGroupsData,
+  ) -> rspack_error::Result<AlterAssetTagGroupsData> {
+    let result = self
+      .function
+      .call_with_promise(JsAlterAssetTagGroupsData::from(data))
+      .await?;
+    Ok(result.into())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl HtmlPluginAfterTemplateExecution for HtmlPluginAfterTemplateExecutionTap {
+  async fn run(
+    &self,
+    data: AfterTemplateExecutionData,
+  ) -> rspack_error::Result<AfterTemplateExecutionData> {
+    let result = self
+      .function
+      .call_with_promise(JsAfterTemplateExecutionData::from(data))
+      .await?;
+    Ok(result.into())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl HtmlPluginBeforeEmit for HtmlPluginBeforeEmitTap {
+  async fn run(&self, data: BeforeEmitData) -> rspack_error::Result<BeforeEmitData> {
+    let result = self
+      .function
+      .call_with_promise(JsBeforeEmitData::from(data))
+      .await?;
+    Ok(result.into())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl HtmlPluginAfterEmit for HtmlPluginAfterEmitTap {
+  async fn run(&self, data: AfterEmitData) -> rspack_error::Result<AfterEmitData> {
+    let result = self
+      .function
+      .call_with_promise(JsAfterEmitData::from(data))
+      .await?;
+    Ok(result.into())
   }
 
   fn stage(&self) -> i32 {
