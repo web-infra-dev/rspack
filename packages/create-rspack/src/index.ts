@@ -63,6 +63,7 @@ create({
 		"vue-js",
 		"vue-ts"
 	],
+	skipFiles: [".npmignore"],
 	getTemplateName,
 	mapESLintTemplate
 });
