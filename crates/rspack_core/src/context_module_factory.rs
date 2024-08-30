@@ -255,7 +255,7 @@ impl ContextModuleFactory {
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{ident} (ignored)"),
+          format!("{specifier} (ignored)"),
           Default::default(),
         )
         .boxed();
