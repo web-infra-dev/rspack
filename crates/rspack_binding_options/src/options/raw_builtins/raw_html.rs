@@ -16,7 +16,7 @@ use rspack_plugin_html::sri::HtmlSriHashFunction;
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;
 pub type RawHtmlSriHashFunction = String;
-pub type RawHtmlFilename = String;
+pub type RawHtmlFilename = Vec<String>;
 
 type RawTemplateRenderFn = ThreadsafeFunction<String, String>;
 
@@ -27,7 +27,7 @@ type RawTemplateParameter =
 #[napi(object, object_to_js = false)]
 pub struct RawHtmlRspackPluginOptions {
   /// emitted file name in output path
-  #[napi(ts_type = "string")]
+  #[napi(ts_type = "string[]")]
   pub filename: Option<RawHtmlFilename>,
   /// template html file
   pub template: Option<String>,
@@ -70,7 +70,9 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
     });
 
     HtmlRspackPluginOptions {
-      filename: value.filename.unwrap_or_else(|| String::from("index.html")),
+      filename: value
+        .filename
+        .unwrap_or_else(|| vec![String::from("index.html")]),
       template: value.template,
       template_fn: value.template_fn.map(|func| TemplateRenderFn {
         inner: Box::new(move |data| {
