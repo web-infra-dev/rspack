@@ -290,6 +290,10 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
   runtimeRequirements: JsRuntimeGlobals
 }
 
+export interface JsAfterEmitData {
+  outputName: string
+}
+
 export interface JsAfterResolveData {
   request: string
   context: string
@@ -298,6 +302,26 @@ export interface JsAfterResolveData {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   createData?: JsCreateData
+}
+
+export interface JsAfterTemplateExecutionData {
+  html: string
+  headTags: Array<JsHtmlPluginTag>
+  bodyTags: Array<JsHtmlPluginTag>
+  outputName: string
+}
+
+export interface JsAlterAssetTagGroupsData {
+  headTags: Array<JsHtmlPluginTag>
+  bodyTags: Array<JsHtmlPluginTag>
+  publicPath: string
+  outputName: string
+}
+
+export interface JsAlterAssetTagsData {
+  assetTags: JsHtmlPluginAssetTags
+  outputName: string
+  publicPath: string
 }
 
 export interface JsAsset {
@@ -352,6 +376,16 @@ export interface JsAssetInfo {
 
 export interface JsAssetInfoRelated {
   sourceMap?: string
+}
+
+export interface JsBeforeAssetTagGenerationData {
+  assets: JsHtmlPluginAssets
+  outputName: string
+}
+
+export interface JsBeforeEmitData {
+  html: string
+  outputName: string
 }
 
 export interface JsBeforeResolveArgs {
@@ -498,6 +532,27 @@ export interface JsFactorizeArgs {
 
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
+}
+
+export interface JsHtmlPluginAssets {
+  publicPath: string
+  js: Array<string>
+  css: Array<string>
+  favicon?: string
+}
+
+export interface JsHtmlPluginAssetTags {
+  scripts: Array<JsHtmlPluginTag>
+  styles: Array<JsHtmlPluginTag>
+  meta: Array<JsHtmlPluginTag>
+}
+
+export interface JsHtmlPluginTag {
+  tagName: string
+  attributes: Record<string, string | boolean | undefined | null>
+  voidTag: boolean
+  innerHTML?: string
+  asset?: string
 }
 
 export interface JsLibraryAuxiliaryComment {
@@ -1784,7 +1839,13 @@ export enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme = 30,
   ContextModuleFactoryBeforeResolve = 31,
   ContextModuleFactoryAfterResolve = 32,
-  JavascriptModulesChunkHash = 33
+  JavascriptModulesChunkHash = 33,
+  HtmlPluginBeforeAssetTagGeneration = 34,
+  HtmlPluginAlterAssetTags = 35,
+  HtmlPluginAlterAssetTagGroups = 36,
+  HtmlPluginAfterTemplateExecution = 37,
+  HtmlPluginBeforeEmit = 38,
+  HtmlPluginAfterEmit = 39
 }
 
 export interface RegisterJsTaps {
@@ -1822,6 +1883,12 @@ export interface RegisterJsTaps {
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
+  registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
+  registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>
+  registerHtmlPluginAlterAssetTagGroupsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagGroupsData) => JsAlterAssetTagGroupsData); stage: number; }>
+  registerHtmlPluginAfterTemplateExecutionTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterTemplateExecutionData) => JsAfterTemplateExecutionData); stage: number; }>
+  registerHtmlPluginBeforeEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeEmitData) => JsBeforeEmitData); stage: number; }>
+  registerHtmlPluginAfterEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {
