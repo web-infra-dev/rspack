@@ -348,13 +348,14 @@ impl SourceMapDevToolPlugin {
           asset.to_writer(&mut buffer).into_diagnostic()?;
           buffer
         };
-        let source_map_buffer = source_map.map(|source_map| {
-          let mut buffer = Vec::new();
-          source_map
-            .to_writer(&mut buffer)
-            .unwrap_or_else(|e| panic!("{}", e.to_string()));
-          buffer
-        });
+        let source_map_buffer = match source_map {
+          Some(map) => {
+            let mut buffer = Vec::new();
+            map.to_writer(&mut buffer).into_diagnostic()?;
+            Some(buffer)
+          }
+          None => None,
+        };
 
         let mut asset = compilation
           .assets()
@@ -537,16 +538,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         source_asset.info.related.source_map = Some(source_map_filename.clone());
       }
     }
+
+    let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
+    compilation.emit_asset(source_filename, source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset);
 
-      let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
         chunk.auxiliary_files.insert(source_map_filename);
       }
     }
-    compilation.emit_asset(source_filename, source_asset);
   }
   logger.time_end(start);
 
