@@ -324,6 +324,16 @@ export interface JsAlterAssetTagsData {
   publicPath: string
 }
 
+export interface JsAlternativeRequest {
+  context: string
+  request: string
+}
+
+export interface JsAlternativeRequestsArgs {
+  requests: Array<JsAlternativeRequest>
+  options: JsContextModuleOptions
+}
+
 export interface JsAsset {
   name: string
   info: JsAssetInfo
@@ -469,6 +479,17 @@ export interface JsContextModuleFactoryAfterResolveData {
 export interface JsContextModuleFactoryBeforeResolveData {
   context: string
   request?: string
+}
+
+export interface JsContextModuleOptions {
+  addon: string
+  category: string
+  mode: string
+  recursive: boolean
+  request: string
+  resource: string
+  resourceQuery: string
+  resourceFragment: string
 }
 
 export interface JsCreateData {
@@ -1839,13 +1860,14 @@ export enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme = 30,
   ContextModuleFactoryBeforeResolve = 31,
   ContextModuleFactoryAfterResolve = 32,
-  JavascriptModulesChunkHash = 33,
-  HtmlPluginBeforeAssetTagGeneration = 34,
-  HtmlPluginAlterAssetTags = 35,
-  HtmlPluginAlterAssetTagGroups = 36,
-  HtmlPluginAfterTemplateExecution = 37,
-  HtmlPluginBeforeEmit = 38,
-  HtmlPluginAfterEmit = 39
+  ContextModuleFactoryAlternativeRequests = 33,
+  JavascriptModulesChunkHash = 34,
+  HtmlPluginBeforeAssetTagGeneration = 35,
+  HtmlPluginAlterAssetTags = 36,
+  HtmlPluginAlterAssetTagGroups = 37,
+  HtmlPluginAfterTemplateExecution = 38,
+  HtmlPluginBeforeEmit = 39,
+  HtmlPluginAfterEmit = 40
 }
 
 export interface RegisterJsTaps {
@@ -1882,6 +1904,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
+  registerContextModuleFactoryAlternativeRequestsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlternativeRequestsArgs) => Promise<JsAlternativeRequest[]>); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>

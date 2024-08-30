@@ -12,25 +12,26 @@ use napi::{
 use rspack_binding_values::{
   CompatSource, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
   JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
-  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
-  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunk, JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveData,
-  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveData,
-  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
-  JsFactorizeOutput, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
-  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAlternativeRequest, JsAlternativeRequestsArgs,
+  JsAssetEmittedArgs, JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs,
+  JsBeforeResolveOutput, JsChunk, JsChunkAssetArgs, JsCompilationWrapper,
+  JsContextModuleFactoryAfterResolveData, JsContextModuleFactoryAfterResolveResult,
+  JsContextModuleFactoryBeforeResolveData, JsContextModuleFactoryBeforeResolveResult, JsCreateData,
+  JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModule,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  ToJsCompatSource, ToJsModule,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   parse_resource, rspack_sources::SourceExt, AfterResolveData, AfterResolveResult,
-  AssetEmittedInfo, BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  AlternativeRequest, AlternativeRequests, AssetEmittedInfo, BeforeResolveData,
+  BeforeResolveResult, BoxModule, Chunk, ChunkUkey, CodeGenerationResults, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -43,8 +44,9 @@ use rspack_core::{
   CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
   CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  ContextModuleFactoryAlternativeRequests, ContextModuleFactoryAlternativeRequestsHook,
+  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ContextModuleOptions,
+  ExecuteModuleId, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
@@ -336,6 +338,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
+  ContextModuleFactoryAlternativeRequests,
   JavascriptModulesChunkHash,
   HtmlPluginBeforeAssetTagGeneration,
   HtmlPluginAlterAssetTags,
@@ -506,6 +509,11 @@ pub struct RegisterJsTaps {
     JsContextModuleFactoryAfterResolveResult,
     Promise<JsContextModuleFactoryAfterResolveResult>,
   >,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAlternativeRequestsArgs) => Promise<JsAlternativeRequest[]>); stage: number; }>"
+  )]
+  pub register_context_module_factory_alternative_requests_taps:
+    RegisterFunction<JsAlternativeRequestsArgs, Promise<Vec<JsAlternativeRequest>>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
   )]
@@ -811,6 +819,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
+  skip = true,
+);
+define_register!(
+  RegisterContextModuleFactoryAlternativeRequestsTaps,
+  tap = ContextModuleFactoryAlternativeRequestsTap<JsAlternativeRequestsArgs, Promise<Vec<JsAlternativeRequest>>> @ ContextModuleFactoryAlternativeRequestsHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::ContextModuleFactoryAlternativeRequests,
   skip = true,
 );
 
@@ -1562,6 +1578,39 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
         Ok(AfterResolveResult::Data(Box::new(data)))
       }
     }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl ContextModuleFactoryAlternativeRequests for ContextModuleFactoryAlternativeRequestsTap {
+  async fn run(
+    &self,
+    requests: AlternativeRequests,
+    options: &ContextModuleOptions,
+  ) -> rspack_error::Result<AlternativeRequests> {
+    let js_result = requests.into_iter().map(|r| r.into()).collect();
+
+    let result = self
+      .function
+      .call_with_promise(JsAlternativeRequestsArgs {
+        requests: js_result,
+        options: options.clone().into(),
+      })
+      .await?;
+
+    Ok(
+      result
+        .into_iter()
+        .map(|r| AlternativeRequest {
+          request: r.request,
+          context: r.context,
+        })
+        .collect(),
+    )
   }
 
   fn stage(&self) -> i32 {

@@ -57,6 +57,8 @@ pub struct JsHooksAdapterPlugin {
   register_context_module_factory_before_resolve_taps:
     RegisterContextModuleFactoryBeforeResolveTaps,
   register_context_module_factory_after_resolve_taps: RegisterContextModuleFactoryAfterResolveTaps,
+  register_context_module_factory_alternative_requests_taps:
+    RegisterContextModuleFactoryAlternativeRequestsTaps,
   register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps,
   register_html_plugin_before_asset_tag_generation_taps:
     RegisterHtmlPluginBeforeAssetTagGenerationTaps,
@@ -287,7 +289,15 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_context_module_factory_after_resolve_taps
           .clone(),
       );
-
+    ctx
+      .context
+      .context_module_factory_hooks
+      .alternative_requests
+      .intercept(
+        self
+          .register_context_module_factory_alternative_requests_taps
+          .clone(),
+      );
     ctx
       .context
       .compiler_hooks
@@ -499,6 +509,11 @@ impl JsHooksAdapterPlugin {
         register_context_module_factory_after_resolve_taps:
           RegisterContextModuleFactoryAfterResolveTaps::new(
             register_js_taps.register_context_module_factory_after_resolve_taps,
+            non_skippable_registers.clone(),
+          ),
+        register_context_module_factory_alternative_requests_taps:
+          RegisterContextModuleFactoryAlternativeRequestsTaps::new(
+            register_js_taps.register_context_module_factory_alternative_requests_taps,
             non_skippable_registers.clone(),
           ),
         register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps::new(

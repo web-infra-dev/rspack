@@ -51,6 +51,11 @@ export type ContextModuleFactoryAfterResolveResult =
 			dependencies: Array<any>;
 	  };
 
+export type ContextModuleFactoryAlternativeRequests = Array<{
+	context: string;
+	request: string;
+}>;
+
 export class Module {
 	#inner: JsModule | ModuleDTO;
 	#originalSource?: Source;

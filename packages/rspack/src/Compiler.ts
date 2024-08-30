@@ -1187,6 +1187,20 @@ class Compiler {
 							return result;
 						}
 				),
+			registerContextModuleFactoryAlternativeRequestsTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.ContextModuleFactoryAlternativeRequests,
+					() =>
+						this.#compilationParams!.contextModuleFactory.hooks
+							.alternativeRequests,
+					queried =>
+						async ({
+							requests,
+							options
+						}: binding.JsAlternativeRequestsArgs) => {
+							return queried.promise(requests, options);
+						}
+				),
 			registerJavascriptModulesChunkHashTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.JavascriptModulesChunkHash,
 				() =>
