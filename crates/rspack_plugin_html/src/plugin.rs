@@ -52,12 +52,13 @@ impl HtmlRspackPlugin {
 }
 
 async fn generate_html(
+  filename: &str,
   html_file_name: &Filename<NoFilenameFn>,
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
   hooks: &HtmlPluginHooks,
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
-  let public_path = config.get_public_path(compilation, &config.filename);
+  let public_path = config.get_public_path(compilation, filename);
 
   let mut template = HtmlTemplate::new(config, compilation)?;
 
@@ -110,6 +111,7 @@ async fn generate_html(
 
   template
     .create_parameters(
+      filename,
       config,
       &alter_asset_tag_groups_data.head_tags,
       &alter_asset_tag_groups_data.body_tags,
@@ -175,60 +177,59 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let config: &HtmlRspackPluginOptions = &self.config;
   let hooks = HtmlRspackPlugin::get_compilation_hooks(compilation.id());
 
-  let output_file_name = FilenameTemplate::from(
-    config
-      .filename
-      .replace("[templatehash]", "[contenthash]")
-      .clone(),
-  );
+  // TODO: parallel generate html
+  for filename in &config.filename {
+    let output_file_name =
+      FilenameTemplate::from(filename.replace("[templatehash]", "[contenthash]").clone());
 
-  let (template_file_name, html) =
-    match generate_html(&output_file_name, config, compilation, &hooks).await {
-      Ok(content) => {
-        compilation.file_dependencies.extend(content.2);
-        (content.0, content.1)
-      }
-      Err(err) => {
-        let error_msg = err.to_string();
-        compilation.push_diagnostic(Diagnostic::from(err));
-        ("error.html".to_string(), create_error_html(&error_msg))
-      }
-    };
+    let (template_file_name, html) =
+      match generate_html(filename, &output_file_name, config, compilation, &hooks).await {
+        Ok(content) => {
+          compilation.file_dependencies.extend(content.2);
+          (content.0, content.1)
+        }
+        Err(err) => {
+          let error_msg = err.to_string();
+          compilation.push_diagnostic(Diagnostic::from(err));
+          ("error.html".to_string(), create_error_html(&error_msg))
+        }
+      };
 
-  let mut before_emit_data = hooks
-    .before_emit
-    .call(BeforeEmitData {
-      html,
-      output_name: output_file_name.as_str().to_string(),
-    })
-    .await?;
+    let mut before_emit_data = hooks
+      .before_emit
+      .call(BeforeEmitData {
+        html,
+        output_name: output_file_name.as_str().to_string(),
+      })
+      .await?;
 
-  if let Some(favicon) = &config.favicon {
-    match create_favicon_asset(favicon, config, compilation) {
-      Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
-      Err(err) => {
-        let error_msg = err.to_string();
-        compilation.push_diagnostic(Diagnostic::from(err));
-        before_emit_data.html = create_error_html(&error_msg);
-      }
-    };
+    if let Some(favicon) = &config.favicon {
+      match create_favicon_asset(favicon, config, compilation) {
+        Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
+        Err(err) => {
+          let error_msg = err.to_string();
+          compilation.push_diagnostic(Diagnostic::from(err));
+          before_emit_data.html = create_error_html(&error_msg);
+        }
+      };
+    }
+
+    let html_asset = create_html_asset(
+      &output_file_name,
+      &before_emit_data.html,
+      &template_file_name,
+      compilation,
+    );
+
+    compilation.emit_asset(html_asset.0.clone(), html_asset.1);
+
+    let _ = hooks
+      .after_emit
+      .call(AfterEmitData {
+        output_name: html_asset.0.to_string(),
+      })
+      .await?;
   }
-
-  let html_asset = create_html_asset(
-    &output_file_name,
-    &before_emit_data.html,
-    &template_file_name,
-    compilation,
-  );
-
-  compilation.emit_asset(html_asset.0.clone(), html_asset.1);
-
-  let _ = hooks
-    .after_emit
-    .call(AfterEmitData {
-      output_name: html_asset.0.to_string(),
-    })
-    .await?;
 
   Ok(())
 }

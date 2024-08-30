@@ -4619,7 +4619,7 @@ const hotUpdateMainFilename: z.ZodString;
 // @public (undocumented)
 export const HtmlRspackPlugin: {
     new (c?: {
-        filename?: string | undefined;
+        filename?: string | ((args_0: string, ...args_1: unknown[]) => string) | undefined;
         publicPath?: string | undefined;
         hash?: boolean | undefined;
         chunks?: string[] | undefined;
@@ -4641,7 +4641,7 @@ export const HtmlRspackPlugin: {
     } | undefined): {
         name: BuiltinPluginName;
         _args: [c?: {
-            filename?: string | undefined;
+            filename?: string | ((args_0: string, ...args_1: unknown[]) => string) | undefined;
             publicPath?: string | undefined;
             hash?: boolean | undefined;
             chunks?: string[] | undefined;
@@ -4696,7 +4696,7 @@ export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 
 // @public (undocumented)
 const htmlRspackPluginOptions: z.ZodObject<{
-    filename: z.ZodOptional<z.ZodString>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodString>]>>;
     template: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
     templateContent: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodRecord<z.ZodString, z.ZodAny>], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodPromise<z.ZodString>]>>]>>;
     templateParameters: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodString>, z.ZodBoolean]>, z.ZodFunction<z.ZodTuple<[z.ZodRecord<z.ZodString, z.ZodAny>], z.ZodUnknown>, z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodPromise<z.ZodRecord<z.ZodString, z.ZodAny>>]>>]>>;
@@ -4722,7 +4722,7 @@ const htmlRspackPluginOptions: z.ZodObject<{
     meta: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodRecord<z.ZodString, z.ZodString>]>>>;
     hash: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
-    filename?: string | undefined;
+    filename?: string | ((args_0: string, ...args_1: unknown[]) => string) | undefined;
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
@@ -4742,7 +4742,7 @@ const htmlRspackPluginOptions: z.ZodObject<{
     favicon?: string | undefined;
     meta?: Record<string, string | Record<string, string>> | undefined;
 }, {
-    filename?: string | undefined;
+    filename?: string | ((args_0: string, ...args_1: unknown[]) => string) | undefined;
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
