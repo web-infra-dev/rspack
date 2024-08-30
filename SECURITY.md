@@ -1,5 +1,7 @@
 # Security
+
 ## Reporting a vulnerability in Rspack
+
 Report a security vulnerability in Rspack via web-infra-careers@bytedance.com.
 
 Normally, your report will be acknowledged within 24 hours, and you'll receive a more detailed response to your report within 5 days indicating the next steps in handling your submission.
