@@ -1,40 +1,28 @@
-use serde::{Deserialize, Serialize};
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_html::ast::{Child, Element, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
-use super::tag::HtmlPluginTag;
-use super::utils::create_element;
-
-// attributes are presented as plain string.
-// namespace is not supported currently.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HtmlPluginAttribute {
-  pub attr_name: String,
-  // None is ``
-  pub attr_value: Option<String>,
-}
+use crate::tag::HtmlPluginTag;
 
 #[derive(Debug)]
-pub struct AssetWriter<'a> {
+pub struct AssetInjector<'a> {
   head_tags: &'a Vec<HtmlPluginTag>,
   body_tags: &'a Vec<HtmlPluginTag>,
 }
 
-impl<'a> AssetWriter<'a> {
+impl<'a> AssetInjector<'a> {
   pub fn new(
     head_tags: &'a Vec<HtmlPluginTag>,
     body_tags: &'a Vec<HtmlPluginTag>,
-  ) -> AssetWriter<'a> {
-    AssetWriter {
+  ) -> AssetInjector<'a> {
+    AssetInjector {
       head_tags,
       body_tags,
     }
   }
 }
 
-impl VisitMut for AssetWriter<'_> {
+impl VisitMut for AssetInjector<'_> {
   fn visit_mut_element(&mut self, n: &mut Element) {
     let head_tags = &self.head_tags;
     let body_tags = &self.body_tags;
@@ -63,16 +51,14 @@ impl VisitMut for AssetWriter<'_> {
               continue;
             }
           }
-
-          let new_element = create_element(tag);
-
-          n.children.push(Child::Element(new_element));
+          n.children
+            .push(Child::Element(Element::from(tag.to_owned())));
         }
       }
       "body" => {
         for tag in body_tags.iter() {
-          let new_element = create_element(tag);
-          n.children.push(Child::Element(new_element));
+          n.children
+            .push(Child::Element(Element::from(tag.to_owned())));
         }
       }
       _ => {}

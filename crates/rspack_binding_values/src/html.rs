@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_html::{
-  visitors::{asset::HtmlPluginAttribute, tag::HtmlPluginTag},
+  asset::{HtmlPluginAssetTags, HtmlPluginAssets},
+  tag::{HtmlPluginAttribute, HtmlPluginTag},
   AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
-  BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginAssetTags, HtmlPluginAssets,
+  BeforeAssetTagGenerationData, BeforeEmitData,
 };
 
 #[napi(object)]

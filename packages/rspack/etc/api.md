@@ -4683,8 +4683,12 @@ type HtmlRspackPluginHooks = {
     afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<[
     JsAfterTemplateExecutionData & ExtraPluginHookData
     ]>;
-    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[JsBeforeEmitData & ExtraPluginHookData]>;
-    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[JsAfterEmitData & ExtraPluginHookData]>;
+    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[
+    JsBeforeEmitData & ExtraPluginHookData
+    ]>;
+    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAfterEmitData & ExtraPluginHookData
+    ]>;
 };
 
 // @public (undocumented)

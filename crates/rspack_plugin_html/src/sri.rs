@@ -4,7 +4,7 @@ use rspack_core::rspack_sources::{BoxSource, Source};
 use serde::Serialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use crate::visitors::{asset::HtmlPluginAttribute, tag::HtmlPluginTag};
+use crate::tag::{HtmlPluginAttribute, HtmlPluginTag};
 
 #[derive(Serialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]

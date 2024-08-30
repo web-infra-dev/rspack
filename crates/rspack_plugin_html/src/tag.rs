@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fmt};
+use core::fmt;
+use std::collections::HashMap;
 
 use itertools::Itertools;
 use serde::{
@@ -6,9 +7,34 @@ use serde::{
   ser::SerializeMap,
   Deserialize, Deserializer, Serialize, Serializer,
 };
+use swc_core::{atoms::Atom, common::DUMMY_SP};
+use swc_html::ast::{Attribute, Element, Namespace};
 
-use super::asset::HtmlPluginAttribute;
 use crate::config::{HtmlRspackPluginBaseOptions, HtmlScriptLoading};
+
+// attributes are presented as plain string.
+// namespace is not supported currently.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HtmlPluginAttribute {
+  pub attr_name: String,
+  // None is ``
+  pub attr_value: Option<String>,
+}
+
+impl From<HtmlPluginAttribute> for Attribute {
+  fn from(attr: HtmlPluginAttribute) -> Self {
+    Attribute {
+      span: Default::default(),
+      namespace: None,
+      prefix: None,
+      name: attr.attr_name.into(),
+      raw_name: None,
+      value: attr.attr_value.as_ref().map(|str| Atom::from(str.as_str())),
+      raw_value: None,
+    }
+  }
+}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,7 +48,6 @@ pub struct HtmlPluginTag {
   pub void_tag: bool,
   #[serde(rename = "innerHTML")]
   pub inner_html: Option<String>,
-  // `head`, `body`, `false`
   pub asset: Option<String>,
 }
 
@@ -200,6 +225,65 @@ impl HtmlPluginTag {
       ],
       void_tag: true,
       ..Default::default()
+    }
+  }
+}
+
+impl fmt::Display for HtmlPluginTag {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let mut attributes = self
+      .attributes
+      .iter()
+      .map(|attr| {
+        if let Some(attr_value) = &attr.attr_value {
+          format!(r#"{}="{}""#, attr.attr_name, attr_value)
+        } else {
+          attr.attr_name.to_string()
+        }
+      })
+      .collect::<Vec<String>>();
+
+    attributes.sort();
+
+    let res = format!(
+      "<{} {}{}>{}{}",
+      self.tag_name,
+      attributes.join(" "),
+      if self.void_tag && self.inner_html.is_none() {
+        "/"
+      } else {
+        ""
+      },
+      if let Some(inner_html) = &self.inner_html {
+        inner_html
+      } else {
+        ""
+      },
+      if !self.void_tag || self.inner_html.is_some() {
+        format!("</{}>", self.tag_name)
+      } else {
+        String::new()
+      }
+    );
+    write!(f, "{}", res)
+  }
+}
+
+impl From<HtmlPluginTag> for Element {
+  fn from(tag: HtmlPluginTag) -> Self {
+    Element {
+      tag_name: Atom::from(&*tag.tag_name),
+      attributes: tag
+        .attributes
+        .into_iter()
+        .sorted_unstable_by(|a, b| a.attr_name.cmp(&b.attr_name))
+        .map(Attribute::from)
+        .collect::<Vec<_>>(),
+      children: vec![],
+      content: None,
+      is_self_closing: tag.void_tag,
+      namespace: Namespace::HTML,
+      span: DUMMY_SP,
     }
   }
 }

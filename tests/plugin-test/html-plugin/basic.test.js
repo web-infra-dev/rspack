@@ -45,58 +45,63 @@ function testHtmlPlugin(
 ) {
   outputFile = outputFile || "index.html";
   webpack(webpackConfig, (err, stats) => {
-    expect(err).toBeFalsy();
-    const compilationErrors = (Array.from(stats.compilation.errors).map(i => i.message || '') || []).join("\n");
-    if (expectErrors) {
-      expect(compilationErrors).not.toBe("");
-    } else {
-      expect(compilationErrors).toBe("");
-    }
-    const compilationWarnings = (Array.from(stats.compilation.warnings) || []).join("\n");
-    if (expectWarnings) {
-      expect(compilationWarnings).not.toBe("");
-    } else {
-      expect(compilationWarnings).toBe("");
-    }
-    if (outputFile instanceof RegExp) {
-      const fileNames = Object.keys(stats.compilation.assets);
-      const matches = Object.keys(stats.compilation.assets).filter((item) =>
-        outputFile.test(item),
-      );
-      expect(matches[0] || fileNames).not.toEqual(fileNames);
-      outputFile = matches[0];
-    }
-    expect(outputFile.indexOf("[hash]") === -1).toBe(true);
-    const outputFileExists = fs.existsSync(path.join(OUTPUT_DIR, outputFile));
-    expect(outputFileExists).toBe(true);
-    if (!outputFileExists) {
-      return done();
-    }
-    const htmlContent = fs
-      .readFileSync(path.join(OUTPUT_DIR, outputFile))
-      .toString();
-    let chunksInfo;
-    for (let i = 0; i < expectedResults.length; i++) {
-      const expectedResult = expectedResults[i];
-      if (expectedResult instanceof RegExp) {
-        expect(htmlContent).toMatch(expectedResult);
-      } else if (typeof expectedResult === "object") {
-        if (expectedResult.type === "chunkhash") {
-          if (!chunksInfo) {
-            chunksInfo = getChunksInfoFromStats(stats);
+    try {
+      expect(err).toBeFalsy();
+      const compilationErrors = (Array.from(stats.compilation.errors).map(i => i.message || '') || []).join("\n");
+      if (expectErrors) {
+        expect(compilationErrors).not.toBe("");
+      } else {
+        expect(compilationErrors).toBe("");
+      }
+      const compilationWarnings = (Array.from(stats.compilation.warnings) || []).join("\n");
+      if (expectWarnings) {
+        expect(compilationWarnings).not.toBe("");
+      } else {
+        expect(compilationWarnings).toBe("");
+      }
+      if (outputFile instanceof RegExp) {
+        const fileNames = Object.keys(stats.compilation.assets);
+        const matches = Object.keys(stats.compilation.assets).filter((item) =>
+          outputFile.test(item),
+        );
+        expect(matches[0] || fileNames).not.toEqual(fileNames);
+        outputFile = matches[0];
+      }
+      expect(outputFile.indexOf("[hash]") === -1).toBe(true);
+      const outputFileExists = fs.existsSync(path.join(OUTPUT_DIR, outputFile));
+      expect(outputFileExists).toBe(true);
+      if (!outputFileExists) {
+        return done();
+      }
+      const htmlContent = fs
+        .readFileSync(path.join(OUTPUT_DIR, outputFile))
+        .toString();
+      let chunksInfo;
+      for (let i = 0; i < expectedResults.length; i++) {
+        const expectedResult = expectedResults[i];
+        if (expectedResult instanceof RegExp) {
+          expect(htmlContent).toMatch(expectedResult);
+        } else if (typeof expectedResult === "object") {
+          if (expectedResult.type === "chunkhash") {
+            if (!chunksInfo) {
+              chunksInfo = getChunksInfoFromStats(stats);
+            }
+            const chunkhash = chunksInfo[expectedResult.chunkName].hash;
+            expect(htmlContent).toContain(
+              expectedResult.containStr.replace("%chunkhash%", chunkhash),
+            );
           }
-          const chunkhash = chunksInfo[expectedResult.chunkName].hash;
+        } else {
           expect(htmlContent).toContain(
-            expectedResult.containStr.replace("%chunkhash%", chunkhash),
+            expectedResult.replace("%hash%", stats.hash),
           );
         }
-      } else {
-        expect(htmlContent).toContain(
-          expectedResult.replace("%hash%", stats.hash),
-        );
       }
+      done();
+    } catch (e) {
+      done(e);
     }
-    done();
+
   });
 }
 

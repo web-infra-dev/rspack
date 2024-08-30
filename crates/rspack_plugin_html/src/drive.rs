@@ -1,39 +1,24 @@
 use rspack_hook::define_hook;
-use serde::{Deserialize, Serialize};
 
-use crate::visitors::tag::HtmlPluginTag;
+use crate::{
+  asset::{HtmlPluginAssetTags, HtmlPluginAssets},
+  tag::HtmlPluginTag,
+};
 
-#[derive(Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HtmlPluginAssets {
-  pub public_path: String,
-  pub js: Vec<String>,
-  pub css: Vec<String>,
-  pub favicon: Option<String>,
-  // manifest: Option<String>,
-}
-
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BeforeAssetTagGenerationData {
   pub assets: HtmlPluginAssets,
   pub output_name: String,
 }
 
-#[derive(Clone, Default)]
-pub struct HtmlPluginAssetTags {
-  pub scripts: Vec<HtmlPluginTag>,
-  pub styles: Vec<HtmlPluginTag>,
-  pub meta: Vec<HtmlPluginTag>,
-}
-
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AlterAssetTagsData {
   pub asset_tags: HtmlPluginAssetTags,
   pub output_name: String,
   pub public_path: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AlterAssetTagGroupsData {
   pub head_tags: Vec<HtmlPluginTag>,
   pub body_tags: Vec<HtmlPluginTag>,
@@ -41,7 +26,7 @@ pub struct AlterAssetTagGroupsData {
   pub output_name: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AfterTemplateExecutionData {
   pub html: String,
   pub head_tags: Vec<HtmlPluginTag>,
@@ -49,13 +34,13 @@ pub struct AfterTemplateExecutionData {
   pub output_name: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BeforeEmitData {
   pub html: String,
   pub output_name: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AfterEmitData {
   pub output_name: String,
 }
