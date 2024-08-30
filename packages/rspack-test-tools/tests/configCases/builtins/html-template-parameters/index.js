@@ -14,7 +14,7 @@ it("should have only one title", () => {
 });
 
 it("should inject htmlRspackPlugin.tags.headTags", () => {
-	expect(htmlContent).toContain(`<title>i am title</title><link rel="icon" href="http://cdn.com/favicon.ico"><meta content="meta-value" name="meta-name"><script defer src="http://cdn.com/bundle0.js"></script><link href="http://cdn.com/main.css" rel="stylesheet">`);
+	expect(htmlContent).toContain(`<title>i am title</title><meta content="meta-value" name="meta-name"><link href="http://cdn.com/favicon.ico" rel="icon"><script defer src="http://cdn.com/bundle0.js"></script><link href="http://cdn.com/main.css" rel="stylesheet">`);
 });
 
 it("should inject filtered htmlRspackPlugin.tags.headTags", () => {

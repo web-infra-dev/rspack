@@ -25,7 +25,7 @@ pub fn create_attributes(attrs: &[HtmlPluginAttribute]) -> Vec<Attribute> {
     .map(|attr| create_attribute(&attr.attr_name, &attr.attr_value))
     .collect::<Vec<_>>();
   res.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-  return res;
+  res
 }
 
 pub fn create_element(tag: &HtmlPluginTag) -> Element {

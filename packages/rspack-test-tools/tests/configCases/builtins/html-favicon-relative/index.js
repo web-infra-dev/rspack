@@ -7,5 +7,5 @@ it("html favicon with absolute path", () => {
 
 	const htmlPath = path.join(__dirname, "./index.html");
 	const htmlContent = fs.readFileSync(htmlPath, "utf-8");
-	expect(htmlContent).toContain('<link rel="icon" href="/favicon.ico">');
+	expect(htmlContent).toContain('<link href="/favicon.ico" rel="icon">');
 });
