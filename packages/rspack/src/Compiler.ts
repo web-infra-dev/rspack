@@ -1165,9 +1165,9 @@ class Compiler {
 												)
 											: undefined,
 										request: bindingData.request,
-										context: bindingData.context,
+										context: bindingData.context
 										// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
-										dependencies: []
+										// dependencies: []
 									} satisfies ContextModuleFactoryAfterResolveResult)
 								: false;
 							const ret = await queried.promise(data);

@@ -522,7 +522,11 @@ export function rmrf(
 	});
 }
 
-const join = (fs: OutputFileSystem, rootPath: string, filename: string) => {
+export const join = (
+	fs: InputFileSystem | OutputFileSystem | null,
+	rootPath: string,
+	filename: string
+) => {
 	if (fs?.join) {
 		return fs.join(rootPath, filename);
 	}

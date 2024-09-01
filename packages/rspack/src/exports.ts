@@ -105,6 +105,7 @@ export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
+export { ContextReplacementPlugin } from "./lib/ContextReplacementPlugin";
 export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 
 import { FetchCompileAsyncWasmPlugin } from "./builtin-plugin";
