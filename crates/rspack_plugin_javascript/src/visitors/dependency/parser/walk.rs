@@ -542,18 +542,26 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_prop_name(&getter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &getter.body {
-          self.walk_statement(Statement::Block(body));
-        }
+        self.in_function_scope(true, std::iter::empty(), |parser| {
+          if let Some(body) = &getter.body {
+            parser.walk_statement(Statement::Block(body));
+          }
+        });
         self.top_level_scope = was_top_level;
       }
       Prop::Setter(setter) => {
         self.walk_prop_name(&setter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &setter.body {
-          self.walk_statement(Statement::Block(body));
-        }
+        self.in_function_scope(
+          true,
+          std::iter::once(Cow::Borrowed(setter.param.as_ref())),
+          |parser| {
+            if let Some(body) = &setter.body {
+              parser.walk_statement(Statement::Block(body));
+            }
+          },
+        );
         self.top_level_scope = was_top_level;
       }
       Prop::Method(method) => {
