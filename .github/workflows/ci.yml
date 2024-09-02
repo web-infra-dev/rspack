@@ -388,3 +388,9 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+  pkg-preview:
+    name: Pkg Preview
+    # needs:
+    #   - cargo-deny
+    uses: ./.github/workflows/preview-commit.yml
