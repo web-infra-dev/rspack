@@ -459,7 +459,7 @@ pub struct Environment {
   pub module: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
   pub optional_chaining: Option<bool>,
-  pub tempalte_literal: Option<bool>,
+  pub template_literal: Option<bool>,
 }
 
 impl Environment {
@@ -512,6 +512,6 @@ impl Environment {
   }
 
   pub fn supports_template_literal(&self) -> bool {
-    self.tempalte_literal.unwrap_or_default()
+    self.template_literal.unwrap_or_default()
   }
 }

@@ -1217,7 +1217,7 @@ export interface RawEnvironment {
   module?: boolean
   nodePrefixForCoreModules?: boolean
   optionalChaining?: boolean
-  tempalteLiteral?: boolean
+  templateLiteral?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {

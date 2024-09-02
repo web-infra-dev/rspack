@@ -57,7 +57,7 @@ pub struct RawEnvironment {
   pub module: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
   pub optional_chaining: Option<bool>,
-  pub tempalte_literal: Option<bool>,
+  pub template_literal: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -75,7 +75,7 @@ impl From<RawEnvironment> for Environment {
       module: value.module,
       node_prefix_for_core_modules: value.node_prefix_for_core_modules,
       optional_chaining: value.optional_chaining,
-      tempalte_literal: value.tempalte_literal,
+      template_literal: value.template_literal,
     }
   }
 }
