@@ -219,18 +219,13 @@ const HtmlRspackPluginImpl = create(
 			templateParameters = rawTemplateParameters;
 		}
 
-		const addedFilename: Set<string> = new Set();
-		let filenames: string[] | undefined = undefined;
+		let filenames: Set<string> | undefined = undefined;
 		if (typeof c.filename === "string") {
-			filenames = [];
+			filenames = new Set();
 			if (c.filename.includes("[name]")) {
 				if (typeof this.options.entry === "object") {
 					for (const entryName of Object.keys(this.options.entry)) {
-						const filename = c.filename.replace(/\[name\]/g, entryName);
-						if (!addedFilename.has(filename)) {
-							filenames.push(filename);
-							addedFilename.add(filename);
-						}
+						filenames.add(c.filename.replace(/\[name\]/g, entryName));
 					}
 				} else {
 					throw new Error(
@@ -238,17 +233,13 @@ const HtmlRspackPluginImpl = create(
 					);
 				}
 			} else {
-				filenames.push(c.filename);
+				filenames.add(c.filename);
 			}
 		} else if (typeof c.filename === "function") {
-			filenames = [];
+			filenames = new Set();
 			if (typeof this.options.entry === "object") {
 				for (const entryName of Object.keys(this.options.entry)) {
-					const filename = c.filename(entryName);
-					if (!addedFilename.has(filename)) {
-						filenames.push(filename);
-						addedFilename.add(filename);
-					}
+					filenames.add(c.filename(entryName));
 				}
 			} else {
 				throw new Error(
@@ -258,7 +249,7 @@ const HtmlRspackPluginImpl = create(
 		}
 
 		return {
-			filename: filenames,
+			filename: filenames ? Array.from(filenames) : undefined,
 			template: c.template,
 			hash: c.hash,
 			title: c.title,

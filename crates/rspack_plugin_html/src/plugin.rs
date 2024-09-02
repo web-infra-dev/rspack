@@ -177,6 +177,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let config: &HtmlRspackPluginOptions = &self.config;
   let hooks = HtmlRspackPlugin::get_compilation_hooks(compilation.id());
 
+  println!("config filename: {:?}", config.filename);
   // TODO: parallel generate html
   for filename in &config.filename {
     let output_file_name =
