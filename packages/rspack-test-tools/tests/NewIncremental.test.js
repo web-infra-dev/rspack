@@ -58,6 +58,10 @@ describeByWalk(v("hot async-node (webpack-test)"), (name, src, dist) => {
 		/move-between-runtime/,
 		/context/,
 		/module-test/,
+		/update-multiple-times/,
+		/dispose-removed-chunk/,
+		/import-meta-webpack-hot/,
+		/reload-external/,
 	]
 });
 
@@ -71,6 +75,10 @@ describeByWalk(v("hot node (webpack-test)"), (name, src, dist) => {
 		/move-between-runtime/,
 		/context/,
 		/module-test/,
+		/update-multiple-times/,
+		/dispose-removed-chunk/,
+		/import-meta-webpack-hot/,
+		/reload-external/,
 	]
 });
 
@@ -84,6 +92,10 @@ describeByWalk(v("hot web (webpack-test)"), (name, src, dist) => {
 		/move-between-runtime/,
 		/context/,
 		/module-test/,
+		/update-multiple-times/,
+		/dispose-removed-chunk/,
+		/import-meta-webpack-hot/,
+		/reload-external/,
 	]
 });
 
@@ -97,6 +109,10 @@ describeByWalk(v("hot webworker (webpack-test)"), (name, src, dist) => {
 		/move-between-runtime/,
 		/context/,
 		/module-test/,
+		/update-multiple-times/,
+		/dispose-removed-chunk/,
+		/import-meta-webpack-hot/,
+		/reload-external/,
 	]
 });
 
