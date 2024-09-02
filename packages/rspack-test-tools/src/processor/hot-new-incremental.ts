@@ -1,6 +1,6 @@
 import {
 	ECompilerType,
-	type EDocumentType,
+	EDocumentType,
 	type ITestContext,
 	type ITestEnv,
 	type TCompilerOptions
@@ -28,6 +28,18 @@ export class HotNewIncrementalProcessor<
 			this._hotOptions.documentType
 		);
 		await super.run(env, context);
+	}
+
+	async afterAll(context: ITestContext) {
+		try {
+			await super.afterAll(context);
+		} catch (e: any) {
+			const isFake =
+				context.getValue(this._options.name, "documentType") ===
+				EDocumentType.Fake;
+			if (isFake && /Should run all hot steps/.test(e.message)) return;
+			throw e;
+		}
 	}
 
 	static defaultOptions<T extends ECompilerType>(

@@ -56,12 +56,6 @@ describeByWalk(v("hot async-node (webpack-test)"), (name, src, dist) => {
 	dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-async-node`),
 	exclude: [
 		/move-between-runtime/,
-		/context/,
-		/module-test/,
-		/update-multiple-times/,
-		/dispose-removed-chunk/,
-		/import-meta-webpack-hot/,
-		/reload-external/,
 	]
 });
 
@@ -73,12 +67,6 @@ describeByWalk(v("hot node (webpack-test)"), (name, src, dist) => {
 	dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-node`),
 	exclude: [
 		/move-between-runtime/,
-		/context/,
-		/module-test/,
-		/update-multiple-times/,
-		/dispose-removed-chunk/,
-		/import-meta-webpack-hot/,
-		/reload-external/,
 	]
 });
 
@@ -90,12 +78,6 @@ describeByWalk(v("hot web (webpack-test)"), (name, src, dist) => {
 	dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-web`),
 	exclude: [
 		/move-between-runtime/,
-		/context/,
-		/module-test/,
-		/update-multiple-times/,
-		/dispose-removed-chunk/,
-		/import-meta-webpack-hot/,
-		/reload-external/,
 	]
 });
 
@@ -107,12 +89,6 @@ describeByWalk(v("hot webworker (webpack-test)"), (name, src, dist) => {
 	dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-webworker`),
 	exclude: [
 		/move-between-runtime/,
-		/context/,
-		/module-test/,
-		/update-multiple-times/,
-		/dispose-removed-chunk/,
-		/import-meta-webpack-hot/,
-		/reload-external/,
 	]
 });
 

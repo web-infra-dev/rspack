@@ -463,6 +463,8 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
 export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
     constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
     // (undocumented)
+    afterAll(context: ITestContext): Promise<void>;
+    // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
