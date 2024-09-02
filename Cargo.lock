@@ -3172,6 +3172,7 @@ dependencies = [
  "regex",
  "rspack_ast",
  "rspack_collections",
+ "rspack_dojang",
  "rspack_error",
  "rspack_fs",
  "rspack_futures",

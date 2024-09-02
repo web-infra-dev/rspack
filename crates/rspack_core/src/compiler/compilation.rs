@@ -40,7 +40,7 @@ use crate::{
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
   ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -190,6 +190,8 @@ pub struct Compilation {
   pub modified_files: HashSet<PathBuf>,
   pub removed_files: HashSet<PathBuf>,
   make_artifact: MakeArtifact,
+
+  pub runtime_template: RuntimeTemplate,
 }
 
 impl Compilation {
@@ -229,6 +231,7 @@ impl Compilation {
     Self {
       id: CompilationId::new(),
       hot_index: 0,
+      runtime_template: RuntimeTemplate::new(options.output.environment.clone()),
       records,
       options,
       other_module_graph: None,
