@@ -173,8 +173,8 @@ fn render_chunk(
         ));
         startup_source.push(format!(
           "{}(__webpack_chunk_${}__);",
-          itoa::Buffer::new().format(index),
-          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+          itoa::Buffer::new().format(index)
         ));
       }
 
