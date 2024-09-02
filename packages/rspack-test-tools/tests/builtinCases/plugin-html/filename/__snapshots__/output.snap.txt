@@ -1,7 +1,7 @@
-```html title=default.28094d62af6f500a.html
+```html title=main.0c2527cc4ffe363a.html
 <!doctype html><html><head><meta charset="utf-8"><title>rspack</title><script defer src="/runtime.js"></script><script defer src="/main.js"></script><link href="/main.css" rel="stylesheet"></head><body></body></html>
 ```
 
-```html title=index.28094d62af6f500a.html
+```html title=main.951842af77c9d957.html
 <!doctype html><html><head><meta charset="UTF-8"><title>Rspack App</title><script defer src="/runtime.js"></script><script defer src="/main.js"></script><link href="/main.css" rel="stylesheet"></head><body></body></html>
 ```

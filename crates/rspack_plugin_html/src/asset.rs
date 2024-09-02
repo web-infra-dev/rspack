@@ -345,7 +345,6 @@ pub fn create_html_asset(
   compilation: &Compilation,
 ) -> (String, CompilationAsset) {
   let hash = hash_for_source(html);
-  println!("hash: {hash}\nhtml: {html}\n");
 
   let (output_path, asset_info) = compilation
     .get_path_with_info(
