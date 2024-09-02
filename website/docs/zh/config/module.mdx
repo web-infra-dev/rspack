@@ -473,7 +473,7 @@ dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类
 
 #### module.generator.asset.filename
 
-- **类型：** `string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
 - **支持的 Template string：** 参考 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
