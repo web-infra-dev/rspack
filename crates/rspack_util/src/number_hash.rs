@@ -41,7 +41,7 @@ fn test_number_hash() {
   for n in [10, 100, 1000, 10000].iter() {
     let mut set = std::collections::HashSet::new();
     for i in 0..(*n * 200) {
-      set.insert(get_number_hash(&format!("{i}"), *n));
+      set.insert(get_number_hash(itoa::Buffer::new().format(i), *n));
       if set.len() >= (*n - 1) {
         break;
       }

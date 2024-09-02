@@ -43,7 +43,10 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       .get("[contenthash]")
       .or(hash_len_map.get("[hash]"))
     {
-      Some(hash_len) => format!("\" + wasmModuleHash.slice(0, {}) + \"", hash_len),
+      Some(hash_len) => format!(
+        "\" + wasmModuleHash.slice(0, {}) + \"",
+        itoa::Buffer::new().format(*hash_len)
+      ),
       None => "\" + wasmModuleHash + \"".to_string(),
     };
 

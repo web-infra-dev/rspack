@@ -1713,9 +1713,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.8"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62b02a5381cc465bd3041d84623d0fa3b66738b52b8e2fc3bab8ad63ab032f4a"
+checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "js-sys"
@@ -3118,6 +3118,7 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "heck 0.5.0",
+ "itoa",
  "napi-derive",
  "napi-h",
  "rspack_collections",
@@ -3162,6 +3163,7 @@ dependencies = [
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
+ "itoa",
  "json",
  "mime_guess",
  "num-bigint",
@@ -3281,6 +3283,7 @@ name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
  "itertools 0.13.0",
+ "itoa",
  "rayon",
  "regex",
  "rspack_core",
@@ -3353,6 +3356,7 @@ dependencies = [
  "base64 0.22.1",
  "dashmap 5.5.3",
  "either",
+ "itoa",
  "jsonc-parser 0.23.0",
  "rspack_ast",
  "rspack_core",
@@ -3385,6 +3389,7 @@ dependencies = [
 name = "rspack_macros"
 version = "0.1.0"
 dependencies = [
+ "itoa",
  "proc-macro2",
  "quote",
  "syn 2.0.63",
@@ -3525,6 +3530,7 @@ dependencies = [
  "css-module-lexer",
  "heck 0.5.0",
  "indexmap 1.9.3",
+ "itoa",
  "once_cell",
  "rayon",
  "regex",
@@ -3619,6 +3625,7 @@ name = "rspack_plugin_extract_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "itoa",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3705,6 +3712,7 @@ dependencies = [
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
+ "itoa",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
@@ -3735,6 +3743,7 @@ dependencies = [
 name = "rspack_plugin_json"
 version = "0.1.0"
 dependencies = [
+ "itoa",
  "json",
  "ropey",
  "rspack_core",
@@ -3823,6 +3832,7 @@ dependencies = [
  "async-trait",
  "hashlink",
  "itertools 0.13.0",
+ "itoa",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3895,6 +3905,7 @@ dependencies = [
  "async-trait",
  "indexmap 2.2.6",
  "itertools 0.13.0",
+ "itoa",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -4005,6 +4016,7 @@ dependencies = [
  "async-trait",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
+ "itoa",
  "rayon",
  "rspack_collections",
  "rspack_core",
@@ -4097,6 +4109,7 @@ dependencies = [
  "concat-string",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
+ "itoa",
  "regex",
  "rspack_regex",
  "rustc-hash 1.1.0",

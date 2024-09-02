@@ -271,7 +271,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{key}{i}"));
+      identifier = Cow::Owned(format!("{key}{}", itoa::Buffer::new().format(i)));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils

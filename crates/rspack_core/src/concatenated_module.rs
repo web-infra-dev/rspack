@@ -508,7 +508,7 @@ impl Module for ConcatenatedModule {
     Cow::Owned(format!(
       "{} + {} modules",
       self.root_module_ctxt.readable_identifier,
-      self.modules.len() - 1
+      itoa::Buffer::new().format(self.modules.len() - 1)
     ))
   }
 
@@ -2260,14 +2260,15 @@ pub fn find_new_name(
   }
 
   let mut i = 0;
-  let mut name_with_number = to_identifier(&format!("{}_{}", name, i)).into();
+  let mut name_with_number =
+    to_identifier(&format!("{}_{}", name, itoa::Buffer::new().format(i))).into();
   while used_names1.contains(&name_with_number)
     || used_names2
       .map(|map| map.contains(&name_with_number))
       .unwrap_or_default()
   {
     i += 1;
-    name_with_number = to_identifier(&format!("{}_{}", name, i)).into();
+    name_with_number = to_identifier(&format!("{}_{}", name, itoa::Buffer::new().format(i))).into();
   }
 
   name_with_number

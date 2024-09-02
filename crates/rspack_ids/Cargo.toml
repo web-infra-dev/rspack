@@ -9,6 +9,7 @@ version     = "0.1.0"
 
 [dependencies]
 itertools    = { workspace = true }
+itoa         = { workspace = true }
 rayon        = { workspace = true }
 regex        = { workspace = true }
 rspack_core  = { version = "0.1.0", path = "../rspack_core" }

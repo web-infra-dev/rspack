@@ -72,7 +72,7 @@ async fn compilation(
         )
       } else if let Some(value) = value.as_array() {
         let indexes = (0..value.len())
-          .map(|index| format!("{}", index))
+          .map(|index| itoa::Buffer::new().format(index).to_string())
           .collect_vec();
         let iter = indexes.iter().zip(value.iter());
         walk_definitions(iter, compilation, Cow::Owned(format!("{prefix}{key}.")))

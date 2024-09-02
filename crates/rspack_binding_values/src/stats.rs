@@ -328,7 +328,7 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
         args: Some(vec![format!(
           "{}: {} ms",
           label,
-          secs * 1000 + subsec_nanos as u64 / 1000000
+          itoa::Buffer::new().format(secs * 1000 + subsec_nanos as u64 / 1000000)
         )]),
         trace: None,
       },
@@ -355,8 +355,8 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
           } else {
             hit as f32 / total as f32 * 100_f32
           },
-          hit,
-          total,
+          itoa::Buffer::new().format(hit),
+          itoa::Buffer::new().format(total),
         )]),
         trace: None,
       },

@@ -497,7 +497,7 @@ impl ContextModule {
       format!(
         "{}(ids[{}])",
         RuntimeGlobals::ENSURE_CHUNK,
-        chunks_start_position
+        itoa::Buffer::new().format(chunks_start_position)
       )
     };
     let return_module_object = self.get_return_module_object_source(

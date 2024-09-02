@@ -857,19 +857,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     logger.log(format!(
       "{} queue items processed ({} blocks)",
-      self.stat_processed_queue_items, self.stat_processed_blocks
+      itoa::Buffer::new().format(self.stat_processed_queue_items),
+      itoa::Buffer::new().format(self.stat_processed_blocks)
     ));
     logger.log(format!(
       "{} chunk groups connected",
-      self.stat_connected_chunk_groups,
+      itoa::Buffer::new().format(self.stat_connected_chunk_groups),
     ));
     logger.log(format!(
       "{} chunk groups processed for merging ({} module sets)",
-      self.stat_processed_chunk_groups_for_merging, self.stat_merged_available_module_sets,
+      itoa::Buffer::new().format(self.stat_processed_chunk_groups_for_merging),
+      itoa::Buffer::new().format(self.stat_merged_available_module_sets),
     ));
     logger.log(format!(
       "{} chunk group info updated ({} already connected chunk groups reconnected)",
-      self.stat_chunk_group_info_updated, self.stat_child_chunk_groups_reconnected,
+      itoa::Buffer::new().format(self.stat_chunk_group_info_updated),
+      itoa::Buffer::new().format(self.stat_child_chunk_groups_reconnected),
     ));
 
     Ok(())

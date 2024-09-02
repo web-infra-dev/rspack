@@ -457,7 +457,11 @@ impl Compilation {
     let import_var = match import_var_map_of_module.entry(module_id) {
       hash_map::Entry::Occupied(occ) => occ.get().clone(),
       hash_map::Entry::Vacant(vac) => {
-        let import_var = format!("{}__WEBPACK_IMPORTED_MODULE_{}__", user_request, len);
+        let import_var = format!(
+          "{}__WEBPACK_IMPORTED_MODULE_{}__",
+          user_request,
+          itoa::Buffer::new().format(len)
+        );
         vac.insert(import_var.clone());
         import_var
       }

@@ -19,6 +19,7 @@ rspack_util           = { version = "0.1.0", path = "../rspack_util" }
 async-trait = { workspace = true }
 hashlink    = { workspace = true }
 itertools   = { workspace = true }
+itoa        = { workspace = true }
 regex       = { workspace = true }
 rustc-hash  = { workspace = true }
 serde       = { workspace = true }

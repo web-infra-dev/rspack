@@ -38,7 +38,7 @@ impl FallbackModule {
       requests
         .first()
         .expect("should have at one more requests in FallbackModule"),
-      requests.len() - 1
+      itoa::Buffer::new().format(requests.len() - 1)
     );
     Self {
       blocks: Default::default(),

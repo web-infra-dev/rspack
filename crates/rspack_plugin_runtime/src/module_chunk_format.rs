@@ -167,11 +167,13 @@ fn render_chunk(
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
         startup_source.push(format!(
-          "import * as __webpack_chunk_${index}__ from '{}';",
+          "import * as __webpack_chunk_${}__ from '{}';",
+          itoa::Buffer::new().format(index),
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
         startup_source.push(format!(
-          "{}(__webpack_chunk_${index}__);",
+          "{}(__webpack_chunk_${}__);",
+          itoa::Buffer::new().format(index),
           RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
         ));
       }

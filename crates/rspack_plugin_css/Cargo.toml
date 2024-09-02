@@ -10,6 +10,7 @@ async-trait           = { workspace = true }
 css-module-lexer      = { workspace = true }
 heck                  = { workspace = true }
 indexmap              = { version = "=1.9.3", features = ["serde-1"] }
+itoa                  = { workspace = true }
 once_cell             = { workspace = true }
 rayon                 = { workspace = true }
 regex                 = { workspace = true }

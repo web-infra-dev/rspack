@@ -884,8 +884,8 @@ impl ModuleConcatenationPlugin {
     logger.time_end(start);
     logger.debug(format!(
       "{} potential root modules, {} potential inner modules",
-      relevant_modules.len(),
-      possible_inners.len(),
+      itoa::Buffer::new().format(relevant_modules.len()),
+      itoa::Buffer::new().format(possible_inners.len()),
     ));
 
     let start = logger.time("sort relevant modules");
@@ -996,25 +996,25 @@ impl ModuleConcatenationPlugin {
     if !concat_configurations.is_empty() {
       logger.debug(format!(
         "{} successful concat configurations (avg size: {}), {} bailed out completely",
-        concat_configurations.len(),
-        stats_size_sum / concat_configurations.len(),
-        stats_empty_configurations
+        itoa::Buffer::new().format(concat_configurations.len()),
+        itoa::Buffer::new().format(stats_size_sum / concat_configurations.len()),
+        itoa::Buffer::new().format(stats_empty_configurations)
       ));
     }
 
     logger.debug(format!(
         "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
-        stats_candidates,
-        statistics.cached,
-        statistics.already_in_config,
-        statistics.invalid_module,
-        statistics.incorrect_chunks,
-        statistics.incorrect_dependency,
-        statistics.incorrect_chunks_of_importer,
-        statistics.incorrect_module_dependency,
-        statistics.incorrect_runtime_condition,
-        statistics.importer_failed,
-        statistics.added
+        itoa::Buffer::new().format(stats_candidates),
+        itoa::Buffer::new().format(statistics.cached),
+        itoa::Buffer::new().format(statistics.already_in_config),
+        itoa::Buffer::new().format(statistics.invalid_module),
+        itoa::Buffer::new().format(statistics.incorrect_chunks),
+        itoa::Buffer::new().format(statistics.incorrect_dependency),
+        itoa::Buffer::new().format(statistics.incorrect_chunks_of_importer),
+        itoa::Buffer::new().format(statistics.incorrect_module_dependency),
+        itoa::Buffer::new().format(statistics.incorrect_runtime_condition),
+        itoa::Buffer::new().format(statistics.importer_failed),
+        itoa::Buffer::new().format(statistics.added)
     ));
 
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371

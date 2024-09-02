@@ -89,7 +89,9 @@ fn parse_swcrc(s: &str) -> Result<Rc, Error> {
     };
     Error::new(e).context(format!(
       "failed to deserialize .swcrc (json) file: {}: {}:{}",
-      msg, line, column
+      msg,
+      itoa::Buffer::new().format(line),
+      itoa::Buffer::new().format(column)
     ))
   }
 

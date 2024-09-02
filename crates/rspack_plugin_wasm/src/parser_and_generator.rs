@@ -169,7 +169,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .for_each(|(dep, mgm)| {
             if let Some(mgm) = mgm {
               if !dep_modules.contains_key(&mgm.module_identifier) {
-                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+                let import_var = format!(
+                  "WEBPACK_IMPORTED_MODULE_{}",
+                  itoa::Buffer::new().format(dep_modules.len())
+                );
                 let val = (import_var.clone(), mgm.id(chunk_graph));
 
                 if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {

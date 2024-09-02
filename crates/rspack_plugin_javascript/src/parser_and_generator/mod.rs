@@ -370,6 +370,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 }
 
+// Todo(shulaoda): check if this can be removed
 fn span_to_location(span: Span, source: &str) -> Option<String> {
   let r = ropey::Rope::from_str(source);
   let start = span.real_lo();
@@ -382,12 +383,19 @@ fn span_to_location(span: Span, source: &str) -> Option<String> {
   let end_line = r.char_to_line(end_char_offset);
   let end_column = end_char_offset - r.line_to_char(end_line);
   if start_line == end_line {
-    Some(format!("{}:{start_column}-{end_column}", start_line + 1))
+    Some(format!(
+      "{}:{}-{}",
+      itoa::Buffer::new().format(start_line + 1),
+      itoa::Buffer::new().format(start_column),
+      itoa::Buffer::new().format(end_column)
+    ))
   } else {
     Some(format!(
-      "{}:{start_column}-{}:{end_column}",
-      start_line + 1,
-      end_line + 1
+      "{}:{}-{}:{}",
+      itoa::Buffer::new().format(start_line + 1),
+      itoa::Buffer::new().format(start_column),
+      itoa::Buffer::new().format(end_line + 1),
+      itoa::Buffer::new().format(end_column)
     ))
   }
 }

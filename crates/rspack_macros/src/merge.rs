@@ -86,8 +86,14 @@ fn body(data: Data, chose_base: Option<&Attribute>) -> Result<TokenStream> {
               .enumerate()
               .map(|(i, f)| {
                 let field_name = &f.ident;
-                let a_name = Ident::new(&format!("a_{i}"), field_name.span());
-                let b_name = Ident::new(&format!("b_{i}"), field_name.span());
+                let a_name = Ident::new(
+                  &format!("a_{}", itoa::Buffer::new().format(i)),
+                  field_name.span(),
+                );
+                let b_name = Ident::new(
+                  &format!("b_{}", itoa::Buffer::new().format(i)),
+                  field_name.span(),
+                );
                 (
                   (
                     quote_spanned! {field_name.span()=>
@@ -119,8 +125,14 @@ fn body(data: Data, chose_base: Option<&Attribute>) -> Result<TokenStream> {
               .iter()
               .enumerate()
               .map(|(i, f)| {
-                let a_name = Ident::new(&format!("a_{i}"), Span::call_site());
-                let b_name = Ident::new(&format!("b_{i}"), Span::call_site());
+                let a_name = Ident::new(
+                  &format!("a_{}", itoa::Buffer::new().format(i)),
+                  Span::call_site(),
+                );
+                let b_name = Ident::new(
+                  &format!("b_{}", itoa::Buffer::new().format(i)),
+                  Span::call_site(),
+                );
                 (
                   (a_name.to_token_stream(), b_name.to_token_stream()),
                   quote_spanned! {f.span()=>

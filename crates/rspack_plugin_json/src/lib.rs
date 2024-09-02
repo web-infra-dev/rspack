@@ -276,7 +276,8 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info.get_read_only_export_info(mg, &format!("{i}").into());
+          let export_info =
+            exports_info.get_read_only_export_info(mg, &itoa::Buffer::new().format(i).into());
           let used = export_info.get_used(mg, runtime);
           if used == UsageState::Unused {
             return None;

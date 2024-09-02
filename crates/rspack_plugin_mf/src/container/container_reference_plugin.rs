@@ -90,7 +90,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                   "webpack/container/reference/{}{}",
                   key,
                   (i > 0)
-                    .then(|| format!("/fallback-{}", i))
+                    .then(|| format!("/fallback-{}", itoa::Buffer::new().format(i)))
                     .unwrap_or_default()
                 )
               }

@@ -221,7 +221,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         Some(hash_len) => format!(
           "\" + {}().slice(0, {}) + \"",
           RuntimeGlobals::GET_FULL_HASH,
-          hash_len
+          itoa::Buffer::new().format(*hash_len)
         ),
         None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
       };
@@ -292,7 +292,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           Some(hash_len) => format!(
             "\" + {}().slice(0, {}) + \"",
             RuntimeGlobals::GET_FULL_HASH,
-            hash_len
+            itoa::Buffer::new().format(*hash_len)
           ),
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };

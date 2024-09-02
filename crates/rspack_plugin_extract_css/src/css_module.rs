@@ -55,7 +55,7 @@ impl CssModule {
     let identifier__ = format!(
       "css|{}|{}|{}|{}|{}}}",
       dep.identifier,
-      dep.identifier_index,
+      itoa::Buffer::new().format(dep.identifier_index),
       dep.layer.as_deref().unwrap_or_default(),
       dep.supports.as_deref().unwrap_or_default(),
       dep.media.as_deref().unwrap_or_default(),
@@ -110,7 +110,7 @@ impl Module for CssModule {
       "css {}{}{}{}{}",
       context.shorten(&self.identifier),
       if self.identifier_index > 0 {
-        format!("({})", self.identifier_index)
+        format!("({})", itoa::Buffer::new().format(self.identifier_index))
       } else {
         "".into()
       },

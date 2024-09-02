@@ -21,8 +21,8 @@ async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.79" }
 bitflags           = { version = "2.5.0" }
 camino             = { version = "1.1.8" }
-concat-string      = "1.0.1"
-css-module-lexer   = "0.0.14"
+concat-string      = { version = "1.0.1" }
+css-module-lexer   = { version = "0.0.14" }
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
 futures            = { version = "0.3.30" }
@@ -33,13 +33,14 @@ hex                = { version = "0.4.3" }
 indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
+itoa               = { version = "1.0.11" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.58" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.4" }
 once_cell          = { version = "1.19.0" }
-parcel_sourcemap   = "2.1.1"
+parcel_sourcemap   = { version = "2.1.1" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }

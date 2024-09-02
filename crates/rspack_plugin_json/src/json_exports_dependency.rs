@@ -99,7 +99,7 @@ fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
           .enumerate()
           .map(|(i, item)| {
             ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: format!("{i}").into(),
+              name: itoa::Buffer::new().format(i).into(),
               can_mangle: Some(true),
               exports: get_exports_from_data(item).map(|item| match item {
                 ExportsOfExportsSpec::True | ExportsOfExportsSpec::Null => unreachable!(),

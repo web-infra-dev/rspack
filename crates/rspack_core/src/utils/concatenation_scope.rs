@@ -110,7 +110,7 @@ impl ConcatenationScope {
 
     format!(
       "__WEBPACK_MODULE_REFERENCE__{}_{}{}{}{}__._",
-      info.index(),
+      itoa::Buffer::new().format(info.index()),
       export_data,
       call_flag,
       direct_import_flag,
