@@ -78,7 +78,7 @@ impl RuntimeTemplate {
 fn to_string(val: &Operand) -> String {
   match val {
     Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
-    _ => "".to_string(),
+    _ => String::default(),
   }
 }
 
@@ -136,7 +136,7 @@ fn array_variable(items: Operand, value: Operand) -> Operand {
       .map(|(idx, item)| {
         let item_name = to_string(item);
         if item_name.is_empty() {
-          "".to_string()
+          String::default()
         } else {
           format!("var {} = {}[{}];", item_name, value_name, idx)
         }
@@ -150,13 +150,13 @@ fn array_variable(items: Operand, value: Operand) -> Operand {
       .map(|(idx, item)| {
         let item_name = item.trim().to_string();
         if item_name.is_empty() {
-          "".to_string()
+          String::default()
         } else {
           format!("var {} = {}[{}];", item_name, value_name, idx)
         }
       })
       .join("\n"),
-    _ => "".to_string(),
+    _ => String::default(),
   };
   Operand::Value(Value::from(items))
 }
