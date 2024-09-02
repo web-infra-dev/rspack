@@ -105,18 +105,13 @@ impl LocalIdentNameRenderOptions<'_> {
       .render(self.path_data, None)
       .always_ok();
     s = s.replace("[uniqueName]", self.unique_name);
-    s = escape_css_ident(&s);
-    s = s.replace(r"\[local\]", self.local); // [local] is escaped to \[local\]
+    s = s.replace("[local]", self.local);
     s
   }
 }
 
 static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
-
-pub fn escape_css_ident(s: &str) -> String {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, "\\$1").into_owned()
-}
 
 pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
   let escaped = UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]));
@@ -129,16 +124,6 @@ pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
     escaped
   }
 }
-// const escapeCss = (str, omitOptionalUnderscore) => {
-// 	const escaped = `${str}`.replace(
-// 		// cspell:word uffff
-// 		/[^a-zA-Z0-9_\u0081-\uffff-]/g,
-// 		s => `\\${s}`
-// 	);
-// 	return !omitOptionalUnderscore && /^(?!--)[0-9_-]/.test(escaped)
-// 		? `_${escaped}`
-// 		: escaped;
-// };
 
 pub(crate) fn export_locals_convention(
   key: &str,

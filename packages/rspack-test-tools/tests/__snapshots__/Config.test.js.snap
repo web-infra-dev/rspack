@@ -2,12 +2,12 @@
 
 exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
 "body {
-  & .-ca56f23580d7bbb484-used {
+  & ._-ca56f23580d7bbb484-used {
     color: #00f;
   }
 }
 
-head{--webpack--909:used:-ca56f23580d7bĒ484-ĀĂ/&_368;}"
+head{--webpack--909:used:_-ca56f23580d7bē484-ĀĂ/&_368;}"
 `;
 
 exports[`config config/builtin-lightningcss-loader/minify exported tests css content minifyed 1`] = `
@@ -261,7 +261,7 @@ exports[`config config/css/export-selector exported tests should have correct cs
 
 /* #endregion \\"./style.module.css?imported\\" */
 
-head{--webpack--imported_js:foo:foo/bar:b a r/local:local/dashName:dashName/&\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
+head{--webpack--imported_js:foo:foo/bar:b\\\\ a\\\\ r/local:local/dashName:dashName/&\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
 `;
 
 exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `"5d8d67b36a3d70a5cea9.png"`;
