@@ -3385,7 +3385,6 @@ dependencies = [
 name = "rspack_macros"
 version = "0.1.0"
 dependencies = [
- "itoa",
  "proc-macro2",
  "quote",
  "syn 2.0.63",
