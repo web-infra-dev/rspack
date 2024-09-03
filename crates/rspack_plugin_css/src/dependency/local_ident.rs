@@ -5,6 +5,8 @@ use rspack_core::{
 };
 use rspack_util::ext::DynHash;
 
+use crate::utils::escape_css;
+
 #[derive(Debug, Clone)]
 pub struct CssLocalIdentDependency {
   id: DependencyId,
@@ -69,7 +71,12 @@ impl DependencyTemplate for CssLocalIdentDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(self.start, self.end, &self.local_ident, None);
+    source.replace(
+      self.start,
+      self.end,
+      &escape_css(&self.local_ident, false),
+      None,
+    );
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
