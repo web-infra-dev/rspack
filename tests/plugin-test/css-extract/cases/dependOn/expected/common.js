@@ -58,7 +58,7 @@ __webpack_require__.r = function(exports) {
 // webpack/runtime/on_chunk_loaded
 (() => {
 var deferred = [];
-__webpack_require__.O = function (result, chunkIds, fn, priority) {
+__webpack_require__.O = (result, chunkIds, fn, priority) =>  {
 	if (chunkIds) {
 		priority = priority || 0;
 		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
@@ -68,16 +68,12 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	}
 	var notFulfilled = Infinity;
 	for (var i = 0; i < deferred.length; i++) {
-		var chunkIds = deferred[i][0],
-			fn = deferred[i][1],
-			priority = deferred[i][2];
+		var [chunkIds, fn, priority] = deferred[i];
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
 				(priority & (1 === 0) || notFulfilled >= priority) &&
-				Object.keys(__webpack_require__.O).every(function (key) {
-					return __webpack_require__.O[key](chunkIds[j]);
-				})
+				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
 			} else {
@@ -93,6 +89,7 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	}
 	return result;
 };
+
 
 })();
 // webpack/runtime/jsonp_chunk_loading

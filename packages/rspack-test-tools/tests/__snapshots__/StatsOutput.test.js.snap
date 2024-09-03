@@ -246,38 +246,38 @@ chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) 8.72 KiB (runtime) [entry] 
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
-"Entrypoint e1 4.07 KiB = e1~runtime.js 3.68 KiB e1.js 391 bytes
-Entrypoint e2 4.07 KiB = e2~runtime.js 3.68 KiB e2.js 391 bytes
+"Entrypoint e1 4 KiB = e1~runtime.js 3.62 KiB e1.js 391 bytes
+Entrypoint e2 4 KiB = e2~runtime.js 3.62 KiB e2.js 391 bytes
 chunk (runtime: e1~runtime) e1.js (e1) 27 bytes [entry] [rendered]
-chunk (runtime: e1~runtime) e1~runtime.js (e1~runtime) 2.58 KiB [initial] [rendered]
+chunk (runtime: e1~runtime) e1~runtime.js (e1~runtime) 2.52 KiB [initial] [rendered]
 chunk (runtime: e2~runtime) e2.js (e2) 27 bytes [entry] [rendered]
-chunk (runtime: e2~runtime) e2~runtime.js (e2~runtime) 2.58 KiB [initial] [rendered]"
+chunk (runtime: e2~runtime) e2~runtime.js (e2~runtime) 2.52 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-multiple should print correct stats for 1`] = `
-"Entrypoint e1 4.07 KiB = runtime~e1.js 3.68 KiB e1.js 391 bytes
-Entrypoint e2 4.07 KiB = runtime~e2.js 3.68 KiB e2.js 391 bytes
+"Entrypoint e1 4 KiB = runtime~e1.js 3.62 KiB e1.js 391 bytes
+Entrypoint e2 4 KiB = runtime~e2.js 3.62 KiB e2.js 391 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
-chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rendered]
-chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rendered]"
+chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.52 KiB [initial] [rendered]
+chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.52 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-single should print correct stats for 1`] = `
-"Entrypoint e1 4.06 KiB = runtime.js 3.68 KiB e1.js 391 bytes
-Entrypoint e2 4.06 KiB = runtime.js 3.68 KiB e2.js 391 bytes
+"Entrypoint e1 3.99 KiB = runtime.js 3.61 KiB e1.js 391 bytes
+Entrypoint e2 3.99 KiB = runtime.js 3.61 KiB e2.js 391 bytes
 chunk (runtime: runtime) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime) e2.js (e2) 27 bytes [entry] [rendered]
-chunk (runtime: runtime) runtime.js (runtime) 2.58 KiB [initial] [rendered]"
+chunk (runtime: runtime) runtime.js (runtime) 2.51 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk-true should print correct stats for 1`] = `
-"Entrypoint e1 4.07 KiB = runtime~e1.js 3.68 KiB e1.js 391 bytes
-Entrypoint e2 4.07 KiB = runtime~e2.js 3.68 KiB e2.js 391 bytes
+"Entrypoint e1 4 KiB = runtime~e1.js 3.62 KiB e1.js 391 bytes
+Entrypoint e2 4 KiB = runtime~e2.js 3.62 KiB e2.js 391 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
-chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rendered]
-chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rendered]"
+chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.52 KiB [initial] [rendered]
+chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.52 KiB [initial] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/parse-error should print correct stats for 1`] = `
@@ -368,7 +368,7 @@ chunk (runtime: main) a2.js (a2) 1 bytes <{74}> [rendered]
 chunk (runtime: main) b.js (b) 203 bytes <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439}) [rendered]
 chunk (runtime: main) c.js (c) 134 bytes <{909}> >{380}< >{433}< (preload: {433} {380}) [rendered]
 chunk (runtime: main) b1.js (b1) 1 bytes <{751}> [rendered]
-chunk (runtime: main) main.js (main) 195 bytes (javascript) 12 KiB (runtime) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]"
+chunk (runtime: main) main.js (main) 195 bytes (javascript) 11.9 KiB (runtime) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]"
 `;
 
 exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `

@@ -13,6 +13,7 @@ import {
 	type RawCssModuleGeneratorOptions,
 	type RawCssModuleParserOptions,
 	type RawCssParserOptions,
+	type RawEnvironment,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
@@ -255,7 +256,27 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
 		charset: output.charset!,
 		chunkLoadTimeout: output.chunkLoadTimeout!,
-		environment: output.environment!
+		environment: getRawEnvironment(output.environment)
+	};
+}
+
+function getRawEnvironment(
+	environment: OutputNormalized["environment"] = {}
+): RawEnvironment {
+	return {
+		const: !!environment.const,
+		arrowFunction: !!environment.arrowFunction,
+		asyncFunction: !!environment.asyncFunction,
+		bigIntLiteral: !!environment.bigIntLiteral,
+		destructuring: !!environment.destructuring,
+		document: !!environment.document,
+		dynamicImport: !!environment.dynamicImport,
+		forOf: !!environment.forOf,
+		globalThis: !!environment.globalThis,
+		module: !!environment.module,
+		nodePrefixForCoreModules: !!environment.nodePrefixForCoreModules,
+		optionalChaining: !!environment.optionalChaining,
+		templateLiteral: !!environment.templateLiteral
 	};
 }
 
