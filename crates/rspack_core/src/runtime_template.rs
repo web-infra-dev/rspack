@@ -1,7 +1,11 @@
-use std::fmt::Debug;
+use std::{
+  collections::HashMap,
+  fmt::Debug,
+  sync::{LazyLock, Mutex},
+};
 
 use itertools::Itertools;
-use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
+use rspack_dojang::{dojang::DojangOptions, Context, Dojang, Operand};
 use rspack_error::{miette, Result};
 use serde_json::{Map, Value};
 
@@ -9,7 +13,15 @@ use crate::{Environment, RuntimeGlobals};
 
 pub struct RuntimeTemplate {
   pub environment: Environment,
+  pub dojang: Dojang,
 }
+
+static RUNTIME_GLOBALS_VALUE: LazyLock<Map<String, Value>> = LazyLock::new(|| {
+  RuntimeGlobals::all()
+    .iter_names()
+    .map(|(name, value)| (name.to_string(), Value::String(value.to_string())))
+    .collect::<Map<String, Value>>()
+});
 
 impl Debug for RuntimeTemplate {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -21,57 +33,95 @@ impl Debug for RuntimeTemplate {
 
 impl RuntimeTemplate {
   pub fn new(environment: Environment) -> Self {
-    Self { environment }
-  }
-
-  pub fn render(&self, content: String, params: Option<Value>) -> Result<String, miette::Error> {
-    let mut dj = Dojang::new();
-    dj.with_options(DojangOptions {
+    let mut dojang = Dojang::new();
+    dojang.with_options(DojangOptions {
       escape: "-".to_string(),
       unescape: "=".to_string(),
     });
 
+    if environment.supports_arrow_function() {
+      dojang
+        .add_function_1("basicFunction".into(), basic_function_arrow)
+        .expect("failed to add template function `basicFunction`");
+      dojang
+        .add_function_2("returningFunction".into(), returning_function_arrow)
+        .expect("failed to add template function `returningFunction`");
+    } else {
+      dojang
+        .add_function_1("basicFunction".into(), basic_function)
+        .expect("failed to add template function `basicFunction`");
+      dojang
+        .add_function_2("returningFunction".into(), returning_function)
+        .expect("failed to add template function `returningFunction`");
+    }
+
+    if environment.supports_destructuring() {
+      dojang
+        .add_function_2("destructureArray".into(), array_destructure)
+        .expect("failed to add template function `destructureArray`");
+    } else {
+      dojang
+        .add_function_2("destructureArray".into(), array_variable)
+        .expect("failed to add template function `destructureArray`");
+    }
+    Self {
+      environment,
+      dojang,
+    }
+  }
+
+  pub fn add_templates(&mut self, templates: Vec<(String, String)>) {
+    for (key, template) in templates {
+      if !self.dojang.templates.contains_key(&key) {
+        self
+          .dojang
+          .add_with_option(key.clone(), template)
+          .expect(&format!("failed to add template {key}"));
+      }
+    }
+  }
+
+  pub fn render(
+    &self,
+    key: &str,
+    params: Option<HashMap<String, String>>,
+  ) -> Result<String, miette::Error> {
     let mut render_params = Value::Object(Map::new());
 
     if let Some(params) = params {
-      merge_json(&mut render_params, params);
+      for (k, v) in params.into_iter() {
+        render_params
+          .as_object_mut()
+          .unwrap_or_else(|| unreachable!())
+          .insert(k, Value::String(v));
+      }
     }
 
-    for (name, runtime) in RuntimeGlobals::all().iter_names() {
-      render_params
-        .as_object_mut()
-        .unwrap_or_else(|| panic!("merged json is not an object"))
-        .entry(name)
-        .or_insert(Value::String(runtime.to_string()));
-    }
+    render_params
+      .as_object_mut()
+      .unwrap_or_else(|| unreachable!())
+      .extend(RUNTIME_GLOBALS_VALUE.clone());
 
-    if self.environment.supports_arrow_function() {
-      dj.add_function_1("basicFunction".into(), basic_function_arrow)
-        .expect("failed to add template function `basicFunction`");
-      dj.add_function_2("returningFunction".into(), returning_function_arrow)
-        .expect("failed to add template function `returningFunction`");
+    if let Some((executer, file_content)) = self.dojang.templates.get(&key.to_string()) {
+      executer
+        .render(
+          &mut Context::new(render_params),
+          &self.dojang.templates,
+          &self.dojang.functions,
+          file_content,
+          &mut Mutex::new(HashMap::new()),
+        )
+        .map_err(|err| {
+          miette::Error::msg(format!(
+            "Runtime module: failed to render template from: {err}"
+          ))
+        })
     } else {
-      dj.add_function_1("basicFunction".into(), basic_function)
-        .expect("failed to add template function `basicFunction`");
-      dj.add_function_2("returningFunction".into(), returning_function)
-        .expect("failed to add template function `returningFunction`");
+      Err(miette::Error::msg(format!(
+        "Runtime module: Template {} is not found",
+        key
+      )))
     }
-
-    if self.environment.supports_destructuring() {
-      dj.add_function_2("destructureArray".into(), array_destructure)
-        .expect("failed to add template function `destructureArray`");
-    } else {
-      dj.add_function_2("destructureArray".into(), array_variable)
-        .expect("failed to add template function `destructureArray`");
-    }
-
-    dj.add_with_option("runtime_module".to_string(), content)
-      .expect("failed to add template");
-    dj.render("runtime_module", render_params).map_err(|err| {
-      miette::Error::msg(format!(
-        "Runtime module: failed to render template from: {err}"
-      ))
-    })
   }
 }
 
@@ -159,18 +209,4 @@ fn array_variable(items: Operand, value: Operand) -> Operand {
     _ => String::default(),
   };
   Operand::Value(Value::from(items))
-}
-
-fn merge_json(a: &mut Value, b: Value) {
-  match (a, b) {
-    (a @ &mut Value::Object(_), Value::Object(b)) => {
-      let a = a
-        .as_object_mut()
-        .unwrap_or_else(|| panic!("merged json is not an object"));
-      for (k, v) in b {
-        merge_json(a.entry(k).or_insert(Value::Null), v);
-      }
-    }
-    (a, b) => *a = b,
-  }
 }

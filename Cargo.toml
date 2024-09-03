@@ -79,7 +79,7 @@ swc_html            = { version = "=0.148.0" }
 swc_html_minifier   = { version = "=0.145.0", default-features = false }
 swc_node_comments   = { version = "=0.24.0" }
 
-rspack_dojang = { version = "0.1.9" }
+rspack_dojang = { version = "0.1.9", git = "https://github.com/rspack-contrib/rspack-dojang.git", branch = "feat/pub-templates" }
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
 [profile.dev]
