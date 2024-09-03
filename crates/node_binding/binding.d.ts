@@ -433,6 +433,12 @@ export interface JsChunkGroup {
   index?: number
   name?: string
   isInitial: boolean
+  origins: Array<JsChunkGroupOrigin>
+}
+
+export interface JsChunkGroupOrigin {
+  module?: ModuleDTO
+  request?: string
 }
 
 export interface JsChunkPathData {
