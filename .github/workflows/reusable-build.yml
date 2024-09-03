@@ -76,7 +76,10 @@ jobs:
         shell: bash
         run: |
           git config --system core.longpaths true
-          git clean -ffdx -e node_modules -e target
+          echo "rm -rf node_modules"
+          rm -rf node_modules
+          echo "git clean -ffdx -e target"
+          git clean -ffdx -e target
           git reset --hard HEAD
 
       - name: Setup tmate session
@@ -227,7 +230,10 @@ jobs:
         shell: bash
         run: |
           git config --system core.longpaths true
-          git clean -ffdx -e node_modules -e target
+          echo "rm -rf node_modules"
+          rm -rf node_modules
+          echo "git clean -ffdx -e target"
+          git clean -ffdx -e target
           git reset --hard HEAD
 
       - name: Download bindings
@@ -281,7 +287,10 @@ jobs:
         shell: bash
         run: |
           git config --system core.longpaths true
-          git clean -ffdx -e node_modules -e target
+          echo "rm -rf node_modules"
+          rm -rf node_modules
+          echo "git clean -ffdx -e target"
+          git clean -ffdx -e target
           git reset --hard HEAD
 
       - name: Download bindings
