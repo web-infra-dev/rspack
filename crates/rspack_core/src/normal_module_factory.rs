@@ -352,7 +352,7 @@ impl NormalModuleFactory {
             let raw_module = RawModule::new(
               "/* (ignored) */".to_owned(),
               module_identifier,
-              format!("{ident} (ignored)"),
+              format!("{resource} (ignored)"),
               Default::default(),
             )
             .boxed();
@@ -791,7 +791,10 @@ impl NormalModuleFactory {
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{ident} (ignored)"),
+          format!(
+            "{} (ignored)",
+            data.request().expect("normal module should have request")
+          ),
           Default::default(),
         )
         .boxed();

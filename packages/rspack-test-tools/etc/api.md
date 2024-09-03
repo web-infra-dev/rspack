@@ -179,7 +179,7 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
-export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], documentType: EDocumentType): void;
 
 // @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
@@ -463,9 +463,13 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
 export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
     constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
     // (undocumented)
+    afterAll(context: ITestContext): Promise<void>;
+    // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
 // @public (undocumented)
@@ -750,6 +754,8 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
 
 // @public (undocumented)
 export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    documentType?: EDocumentType;
     // (undocumented)
     target: TCompilerOptions<T>["target"];
 }

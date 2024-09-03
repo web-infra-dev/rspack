@@ -5,19 +5,24 @@ import { HotNewIncrementalProcessor } from "../processor/hot-new-incremental";
 import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
 import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, type TCompilerOptions } from "../type";
+import {
+	ECompilerType,
+	type EDocumentType,
+	type TCompilerOptions
+} from "../type";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
 const hotCreators: Map<
-	TTarget,
+	string,
 	BasicCaseCreator<ECompilerType.Rspack>
 > = new Map();
 
-function getHotCreator(target: TTarget) {
-	if (!hotCreators.has(target)) {
+function getHotCreator(target: TTarget, documentType: EDocumentType) {
+	const key = JSON.stringify({ target, documentType });
+	if (!hotCreators.has(key)) {
 		hotCreators.set(
-			target,
+			key,
 			new BasicCaseCreator({
 				clean: true,
 				describe: true,
@@ -27,23 +32,25 @@ function getHotCreator(target: TTarget) {
 						name,
 						target: target as TTarget,
 						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"]
+						configFiles: ["rspack.config.js", "webpack.config.js"],
+						documentType
 					})
 				],
 				runner: HotRunnerFactory
 			})
 		);
 	}
-	return hotCreators.get(target)!;
+	return hotCreators.get(key)!;
 }
 
 export function createHotNewIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"]
+	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	documentType: EDocumentType
 ) {
-	const creator = getHotCreator(target);
+	const creator = getHotCreator(target, documentType);
 	creator.create(name, src, dist);
 }
 

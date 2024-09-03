@@ -473,7 +473,7 @@ A mimetype for data URI. Resolves from module resource extension by default. Onl
 
 #### module.generator.asset.filename
 
-- **Type:** `string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
 - **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
