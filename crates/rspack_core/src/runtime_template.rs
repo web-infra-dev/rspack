@@ -76,7 +76,7 @@ impl RuntimeTemplate {
         self
           .dojang
           .add_with_option(key.clone(), template)
-          .expect(&format!("failed to add template {key}"));
+          .unwrap_or_else(|_| panic!("failed to add template {key}"));
       }
     }
   }
@@ -89,7 +89,7 @@ impl RuntimeTemplate {
     let mut render_params = Value::Object(Map::new());
 
     if let Some(params) = params {
-      for (k, v) in params.into_iter() {
+      for (k, v) in params {
         render_params
           .as_object_mut()
           .unwrap_or_else(|| unreachable!())
@@ -102,7 +102,7 @@ impl RuntimeTemplate {
       .unwrap_or_else(|| unreachable!())
       .extend(RUNTIME_GLOBALS_VALUE.clone());
 
-    if let Some((executer, file_content)) = self.dojang.templates.get(&key.to_string()) {
+    if let Some((executer, file_content)) = self.dojang.templates.get(key) {
       executer
         .render(
           &mut Context::new(render_params),
