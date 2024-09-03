@@ -3,7 +3,7 @@ use std::hash::{BuildHasherDefault, Hash};
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rspack_collections::{
@@ -22,8 +22,12 @@ use crate::{
   ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
+type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
+type IndexSet<K, H = FxHasher> = RawIndexSet<K, BuildHasherDefault<H>>;
+
 #[derive(Debug, Clone)]
 pub struct ChunkGroupInfo {
+  pub initialized: bool,
   pub ukey: CgiUkey,
   pub chunk_group: ChunkGroupUkey,
   pub chunk_loading: bool,
@@ -34,8 +38,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<BigUint>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections:
-    IndexSet<(ModuleIdentifier, Vec<ConnectionId>), BuildHasherDefault<FxHasher>>,
+  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<ConnectionId>)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: UkeyIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -64,6 +67,7 @@ impl ChunkGroupInfo {
     async_chunks: bool,
   ) -> Self {
     Self {
+      initialized: false,
       ukey: CgiUkey::new(),
       chunk_group,
       chunk_loading,
@@ -219,17 +223,17 @@ pub(super) struct CodeSplitter<'me> {
   chunk_group_info_map: UkeyMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  block_by_cgi: UkeyMap<CgiUkey, AsyncDependenciesBlockIdentifier>,
+  blocks_by_cgi: UkeyMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
   next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  queue_connect: UkeyIndexMap<CgiUkey, UkeyIndexSet<CgiUkey>>,
+  queue_connect: UkeyIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
   chunk_groups_for_combining: UkeyIndexSet<CgiUkey>,
   outdated_chunk_group_info: UkeyIndexSet<CgiUkey>,
-  chunk_groups_for_merging: UkeyIndexSet<CgiUkey>,
+  chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, CgiUkey>,
   named_chunk_groups: HashMap<String, CgiUkey>,
   named_async_entrypoints: HashMap<String, CgiUkey>,
@@ -304,7 +308,7 @@ impl<'me> CodeSplitter<'me> {
     // Thanks!
     let mut ordinal_by_module = IdentifierMap::default();
     for (index, m) in compilation.get_module_graph().modules().keys().enumerate() {
-      ordinal_by_module.insert(*m, index as u64);
+      ordinal_by_module.insert(*m, index as u64 + 1);
     }
 
     let module_graph = compilation.get_module_graph();
@@ -331,7 +335,7 @@ impl<'me> CodeSplitter<'me> {
       chunk_group_info_map: Default::default(),
       chunk_group_infos: Default::default(),
       outdated_order_index_chunk_groups: Default::default(),
-      block_by_cgi: Default::default(),
+      blocks_by_cgi: Default::default(),
       compilation,
       next_free_module_pre_order_index: 0,
       next_free_module_post_order_index: 0,
@@ -705,7 +709,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         // This means no module is added until other sets are merged into
         // this min_available_modules (by the parent entrypoints)
         let chunk_group_info = self.chunk_group_infos.expect_get_mut(cgi);
-        chunk_group_info.skipped_items = IndexSet::from_iter(modules);
+        chunk_group_info.skipped_items = IdentifierIndexSet::from_iter(modules);
         self.chunk_groups_for_combining.insert(*cgi);
       } else {
         // The application may start here: We start with an empty list of available modules
@@ -813,9 +817,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index = 0;
 
       let module_graph = self.compilation.get_module_graph();
-      let Some(block) = self.block_by_cgi.get(&cgi.ukey).copied() else {
+      let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) else {
         continue;
       };
+
+      let mut blocks = blocks.iter().copied().collect::<Vec<_>>();
+      blocks.sort_unstable();
+      let Some(DependenciesBlockIdentifier::AsyncDependenciesBlock(block)) =
+        blocks.first().copied()
+      else {
+        continue;
+      };
+
       let Some(block) = module_graph.block_by_id(&block) else {
         continue;
       };
@@ -826,7 +839,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .copied()
         .collect::<Vec<_>>();
 
-      let mut visited = IndexSet::default();
+      let mut visited = IdentifierIndexSet::default();
 
       for root in blocks {
         let mut ctx = (0, 0, Default::default());
@@ -1411,7 +1424,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         cgi.ukey
       };
       self.block_chunk_groups.insert(block_id, cgi);
-      self.block_by_cgi.insert(cgi, block_id);
       cgi
     };
 
@@ -1420,17 +1432,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .queue_connect
         .entry(item_chunk_group_info_ukey)
         .or_default();
-      connect_list.insert(cgi);
-
       let c = self.compilation.chunk_group_by_ukey.expect_get(&c);
-      self
-        .queue_delayed
-        .push(QueueAction::ProcessBlock(ProcessBlock {
+      connect_list.insert((
+        cgi,
+        Some(ProcessBlock {
           block: block_id.into(),
           module: module_id,
           chunk_group_info: cgi,
           chunk: c.chunks[0],
-        }));
+        }),
+      ));
     } else if let Some(entrypoint) = entrypoint {
       let item_chunk_group = self
         .compilation
@@ -1503,7 +1514,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mut connection_map: IndexMap<
       (DependenciesBlockIdentifier, ModuleIdentifier),
       Vec<ConnectionId>,
-      BuildHasherDefault<FxHasher>,
     > = IndexMap::default();
 
     for (dep, connection_id) in sorted_connections {
@@ -1555,7 +1565,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_group_ukey = chunk_group_info.chunk_group;
 
       // 1. Add new targets to the list of children
-      chunk_group_info.children.extend(targets.iter().copied());
+      chunk_group_info
+        .children
+        .extend(targets.iter().map(|(target, _)| target).copied());
 
       // 2. Calculate resulting available modules
       let resulting_available_modules = chunk_group_info
@@ -1563,7 +1575,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let runtime = chunk_group_info.runtime.clone();
 
-      let target_groups = targets.iter().map(|chunk_group_info_ukey| {
+      let target_groups = targets.iter().map(|(chunk_group_info_ukey, _)| {
         let cgi = self.chunk_group_infos.expect_get(chunk_group_info_ukey);
         cgi.chunk_group
       });
@@ -1578,7 +1590,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       self.stat_connected_chunk_groups += targets.len() as u32;
 
       // 3. Update chunk group info
-      for target_ukey in targets {
+      for (target_ukey, process_block) in targets {
         let target_cgi = self.chunk_group_infos.expect_get_mut(&target_ukey);
 
         let target = self
@@ -1590,7 +1602,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         target_cgi
           .available_modules_to_be_merged
           .push(resulting_available_modules.clone());
-        self.chunk_groups_for_merging.insert(target_ukey);
+        self
+          .chunk_groups_for_merging
+          .insert((target_ukey, process_block));
         let mut updated = false;
         for r in runtime.iter() {
           updated |= target_cgi.runtime.insert(r.clone());
@@ -1700,7 +1714,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.stat_child_chunk_groups_reconnected += cgi.children.len() as u32;
 
         let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-        connect_list.extend(cgi.children.iter());
+        connect_list.extend(cgi.children.iter().map(|child| (*child, None)));
       }
 
       // 4. Reconsider chunk groups for combining
@@ -1749,7 +1763,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_chunk_groups_for_merging(&mut self) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
 
-    for info_ukey in self.chunk_groups_for_merging.drain(..) {
+    for (info_ukey, process_block) in self.chunk_groups_for_merging.drain(..) {
       let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
 
       let mut changed = false;
@@ -1777,6 +1791,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       if changed {
         cgi.invalidate_resulting_available_modules();
         self.outdated_chunk_group_info.insert(info_ukey);
+      }
+
+      if let Some(process_block) = process_block {
+        let mut needs_walk = !cgi.initialized || changed;
+
+        let blocks = self.blocks_by_cgi.entry(cgi.ukey).or_default();
+        if blocks.insert(process_block.block) {
+          needs_walk = true;
+        }
+
+        if needs_walk {
+          cgi.initialized = true;
+          self
+            .queue_delayed
+            .push(QueueAction::ProcessBlock(process_block));
+        }
       }
     }
   }
@@ -1813,7 +1843,7 @@ struct EnterModule {
   chunk: ChunkUkey,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct ProcessBlock {
   module: ModuleIdentifier,
   block: DependenciesBlockIdentifier,
@@ -1829,7 +1859,7 @@ struct ProcessEntryBlock {
   chunk: ChunkUkey,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
