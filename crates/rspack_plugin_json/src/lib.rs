@@ -21,6 +21,7 @@ use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray, TraceableError,
 };
+use rspack_util::itoa;
 
 use crate::json_exports_dependency::JsonExportsDependency;
 
@@ -276,8 +277,7 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info =
-            exports_info.get_read_only_export_info(mg, &itoa::Buffer::new().format(i).into());
+          let export_info = exports_info.get_read_only_export_info(mg, &itoa!(i).into());
           let used = export_info.get_used(mg, runtime);
           if used == UsageState::Unused {
             return None;

@@ -18,6 +18,7 @@ use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
@@ -457,11 +458,7 @@ impl Compilation {
     let import_var = match import_var_map_of_module.entry(module_id) {
       hash_map::Entry::Occupied(occ) => occ.get().clone(),
       hash_map::Entry::Vacant(vac) => {
-        let import_var = format!(
-          "{}__WEBPACK_IMPORTED_MODULE_{}__",
-          user_request,
-          itoa::Buffer::new().format(len)
-        );
+        let import_var = format!("{}__WEBPACK_IMPORTED_MODULE_{}__", user_request, itoa!(len));
         vac.insert(import_var.clone());
         import_var
       }

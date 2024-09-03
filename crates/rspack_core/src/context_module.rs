@@ -11,6 +11,7 @@ use rspack_macros::impl_source_map_config;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_util::itoa;
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -497,7 +498,7 @@ impl ContextModule {
       format!(
         "{}(ids[{}])",
         RuntimeGlobals::ENSURE_CHUNK,
-        itoa::Buffer::new().format(chunks_start_position)
+        itoa!(chunks_start_position)
       )
     };
     let return_module_object = self.get_return_module_object_source(

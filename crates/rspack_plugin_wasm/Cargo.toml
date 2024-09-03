@@ -12,7 +12,6 @@ version     = "0.1.0"
 async-trait        = { workspace = true }
 dashmap            = { workspace = true }
 indexmap           = { workspace = true }
-itoa               = { workspace = true }
 rayon              = { workspace = true }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core        = { version = "0.1.0", path = "../rspack_core" }

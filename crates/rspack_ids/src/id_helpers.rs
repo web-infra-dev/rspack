@@ -16,6 +16,7 @@ use rspack_core::{
   compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
   ModuleIdentifier,
 };
+use rspack_util::itoa;
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
@@ -229,10 +230,10 @@ pub fn assign_names_par<T: Copy + Send>(
       items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}{}", itoa::Buffer::new().format(i));
+        let mut formatted_name = format!("{name}{}", itoa!(i));
         while name_to_items_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
           i += 1;
-          formatted_name = format!("{name}{}", itoa::Buffer::new().format(i));
+          formatted_name = format!("{name}{}", itoa!(i));
         }
         assign_name(item, formatted_name.clone());
         used_ids.insert(formatted_name);
@@ -275,10 +276,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   for item in items {
     let ident = get_name(item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{ident}{}", itoa::Buffer::new().format(i)), range);
+    let mut id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     while !assign_id(item, id) {
       i += 1;
-      id = get_number_hash(&format!("{ident}{}", itoa::Buffer::new().format(i)), range);
+      id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     }
   }
 }

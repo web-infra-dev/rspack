@@ -14,6 +14,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::infallible::ResultInfallibleExt as _;
+use rspack_util::itoa;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -169,10 +170,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .for_each(|(dep, mgm)| {
             if let Some(mgm) = mgm {
               if !dep_modules.contains_key(&mgm.module_identifier) {
-                let import_var = format!(
-                  "WEBPACK_IMPORTED_MODULE_{}",
-                  itoa::Buffer::new().format(dep_modules.len())
-                );
+                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", itoa!(dep_modules.len()));
                 let val = (import_var.clone(), mgm.id(chunk_graph));
 
                 if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {

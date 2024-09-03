@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::ext::DynHash;
+use rspack_util::{ext::DynHash, itoa};
 
 #[derive(Debug, Clone)]
 pub struct JsonExportsDependency {
@@ -99,7 +99,7 @@ fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
           .enumerate()
           .map(|(i, item)| {
             ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: itoa::Buffer::new().format(i).into(),
+              name: itoa!(i).into(),
               can_mangle: Some(true),
               exports: get_exports_from_data(item).map(|item| match item {
                 ExportsOfExportsSpec::True | ExportsOfExportsSpec::Null => unreachable!(),

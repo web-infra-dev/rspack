@@ -18,6 +18,7 @@ use rspack_error::{DiagnosticExt, RspackSeverity};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_relative;
 use rspack_util::infallible::ResultInfallibleExt;
+use rspack_util::itoa;
 use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -271,7 +272,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{key}{}", itoa::Buffer::new().format(i)));
+      identifier = Cow::Owned(format!("{key}{}", itoa!(i)));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils

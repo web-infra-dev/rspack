@@ -1,6 +1,7 @@
 use rspack_core::{
   ConstDependency, ContextDependency, RealDependencyLocation, RuntimeGlobals, SpanExt,
 };
+use rspack_util::itoa;
 use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;
@@ -107,11 +108,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         ident.sym.to_string(),
-        format!(
-          "__nested_webpack_require_{}_{}__",
-          itoa::Buffer::new().format(start),
-          itoa::Buffer::new().format(end),
-        ),
+        format!("__nested_webpack_require_{}_{}__", itoa!(start), itoa!(end),),
         start,
         end,
       );
@@ -141,11 +138,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         ident.sym.to_string(),
-        format!(
-          "__nested_webpack_require_{}_{}__",
-          itoa::Buffer::new().format(start),
-          itoa::Buffer::new().format(end),
-        ),
+        format!("__nested_webpack_require_{}_{}__", itoa!(start), itoa!(end),),
         start,
         end,
       );
@@ -166,7 +159,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         name.to_string(),
         format!(
           "__nested_webpack_require_{}__",
-          itoa::Buffer::new().format(fn_decl.span().real_lo())
+          itoa!(fn_decl.span().real_lo())
         ),
         ident.span().real_lo(),
         ident.span().real_hi(),

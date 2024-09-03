@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::itoa;
 use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, Span, SyntaxContext};
@@ -385,17 +386,17 @@ fn span_to_location(span: Span, source: &str) -> Option<String> {
   if start_line == end_line {
     Some(format!(
       "{}:{}-{}",
-      itoa::Buffer::new().format(start_line + 1),
-      itoa::Buffer::new().format(start_column),
-      itoa::Buffer::new().format(end_column)
+      itoa!(start_line + 1),
+      itoa!(start_column),
+      itoa!(end_column)
     ))
   } else {
     Some(format!(
       "{}:{}-{}:{}",
-      itoa::Buffer::new().format(start_line + 1),
-      itoa::Buffer::new().format(start_column),
-      itoa::Buffer::new().format(end_line + 1),
-      itoa::Buffer::new().format(end_column)
+      itoa!(start_line + 1),
+      itoa!(start_column),
+      itoa!(end_line + 1),
+      itoa!(end_column)
     ))
   }
 }

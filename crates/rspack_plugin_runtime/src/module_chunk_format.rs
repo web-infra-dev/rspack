@@ -13,6 +13,7 @@ use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
 };
+use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
@@ -168,13 +169,13 @@ fn render_chunk(
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
         startup_source.push(format!(
           "import * as __webpack_chunk_${}__ from '{}';",
-          itoa::Buffer::new().format(index),
+          itoa!(index),
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
         startup_source.push(format!(
           "{}(__webpack_chunk_${}__);",
           RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-          itoa::Buffer::new().format(index)
+          itoa!(index)
         ));
       }
 

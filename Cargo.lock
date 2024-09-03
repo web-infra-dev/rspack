@@ -3118,7 +3118,6 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "heck 0.5.0",
- "itoa",
  "napi-derive",
  "napi-h",
  "rspack_collections",
@@ -3163,7 +3162,6 @@ dependencies = [
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
- "itoa",
  "json",
  "mime_guess",
  "num-bigint",
@@ -3283,7 +3281,6 @@ name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
  "itertools 0.13.0",
- "itoa",
  "rayon",
  "regex",
  "rspack_core",
@@ -3356,7 +3353,6 @@ dependencies = [
  "base64 0.22.1",
  "dashmap 5.5.3",
  "either",
- "itoa",
  "jsonc-parser 0.23.0",
  "rspack_ast",
  "rspack_core",
@@ -3530,7 +3526,6 @@ dependencies = [
  "css-module-lexer",
  "heck 0.5.0",
  "indexmap 1.9.3",
- "itoa",
  "once_cell",
  "rayon",
  "regex",
@@ -3625,7 +3620,6 @@ name = "rspack_plugin_extract_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "itoa",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3712,7 +3706,6 @@ dependencies = [
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
- "itoa",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
@@ -3743,7 +3736,6 @@ dependencies = [
 name = "rspack_plugin_json"
 version = "0.1.0"
 dependencies = [
- "itoa",
  "json",
  "ropey",
  "rspack_core",
@@ -3832,7 +3824,6 @@ dependencies = [
  "async-trait",
  "hashlink",
  "itertools 0.13.0",
- "itoa",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3905,7 +3896,6 @@ dependencies = [
  "async-trait",
  "indexmap 2.2.6",
  "itertools 0.13.0",
- "itoa",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -4016,7 +4006,6 @@ dependencies = [
  "async-trait",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
- "itoa",
  "rayon",
  "rspack_collections",
  "rspack_core",
