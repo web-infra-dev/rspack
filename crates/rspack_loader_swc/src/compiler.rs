@@ -16,6 +16,7 @@ use base64::prelude::*;
 use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
+use rspack_util::itoa;
 use serde_json::error::Category;
 use swc_config::config_types::BoolOr;
 use swc_config::merge::Merge;
@@ -89,7 +90,9 @@ fn parse_swcrc(s: &str) -> Result<Rc, Error> {
     };
     Error::new(e).context(format!(
       "failed to deserialize .swcrc (json) file: {}: {}:{}",
-      msg, line, column
+      msg,
+      itoa!(line),
+      itoa!(column)
     ))
   }
 

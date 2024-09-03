@@ -11,7 +11,7 @@ use rspack_core::{
   RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{itoa, source_map::SourceMapKind};
 
 use super::fallback_item_dependency::FallbackItemDependency;
 use crate::utils::json_stringify;
@@ -38,7 +38,7 @@ impl FallbackModule {
       requests
         .first()
         .expect("should have at one more requests in FallbackModule"),
-      requests.len() - 1
+      itoa!(requests.len() - 1)
     );
     Self {
       blocks: Default::default(),

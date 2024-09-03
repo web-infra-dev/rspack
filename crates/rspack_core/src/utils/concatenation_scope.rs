@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
+use rspack_util::itoa;
 use swc_core::atoms::Atom;
 
 use crate::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
@@ -110,7 +111,7 @@ impl ConcatenationScope {
 
     format!(
       "__WEBPACK_MODULE_REFERENCE__{}_{}{}{}{}__._",
-      info.index(),
+      itoa!(info.index()),
       export_data,
       call_flag,
       direct_import_flag,

@@ -11,6 +11,7 @@ use rspack_collections::{
 };
 use rspack_collections::{IdentifierIndexSet, IdentifierMap};
 use rspack_error::{error, Diagnostic, Error, Result};
+use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
@@ -857,19 +858,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     logger.log(format!(
       "{} queue items processed ({} blocks)",
-      self.stat_processed_queue_items, self.stat_processed_blocks
+      itoa!(self.stat_processed_queue_items),
+      itoa!(self.stat_processed_blocks)
     ));
     logger.log(format!(
       "{} chunk groups connected",
-      self.stat_connected_chunk_groups,
+      itoa!(self.stat_connected_chunk_groups),
     ));
     logger.log(format!(
       "{} chunk groups processed for merging ({} module sets)",
-      self.stat_processed_chunk_groups_for_merging, self.stat_merged_available_module_sets,
+      itoa!(self.stat_processed_chunk_groups_for_merging),
+      itoa!(self.stat_merged_available_module_sets),
     ));
     logger.log(format!(
       "{} chunk group info updated ({} already connected chunk groups reconnected)",
-      self.stat_chunk_group_info_updated, self.stat_child_chunk_groups_reconnected,
+      itoa!(self.stat_chunk_group_info_updated),
+      itoa!(self.stat_child_chunk_groups_reconnected),
     ));
 
     Ok(())

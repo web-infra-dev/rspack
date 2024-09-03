@@ -1713,9 +1713,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.8"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62b02a5381cc465bd3041d84623d0fa3b66738b52b8e2fc3bab8ad63ab032f4a"
+checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "js-sys"
@@ -4097,6 +4097,7 @@ dependencies = [
  "concat-string",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
+ "itoa",
  "regex",
  "rspack_regex",
  "rustc-hash 1.1.0",
