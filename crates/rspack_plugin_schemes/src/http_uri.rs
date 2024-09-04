@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -13,6 +16,22 @@ use rspack_fs::AsyncFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::http_cache::{fetch_content, FetchResultType};
+
+pub struct HttpRequest {
+  pub url: String,
+  pub headers: HashMap<String, String>,
+}
+
+pub struct HttpResponse {
+  pub status: u16,
+  pub headers: HashMap<String, String>,
+  pub body: Vec<u8>,
+}
+
+#[async_trait]
+pub trait HttpClient: Send + Sync + Debug {
+  async fn get(&self, url: &str, headers: &HashMap<String, String>) -> Result<HttpResponse>;
+}
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -40,6 +59,7 @@ pub struct HttpUriPluginOptions {
   pub upgrade: Option<bool>,
   #[derivative(Debug = "ignore")]
   pub filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+  pub http_client: Option<Arc<dyn HttpClient>>,
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
@@ -106,7 +126,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   Ok(None)
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Plugin for HttpUriPlugin {
   fn name(&self) -> &'static str {
     "rspack.HttpUriPlugin"

@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
-use reqwest::Client;
 use rspack_base64::encode_to_string;
 use rspack_fs::AsyncFileSystem;
 use serde::{Deserialize, Serialize};
@@ -14,6 +13,19 @@ use crate::{
   http_uri::HttpUriPluginOptions,
   lockfile::{LockfileCache, LockfileEntry},
 };
+
+pub trait HttpClient: Send + Sync {
+  fn execute(&self, request: HttpRequest) -> Result<HttpResponse>;
+}
+
+impl<F> HttpClient for F
+where
+  F: Fn(HttpRequest) -> Result<HttpResponse> + Send + Sync,
+{
+  fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+    self(request)
+  }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FetchResultMeta {
@@ -53,6 +65,7 @@ pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
   filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+  http_client: Arc<dyn HttpClient>,
 }
 
 impl HttpCache {
@@ -60,6 +73,7 @@ impl HttpCache {
     cache_location: Option<String>,
     lockfile_location: Option<String>,
     filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+    http_client: Option<Arc<dyn HttpClient>>,
   ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);
     let lockfile_path = lockfile_location.map(PathBuf::from);
@@ -67,6 +81,7 @@ impl HttpCache {
       cache_location,
       lockfile_cache: LockfileCache::new(lockfile_path, filesystem.clone()),
       filesystem: filesystem.clone(),
+      http_client: http_client.expect("http_client must be provided"),
     }
   }
 
@@ -91,31 +106,26 @@ impl HttpCache {
     url: &str,
     cached_result: Option<ContentFetchResult>,
   ) -> Result<FetchResultType> {
-    let client = Client::new();
     let request_time = current_time();
-    let mut request = client.get(url);
+    let mut headers = HashMap::new();
 
     if let Some(cached) = &cached_result {
       if let Some(etag) = &cached.meta.etag {
-        request = request.header("If-None-Match", etag);
+        headers.insert("If-None-Match".to_string(), etag.clone());
       }
     }
 
-    let response = request.send().await.context("Failed to send request")?;
-    let status = response.status();
-    let headers = response.headers().clone();
-    let etag = headers
-      .get("etag")
-      .and_then(|v| v.to_str().ok())
-      .map(String::from);
-    let location = headers
-      .get("location")
-      .and_then(|v| v.to_str().ok())
-      .map(String::from);
-    let cache_control = headers
-      .get("cache-control")
-      .and_then(|v| v.to_str().ok())
-      .map(String::from);
+    let request = HttpRequest {
+      url: url.to_string(),
+      headers,
+    };
+
+    let response = self.http_client.execute(request)?;
+    let status = response.status;
+    let headers = response.headers;
+    let etag = headers.get("etag").cloned();
+    let location = headers.get("location").cloned();
+    let cache_control = headers.get("cache-control").cloned();
 
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
@@ -150,22 +160,18 @@ impl HttpCache {
       }
     }
 
-    let content = response
-      .bytes()
-      .await
-      .context("Failed to read response bytes")?;
     if !status.is_success() {
       return Err(anyhow::anyhow!("Request failed with status: {}", status));
     }
 
+    let content = response.body;
     let integrity = compute_integrity(&content);
     let entry = LockfileEntry {
       resolved: url.to_string(),
       integrity: integrity.clone(),
       content_type: headers
         .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
+        .unwrap_or(&"".to_string())
         .to_string(),
       valid_until,
       etag: etag.clone(),
@@ -266,6 +272,7 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<
     options.cache_location.clone(),
     options.lockfile_location.clone(),
     options.filesystem.clone(),
+    options.http_client.clone(),
   );
 
   http_cache.fetch_content(url, options).await
@@ -315,4 +322,15 @@ fn compute_integrity(content: &[u8]) -> String {
   hasher.update(content);
   let digest = hasher.finalize();
   format!("sha512-{}", encode_to_string(digest))
+}
+
+pub struct HttpRequest {
+  pub url: String,
+  pub headers: HashMap<String, String>,
+}
+
+pub struct HttpResponse {
+  pub status: reqwest::StatusCode,
+  pub headers: HashMap<String, String>,
+  pub body: Vec<u8>,
 }
