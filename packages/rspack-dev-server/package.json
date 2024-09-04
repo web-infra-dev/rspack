@@ -47,7 +47,8 @@
     "jest-serializer-path": "^0.1.15",
     "prebundle": "^1.1.0",
     "typescript": "5.0.2",
-    "webpack-dev-server": "5.0.4"
+    "webpack-dev-server": "5.0.4",
+    "tsc-alias": "^1.8.8"
   },
   "dependencies": {
     "chokidar": "^3.6.0",
