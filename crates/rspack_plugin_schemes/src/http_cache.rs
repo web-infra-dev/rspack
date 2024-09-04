@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
+use async_trait::async_trait;
 use rspack_base64::encode_to_string;
 use rspack_fs::AsyncFileSystem;
 use serde::{Deserialize, Serialize};
@@ -14,17 +15,20 @@ use crate::{
   lockfile::{LockfileCache, LockfileEntry},
 };
 
-pub trait HttpClient: Send + Sync {
-  fn execute(&self, request: HttpRequest) -> Result<HttpResponse>;
+pub struct HttpRequest {
+  pub url: String,
+  pub headers: HashMap<String, String>,
 }
 
-impl<F> HttpClient for F
-where
-  F: Fn(HttpRequest) -> Result<HttpResponse> + Send + Sync,
-{
-  fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-    self(request)
-  }
+pub struct HttpResponse {
+  pub status: u16,
+  pub headers: HashMap<String, String>,
+  pub body: Vec<u8>,
+}
+
+#[async_trait]
+pub trait HttpClient: Send + Sync + std::fmt::Debug {
+  async fn get(&self, url: &str, headers: &HashMap<String, String>) -> Result<HttpResponse>;
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -115,12 +119,7 @@ impl HttpCache {
       }
     }
 
-    let request = HttpRequest {
-      url: url.to_string(),
-      headers,
-    };
-
-    let response = self.http_client.execute(request)?;
+    let response = self.http_client.get(url, &headers).await?;
     let status = response.status;
     let headers = response.headers;
     let etag = headers.get("etag").cloned();
@@ -129,7 +128,7 @@ impl HttpCache {
 
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
-    if status == reqwest::StatusCode::NOT_MODIFIED {
+    if status == reqwest::StatusCode::NOT_MODIFIED.as_u16() {
       if let Some(cached) = cached_result {
         let new_valid_until = valid_until.max(cached.meta.valid_until);
         return Ok(FetchResultType::Content(ContentFetchResult {
@@ -146,7 +145,7 @@ impl HttpCache {
     }
 
     if let Some(location) = location {
-      if status.is_redirection() {
+      if (300..=399).contains(&status) {
         return Ok(FetchResultType::Redirect(RedirectFetchResult {
           location,
           meta: FetchResultMeta {
@@ -160,7 +159,7 @@ impl HttpCache {
       }
     }
 
-    if !status.is_success() {
+    if !(200..=299).contains(&status) {
       return Err(anyhow::anyhow!("Request failed with status: {}", status));
     }
 
@@ -322,15 +321,4 @@ fn compute_integrity(content: &[u8]) -> String {
   hasher.update(content);
   let digest = hasher.finalize();
   format!("sha512-{}", encode_to_string(digest))
-}
-
-pub struct HttpRequest {
-  pub url: String,
-  pub headers: HashMap<String, String>,
-}
-
-pub struct HttpResponse {
-  pub status: reqwest::StatusCode,
-  pub headers: HashMap<String, String>,
-  pub body: Vec<u8>,
 }
