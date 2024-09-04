@@ -89,9 +89,12 @@ Does not escape the content within the interpolation:
 
 Use the `for in` statement to implement list traversal and the `if` statement to implement conditional judgment:
 
-```html title="ejs"
-<% for tag in htmlRspackPlugin.tags.headTags { %> <% if tag.tagName=="script" {
-%> <%= toHtml(tag) %> <% } %> <% } %>
+```txt title="ejs"
+<% for tag in htmlRspackPlugin.tags.headTags { %>
+  <% if tag.tagName=="script" { %>
+    <%= toHtml(tag) %>
+  <% } %>
+<% } %>
 ```
 
 ## Usage
@@ -199,14 +202,14 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`templateContent`',
-      type: '`string|undefined`',
+      type: '`string|undefined|((params: Record<string, any>) => string | Promise<string>)`',
       default: 'undefined',
       description:
         'The template file content, priority is greater than template. When using a function, pass in the template parameters and use the returned string as the template content.',
     },
     {
       name: '`templateParameters`',
-      type: '`Record<string, string>`',
+      type: '`Record<string, string>|(oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>`',
       default: '{}',
       description:
         'Allows to overwrite the parameters used in the template. When using a function, pass in the original template parameters and use the returned object as the final template parameters.',
@@ -551,12 +554,12 @@ const HtmlModifyPlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      // hooks.beforeAssetTagGeneration.tapAsync()
-      // hooks.alterAssetTags.tapAsync()
-      // hooks.alterAssetTagGroups.tapAsync()
-      // hooks.afterTemplateExecution.tapAsync()
-      // hooks.beforeEmit.tapAsync()
-      // hooks.afterEmit.tapAsync()
+      // hooks.beforeAssetTagGeneration.tapPromise()
+      // hooks.alterAssetTags.tapPromise()
+      // hooks.alterAssetTagGroups.tapPromise()
+      // hooks.afterTemplateExecution.tapPromise()
+      // hooks.beforeEmit.tapPromise()
+      // hooks.afterEmit.tapPromise()
     });
   },
 };
@@ -602,13 +605,9 @@ const AddScriptPlugin = {
     compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
-      ).beforeAssetTagGeneration.tapAsync(
-        'AddScriptPlugin',
-        (data, callback) => {
-          object.assets.js.push('extra-script.js');
-          callback();
-        },
-      );
+      ).beforeAssetTagGeneration.tapPromise('AddScriptPlugin', async data => {
+        data.assets.js.push('extra-script.js');
+      });
     });
   },
 };
@@ -664,20 +663,16 @@ The following code adds the `specialAttribute` property to all `script` type tag
 const AddAttributePlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
-      HtmlRspackPlugin.getCompilationHooks(compilation).alterAssetTags.tapAsync(
-        'AddAttributePlugin',
-        (pluginArgs, callback) => {
-          pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
-            tag => {
-              if (tag.tagName === 'script') {
-                tag.attributes.specialAttribute = true;
-              }
-              return tag;
-            },
-          );
-          callback(null, pluginArgs);
-        },
-      );
+      HtmlRspackPlugin.getCompilationHooks(
+        compilation,
+      ).alterAssetTags.tapPromise('AddAttributePlugin', async data => {
+        data.assetTags.scripts = data.assetTags.scripts.map(tag => {
+          if (tag.tagName === 'script') {
+            tag.attributes.specialAttribute = true;
+          }
+          return tag;
+        });
+      });
     });
   },
 };
@@ -719,16 +714,12 @@ const MoveTagsPlugin = {
     compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
-      ).alterAssetTagGroups.tapAsync(
-        'MoveTagsPlugin',
-        (pluginArgs, callback) => {
-          pluginArgs.headTags.push(
-            pluginArgs.headTags.bodyTags.filter(i => i.async),
-          );
-          pluginArgs.bodyTags = pluginArgs.bodyTags.filter(i => !i.async);
-          callback();
-        },
-      );
+      ).alterAssetTagGroups.tapPromise('MoveTagsPlugin', async data => {
+        data.headTags.push(
+          data.headTags.bodyTags.filter(i => i.async),
+        );
+        data.bodyTags = data.bodyTags.filter(i => !i.async);
+      });
     });
   },
 };
@@ -778,14 +769,13 @@ const InjectContentPlugin = {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
-      ).afterTemplateExecution.tapAsync(
+      ).afterTemplateExecution.tapPromise(
         'InjectContentPlugin',
-        (pluginArgs, callback) => {
-          pluginArgs.html = pluginArgs.html.replace(
+        async data => {
+          data.html = data.html.replace(
             '</body>',
             'Injected by plugin</body>',
           );
-          callback();
         },
       );
     });
@@ -829,14 +819,13 @@ The following code adds `Injected by plugin` at the end of the body. It will be 
 const InjectContentPlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
-      HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapAsync(
+      HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapPromise(
         'InjectContentPlugin',
-        (pluginArgs, callback) => {
-          pluginArgs.html = pluginArgs.html.replace(
+        async data => {
+          data.html = data.html.replace(
             '</body>',
             'Injected by plugin</body>',
           );
-          callback();
         },
       );
     });

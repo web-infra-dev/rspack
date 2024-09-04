@@ -89,9 +89,12 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 
 使用 `for in` 语句来实现列表遍历，使用 `if` 语句实现条件判断：
 
-```html title="ejs"
-<% for tag in htmlRspackPlugin.tags.headTags { %> <% if tag.tagName=="script" {
-%> <%= toHtml(tag) %> <% } %> <% } %>
+```txt title="ejs"
+<% for tag in htmlRspackPlugin.tags.headTags { %>
+  <% if tag.tagName=="script" { %>
+    <%= toHtml(tag) %>
+  <% } %>
+<% } %>
 ```
 
 ## 用法
@@ -551,12 +554,12 @@ const HtmlModifyPlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      // hooks.beforeAssetTagGeneration.tapAsync()
-      // hooks.alterAssetTags.tapAsync()
-      // hooks.alterAssetTagGroups.tapAsync()
-      // hooks.afterTemplateExecution.tapAsync()
-      // hooks.beforeEmit.tapAsync()
-      // hooks.afterEmit.tapAsync()
+      // hooks.beforeAssetTagGeneration.tapPromise()
+      // hooks.alterAssetTags.tapPromise()
+      // hooks.alterAssetTagGroups.tapPromise()
+      // hooks.afterTemplateExecution.tapPromise()
+      // hooks.beforeEmit.tapPromise()
+      // hooks.afterEmit.tapPromise()
     });
   },
 };
@@ -602,13 +605,9 @@ const AddScriptPlugin = {
     compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
-      ).beforeAssetTagGeneration.tapAsync(
-        'AddScriptPlugin',
-        (object, callback) => {
-          object.assets.js.push('extra-script.js');
-          callback();
-        },
-      );
+      ).beforeAssetTagGeneration.tapPromise('AddScriptPlugin', async object => {
+        object.assets.js.push('extra-script.js');
+      });
     });
   },
 };
@@ -662,20 +661,16 @@ module.exports = {
 const AddAttributePlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
-      HtmlRspackPlugin.getCompilationHooks(compilation).alterAssetTags.tapAsync(
-        'AddAttributePlugin',
-        (pluginArgs, callback) => {
-          pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
-            tag => {
-              if (tag.tagName === 'script') {
-                tag.attributes.specialAttribute = true;
-              }
-              return tag;
-            },
-          );
-          callback(null, pluginArgs);
-        },
-      );
+      HtmlRspackPlugin.getCompilationHooks(
+        compilation,
+      ).alterAssetTags.tapPromise('AddAttributePlugin', async pluginArgs => {
+        pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(tag => {
+          if (tag.tagName === 'script') {
+            tag.attributes.specialAttribute = true;
+          }
+          return tag;
+        });
+      });
     });
   },
 };
@@ -715,16 +710,12 @@ const MoveTagsPlugin = {
     compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
-      ).alterAssetTagGroups.tapAsync(
-        'MoveTagsPlugin',
-        (pluginArgs, callback) => {
-          pluginArgs.headTags.push(
-            pluginArgs.headTags.bodyTags.filter(i => i.async),
-          );
-          pluginArgs.bodyTags = pluginArgs.bodyTags.filter(i => !i.async);
-          callback();
-        },
-      );
+      ).alterAssetTagGroups.tapPromise('MoveTagsPlugin', async pluginArgs => {
+        pluginArgs.headTags.push(
+          pluginArgs.headTags.bodyTags.filter(i => i.async),
+        );
+        pluginArgs.bodyTags = pluginArgs.bodyTags.filter(i => !i.async);
+      });
     });
   },
 };
@@ -772,14 +763,13 @@ const InjectContentPlugin = {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
-      ).afterTemplateExecution.tapAsync(
+      ).afterTemplateExecution.tapPromise(
         'InjectContentPlugin',
-        (pluginArgs, callback) => {
+        async pluginArgs => {
           pluginArgs.html = pluginArgs.html.replace(
             '</body>',
             'Injected by plugin</body>',
           );
-          callback();
         },
       );
     });
@@ -823,14 +813,13 @@ module.exports = {
 const InjectContentPlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
-      HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapAsync(
+      HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapPromise(
         'InjectContentPlugin',
-        (pluginArgs, callback) => {
+        async pluginArgs => {
           pluginArgs.html = pluginArgs.html.replace(
             '</body>',
             'Injected by plugin</body>',
           );
-          callback();
         },
       );
     });
