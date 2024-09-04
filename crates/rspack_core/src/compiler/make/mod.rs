@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use self::{cutout::Cutout, repair::repair};
 use crate::{
   utils::FileCounter, BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -55,30 +56,26 @@ impl MakeArtifact {
     std::mem::take(&mut self.built_modules)
   }
 
-  fn revoke_modules(&mut self, ids: IdentifierSet) -> Vec<BuildDependency> {
+  fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mut module_graph = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
-    let mut res = vec![];
-    for module_identifier in &ids {
-      let module = module_graph
-        .module_by_identifier(module_identifier)
-        .expect("should have module");
-      if let Some(build_info) = module.build_info() {
-        self
-          .file_dependencies
-          .remove_batch_file(&build_info.file_dependencies);
-        self
-          .context_dependencies
-          .remove_batch_file(&build_info.context_dependencies);
-        self
-          .missing_dependencies
-          .remove_batch_file(&build_info.missing_dependencies);
-        self
-          .build_dependencies
-          .remove_batch_file(&build_info.build_dependencies);
-      }
-      res.extend(module_graph.revoke_module(module_identifier));
+    let module = module_graph
+      .module_by_identifier(module_identifier)
+      .expect("should have module");
+    if let Some(build_info) = module.build_info() {
+      self
+        .file_dependencies
+        .remove_batch_file(&build_info.file_dependencies);
+      self
+        .context_dependencies
+        .remove_batch_file(&build_info.context_dependencies);
+      self
+        .missing_dependencies
+        .remove_batch_file(&build_info.missing_dependencies);
+      self
+        .build_dependencies
+        .remove_batch_file(&build_info.build_dependencies);
     }
-    res
+    module_graph.revoke_module(module_identifier)
   }
 
   pub fn reset_dependencies_incremental_info(&mut self) {
