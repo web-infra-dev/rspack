@@ -8,7 +8,6 @@ use std::{
   },
 };
 
-use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_collections::{Identifiable, IdentifierSet};
@@ -38,14 +37,6 @@ use crate::{
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-
-bitflags! {
-  #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-  pub struct ModuleSyntax: u8 {
-    const COMMONJS = 1 << 0;
-    const ESM = 1 << 1;
-  }
-}
 
 #[derive(Debug, Clone)]
 pub enum ModuleIssuer {
