@@ -420,11 +420,11 @@ If `htmlRspackPlugin.tags` is used to insert tags during template rendering, ple
 :::
 
 :::info Differences
-The following contents are different from HtmlWebpackPlugin:
+There are some differences with HtmlWebpackPlugin:
 
 - Does not support using `!` to add loader to process the template file
-- The `rspackConfig` object currently only supports obtaining the properties of `mode`, `output.publicPath` and `output.crossOriginLoading`
-- The `compilation` object is currently only supported when [using the template generation function](#use-template-function)
+- The `rspackConfig` object currently only supports `mode`, `output.publicPath` and `output.crossOriginLoading`
+- The `compilation` object is currently only supported when [using the template function](#use-template-function)
 - When rendering the tag list (such as `htmlRspackPlugin.tags.headTags`) or a single tag (such as `htmlRspackPlugin.tags.headTags[0]`) in the template, the `toHtml()` function is required to generate the HTML code
 
 :::
