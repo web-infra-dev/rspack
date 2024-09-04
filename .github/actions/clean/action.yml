@@ -33,19 +33,6 @@ runs:
           fi
         fi
 
-        if [ -d "node\_modules" ]; then
-          NODE_MODULES_SIZE=$(du -s node_modules | awk '{print $1}')
-          MAX_SIZE=$((50 * 1024 * 1024))
-
-          echo "MAX_SIZE = $MAX_SIZE"
-          if [ "$NODE_MODULES_SIZE" -gt "$MAX_SIZE" ]; then
-            echo "`node_modules` directory size is greater than 50GB, deleting..."
-            rm -rf node_modules
-          else
-            echo "`node_modules` directory size is within limits."
-          fi
-        fi
-
     - name: Clean Large Directories by Time
       if: ${{ contains(inputs.target, 'windows') }}
       shell: bash
@@ -61,19 +48,5 @@ runs:
             rm -rf target
           else
             echo "'target' directory is within 2 weeks."
-          fi
-        fi
-
-        if [ -d "node\_modules" ]; then
-          NODE_MODULES_CREATION_TIME=$(powershell -Command "(Get-Item 'target').CreationTime")
-          ONE_MONTH_AGO=$(date -d '1 month ago' +%s)
-
-          echo "NODE_MODULES_CREATION_TIME = $NODE_MODULES_CREATION_TIME"
-
-          if [ "$NODE_MODULES_CREATION_TIME" -lt "$ONE_MONTH_AGO" ]; then
-            echo "'node_modules' directory is older than 1 month, deleting..."
-            rm -rf node_modules
-          else
-            echo "'node_modules' directory is within 1 month."
           fi
         fi
