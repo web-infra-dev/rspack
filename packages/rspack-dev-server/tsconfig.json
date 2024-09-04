@@ -3,7 +3,12 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "webpack-dev-server": [
+        "../compiled/webpack-dev-server"
+      ]
+    }
   },
   "include": ["src"]
 }
