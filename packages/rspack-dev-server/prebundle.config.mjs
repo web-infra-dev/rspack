@@ -12,7 +12,7 @@ function replaceFileContent(filePath, replaceFn) {
 export default {
   dependencies: [{
     name: 'webpack-dev-server',
-    ignoreDts: true,
+    ignoreDts: false,
     // this is a trick to avoid ncc compiling the dynamic import syntax
     // https://github.com/vercel/ncc/issues/935
     beforeBundle(task) {
@@ -52,7 +52,9 @@ export default {
       'webpack-dev-middleware': 'webpack-dev-middleware',
       ws: 'ws',
       webpack: 'webpack',
-      'webpack-cli': 'webpack-cli'
+      'webpack-cli': 'webpack-cli',
+      'serve-static': 'serve-static',
+      'express-serve-static-core': 'express-serve-static-core'
     }
   }]
 };
