@@ -172,7 +172,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for removed in removed_from_runtime {
-      if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
+      if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_str()) {
         info.removed_chunk_ids.insert(chunk_id.to_string());
       }
       // TODO:
