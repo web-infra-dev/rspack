@@ -11,6 +11,18 @@ function plugin(compiler) {
 			expect(Array.from(namedChunkGroups.keys()).length).toBe(2);
 			expect(namedChunkGroups.get("a").getFiles()).toEqual(['a.js']);
 			expect(namedChunkGroups.get("b").getFiles()).toEqual(['b.js']);
+
+			const origins = chunkGroups.reduce((res, i) => {
+				res.push(...i.origins.map(i => i.module?.rawRequest).filter(Boolean));
+				return res;
+			}, []);
+			origins.sort();
+			expect(origins).toEqual([
+				'./entry1.js',
+				'./entry1.js',
+				'./entry2.js',
+				'./entry2.js'
+			]);
 		});
 	});
 }

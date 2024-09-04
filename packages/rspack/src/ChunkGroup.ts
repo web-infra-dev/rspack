@@ -1,5 +1,6 @@
 import {
 	type JsChunkGroup,
+	type JsChunkGroupOrigin,
 	type JsCompilation,
 	__chunk_group_inner_get_chunk_group
 } from "@rspack/binding";
@@ -57,6 +58,10 @@ export class ChunkGroup {
 
 	get name(): Readonly<string | undefined> {
 		return this.#inner.name;
+	}
+
+	get origins(): ReadonlyArray<JsChunkGroupOrigin> {
+		return this.#inner.origins;
 	}
 
 	/**

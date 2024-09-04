@@ -35,6 +35,7 @@ import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import { JsBeforeEmitData } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
+import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
@@ -964,6 +965,8 @@ export class ChunkGroup {
     isInitial(): boolean;
     // (undocumented)
     get name(): Readonly<string | undefined>;
+    // (undocumented)
+    get origins(): ReadonlyArray<JsChunkGroupOrigin>;
 }
 
 // @public (undocumented)
