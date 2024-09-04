@@ -49,7 +49,7 @@ jobs:
       ref: ${{inputs.commit}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      test: true # temp, and turn off later
+      test: false
 
   release:
     name: Release Canary
