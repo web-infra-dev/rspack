@@ -32,7 +32,7 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 
 ### 支持的 EJS 语法
 
-仅支持如下基本的插值表达式,这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 `ejs` 语法目前均不支持。
+仅支持如下基本的插值表达式、循环和判断，这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 `ejs` 语法目前均不支持。
 
 #### \<%-: Escaped output
 
@@ -85,6 +85,15 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 <p>.</p>
 ```
 
+#### 控制语句
+
+使用 `for in` 语句来实现列表遍历，使用 `if` 语句实现条件判断：
+
+```html title="ejs"
+<% for tag in htmlRspackPlugin.tags.headTags { %> <% if tag.tagName=="script" {
+%> <%= toHtml(tag) %> <% } %> <% } %>
+```
+
 ## 用法
 
 这个插件会为你生成一个 HTML 文件，该文件的 head 包含了所有 JS 产物对应的 `<script>` 标签。
@@ -128,17 +137,22 @@ type HtmlRspackPluginOptions = {
   title?: string;
   filename?: string;
   template?: string;
-  templateContent?: string;
-  templateParameters?: Record<string, string>;
-  inject?: 'head' | 'body';
+  templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
+  templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
+  inject?: 'head' | 'body' | false;
   publicPath?: string;
-  scriptLoading?: 'blocking' | 'defer' | 'module';
+  base?: string | {
+    href?: string;
+    target?: '_self' | '_blank' | '_parent' | '_top'
+  };
+  scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
   chunks?: string[];
   excludeChunks?: string[];
   sri?: 'sha256' | 'sha384' | 'sha512';
   minify?: boolean;
   favicon?: string;
   meta?: Record<string, string | Record<string, string>>;
+  hash?: boolean;
 };
 ```
 
@@ -172,7 +186,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`filename`',
-      type: '`string`',
+      type: '`string|undefined`',
       default: "'index.html'",
       description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
     },
@@ -184,21 +198,24 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`templateContent`',
-      type: '`string|undefined`',
+      type: '`string|undefined|((params: Record<string, any>) => string | Promise<string>)`',
       default: 'undefined',
-      description: '模版文件内容，优先级大于 template',
+      description:
+        '模版文件内容，优先级大于 template，使用函数时传入渲染参数并将返回的字符串作为模板内容',
     },
     {
       name: '`templateParameters`',
-      type: '`Record<string, string>`',
+      type: '`Record<string, string>|(oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>`',
       default: '{}',
-      description: '传递给模版的参数',
+      description:
+        '传递给模版的参数，使用函数时传入渲染参数，并将返回的内容作为最终的渲染参数',
     },
     {
       name: '`inject`',
-      type: "`'head'|'body'|undefined`",
+      type: "`'head'|'body'|false|undefined`",
       default: 'undefined',
-      description: '产物注入位置',
+      description:
+        '产物注入位置，使用 `false` 则不注入，不指定时则会根据 scriptLoading 的配置自动判断',
     },
     {
       name: '`publicPath`',
@@ -208,7 +225,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`scriptLoading`',
-      type: "`'blocking'|'defer'|'module'`",
+      type: "`'blocking'|'defer'|'module'|'systemjs-module'|undefined`",
       default: "'defer'",
       description:
         '现代浏览器支持使用 defer 来异步加载 js，设置为 module 则会添加 `type="module"` 同时使用 defer',
@@ -249,6 +266,20 @@ type HtmlRspackPluginOptions = {
       default: '{}',
       description: '配置需要注入 HTML 的 meta',
     },
+    {
+      name: '`hash`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        '是否在生成加载路径时添加 compilation 的哈希值作为后缀，以让缓存失效',
+    },
+    {
+      name: '`base`',
+      type: '`string|object|undefined`',
+      default: 'undefined',
+      description:
+        '注入一个 [base](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) 标签',
+    },
   ]}
 />
 
@@ -258,22 +289,22 @@ type HtmlRspackPluginOptions = {
 
 如果默认生成的 HTML 不符合你的需求，你可以使用自己的模板。
 
+#### 使用模板文件
+
 最简单的方式是使用 `template` 选项，并传递一个自定义的 HTML 文件。`rspack.HtmlRspackPlugin` 将会自动将所有需要的 JS、CSS 和 favicon 文件注入到 HTML 中。
 
-- 创建 `index.html` 文件：
+通过 `template` 指定 HTML 模板文件：
 
 ```html title="index.html"
 <!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>My HTML Template</title>
+    <title><%= htmlRspackPlugin.options.title %></title>
   </head>
   <body></body>
 </html>
 ```
-
-- 设置 `template` 选项：
 
 ```js title="rspack.config.js"
 const rspack = require('@rspack/core');
@@ -281,10 +312,204 @@ const rspack = require('@rspack/core');
 module.exports = {
   plugins: [
     new rspack.HtmlRspackPlugin({
+      title: "My HTML Template"
       template: 'index.html',
     }),
   ],
 };
+```
+
+#### 使用模板字符串
+
+通过 `templateContent` 指定 HTML 模板内容：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: "My HTML Template"
+      templateContent: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title><%= htmlRspackPlugin.options.title %></title>
+          </head>
+          <body></body>
+        </html>
+      `,
+    }),
+  ],
+};
+```
+
+#### 使用模板生成函数
+
+可通过传入一个获取 HTML 模板内容的函数来实现自定义的模板生成逻辑：
+
+- 在 `templateContent` 中传入函数
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: "My HTML Template"
+      templateContent: ({ htmlRspackPlugin }) => `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${htmlRspackPlugin.options.title}</title>
+          </head>
+          <body></body>
+        </html>
+      `,
+    }),
+  ],
+};
+```
+
+- 或在 `template` 中传入一个 `.js` 或 `.cjs` 结尾的文件路径
+
+```js title="template.js"
+module.exports = ({ htmlRspackPlugin }) => `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <title>${htmlRspackPlugin.options.title}</title>
+    </head>
+    <body></body>
+  </html>
+`;
+```
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      title: "My HTML Template"
+      template: "template.js",
+    }),
+  ],
+};
+```
+
+#### 模板渲染参数
+
+可通过 `templateParameters` 扩展 HTML 模板渲染参数。以下变量在模板中默认可用：
+
+- `htmlRspackPlugin`: 插件的数据
+  - `htmlRspackPlugin.options`: 插件的配置对象
+  - `htmlRspackPlugin.tags`: 准备好的用于在模板中注入的标签信息
+    - `htmlRspackPlugin.tags.headTags`: 用于在 `<head>` 中注入的 `<base>`、`<meta>`、`<link>`、`<script>` 标签列表
+    - `htmlRspackPlugin.tags.bodyTags`: 用于在 `<body>` 中注入的 `<script>` 标签列表
+  - `htmlRspackPlugin.files`: 此次编译产生的产物文件信息
+    - `htmlRspackPlugin.files.js`: 此次编译产生的 JS 产物路径列表
+    - `htmlRspackPlugin.files.css`: 此次编译产生的 CSS 产物路径列表
+    - `htmlRspackPlugin.files.favicon`: 若配置了 `favicon`，此处为计算出的最终的 favicon 产物路径
+    - `htmlRspackPlugin.files.publicPath`: 产物文件的 publicPath
+- `rspackConfig`: 此次编译所使用的 Rspack 配置对象
+- `compilation`: 此次编译的 compilation 对象
+
+:::warning 警告
+若使用 `htmlRspackPlugin.tags` 在模板渲染时插入标签，请将 `inject` 配置为 `false`，否则会导致标签被注入两次。
+:::
+
+:::info 差异
+以下内容与 HtmlWebpackPlugin 存在差异：
+
+- 不支持使用 `!` 来添加 loader 处理模板文件
+- `rspackConfig` 对象目前仅支持获取 `mode`、`output.publicPath` 和 `output.crossOriginLoading` 属性
+- `compilation` 对象目前仅支持在[使用模板生成函数](#使用模板生成函数)时使用
+- 在模板中渲染标签列表（如 `htmlRspackPlugin.tags.headTags`）或单个标签（如 `htmlRspackPlugin.tags.headTags[0]`）时，需要使用 `toHtml()` 函数生成 HTML 代码
+
+:::
+
+### 过滤 Chunks
+
+可以通过如下配置指定需要注入的 chunk：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new HtmlRspackPlugin({
+      chunks: ['app'],
+    }),
+  ],
+};
+```
+
+也可以通过如下配置排除掉特定的 chunk：
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new HtmlRspackPlugin({
+      excludeChunks: ['app'],
+    }),
+  ],
+};
+```
+
+### Meta 标签
+
+如果设置了 `meta`，HtmlRspackPlugin 将注入 `<meta>` 标签。
+
+> 请查看这份维护良好的几乎所有可用的 [meta 标签](https://github.com/joshbuchea/HEAD#meta)的列表。
+
+通过如下配置添加键值对以生成 `<meta>` 标签:
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new HtmlRspackPlugin({
+      meta: {
+        // 将会生成: <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no',
+        // 将会生成: <meta name="theme-color" content="#4285f4">
+        'theme-color': '#4285f4',
+        // 将会生成:  <meta http-equiv="Content-Security-Policy" content="default-src https:">
+        'Content-Security-Policy': {
+          'http-equiv': 'Content-Security-Policy',
+          content: 'default-src https:',
+        },
+      },
+    }),
+  ],
+};
+```
+
+### Base 标签
+
+如果设置了 `base`，HtmlRspackPlugin 将注入 `<base>` 标签。
+
+> 关于 `<base>` 标签的更多信息，请查看 [文档](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base)
+
+可以通过如下配置生成 `<base>` 标签：
+
+```js title="rspack.config.js"
+new HtmlWebpackPlugin({
+  // 将会生成: <base href="http://example.com/some/page.html">
+  base: 'http://example.com/some/page.html',
+});
+
+new HtmlWebpackPlugin({
+  // 将会生成: <base href="http://example.com/some/page.html" target="_blank">
+  base: {
+    href: 'http://example.com/some/page.html',
+    target: '_blank',
+  },
+});
 ```
 
 ### 生成多个 HTML 文件
@@ -316,3 +541,324 @@ module.exports = {
   ],
 };
 ```
+
+## Hooks
+
+HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标签或 HTML 产物代码。可通过 `HtmlRspackPlugin.getCompilationHooks` 来获取 hooks 对象：
+
+```js title="rspack.config.js"
+const HtmlModifyPlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
+      const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
+      // hooks.beforeAssetTagGeneration.tapAsync()
+      // hooks.alterAssetTags.tapAsync()
+      // hooks.alterAssetTagGroups.tapAsync()
+      // hooks.afterTemplateExecution.tapAsync()
+      // hooks.beforeEmit.tapAsync()
+      // hooks.afterEmit.tapAsync()
+    });
+  },
+};
+
+module.exports = {
+  // ...
+  plugins: [new HtmlRspackPlugin(), HtmlModifyPlugin],
+};
+```
+
+### beforeAssetTagGeneration
+
+从 compilation 中收集产物信息，生成加载路径后，生成标签标签前调用。
+
+可在此处修改 `assets` 来添加增加自定义的 JS、CSS 产物。
+
+- **类型：** `AsyncSeriesWaterfallHook<[BeforeAssetTagGenerationData]>`
+- **参数：**
+  ```ts
+  type BeforeAssetTagGenerationData = {
+    assets: {
+      publicPath: string;
+      js: Array<string>;
+      css: Array<string>;
+      favicon?: string;
+    };
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning 警告
+仅 `assets.js`、`assets.css` 和 `assets.favicon` 可修改，其他项目的修改将不会生效。
+:::
+
+如下代码将添加了一个额外的 `extra-script.js` 并在最终产物中生成对应的 `<script defer src="extra-script.js"></script>` 标签
+
+```js title="rspack.config.js"
+const AddScriptPlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
+      HtmlRspackPlugin.getCompilationHooks(
+        compilation,
+      ).beforeAssetTagGeneration.tapAsync(
+        'AddScriptPlugin',
+        (object, callback) => {
+          object.assets.js.push('extra-script.js');
+          callback();
+        },
+      );
+    });
+  },
+};
+
+module.exports = {
+  // ...
+  plugins: [new HtmlRspackPlugin(), AddScriptPlugin],
+};
+```
+
+### alterAssetTags
+
+基于产物路径信息生成产物标签后，确定标签插入位置前调用。可在此处调整标签的信息。
+
+- **类型：** `AsyncSeriesWaterfallHook<[AlterAssetTagsData]>`
+- **参数：**
+
+  ```ts
+  type HtmlTag = {
+    tagName: string;
+    attributes: Record<string, string | boolean | undefined | null>;
+    voidTag: boolean;
+    innerHTML?: string;
+    asset?: string;
+  };
+
+  type AlterAssetTagsData = {
+    assetTags: {
+      scripts: Array<HtmlTag>;
+      styles: Array<HtmlTag>;
+      meta: Array<HtmlTag>;
+    };
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning 警告
+仅 `assetTags` 可修改，其他项目的修改将不会生效。
+:::
+
+- 若修改属性值为 `true` 时将添加无值属性，将生成 `<script defer specialattribute src="main.js"></script>`
+- 若修改属性值为 `string` 时将添加有值属性，将生成 `<script defer specialattribute="some value" src="main.js"></script>`
+- 若修改属性值为 `false` 时移除该属性
+
+如下代码将给所有 `script` 类型的标签添加 `specialAttribute` 属性:
+
+```js title="rspack.config.js"
+const AddAttributePlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
+      HtmlRspackPlugin.getCompilationHooks(compilation).alterAssetTags.tapAsync(
+        'AddAttributePlugin',
+        (pluginArgs, callback) => {
+          pluginArgs.assetTags.scripts = pluginArgs.assetTags.scripts.map(
+            tag => {
+              if (tag.tagName === 'script') {
+                tag.attributes.specialAttribute = true;
+              }
+              return tag;
+            },
+          );
+          callback(null, pluginArgs);
+        },
+      );
+    });
+  },
+};
+
+module.exports = {
+  // ...
+  plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
+};
+```
+
+### alterAssetTagGroups
+
+在生成标签分组到 `head` 和 `body` 后，模板被函数或模板引擎渲染前调用。可在此处调整标签的插入位置。
+
+- **类型：** `AsyncSeriesWaterfallHook<[AlterAssetTagGroupsData]>`
+- **参数：**
+  ```ts
+  type AlterAssetTagGroupsData = {
+    headTags: Array<HtmlTag>;
+    bodyTags: Array<HtmlTag>;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning 警告
+仅 `headTags` 和 `bodyTags` 可修改，其他项目的修改将不会生效。
+:::
+
+如下代码将把 `async` 的 `script` 标签从 `body` 调整到 `head` 中:
+
+```js title="rspack.config.js"
+const MoveTagsPlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
+      HtmlWebpackPlugin.getCompilationHooks(
+        compilation,
+      ).alterAssetTagGroups.tapAsync(
+        'MoveTagsPlugin',
+        (pluginArgs, callback) => {
+          pluginArgs.headTags.push(
+            pluginArgs.headTags.bodyTags.filter(i => i.async),
+          );
+          pluginArgs.bodyTags = pluginArgs.bodyTags.filter(i => !i.async);
+          callback();
+        },
+      );
+    });
+  },
+};
+
+module.exports = {
+  // ...
+  plugins: [
+    new HtmlRspackPlugin({
+      inject: 'body',
+    }),
+    AllHeadTagsPlugin,
+  ],
+};
+```
+
+### afterTemplateExecution
+
+在模板渲染完成后，标签注入前调用。可在此处修改 HTML 内容和将被注入的标签。
+
+- 当使用函数 `templateContent` 或 `.js/.cjs` 结尾的 `template`，使用该函数渲染模板，此处 `html` 为函数返回的结果
+- 其他场景会将 HTML 模板通过模板引擎编译，此处 `html` 为编译后的结果
+
+- **类型：** `AsyncSeriesWaterfallHook<[AfterTemplateExecutionData]>`
+- **参数：**
+  ```ts
+  type AfterTemplateExecutionData = {
+    html: string;
+    headTags: Array<HtmlTag>;
+    bodyTags: Array<HtmlTag>;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+  :::warning 警告
+  仅 `html`、`headTags` 和 `bodyTags` 可修改，其他项目的修改将不会生效。
+  :::
+
+如下代码将在 body 结尾添加 `Injected by plugin`，之后标签才会注入并添加到该文本之后，因此产物中为 ，产物中为 `Injected by plugin<script defer src="main.js"></script></body>`：
+
+```js title="rspack.config.js"
+const InjectContentPlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
+      HtmlWebpackPlugin.getCompilationHooks(
+        compilation,
+      ).afterTemplateExecution.tapAsync(
+        'InjectContentPlugin',
+        (pluginArgs, callback) => {
+          pluginArgs.html = pluginArgs.html.replace(
+            '</body>',
+            'Injected by plugin</body>',
+          );
+          callback();
+        },
+      );
+    });
+  },
+};
+
+module.exports = {
+  // ...
+  plugins: [
+    new HtmlRspackPlugin({
+      inject: 'body',
+    }),
+    InjectContentPlugin,
+  ],
+};
+```
+
+### beforeEmit
+
+在生成 HTML 产物前调用，修改 HTML 产物内容的最终机会。
+
+- **类型：** `SyncHook<[BeforeEmitData]>`
+- **参数：**
+  ```ts
+  type BeforeEmitData = {
+    html: string;
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
+
+:::warning 警告
+仅 `html` 可修改，其他项目的修改将不会生效。
+:::
+
+如下代码将在 body 结尾添加 `Injected by plugin`，产物中为 `<script defer src="main.js"></script>Injected by plugin</body>`：
+
+```js title="rspack.config.js"
+const InjectContentPlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
+      HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapAsync(
+        'InjectContentPlugin',
+        (pluginArgs, callback) => {
+          pluginArgs.html = pluginArgs.html.replace(
+            '</body>',
+            'Injected by plugin</body>',
+          );
+          callback();
+        },
+      );
+    });
+  },
+};
+
+module.exports = {
+  // ...
+  plugins: [
+    new HtmlRspackPlugin({
+      inject: 'body',
+    }),
+    InjectContentPlugin,
+  ],
+};
+```
+
+### afterEmit
+
+在生成 HTML 产物后调用，仅用于事件通知。
+
+- **类型：** `SyncHook<[AfterEmitData]>`
+- **参数：**
+  ```ts
+  type AfterEmitData = {
+    outputName: string;
+    plugin: {
+      options: HtmlRspackPluginOptions;
+    };
+  };
+  ```
