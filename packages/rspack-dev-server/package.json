@@ -19,7 +19,7 @@
   },
   "scripts": {
     "prepare": "prebundle",
-    "build": "tsc -b ./tsconfig.build.json",
+    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "dev": "tsc -b -w ./tsconfig.build.json",
     "test": "rimraf .test-temp && cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --colors",
     "api-extractor": "api-extractor run --verbose",
