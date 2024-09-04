@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.0.0-alpha.5",
+  "version": "1.0.2",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -9,8 +9,8 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "check-dependency-version": "check-dependency-version-consistency . --ignore-dep typescript --ignore-dep @napi-rs/cli --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples",
-    "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --filter \"@rspack/*\" --filter \"!@rspack/core\" build",
+    "check-dependency-version": "check-dependency-version-consistency . --ignore-dep typescript --ignore-dep @napi-rs/cli --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples --ignore-package plugin-test",
+    "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
@@ -53,9 +53,7 @@
     "pnpm": "9.3.0"
   },
   "devDependencies": {
-    "zx": "7.2.3",
     "@biomejs/biome": "1.8.0",
-    "check-dependency-version-consistency": "^4.1.0",
     "@microsoft/api-extractor": "^7.43.1",
     "@microsoft/api-extractor-model": "^7.28.14",
     "@rspack/cli": "workspace:*",
@@ -64,6 +62,7 @@
     "@types/jest": "29.5.12",
     "@types/node": "20.12.7",
     "@types/rimraf": "3.0.2",
+    "check-dependency-version-consistency": "^4.1.0",
     "commander": "12.0.0",
     "cross-env": "^7.0.3",
     "husky": "^9.0.0",
@@ -77,8 +76,9 @@
     "rimraf": "3.0.2",
     "ts-jest": "29.1.2",
     "typescript": "5.0.2",
-    "webpack": "^5.92.0",
-    "webpack-cli": "5.1.4"
+    "webpack": "^5.94.0",
+    "webpack-cli": "5.1.4",
+    "zx": "7.2.3"
   },
   "packageManager": "pnpm@9.3.0"
 }

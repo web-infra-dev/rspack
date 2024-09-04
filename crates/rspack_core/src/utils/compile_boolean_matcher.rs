@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -88,7 +88,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
 
   let mut finished_items = Vec::new();
   let mut items_set: Vec<&str> = items_arr.iter().map(|s| s.as_str()).collect();
-  items_set.sort();
+  items_set.sort_unstable();
 
   // Merge single char items: (a|b|c|d|ef) => ([abcd]|ef)
   let count_of_single_char_items = items_set.iter().filter(|&item| item.len() == 1).count();
@@ -96,7 +96,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   // Special case for only single char items
   if count_of_single_char_items == items_set.len() {
     let mut items_arr = items_set.into_iter().collect::<Vec<_>>();
-    items_arr.sort();
+    items_arr.sort_unstable();
     let single_char_items = items_arr.join("");
     return format!("[{}]", quote_meta(&single_char_items));
   }
@@ -273,8 +273,8 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   }
 }
 
-static QUOTE_META_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
+static QUOTE_META_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
 
 fn quote_meta(str: &str) -> String {
   QUOTE_META_REG.replace_all(str, "\\$0").to_string()

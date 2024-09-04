@@ -7,6 +7,7 @@ use std::{
 use anymap::CloneAny;
 use once_cell::sync::OnceCell;
 use rspack_error::{Error, Result};
+use rspack_paths::Utf8PathBuf;
 
 use crate::{get_scheme, Scheme};
 
@@ -108,7 +109,7 @@ pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   pub resource: String,
   /// Absolute resource path only
-  pub resource_path: Option<PathBuf>,
+  pub resource_path: Option<Utf8PathBuf>,
   /// Resource query with `?` prefix
   pub resource_query: Option<String>,
   /// Resource fragment with `#` prefix
@@ -145,17 +146,17 @@ impl ResourceData {
     self.resource = v;
   }
 
-  pub fn path(mut self, v: PathBuf) -> Self {
-    self.resource_path = Some(v);
+  pub fn path<P: Into<Utf8PathBuf>>(mut self, v: P) -> Self {
+    self.resource_path = Some(v.into());
     self
   }
 
-  pub fn set_path(&mut self, v: PathBuf) {
-    self.resource_path = Some(v);
+  pub fn set_path<P: Into<Utf8PathBuf>>(&mut self, v: P) {
+    self.resource_path = Some(v.into());
   }
 
-  pub fn set_path_optional(&mut self, v: Option<PathBuf>) {
-    self.resource_path = v;
+  pub fn set_path_optional<P: Into<Utf8PathBuf>>(&mut self, v: Option<P>) {
+    self.resource_path = v.map(Into::into);
   }
 
   pub fn query(mut self, v: String) -> Self {

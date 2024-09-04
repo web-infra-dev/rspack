@@ -1,7 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
 use std::hash::Hash;
-use std::path::PathBuf;
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -22,11 +21,13 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
+use crate::parser_and_generator::{
+  CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssUsedExports,
+};
 use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
+use crate::utils::{escape_css, AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX};
 use crate::{plugin::CssPluginInner, CssPlugin};
 
 struct CssModuleDebugInfo<'a> {
@@ -38,7 +39,7 @@ impl CssPlugin {
     compilation: &Compilation,
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
-  ) -> FxHashSet<String> {
+  ) -> HashSet<String> {
     ordered_css_modules
       .iter()
       .filter_map(|module| {
@@ -60,6 +61,8 @@ impl CssPlugin {
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
   ) -> rspack_error::Result<ConcatSource> {
+    let mut meta_data = vec![];
+    let with_compression = compilation.options.output.css_head_data_compression;
     let module_sources = ordered_css_modules
       .iter()
       .map(|module| {
@@ -67,6 +70,9 @@ impl CssPlugin {
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(&chunk.runtime));
+        if let Some(meta_data_str) = code_gen_result.data.get::<CssUsedExports>() {
+          meta_data.push(meta_data_str.0.as_str());
+        }
 
         Ok(
           code_gen_result
@@ -76,7 +82,7 @@ impl CssPlugin {
       })
       .collect::<Result<Vec<_>>>()?;
 
-    let source = module_sources
+    let mut source = module_sources
       .into_par_iter()
       // TODO(hyf0): I couldn't think of a situation where a module doesn't have `Source`.
       // Should we return a Error if there is a `None` in `module_sources`?
@@ -97,6 +103,23 @@ impl CssPlugin {
         acc.add(cur);
         acc
       });
+
+    let name_with_id = format!(
+      "{}-{}",
+      &compilation.options.output.unique_name,
+      chunk.id.as_deref().unwrap_or_default()
+    );
+    let meta_data_str = format!(
+      "head{{--webpack-{}:{};}}",
+      escape_css(&name_with_id, true),
+      if with_compression {
+        lzw_encode(&meta_data.join(","))
+      } else {
+        meta_data.join(",")
+      }
+    );
+
+    source.add(RawSource::from(meta_data_str));
 
     Ok(source)
   }
@@ -163,8 +186,15 @@ fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
-  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  let is_enabled_for_chunk = is_enabled_for_chunk(
+    chunk_ukey,
+    &ChunkLoading::Enable(ChunkLoadingType::Jsonp),
+    compilation,
+  ) || is_enabled_for_chunk(
+    chunk_ukey,
+    &ChunkLoading::Enable(ChunkLoadingType::Import),
+    compilation,
+  );
 
   if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
@@ -175,6 +205,7 @@ fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+    runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     compilation.add_runtime_module(chunk_ukey, Box::<CssLoadingRuntimeModule>::default())?;
   }
 
@@ -186,7 +217,7 @@ async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hashes: &mut FxHashMap<SourceType, RspackHash>,
+  hashes: &mut HashMap<SourceType, RspackHash>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
@@ -218,6 +249,50 @@ async fn content_hash(
     });
 
   Ok(())
+}
+
+fn lzw_encode(input: &str) -> String {
+  if input.is_empty() {
+    return input.into();
+  }
+  let mut map: HashMap<String, char> = HashMap::default();
+  let mut encoded = String::new();
+  let mut phrase = input.chars().next().expect("should have value").to_string();
+  let mut code = 256u16;
+  let max_code = 0xFFFF;
+
+  for c in input.chars().skip(1) {
+    let next_phrase = format!("{}{}", phrase, c);
+    if map.contains_key(&next_phrase) {
+      phrase = next_phrase;
+    } else {
+      if phrase.len() > 1 {
+        encoded.push(*map.get(&phrase).expect("should convert to u32 correctly"));
+      } else {
+        encoded += &phrase;
+      }
+      if code <= max_code {
+        map.insert(
+          next_phrase,
+          std::char::from_u32(code as u32).expect("should convert to u32 correctly"),
+        );
+        code += 1;
+      }
+      if code > max_code {
+        code = 256;
+        map.clear();
+      }
+      phrase = c.to_string();
+    }
+  }
+
+  if phrase.len() > 1 {
+    encoded.push(*map.get(&phrase).expect("should have phrase"));
+  } else {
+    encoded += &phrase;
+  }
+
+  encoded
 }
 
 #[plugin_hook(CompilationRenderManifest for CssPlugin)]
@@ -306,7 +381,7 @@ async fn render_manifest(
           selected_module.readable_identifier(&compilation.options.context)
         ),
       )
-      .with_file(Some(PathBuf::from(&output_path)))
+      .with_file(Some(output_path.to_owned().into()))
       .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }

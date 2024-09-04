@@ -1,17 +1,22 @@
 use rspack_core::{
-  AsDependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyTemplate, RealDependencyLocation, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
-  pub start: u32,
-  pub end: u32,
-  pub id: Option<&'static str>,
+  id: Option<&'static str>,
+  range: RealDependencyLocation,
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(start: u32, end: u32, id: Option<&'static str>) -> Self {
-    Self { start, end, id }
+  pub fn new(id: Option<&'static str>, range: RealDependencyLocation) -> Self {
+    Self { id, range }
+  }
+
+  pub fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 }
 
@@ -36,20 +41,27 @@ impl DependencyTemplate for ModuleArgumentDependency {
       .expect("should have mgm")
       .get_module_argument();
 
-    if let Some(id) = self.id {
-      source.replace(
-        self.start,
-        self.end,
-        format!("{module_argument}.{id}").as_str(),
-        None,
-      );
+    let content = if let Some(id) = self.id {
+      format!("{module_argument}.{id}")
     } else {
-      source.replace(self.start, self.end, &format!("{module_argument}"), None);
-    }
+      format!("{module_argument}")
+    };
+
+    source.replace(self.range.start, self.range.end, content.as_str(), None);
   }
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.id.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
   }
 }
 

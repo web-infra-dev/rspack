@@ -117,7 +117,10 @@ export class CommonJsRunner<
 			);
 
 			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(currentModuleScope);
+				this._options.testConfig.moduleScope(
+					currentModuleScope,
+					this._options.stats
+				);
 			}
 
 			if (!this._options.runInNewContext) {
@@ -133,7 +136,6 @@ export class CommonJsRunner<
 			const fn = this._options.runInNewContext
 				? vm.runInNewContext(code, this.globalContext!, file.path)
 				: vm.runInThisContext(code, file.path);
-
 			fn.call(
 				this._options.testConfig.nonEsmThis
 					? this._options.testConfig.nonEsmThis(modulePath)

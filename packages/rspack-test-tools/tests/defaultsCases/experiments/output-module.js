@@ -11,7 +11,7 @@ module.exports = {
 		+     "outputModule": true,
 		@@ ... @@
 		-   "externalsType": "var",
-		+   "externalsType": "module",
+		+   "externalsType": "module-import",
 		@@ ... @@
 		-       "dynamicImport": undefined,
 		-       "dynamicImportInWorker": undefined,

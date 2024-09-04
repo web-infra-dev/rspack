@@ -1,9 +1,9 @@
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec,
+  ExportSpec, ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -95,6 +95,10 @@ impl Dependency for CommonJsExportsDependency {
       ..Default::default()
     })
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl AsModuleDependency for CommonJsExportsDependency {}
@@ -121,7 +125,6 @@ impl DependencyTemplate for CommonJsExportsDependency {
 
     let used = module_graph
       .get_exports_info(&module.identifier())
-      .id
       .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
     let exports_argument = module.get_exports_argument();
@@ -225,6 +228,14 @@ impl DependencyTemplate for CommonJsExportsDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

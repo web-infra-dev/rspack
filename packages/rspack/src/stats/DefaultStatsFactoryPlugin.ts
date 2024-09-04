@@ -34,7 +34,11 @@ import {
 } from "../util/comparators";
 import { makePathsRelative, parseResource } from "../util/identifier";
 import type { GroupConfig } from "../util/smartGrouping";
-import type { KnownStatsFactoryContext, StatsFactory } from "./StatsFactory";
+import type {
+	KnownStatsFactoryContext,
+	StatsFactory,
+	StatsFactoryContext
+} from "./StatsFactory";
 import type {
 	KnownStatsAsset,
 	KnownStatsLoggingEntry,
@@ -43,12 +47,15 @@ import type {
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
+	StatsChunkOrigin,
 	StatsError,
+	StatsModuleReason,
 	StatsProfile
 } from "./statsFactoryUtils";
 import {
 	assetGroup,
 	countWithChildren,
+	errorsSpaceLimit,
 	iterateConfig,
 	mergeToObject,
 	moduleGroup,
@@ -147,9 +154,9 @@ const ASSETS_GROUPERS: Record<
 			// groupByFlag("comparedForEmit");
 			// groupByFlag("isOverSizeLimit");
 		}
-		// if (groupAssetsByEmitStatus || !options.cachedAssets) {
-		// 	groupByFlag("cached", !options.cachedAssets);
-		// }
+		if (groupAssetsByEmitStatus || !options.cachedAssets) {
+			groupByFlag("cached", !options.cachedAssets);
+		}
 		if (groupAssetsByPath || groupAssetsByExtension) {
 			groupConfigs.push({
 				getKeys: asset => {
@@ -169,7 +176,7 @@ const ASSETS_GROUPERS: Record<
 									: `*${extension}`
 							);
 						while (path.length > 0) {
-							keys.push(path.join("/") + "/");
+							keys.push(`${path.join("/")}/`);
 							path.pop();
 						}
 					} else {
@@ -193,7 +200,7 @@ const ASSETS_GROUPERS: Record<
 		const groupByAssetInfoFlag = (name: keyof JsStatsAssetInfo) => {
 			groupConfigs.push({
 				getKeys: asset => {
-					return asset.info && asset.info[name] ? ["1"] : undefined;
+					return asset.info?.[name] ? ["1"] : undefined;
 				},
 				// @ts-expect-error
 				createGroup: (key, children: KnownStatsAsset[]) => {
@@ -330,11 +337,12 @@ const MODULES_GROUPERS = (
 		if (groupModulesByType || !options.runtimeModules) {
 			groupConfigs.push({
 				getKeys: (module: KnownStatsModule) => {
-					if (!module.moduleType) return;
+					const moduleType = module.moduleType;
+					if (!moduleType) return;
 					if (groupModulesByType) {
-						return [module.moduleType.split("/", 1)[0]];
+						return [moduleType.split("/", 1)[0]];
 					}
-					if (module.moduleType === "runtime") {
+					if (moduleType === "runtime") {
 						return ["runtime"];
 					}
 				},
@@ -380,7 +388,7 @@ const MODULES_GROUPERS = (
 									: `*${extension}`
 							);
 						while (path.length > 0) {
-							keys.push(path.join("/") + "/");
+							keys.push(`${path.join("/")}/`);
 							path.pop();
 						}
 					} else {
@@ -502,15 +510,15 @@ const MODULES_SORTER: Record<
 	_: comparators => {
 		comparators.push(
 			compareSelect(
-				(m: JsStatsModule) => m.depth,
+				(m: JsStatsModule) => m.commonAttributes.depth,
 				compareNumbers as Comparator
 			),
 			compareSelect(
-				(m: JsStatsModule) => m.preOrderIndex,
+				(m: JsStatsModule) => m.commonAttributes.preOrderIndex,
 				compareNumbers as Comparator
 			),
 			compareSelect(
-				(m: JsStatsModule) => m.identifier,
+				(m: JsStatsModule) => m.commonAttributes.moduleDescriptor?.identifier,
 				compareIds as Comparator
 			)
 		);
@@ -533,15 +541,43 @@ const SORTERS: Record<
 	"chunk.rootModules": MODULES_SORTER,
 	"chunk.modules": MODULES_SORTER,
 	"module.modules": MODULES_SORTER,
-	// not support module.reasons (missing Module.identifier())
+	"module.reasons": {
+		_: comparators => {
+			comparators.push(
+				compareSelect((x: StatsModuleReason) => x.moduleIdentifier, compareIds)
+			);
+			comparators.push(
+				compareSelect(
+					(x: StatsModuleReason) => x.resolvedModuleIdentifier,
+					compareIds
+				)
+			);
+			comparators.push(
+				compareSelect(
+					(x: StatsModuleReason) => x.dependency,
+					compareSelect((x: StatsModuleReason) => x.type, compareIds)
+					// concatComparators(
+					// 	compareSelect(
+					// 		/**
+					// 		 * @param {Dependency} x dependency
+					// 		 * @returns {DependencyLocation} location
+					// 		 */
+					// 		x => x.loc,
+					// 		compareLocations
+					// 	),
+					// 	compareSelect(x => x.type, compareIds)
+					// )
+				)
+			);
+		}
+	},
 	"chunk.origins": {
 		_: comparators => {
 			comparators.push(
-				// compareSelect(
-				// 	origin =>
-				// 		origin.module ? chunkGraph.getModuleId(origin.module) : undefined,
-				// 	compareIds
-				// ),
+				compareSelect(
+					(origin: StatsChunkOrigin) => origin.moduleId,
+					compareIds
+				),
 				compareSelect((origin: JsOriginRecord) => origin.loc, compareIds),
 				compareSelect((origin: JsOriginRecord) => origin.request, compareIds)
 			);
@@ -561,16 +597,33 @@ const EXTRACT_ERROR: Record<
 > = {
 	_: (object, error) => {
 		object.message = error.message;
-		object.chunkName = error.chunkName;
-		object.chunkEntry = error.chunkEntry;
-		object.chunkInitial = error.chunkInitial;
-		object.file = error.file;
-		object.moduleIdentifier = error.moduleIdentifier;
-		object.moduleName = error.moduleName;
+		if (error.chunkName) {
+			object.chunkName = error.chunkName;
+		}
+		if (error.chunkEntry) {
+			object.chunkEntry = error.chunkEntry;
+		}
+		if (error.chunkInitial) {
+			object.chunkInitial = error.chunkInitial;
+		}
+		if (error.file) {
+			object.file = error.file;
+		}
+		if (error.moduleDescriptor) {
+			object.moduleIdentifier = error.moduleDescriptor.identifier;
+			object.moduleName = error.moduleDescriptor.name;
+		}
+		if ("loc" in error) {
+			object.loc = error.loc;
+		}
 	},
 	ids: (object, error) => {
-		object.chunkId = error.chunkId;
-		object.moduleId = error.moduleId;
+		if (error.chunkId) {
+			object.chunkId = error.chunkId;
+		}
+		if (error.moduleDescriptor) {
+			object.moduleId = error.moduleDescriptor.id;
+		}
 	},
 	moduleTrace: (object, error, context, _, factory) => {
 		const { type } = context;
@@ -596,6 +649,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			context: KnownStatsFactoryContext,
 			options: StatsOptions
 		) => {
+			const statsCompilation = context.getStatsCompilation(compilation);
+
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
 					compilation.compiler.context,
@@ -604,12 +659,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetErrors) {
 				context.cachedGetErrors = _compilation => {
-					return context.getInner(compilation).getErrors();
+					return statsCompilation.errors;
 				};
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					const warnings = context.getInner(compilation).getWarnings();
+					const warnings = statsCompilation.warnings;
 
 					return compilation.hooks.processWarnings.call(
 						warnings as any
@@ -756,7 +811,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		hash: (object, compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context.getInner(compilation).getHash() || undefined;
+			const statsCompilation = context.getStatsCompilation(compilation);
+			object.hash = statsCompilation.hash;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");
@@ -787,9 +843,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options,
 			factory
 		) => {
-			const { assets: compilationAssets, assetsByChunkName } = context
-				.getInner(compilation)
-				.getAssets();
+			const { type, getStatsCompilation } = context;
+
+			const statsCompilation = getStatsCompilation(compilation);
+
+			const compilationAssets = statsCompilation.assets!;
+			const assetsByChunkName = statsCompilation.assetsByChunkName!;
 
 			const assetMap: Map<String, PreprocessedAsset> = new Map();
 			const assets = new Set();
@@ -830,7 +889,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}, {});
 
 			const groupedAssets = factory.create(
-				`${context.type}.assets`,
+				`${type}.assets`,
 				Array.from(assets),
 				{
 					...context
@@ -849,42 +908,24 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			options: StatsOptions,
+			options: NormalizedStatsOptions,
 			factory
 		) => {
-			const { type } = context;
-			const chunks = context
-				.getInner(compilation)
-				.getChunks(
-					options.chunkModules!,
-					options.chunkRelations!,
-					options.reasons!,
-					options.moduleAssets!,
-					options.nestedModules!,
-					options.source!,
-					options.usedExports!,
-					options.providedExports!
-				);
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
+			const chunks = statsCompilation.chunks;
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
 		modules: (
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			options: StatsOptions,
+			options: NormalizedStatsOptions,
 			factory
 		) => {
-			const { type } = context;
-			const array = context
-				.getInner(compilation)
-				.getModules(
-					options.reasons!,
-					options.moduleAssets!,
-					options.nestedModules!,
-					options.source!,
-					options.usedExports!,
-					options.providedExports!
-				);
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
+			const array = statsCompilation.modules;
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace!);
 			object.modules = limited.children;
@@ -897,14 +938,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			{ entrypoints, chunkGroups, chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
-			const { type } = context;
-			const array = context
-				.getInner(compilation)
-				.getEntrypoints(chunkGroupAuxiliary, chunkGroupChildren)
-				.map(entrypoint => ({
-					name: entrypoint.name,
-					chunkGroup: entrypoint
-				}));
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
+			const array = statsCompilation.entrypoints!.map(entrypoint => ({
+				name: entrypoint.name,
+				chunkGroup: entrypoint
+			}));
 
 			const chunks = Array.from(compilation.chunks).reduce<
 				Record<string, Chunk>
@@ -944,14 +983,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			{ chunkGroupAuxiliary, chunkGroupChildren },
 			factory
 		) => {
-			const { type } = context;
-			const namedChunkGroups = context
-				.getInner(compilation)
-				.getNamedChunkGroups(chunkGroupAuxiliary, chunkGroupChildren)
-				.map(cg => ({
-					name: cg.name,
-					chunkGroup: cg
-				}));
+			const { type, getStatsCompilation } = context;
+			const statsCompilation = getStatsCompilation(compilation);
+			const namedChunkGroups = statsCompilation.namedChunkGroups!.map(cg => ({
+				name: cg.name,
+				chunkGroup: cg
+			}));
 
 			object.namedChunkGroups = factory.create(
 				`${type}.namedChunkGroups`,
@@ -963,11 +1000,36 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
-			_factory
+			options,
+			factory
 		) => {
-			const { cachedGetErrors } = context;
-			object.errors = cachedGetErrors!(compilation);
+			const { type, cachedGetErrors } = context;
+			const rawErrors = cachedGetErrors!(compilation);
+			const factorizedErrors = factory.create(
+				`${type}.errors`,
+				cachedGetErrors!(compilation),
+				context
+			);
+			let filtered = 0;
+			if (options.errorDetails === "auto" && rawErrors.length >= 3) {
+				filtered = rawErrors
+					.map(e => typeof e !== "string" && e.details)
+					.filter(Boolean).length;
+			}
+			if (
+				options.errorDetails === true ||
+				!Number.isFinite(options.errorsSpace)
+			) {
+				object.errors = factorizedErrors;
+				if (filtered) object.filteredErrorDetailsCount = filtered;
+				return;
+			}
+			const { errors, filtered: filteredBySpace } = errorsSpaceLimit(
+				factorizedErrors,
+				options.errorsSpace
+			);
+			object.filteredErrorDetailsCount = filtered + filteredBySpace;
+			object.errors = errors;
 		},
 		errorsCount: (
 			object,
@@ -982,11 +1044,35 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options,
-			_factory
+			options,
+			factory
 		) => {
-			const { cachedGetWarnings } = context;
-			object.warnings = cachedGetWarnings!(compilation);
+			const { type, cachedGetWarnings } = context;
+			const rawWarnings = factory.create(
+				`${type}.warnings`,
+				cachedGetWarnings!(compilation),
+				context
+			);
+			let filtered = 0;
+			if (options.errorDetails === "auto") {
+				filtered = cachedGetWarnings!(compilation)
+					.map(e => typeof e !== "string" && e.details)
+					.filter(Boolean).length;
+			}
+			if (
+				options.errorDetails === true ||
+				!Number.isFinite(options.warningsSpace)
+			) {
+				object.warnings = rawWarnings;
+				if (filtered) object.filteredWarningDetailsCount = filtered;
+				return;
+			}
+			const { errors: warnings, filtered: filteredBySpace } = errorsSpaceLimit(
+				rawWarnings,
+				options.warningsSpace
+			);
+			object.filteredWarningDetailsCount = filtered + filteredBySpace;
+			object.warnings = warnings;
 		},
 		warningsCount: (object, compilation, context: KnownStatsFactoryContext) => {
 			const { cachedGetWarnings } = context;
@@ -996,6 +1082,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		children: (object, compilation, context, _options, factory) => {
 			const { type } = context;
+
 			object.children = factory.create(
 				`${type}.children`,
 				compilation.children,
@@ -1016,11 +1103,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				)
 			};
 			// - comparedForEmit
-			// - cached
-			Object.assign(
-				object,
-				factory.create(`${context.type}$visible`, asset, context)
-			);
+			const cached = !object.emitted;
+			object.cached = cached;
+			if (!cached || options.cachedAssets) {
+				Object.assign(
+					object,
+					factory.create(`${context.type}$visible`, asset, context)
+				);
+			}
 		}
 	},
 	asset$visible: {
@@ -1039,12 +1129,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context
 			);
 			object.filteredRelated = asset.related
-				? asset.related.length - object.related.length
+				? asset.related.length - object.related!.length
 				: undefined;
 		},
 		ids: (object, asset) => {
 			object.chunks = asset.chunks;
 			object.auxiliaryChunks = asset.auxiliaryChunks;
+		},
+		performance: (object, asset) => {
+			object.isOverSizeLimit = asset.info.isOverSizeLimit;
 		}
 	},
 	chunkGroup: {
@@ -1065,7 +1158,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.auxiliaryAssets = chunkGroup.auxiliaryAssets;
 			object.auxiliaryAssetsSize = chunkGroup.auxiliaryAssetsSize;
 			object.children = chunkGroup.children;
-			// - childAssets
+			object.childAssets = chunkGroup.childAssets;
+		},
+		performance: (object, { chunkGroup }) => {
+			object.isOverSizeLimit = chunkGroup.isOverSizeLimit;
 		}
 	},
 	module: {
@@ -1077,21 +1173,26 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			factory
 		) => {
 			const { type } = context;
-			object.type = module.type;
-			object.moduleType = module.moduleType;
-			// TODO: object.layer = module.layer;
-			object.size = module.size;
-			const sizes = module.sizes.map(({ sourceType, size }) => [
+			const { commonAttributes } = module;
+			object.type = commonAttributes.type;
+			object.moduleType = commonAttributes.moduleType;
+			object.layer = commonAttributes.layer;
+			object.size = commonAttributes.size;
+			const sizes = commonAttributes.sizes.map(({ sourceType, size }) => [
 				sourceType,
 				size
 			]);
 			sizes.sort((a, b) => -compareIds(a, b));
 			object.sizes = Object.fromEntries(sizes);
-			object.built = module.built;
-			object.codeGenerated = module.codeGenerated;
-			object.buildTimeExecuted = module.buildTimeExecuted;
-			object.cached = module.cached;
-			if (module.built || module.codeGenerated || options.cachedModules) {
+			object.built = commonAttributes.built;
+			object.codeGenerated = commonAttributes.codeGenerated;
+			object.buildTimeExecuted = commonAttributes.buildTimeExecuted;
+			object.cached = commonAttributes.cached;
+			if (
+				commonAttributes.built ||
+				commonAttributes.codeGenerated ||
+				options.cachedModules
+			) {
 				Object.assign(
 					object,
 					factory.create(`${type}$visible`, module, context)
@@ -1102,51 +1203,62 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	module$visible: {
 		_: (object, module, context, options, factory) => {
 			const { type } = context;
-			object.identifier = module.identifier;
-			object.name = module.name;
-			object.nameForCondition = module.nameForCondition;
-			object.index = module.preOrderIndex;
-			object.preOrderIndex = module.preOrderIndex;
-			object.index2 = module.postOrderIndex;
-			object.postOrderIndex = module.postOrderIndex;
-			object.cacheable = module.cacheable;
-			object.optional = module.optional;
-			object.orphan = module.orphan;
+			const { commonAttributes } = module;
+			if (commonAttributes.moduleDescriptor) {
+				object.identifier = commonAttributes.moduleDescriptor.identifier;
+				object.name = commonAttributes.moduleDescriptor.name;
+			}
+			object.nameForCondition = commonAttributes.nameForCondition;
+			object.index = commonAttributes.preOrderIndex;
+			object.preOrderIndex = commonAttributes.preOrderIndex;
+			object.index2 = commonAttributes.postOrderIndex;
+			object.postOrderIndex = commonAttributes.postOrderIndex;
+			object.cacheable = commonAttributes.cacheable;
+			object.optional = commonAttributes.optional;
+			object.orphan = commonAttributes.orphan;
 			object.dependent = module.dependent;
-			object.issuer = module.issuer;
-			object.issuerName = module.issuerName;
-			object.issuerPath = factory.create(
-				`${type.slice(0, -8)}.issuerPath`,
-				module.issuerPath,
-				context
-			);
-			object.failed = module.failed;
-			object.errors = module.errors;
-			object.warnings = module.warnings;
-			const profile = module.profile;
+			object.issuer = module.issuerDescriptor?.identifier;
+			object.issuerName = module.issuerDescriptor?.name;
+			object.issuerPath =
+				module.issuerDescriptor &&
+				factory.create(
+					`${type.slice(0, -8)}.issuerPath`,
+					module.issuerPath,
+					context
+				);
+			object.failed = commonAttributes.failed;
+			object.errors = commonAttributes.errors;
+			object.warnings = commonAttributes.warnings;
+			const profile = commonAttributes.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);
 			}
 		},
 		ids: (object, module) => {
-			object.id = module.id;
-			object.issuerId = module.issuerId;
-			object.chunks = module.chunks;
+			const { commonAttributes } = module;
+			if (commonAttributes.moduleDescriptor) {
+				object.id = commonAttributes.moduleDescriptor.id;
+			}
+			object.issuerId = module.issuerDescriptor?.id;
+			object.chunks = commonAttributes.chunks;
 		},
 		moduleAssets: (object, module) => {
-			object.assets = module.assets;
+			object.assets = module.commonAttributes.assets;
 		},
 		reasons: (object, module, context, options, factory) => {
 			const { type } = context;
-			object.reasons = factory.create(
+			const groupsReasons = factory.create(
 				`${type.slice(0, -8)}.reasons`,
-				module.reasons,
+				module.commonAttributes.reasons,
 				context
 			);
-			// object.filteredReasons
+			const limited = spaceLimited(groupsReasons, options.reasonsSpace);
+			object.reasons = limited.children;
+			object.filteredReasons = limited.filteredChildren;
 		},
 		source: (object, module) => {
-			object.source = module.source;
+			const { commonAttributes } = module;
+			object.source = commonAttributes.source;
 		},
 		usedExports: (object, module) => {
 			if (typeof module.usedExports === "string") {
@@ -1162,17 +1274,19 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		providedExports: (object, module) => {
-			if (Array.isArray(module.providedExports)) {
-				object.providedExports = module.providedExports;
+			const { commonAttributes } = module;
+			if (Array.isArray(commonAttributes.providedExports)) {
+				object.providedExports = commonAttributes.providedExports;
 			} else {
 				object.providedExports = null;
 			}
 		},
 		optimizationBailout: (object, module) => {
-			object.optimizationBailout = module.optimizationBailout || null;
+			object.optimizationBailout =
+				module.commonAttributes.optimizationBailout || null;
 		},
 		depth: (object, module) => {
-			object.depth = module.depth;
+			object.depth = module.commonAttributes.depth;
 		},
 		nestedModules: (object, module, context, options, factory) => {
 			const { type } = context;
@@ -1207,22 +1321,40 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	},
 	moduleIssuer: {
 		_: (object, module, context, options, factory) => {
-			object.identifier = module.identifier;
-			object.name = module.name;
+			if (module.moduleDescriptor) {
+				object.identifier = module.moduleDescriptor.identifier;
+				object.name = module.moduleDescriptor.name;
+				// - profile
+			}
 		},
 		ids: (object, module) => {
-			object.id = module.id;
+			object.id = module.moduleDescriptor.id;
 		}
 	},
 	moduleReason: {
 		_: (object, reason) => {
-			object.moduleIdentifier = reason.moduleIdentifier;
-			object.moduleName = reason.moduleName;
+			if (reason.moduleDescriptor) {
+				object.moduleIdentifier = reason.moduleDescriptor.identifier;
+				object.moduleName = reason.moduleDescriptor.name;
+			}
 			object.type = reason.type;
 			object.userRequest = reason.userRequest;
+			if (reason.resolvedModuleDescriptor) {
+				object.resolvedModuleIdentifier =
+					reason.resolvedModuleDescriptor.identifier;
+				object.resolvedModule = reason.resolvedModuleDescriptor.name;
+			}
+			// - explanation
+			// - active
+			// - loc
 		},
 		ids: (object, reason) => {
-			object.moduleId = reason.moduleId;
+			object.moduleId = reason.moduleDescriptor
+				? reason.moduleDescriptor.id
+				: null;
+			object.resolvedModuleId = reason.resolvedModuleDescriptor
+				? reason.resolvedModuleDescriptor.id
+				: null;
 		}
 	},
 	chunk: {
@@ -1254,44 +1386,96 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunkModules: (object, chunk, context, options, factory) => {
 			const { type } = context;
-			object.modules = factory.create(
+			const groupedModules = factory.create(
 				`${type}.modules`,
 				chunk.modules,
 				context
 			);
+			const limited = spaceLimited(groupedModules, options.chunkModulesSpace);
+			object.modules = limited.children;
+			object.filteredModules = limited.filteredChildren;
 		},
 		chunkOrigins: (object, chunk, context, options, factory) => {
-			object.origins = chunk.origins;
+			const { type } = context;
+			object.origins = factory.create(
+				`${type}.origins`,
+				chunk.origins,
+				context
+			);
 		}
 	},
-	// chunkOrigin
+	chunkOrigin: {
+		_: (object, origin, context) => {
+			const { moduleDescriptor, loc, request } = origin;
+			const statsChunkOrigin = {
+				module: moduleDescriptor ? moduleDescriptor.identifier : "",
+				moduleIdentifier: moduleDescriptor ? moduleDescriptor.identifier : "",
+				moduleName: moduleDescriptor ? moduleDescriptor.name : "",
+				loc,
+				request
+			};
+			Object.assign(object, statsChunkOrigin);
+		},
+		ids: (object, origin) => {
+			object.moduleId = origin.moduleDescriptor?.id;
+		}
+	},
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
 		_: (object, { origin, module }, context, { requestShortener }, factory) => {
-			object.originIdentifier = origin.identifier;
-			object.originName = origin.name;
-			object.moduleIdentifier = module.identifier;
-			object.moduleName = module.name;
+			if (origin.moduleDescriptor) {
+				object.originIdentifier = origin.moduleDescriptor.identifier;
+				object.originName = origin.moduleDescriptor.name;
+			}
+			if (module.moduleDescriptor) {
+				object.moduleIdentifier = module.moduleDescriptor.identifier;
+				object.moduleName = module.moduleDescriptor.name;
+			}
 		},
 		ids: (object, { origin, module }) => {
-			object.originId = origin.id;
-			object.moduleId = module.id;
+			object.originId = origin.moduleDescriptor.id;
+			object.moduleId = module.moduleDescriptor.id;
 		}
 	}
-	// moduleTraceDependency
+	// - moduleTraceDependency
 };
 
-/**
- * only support below factories:
- * - compilation
- * - compilation.assets
- * - compilation.assets[].asset
- * - compilation.chunks
- * - compilation.chunks[].chunk
- * - compilation.modules
- * - compilation.modules[].module
- */
+const FILTER: Record<
+	string,
+	Record<
+		string,
+		(
+			thing: any,
+			context: StatsFactoryContext,
+			options: NormalizedStatsOptions
+		) => boolean | undefined
+	>
+> = {
+	"module.reasons": {
+		"!orphanModules": reason => {
+			if (reason.moduleChunks === 0) {
+				return false;
+			}
+		}
+	}
+};
+
+const FILTER_RESULTS: Record<
+	string,
+	Record<
+		string,
+		(
+			thing: Object,
+			context: StatsFactoryContext,
+			options: NormalizedStatsOptions
+		) => boolean | undefined
+	>
+> = {
+	// Deprecated: "compilation.warnings": {}
+	// Keep this object to retain this phase.
+};
+
 export class DefaultStatsFactoryPlugin {
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("DefaultStatsFactoryPlugin", compilation => {
@@ -1306,14 +1490,20 @@ export class DefaultStatsFactoryPlugin {
 								fn(obj, data, ctx, options, stats)
 							);
 					});
-					// not support filter module.reasons.!orphanModules
-					// iterateConfig(FILTER, options, (hookFor, fn) => {
-					// 	stats.hooks.filter
-					// 		.for(hookFor)
-					// 		.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
-					// 			fn(item, ctx, options, idx, i)
-					// 		);
-					// });
+					iterateConfig(FILTER, options, (hookFor, fn) => {
+						stats.hooks.filter
+							.for(hookFor)
+							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
+								fn(item, ctx, options, idx, i)
+							);
+					});
+					iterateConfig(FILTER_RESULTS, options, (hookFor, fn) => {
+						stats.hooks.filterResults
+							.for(hookFor)
+							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
+								fn(item, ctx, options, idx, i)
+							);
+					});
 					iterateConfig(SORTERS, options, (hookFor, fn) => {
 						stats.hooks.sort
 							.for(hookFor)

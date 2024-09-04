@@ -11,14 +11,19 @@
 import util from "node:util";
 import Watchpack from "watchpack";
 
-import type { FileSystemInfoEntry, WatchFileSystem, Watcher } from "../util/fs";
+import type {
+	FileSystemInfoEntry,
+	InputFileSystem,
+	WatchFileSystem,
+	Watcher
+} from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem;
 	watcherOptions: Watchpack.WatchOptions;
 	watcher: Watchpack;
 
-	constructor(inputFileSystem: any) {
+	constructor(inputFileSystem: InputFileSystem) {
 		this.inputFileSystem = inputFileSystem;
 		this.watcherOptions = {
 			aggregateTimeout: 0
@@ -84,13 +89,13 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			// pause emitting events (avoids clearing aggregated changes and removals on timeout)
 			this.watcher.pause();
 
-			if (this.inputFileSystem && this.inputFileSystem.purge) {
+			if (this.inputFileSystem?.purge) {
 				const fs = this.inputFileSystem;
 				for (const item of changes) {
-					fs.purge(item);
+					fs.purge?.(item);
 				}
 				for (const item of removals) {
-					fs.purge(item);
+					fs.purge?.(item);
 				}
 			}
 			const { fileTimeInfoEntries, contextTimeInfoEntries } = fetchTimeInfo();
@@ -125,11 +130,11 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			},
 			getAggregatedRemovals: util.deprecate(
 				() => {
-					const items = this.watcher && this.watcher.aggregatedRemovals;
-					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
+					const items = this.watcher?.aggregatedRemovals;
+					if (items && this.inputFileSystem?.purge) {
 						const fs = this.inputFileSystem;
 						for (const item of items) {
-							fs.purge(item);
+							fs.purge?.(item);
 						}
 					}
 					return items;
@@ -139,11 +144,11 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			),
 			getAggregatedChanges: util.deprecate(
 				() => {
-					const items = this.watcher && this.watcher.aggregatedChanges;
-					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
+					const items = this.watcher?.aggregatedChanges;
+					if (items && this.inputFileSystem?.purge) {
 						const fs = this.inputFileSystem;
 						for (const item of items) {
-							fs.purge(item);
+							fs.purge?.(item);
 						}
 					}
 					return items;
@@ -166,18 +171,18 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				"DEP_WEBPACK_WATCHER_CONTEXT_TIME_INFO_ENTRIES"
 			),
 			getInfo: () => {
-				const removals = this.watcher && this.watcher.aggregatedRemovals;
-				const changes = this.watcher && this.watcher.aggregatedChanges;
-				if (this.inputFileSystem && this.inputFileSystem.purge) {
+				const removals = this.watcher?.aggregatedRemovals;
+				const changes = this.watcher?.aggregatedChanges;
+				if (this.inputFileSystem?.purge) {
 					const fs = this.inputFileSystem;
 					if (removals) {
 						for (const item of removals) {
-							fs.purge(item);
+							fs.purge?.(item);
 						}
 					}
 					if (changes) {
 						for (const item of changes) {
-							fs.purge(item);
+							fs.purge?.(item);
 						}
 					}
 				}

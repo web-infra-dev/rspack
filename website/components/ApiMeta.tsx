@@ -52,7 +52,7 @@ export function ApiMeta(props: ApiMetaProps) {
       )}
       {props.specific && props.specific.length > 0 && (
         <span className={`${tagStyle} ${styles.specific}`}>
-          {props.specific.join('/')}{' '}
+          {props.specific.join('/')}&nbsp;
           {props.specific.length > 1 ? 'specific' : 'only'}
         </span>
       )}

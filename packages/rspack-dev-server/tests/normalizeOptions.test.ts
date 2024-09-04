@@ -35,7 +35,7 @@ describe.skip("normalize options snapshot", () => {
 
 	it("shouldn't have reactRefreshEntry.js by default when in production mode", async () => {
 		const reactRefreshEntry =
-			"<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js";
+			"plugin-react-refresh/client/reactRefreshEntry.js";
 		const entries1 = await getAdditionEntries(
 			{},
 			{

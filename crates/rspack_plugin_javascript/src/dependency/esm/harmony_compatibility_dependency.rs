@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsDependency, DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
+  AsDependency, Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -34,9 +35,8 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     let exports_info = module_graph.get_exports_info(&module.identifier());
     if !matches!(
       exports_info
-        .id
-        .get_read_only_export_info(&Atom::from("__esModule"), &module_graph)
-        .get_used(*runtime),
+        .get_read_only_export_info(&module_graph, &Atom::from("__esModule"),)
+        .get_used(&module_graph, *runtime),
       UsageState::Unused
     ) {
       runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
@@ -76,6 +76,14 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
 
   fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
     None
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 impl AsDependency for HarmonyCompatibilityDependency {}

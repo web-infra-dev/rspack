@@ -1,8 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
+  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -10,16 +11,18 @@ use swc_core::ecma::atoms::Atom;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
+  range: RealDependencyLocation,
   pub name: Atom,
   pub value: Atom, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(name: Atom, value: Atom) -> Self {
+  pub fn new(name: Atom, value: Atom, range: RealDependencyLocation) -> Self {
     Self {
-      id: DependencyId::new(),
       name,
       value,
+      range,
+      id: DependencyId::new(),
     }
   }
 }
@@ -27,6 +30,10 @@ impl HarmonyExportSpecifierDependency {
 impl Dependency for HarmonyExportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -57,6 +64,10 @@ impl Dependency for HarmonyExportSpecifierDependency {
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl AsModuleDependency for HarmonyExportSpecifierDependency {}
@@ -85,9 +96,9 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       .expect("should have module graph module");
 
     let used_name = {
-      let exports_info_id = module_graph.get_exports_info(&module.identifier()).id;
+      let exports_info = module_graph.get_exports_info(&module.identifier());
       let used_name =
-        exports_info_id.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
+        exports_info.get_used_name(&module_graph, *runtime, UsedName::Str(self.name.clone()));
       used_name.map(|item| match item {
         UsedName::Str(name) => name,
         UsedName::Vec(vec) => {
@@ -107,6 +118,14 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

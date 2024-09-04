@@ -1,10 +1,11 @@
 import { normalizeStderr, runWatch } from "../../utils/test-utils";
 
 describe("basic serve usage", () => {
-	it.skip("should work", async () => {
-		const { stderr } = await runWatch(__dirname, ["serve"]);
+	it("should work", async () => {
+		const { stderr } = await runWatch(__dirname, ["serve"], {
+			killString: /localhost/
+		});
 
-		// @todo current server implementation is too buggy to test
-		expect(normalizeStderr(stderr)).toBeTruthy;
+		expect(normalizeStderr(stderr)).toContain("Project is running at");
 	});
 });

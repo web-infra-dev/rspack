@@ -6,4 +6,4 @@ const words = fs
 
 const sortedWords = words.sort((a, b) => a.localeCompare(b));
 
-fs.writeFileSync('./project-words.txt', sortedWords.join('\n') + '\n');
+fs.writeFileSync('./project-words.txt', `${sortedWords.join('\n')}\n`);

@@ -1,4 +1,4 @@
-ERROR in ./err/index.js
+ERROR in ./err/index.js 1:0-21
   × Module not found: Can't resolve '../a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error/err'
    ╭────
  1 │ import a from '../a';
@@ -9,12 +9,10 @@ ERROR in ./err/index.js
         
         1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
         2. use '../a.txt' instead of '../a'
-        
- @ ./err/index.js
 
-ERROR in ./index.js
+ERROR in ./index.js 2:0-16
   × Module not found: Can't resolve './test' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
-   ╭─[1:1]
+   ╭─[2:7]
  1 │ import './err';
  2 │ import './test';
    ·        ────────
@@ -26,9 +24,9 @@ ERROR in ./index.js
         1. add the extension `".txt"` to `resolve.extensions` in your rspack configuration
         2. use './test/index.txt' instead of './test'
 
-ERROR in ./index.js
+ERROR in ./index.js 3:0-20
   × Module not found: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
-   ╭─[1:1]
+   ╭─[3:14]
  1 │ import './err';
  2 │ import './test';
  3 │ import a from './a';

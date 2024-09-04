@@ -1,22 +1,24 @@
+use std::sync::LazyLock;
 use std::{borrow::Cow, sync::Arc};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
+use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context,
+  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context, Dependency,
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -72,15 +74,15 @@ impl ModuleFactory for NormalModuleFactory {
   }
 }
 
-static MATCH_RESOURCE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
+static MATCH_RESOURCE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
 
-static MATCH_WEBPACK_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
+static MATCH_WEBPACK_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r#"\.webpack\[([^\]]+)\]$"#).expect("Failed to initialize `MATCH_WEBPACK_EXT_REGEX`")
 });
 
-static ELEMENT_SPLIT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
+static ELEMENT_SPLIT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
 
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';
@@ -181,9 +183,10 @@ impl NormalModuleFactory {
                 .context
                 .as_path()
                 .join(resource)
+                .as_std_path()
                 .absolutize()
                 .to_string_lossy()
-                .to_string()
+                .into_owned()
             } else {
               resource.to_owned()
             }
@@ -310,7 +313,7 @@ impl NormalModuleFactory {
     } else {
       // resource without scheme and without path
       if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(resource.to_owned()).path("".into())
+        ResourceData::new(resource.clone()).path(Utf8PathBuf::from(""))
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
@@ -349,7 +352,7 @@ impl NormalModuleFactory {
             let raw_module = RawModule::new(
               "/* (ignored) */".to_owned(),
               module_identifier,
-              format!("{ident} (ignored)"),
+              format!("{resource} (ignored)"),
               Default::default(),
             )
             .boxed();
@@ -386,8 +389,9 @@ impl NormalModuleFactory {
           } else {
             &resource_data
           },
-          data.dependency.category(),
+          data.dependency.as_ref(),
           data.issuer.as_deref(),
+          data.issuer_layer.as_deref(),
         )
         .await?
     };
@@ -510,6 +514,14 @@ impl NormalModuleFactory {
 
     let resolved_module_type =
       self.calculate_module_type(match_module_type, &resolved_module_rules);
+    let resolved_module_layer =
+      self.calculate_module_layer(data.issuer_layer.as_ref(), &resolved_module_rules);
+    if resolved_module_layer.is_some() && !self.options.experiments.layers {
+      return Err(error!(
+        "'Rule.layer' is only allowed when 'experiments.layers' is enabled"
+      ));
+    }
+
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
@@ -579,6 +591,7 @@ impl NormalModuleFactory {
         create_data.user_request.clone(),
         create_data.raw_request.clone(),
         resolved_module_type,
+        resolved_module_layer,
         resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
@@ -598,7 +611,7 @@ impl NormalModuleFactory {
       .await?;
 
     if let Some(file_dependency) = file_dependency {
-      data.add_file_dependency(file_dependency);
+      data.add_file_dependency(file_dependency.into_std_path_buf());
     }
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);
@@ -609,45 +622,52 @@ impl NormalModuleFactory {
   async fn calculate_module_rules<'a>(
     &'a self,
     resource_data: &ResourceData,
-    dependency: &DependencyCategory,
+    dependency: &dyn Dependency,
     issuer: Option<&'a str>,
-  ) -> Result<Vec<&'a ModuleRule>> {
+    issuer_layer: Option<&'a str>,
+  ) -> Result<Vec<&'a ModuleRuleEffect>> {
     let mut rules = Vec::new();
     module_rules_matcher(
       &self.options.module.rules,
       resource_data,
       issuer,
-      dependency,
+      issuer_layer,
+      dependency.category(),
+      dependency.get_attributes(),
       &mut rules,
     )
     .await?;
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Box<Resolve>> {
-    let mut resolved = None;
-    module_rules.iter().for_each(|rule| {
-      if let Some(resolve) = rule.resolve.as_ref() {
-        resolved = Some(Box::new(resolve.to_owned()));
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Box<Resolve>> {
+    let mut resolved: Option<Resolve> = None;
+    for rule in module_rules {
+      if let Some(rule_resolve) = &rule.resolve {
+        if let Some(r) = resolved {
+          resolved = Some(r.merge(rule_resolve.to_owned()));
+        } else {
+          resolved = Some(rule_resolve.to_owned());
+        }
       }
-    });
-    resolved
+    }
+    resolved.map(Box::new)
   }
 
-  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
+  fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
     let mut side_effect_res = None;
     // side_effects from module rule has higher priority
-    module_rules.iter().for_each(|rule| {
+    for rule in module_rules.iter() {
       if rule.side_effects.is_some() {
         side_effect_res = rule.side_effects;
       }
-    });
+    }
     side_effect_res
   }
 
   fn calculate_parser_and_generator_options(
     &self,
-    module_rules: &[&ModuleRule],
+    module_rules: &[&ModuleRuleEffect],
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
     let mut resolved_parser = None;
     let mut resolved_generator = None;
@@ -713,16 +733,31 @@ impl NormalModuleFactory {
   fn calculate_module_type(
     &self,
     matched_module_type: Option<ModuleType>,
-    module_rules: &[&ModuleRule],
+    module_rules: &[&ModuleRuleEffect],
   ) -> ModuleType {
     let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
-    module_rules.iter().for_each(|module_rule| {
+    for module_rule in module_rules.iter() {
       if let Some(module_type) = module_rule.r#type {
         resolved_module_type = module_type;
       };
-    });
+    }
 
     resolved_module_type
+  }
+
+  fn calculate_module_layer(
+    &self,
+    issuer_layer: Option<&ModuleLayer>,
+    module_rules: &[&ModuleRuleEffect],
+  ) -> Option<ModuleLayer> {
+    let mut resolved_module_layer = issuer_layer;
+    for module_rule in module_rules.iter() {
+      if let Some(module_layer) = &module_rule.layer {
+        resolved_module_layer = Some(module_layer);
+      };
+    }
+
+    resolved_module_layer.cloned()
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
@@ -756,7 +791,10 @@ impl NormalModuleFactory {
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{ident} (ignored)"),
+          format!(
+            "{} (ignored)",
+            data.request().expect("normal module should have request")
+          ),
           Default::default(),
         )
         .boxed();

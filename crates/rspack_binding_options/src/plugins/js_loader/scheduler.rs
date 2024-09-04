@@ -50,25 +50,21 @@ pub(crate) fn merge_loader_context(
     to.additional_data.insert(data.clone());
   }
   to.cacheable = from.cacheable;
-  to.file_dependencies = from
-    .file_dependencies
-    .into_iter()
-    .map(std::path::PathBuf::from)
-    .collect();
+  to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
   to.context_dependencies = from
     .context_dependencies
     .into_iter()
-    .map(std::path::PathBuf::from)
+    .map(Into::into)
     .collect();
   to.missing_dependencies = from
     .missing_dependencies
     .into_iter()
-    .map(std::path::PathBuf::from)
+    .map(Into::into)
     .collect();
   to.build_dependencies = from
     .build_dependencies
     .into_iter()
-    .map(std::path::PathBuf::from)
+    .map(Into::into)
     .collect();
   to.content = match from.content {
     Either::A(_) => None,

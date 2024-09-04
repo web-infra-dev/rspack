@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, DependencyLocation, ErrorSpan, SpanExt};
+use rspack_core::{ConstDependency, ErrorSpan, SpanExt};
 use rspack_error::miette::diagnostic;
 use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
 use rspack_regex::RspackRegex;
@@ -35,6 +35,7 @@ pub fn collect_destructuring_assignment_properties(
   }
 }
 
+#[allow(dead_code)]
 pub(crate) mod expr_like {
   use std::any::Any;
 
@@ -140,14 +141,14 @@ pub(crate) mod expr_like {
 
 pub(crate) mod expr_matcher {
   use std::sync::Arc;
+  use std::sync::LazyLock;
 
-  use once_cell::sync::Lazy;
   use swc_core::common::SourceMap;
   use swc_core::ecma::{ast::Ident, parser::parse_file_as_expr};
 
   use super::expr_like::*;
 
-  static PARSED_MEMBER_EXPR_CM: Lazy<Arc<SourceMap>> = Lazy::new(Default::default);
+  static PARSED_MEMBER_EXPR_CM: LazyLock<Arc<SourceMap>> = LazyLock::new(Default::default);
 
   // The usage of define_member_expr_matchers is limited in `member_expr_matcher`.
   // Do not extends it's usage out of this mod.
@@ -156,10 +157,10 @@ pub(crate) mod expr_matcher {
       $($fn_name:ident: $first:expr,)*
     }) => {
           $(pub(crate) fn $fn_name<E: ExprLike>(expr: &E) -> bool {
-            static TARGET: Lazy<Box<dyn ExprLike>> = Lazy::new(|| {
+            static TARGET: LazyLock<Box<dyn ExprLike>> = LazyLock::new(|| {
               let mut errors = vec![];
               let fm =
-                 PARSED_MEMBER_EXPR_CM.new_source_file(swc_core::common::FileName::Anon, $first.to_string());
+                 PARSED_MEMBER_EXPR_CM.new_source_file(Arc::new(swc_core::common::FileName::Anon), $first.to_string());
                  let expr = parse_file_as_expr(
                   &fm,
                   Default::default(),
@@ -242,7 +243,7 @@ pub fn parse_order_string(x: &str) -> Option<u32> {
 pub fn extract_require_call_info(
   parser: &mut JavascriptParser,
   expr: &MemberExpr,
-) -> Option<(Vec<Atom>, ExprOrSpread, DependencyLocation)> {
+) -> Option<(Vec<Atom>, ExprOrSpread)> {
   let Some((members, args, root)) = parser
     .get_member_expression_info(expr, AllowedMemberTypes::CallExpression)
     .and_then(|info| match info {
@@ -255,19 +256,15 @@ pub fn extract_require_call_info(
   };
 
   // call require() with no param
-  let Some(first_arg) = args.first() else {
-    return None;
-  };
-
-  let loc = DependencyLocation::new(expr.span().real_lo(), expr.span().real_hi(), None);
+  let first_arg = args.first()?;
 
   if let ExportedVariableInfo::Name(root) = root {
     if root == "module" && members.first().is_some_and(|m| m == "require") {
       // module.require().x.x
-      Some((members[1..].to_vec(), first_arg.to_owned(), loc))
+      Some((members[1..].to_vec(), first_arg.to_owned()))
     } else if root == "require" {
       // require().x.x
-      Some((members, first_arg.to_owned(), loc))
+      Some((members, first_arg.to_owned()))
     } else {
       None
     }
@@ -419,17 +416,22 @@ mod test {
       span: DUMMY_SP,
       obj: Box::new(
         Ident {
+          ctxt: Default::default(),
           span: DUMMY_SP,
           sym: "module".into(),
           optional: false,
         }
         .into(),
       ),
-      prop: MemberProp::Ident(Ident {
-        span: DUMMY_SP,
-        sym: "exports".into(),
-        optional: false,
-      }),
+      prop: MemberProp::Ident(
+        Ident {
+          ctxt: Default::default(),
+          span: DUMMY_SP,
+          sym: "exports".into(),
+          optional: false,
+        }
+        .into(),
+      ),
     };
     assert!(
       expr_matcher::is_module_exports(&e),
@@ -441,6 +443,7 @@ mod test {
     );
 
     let e = Ident {
+      ctxt: Default::default(),
       span: DUMMY_SP,
       sym: "module".into(),
       optional: false,

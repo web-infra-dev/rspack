@@ -1,5 +1,7 @@
 import assert from "node:assert";
 import {
+	type JsLibraryName,
+	type JsLibraryOptions,
 	type RawAssetGeneratorOptions,
 	type RawAssetInlineGeneratorOptions,
 	type RawAssetParserDataUrl,
@@ -14,8 +16,6 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
-	type RawLibraryName,
-	type RawLibraryOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
@@ -222,6 +222,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
+		cssHeadDataCompression: output.cssHeadDataCompression!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
 		hotUpdateGlobal: output.hotUpdateGlobal!,
@@ -232,6 +233,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		strictModuleErrorHandling: output.strictModuleErrorHandling!,
 		globalObject: output.globalObject!,
 		importFunctionName: output.importFunctionName!,
+		importMetaName: output.importMetaName!,
 		iife: output.iife!,
 		module: output.module!,
 		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
@@ -257,7 +259,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
+export function getRawLibrary(library: LibraryOptions): JsLibraryOptions {
 	const {
 		type,
 		name,
@@ -287,7 +289,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 	};
 }
 
-function getRawLibraryName(name: LibraryName): RawLibraryName {
+function getRawLibraryName(name: LibraryName): JsLibraryName {
 	if (typeof name === "string") {
 		return {
 			type: "string",
@@ -409,12 +411,23 @@ const getRawModuleRule = (
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
 		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
+		issuerLayer: rule.issuerLayer
+			? getRawRuleSetCondition(rule.issuerLayer)
+			: undefined,
 		dependency: rule.dependency
 			? getRawRuleSetCondition(rule.dependency)
 			: undefined,
 		descriptionData: rule.descriptionData
 			? Object.fromEntries(
 					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+				)
+			: undefined,
+		with: rule.with
+			? Object.fromEntries(
+					Object.entries(rule.with).map(([k, v]) => [
 						k,
 						getRawRuleSetCondition(v)
 					])
@@ -435,6 +448,7 @@ const getRawModuleRule = (
 				? funcUse
 				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
+		layer: rule.layer,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? upperType)
 			: undefined,
@@ -643,6 +657,7 @@ function getRawJavascriptParserOptions(
 		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
 		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
 		dynamicImportFetchPriority: parser.dynamicImportFetchPriority?.toString(),
+		importMeta: parser.importMeta ?? true,
 		url:
 			parser.url === false
 				? "false"
@@ -871,19 +886,22 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, rspackFuture } = experiments;
-	assert(!isNil(topLevelAwait) && !isNil(rspackFuture));
+	const { topLevelAwait, layers, rspackFuture } = experiments;
+	assert(!isNil(topLevelAwait) && !isNil(rspackFuture) && !isNil(layers));
 
 	return {
+		layers,
 		topLevelAwait,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
 }
 
 function getRawRspackFutureOptions(
-	_future: RspackFutureOptions
+	future: RspackFutureOptions
 ): RawRspackFuture {
-	return {};
+	return {
+		newIncremental: future.newIncremental!
+	};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {

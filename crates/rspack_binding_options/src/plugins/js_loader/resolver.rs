@@ -1,16 +1,21 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, RunnerContext, BUILTIN_LOADER_PREFIX,
+  Resolver, Resource, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result};
+use rspack_error::{
+  error,
+  miette::{miette, LabeledSpan, SourceOffset},
+  Result,
+};
 use rspack_hook::plugin_hook;
-use rspack_loader_lightningcss::LIGHTNINGCSS_LOADER_IDENTIFIER;
+use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
+use rspack_paths::Utf8Path;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -24,47 +29,60 @@ impl Identifiable for JsLoader {
     self.0
   }
 }
-
-pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
+// convert serde_error to miette report for pretty error
+pub fn serde_error_to_miette(
+  e: serde_json::Error,
+  content: Arc<str>,
+  msg: &str,
+) -> rspack_error::miette::Report {
+  let offset = SourceOffset::from_location(content.as_ref(), e.line(), e.column());
+  let span = LabeledSpan::at_offset(offset.offset(), e.to_string());
+  miette!(labels = vec![span], "{msg}").with_source_code(content.clone())
+}
+pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
+  let options: Arc<str> = options.unwrap_or("{}").into();
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    return Arc::new(
-      rspack_loader_swc::SwcLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
-        }),
-      )
+    return Ok(Arc::new(
+      rspack_loader_swc::SwcLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(e, options, "failed to parse builtin:swc-loader options")
+      })?)
       .with_identifier(builtin.into()),
-    );
+    ));
   }
 
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
-    let config = serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-      panic!("Could not parse builtin:lightningcss-loader options:{options:?},error: {e:?}")
-    });
+    let config: rspack_loader_lightningcss::config::RawConfig =
+      serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(
+          e,
+          options,
+          "Could not parse builtin:lightningcss-loader options",
+        )
+      })?;
     // TODO: builtin-loader supports function
-    return Arc::new(rspack_loader_lightningcss::LightningCssLoader::new(
-      None, config,
+    return Ok(Arc::new(
+      rspack_loader_lightningcss::LightningCssLoader::new(None, Config::try_from(config)?, builtin),
     ));
   }
 
   if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
-    return Arc::new(
+    return Ok(Arc::new(
       rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(PREACT_REFRESH_LOADER_IDENTIFIER) {
-    return Arc::new(
+    return Ok(Arc::new(
       rspack_loader_preact_refresh::PreactRefreshLoader::default().with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_testing::SimpleAsyncLoader);
+    return Ok(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
   }
   if builtin.starts_with(rspack_loader_testing::SIMPLE_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_testing::SimpleLoader);
+    return Ok(Arc::new(rspack_loader_testing::SimpleLoader));
   }
   if builtin.starts_with(rspack_loader_testing::PITCHING_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_testing::PitchingLoader);
+    return Ok(Arc::new(rspack_loader_testing::PitchingLoader));
   }
   unreachable!("Unexpected builtin loader: {builtin}")
 }
@@ -76,45 +94,56 @@ pub(crate) async fn resolve_loader(
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,
 ) -> Result<Option<BoxLoader>> {
-  let context = context.as_ref();
+  let context = context.as_path();
   let loader_request = &l.loader;
   let loader_options = l.options.as_deref();
   let mut rest = None;
   let prev = if let Some(index) = loader_request.find('?') {
     rest = Some(&loader_request[index..]);
-    Path::new(&loader_request[0..index])
+    Utf8Path::new(&loader_request[0..index])
   } else {
-    Path::new(loader_request)
+    Utf8Path::new(loader_request)
   };
 
   // FIXME: not belong to napi
   if loader_request.starts_with(BUILTIN_LOADER_PREFIX) {
-    return Ok(Some(get_builtin_loader(loader_request, loader_options)));
+    return get_builtin_loader(loader_request, loader_options).map(Some);
   }
 
   let resolve_result = resolver
-    .resolve(context, &prev.to_string_lossy())
-    .map_err(|err| {
-      let loader_request = prev.display();
-      let context = context.display();
-      error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
-    })?;
+    .resolve(context.as_std_path(), prev.as_str())
+    .map_err(|err| error!("Failed to resolve loader: {prev} in {context}, error: {err:?}"))?;
 
   match resolve_result {
     ResolveResult::Resource(resource) => {
-      let path = resource.path.to_string_lossy().to_ascii_lowercase();
+      let Resource {
+        path,
+        query,
+        description_data,
+        ..
+      } = resource;
+      // Pitfall: `Path::ends_with` is different from `str::ends_with`
+      // So we need to convert `PathBuf` to `&str`
+      // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
+      let path = path.as_str();
+
       let r#type = if path.ends_with(".mjs") {
         Some("module")
       } else if path.ends_with(".cjs") {
         Some("commonjs")
       } else {
-        resource
-          .description_data
+        description_data
           .as_ref()
           .and_then(|data| data.json().get("type").and_then(|t| t.as_str()))
       };
-      // TODO: Should move this logic to `resolver`, since `resolve.alias` may contain query or fragment too.
-      let resource = resource.path.to_string_lossy().to_string() + rest.unwrap_or_default();
+      // favor explicit loader query over aliased query, see webpack issue-3320
+      let resource = if let Some(rest) = rest
+        && !rest.is_empty()
+      {
+        format!("{path}{rest}")
+      } else {
+        format!("{path}{query}")
+      };
       let ident = if let Some(ty) = r#type {
         format!("{ty}|{resource}")
       } else {
@@ -122,12 +151,8 @@ pub(crate) async fn resolve_loader(
       };
       Ok(Some(Arc::new(JsLoader(ident.into()))))
     }
-    ResolveResult::Ignored => {
-      let loader_request = prev.display();
-      let context = context.to_string_lossy();
-      Err(error!(
-        "Failed to resolve loader: loader_request={loader_request}, context={context}"
-      ))
-    }
+    ResolveResult::Ignored => Err(error!(
+      "Failed to resolve loader: loader_request={prev}, context={context}"
+    )),
   }
 }

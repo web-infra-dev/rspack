@@ -3,7 +3,7 @@ pub mod hot_module_replacement {
   pub use super::ModuleHotReplacementParserPlugin;
 }
 
-use rspack_core::{BoxDependency, ErrorSpan, SpanExt};
+use rspack_core::{BoxDependency, RealDependencyLocation, SpanExt};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
@@ -16,7 +16,7 @@ use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
 use crate::visitors::{expr_name, JavascriptParser};
 
-type CreateDependency = fn(u32, u32, Atom, Option<ErrorSpan>) -> BoxDependency;
+type CreateDependency = fn(Atom, RealDependencyLocation) -> BoxDependency;
 
 fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Vec<BoxDependency> {
   let mut dependencies: Vec<BoxDependency> = vec![];
@@ -24,23 +24,13 @@ fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Ve
   if let Some(first_arg) = call_expr.args.first() {
     match &*first_arg.expr {
       Expr::Lit(Lit::Str(s)) => {
-        dependencies.push(create_dependency(
-          s.span.real_lo(),
-          s.span.real_hi(),
-          s.value.clone(),
-          Some(s.span.into()),
-        ));
+        dependencies.push(create_dependency(s.value.clone(), s.span.into()));
       }
       Expr::Array(array_lit) => {
         array_lit.elems.iter().for_each(|e| {
           if let Some(expr) = e {
             if let Expr::Lit(Lit::Str(s)) = &*expr.expr {
-              dependencies.push(create_dependency(
-                s.span.real_lo(),
-                s.span.real_hi(),
-                s.value.clone(),
-                Some(s.span.into()),
-              ));
+              dependencies.push(create_dependency(s.value.clone(), s.span.into()));
             }
           }
         });
@@ -54,13 +44,13 @@ fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Ve
 
 impl<'parser> JavascriptParser<'parser> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
+    let range: RealDependencyLocation = span.into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        span.real_lo(),
-        span.real_hi(),
         Some("hot"),
+        range.with_source(self.source_map.clone()),
       )));
   }
 
@@ -69,36 +59,30 @@ impl<'parser> JavascriptParser<'parser> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
+    let range: RealDependencyLocation = call_expr.callee.span().into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        call_expr.callee.span().real_lo(),
-        call_expr.callee.span().real_hi(),
         Some("hot.accept"),
+        range.with_source(self.source_map.clone()),
       )));
     let dependencies = extract_deps(call_expr, create_dependency);
     if self.build_meta.esm && !call_expr.args.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
-      if let Some(callback_arg) = call_expr.args.get(1) {
-        self
-          .presentational_dependencies
-          .push(Box::new(HarmonyAcceptDependency::new(
-            callback_arg.span().real_lo(),
-            callback_arg.span().real_hi(),
-            true,
-            dependency_ids,
-          )));
+      let callback_arg = call_expr.args.get(1);
+      let range = if let Some(callback) = callback_arg {
+        Into::<RealDependencyLocation>::into(callback.span())
       } else {
-        self
-          .presentational_dependencies
-          .push(Box::new(HarmonyAcceptDependency::new(
-            call_expr.span().real_hi() - 1,
-            0,
-            false,
-            dependency_ids,
-          )));
-      }
+        RealDependencyLocation::new(call_expr.span().real_hi() - 1, 0)
+      };
+      self
+        .presentational_dependencies
+        .push(Box::new(HarmonyAcceptDependency::new(
+          range.with_source(self.source_map.clone()),
+          callback_arg.is_some(),
+          dependency_ids,
+        )));
     }
     self.dependencies.extend(dependencies);
     self.walk_expr_or_spread(&call_expr.args);
@@ -110,13 +94,13 @@ impl<'parser> JavascriptParser<'parser> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
+    let range: RealDependencyLocation = call_expr.callee.span().into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        call_expr.callee.span().real_lo(),
-        call_expr.callee.span().real_hi(),
         Some("hot.decline"),
+        range.with_source(self.source_map.clone()),
       )));
     let dependencies = extract_deps(call_expr, create_dependency);
     self.dependencies.extend(dependencies);
@@ -168,12 +152,12 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT_ACCEPT {
-      parser.create_accept_handler(call_expr, |start, end, request, span| {
-        Box::new(ModuleHotAcceptDependency::new(start, end, request, span))
+      parser.create_accept_handler(call_expr, |request, range| {
+        Box::new(ModuleHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::MODULE_HOT_DECLINE {
-      parser.create_decline_handler(call_expr, |start, end, request, span| {
-        Box::new(ModuleHotDeclineDependency::new(start, end, request, span))
+      parser.create_decline_handler(call_expr, |request, range| {
+        Box::new(ModuleHotDeclineDependency::new(request, range))
       })
     } else {
       None
@@ -225,16 +209,12 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_WEBPACK_HOT_ACCEPT {
-      parser.create_accept_handler(call_expr, |start, end, request, span| {
-        Box::new(ImportMetaHotAcceptDependency::new(
-          start, end, request, span,
-        ))
+      parser.create_accept_handler(call_expr, |request, range| {
+        Box::new(ImportMetaHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::IMPORT_META_WEBPACK_HOT_DECLINE {
-      parser.create_decline_handler(call_expr, |start, end, request, span| {
-        Box::new(ImportMetaHotDeclineDependency::new(
-          start, end, request, span,
-        ))
+      parser.create_decline_handler(call_expr, |request, range| {
+        Box::new(ImportMetaHotDeclineDependency::new(request, range))
       })
     } else {
       None

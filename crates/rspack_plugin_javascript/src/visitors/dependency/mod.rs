@@ -7,7 +7,7 @@ use std::sync::Arc;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ParserOptions,
+  ModuleLayer, ParserOptions,
 };
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
@@ -48,6 +48,7 @@ pub fn scan_dependencies(
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
+  module_layer: Option<&ModuleLayer>,
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
@@ -67,6 +68,7 @@ pub fn scan_dependencies(
     program.comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,
+    module_layer,
     resource_data,
     build_meta,
     build_info,

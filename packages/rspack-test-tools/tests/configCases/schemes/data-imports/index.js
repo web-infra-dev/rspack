@@ -4,16 +4,16 @@ import c from "data:text/javascript,export default `c`;";
 import "data:text/css,.red{color: red;}";
 import "./index.css";
 import inlineSvg from 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>';
-import fs from "node:fs";
-import path from "node:path";
 
 const p = Promise.all([
-	import('data:text/javascript,global.d = "d";'),
-	import("data:text/javascript,global.e = 'e';"),
-	import("data:text/javascript,global.f = `f`;"),
+	import('data:text/javascript,globalThis.d = "d";'),
+	import("data:text/javascript,globalThis.e = 'e';"),
+	import("data:text/javascript,globalThis.f = `f`;"),
 ])
 
 it("data imports", async () => {
+	const fs = __non_webpack_require__("node:fs");
+	const path = __non_webpack_require__("node:path");
 	await p;
 	expect(a).toBe("a");
 	expect(b).toBe("b");

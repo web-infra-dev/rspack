@@ -185,7 +185,7 @@ fn render(
         chunk,
         compilation,
       ),
-      external_root_array(&externals)?
+      externals_root_array(&externals)?
     );
     format!(
       "}} else if(typeof exports === 'object'){{\n
@@ -201,7 +201,7 @@ fn render(
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
         externals_require_array("commonjs", &externals)?,
-        external_root_array(&externals)?
+        externals_root_array(&externals)?
       )
     };
     format!(
@@ -345,20 +345,20 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
   )
 }
 
-fn external_root_array(modules: &[&ExternalModule]) -> Result<String> {
+fn externals_root_array(modules: &[&ExternalModule]) -> Result<String> {
   Ok(
     modules
       .iter()
       .map(|m| {
         let typ = "root";
         let request = match &m.request {
-          ExternalRequest::Single(r) => r.primary(),
+          ExternalRequest::Single(r) => r.iter(),
           ExternalRequest::Map(map) => map
             .get(typ)
-            .map(|r| r.primary())
+            .map(|r| r.iter())
             .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
         };
-        Ok(format!("root{}", accessor_to_object_access([request])))
+        Ok(format!("root{}", accessor_to_object_access(request)))
       })
       .collect::<Result<Vec<_>>>()?
       .join(", "),

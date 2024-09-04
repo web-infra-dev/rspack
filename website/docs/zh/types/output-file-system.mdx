@@ -1,0 +1,17 @@
+<>
+
+```ts
+import fs from 'fs';
+type OutputFileSystem = {
+  writeFile: typeof fs.writeFile;
+  mkdir: typeof fs.mkdir;
+  readdir: typeof fs.readdir;
+  rmdir: typeof fs.rmdir;
+  unlink: typeof fs.unlink;
+  stat: typeof fs.stat;
+  lstat: typeof fs.lstat;
+  readFile: typeof fs.readFile;
+};
+```
+
+</>

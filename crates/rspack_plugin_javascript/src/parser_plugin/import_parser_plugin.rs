@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan, GroupOptions,
+  AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, GroupOptions, ImportAttributes,
+  RealDependencyLocation,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -11,6 +12,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::JavascriptParserPlugin;
 use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
+use crate::utils::object_properties::{get_attributes, get_value_by_obj_prop};
 use crate::visitors::{
   context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
   ContextModuleScanResult, JavascriptParser,
@@ -24,9 +26,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let Callee::Import(import_call) = &node.callee else {
       unreachable!()
     };
-    let Some(dyn_imported) = node.args.first() else {
-      return None;
-    };
+    let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
     }
@@ -103,34 +103,30 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       );
     }
 
+    let attributes = get_attributes_from_call_expr(node);
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
     if param.is_string() {
-      let span = ErrorSpan::from(node.span);
       if matches!(mode, DynamicImportMode::Eager) {
         let dep = ImportEagerDependency::new(
-          node.span.real_lo(),
-          node.span.real_hi(),
           param.string().as_str().into(),
-          Some(span),
+          node.span.into(),
           exports,
+          attributes,
         );
         parser.dependencies.push(Box::new(dep));
         return Some(true);
       }
       let dep = Box::new(ImportDependency::new(
-        node.span.real_lo(),
-        node.span.real_hi(),
         param.string().as_str().into(),
-        Some(span),
+        node.span.into(),
         exports,
+        attributes,
       ));
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
-        Some(DependencyLocation::new(
-          span.start,
-          span.end,
-          Some(parser.source_map.clone()),
+        Some(DependencyLocation::Real(
+          Into::<RealDependencyLocation>::into(node.span).with_source(parser.source_map.clone()),
         )),
         None,
         vec![dep],
@@ -156,9 +152,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser
         .dependencies
         .push(Box::new(ImportContextDependency::new(
-          import_call.span.real_lo(),
-          import_call.span.real_hi(),
-          node.span.real_hi(),
           ContextOptions {
             mode: mode.into(),
             recursive: true,
@@ -183,11 +176,23 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             start: node.span().real_lo(),
             end: node.span().real_hi(),
             referenced_exports: exports,
+            attributes,
           },
-          Some(node.span.into()),
+          node.span().into(),
+          (import_call.span.real_lo(), import_call.span.real_hi()),
           parser.in_try,
         )));
       Some(true)
     }
   }
+}
+
+fn get_attributes_from_call_expr(node: &CallExpr) -> Option<ImportAttributes> {
+  node
+    .args
+    .get(1)
+    .and_then(|arg| arg.expr.as_object())
+    .and_then(|obj| get_value_by_obj_prop(obj, "with"))
+    .and_then(|expr| expr.as_object())
+    .map(get_attributes)
 }

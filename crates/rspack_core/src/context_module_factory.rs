@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
+use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 use tracing::instrument;
 
@@ -41,7 +42,7 @@ pub enum AfterResolveResult {
 
 #[derive(Clone)]
 pub struct AfterResolveData {
-  pub resource: String,
+  pub resource: Utf8PathBuf,
   pub context: String,
   // dependencies
   // layer
@@ -210,7 +211,7 @@ impl ContextModuleFactory {
         );
         (request, resource)
       }
-      None => ("".to_string(), request),
+      None => (String::new(), request),
     };
 
     let resolve_args = ResolveArgs {
@@ -234,9 +235,10 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let options = ContextModuleOptions {
           addon: loader_request.to_string(),
-          resource: resource.path.to_string_lossy().to_string(),
+          resource: resource.path,
           resource_query: resource.query,
           resource_fragment: resource.fragment,
+          layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
           type_prefix: dependency.type_prefix(),
@@ -253,7 +255,7 @@ impl ContextModuleFactory {
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{ident} (ignored)"),
+          format!("{specifier} (ignored)"),
           Default::default(),
         )
         .boxed();
@@ -280,9 +282,9 @@ impl ContextModuleFactory {
   ) -> Result<Option<ModuleFactoryResult>> {
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
-      resource: context_module_options.resource.to_owned(),
-      context: context_options.context.to_owned(),
-      request: context_options.request.to_owned(),
+      resource: context_module_options.resource.clone(),
+      context: context_options.context.clone(),
+      request: context_options.request.clone(),
       reg_exp: context_options.reg_exp.clone(),
     };
 

@@ -1,14 +1,17 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_core::Compilation;
+use rspack_core::DependencyConditionFn;
+use rspack_core::RealDependencyLocation;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
   Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ExportInfoProvided, ExportsType, ExtendedReferencedExport,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleIdentifier,
-  ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
@@ -22,8 +25,8 @@ use super::create_resource_identifier_for_esm_dependency;
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-static IMPORT_EMITTED_MAP: Lazy<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
-  Lazy::new(Default::default);
+static IMPORT_EMITTED_MAP: LazyLock<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
+  LazyLock::new(Default::default);
 
 pub fn get_import_emitted_runtime(
   module: &ModuleIdentifier,
@@ -44,31 +47,36 @@ pub struct HarmonyImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
-  pub span: ErrorSpan,
-  pub source_span: ErrorSpan,
+  pub range: RealDependencyLocation,
+  pub range_src: RealDependencyLocation,
   pub dependency_type: DependencyType,
   pub export_all: bool,
+  attributes: Option<ImportAttributes>,
   resource_identifier: String,
 }
 
 impl HarmonyImportSideEffectDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
     source_order: i32,
-    span: ErrorSpan,
-    source_span: ErrorSpan,
+    range: RealDependencyLocation,
+    range_src: RealDependencyLocation,
     dependency_type: DependencyType,
     export_all: bool,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
       request,
-      span,
-      source_span,
+      range,
+      range_src,
       dependency_type,
       export_all,
+      attributes,
       resource_identifier,
     }
   }
@@ -199,10 +207,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   additional_msg: String,
   should_error: bool,
 ) -> Option<Diagnostic> {
-  let Some(imported_module) = module_graph.get_module_by_dependency_id(module_dependency.id())
-  else {
-    return None;
-  };
+  let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if !imported_module.get_diagnostics().is_empty() {
     return None;
   }
@@ -212,7 +217,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type = imported_module.get_exports_type_readonly(
+  let exports_type = imported_module.get_exports_type(
     module_graph,
     parent_module
       .build_meta()
@@ -267,21 +272,18 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(
-        module_graph
-          .get_exports_info(&imported_module_identifier)
-          .id,
-      );
+      let mut maybe_exports_info = Some(module_graph.get_exports_info(&imported_module_identifier));
       while pos < ids.len()
         && let Some(exports_info) = maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(id, module_graph);
-        if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
-          let provided_exports = exports_info
-            .get_exports_info(module_graph)
-            .get_provided_exports(module_graph);
+        let export_info = exports_info.get_read_only_export_info(module_graph, id);
+        if matches!(
+          export_info.provided(module_graph),
+          Some(ExportInfoProvided::False)
+        ) {
+          let provided_exports = exports_info.get_provided_exports(module_graph);
           let more_info = if let ProvidedExports::Vec(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -311,7 +313,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = export_info.id.get_nested_exports_info(module_graph);
+        maybe_exports_info = export_info.get_nested_exports_info(module_graph);
       }
       let msg = format!(
         "export {} {} was not found in '{}'",
@@ -374,8 +376,12 @@ impl Dependency for HarmonyImportSideEffectDependency {
     &self.id
   }
 
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
   fn span(&self) -> Option<ErrorSpan> {
-    Some(self.span)
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -388,6 +394,10 @@ impl Dependency for HarmonyImportSideEffectDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   fn get_module_evaluation_side_effects_state(
@@ -416,6 +426,28 @@ impl Dependency for HarmonyImportSideEffectDependency {
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
+}
+
+struct HarmonyImportSideEffectDependencyCondition;
+
+impl DependencyConditionFn for HarmonyImportSideEffectDependencyCondition {
+  fn get_connection_state(
+    &self,
+    conn: &rspack_core::ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState {
+    let id = *conn.module_identifier();
+    if let Some(module) = module_graph.module_by_identifier(&id) {
+      module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
+    } else {
+      ConnectionState::Bool(true)
+    }
+  }
 }
 
 impl ModuleDependency for HarmonyImportSideEffectDependency {
@@ -432,7 +464,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   }
 
   fn source_span(&self) -> Option<ErrorSpan> {
-    Some(self.source_span)
+    Some(ErrorSpan::new(self.range_src.start, self.range_src.end))
   }
 
   fn set_request(&mut self, request: String) {
@@ -442,14 +474,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   // TODO: It's from HarmonyImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::Fn(Arc::new(
-      move |con, _, module_graph: &ModuleGraph| {
-        let id = *con.module_identifier();
-        if let Some(module) = module_graph.module_by_identifier(&id) {
-          module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
-        } else {
-          ConnectionState::Bool(true)
-        }
-      },
+      HarmonyImportSideEffectDependencyCondition,
     )))
   }
 
@@ -479,6 +504,14 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

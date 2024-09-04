@@ -1,36 +1,21 @@
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[2:9]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
        4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
          ╰────
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./a.js
 
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
-       4 │     d = 10
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
- @ ./a.js
-
-ERROR in ./b.js
-  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -39,12 +24,11 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.js
 
 ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -54,12 +38,38 @@ ERROR in ./b.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.js
+
+ERROR in ./b.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[6:0]
+       4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./c.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[2:9]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 
 ERROR in ./c.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -68,41 +78,11 @@ ERROR in ./c.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./c.js
-
-ERROR in ./c.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
-       4 │     d = 10
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
- @ ./c.js
-
-ERROR in ./d.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
-       4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
- @ ./d.js
 
 ERROR in ./d.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -112,12 +92,38 @@ ERROR in ./d.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./d.js
+
+ERROR in ./d.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[6:0]
+       4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./e.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expected a semicolon
+         ╭─[2:9]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·          ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 
 ERROR in ./e.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -126,41 +132,11 @@ ERROR in ./e.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./e.js
-
-ERROR in ./e.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
-       1 │ const CONST = 9000 % 2;
-       2 │ const  D {
-         ·          ─
-       3 │     // Comma is required, but parser can recover because of the newline.
-       4 │     d = 10
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
- @ ./e.js
-
-ERROR in ./f.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
-       4 │     d = 10
-       5 │     g = CONST
-       6 │ }
-         · ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
- @ ./f.js
 
 ERROR in ./f.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -170,12 +146,11 @@ ERROR in ./f.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./f.js
 
-ERROR in ./g.js
+ERROR in ./f.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expression expected
-         ╭─[4:1]
+         ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
        6 │ }
@@ -184,12 +159,11 @@ ERROR in ./g.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./g.js
 
 ERROR in ./g.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
-         ╭─[1:1]
+         ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
          ·          ─
@@ -199,4 +173,16 @@ ERROR in ./g.js
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./g.js
+
+ERROR in ./g.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: Expression expected
+         ╭─[6:0]
+       4 │     d = 10
+       5 │     g = CONST
+       6 │ }
+         · ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

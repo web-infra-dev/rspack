@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
-use sugar_path::SugarPath;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -206,11 +205,10 @@ pub fn export_from_import(
 
   if !export_name.is_empty() {
     let used_name: Cow<Vec<Atom>> = {
-      let exports_info_id = compilation
+      let exports_info = compilation
         .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
-      let used = exports_info_id.get_used_name(
+        .get_exports_info(&module_identifier);
+      let used = exports_info.get_used_name(
         &compilation.get_module_graph(),
         *runtime,
         crate::UsedName::Vec(export_name.clone()),
@@ -231,7 +229,7 @@ pub fn export_from_import(
     let comment = if *used_name != export_name {
       to_normal_comment(&property_access(&export_name, 0))
     } else {
-      "".to_string()
+      String::new()
     };
     let property = property_access(&*used_name, 0);
     let access = format!("{import_var}{comment}{property}");
@@ -257,17 +255,11 @@ pub fn get_exports_type(
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
 ) -> ExportsType {
-  let module = module_graph
-    .module_identifier_by_dependency_id(id)
-    .expect("should have module");
   let strict = module_graph
     .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_harmony_module();
-  module_graph
-    .module_by_identifier(module)
-    .expect("should have mgm")
-    .get_exports_type_readonly(module_graph, strict)
+  get_exports_type_with_strict(module_graph, id, strict)
 }
 
 pub fn get_exports_type_with_strict(
@@ -281,7 +273,7 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type_readonly(module_graph, strict)
+    .get_exports_type(module_graph, strict)
 }
 
 // information content of the comment
@@ -381,7 +373,7 @@ pub fn import_statement(
     .module_identifier_by_dependency_id(id)
     .is_none()
   {
-    return (missing_module_statement(request), "".to_string());
+    return (missing_module_statement(request), String::new());
   };
 
   let module_id_expr = module_id(compilation, id, request, false);
@@ -408,7 +400,7 @@ pub fn import_statement(
       ),
     );
   }
-  (import_content, "".to_string())
+  (import_content, String::new())
 }
 
 pub fn module_namespace_promise(

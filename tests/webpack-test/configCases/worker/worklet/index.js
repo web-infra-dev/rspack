@@ -3,7 +3,6 @@
 
 it("should allow to create a paintWorklet worklet", async () => {
 	let pseudoWorklet = await CSS.paintWorklet.addModule(new URL("./worklet.js", import.meta.url));
-debugger
 	pseudoWorklet = new pseudoWorklet();
 
 	expect(pseudoWorklet.url).not.toContain("asset-");

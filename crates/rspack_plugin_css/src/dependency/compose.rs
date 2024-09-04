@@ -1,21 +1,21 @@
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency,
+  DependencyType, ErrorSpan, ModuleDependency, RealDependencyLocation,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,
-  span: ErrorSpan,
+  range: RealDependencyLocation,
 }
 
 impl CssComposeDependency {
-  pub fn new(request: String, span: ErrorSpan) -> Self {
+  pub fn new(request: String, range: RealDependencyLocation) -> Self {
     Self {
       id: DependencyId::new(),
       request,
-      span,
+      range,
     }
   }
 }
@@ -34,7 +34,11 @@ impl Dependency for CssComposeDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    Some(self.span)
+    Some(ErrorSpan::new(self.range.start, self.range.end))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 

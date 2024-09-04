@@ -2,13 +2,12 @@ import path from "node:path";
 
 import type { Filename, LoaderContext, LoaderDefinition } from "../..";
 import { CssExtractRspackPlugin } from "./index";
-import schema from "./loader-options.json";
 import { stringifyLocal, stringifyRequest } from "./utils";
 
+export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-export const ABSOLUTE_PUBLIC_PATH = "webpack:///mini-css-extract-plugin/";
-export const BASE_URI = "webpack://";
+export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/mini-css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
 	"__mini_css_extract_plugin_single_dot_path_segment__";
 
@@ -30,45 +29,50 @@ export interface CssExtractRspackLoaderOptions {
 	publicPath?: string | ((resourcePath: string, context: string) => string);
 	emit?: boolean;
 	esModule?: boolean;
-
-	// TODO: support layer
-	layer?: boolean;
+	layer?: string;
 	defaultExport?: boolean;
 }
 
-function hotLoader(
+export function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: CssExtractRspackLoaderOptions;
-		locals: Record<string, string>;
+		options?: CssExtractRspackLoaderOptions;
+		locals?: Record<string, string>;
 	}
-) {
-	const accept = context.locals
-		? ""
-		: "module.hot.accept(undefined, cssReload);";
+): string {
+	const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
 	return `${content}
     if(module.hot) {
-      // ${Date.now()}
-      var cssReload = require(${stringifyRequest(
-				context.loaderContext,
-				path.join(__dirname, "./hmr/hotModuleReplacement.js")
-			)}).cssReload(module.id, ${JSON.stringify({
-				...context.options,
-				locals: !!context.locals
-			})});
-      module.hot.dispose(cssReload);
-      ${accept}
+      (function() {
+        var localsJsonString = ${localsJsonString};
+        // ${Date.now()}
+        var cssReload = require(${stringifyRequest(
+					context.loaderContext,
+					path.join(__dirname, "hmr/hotModuleReplacement.js")
+				)}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   `;
 }
 
 const loader: LoaderDefinition = function loader(content) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -81,10 +85,7 @@ const loader: LoaderDefinition = function loader(content) {
 
 export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -100,7 +101,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
+	const options = this.getOptions() as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;
@@ -172,7 +173,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 					}
 				}
 			} else {
-				locals = exports && exports.locals;
+				locals = exports?.locals;
 			}
 
 			if (Array.isArray(exports) && emit) {
@@ -271,16 +272,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		if (dependencies.length > 0) {
 			additionalData[CssExtractRspackPlugin.pluginName] = dependencies
 				.map(dep => {
-					return [
-						dep.identifier,
-						dep.content,
-						dep.context,
-						dep.media,
-						dep.supports,
-						dep.sourceMap,
-						dep.identifierIndex,
-						dep.filepath
-					].join(SERIALIZE_SEP);
+					return JSON.stringify(dep);
 				})
 				.join(SERIALIZE_SEP);
 		}
@@ -291,6 +283,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	this.importModule(
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{
+			layer: options.layer,
 			publicPath: /** @type {Filename} */ publicPathForExtract,
 			baseUri: `${BASE_URI}/`
 		},

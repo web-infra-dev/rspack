@@ -3,10 +3,10 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use once_cell::sync::Lazy;
-use regex::{Captures, Regex};
+use regex::{Captures, NoExpand, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
@@ -15,37 +15,37 @@ use rspack_util::MergeFrom;
 
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
-pub static FILE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
-pub static BASE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
-pub static NAME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
-pub static PATH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
-pub static EXT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
-pub static QUERY_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
-pub static FRAGMENT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
-pub static ID_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
-pub static RUNTIME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
-pub static URL_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
-pub static HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
-pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
-pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
-pub static FULL_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
+pub static FILE_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
+pub static BASE_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
+pub static NAME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
+pub static PATH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
+pub static EXT_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
+pub static QUERY_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
+pub static FRAGMENT_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
+pub static ID_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
+pub static RUNTIME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
+pub static URL_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
+pub static HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
+pub static CHUNK_HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
+pub static CONTENT_HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
+pub static FULL_HASH_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
 
-static DATA_URI_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
+static DATA_URI_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {
@@ -247,38 +247,41 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, file.to_string_lossy()))
+        .map(|t| FILE_PLACEHOLDER.replace_all(t, NoExpand(file.as_str())))
         .map(|t| {
           EXT_PLACEHOLDER.replace_all(
             t,
-            file
-              .extension()
-              .map(|p| format!(".{}", p.to_string_lossy()))
-              .unwrap_or_default(),
+            NoExpand(
+              &file
+                .extension()
+                .map(|p| format!(".{p}"))
+                .unwrap_or_default(),
+            ),
           )
         });
 
-      if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, &base));
+      if let Some(base) = file.file_name() {
+        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, NoExpand(base)));
       }
-      if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, &name));
+      if let Some(name) = file.file_stem() {
+        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, NoExpand(name)));
       }
       t = t
         .map(|t| {
           PATH_PLACEHOLDER.replace_all(
             t,
-            &file
-              .parent()
-              .map(|p| p.to_string_lossy())
-              // "" -> "", "folder" -> "folder/"
-              .filter(|p| !p.is_empty())
-              .map(|p| p + "/")
-              .unwrap_or_default(),
+            NoExpand(
+              &file
+                .parent()
+                // "" -> "", "folder" -> "folder/"
+                .filter(|p| !p.as_str().is_empty())
+                .map(|p| p.as_str().to_owned() + "/")
+                .unwrap_or_default(),
+            ),
           )
         })
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, &query.unwrap_or_default()))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, &fragment.unwrap_or_default()));
+        .map(|t| QUERY_PLACEHOLDER.replace_all(t, NoExpand(&query.unwrap_or_default())))
+        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, NoExpand(&fragment.unwrap_or_default())));
     }
   }
   if let Some(content_hash) = options.content_hash {
@@ -313,12 +316,12 @@ fn render_template(
   }
   if let Some(chunk) = options.chunk {
     if let Some(id) = &options.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
+      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
     } else if let Some(id) = &chunk.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
+      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
     }
     if let Some(name) = chunk.name_for_filename_template() {
-      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, name));
+      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, NoExpand(name)));
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
@@ -336,17 +339,17 @@ fn render_template(
   }
 
   if let Some(id) = &options.id {
-    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
+    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
   } else if let Some(module) = options.module {
     if let Some(chunk_graph) = options.chunk_graph {
       if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
+        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
       }
     }
   }
-  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, options.runtime.unwrap_or("_")));
+  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, NoExpand(options.runtime.unwrap_or("_"))));
   if let Some(url) = options.url {
-    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, url));
+    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, NoExpand(url)));
   }
   t.into_owned()
 }

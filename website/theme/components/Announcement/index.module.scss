@@ -1,0 +1,28 @@
+.bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  background-image: var(
+    --orange-gradient,
+    linear-gradient(
+      279deg,
+      hsl(32.71, 100%, 50%) 35.21%,
+      hsl(6.91, 94.76%, 67%) 63.34%
+    )
+  );
+  height: 36px;
+}
+
+.close {
+  right: 1.5rem;
+  font-size: 28px;
+  padding: 5px;
+  position: absolute;
+  cursor: pointer;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}

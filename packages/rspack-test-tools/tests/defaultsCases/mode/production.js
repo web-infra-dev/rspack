@@ -13,10 +13,12 @@ module.exports = {
 		@@ ... @@
 		-     "chunkIds": "natural",
 		-     "concatenateModules": false,
+		-     "emitOnErrors": true,
 		-     "innerGraph": false,
 		-     "mangleExports": false,
 		+     "chunkIds": "deterministic",
 		+     "concatenateModules": true,
+		+     "emitOnErrors": false,
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
@@ -42,7 +44,9 @@ module.exports = {
 		+       "maxInitialRequests": 30,
 		@@ ... @@
 		-       "minSize": 10000,
+		-       "usedExports": false,
 		+       "minSize": 20000,
+		+       "usedExports": true,
 		@@ ... @@
 		-     "usedExports": false,
 		+     "usedExports": true,

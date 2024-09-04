@@ -12,8 +12,8 @@ use swc_core::common::Span;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
-  Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  Compilation, CompilerOptions, DependencyTemplate, Module, ModuleDependency, ModuleIdentifier,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -24,6 +24,7 @@ pub struct ParseContext<'a> {
   pub module_context: &'a Context,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
+  pub module_layer: Option<&'a ModuleLayer>,
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub module_source_map_kind: SourceMapKind,
@@ -75,7 +76,6 @@ pub struct ParseResult {
 #[derive(Debug)]
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
@@ -104,6 +104,16 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>>;
+
+  fn update_hash(
+    &self,
+    _module: &NormalModule,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    Ok(())
+  }
 }
 
 impl dyn ParserAndGenerator + '_ {

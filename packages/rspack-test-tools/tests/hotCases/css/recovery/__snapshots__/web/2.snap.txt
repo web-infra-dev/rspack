@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 6945
+- Update: main.LAST_HASH.hot-update.js, size: 7627
 
 ## Manifest
 
@@ -25,7 +25,7 @@
 #### Changed Modules
 - ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js
 - ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js
-- ./index.css?8047
+- ./index.css?6674
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -44,10 +44,8 @@ const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
 function debounce(fn, time) {
     let timeout = 0;
-    return function () {
-        // @ts-ignore
+    return function (...args) {
         const self = this;
-        const args = arguments;
         const functionCall = function functionCall() {
             return fn.apply(self, args);
         };
@@ -71,16 +69,14 @@ function getCurrentScriptUrl(moduleId) {
         }
         srcByModuleId[moduleId] = src;
     }
-    return function (fileMap) {
+    return (fileMap) => {
         if (!src) {
             return null;
         }
-        const splitResult = src.split(/([^//]+)/.js$/);
+        const splitResult = src.match(/([^//]+)/.js$/);
+        // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
         const filename = splitResult && splitResult[1];
-        if (!filename) {
-            return [src.replace(".js", ".css")];
-        }
-        if (!fileMap) {
+        if (!filename || !fileMap) {
             return [src.replace(".js", ".css")];
         }
         return fileMap.split(",").map(mapRule => {
@@ -90,13 +86,17 @@ function getCurrentScriptUrl(moduleId) {
     };
 }
 function updateCss(el, url) {
+    let normalizedUrl;
     if (!url) {
         if (!el.href) {
             return;
         }
-        url = el.href.split("?")[0];
+        normalizedUrl = el.href.split("?")[0];
     }
-    if (!isUrlRequest(url)) {
+    else {
+        normalizedUrl = url;
+    }
+    if (!isUrlRequest(normalizedUrl)) {
         return;
     }
     if (el.isLoaded === false) {
@@ -104,7 +104,7 @@ function updateCss(el, url) {
         // We're probably changing the same file more than once.
         return;
     }
-    if (!url || !(url.indexOf(".css") > -1)) {
+    if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
         return;
     }
     el.visited = true;
@@ -115,28 +115,36 @@ function updateCss(el, url) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode?.removeChild(el);
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
     });
     newEl.addEventListener("error", () => {
         if (newEl.isLoaded) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode?.removeChild(el);
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
     });
-    newEl.href = `${url}?${Date.now()}`;
+    newEl.href = `${normalizedUrl}?${Date.now()}`;
+    const parent = el.parentNode;
+    if (!parent) {
+        return;
+    }
     if (el.nextSibling) {
-        el.parentNode?.insertBefore(newEl, el.nextSibling);
+        parent.insertBefore(newEl, el.nextSibling);
     }
     else {
-        el.parentNode?.appendChild(newEl);
+        parent.appendChild(newEl);
     }
 }
 function getReloadUrl(href, src) {
     let ret = "";
-    href = (0, normalizeUrl_1.normalizeUrl)(href);
+    const normalizedHref = (0, normalizeUrl_1.normalizeUrl)(href);
     src.some(url => {
-        if (href.indexOf(src) > -1) {
+        if (normalizedHref.indexOf(src) > -1) {
             ret = url;
         }
     });
@@ -198,7 +206,8 @@ function cssReload(moduleId, options) {
             return;
         }
         if (reloaded) {
-            console.log("[HMR] css reload %s", src?.join(" "));
+            // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
+            console.log("[HMR] css reload %s", src && src.join(" "));
         }
         else {
             console.log("[HMR] Reload all css");
@@ -215,17 +224,19 @@ exports.cssReload = cssReload;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.normalizeUrl = void 0;
-function normalizeUrl(urlString) {
-    urlString = urlString.trim();
+function normalizeUrl(url) {
+    const urlString = url.trim();
     if (/^data:/i.test(urlString)) {
         return urlString;
     }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(//.$/, "");
+    const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
+    const components = urlString
+        .replace(new RegExp(protocol, "i"), "")
+        .split("/");
+    const host = components[0].toLowerCase().replace(//.$/, "");
     components[0] = "";
-    var path = components
-        .reduce(function (accumulator, item) {
+    const path = components
+        .reduce((accumulator, item) => {
         switch (item) {
             case "..":
                 accumulator.pop();
@@ -244,15 +255,29 @@ exports.normalizeUrl = normalizeUrl;
 
 
 }),
-"./index.css?8047": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css?6674": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
-      var cssReload = (__webpack_require__(/*! ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {"locals":false});
-      module.hot.dispose(cssReload);
-      module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
-(cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__(/*! ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   
 

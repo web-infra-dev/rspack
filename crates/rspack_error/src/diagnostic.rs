@@ -1,12 +1,9 @@
-use std::{
-  fmt,
-  ops::Deref,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{fmt, ops::Deref, sync::Arc};
 
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_collections::Identifier;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
+use swc_core::common::{SourceMap, Span};
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
@@ -61,11 +58,42 @@ impl fmt::Display for RspackSeverity {
   }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SourcePosition {
+  pub line: usize,
+  pub column: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ErrorLocation {
+  pub start: SourcePosition,
+  pub end: SourcePosition,
+}
+
+impl ErrorLocation {
+  pub fn new(span: Span, source_map: &SourceMap) -> Self {
+    let lo = source_map.lookup_char_pos(span.lo());
+    let hi = source_map.lookup_char_pos(span.hi());
+
+    ErrorLocation {
+      start: SourcePosition {
+        line: lo.line,
+        column: lo.col_display,
+      },
+      end: SourcePosition {
+        line: hi.line,
+        column: hi.col_display,
+      },
+    }
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
-  file: Option<PathBuf>,
+  loc: Option<String>,
+  file: Option<Utf8PathBuf>,
   hide_stack: Option<bool>,
   chunk: Option<u32>,
   stack: Option<String>,
@@ -82,6 +110,7 @@ impl From<miette::Error> for Diagnostic {
     Self {
       inner: Arc::new(value),
       module_identifier: None,
+      loc: None,
       file: None,
       hide_stack: None,
       chunk: None,
@@ -108,6 +137,7 @@ impl Diagnostic {
       )
       .into(),
       module_identifier: None,
+      loc: None,
       file: None,
       hide_stack: None,
       chunk: None,
@@ -124,6 +154,7 @@ impl Diagnostic {
       )
       .into(),
       module_identifier: None,
+      loc: None,
       file: None,
       hide_stack: None,
       chunk: None,
@@ -164,11 +195,20 @@ impl Diagnostic {
     self
   }
 
-  pub fn file(&self) -> Option<&Path> {
+  pub fn loc(&self) -> Option<String> {
+    self.loc.clone()
+  }
+
+  pub fn with_loc(mut self, loc: Option<String>) -> Self {
+    self.loc = loc;
+    self
+  }
+
+  pub fn file(&self) -> Option<&Utf8Path> {
     self.file.as_deref()
   }
 
-  pub fn with_file(mut self, file: Option<PathBuf>) -> Self {
+  pub fn with_file(mut self, file: Option<Utf8PathBuf>) -> Self {
     self.file = file;
     self
   }

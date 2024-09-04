@@ -33,5 +33,18 @@
     "text": "Contribute",
     "link": "/contribute/index",
     "activeMatch": "/contribute"
+  },
+  {
+    "text": "Version",
+    "items": [
+      {
+        "text": "Changelog",
+        "link": "https://github.com/web-infra-dev/rspack/releases"
+      },
+      {
+        "text": "Rspack 0.x Doc",
+        "link": "http://v0.rspack.dev/"
+      }
+    ]
   }
 ]

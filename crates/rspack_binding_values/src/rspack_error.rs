@@ -34,6 +34,7 @@ pub struct JsRspackError {
   pub name: String,
   pub message: String,
   pub module_identifier: Option<String>,
+  pub loc: Option<String>,
   pub file: Option<String>,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -50,7 +51,8 @@ impl JsRspackError {
       }),
       message: diagnostic.render_report(colored)?,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
-      file: diagnostic.file().map(|f| f.to_string_lossy().to_string()),
+      loc: diagnostic.loc(),
+      file: diagnostic.file().map(|f| f.as_str().to_string()),
       stack: diagnostic.stack(),
       hide_stack: diagnostic.hide_stack(),
     })

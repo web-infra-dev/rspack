@@ -116,23 +116,22 @@ export const smartGrouping = <T, R>(
 				if (options === undefined) {
 					const groupConfig = group.config;
 					state.options = options =
-						(groupConfig.getOptions &&
-							groupConfig.getOptions(
-								group.name,
-								Array.from(items, ({ item }) => item)
-							)) ||
-						false;
+						groupConfig.getOptions?.(
+							group.name,
+							Array.from(items, ({ item }) => item)
+						) || false;
 				}
 
-				const force = options && options.force;
+				const force = options !== false && options.force;
 				if (!force) {
-					if (bestGroupOptions && bestGroupOptions.force) continue;
+					if (bestGroupOptions !== false && bestGroupOptions?.force) continue;
 					if (used) continue;
 					if (items.size <= 1 || totalSize - items.size <= 1) {
 						continue;
 					}
 				}
-				const targetGroupCount = (options && options.targetGroupCount) || 4;
+				const targetGroupCount =
+					(options !== false && options.targetGroupCount) || 4;
 				const sizeValue = force
 					? items.size
 					: Math.min(

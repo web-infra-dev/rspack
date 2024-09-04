@@ -1,8 +1,6 @@
-import { ApiMeta, Stability } from '@components/ApiMeta';
+import { Stability } from '@components/ApiMeta';
 
 # ModuleFederationPlugin
-
-<ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
 
 该插件实现了 [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced)。
 
@@ -67,6 +65,16 @@ module.exports = {
 - 类型：`string`
 
 定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
+
+### shareScope
+
+- 类型：`'version-first' | 'loaded-first'`
+
+控制共享依赖的加载策略：
+
+- `'version-first'`：版本优先。设置后，会自动加载所有 _remotes_ 入口文件，并**注册**对应的共享依赖，确保能获取到所有的共享依赖版本。当对版本有严格要求时，推荐使用此策略。
+
+- `'loaded-first'`：复用优先。设置后，不会自动加载 _remotes_ 入口文件（仅在有需求时才会加载），优先复用已注册的共享依赖。当对版本没有严格要求且对性能有要求时，推荐使用此策略。
 
 ### remoteType
 
@@ -148,16 +156,19 @@ module.exports = {
 
 ## 常见问题
 
-- 使用后发现产物中存在未降级语法
+- 构建产物中存在未降级语法？
 
-  添加 `builtin:swc-loader` 进行降级，具体需要包含 `@module-federation/runtime/rspack.js`。示例如下：
+  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation/runtime` 和 `@module-federation/sdk`。示例如下：
 
   ```js
   module.exports = {
     module: {
       rules: [
         {
-          include: '@module-federation/runtime/rspack.js',
+          include: [
+            /@module-federation[\\/]sdk/,
+            /@module-federation[\\/]runtime/,
+          ],
           use: {
             loader: 'builtin:swc-loader',
             options: {

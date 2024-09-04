@@ -1,6 +1,6 @@
 WARNING in ./locale.js
   ⚠ Module not found: Can't resolve './locale' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency'
-   ╭─[2:1]
+   ╭─[4:13]
  2 │   let locale;
  3 │   try {
  4 │     locale = require('./locale/' + name);
@@ -13,5 +13,3 @@ WARNING in ./locale.js
         
         1. add the extension `".js"` to `resolve.extensions` in your rspack configuration
         2. use './locale.js' instead of './locale'
-        
- @ ./locale.js

@@ -73,9 +73,14 @@ jobs:
 
       - name: Clean
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
+        shell: bash
+        run: |
+          git config --system core.longpaths true
+          echo "rm -rf node_modules"
+          rm -rf node_modules
+          echo "git clean -ffdx -e target"
+          git clean -ffdx -e target
+          git reset --hard HEAD
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
@@ -141,7 +146,7 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
-          pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
+          pre: export CC_aarch64_unknown_linux_gnu=clang
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -222,9 +227,14 @@ jobs:
 
       - name: Clean
         if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
+        shell: bash
+        run: |
+          git config --system core.longpaths true
+          echo "rm -rf node_modules"
+          rm -rf node_modules
+          echo "git clean -ffdx -e target"
+          git clean -ffdx -e target
+          git reset --hard HEAD
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact
@@ -274,9 +284,14 @@ jobs:
 
       - name: Clean
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
+        shell: bash
+        run: |
+          git config --system core.longpaths true
+          echo "rm -rf node_modules"
+          rm -rf node_modules
+          echo "git clean -ffdx -e target"
+          git clean -ffdx -e target
+          git reset --hard HEAD
 
       - name: Download bindings
         if: ${{ !inputs.skipable }}

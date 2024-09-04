@@ -1,4 +1,6 @@
-use rspack_core::{BoxDependency, ConstDependency, DependencyLocation, DependencyType, SpanExt};
+use rspack_core::{
+  BoxDependency, ConstDependency, DependencyType, RealDependencyLocation, SpanExt,
+};
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 
@@ -12,6 +14,7 @@ use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency,
   HarmonyImportSideEffectDependency,
 };
+use crate::utils::object_properties::get_attributes;
 use crate::visitors::{
   ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
   TagInfoData,
@@ -21,20 +24,10 @@ pub struct HarmonyExportDependencyParserPlugin;
 
 impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
-    let span = statement.span();
+    let range: RealDependencyLocation = statement.span().into();
     let dep = HarmonyExportHeaderDependency::new(
-      statement.declaration_span().map(|span| {
-        DependencyLocation::new(
-          span.real_lo(),
-          span.real_hi(),
-          Some(parser.source_map.clone()),
-        )
-      }),
-      DependencyLocation::new(
-        span.real_lo(),
-        span.real_hi(),
-        Some(parser.source_map.clone()),
-      ),
+      range.with_source(parser.source_map.clone()),
+      statement.declaration_span().map(|span| span.into()),
     );
     parser.presentational_dependencies.push(Box::new(dep));
     Some(true)
@@ -48,15 +41,17 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
     let span = statement.span();
+    let range: RealDependencyLocation = span.into();
     let clean_dep = ConstDependency::new(span.real_lo(), span.real_hi(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
     let side_effect_dep = HarmonyImportSideEffectDependency::new(
       source.clone(),
       parser.last_harmony_import_order,
-      statement.span().into(),
+      range.with_source(parser.source_map.clone()),
       statement.source_span().into(),
       DependencyType::EsmExport,
       matches!(statement, ExportImport::All(_)),
+      statement.get_with_obj().map(get_attributes),
     );
     parser.dependencies.push(Box::new(side_effect_dep));
     Some(true)
@@ -80,6 +75,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       .insert(export_name.clone());
     let dep = if let Some(settings) = parser.get_tag_data(local_id, HARMONY_SPECIFIER_TAG) {
       let settings = HarmonySpecifierData::downcast(settings);
+      let range: RealDependencyLocation = statement.span().into();
       Box::new(HarmonyExportImportedSpecifierDependency::new(
         settings.source,
         settings.source_order,
@@ -87,17 +83,24 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         Some(export_name.clone()),
         false,
         None,
-        statement.span().into(),
+        range.with_source(parser.source_map.clone()),
         HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
+        settings.attributes,
       )) as BoxDependency
     } else {
+      let range: RealDependencyLocation = statement.span().into();
       Box::new(HarmonyExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
+        range.with_source(parser.source_map.clone()),
       ))
     };
+    let is_asi_safe = !parser.is_asi_position(statement.span_lo());
+    if !is_asi_safe {
+      parser.set_asi_position(statement.span_hi());
+    }
     parser.dependencies.push(dep);
     Some(true)
   }
@@ -119,6 +122,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
+    let range: RealDependencyLocation = statement.span().into();
     let dep = HarmonyExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_harmony_import_order,
@@ -126,13 +130,18 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       export_name.cloned(),
       local_id.is_some(),
       star_exports,
-      statement.span().into(),
+      range.with_source(parser.source_map.clone()),
       HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
         parser.javascript_options,
       ),
+      None,
     );
     if export_name.is_none() {
       parser.build_info.all_star_exports.push(dep.id);
+    }
+    let is_asi_safe = !parser.is_asi_position(statement.span_lo());
+    if !is_asi_safe {
+      parser.set_asi_position(statement.span_hi());
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)
@@ -146,17 +155,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   ) -> Option<bool> {
     let expr_span = expr.span();
     let statement_span = statement.span();
-    let dep = HarmonyExportExpressionDependency::new(
-      DependencyLocation::new(
-        expr_span.real_lo(),
-        expr_span.real_hi(),
-        Some(parser.source_map.clone()),
-      ),
-      DependencyLocation::new(
-        statement_span.real_lo(),
-        statement_span.real_hi(),
-        Some(parser.source_map.clone()),
-      ),
+    let dep: HarmonyExportExpressionDependency = HarmonyExportExpressionDependency::new(
+      RealDependencyLocation::new(expr_span.real_lo(), expr_span.real_hi())
+        .with_source(parser.source_map.clone()),
+      RealDependencyLocation::new(statement_span.real_lo(), statement_span.real_hi()),
       match expr {
         ExportDefaultExpression::FnDecl(f) => {
           let start = f.span().real_lo();
@@ -165,14 +167,14 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
           } else {
             f.function.body.span().real_lo()
           };
-          Some(DeclarationId::Func(DeclarationInfo {
-            range: DependencyLocation::new(start, end, Some(parser.source_map.clone())),
-            prefix: format!(
+          Some(DeclarationId::Func(DeclarationInfo::new(
+            RealDependencyLocation::new(start, end),
+            format!(
               "{}function{} ",
               if f.function.is_async { "async " } else { "" },
               if f.function.is_generator { "*" } else { "" },
             ),
-            suffix: format!(
+            format!(
               r#"({}"#,
               if f.function.params.is_empty() {
                 ") "
@@ -180,7 +182,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
                 ""
               }
             ),
-          }))
+          )))
         }
         ExportDefaultExpression::ClassDecl(c) => c
           .ident
@@ -189,7 +191,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         ExportDefaultExpression::Expr(_) => None,
       },
     );
-    parser.presentational_dependencies.push(Box::new(dep));
+    parser.dependencies.push(Box::new(dep));
     InnerGraphPlugin::add_variable_usage(
       parser,
       expr.ident().unwrap_or_else(|| &DEFAULT_STAR_JS_WORD),

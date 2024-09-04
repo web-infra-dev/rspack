@@ -472,7 +472,7 @@ mod test {
   use crate::AliasMap;
 
   fn string_list(a: &[&str]) -> Option<Vec<String>> {
-    Some(a.iter().map(|s| s.to_string()).collect())
+    Some(a.iter().map(|s| (*s).to_string()).collect())
   }
 
   fn first_case_1() -> Resolve {

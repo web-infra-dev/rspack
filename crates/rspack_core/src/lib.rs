@@ -5,13 +5,15 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
 #![feature(option_get_or_insert_default)]
-#![feature(slice_group_by)]
+
 use std::{fmt, sync::Arc};
+mod cgm_hash_results;
+mod cgm_runtime_requirement_results;
 mod dependencies_block;
 pub mod diagnostics;
-mod update_hash;
+mod unaffected_cache;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
 };
 mod fake_namespace_object;
 mod template;
@@ -287,6 +289,8 @@ impl From<&str> for ModuleType {
     }
   }
 }
+
+pub type ModuleLayer = String;
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;

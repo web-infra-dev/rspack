@@ -1,3 +1,6 @@
+import ResolveDataType from '../../types/resolve-data.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
 # ContextModuleFactory 钩子
 
 ## `afterResolve`
@@ -5,3 +8,13 @@
 `AsyncSeriesBailHook<[ResolveData]>`
 
 在请求的目录解析后调用。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>

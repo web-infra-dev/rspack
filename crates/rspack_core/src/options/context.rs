@@ -1,10 +1,7 @@
-use std::{
-  fmt,
-  ops::Deref,
-  path::{Path, PathBuf},
-};
+use std::{fmt, ops::Deref, path::Path};
 
 use rspack_loader_runner::ResourceData;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::atom::Atom;
 
 use crate::{contextify, parse_resource};
@@ -21,6 +18,16 @@ impl Context {
 
   pub fn as_str(&self) -> &str {
     self.as_ref()
+  }
+
+  pub fn as_path(&self) -> &Utf8Path {
+    Utf8Path::new(self.as_str())
+  }
+}
+
+impl AsRef<Utf8Path> for Context {
+  fn as_ref(&self) -> &Utf8Path {
+    Utf8Path::new(self.inner.as_str())
   }
 }
 
@@ -56,18 +63,18 @@ impl From<&str> for Context {
   }
 }
 
-impl From<PathBuf> for Context {
-  fn from(v: PathBuf) -> Self {
+impl From<Utf8PathBuf> for Context {
+  fn from(v: Utf8PathBuf) -> Self {
     Self {
-      inner: v.to_string_lossy().into(),
+      inner: v.as_str().into(),
     }
   }
 }
 
-impl From<&Path> for Context {
-  fn from(v: &Path) -> Self {
+impl From<&Utf8Path> for Context {
+  fn from(v: &Utf8Path) -> Self {
     Self {
-      inner: v.to_string_lossy().into(),
+      inner: v.as_str().into(),
     }
   }
 }
@@ -117,7 +124,7 @@ pub fn get_context(resource_data: &ResourceData) -> Context {
   {
     dirname.into()
   } else if let Some(parsed) = parse_resource(&resource_data.resource) {
-    dirname(&parsed.path.to_string_lossy()).into()
+    dirname(parsed.path.as_str()).into()
   } else {
     Context::from("")
   }

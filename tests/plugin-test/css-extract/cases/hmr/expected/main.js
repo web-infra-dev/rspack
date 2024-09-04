@@ -11,10 +11,8 @@ const noDocument = typeof document === "undefined";
 const { forEach } = Array.prototype;
 function debounce(fn, time) {
     let timeout = 0;
-    return function () {
-        // @ts-ignore
+    return function (...args) {
         const self = this;
-        const args = arguments;
         const functionCall = function functionCall() {
             return fn.apply(self, args);
         };
@@ -38,16 +36,14 @@ function getCurrentScriptUrl(moduleId) {
         }
         srcByModuleId[moduleId] = src;
     }
-    return function (fileMap) {
+    return (fileMap) => {
         if (!src) {
             return null;
         }
-        const splitResult = src.split(/([^\\/]+)\.js$/);
+        const splitResult = src.match(/([^\\/]+)\.js$/);
+        // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
         const filename = splitResult && splitResult[1];
-        if (!filename) {
-            return [src.replace(".js", ".css")];
-        }
-        if (!fileMap) {
+        if (!filename || !fileMap) {
             return [src.replace(".js", ".css")];
         }
         return fileMap.split(",").map(mapRule => {
@@ -57,13 +53,17 @@ function getCurrentScriptUrl(moduleId) {
     };
 }
 function updateCss(el, url) {
+    let normalizedUrl;
     if (!url) {
         if (!el.href) {
             return;
         }
-        url = el.href.split("?")[0];
+        normalizedUrl = el.href.split("?")[0];
     }
-    if (!isUrlRequest(url)) {
+    else {
+        normalizedUrl = url;
+    }
+    if (!isUrlRequest(normalizedUrl)) {
         return;
     }
     if (el.isLoaded === false) {
@@ -71,7 +71,7 @@ function updateCss(el, url) {
         // We're probably changing the same file more than once.
         return;
     }
-    if (!url || !(url.indexOf(".css") > -1)) {
+    if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
         return;
     }
     el.visited = true;
@@ -82,28 +82,36 @@ function updateCss(el, url) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode?.removeChild(el);
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
     });
     newEl.addEventListener("error", () => {
         if (newEl.isLoaded) {
             return;
         }
         newEl.isLoaded = true;
-        el.parentNode?.removeChild(el);
+        if (el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
     });
-    newEl.href = `${url}?${Date.now()}`;
+    newEl.href = `${normalizedUrl}?${Date.now()}`;
+    const parent = el.parentNode;
+    if (!parent) {
+        return;
+    }
     if (el.nextSibling) {
-        el.parentNode?.insertBefore(newEl, el.nextSibling);
+        parent.insertBefore(newEl, el.nextSibling);
     }
     else {
-        el.parentNode?.appendChild(newEl);
+        parent.appendChild(newEl);
     }
 }
 function getReloadUrl(href, src) {
     let ret = "";
-    href = (0, normalizeUrl_1.normalizeUrl)(href);
+    const normalizedHref = (0, normalizeUrl_1.normalizeUrl)(href);
     src.some(url => {
-        if (href.indexOf(src) > -1) {
+        if (normalizedHref.indexOf(src) > -1) {
             ret = url;
         }
     });
@@ -165,7 +173,8 @@ function cssReload(moduleId, options) {
             return;
         }
         if (reloaded) {
-            console.log("[HMR] css reload %s", src?.join(" "));
+            // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
+            console.log("[HMR] css reload %s", src && src.join(" "));
         }
         else {
             console.log("[HMR] Reload all css");
@@ -182,17 +191,19 @@ exports.cssReload = cssReload;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.normalizeUrl = void 0;
-function normalizeUrl(urlString) {
-    urlString = urlString.trim();
+function normalizeUrl(url) {
+    const urlString = url.trim();
     if (/^data:/i.test(urlString)) {
         return urlString;
     }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
+    const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
+    const components = urlString
+        .replace(new RegExp(protocol, "i"), "")
+        .split("/");
+    const host = components[0].toLowerCase().replace(/\.$/, "");
     components[0] = "";
-    var path = components
-        .reduce(function (accumulator, item) {
+    const path = components
+        .reduce((accumulator, item) => {
         switch (item) {
             case "..":
                 accumulator.pop();
@@ -211,16 +222,30 @@ exports.normalizeUrl = normalizeUrl;
 
 
 }),
-"./index.css?f410": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css?6ed0": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
-      // 
-      var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {"locals":false});
-      module.hot.dispose(cssReload);
-      module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
-(cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
+      (function() {
+        var localsJsonString = undefined;
+        // 
+        var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   
 
@@ -589,11 +614,10 @@ function hotCheck(applyOnUpdate) {
 					return waitForBlockingPromises(function () {
 						if (applyOnUpdate) {
 							return internalApply(applyOnUpdate);
-						} else {
-							return setStatus("ready").then(function () {
-								return updatedModules;
-							});
 						}
+						return setStatus("ready").then(function () {
+							return updatedModules;
+						});
 					});
 				});
 			});
@@ -772,14 +796,17 @@ __webpack_require__.r = function(exports) {
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
     var document = __webpack_require__.g.document;
     if (!scriptUrl && document) {
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }
-        }
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }
+      }
       }
     
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
@@ -1058,15 +1085,10 @@ function applyHandler(options) {
 	for (var moduleId in currentUpdate) {
 		if (__webpack_require__.o(currentUpdate, moduleId)) {
 			var newModuleFactory = currentUpdate[moduleId];
-			var result;
-			if (newModuleFactory) {
-				result = getAffectedModuleEffects(moduleId);
-			} else {
-				result = {
-					type: "disposed",
-					moduleId: moduleId
-				};
-			}
+			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
+				type: "disposed",
+				moduleId: moduleId
+			};
 			var abortError = false;
 			var doApply = false;
 			var doDispose = false;
@@ -1087,10 +1109,10 @@ function applyHandler(options) {
 					if (!options.ignoreDeclined)
 						abortError = new Error(
 							"Aborted because of declined dependency: " +
-								result.moduleId +
-								" in " +
-								result.parentId +
-								chainInfo
+							result.moduleId +
+							" in " +
+							result.parentId +
+							chainInfo
 						);
 					break;
 				case "unaccepted":
@@ -1156,7 +1178,7 @@ function applyHandler(options) {
 				errorHandler: module.hot._selfAccepted
 			});
 		}
-	}
+	} 
 
 	var moduleOutdatedDependencies;
 	return {
@@ -1176,7 +1198,7 @@ function applyHandler(options) {
 				var data = {};
 
 				// Call dispose handlers
-				var disposeHandlers = module.hot._disposeHandlers;
+				var disposeHandlers = module.hot._disposeHandlers; 
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
@@ -1217,7 +1239,7 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId]; 
 				}
 			}
 
@@ -1242,7 +1264,7 @@ function applyHandler(options) {
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
-								errorHandlers.push(errorHandler);
+								errorHandlers.push(errorHandler); 
 								dependenciesForCallbacks.push(dependency);
 							}
 						}
@@ -1303,17 +1325,17 @@ function applyHandler(options) {
 								moduleId: moduleId,
 								module: __webpack_require__.c[moduleId]
 							});
-						} catch (err2) {
+						} catch (err1) {
 							if (options.onErrored) {
 								options.onErrored({
 									type: "self-accept-error-handler-errored",
 									moduleId: moduleId,
-									error: err2,
+									error: err1,
 									originalError: err
 								});
 							}
 							if (!options.ignoreErrored) {
-								reportError(err2);
+								reportError(err1);
 								reportError(err);
 							}
 						}
@@ -1409,6 +1431,6 @@ __webpack_require__.hmrM = function () {
 // module cache are used so entry inlining is disabled
 // startup
 // Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.css?f410");
+var __webpack_exports__ = __webpack_require__("./index.css?6ed0");
 })()
 ;

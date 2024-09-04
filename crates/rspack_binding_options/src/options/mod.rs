@@ -8,7 +8,6 @@ mod raw_builtins;
 mod raw_cache;
 mod raw_devtool;
 mod raw_dynamic_entry;
-mod raw_entry;
 mod raw_experiments;
 mod raw_external;
 mod raw_mode;
@@ -24,7 +23,6 @@ pub use raw_builtins::*;
 pub use raw_cache::*;
 pub use raw_devtool::*;
 pub use raw_dynamic_entry::*;
-pub use raw_entry::*;
 pub use raw_experiments::*;
 pub use raw_external::*;
 pub use raw_mode::*;
@@ -82,6 +80,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
         },
         emit_asset: true,
       },
+      layers: value.experiments.layers,
       top_level_await: value.experiments.top_level_await,
       rspack_future: value.experiments.rspack_future.into(),
     };

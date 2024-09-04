@@ -50,6 +50,7 @@ import { StatsPrinter } from "./stats/StatsPrinter";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import MergeCaller from "./util/MergeCaller";
 import { createFakeCompilationDependencies } from "./util/fake";
+import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
@@ -141,6 +142,24 @@ export interface KnownNormalizedStatsOptions {
 	logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
 	loggingDebug: ((value: string) => boolean)[];
 	loggingTrace: boolean;
+	chunkModules: boolean;
+	chunkRelations: boolean;
+	reasons: boolean;
+	moduleAssets: boolean;
+	nestedModules: boolean;
+	source: boolean;
+	usedExports: boolean;
+	providedExports: boolean;
+	optimizationBailout: boolean;
+	depth: boolean;
+	assets: boolean;
+	chunks: boolean;
+	errors: boolean;
+	errorsCount: boolean;
+	hash: boolean;
+	modules: boolean;
+	warnings: boolean;
+	warningsCount: boolean;
 }
 
 export type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
@@ -197,6 +216,7 @@ export class Compilation {
 			void
 		>;
 		runtimeModule: RuntimeModule;
+		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
 	name?: string;
@@ -205,7 +225,7 @@ export class Compilation {
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
 	logging: Map<string, LogEntry[]>;
@@ -249,11 +269,14 @@ export class Compilation {
 			) => `Can't automatically convert plugin using Compilation.hooks.${name} to Compilation.hooks.processAssets because ${reason}.
 BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a single Compilation.hooks.processAssets hook.`;
 			const getOptions = (options: liteTapable.Options) => {
-				if (typeof options === "string") options = { name: options };
-				if (options.stage) {
+				const isString = typeof options === "string";
+				if (!isString && options.stage) {
 					throw new Error(errorMessage("it's using the 'stage' option"));
 				}
-				return { ...options, stage: stage };
+				return {
+					...(isString ? { name: options } : options),
+					stage: stage
+				};
 			};
 			return Object.freeze({
 				name,
@@ -325,6 +348,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"runtimeRequirements"
 			]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
+			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
 		};
 		this.compiler = compiler;
@@ -397,13 +421,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get modules(): ReadonlySet<Module> {
-		return memoizeValue(
-			() =>
-				new Set(
-					this.__internal__getModules().map(item =>
-						Module.__from_binding(item, this)
-					)
-				)
+		return new Set(
+			this.#inner.modules.map(module => Module.__from_binding(module, this))
 		);
 	}
 
@@ -429,6 +448,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		} as Map<string, Readonly<Chunk>>;
+	}
+
+	get entries(): Map<string, EntryData> {
+		return new Entries(this.#inner.entries);
 	}
 
 	#createCachedAssets() {
@@ -496,9 +519,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	createStatsOptions(
-		optionsOrPreset: StatsValue | undefined,
+		statsValue: StatsValue | undefined,
 		context: CreateStatsOptionsContext = {}
 	): NormalizedStatsOptions {
+		let optionsOrPreset = statsValue;
 		if (
 			typeof optionsOrPreset === "boolean" ||
 			typeof optionsOrPreset === "string"
@@ -538,8 +562,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	/**
 	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
-	 *
-	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
 	 */
 	updateAsset(
 		filename: string,
@@ -765,14 +787,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					warns = processWarningsHook.call(warns as any);
-					for (let i = 0; i < warns.length; i++) {
-						const warn = warns[i];
-						inner.pushDiagnostic(
-							JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-						);
-					}
-					return Reflect.apply(target, thisArg, warns);
+					return Reflect.apply(
+						target,
+						thisArg,
+						processWarningsHook.call(warns as any).map(warn => {
+							inner.pushDiagnostic(
+								JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+							);
+							return warn;
+						})
+					);
 				}
 			},
 			{
@@ -799,12 +823,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					warns = processWarningsHook.call(warns as any);
-					const warnList = warns.map(warn => {
-						return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
-					});
-					inner.spliceDiagnostic(0, 0, warnList);
-					return Reflect.apply(target, thisArg, warns);
+					const warnings = processWarningsHook.call(warns as any);
+					inner.spliceDiagnostic(
+						0,
+						0,
+						warnings.map(warn => {
+							return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
+						})
+					);
+					return Reflect.apply(target, thisArg, warnings);
 				}
 			},
 			{
@@ -857,12 +884,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!name) {
 			throw new TypeError("Compilation.getLogger(name) called without a name");
 		}
+
+		let logName = name;
 		let logEntries: LogEntry[] | undefined;
+
 		return new Logger(
 			(type, args) => {
-				if (typeof name === "function") {
-					name = name();
-					if (!name) {
+				if (typeof logName === "function") {
+					logName = logName();
+					if (!logName) {
 						throw new TypeError(
 							"Compilation.getLogger(name) called with a function not returning a name"
 						);
@@ -884,97 +914,98 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					args,
 					trace
 				};
-				if (this.hooks.log.call(name, logEntry) === undefined) {
+				if (this.hooks.log.call(logName, logEntry) === undefined) {
 					if (logEntry.type === LogType.profileEnd) {
 						if (typeof console.profileEnd === "function") {
-							console.profileEnd(`[${name}] ${logEntry.args[0]}`);
+							console.profileEnd(`[${logName}] ${logEntry.args[0]}`);
 						}
 					}
 					if (logEntries === undefined) {
-						logEntries = this.logging.get(name);
+						logEntries = this.logging.get(logName);
 						if (logEntries === undefined) {
 							logEntries = [];
-							this.logging.set(name, logEntries);
+							this.logging.set(logName, logEntries);
 						}
 					}
 					logEntries.push(logEntry);
 					if (logEntry.type === LogType.profile) {
 						if (typeof console.profile === "function") {
-							console.profile(`[${name}] ${logEntry.args[0]}`);
+							console.profile(`[${logName}] ${logEntry.args[0]}`);
 						}
 					}
 				}
 			},
 			(childName): Logger => {
-				if (typeof name === "function") {
-					if (typeof childName === "function") {
+				let normalizedChildName = childName;
+				if (typeof logName === "function") {
+					if (typeof normalizedChildName === "function") {
 						return this.getLogger(() => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
+							if (typeof logName === "function") {
+								logName = logName();
+								if (!logName) {
 									throw new TypeError(
 										"Compilation.getLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
+							if (typeof normalizedChildName === "function") {
+								normalizedChildName = normalizedChildName();
+								if (!normalizedChildName) {
 									throw new TypeError(
 										"Logger.getChildLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							return `${name}/${childName}`;
+							return `${logName}/${normalizedChildName}`;
 						});
 					}
 					return this.getLogger(() => {
-						if (typeof name === "function") {
-							name = name();
-							if (!name) {
+						if (typeof logName === "function") {
+							logName = logName();
+							if (!logName) {
 								throw new TypeError(
 									"Compilation.getLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${logName}/${normalizedChildName}`;
 					});
 				}
-				if (typeof childName === "function") {
+				if (typeof normalizedChildName === "function") {
 					return this.getLogger(() => {
-						if (typeof childName === "function") {
-							childName = childName();
-							if (!childName) {
+						if (typeof normalizedChildName === "function") {
+							normalizedChildName = normalizedChildName();
+							if (!normalizedChildName) {
 								throw new TypeError(
 									"Logger.getChildLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${logName}/${normalizedChildName}`;
 					});
 				}
-				return this.getLogger(`${name}/${childName}`);
+				return this.getLogger(`${logName}/${normalizedChildName}`);
 			}
 		);
 	}
 
 	fileDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getFileDependencies(),
+		() => this.#inner.dependencies().fileDependencies,
 		d => this.#inner.addFileDependencies(d)
 	);
 
 	contextDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getContextDependencies(),
+		() => this.#inner.dependencies().contextDependencies,
 		d => this.#inner.addContextDependencies(d)
 	);
 
 	missingDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getMissingDependencies(),
+		() => this.#inner.dependencies().missingDependencies,
 		d => this.#inner.addMissingDependencies(d)
 	);
 
 	buildDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getBuildDependencies(),
+		() => this.#inner.dependencies().buildDependencies,
 		d => this.#inner.addBuildDependencies(d)
 	);
 
@@ -1086,15 +1117,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * @internal
 	 */
-	__internal__getModules(): JsModule[] {
-		return this.#inner.getModules();
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
 	__internal__getChunks(): Chunk[] {
 		return this.#inner
 			.getChunks()
@@ -1129,4 +1151,85 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
 	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
+}
+
+export type EntryData = binding.JsEntryData;
+
+export class Entries implements Map<string, EntryData> {
+	#data: binding.JsEntries;
+
+	constructor(data: binding.JsEntries) {
+		this.#data = data;
+	}
+
+	clear(): void {
+		this.#data.clear();
+	}
+
+	forEach(
+		callback: (
+			value: binding.JsEntryData,
+			key: string,
+			map: Map<string, binding.JsEntryData>
+		) => void,
+		thisArg?: any
+	): void {
+		for (const [key, value] of this) {
+			callback.call(thisArg, value, key, this);
+		}
+	}
+
+	get size(): number {
+		return this.#data.size;
+	}
+
+	entries(): IterableIterator<[string, binding.JsEntryData]> {
+		const self = this;
+		const keys = this.keys();
+		return {
+			[Symbol.iterator]() {
+				return this;
+			},
+			next() {
+				const { done, value } = keys.next();
+				return {
+					done,
+					value: done ? (undefined as any) : [value, self.get(value)!]
+				};
+			}
+		};
+	}
+
+	values(): IterableIterator<binding.JsEntryData> {
+		return this.#data.values()[Symbol.iterator]();
+	}
+
+	[Symbol.iterator](): IterableIterator<[string, binding.JsEntryData]> {
+		return this.entries();
+	}
+
+	get [Symbol.toStringTag](): string {
+		return "Map";
+	}
+
+	has(key: string): boolean {
+		return this.#data.has(key);
+	}
+
+	set(key: string, value: EntryData): this {
+		this.#data.set(key, value);
+		return this;
+	}
+
+	delete(key: string): boolean {
+		return this.#data.delete(key);
+	}
+
+	get(key: string): EntryData | undefined {
+		return this.#data.get(key);
+	}
+
+	keys(): IterableIterator<string> {
+		return this.#data.keys()[Symbol.iterator]();
+	}
 }

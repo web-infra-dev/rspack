@@ -13,7 +13,7 @@ use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
-  JavascriptParserOptions, ModuleIdentifier, ResourceData,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
@@ -223,6 +223,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
+  pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
   pub(crate) is_esm: bool,
@@ -257,6 +258,7 @@ impl<'parser> JavascriptParser<'parser> {
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
@@ -291,7 +293,12 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      if javascript_options.import_meta {
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      } else {
+        plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
+      }
+
       plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
       plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
     }
@@ -377,6 +384,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       module_type,
+      module_layer,
       parser_exports_state,
       enter_call: 0,
       worker_index: 0,
@@ -407,6 +415,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn set_asi_position(&mut self, pos: BytePos) -> bool {
+    self.semicolons.insert(pos)
+  }
+
   pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {
     self.semicolons.remove(&pos)
   }
@@ -419,16 +431,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
-    let Some(id) = self.definitions_db.get(self.definitions, name) else {
-      return None;
-    };
+    let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_mut_variable(id))
   }
 
   pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
-    let Some(id) = self.definitions_db.get(self.definitions, name) else {
-      return None;
-    };
+    let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
 
@@ -565,16 +573,12 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
-        let Some(root_name) = expr.callee.get_root_name() else {
-          return None;
-        };
-        let Some(FreeInfo {
+        let root_name = expr.callee.get_root_name()?;
+        let FreeInfo {
           name: resolved_root,
           info: root_info,
-        }) = self.get_free_info_from_variable(&root_name)
-        else {
-          return None;
-        };
+        } = self.get_free_info_from_variable(&root_name)?;
+
         let callee_name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
@@ -594,16 +598,13 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let Some(root_name) = object.get_root_name() else {
-          return None;
-        };
-        let Some(FreeInfo {
+        let root_name = object.get_root_name()?;
+
+        let FreeInfo {
           name: resolved_root,
           info: root_info,
-        }) = self.get_free_info_from_variable(&root_name)
-        else {
-          return None;
-        };
+        } = self.get_free_info_from_variable(&root_name)?;
+
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
@@ -958,6 +959,7 @@ impl<'parser> JavascriptParser<'parser> {
           eval::eval_call_expression(
             parser,
             &CallExpr {
+              ctxt: call.ctxt,
               span: call.span,
               callee: call.callee.clone().as_callee(),
               args: call.args.clone(),

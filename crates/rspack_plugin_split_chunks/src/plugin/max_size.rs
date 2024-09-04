@@ -1,6 +1,6 @@
-use std::borrow::Cow;
+use std::sync::LazyLock;
+use std::{borrow::Cow, hash::Hash};
 
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::UkeyMap;
@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, identifier::make_paths_relative};
+use rspack_util::identifier::make_paths_relative;
 
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
@@ -53,17 +53,17 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
 
 fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   let mut filename_hash = RspackHash::from(&options.output);
-  filename.dyn_hash(&mut filename_hash);
+  filename.hash(&mut filename_hash);
   let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()
 }
 
-static REPLACE_MODULE_IDENTIFIER_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("regexp init failed"));
-static REPLACE_RELATIVE_PREFIX_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
-static REPLACE_ILLEGEL_LETTER_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
+static REPLACE_MODULE_IDENTIFIER_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("regexp init failed"));
+static REPLACE_RELATIVE_PREFIX_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
+static REPLACE_ILLEGEL_LETTER_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
 
 fn request_to_id(req: &str) -> String {
   let mut res = REPLACE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();

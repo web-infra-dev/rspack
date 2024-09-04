@@ -8,12 +8,11 @@ use std::{
   },
 };
 
-use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
@@ -21,28 +20,23 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
+use rspack_util::{
+  ext::DynHash,
+  source_map::{ModuleSourceMapConfig, SourceMapKind},
+};
 use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier, BoxLoader,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult,
+  Compilation, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
+  RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-
-bitflags! {
-  #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-  pub struct ModuleSyntax: u8 {
-    const COMMONJS = 1 << 0;
-    const ESM = 1 << 1;
-  }
-}
 
 #[derive(Debug, Clone)]
 pub enum ModuleIssuer {
@@ -112,6 +106,8 @@ pub struct NormalModule {
   raw_request: String,
   /// The resolved module type of a module
   module_type: ModuleType,
+  /// Layer of the module
+  layer: Option<ModuleLayer>,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
@@ -172,8 +168,14 @@ impl NormalModuleSource {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  fn create_id<'request>(module_type: &ModuleType, request: &'request str) -> Cow<'request, str> {
-    if *module_type == ModuleType::JsAuto {
+  fn create_id<'request>(
+    module_type: &ModuleType,
+    layer: Option<&ModuleLayer>,
+    request: &'request str,
+  ) -> Cow<'request, str> {
+    if let Some(layer) = layer {
+      format!("{module_type}|{request}|{layer}").into()
+    } else if *module_type == ModuleType::JsAuto {
       request.into()
     } else {
       format!("{module_type}|{request}").into()
@@ -186,6 +188,7 @@ impl NormalModule {
     user_request: String,
     raw_request: String,
     module_type: impl Into<ModuleType>,
+    layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<ParserOptions>,
     generator_options: Option<GeneratorOptions>,
@@ -195,7 +198,7 @@ impl NormalModule {
     loaders: Vec<BoxLoader>,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, &request);
+    let id = Self::create_id(&module_type, layer.as_ref(), &request);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -205,6 +208,7 @@ impl NormalModule {
       user_request,
       raw_request,
       module_type,
+      layer,
       parser_and_generator,
       parser_options,
       generator_options,
@@ -293,6 +297,27 @@ impl NormalModule {
   ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
     &mut self.presentational_dependencies
   }
+
+  fn init_build_hash(
+    &self,
+    output_options: &OutputOptions,
+    build_meta: &BuildMeta,
+  ) -> RspackHashDigest {
+    let mut hasher = RspackHash::from(output_options);
+    "source".hash(&mut hasher);
+    match &self.source {
+      NormalModuleSource::Unbuild => panic!("NormalModule should already build"),
+      NormalModuleSource::BuiltSucceed(s) => s.hash(&mut hasher),
+      NormalModuleSource::BuiltFailed(e) => e.message().hash(&mut hasher),
+    }
+    "meta".hash(&mut hasher);
+    build_meta.hash(&mut hasher);
+    hasher.digest(&output_options.hash_digest)
+  }
+
+  pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
+    self.generator_options.as_ref()
+  }
 }
 
 impl Identifiable for NormalModule {
@@ -317,10 +342,6 @@ impl DependenciesBlock for NormalModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
-  }
-
-  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
-    self.get_presentational_dependencies()
   }
 }
 
@@ -411,13 +432,12 @@ impl Module for NormalModule {
           .with_hide_stack(hide_stack);
         self.source = NormalModuleSource::BuiltFailed(d.clone());
         self.add_diagnostic(d);
-        let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-        self.update_hash(&mut hasher);
-        build_meta.hash(&mut hasher);
-        build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+
+        build_info.hash =
+          Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
         return Ok(BuildResult {
           build_info,
-          build_meta: Default::default(),
+          build_meta,
           dependencies: Vec::new(),
           blocks: Vec::new(),
           optimization_bailouts: vec![],
@@ -446,11 +466,8 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-      self.update_hash(&mut hasher);
-      build_meta.hash(&mut hasher);
-
-      build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+      build_info.hash =
+        Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
       build_info.cacheable = loader_result.cacheable;
       build_info.file_dependencies = loader_result.file_dependencies;
       build_info.context_dependencies = loader_result.context_dependencies;
@@ -490,6 +507,7 @@ impl Module for NormalModule {
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
+        module_layer: self.layer.as_ref(),
         module_user_request: &self.user_request,
         module_source_map_kind: *self.get_source_map_kind(),
         loaders: &self.loaders,
@@ -522,11 +540,8 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-    build_meta.hash(&mut hasher);
-
-    build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+    build_info.hash =
+      Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
 
     Ok(BuildResult {
       build_info,
@@ -537,6 +552,7 @@ impl Module for NormalModule {
     })
   }
 
+  #[tracing::instrument(name = "NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -562,7 +578,6 @@ impl Module for NormalModule {
           self,
           &mut GenerateContext {
             compilation,
-            module_generator_options: self.generator_options.as_ref(),
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
@@ -605,6 +620,28 @@ impl Module for NormalModule {
     }
   }
 
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    self
+      .build_info
+      .as_ref()
+      .expect("should update_hash after build")
+      .hash
+      .dyn_hash(hasher);
+    // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
+    if matches!(&self.source, NormalModuleSource::BuiltSucceed(_)) {
+      self
+        .parser_and_generator
+        .update_hash(self, hasher, compilation, runtime)?;
+    }
+    module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
+  }
+
   fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
     let resource = self.resource_data.resource.as_str();
@@ -617,8 +654,14 @@ impl Module for NormalModule {
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/NormalModule.js#L362
-    Some(Cow::Owned(contextify(options.context, self.user_request())))
+    let mut ident = String::new();
+    if let Some(layer) = &self.layer {
+      ident += "(";
+      ident += layer;
+      ident += ")/";
+    }
+    ident += &contextify(options.context, self.user_request());
+    Some(Cow::Owned(ident))
   }
 
   fn get_resolve_options(&self) -> Option<Box<Resolve>> {
@@ -647,6 +690,10 @@ impl Module for NormalModule {
 
   fn get_context(&self) -> Option<Box<Context>> {
     Some(self.context.clone())
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 
   // Port from https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1120
@@ -725,18 +772,10 @@ impl Diagnosable for NormalModule {
   }
 }
 
-impl PartialEq for NormalModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for NormalModule {}
-
 impl NormalModule {
   fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
     if content.is_buffer() {
-      return Ok(RawSource::Buffer(content.into_bytes()).boxed());
+      return Ok(RawSource::from(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
@@ -766,14 +805,5 @@ impl NormalModule {
       .lock()
       .expect("should be able to lock diagnostics")
       .clear()
-  }
-}
-
-impl Hash for NormalModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__NormalModule".hash(state);
-    if let Some(original_source) = &self.original_source {
-      original_source.hash(state);
-    }
   }
 }

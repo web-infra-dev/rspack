@@ -1,13 +1,14 @@
 import type {
 	JsCodegenerationResult,
-	JsCodegenerationResults,
 	JsCreateData,
 	JsFactoryMeta,
-	JsModule
+	JsModule,
+	ModuleDTO
 } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
+import { DependenciesBlock } from "./DependenciesBlock";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -51,7 +52,7 @@ export type ContextModuleFactoryAfterResolveResult =
 	  };
 
 export class Module {
-	#inner: JsModule;
+	#inner: JsModule | ModuleDTO;
 	#originalSource?: Source;
 
 	context?: Readonly<string>;
@@ -60,6 +61,7 @@ export class Module {
 	userRequest?: Readonly<string>;
 	rawRequest?: Readonly<string>;
 	type: string;
+	layer: null | string;
 
 	factoryMeta?: Readonly<JsFactoryMeta>;
 	/**
@@ -76,13 +78,17 @@ export class Module {
 	 */
 	buildMeta: Record<string, any>;
 
-	static __from_binding(module: JsModule, compilation?: Compilation) {
+	static __from_binding(
+		module: JsModule | ModuleDTO,
+		compilation?: Compilation
+	) {
 		return new Module(module, compilation);
 	}
 
-	constructor(module: JsModule, compilation?: Compilation) {
+	constructor(module: JsModule | ModuleDTO, compilation?: Compilation) {
 		this.#inner = module;
 		this.type = module.type;
+		this.layer = module.layer ?? null;
 		this.context = module.context;
 		this.resource = module.resource;
 		this.request = module.request;
@@ -118,6 +124,20 @@ export class Module {
 		}
 		return null;
 	}
+
+	get blocks(): DependenciesBlock[] {
+		if ("blocks" in this.#inner) {
+			return this.#inner.blocks.map(b => new DependenciesBlock(b));
+		}
+		return [];
+	}
+
+	size(type?: string): number {
+		if ("size" in this.#inner) {
+			return this.#inner.size(type);
+		}
+		return 0;
+	}
 }
 
 export class CodeGenerationResult {
@@ -132,6 +152,4 @@ export class CodeGenerationResult {
 	}
 }
 
-export class CodeGenerationResults {
-	constructor(_result: JsCodegenerationResults) {}
-}
+export class CodeGenerationResults {}

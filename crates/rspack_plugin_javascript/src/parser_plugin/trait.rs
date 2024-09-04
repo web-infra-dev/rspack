@@ -17,7 +17,7 @@ type KeepRight = bool;
 pub trait JavascriptParserPlugin {
   /// Return:
   /// - `Some(true)` signifies the termination of the current
-  /// statement's visit during the pre-walk phase.
+  ///   statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
   fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
     None

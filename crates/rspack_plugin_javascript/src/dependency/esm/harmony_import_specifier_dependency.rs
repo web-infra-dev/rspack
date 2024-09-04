@@ -1,15 +1,16 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportPresenceMode,
-  ExportsType, ExtendedReferencedExport, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, RealDependencyLocation, ReferencedExport,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{common::Span, ecma::atoms::Atom};
+use swc_core::ecma::atoms::Atom;
 
 use super::harmony_import_dependency::harmony_import_dependency_get_linking_error;
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -22,17 +23,16 @@ pub struct HarmonyImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  start: u32,
-  end: u32,
+  range: RealDependencyLocation,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
-  pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
-  span_for_on_usage_search: Span,
   export_presence_mode: ExportPresenceMode,
+  attributes: Option<ImportAttributes>,
+  pub namespace_object_as_context: bool,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -43,16 +43,16 @@ impl HarmonyImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    start: u32,
-    end: u32,
+    range: RealDependencyLocation,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<HashSet<Atom>>,
-    span_for_on_usage_search: Span,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       request,
@@ -60,8 +60,7 @@ impl HarmonyImportSpecifierDependency {
       source_order,
       shorthand,
       asi_safe,
-      start,
-      end,
+      range,
       ids,
       call,
       direct_import,
@@ -69,8 +68,8 @@ impl HarmonyImportSpecifierDependency {
       used_by_exports: None,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
+      attributes,
       resource_identifier,
-      span_for_on_usage_search,
     }
   }
 
@@ -142,9 +141,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       // TODO do this by PureExpressionDependency.
       let value = format!("/* \"{}\" unused */null", self.request);
       if self.shorthand {
-        source.insert(self.end, &format!(": {value}"), None);
+        source.insert(self.range.end, &format!(": {value}"), None);
       } else {
-        source.replace(self.start, self.end, &value, None)
+        source.replace(self.range.start, self.range.end, &value, None)
       }
       return;
     }
@@ -201,14 +200,22 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     };
 
     if self.shorthand {
-      source.insert(self.end, format!(": {export_expr}").as_str(), None);
+      source.insert(self.range.end, format!(": {export_expr}").as_str(), None);
     } else {
-      source.replace(self.start, self.end, export_expr.as_str(), None);
+      source.replace(self.range.start, self.range.end, export_expr.as_str(), None);
     }
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 
@@ -217,18 +224,23 @@ impl Dependency for HarmonyImportSpecifierDependency {
     &self.id
   }
 
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
+  fn span(&self) -> Option<rspack_core::ErrorSpan> {
+    Some(rspack_core::ErrorSpan::new(
+      self.range.start,
+      self.range.end,
+    ))
+  }
+
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
   }
-  fn span(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(rspack_core::ErrorSpan {
-      start: self.start,
-      end: self.end,
-    })
-  }
 
-  fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(self.span_for_on_usage_search.into())
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
   }
 
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
@@ -261,6 +273,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
+  #[tracing::instrument(skip_all)]
   fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
@@ -322,6 +335,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
       ids.remove(ids.len() - 1);
     }
     self.get_referenced_exports_in_destructuring(Some(&ids))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 

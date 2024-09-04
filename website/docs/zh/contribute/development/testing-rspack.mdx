@@ -13,6 +13,8 @@ Rspack 的测试用例包括如下：
 - 或在 `packages/rspack-test-tools` 目录下运行 `npm run test`。
 - 如需更新 snapshot，在 `packages/rspack-test-tools` 目录下运行 `npm run test -- -u`。
 - 如需传入特定 jest cli 参数，在 `packages/rspack-test-tools` 目录下运行 `npm run test -- {args}`。
+- 如需过滤特定测试用例，在 `packages/rspack-test-tools` 目录下运行 `npm run test  -- -t path-of-spec`。
+  - 如 `npm run test -- -t config/asset` 即可仅运行 `packages/rspack-test-tools/configCases/asset` 文件夹下的用例（config 会自动映射到 configCases，其他文件夹类似）。
 
 ## 目录规范
 
@@ -199,7 +201,7 @@ Snapshot 结构如下：
 
 用例的编写与常规的 rspack 项目相同，运行后会将控制台输出信息生成快照并存放在 `rspack-test-tools/tests/__snapshots__/StatsOutput.test.js.snap` 中。
 
-:::info Tip
+:::tip
 由于部分 StatsOutput 测试用例包含 hash。因此当你修改了产物代码时，请通过 `-u` 参数刷新这些用例的快照。
 :::
 

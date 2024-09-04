@@ -9,59 +9,66 @@
  */
 import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-import type Watchpack from "watchpack";
-import { Compilation, type CompilationParams } from "./Compilation";
-import { ContextModuleFactory } from "./ContextModuleFactory";
-import { ThreadsafeWritableNodeFS } from "./FileSystem";
-import { RuleSetCompiler } from "./RuleSetCompiler";
-import { Stats } from "./Stats";
-import {
-	type EntryNormalized,
-	type OutputNormalized,
-	type RspackOptionsNormalized,
-	type RspackPluginInstance,
-	getRawOptions
-} from "./config";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import { rspack } from "./index";
-import Cache = require("./lib/Cache");
-import CacheFacade = require("./lib/CacheFacade");
-import type { Source } from "webpack-sources";
 
-import { Chunk } from "./Chunk";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
-import type { FileSystemInfoEntry } from "./FileSystemInfo";
-import {
-	CodeGenerationResult,
-	type ContextModuleFactoryAfterResolveResult,
-	Module,
-	type ResolveData
-} from "./Module";
-import {
-	type NormalModuleCreateData,
-	NormalModuleFactory
-} from "./NormalModuleFactory";
-import { ResolverFactory } from "./ResolverFactory";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import Cache from "./lib/Cache";
+import CacheFacade from "./lib/CacheFacade";
+
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
-import { Watching } from "./Watching";
 import {
+	HtmlRspackPlugin,
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin
 } from "./builtin-plugin";
+
+import { Chunk } from "./Chunk";
+import { Compilation } from "./Compilation";
+import { ContextModuleFactory } from "./ContextModuleFactory";
+import { ThreadsafeWritableNodeFS } from "./FileSystem";
+import { CodeGenerationResult, Module } from "./Module";
+import { NormalModuleFactory } from "./NormalModuleFactory";
+import { ResolverFactory } from "./ResolverFactory";
+import { RuleSetCompiler } from "./RuleSetCompiler";
+import { Stats } from "./Stats";
+import { Watching } from "./Watching";
+import { getRawOptions } from "./config";
+import { rspack } from "./index";
+import { unsupported } from "./util";
+
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { Logger } from "./logging/Logger";
-import { unsupported } from "./util";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { createHash } from "./util/createHash";
-import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
+
+import type Watchpack from "watchpack";
+import type { Source } from "webpack-sources";
+import type { CompilationParams } from "./Compilation";
+import type { FileSystemInfoEntry } from "./FileSystemInfo";
+import type {
+	ContextModuleFactoryAfterResolveResult,
+	ResolveData
+} from "./Module";
+import type { NormalModuleCreateData } from "./NormalModuleFactory";
+import type {
+	EntryNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized,
+	RspackPluginInstance
+} from "./config";
+import type {
+	InputFileSystem,
+	OutputFileSystem,
+	WatchFileSystem
+} from "./util/fs";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -120,6 +127,7 @@ class Compiler {
 	};
 
 	webpack: typeof rspack;
+	rspack: typeof rspack;
 	name?: string;
 	parentCompilation?: Compilation;
 	root: Compiler;
@@ -131,7 +139,7 @@ class Compiler {
 	infrastructureLogger: any;
 	watching?: Watching;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	intermediateFileSystem: any;
 	outputFileSystem: OutputFileSystem | null;
 	watchFileSystem: WatchFileSystem | null;
@@ -208,6 +216,7 @@ class Compiler {
 		};
 
 		this.webpack = rspack;
+		this.rspack = rspack;
 		this.root = this;
 		this.outputPath = "";
 
@@ -279,7 +288,7 @@ class Compiler {
 		return new CacheFacade(
 			this.cache,
 			`${this.compilerPath}${name}`,
-			this.options.output.hashFunction
+			this.options.output.hashFunction as string
 		);
 	}
 
@@ -293,75 +302,81 @@ class Compiler {
 				"Compiler.getInfrastructureLogger(name) called without a name"
 			);
 		}
+
+		let normalizedName = name;
 		return new Logger(
 			(type, args) => {
-				if (typeof name === "function") {
-					name = name();
-					if (!name) {
+				if (typeof normalizedName === "function") {
+					normalizedName = normalizedName();
+					if (!normalizedName) {
 						throw new TypeError(
 							"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
 						);
 					}
 				} else {
 					if (
-						this.hooks.infrastructureLog.call(name, type, args) === undefined
+						this.hooks.infrastructureLog.call(normalizedName, type, args) ===
+						undefined
 					) {
 						if (this.infrastructureLogger !== undefined) {
-							this.infrastructureLogger(name, type, args);
+							this.infrastructureLogger(normalizedName, type, args);
 						}
 					}
 				}
 			},
 			(childName): any => {
-				if (typeof name === "function") {
-					if (typeof childName === "function") {
+				let normalizedChildName = childName;
+				if (typeof normalizedName === "function") {
+					if (typeof normalizedChildName === "function") {
 						// @ts-expect-error
 						return this.getInfrastructureLogger(_ => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
+							if (typeof normalizedName === "function") {
+								normalizedName = normalizedName();
+								if (!normalizedName) {
 									throw new TypeError(
 										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
+							if (typeof normalizedChildName === "function") {
+								normalizedChildName = normalizedChildName();
+								if (!normalizedChildName) {
 									throw new TypeError(
 										"Logger.getChildLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							return `${name}/${childName}`;
+							return `${normalizedName}/${normalizedChildName}`;
 						});
 					}
 					return this.getInfrastructureLogger(() => {
-						if (typeof name === "function") {
-							name = name();
-							if (!name) {
+						if (typeof normalizedName === "function") {
+							normalizedName = normalizedName();
+							if (!normalizedName) {
 								throw new TypeError(
 									"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${normalizedName}/${normalizedChildName}`;
 					});
 				}
-				if (typeof childName === "function") {
+				if (typeof normalizedChildName === "function") {
 					return this.getInfrastructureLogger(() => {
-						if (typeof childName === "function") {
-							childName = childName();
-							if (!childName) {
+						if (typeof normalizedChildName === "function") {
+							normalizedChildName = normalizedChildName();
+							if (!normalizedChildName) {
 								throw new TypeError(
 									"Logger.getChildLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${normalizedName}/${normalizedChildName}`;
 					});
 				}
-				return this.getInfrastructureLogger(`${name}/${childName}`);
+				return this.getInfrastructureLogger(
+					`${normalizedName}/${normalizedChildName}`
+				);
 			}
 		);
 	}
@@ -498,9 +513,7 @@ class Compiler {
 	}
 
 	purgeInputFileSystem() {
-		if (this.inputFileSystem && this.inputFileSystem.purge) {
-			this.inputFileSystem.purge();
-		}
+		this.inputFileSystem?.purge?.();
 	}
 
 	/**
@@ -876,7 +889,7 @@ class Compiler {
 								return cached.exports;
 							}
 
-							var execOptions = {
+							const execOptions = {
 								id,
 								module: {
 									id,
@@ -1001,6 +1014,11 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilationAfterProcessAssets,
 				() => this.#compilation!.hooks.afterProcessAssets,
 				queried => () => queried.call(this.#compilation!.assets)
+			),
+			registerCompilationSealTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationSeal,
+				() => this.#compilation!.hooks.seal,
+				queried => () => queried.call()
 			),
 			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterSeal,
@@ -1182,6 +1200,92 @@ class Compiler {
 					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
 					const digestResult = hash.digest(this.options.output.hashDigest);
 					return Buffer.from(digestResult);
+				}
+			),
+			registerHtmlPluginBeforeAssetTagGenerationTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.beforeAssetTagGeneration,
+					queried => async (data: binding.JsBeforeAssetTagGenerationData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTags,
+				queried => async (data: binding.JsAlterAssetTagsData) => {
+					return await queried.promise(data);
+				}
+			),
+			registerHtmlPluginAlterAssetTagGroupsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTagGroups,
+				queried => async (data: binding.JsAlterAssetTagGroupsData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterTemplateExecutionTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.afterTemplateExecution,
+					queried => async (data: binding.JsAfterTemplateExecutionData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).beforeEmit,
+				queried => async (data: binding.JsBeforeEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAfterEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).afterEmit,
+				queried => async (data: binding.JsAfterEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
 				}
 			)
 		};

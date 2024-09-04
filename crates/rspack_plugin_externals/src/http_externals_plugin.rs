@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 use rspack_core::{
   BoxPlugin, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue, PluginExt,
@@ -6,12 +7,12 @@ use rspack_core::{
 
 use crate::ExternalsPlugin;
 
-static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
-static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
-static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
+static EXTERNAL_HTTP_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
+static EXTERNAL_HTTP_STD_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
+static EXTERNAL_CSS_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
 pub fn http_externals_rspack_plugin(css: bool, web_async: bool) -> BoxPlugin {
   if web_async {

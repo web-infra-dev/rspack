@@ -1,9 +1,9 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::{fmt, path::Path, sync::Arc};
 
 use async_trait::async_trait;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
@@ -21,7 +21,7 @@ use super::{
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
@@ -34,7 +34,7 @@ pub struct ConsumeOptions {
   pub eager: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ConsumeVersion {
   Version(String),
   False,
@@ -49,12 +49,12 @@ impl fmt::Display for ConsumeVersion {
   }
 }
 
-static RELATIVE_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
-static ABSOLUTE_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
-static PACKAGE_NAME: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
+static RELATIVE_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
+static ABSOLUTE_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
+static PACKAGE_NAME: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
 
 #[derive(Debug)]
 struct MatchedConsumes {
@@ -79,8 +79,10 @@ fn resolve_matched_configs(
         compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
-      resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());
-      compilation.file_dependencies.insert(resource.path);
+      resolved.insert(resource.path.as_str().to_string(), config.clone());
+      compilation
+        .file_dependencies
+        .insert(resource.path.into_std_path_buf());
     } else if ABSOLUTE_REQUEST.is_match(request) {
       resolved.insert(request.to_owned(), config.clone());
     } else if request.ends_with('/') {
@@ -117,9 +119,7 @@ fn get_required_version_from_description_file(
   data: serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {
-  let Some(data) = data.as_object() else {
-    return None;
-  };
+  let data = data.as_object()?;
   let get_version_from_dependencies = |dependencies: &str| {
     data
       .get(dependencies)
@@ -284,7 +284,7 @@ impl ConsumeSharedPlugin {
           .ok()
       })
       .and_then(|i| match i {
-        ResolveResult::Resource(r) => Some(r.path.to_string_lossy().into_owned()),
+        ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
         ResolveResult::Ignored => None,
       });
     let required_version = self

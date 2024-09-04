@@ -1,5 +1,14 @@
-const { version: rspackVersion, webpackVersion } = require("../package.json");
-export { rspackVersion, webpackVersion as version };
+import {
+	version as _version,
+	webpackVersion as _webpackVersion
+	// @ts-ignore 'package.json' is not under 'rootDir'
+} from "../package.json";
+
+// this is a hack to be compatible with plugin which detect webpack's version
+const rspackVersion = _version as string;
+const version = _webpackVersion as string;
+
+export { rspackVersion, version };
 
 export type {
 	Asset,
@@ -28,8 +37,7 @@ export type {
 	StatsChunk,
 	StatsCompilation,
 	StatsError,
-	StatsModule,
-	StatsWarnings
+	StatsModule
 } from "./Stats";
 export { Stats } from "./Stats";
 
@@ -68,6 +76,9 @@ export const config: Config = {
 
 export type * from "./config";
 
+import { ValidationError } from "./util/validate";
+export { ValidationError };
+
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
@@ -90,6 +101,7 @@ export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
+export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
@@ -240,7 +252,6 @@ export type {
 } from "./builtin-plugin";
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
-export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
@@ -260,10 +271,10 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 
-import * as lightningcss from "./builtin-loader/lightningcss/index";
-
-export { type LoaderOptions as LightningcssLoaderOptions } from "./builtin-loader/lightningcss/index";
-export { lightningcss };
+export {
+	type LoaderOptions as LightningcssLoaderOptions,
+	type FeatureOptions as LightningcssFeatureOptions
+} from "./builtin-loader/lightningcss/index";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";

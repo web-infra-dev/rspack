@@ -180,7 +180,7 @@ export interface ITestEnv {
 	[key: string]: unknown;
 }
 
-export const enum EDocumentType {
+export enum EDocumentType {
 	Fake = "fake",
 	JSDOM = "jsdom"
 }
@@ -191,7 +191,10 @@ export type TTestConfig<T extends ECompilerType> = {
 	noTest?: boolean;
 	beforeExecute?: () => void;
 	afterExecute?: () => void;
-	moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope;
+	moduleScope?: (
+		ms: IBasicModuleScope,
+		stats?: TCompilerStatsCompilation<T>
+	) => IBasicModuleScope;
 	findBundle?: (
 		index: number,
 		options: TCompilerOptions<T>

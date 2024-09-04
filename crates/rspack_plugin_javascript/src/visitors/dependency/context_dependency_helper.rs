@@ -1,7 +1,7 @@
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::Severity;
@@ -35,7 +35,7 @@ pub fn create_context_dependency(
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
-        data.path.to_string_lossy().to_string(),
+        data.path.as_str().to_string(),
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
@@ -135,7 +135,7 @@ pub fn create_context_dependency(
     let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
-        data.path.to_string_lossy().to_string(),
+        data.path.as_str().to_string(),
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
@@ -224,7 +224,7 @@ pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
   }
 }
 
-static META_REG: Lazy<Regex> = Lazy::new(|| {
+static META_REG: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
 });
 

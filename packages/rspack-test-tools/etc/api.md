@@ -12,8 +12,7 @@ import type { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
 import type EventEmitter from 'node:events';
-import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../type';
-import { IBasicGlobalContext as IBasicGlobalContext_3 } from '../../type';
+import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
 import type { RspackOptions } from '@rspack/core';
@@ -24,7 +23,6 @@ import type { Stats as Stats_2 } from 'webpack';
 import type { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
 import type { StatsError } from '@rspack/core';
-import type { StatsWarnings } from '@rspack/core';
 import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
 import type { WebpackOptionsNormalized } from 'webpack';
 
@@ -145,7 +143,7 @@ export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(index: number, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
-    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[] | undefined;
+    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
     // (undocumented)
     static overrideOptions<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): void;
 }
@@ -181,6 +179,9 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
+export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], documentType: EDocumentType): void;
+
+// @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
@@ -197,6 +198,9 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 
 // @public (undocumented)
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
+
+// @public (undocumented)
+export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -235,6 +239,7 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
     dist?: string;
     absoluteDist?: boolean;
     describe?: jest.Describe;
+    exclude?: RegExp[];
 }): void;
 
 // @public (undocumented)
@@ -324,7 +329,7 @@ export enum ECompilerType {
 }
 
 // @public (undocumented)
-export const enum EDocumentType {
+export enum EDocumentType {
     // (undocumented)
     Fake = "fake",
     // (undocumented)
@@ -376,7 +381,7 @@ export class FakeDocumentWebRunner<T extends ECompilerType = ECompilerType.Rspac
     // (undocumented)
     protected createBaseModuleScope(): IBasicModuleScope_2;
     // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext_3;
+    protected createGlobalContext(): IBasicGlobalContext_2;
     // (undocumented)
     protected createJsonRequirer(): TRunnerRequirer;
     // (undocumented)
@@ -452,6 +457,19 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hookOptions: IHookProcessorOptions<T>;
+}
+
+// @public (undocumented)
+export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
+    constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
+    // (undocumented)
+    afterAll(context: ITestContext): Promise<void>;
+    // (undocumented)
+    static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    // (undocumented)
+    protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
 // @public (undocumented)
@@ -735,6 +753,14 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
 }
 
 // @public (undocumented)
+export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    documentType?: EDocumentType;
+    // (undocumented)
+    target: TCompilerOptions<T>["target"];
+}
+
+// @public (undocumented)
 export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
     target: TCompilerOptions<T>["target"];
@@ -1009,6 +1035,8 @@ export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiT
 // @public (undocumented)
 interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
     // (undocumented)
+    isWeb: boolean;
+    // (undocumented)
     stepName: string;
 }
 
@@ -1115,7 +1143,7 @@ export function replaceModuleArgument(raw: string): string;
 export function replacePaths(input: string): any;
 
 // @public (undocumented)
-export function replaceRuntimeModuleName(raw: string): string;
+export function replaceRuntimeModuleName(name: string): string;
 
 // @public (undocumented)
 export class RspackDiffConfigPlugin implements RspackPluginInstance {
@@ -1424,7 +1452,7 @@ export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.R
 // @public (undocumented)
 type TStatsDiagnostics = {
     errors: StatsError[];
-    warnings: StatsWarnings[];
+    warnings: StatsError[];
 };
 
 // @public (undocumented)
@@ -1434,7 +1462,7 @@ export type TTestConfig<T extends ECompilerType> = {
     noTest?: boolean;
     beforeExecute?: () => void;
     afterExecute?: () => void;
-    moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope;
+    moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
     findBundle?: (index: number, options: TCompilerOptions<T>) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
@@ -1480,12 +1508,12 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
 }
 
 // @public (undocumented)
-export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
+export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends FakeDocumentWebRunner<T> {
     constructor(_watchOptions: IWatchRunnerOptions<T>);
     // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext_2;
-    // (undocumented)
     protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
     // (undocumented)
     protected _watchOptions: IWatchRunnerOptions<T>;
 }
@@ -1520,7 +1548,6 @@ export class WebpackDiffConfigPlugin {
 
 // @public (undocumented)
 export class WebpackModulePlaceholderPlugin {
-    constructor();
     // (undocumented)
     apply(compiler: any): void;
 }

@@ -1,42 +1,33 @@
 use rspack_core::{
-  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Compilation,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct URLDependency {
-  start: u32,
-  end: u32,
-  outer_start: u32,
-  outer_end: u32,
   id: DependencyId,
   request: Atom,
-  span: Option<ErrorSpan>,
+  range: RealDependencyLocation,
+  range_url: (u32, u32),
   used_by_exports: Option<UsedByExports>,
   relative: bool,
 }
 
 impl URLDependency {
   pub fn new(
-    start: u32,
-    end: u32,
-    outer_start: u32,
-    outer_end: u32,
     request: Atom,
-    span: Option<ErrorSpan>,
+    range: RealDependencyLocation,
+    range_url: (u32, u32),
     relative: bool,
   ) -> Self {
     Self {
-      start,
-      end,
-      outer_start,
-      outer_end,
       id: DependencyId::new(),
       request,
-      span,
+      range,
+      range_url,
       used_by_exports: None,
       relative,
     }
@@ -57,7 +48,11 @@ impl Dependency for URLDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -96,8 +91,8 @@ impl DependencyTemplate for URLDependency {
     if self.relative {
       runtime_requirements.insert(RuntimeGlobals::RELATIVE_URL);
       source.replace(
-        self.outer_start,
-        self.outer_end,
+        self.range.start,
+        self.range.end,
         format!(
           "/* asset import */ new {}({}({}))",
           RuntimeGlobals::RELATIVE_URL,
@@ -110,8 +105,8 @@ impl DependencyTemplate for URLDependency {
     } else {
       runtime_requirements.insert(RuntimeGlobals::BASE_URI);
       source.replace(
-        self.start,
-        self.end,
+        self.range_url.0,
+        self.range_url.1,
         format!(
           "/* asset import */{}({}), {}",
           RuntimeGlobals::REQUIRE,
@@ -126,6 +121,14 @@ impl DependencyTemplate for URLDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

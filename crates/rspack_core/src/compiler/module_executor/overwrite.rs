@@ -44,7 +44,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
       let dep_id = factorize_result_task
         .dependencies
         .first()
-        .cloned()
+        .copied()
         .expect("should have dep_id");
       let original_module_identifier = factorize_result_task.original_module_identifier;
       let res = origin_task.sync_run(context)?;
@@ -60,7 +60,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
       let dep_id = add_task
         .dependencies
         .first()
-        .cloned()
+        .copied()
         .expect("should have dep_id");
       let original_module_identifier = add_task.original_module_identifier;
       let target_module_identifier = add_task.module.identifier();

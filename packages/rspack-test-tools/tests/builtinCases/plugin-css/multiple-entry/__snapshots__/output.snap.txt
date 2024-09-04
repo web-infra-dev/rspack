@@ -7,7 +7,7 @@ body {
   background: yellow;
 }
 
-
+head{--webpack-__rspack_test__-async-one:&\.\/cācss,ĀĂ/dĆĈ;}
 ```
 
 ```css title=async-two.css
@@ -19,7 +19,7 @@ body {
   background: blue;
 }
 
-
+head{--webpack-__rspack_test__-async-two:&\.\/dācss,ĀĂ/cĆĈ;}
 ```
 
 ```css title=main-one.css
@@ -31,7 +31,7 @@ body {
   background: green;
 }
 
-
+head{--webpack-__rspack_test__-main-one:&\.\/aācss,ĀĂ/bĆĈ;}
 ```
 
 ```css title=main-two.css
@@ -43,5 +43,5 @@ body {
   background: red;
 }
 
-
+head{--webpack-__rspack_test__-main-two:&\.\/bācss,ĀĂ/aĆĈ;}
 ```

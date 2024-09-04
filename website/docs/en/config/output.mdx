@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/output/" />
@@ -28,8 +28,6 @@ The name of the file to be output by the Asset module. This value can be overrid
 :::
 
 ## output.asyncChunks
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -638,8 +636,6 @@ An optional salt to update the hash.
 
 ## output.hotUpdateChunkFilename
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **Type:** `string`
 - **Default:** `"[id].[fullhash].hot-update.js"`
 
@@ -662,8 +658,6 @@ Typically you don't need to change `output.hotUpdateChunkFilename`.
 
 ## output.hotUpdateGlobal
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **Type:** `string`
 - **Default:** `"webpackHotUpdate" + output.uniqueName`
 
@@ -674,8 +668,6 @@ A JSONP function is used to asynchronously load hot-update chunks.
 For details see [`output.chunkLoadingGlobal`](#outputchunkloadingglobal).
 
 ## output.hotUpdateMainFilename
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 - **Type:** `string`
 - **Default:** `"[runtime].[fullhash].hot-update.json"`
@@ -714,6 +706,22 @@ module.exports = {
   //...
   output: {
     importFunctionName: '__import__',
+  },
+};
+```
+
+## output.importMetaName
+
+- **Type:** `string`
+- **Default:** `'import.meta'`
+
+The name of the native `import.meta` object (can be exchanged for a polyfill).
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    importMetaName: 'pseudoImport.meta',
   },
 };
 ```
@@ -1479,8 +1487,6 @@ define('MyLibrary', [], factory);
 
 ## output.module
 
-<ApiMeta stability={Stability.Experimental} />
-
 - **Type:** `boolean`
 - **Default:** `false`
 
@@ -1770,16 +1776,14 @@ module.exports = {
 
 Option to set the method of loading WebAssembly Modules in workers, defaults to the value of [output.wasmLoading](#outputwasmloading).
 
-````js title="rspack.config.js"
+```js title="rspack.config.js"
 module.exports = {
   //...
   output: {
     workerWasmLoading: 'fetch',
   },
 };
-```import { de } from 'date-fns/locale';
-
-````
+```
 
 ## output.auxiliaryComment
 
@@ -1804,3 +1808,36 @@ Please use [`output.library.type`](#outputlibrarytype) instead as we might drop 
 :::warning
 Prefer to use [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine) instead.
 :::
+
+## output.cssHeadDataCompression
+
+<ApiMeta addedVersion={'1.0.0'} />
+
+- **Type:** `boolean`
+- **Default:** `false` for development mode, `true` for production mode
+
+Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
+
+For example
+
+```css
+.local-a {
+  color: blue;
+}
+
+head {
+  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
+}
+```
+
+After compress 👇
+
+```css
+.local-a {
+  color: blue;
+}
+
+head {
+  --webpack-main: &\.\/ srcăindexāmoduleācss;
+}
+```

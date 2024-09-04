@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyLocation,
-  DependencyTemplate, DependencyType, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyTemplate, DependencyType, RealDependencyLocation, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -8,27 +9,36 @@ use rspack_core::{
 // After: `const a = 1`
 #[derive(Debug, Clone)]
 pub struct HarmonyExportHeaderDependency {
-  pub range: Option<DependencyLocation>,
-  pub range_stmt: DependencyLocation,
-  pub id: DependencyId,
+  id: DependencyId,
+  range: RealDependencyLocation,
+  range_decl: Option<RealDependencyLocation>,
 }
 
 impl HarmonyExportHeaderDependency {
-  pub fn new(range: Option<DependencyLocation>, range_stmt: DependencyLocation) -> Self {
+  pub fn new(range: RealDependencyLocation, range_decl: Option<RealDependencyLocation>) -> Self {
     Self {
       range,
-      range_stmt,
+      range_decl,
       id: DependencyId::default(),
     }
   }
 }
 
 impl Dependency for HarmonyExportHeaderDependency {
+  fn id(&self) -> &rspack_core::DependencyId {
+    &self.id
+  }
+
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportHeader
   }
-  fn id(&self) -> &rspack_core::DependencyId {
-    &self.id
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
   }
 }
 
@@ -39,11 +49,11 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
     _code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
-      self.range_stmt.start(),
-      if let Some(range) = self.range.clone() {
-        range.start()
+      self.range.start,
+      if let Some(range) = &self.range_decl {
+        range.start
       } else {
-        self.range_stmt.end()
+        self.range.end
       },
       "",
       None,
@@ -52,6 +62,14 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

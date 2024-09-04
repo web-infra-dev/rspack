@@ -1,4 +1,6 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use rspack_core::{
+  ConstDependency, RealDependencyLocation, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
+};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
 
@@ -9,6 +11,7 @@ use crate::visitors::{expr_matcher, JavascriptParser};
 use crate::visitors::{expression_not_supported, extract_member_root};
 
 const WEBPACK_HASH: &str = "__webpack_hash__";
+const WEBPACK_LAYER: &str = "__webpack_layer__";
 const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 const WEBPACK_MODULES: &str = "__webpack_modules__";
 const WEBPACK_MODULE: &str = "__webpack_module__";
@@ -45,6 +48,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
     WEBPACK_REQUIRE => Some("function"),
     WEBPACK_HASH => Some("string"),
+    WEBPACK_LAYER => Some("string"),
     WEBPACK_PUBLIC_PATH => Some("string"),
     WEBPACK_MODULES => Some("object"),
     WEBPACK_MODULE => Some("object"),
@@ -105,6 +109,19 @@ impl JavascriptParserPlugin for APIPlugin {
           )));
         Some(true)
       }
+      WEBPACK_LAYER => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(&parser.module_layer)
+              .expect("should stringify JSON")
+              .into(),
+            None,
+          )));
+        Some(true)
+      }
       WEBPACK_PUBLIC_PATH => {
         parser
           .presentational_dependencies
@@ -139,12 +156,12 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       WEBPACK_MODULE => {
+        let range: RealDependencyLocation = ident.span.into();
         parser
           .presentational_dependencies
           .push(Box::new(ModuleArgumentDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
             None,
+            range.with_source(parser.source_map.clone()),
           )));
         Some(true)
       }
@@ -167,7 +184,11 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             if self.options.module {
               parser.build_info.need_create_require = true;
-              "__WEBPACK_EXTERNAL_createRequire(import.meta.url)".into()
+              format!(
+                "__WEBPACK_EXTERNAL_createRequire({}.url)",
+                parser.compiler_options.output.import_meta_name
+              )
+              .into()
             } else {
               "require".into()
             },
@@ -350,12 +371,12 @@ impl JavascriptParserPlugin for APIPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
+      let range: RealDependencyLocation = expr.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
           Some("id"),
+          range.with_source(parser.source_map.clone()),
         )));
       Some(true)
     } else {

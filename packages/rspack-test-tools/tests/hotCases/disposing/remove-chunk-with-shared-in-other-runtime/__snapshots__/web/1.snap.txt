@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 65
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18338
+- Update: main.LAST_HASH.hot-update.js, size: 18286
 
 ## Manifest
 
@@ -273,15 +273,10 @@ function applyHandler(options) {
 	for (var moduleId in currentUpdate) {
 		if (__webpack_require__.o(currentUpdate, moduleId)) {
 			var newModuleFactory = currentUpdate[moduleId];
-			var result;
-			if (newModuleFactory) {
-				result = getAffectedModuleEffects(moduleId);
-			} else {
-				result = {
-					type: "disposed",
-					moduleId: moduleId
-				};
-			}
+			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
+				type: "disposed",
+				moduleId: moduleId
+			};
 			var abortError = false;
 			var doApply = false;
 			var doDispose = false;
@@ -302,10 +297,10 @@ function applyHandler(options) {
 					if (!options.ignoreDeclined)
 						abortError = new Error(
 							"Aborted because of declined dependency: " +
-								result.moduleId +
-								" in " +
-								result.parentId +
-								chainInfo
+							result.moduleId +
+							" in " +
+							result.parentId +
+							chainInfo
 						);
 					break;
 				case "unaccepted":
@@ -371,7 +366,7 @@ function applyHandler(options) {
 				errorHandler: module.hot._selfAccepted
 			});
 		}
-	}
+	} 
       self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
 	    self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
       
@@ -394,7 +389,7 @@ function applyHandler(options) {
 				var data = {};
 
 				// Call dispose handlers
-				var disposeHandlers = module.hot._disposeHandlers;
+				var disposeHandlers = module.hot._disposeHandlers; 
       if (disposeHandlers.length > 0) {
         self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
       }
@@ -439,7 +434,7 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId]; 
       self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
       
 				}
@@ -473,7 +468,7 @@ function applyHandler(options) {
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
-								errorHandlers.push(errorHandler);
+								errorHandlers.push(errorHandler); 
       self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
       
 								dependenciesForCallbacks.push(dependency);
@@ -536,17 +531,17 @@ function applyHandler(options) {
 								moduleId: moduleId,
 								module: __webpack_require__.c[moduleId]
 							});
-						} catch (err2) {
+						} catch (err1) {
 							if (options.onErrored) {
 								options.onErrored({
 									type: "self-accept-error-handler-errored",
 									moduleId: moduleId,
-									error: err2,
+									error: err1,
 									originalError: err
 								});
 							}
 							if (!options.ignoreErrored) {
-								reportError(err2);
+								reportError(err1);
 								reportError(err);
 							}
 						}

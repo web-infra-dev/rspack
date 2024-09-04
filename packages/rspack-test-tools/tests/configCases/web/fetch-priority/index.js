@@ -74,17 +74,14 @@ it("should set fetchPriority", () => {
 	expect(script13.getAttribute("fetchpriority")).toBe("low");
 
 	import(/* webpackFetchPriority: "high" */ "./style.css");
-	expect(document.head.children).toHaveLength(15);
 	const link1 = document.head.children[13];
 	expect(link1.getAttribute("fetchpriority")).toBe("high");
 
 	import("./style-1.css");
-	expect(document.head.children).toHaveLength(17);
-	const link2 = document.head.children[15];
+	const link2 = document.head.children[14];
 	expect(link2.getAttribute("fetchpriority")).toBeFalsy();
 
 	import(/* webpackFetchPriority: "low" */ "./style-2.css");
-	expect(document.head.children).toHaveLength(19);
-	const link3 = document.head.children[17];
+	const link3 = document.head.children[15];
 	expect(link3.getAttribute("fetchpriority")).toBe("low");
 });

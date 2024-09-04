@@ -1,10 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_loader_lightningcss"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
-
+description = "rspack lightingcss loader"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_loader_lightningcss"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -12,8 +12,8 @@ async-trait          = { workspace = true }
 derivative           = { workspace = true }
 lightningcss         = { workspace = true, features = ["sourcemap", "browserslist", "visitor", "into_owned"] }
 parcel_sourcemap     = { workspace = true }
-rspack_core          = { path = "../rspack_core" }
-rspack_error         = { path = "../rspack_error" }
-rspack_loader_runner = { path = "../rspack_loader_runner" }
+rspack_core          = { version = "0.1.0", path = "../rspack_core" }
+rspack_error         = { version = "0.1.0", path = "../rspack_error" }
+rspack_loader_runner = { version = "0.1.0", path = "../rspack_loader_runner" }
 serde                = { workspace = true, features = ["derive"] }
 tokio                = { workspace = true }

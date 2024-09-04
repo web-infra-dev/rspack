@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
@@ -28,8 +28,6 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 :::
 
 ## output.asyncChunks
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -632,8 +630,6 @@ module.exports = {
 
 ## output.hotUpdateChunkFilename
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **类型：** `string`
 - **默认值：** `"[id].[fullhash].hot-update.js"`
 
@@ -654,8 +650,6 @@ module.exports = {
 
 ## output.hotUpdateGlobal
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **类型：** `string`
 - **默认值：** `"webpackHotUpdate" + output.uniqueName`
 
@@ -666,8 +660,6 @@ JSONP 函数用于异步加载热更新块。
 具体可以参阅 [output.chunkLoadingGlobal](#outputchunkLoadingGlobal)。
 
 ## output.hotUpdateMainFilename
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 - **类型：** `string`
 - **默认值：** `"[runtime].[fullhash].hot-update.json"`
@@ -706,6 +698,22 @@ module.exports = {
   //...
   output: {
     importFunctionName: '__import__',
+  },
+};
+```
+
+## output.importMetaName
+
+- **Type:** `string`
+- **Default:** `'import.meta'`
+
+内部 `import.meta` 对象的名字，可将其换成 polyfill 的对象。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    importMetaName: 'pseudoImport.meta',
   },
 };
 ```
@@ -1471,8 +1479,6 @@ define('MyLibrary', [], factory);
 
 ## output.module
 
-<ApiMeta stability={Stability.Experimental} />
-
 - **类型：** `boolean`
 - **默认值：** `false`
 
@@ -1794,3 +1800,36 @@ module.exports = {
 :::warning
 最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
 :::
+
+## output.cssHeadDataCompression
+
+<ApiMeta addedVersion={'1.0.0'} />
+
+- **类型：** `boolean`
+- **默认值：** 在 development 模式下为 `false`，在 production 模式下为 `true`
+
+Rspack 会在 CSS 中添加一些元信息，用以解析 CSS modules，此配置决定是否压缩元信息。
+
+例如 👇
+
+```css
+.local-a {
+  color: blue;
+}
+
+head {
+  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
+}
+```
+
+压缩后
+
+```css
+.local-a {
+  color: blue;
+}
+
+head {
+  --webpack-main: &\.\/ srcăindexāmoduleācss;
+}
+```

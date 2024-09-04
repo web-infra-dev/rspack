@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   cmp::Ordering,
@@ -9,13 +10,13 @@ use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
   ModuleIdentifier,
 };
+use rspack_util::itoa;
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
@@ -46,7 +47,7 @@ pub fn get_used_module_ids_and_modules(
     .for_each(|module| {
       let module_id = chunk_graph.get_module_id(module.identifier());
       if let Some(module_id) = module_id {
-        used_ids.insert(module_id.clone());
+        used_ids.insert(module_id.to_string());
       } else {
         if filter.as_ref().map_or(true, |f| (f)(module))
           && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
@@ -229,10 +230,10 @@ pub fn assign_names_par<T: Copy + Send>(
       items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}{i}");
+        let mut formatted_name = format!("{name}{}", itoa!(i));
         while name_to_items_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
           i += 1;
-          formatted_name = format!("{name}{i}");
+          formatted_name = format!("{name}{}", itoa!(i));
         }
         assign_name(item, formatted_name.clone());
         used_ids.insert(formatted_name);
@@ -275,10 +276,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   for item in items {
     let ident = get_name(item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{ident}{i}"), range);
+    let mut id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     while !assign_id(item, id) {
       i += 1;
-      id = get_number_hash(&format!("{ident}{i}"), range);
+      id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     }
   }
 }
@@ -434,9 +435,10 @@ pub fn get_full_chunk_name(
   full_module_names.join(",")
 }
 
-static REGEX1: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
-static REGEX2: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
+static REGEX1: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
+static REGEX2: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
 
 pub fn request_to_id(request: &str) -> String {
   REGEX2
@@ -503,8 +505,8 @@ fn compare_chunks_by_modules(
         let a_module_id = chunk_graph.get_module_id(a_module.identifier());
         let b_module_id = chunk_graph.get_module_id(b_module.identifier());
         let ordering = compare_ids(
-          &a_module_id.clone().unwrap_or_default(),
-          &b_module_id.clone().unwrap_or_default(),
+          a_module_id.unwrap_or_default(),
+          b_module_id.unwrap_or_default(),
         );
         if ordering != Ordering::Equal {
           return Some(ordering);

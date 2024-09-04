@@ -1,0 +1,45 @@
+<>
+
+> 详见 [Cache 对象](/api/javascript-api/cache)
+
+```ts
+type CacheFacade = {
+  getChildCache(name: string): CacheFacade; // 创建子缓存对象
+  getItemCache(identifier, etag): ItemCacheFacade; // 获取单个项目的缓存对象
+  getLazyHashedEtag(obj: HashableObject): Etag; // 生成 Etag
+  mergeEtags(a: Etag, b: Etag): Etag; // 合并 Etag
+  get<T>( // 异步获取缓存数据，通过回调获取结果
+    identifier: string,
+    etag: Etag,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  getPromise<T>( // 异步获取缓存数据，通过 Promise 获取结果
+    identifier: string,
+    etag: Etag,
+  ): Promise<T>;
+  store<T>( // 异步存储缓存数据，通过回调获取结果
+    identifier: string,
+    etag: Etag,
+    data: T,
+    callback: (err: Error) => void,
+  ): void;
+  storePromise<T>( // 异步存储缓存数据，通过 Promise 获取结果
+    identifier: string,
+    etag: Etag,
+    data: T,
+  ): Promise<void>;
+  provide<T>( // 尝试获取缓存，不存在则生成并存储，通过回调获取结果
+    identifier: string,
+    etag: Etag,
+    computer: () => T | Promise<T>,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>( // 尝试获取缓存，不存在则生成并存储，通过 Promise 获取结果
+    identifier: string,
+    etag: Etag,
+    computer: () => T | Promise<T>,
+  ): Promise<T>;
+};
+```
+
+</>

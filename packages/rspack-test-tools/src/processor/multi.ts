@@ -43,40 +43,44 @@ export class MultiTaskProcessor<T extends ECompilerType>
 				if (typeof _multiOptions.findBundle !== "function") {
 					return [];
 				}
-				return this.multiCompilerOptions.reduce<string[]>(
-					(res, compilerOptions, index) => {
-						const curBundles = _multiOptions.findBundle!(
-							index,
-							context,
-							compilerOptions
-						);
 
-						const bundles = Array.isArray(curBundles)
-							? curBundles
-							: curBundles
-								? [curBundles]
-								: [];
+				const result: string[] = [];
+				const multiFileIndexMap: Record<string, number[]> =
+					context.getValue(_multiOptions.name, "multiFileIndexMap") || {};
+				for (const [
+					index,
+					compilerOptions
+				] of this.multiCompilerOptions.entries()) {
+					const curBundles = _multiOptions.findBundle!(
+						index,
+						context,
+						compilerOptions
+					);
 
-						const multiFileIndexMap: Record<string, number[]> =
-							context.getValue(_multiOptions.name, "multiFileIndexMap") || {};
-						for (const bundle of bundles) {
-							multiFileIndexMap[bundle] = [
-								...(multiFileIndexMap[bundle] || []),
-								index
-							];
+					const bundles = Array.isArray(curBundles)
+						? curBundles
+						: curBundles
+							? [curBundles]
+							: [];
+
+					for (const bundle of bundles) {
+						if (multiFileIndexMap[bundle]) {
+							multiFileIndexMap[bundle].push(index);
+						} else {
+							multiFileIndexMap[bundle] = [index];
 						}
-						context.setValue(
-							_multiOptions.name,
-							"multiFileIndexMap",
-							multiFileIndexMap
-						);
-						return [
-							...res,
-							...(Array.isArray(bundles) ? bundles : bundles ? [bundles] : [])
-						];
-					},
-					[]
+					}
+
+					result.push(...bundles);
+				}
+
+				context.setValue(
+					_multiOptions.name,
+					"multiFileIndexMap",
+					multiFileIndexMap
 				);
+
+				return result;
 			},
 			name: _multiOptions.name
 		});

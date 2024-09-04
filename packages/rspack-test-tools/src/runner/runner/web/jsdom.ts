@@ -80,8 +80,12 @@ export class JSDOMWebRunner<
 
 	protected createResourceLoader() {
 		const urlToPath = (url: string) => {
-			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
-			return path.resolve(this._webOptions.dist, `./${url}`).split("?")[0];
+			return path
+				.resolve(
+					this._webOptions.dist,
+					`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url}`
+				)
+				.split("?")[0];
 		};
 		class CustomResourceLoader extends ResourceLoader {
 			fetch(url: string, _: { element: HTMLScriptElement }) {
@@ -107,8 +111,10 @@ export class JSDOMWebRunner<
 			outputDirectory: this._options.dist
 		});
 		const urlToPath = (url: string) => {
-			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
-			return path.resolve(this._webOptions.dist, `./${url}`);
+			return path.resolve(
+				this._webOptions.dist,
+				`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url}`
+			);
 		};
 		moduleScope.fetch = async (url: string) => {
 			try {
@@ -136,6 +142,17 @@ export class JSDOMWebRunner<
 		moduleScope.importScripts = (url: string) => {
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
+		};
+		moduleScope.getComputedStyle = function () {
+			const computedStyle = this.dom.window.getComputedStyle(this.dom.window);
+			const getPropertyValue =
+				computedStyle.getPropertyValue.bind(computedStyle);
+			return {
+				...computedStyle,
+				getPropertyValue(v: any) {
+					return getPropertyValue(v);
+				}
+			};
 		};
 		moduleScope.STATS = moduleScope.__STATS__;
 		return moduleScope;

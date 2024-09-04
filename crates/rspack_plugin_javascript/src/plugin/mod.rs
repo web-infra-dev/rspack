@@ -15,6 +15,7 @@ mod side_effects_flag_plugin;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
+use std::sync::LazyLock;
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
@@ -22,7 +23,6 @@ pub use flag_dependency_usage_plugin::*;
 use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
-use once_cell::sync::Lazy;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::concatenated_module::find_new_name;
@@ -31,9 +31,10 @@ use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_core::{
-  basic_function, render_init_fragments, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId,
-  ConcatenatedModuleIdent, ExportsArgument, Module, RuntimeGlobals, SourceType, SpanExt,
+  basic_function, render_init_fragments, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
+  ChunkRenderContext, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationId, ConcatenatedModuleIdent, ExportsArgument, Module, RuntimeGlobals, SourceType,
+  SpanExt,
 };
 use rspack_core::{BoxModule, IdentCollector};
 use rspack_error::Result;
@@ -50,8 +51,9 @@ use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
 
-static COMPILATION_HOOKS_MAP: Lazy<FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>> =
-  Lazy::new(Default::default);
+static COMPILATION_HOOKS_MAP: LazyLock<
+  FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>,
+> = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
 struct WithHash<T> {
@@ -386,9 +388,8 @@ impl JsPlugin {
             buf2.push("// This entry module can't be inlined in diff mode".into());
             allow_inline_startup = false;
           }
-          let entry_runtime_requirements = compilation
-            .chunk_graph
-            .get_module_runtime_requirements(*module, &chunk.runtime);
+          let entry_runtime_requirements =
+            ChunkGraph::get_module_runtime_requirements(compilation, *module, &chunk.runtime);
           if allow_inline_startup
             && let Some(entry_runtime_requirements) = entry_runtime_requirements
             && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
@@ -683,7 +684,7 @@ impl JsPlugin {
           continue;
         };
 
-        if renamed_inline_modules.get(m_identifier).is_some() {
+        if renamed_inline_modules.contains_key(m_identifier) {
           if let Some(source) = renamed_inline_modules.get(m_identifier) {
             rendered_module = source.clone();
           };
@@ -692,9 +693,8 @@ impl JsPlugin {
         chunk_init_fragments.extend(fragments);
         chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().expect("should have build_info").strict;
-        let module_runtime_requirements = compilation
-          .chunk_graph
-          .get_module_runtime_requirements(*m_identifier, &chunk.runtime);
+        let module_runtime_requirements =
+          ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, &chunk.runtime);
         let exports = module_runtime_requirements
           .map(|r| r.contains(RuntimeGlobals::EXPORTS))
           .unwrap_or_default();
@@ -877,7 +877,7 @@ impl JsPlugin {
               if !use_cache {
                 let cm: Arc<swc_core::common::SourceMap> = Default::default();
                 let fm = cm.new_source_file(
-                  FileName::Custom(m.identifier().to_string()),
+                  Arc::new(FileName::Custom(m.identifier().to_string())),
                   code.source().to_string(),
                 );
                 let comments = swc_node_comments::SwcComments::default();
@@ -913,14 +913,14 @@ impl JsPlugin {
                     let mut module_scope_idents = Vec::new();
 
                     for ident in collector.ids {
-                      if ident.id.span.ctxt == global_ctxt
-                        || ident.id.span.ctxt != module_ctxt
+                      if ident.id.ctxt == global_ctxt
+                        || ident.id.ctxt != module_ctxt
                         || ident.is_class_expr_with_ident
                       {
                         acc.all_used_names.insert(ident.id.sym.clone());
                       }
 
-                      if ident.id.span.ctxt == module_ctxt {
+                      if ident.id.ctxt == module_ctxt {
                         acc.all_used_names.insert(ident.id.sym.clone());
                         module_scope_idents.push(Arc::new(ident));
                       }
@@ -948,7 +948,7 @@ impl JsPlugin {
                     let module_ident = m.identifier();
 
                     for ident in collector.ids {
-                      if ident.id.span.ctxt == global_ctxt {
+                      if ident.id.ctxt == global_ctxt {
                         acc.all_used_names.insert(ident.clone().id.sym.clone());
                         idents_vec.push(ident.clone());
                         acc.non_inlined_module_through_idents.push(ident);
@@ -1049,7 +1049,7 @@ impl JsPlugin {
       for module_scope_ident in module_scope_idents.iter() {
         match binding_to_ref.entry((
           module_scope_ident.id.sym.clone(),
-          module_scope_ident.id.span.ctxt,
+          module_scope_ident.id.ctxt,
         )) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().push(module_scope_ident.deref().clone());

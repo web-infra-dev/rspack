@@ -64,11 +64,15 @@ class WasmHash {
 	 */
 	update(data: Buffer | string, encoding?: BufferEncoding): this {
 		if (typeof data === "string") {
-			while (data.length > MAX_SHORT_STRING) {
-				this._updateWithShortString(data.slice(0, MAX_SHORT_STRING), encoding);
-				data = data.slice(MAX_SHORT_STRING);
+			let normalizedData = data;
+			while (normalizedData.length > MAX_SHORT_STRING) {
+				this._updateWithShortString(
+					normalizedData.slice(0, MAX_SHORT_STRING),
+					encoding
+				);
+				normalizedData = normalizedData.slice(MAX_SHORT_STRING);
 			}
-			this._updateWithShortString(data, encoding);
+			this._updateWithShortString(normalizedData, encoding);
 			return this;
 		}
 		this._updateWithBuffer(data);

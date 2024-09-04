@@ -10,25 +10,15 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
   ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority, Filename,
+  ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
-pub struct SyntheticDependencyLocation {
-  pub name: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum OriginLocation {
-  Real(DependencyLocation),
-  Synthetic(SyntheticDependencyLocation),
-}
-
-#[derive(Debug, Clone)]
 pub struct OriginRecord {
   pub module_id: Option<ModuleIdentifier>,
-  pub loc: Option<OriginLocation>,
+  pub loc: Option<DependencyLocation>,
   pub request: Option<String>,
 }
 
@@ -58,6 +48,7 @@ pub struct ChunkGroup {
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
   origins: Vec<OriginRecord>,
+  pub(crate) is_over_size_limit: Option<bool>,
 }
 
 impl ChunkGroup {
@@ -77,6 +68,7 @@ impl ChunkGroup {
       entry_point_chunk: None,
       index: None,
       origins: vec![],
+      is_over_size_limit: None,
     }
   }
 
@@ -310,7 +302,7 @@ impl ChunkGroup {
   pub fn add_origin(
     &mut self,
     module_id: Option<ModuleIdentifier>,
-    loc: Option<OriginLocation>,
+    loc: Option<DependencyLocation>,
     request: Option<String>,
   ) {
     self.origins.push(OriginRecord {
@@ -364,6 +356,10 @@ impl ChunkGroup {
     }
 
     children_by_orders
+  }
+
+  pub fn set_is_over_size_limit(&mut self, v: bool) {
+    self.is_over_size_limit = Some(v);
   }
 }
 
@@ -439,7 +435,7 @@ impl EntryRuntime {
 
 // pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -450,6 +446,7 @@ pub struct EntryOptions {
   pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
   pub depend_on: Option<Vec<String>>,
+  pub layer: Option<ModuleLayer>,
 }
 
 impl EntryOptions {
@@ -474,6 +471,7 @@ impl EntryOptions {
     merge_field!(filename);
     merge_field!(library);
     merge_field!(depend_on);
+    merge_field!(layer);
     Ok(())
   }
 
@@ -535,7 +533,7 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),

@@ -1,10 +1,10 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ApplyContext, ChunkGroup, Compilation, CompilationAsset, CompilerAfterEmit, CompilerOptions,
-  Plugin, PluginContext,
+  ApplyContext, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit,
+  CompilerOptions, Plugin, PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -136,6 +136,8 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
   let max_asset_size = self.options.max_asset_size.unwrap_or(250000.0);
   let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250000.0);
+  let mut checked_assets: HashMap<String, bool> = HashMap::default();
+  let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 
   let mut assets_over_size_limit = vec![];
 
@@ -148,8 +150,10 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     if let Some(source) = source {
       let size = source.size() as f64;
+      let is_over_size_limit = size > max_asset_size;
 
-      if size > max_asset_size {
+      checked_assets.insert(name.to_owned(), is_over_size_limit);
+      if is_over_size_limit {
         assets_over_size_limit.push((name, size));
       }
     }
@@ -160,8 +164,10 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   for (name, ukey) in compilation.entrypoints.iter() {
     let entry = compilation.chunk_group_by_ukey.expect_get(ukey);
     let size = self.get_entrypoint_size(entry, compilation).await;
+    let is_over_size_limit = size > max_entrypoint_size;
 
-    if size > max_entrypoint_size {
+    checked_chunk_groups.insert(ukey.to_owned(), is_over_size_limit);
+    if is_over_size_limit {
       let mut files = vec![];
 
       for filename in entry.get_files(&compilation.chunk_by_ukey) {
@@ -214,6 +220,19 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
       compilation.extend_diagnostics(diagnostics);
     }
+  }
+
+  for (name, asset) in compilation.assets_mut() {
+    if let Some(checked) = checked_assets.get(name) {
+      asset.info.set_is_over_size_limit(*checked)
+    }
+  }
+
+  for (ukey, checked) in checked_chunk_groups.iter() {
+    compilation
+      .chunk_group_by_ukey
+      .expect_get_mut(ukey)
+      .set_is_over_size_limit(*checked);
   }
 
   Ok(())

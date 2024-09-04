@@ -1,4 +1,4 @@
-declare var global: {
+declare let global: {
 	updateSnapshot: boolean;
 };
 

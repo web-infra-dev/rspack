@@ -58,12 +58,9 @@ impl JavascriptParserPlugin for URLPlugin {
       && let Some((request, start, end)) = get_url_request(parser, expr)
     {
       let dep = URLDependency::new(
-        start,
-        end,
-        expr.span.real_lo(),
-        expr.span.real_hi(),
         request.into(),
-        Some(expr.span.into()),
+        expr.span.into(),
+        (start, end),
         self.relative,
       );
       let dep_id = *dep.id();

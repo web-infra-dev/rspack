@@ -80,10 +80,12 @@ class Template {
 
 	// map number to a single character a-z, A-Z or multiple characters if number is too big
 	/**
-	 * @param n number to convert to ident
+	 * @param num number to convert to ident
 	 * @returns returns single character ident
 	 */
-	static numberToIdentifier(n: number): string {
+	static numberToIdentifier(num: number): string {
+		let n = num;
+
 		if (n >= NUMBER_OF_IDENTIFIER_START_CHARS) {
 			// use multiple letters
 			return (
@@ -110,10 +112,11 @@ class Template {
 	}
 
 	/**
-	 * @param n number to convert to ident
+	 * @param num number to convert to ident
 	 * @returns returns single character ident
 	 */
-	static numberToIdentifierContinuation(n: number): string {
+	static numberToIdentifierContinuation(num: number): string {
+		let n = num;
 		if (n >= NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) {
 			// use multiple letters
 			return (
@@ -172,7 +175,7 @@ class Template {
 		const str = Template.asString(s).trim();
 		if (!str) return "";
 		const ind = str[0] === "\n" ? "" : prefix;
-		return ind + str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
+		return ind + str.replace(/\n([^\n])/g, `\n${prefix}$1`);
 	}
 
 	/**
@@ -203,7 +206,7 @@ class Template {
 			if (maxId < moduleId) maxId = moduleId;
 			if (minId > moduleId) minId = moduleId;
 		}
-		if (minId < 16 + ("" + minId).length) {
+		if (minId < 16 + `${minId}`.length) {
 			// add minId x ',' instead of 'Array(minId).concat(…)'
 			minId = 0;
 		}

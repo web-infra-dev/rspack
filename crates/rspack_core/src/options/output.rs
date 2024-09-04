@@ -1,18 +1,12 @@
-use std::{
-  borrow::Cow,
-  fmt::Debug,
-  hash::Hash,
-  path::{Path, PathBuf},
-  str::FromStr,
-  string::ParseError,
-};
+use std::sync::LazyLock;
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
 
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -28,7 +22,7 @@ pub enum PathInfo {
 
 #[derive(Debug)]
 pub struct OutputOptions {
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
   pub pathinfo: PathInfo,
   pub clean: bool,
   pub public_path: PublicPath,
@@ -45,6 +39,7 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
+  pub css_head_data_compression: bool,
   pub hot_update_main_filename: FilenameTemplate,
   pub hot_update_chunk_filename: FilenameTemplate,
   pub hot_update_global: String,
@@ -53,6 +48,7 @@ pub struct OutputOptions {
   pub strict_module_error_handling: bool,
   pub global_object: String,
   pub import_function_name: String,
+  pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
@@ -95,6 +91,24 @@ impl From<&str> for ChunkLoading {
   }
 }
 
+impl From<ChunkLoading> for String {
+  fn from(value: ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false".to_string(),
+    }
+  }
+}
+
+impl From<&ChunkLoading> for &str {
+  fn from(value: &ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false",
+    }
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
@@ -114,6 +128,24 @@ impl From<&str> for ChunkLoadingType {
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
       _ => unimplemented!("custom chunkLoading in not supported yet"),
+    }
+  }
+}
+
+impl From<ChunkLoadingType> for String {
+  fn from(value: ChunkLoadingType) -> Self {
+    Into::<&str>::into(&value).to_string()
+  }
+}
+
+impl From<&ChunkLoadingType> for &str {
+  fn from(value: &ChunkLoadingType) -> Self {
+    match value {
+      ChunkLoadingType::Jsonp => "jsonp",
+      ChunkLoadingType::ImportScripts => "import-scripts",
+      ChunkLoadingType::Require => "require",
+      ChunkLoadingType::AsyncNode => "async-node",
+      ChunkLoadingType::Import => "import",
     }
   }
 }
@@ -183,8 +215,8 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
-static PREPARE_ID_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+static PREPARE_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
   pub fn prepare_id(v: &str) -> Cow<str> {
@@ -284,15 +316,25 @@ impl PublicPath {
   }
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
-    let public_path = match Path::new(filename).parent() {
-      None => "".to_string(),
+    let public_path = match Utf8Path::new(filename).parent() {
+      None => String::new(),
       Some(dirname) => compilation
         .options
         .output
         .path
-        .relative(compilation.options.output.path.join(dirname).absolutize())
-        .to_string_lossy()
-        .to_string(),
+        .as_std_path()
+        .relative(
+          compilation
+            .options
+            .output
+            .path
+            .join(dirname)
+            .into_std_path_buf()
+            .absolutize(),
+        )
+        .assert_utf8()
+        .as_str()
+        .to_owned(),
     };
     Self::ensure_ends_with_slash(public_path)
   }

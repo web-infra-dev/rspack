@@ -495,11 +495,13 @@ impl<'parser> JavascriptParser<'parser> {
     if self.is_statement_level_expression(expr.span())
       && let Some(old) = self.statement_path.pop()
     {
+      let prev = self.prev_statement;
       for expr in exprs {
         self.statement_path.push(expr.span().into());
         self.walk_expression(expr);
-        self.statement_path.pop();
+        self.prev_statement = self.statement_path.pop();
       }
+      self.prev_statement = prev;
       self.statement_path.push(old);
     } else {
       self.walk_expressions(exprs);
@@ -540,18 +542,26 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_prop_name(&getter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &getter.body {
-          self.walk_block_statement(body);
-        }
+        self.in_function_scope(true, std::iter::empty(), |parser| {
+          if let Some(body) = &getter.body {
+            parser.walk_statement(Statement::Block(body));
+          }
+        });
         self.top_level_scope = was_top_level;
       }
       Prop::Setter(setter) => {
         self.walk_prop_name(&setter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &setter.body {
-          self.walk_block_statement(body);
-        }
+        self.in_function_scope(
+          true,
+          std::iter::once(Cow::Borrowed(setter.param.as_ref())),
+          |parser| {
+            if let Some(body) = &setter.body {
+              parser.walk_statement(Statement::Block(body));
+            }
+          },
+        );
         self.top_level_scope = was_top_level;
       }
       Prop::Method(method) => {
@@ -754,6 +764,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn walk_opt_call(&mut self, expr: &OptCall) {
     // TODO: remove clone
     self.walk_call_expression(&CallExpr {
+      ctxt: expr.ctxt,
       span: expr.span,
       callee: Callee::Expr(expr.callee.clone()),
       args: expr.args.clone(),
@@ -959,6 +970,10 @@ impl<'parser> JavascriptParser<'parser> {
             if let Some(computed) = member.prop.as_computed() {
               self.walk_expression(&computed.expr);
             }
+          } else if let Some(member) = callee.as_super_prop() {
+            if let Some(computed) = member.prop.as_computed() {
+              self.walk_expression(&computed.expr);
+            }
           } else {
             self.walk_expression(callee);
           }
@@ -1077,7 +1092,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       self.walk_expression(&expr.right);
       self.enter_pattern(
-        Cow::Owned(warp_ident_to_pat(ident.clone())),
+        Cow::Owned(warp_ident_to_pat(ident.clone().into())),
         |this, ident| {
           // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
           // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
@@ -1348,9 +1363,9 @@ impl<'parser> JavascriptParser<'parser> {
               if let Some(body) = &ctor.body {
                 this.detect_mode(&body.stmts);
                 let prev = this.prev_statement;
-                this.pre_walk_block_statement(body);
+                this.pre_walk_statement(Statement::Block(body));
                 this.prev_statement = prev;
-                this.walk_block_statement(body);
+                this.walk_statement(Statement::Block(body));
               }
             });
 
@@ -1450,7 +1465,7 @@ impl<'parser> JavascriptParser<'parser> {
 fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
   match member_prop {
     MemberProp::Ident(ident) => Some(ident.sym.len()),
-    MemberProp::PrivateName(name) => Some(name.id.sym.len() + 1),
+    MemberProp::PrivateName(name) => Some(name.name.len() + 1),
     MemberProp::Computed(_) => None,
   }
 }

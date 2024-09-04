@@ -54,6 +54,7 @@ import {
 	NamedModuleIdsPlugin,
 	NaturalChunkIdsPlugin,
 	NaturalModuleIdsPlugin,
+	NoEmitOnErrorsPlugin,
 	NodeTargetPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -67,14 +68,14 @@ import {
 	WorkerPlugin
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
-import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
+import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
 
 export class RspackOptionsApply {
-	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
@@ -146,7 +147,7 @@ export class RspackOptionsApply {
 				}
 				default:
 					throw new Error(
-						"Unsupported chunk format '" + options.output.chunkFormat + "'."
+						`Unsupported chunk format '${options.output.chunkFormat}'.`
 					);
 			}
 		}
@@ -175,6 +176,10 @@ export class RspackOptionsApply {
 			new RuntimeChunkPlugin(runtimeChunk).apply(compiler);
 		}
 
+		if (!options.optimization.emitOnErrors) {
+			new NoEmitOnErrorsPlugin().apply(compiler);
+		}
+
 		if (options.devtool) {
 			if (options.devtool.includes("source-map")) {
 				const hidden = options.devtool.includes("hidden");
@@ -192,8 +197,8 @@ export class RspackOptionsApply {
 					fallbackModuleFilenameTemplate:
 						options.output.devtoolFallbackModuleFilenameTemplate,
 					append: hidden ? false : undefined,
-					module: moduleMaps ? true : cheap ? false : true,
-					columns: cheap ? false : true,
+					module: moduleMaps ? true : !cheap,
+					columns: !cheap,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace
 				}).apply(compiler);
@@ -281,7 +286,6 @@ export class RspackOptionsApply {
 								flags: lazyOptions.test.flags
 							}
 						: undefined,
-				// @ts-expect-error backend is hide
 				lazyOptions.backend
 			).apply(compiler);
 		}
@@ -362,6 +366,10 @@ export class RspackOptionsApply {
 		}
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);
+
+		if (options.cache) {
+			new MemoryCachePlugin().apply(compiler);
+		}
 
 		new WorkerPlugin(
 			options.output.workerChunkLoading!,

@@ -1,18 +1,17 @@
 export const memoize = <T>(fn: () => T): (() => T) => {
 	let cache = false;
-	// @ts-expect-error
-	let result = undefined;
+	let result: T;
+	let callback = fn;
+
 	return () => {
 		if (cache) {
-			// @ts-expect-error
 			return result;
 		}
-		result = fn();
+		result = callback();
 		cache = true;
 		// Allow to clean up memory for fn
 		// and all dependent resources
-		// @ts-expect-error
-		fn = undefined;
+		callback = undefined!;
 		return result;
 	};
 };

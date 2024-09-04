@@ -1,14 +1,13 @@
+use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rayon::prelude::*;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};
 
-// use tokio::sync::Sender
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -33,10 +32,10 @@ pub type ExecuteModuleId = u32;
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
   pub cacheable: bool,
-  pub file_dependencies: HashSet<std::path::PathBuf>,
-  pub context_dependencies: HashSet<std::path::PathBuf>,
-  pub missing_dependencies: HashSet<std::path::PathBuf>,
-  pub build_dependencies: HashSet<std::path::PathBuf>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
   pub code_generated_modules: IdentifierSet,
   pub assets: HashSet<String>,
   pub id: ExecuteModuleId,
@@ -45,6 +44,7 @@ pub struct ExecuteModuleResult {
 #[derive(Debug)]
 pub struct ExecuteTask {
   pub entry_dep_id: DependencyId,
+  pub layer: Option<String>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub result_sender: Sender<(
@@ -63,6 +63,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       entry_dep_id,
+      layer,
       public_path,
       base_uri,
       result_sender,
@@ -78,7 +79,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .expect("should have module")
       .identifier();
     let mut queue = vec![entry_module_identifier];
-    let mut modules = HashSet::default();
+    let mut modules = IdentifierSet::default();
 
     while let Some(m) = queue.pop() {
       modules.insert(m);
@@ -98,11 +99,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     chunk.id = chunk.name.clone();
     chunk.ids = vec![chunk.id.clone().expect("id is set")];
-    let runtime = {
-      let mut runtime = RuntimeSpec::default();
-      runtime.insert("build time".into());
-      runtime
-    };
+    let runtime: RuntimeSpec = once("build time".into()).collect();
 
     chunk.runtime = runtime.clone();
 
@@ -118,6 +115,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         filename: None,
         library: None,
         depend_on: None,
+        layer,
       }),
     });
 
@@ -158,16 +156,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
-    let code_generation_results =
-      compilation.code_generation_modules(&mut None, false, modules.par_iter().copied())?;
+    compilation.create_module_hashes(modules.clone())?;
 
-    code_generation_results
-      .iter()
-      .for_each(|module_identifier| {
-        compilation
-          .code_generated_modules
-          .insert(*module_identifier);
-      });
+    compilation.code_generation_modules(&mut None, modules.clone())?;
 
     Handle::current().block_on(async {
       compilation
@@ -264,7 +255,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
         result.id = id;
 
-        modules.iter().for_each(|m| {
+        for m in modules.iter() {
           let codegen_result = codegen_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
@@ -277,7 +268,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
               CompilationAsset::new(Some(source.clone()), asset_info.inner().clone()),
             );
           }
-        });
+        }
 
         Ok(result)
       }
@@ -312,8 +303,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
           cacheable: runtime_module.cacheable(),
           size: runtime_module_size
             .get(&identifier)
-            .map(|s| s.to_owned())
-            .unwrap_or(0 as f64),
+            .map_or(0 as f64, |s| s.to_owned()),
         }
       })
       .collect_vec();

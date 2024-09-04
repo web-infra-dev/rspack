@@ -11,7 +11,9 @@
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
+	AsyncChunks,
 	Bail,
+	BaseUri,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -48,7 +50,9 @@ import type {
 	HotUpdateMainFilename,
 	Iife,
 	ImportFunctionName,
+	ImportMetaName,
 	InfrastructureLogging,
+	Layer,
 	LazyCompilationOptions,
 	LibraryOptions,
 	Loader,
@@ -136,6 +140,7 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
+				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -157,6 +162,7 @@ export const getNormalizedRspackOptions = (
 					: ["..."],
 				globalObject: output.globalObject,
 				importFunctionName: output.importFunctionName,
+				importMetaName: output.importMetaName,
 				iife: output.iife,
 				module: output.module,
 				sourceMapFilename: output.sourceMapFilename,
@@ -349,6 +355,7 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				asyncChunks: value.asyncChunks,
 				filename: value.filename,
 				library: value.library,
+				layer: value.layer,
 				dependOn: Array.isArray(value.dependOn)
 					? value.dependOn
 					: value.dependOn
@@ -410,12 +417,12 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-					(obj, key) => (
-						(obj[key] = (
-							customKeys && key in customKeys ? customKeys[key] : fn
-						)(value[key])),
-						obj
-					),
+					(obj, key) => {
+						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+							value[key]
+						);
+						return obj;
+					},
 					{} as Record<string, R>
 				);
 	if (customKeys) {
@@ -439,12 +446,13 @@ export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
 	chunkLoading?: ChunkLoading;
-	asyncChunks?: boolean;
+	asyncChunks?: AsyncChunks;
 	publicPath?: PublicPath;
-	baseUri?: string;
+	baseUri?: BaseUri;
 	filename?: EntryFilename;
 	library?: LibraryOptions;
 	dependOn?: string[];
+	layer?: Layer;
 }
 
 export interface OutputNormalized {
@@ -469,6 +477,7 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	importMetaName?: ImportMetaName;
 	iife?: Iife;
 	wasmLoading?: WasmLoading;
 	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
@@ -493,6 +502,7 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
+	cssHeadDataCompression?: boolean;
 }
 
 export interface ModuleOptionsNormalized {
@@ -509,6 +519,7 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
+	layers?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 }

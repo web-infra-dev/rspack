@@ -2,6 +2,7 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(box_patterns)]
+#![feature(trait_upcasting)]
 #![recursion_limit = "256"]
 
 pub mod ast;

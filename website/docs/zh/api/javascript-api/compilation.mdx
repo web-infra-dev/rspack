@@ -1,0 +1,725 @@
+import WebpackLicense from '@components/WebpackLicense';
+import AssetInfoType from '../../types/asset-info.mdx';
+import SourceType from '../../types/source.mdx';
+import ChunkGroupType from '../../types/chunk-group.mdx';
+import EntrypointType from '../../types/entrypoint.mdx';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import FilenameType from '../../types/filename.mdx';
+import PathDataType from '../../types/path-data.mdx';
+import StatsType from '../../types/stats.mdx';
+import LoggerType from '../../types/logger.mdx';
+import CacheType from '../../types/cache.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import RspackErrorType from '../../types/rspack-error.mdx';
+import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
+<WebpackLicense from="https://webpack.docschina.org/api/compilation-object/" />
+
+# Compilation
+
+此页面将列举 Compilation 对象上可用的方法和属性。
+
+:::warning 注意
+在 Rspack 中，真实的 Compilation 运行在 Rust 侧，JavaScript Compilation 仅作为用于与 Rust Compilation 通信的**代理对象**。
+
+因此，部分较为复杂的数据结构和方法将不会在 JavaScript Compilation 上支持，同时**数据只读**且结构可能与 webpack 存在差异。
+:::
+
+## Compilation 对象方法
+
+### emitAsset
+
+添加一个产物，如果产物已经存在则会抛错。
+
+```ts
+emitAsset(
+  filename: string, // 产物文件名
+  source: Source, // 产物内容
+  info?: AssetInfo // 产物信息对象
+): void;
+```
+
+以下示例将添加一个 `asset-name.js` 的新产物且不会被压缩：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { RawSource } = compiler.webpack.sources;
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const buffer = Buffer.from(
+      'i am content of emit asset, do not minimize me',
+    );
+    const source = new RawSource(buffer, false);
+    compilation.emitAsset('asset-name.js', source, {
+      minimized: true,
+    });
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### updateAsset
+
+变更一个已经存在的产物的内容，如果产物不存在则会抛错。
+
+```ts
+updateAsset(
+  filename: string, // 产物文件名
+  source: Source | ((source: Source) => Source), // 变更后的产物内容 或 产物内容获取函数
+  info?: // 变更后的产物信息 或 产物信息获取函数
+    | AssetInfo
+    | ((assetInfo: AssetInfo) => AssetInfo)
+): void;
+```
+
+以下示例将 `main.js` 的产物内容替换，且不触发代码压缩：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { RawSource } = compiler.webpack.sources;
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const updatedSource = new RawSource(
+      `module.exports = "This is the updated"`,
+    );
+    compilation.updateAsset('main.js', updatedSource, {
+      minimized: true,
+    });
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### renameAsset
+
+更改一个已经存在的产物的名称。
+
+```ts
+renameAsset(
+  filename: string, // 产物文件名
+  newFilename: string // 变更后的产物名
+): void;
+```
+
+以下示例将 `main.js` 产物更名为 `my-asset-name.js`：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    compilation.renameAsset('main.js', 'my-asset-name.js');
+  });
+});
+```
+
+### deleteAsset
+
+移除一个已经存在的产物。
+
+```ts
+deleteAsset(
+  filename: string // 待移除的产物文件名
+): void;
+```
+
+以下示例将移除名为 `no-need.js` 的产物：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    compilation.deleteAsset('no-need.js');
+  });
+});
+```
+
+### getAssets
+
+获取产物对象列表。
+
+```ts
+getAssets(): ReadonlyArray<{
+  filename: string; // 产物文件名
+  source: Source; // 产物内容
+  info: AssetInfo; // 产物信息
+}>;
+```
+
+以下示例将打印所有产物的总体积大小：
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const assets = compilation.getAssets();
+    const totalSize = assets.reduce(
+      (total, asset) => total + asset.source.size(),
+      0,
+    );
+    console.log(`total size: ${totalSize}`);
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### getAsset
+
+获取指定名称的产物对象。
+
+```ts
+getAsset(
+  filename: string // 产物文件名
+): Readonly<{
+  filename: string; // 产物文件名
+  source: Source; // 产物内容
+  info: AssetInfo; // 产物信息
+}> | void;
+```
+
+以下示例将打印名为 `main.js` 的产物体积：
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const assetSize = compilation.getAsset('main.js')?.source.size();
+    console.log(`main size: ${assetSize}`);
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### getPath
+
+基于模板生成路径字符串，模板规则见 [Template String](/config/output#template-string)。
+
+```ts
+getPath(
+  filename: Filename, // 路径模板
+  data: PathData = {} // 生成数据
+): string;
+```
+
+以下示例将替换模板中的占位符生成对应的路径：
+
+```js
+const path = compilation.getPath('[contenthash]-[fullhash].js', {
+  contentHash: 'some1',
+  hash: 'some2',
+});
+console.log(path); // "some1-some2.js"
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+</Collapse>
+
+### getPathWithInfo
+
+基于模板生成路径字符串和资源信息，模板规则见 [Template String](/config/output#template-string)。
+
+```ts
+getPathWithInfo(
+  filename: Filename, // 路径模板
+  data: PathData = {} // 生成数据
+): {
+  path: string;
+  info: AssetInfo;
+};
+```
+
+以下示例将替换模板中的占位符生成对应的路径和资源信息：
+
+```ts
+const { path, info } = compilation.getPathWithInfo(
+  '[contenthash]-[fullhash].js',
+  {
+    contentHash: 'some1',
+    hash: 'some2',
+  },
+);
+console.log(path); // "some1-some2.js"
+console.log(info);
+/* Object {
+  immutable: true,
+  minimized: false,
+  fullhash: [ 'some2' ],
+  chunkhash: [],
+  contenthash: [ 'some1' ],
+  development: false,
+  hotModuleReplacement: false,
+  related: {},
+  extras: {}
+} */
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### getStats
+
+返回当前编译的 Stats 对象。
+
+```ts
+getStats(): Stats;
+```
+
+以下示例将输出模块总数：
+
+```js
+compiler.hooks.emit.tapAsync('MyPlugin', compilation => {
+  const modules = compilation.getStats().toJson({ modules: true }).modules;
+  console.log(`Total modules: ${modules.length}`);
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+### createChildCompiler
+
+允许在 Rspack 中运行另一个 Rspack 实例。但是，子编译器会应用不同的设置和配置。他会从父编译器（或者顶级编译器）中复制所有的钩子（hook）和插件（plugin），并且创建一个子 Compiler 实例。 返回值为创建好的 Compiler 实例。
+
+```ts
+createChildCompiler(
+  name: string, // 子编译器名称
+  outputOptions: OutputNormalized, // 子编译所使用的 Output 配置对象
+  plugins: RspackPluginInstance[] // 子编译所添加的插件
+): Compiler;
+```
+
+以下示例将以 `child-entry.js` 作为入口添加子编译，并将产物输出到 `dist/child` 中:
+
+```js
+compiler.hooks.make.tap('MyPlugin', compilation => {
+  const childCompiler = compilation.createChildCompiler(
+    'ChildCompiler',
+    {
+      path: 'dist/child',
+    },
+    [new compiler.webpack.EntryPlugin(compiler.context, './child-entry.js')],
+  );
+  childCompiler.compile((err, childCompilation) => {});
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+### rebuildModule
+
+重新构建指定模块。
+
+```ts
+rebuildModule(m: Module, f: (err: Error, m: Module) => void): void;
+```
+
+以下示例将重新构建结尾为 `a.js` 模块：
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.finishModules.tapPromise('MyPlugin', async modules => {
+    const oldModule = Array.from(modules).find(item =>
+      item.resource.endsWith('a.js'),
+    );
+    compilation.rebuildModule(oldModule, (err, m) => {
+      console.log(`Rebuilt ${m.identifier()}.`);
+    });
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### getLogger
+
+以指定名称创建日志输出工具对象，以用于在插件中以统一的格式打印日志。
+
+```ts
+getLogger(name: string | (() => string)): Logger;
+```
+
+以下示例在 `processAssets` 中打印产物信息到 debug 日志中：
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  const logger = compilation.getLogger('MyPlugin');
+
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    for (const asset of compilation.getAssets()) {
+      logger.debug(`asset name: ${asset.name}`);
+      logger.debug(`asset info: ${asset.info}`);
+    }
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
+
+### getCache
+
+以指定名称获取缓存对象，以供插件在多次编译过程中共享数据。
+
+```ts
+getCache(name: string): CacheFacade;
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
+    <CacheType />
+  </CollapsePanel>
+</Collapse>
+
+## Compilation 对象属性
+
+### options
+
+**类型：** `RspackOptionsNormalized`
+
+获取此 Compilation 使用的完整配置，详见[配置 Rspack](/config/index)。
+
+### compiler
+
+**类型：** `Compiler`
+
+获取所属的[编译器对象](/api/javascript-api/index)。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+### hooks
+
+获取 [Compilation 钩子](/api/plugin-api/compilation-hooks)。
+
+### hash/fullhash
+
+**类型：** `Readonly<string | null>`
+
+获取此次构建的哈希。
+
+### assets
+
+**类型：** `Record<string, Source>`
+
+获取产物映射表。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
+### chunkGroups
+
+**类型：** `ReadonlyArray<ChunkGroup>`
+
+获取 Chunk Group 对象列表，结构如下：
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
+
+### entrypoints
+
+**类型：** `ReadonlyMap<string, Entrypoint>`
+
+获取 Entry 对象映射表，其为作为入口的特殊的 Chunk Group，会额外包含一个 Runtime Chunk。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Entrypoint.ts"
+    key="entrypoint"
+  >
+    <EntrypointType />
+  </CollapsePanel>
+</Collapse>
+
+### namedChunkGroups
+
+**类型：** `ReadonlyMap<string, Readonly<ChunkGroup>>`
+
+获取名称与 Chunk Group 对象映射表。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
+
+### modules
+
+**类型：** `ReadonlySet<Module>`
+
+获取所有模块，其结构如下：
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### chunks
+
+**类型：** `ReadonlySet<Chunk>`
+
+获取所有 Chunk，其结构如下：
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+### namedChunks
+
+**类型：** `ReadonlyMap<string, Readonly<Chunk>>`
+
+获取名称与 Chunk 对象的映射表。
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+### fileDependencies
+
+**类型：** `CompilationDependencies`
+
+获取此 Compilation 对资源文件的依赖信息，其结构如下：
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### contextDependencies
+
+**类型：** `CompilationDependencies`
+
+获取此 Compilation 对目录的依赖信息。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### missingDependencies
+
+**类型：** `CompilationDependencies`
+
+获取此 Compilation 对缺失文件的依赖信息。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### buildDependencies
+
+**类型：** `CompilationDependencies`
+
+获取此 Compilation 对构建文件的依赖信息。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### errors
+
+**类型：** `RspackError[]`
+
+获取构建期间产生的错误对象列表，其结构如下：
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>
+
+### warnings
+
+**类型：** `RspackError[]`
+
+获取构建期间产生的警告对象列表。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>

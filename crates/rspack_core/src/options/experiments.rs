@@ -23,10 +23,13 @@ impl IncrementalRebuildMakeState {
 
 #[allow(clippy::empty_structs_with_brackets)]
 #[derive(Debug, Default)]
-pub struct RspackFuture {}
+pub struct RspackFuture {
+  pub new_incremental: bool,
+}
 
 #[derive(Debug, Default)]
 pub struct Experiments {
+  pub layers: bool,
   pub incremental_rebuild: IncrementalRebuild,
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,

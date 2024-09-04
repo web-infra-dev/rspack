@@ -1,9 +1,10 @@
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
+use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyLocation, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
+  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
+  ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
 };
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
@@ -19,23 +20,33 @@ pub enum DeclarationId {
 
 #[derive(Debug, Clone)]
 pub struct DeclarationInfo {
-  pub range: DependencyLocation,
-  pub prefix: String,
-  pub suffix: String,
+  range: RealDependencyLocation,
+  prefix: String,
+  suffix: String,
+}
+
+impl DeclarationInfo {
+  pub fn new(range: RealDependencyLocation, prefix: String, suffix: String) -> Self {
+    Self {
+      range,
+      prefix,
+      suffix,
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct HarmonyExportExpressionDependency {
-  pub range: DependencyLocation,
-  pub range_stmt: DependencyLocation,
-  pub declaration: Option<DeclarationId>,
-  pub id: DependencyId,
+  id: DependencyId,
+  range: RealDependencyLocation,
+  range_stmt: RealDependencyLocation,
+  declaration: Option<DeclarationId>,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
-    range: DependencyLocation,
-    range_stmt: DependencyLocation,
+    range: RealDependencyLocation,
+    range_stmt: RealDependencyLocation,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {
@@ -56,6 +67,10 @@ impl Dependency for HarmonyExportExpressionDependency {
     &self.id
   }
 
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
@@ -70,12 +85,17 @@ impl Dependency for HarmonyExportExpressionDependency {
       exclude_exports: None,
     })
   }
+
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
   }
 }
 
@@ -107,7 +127,6 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_exports_info(module_identifier)
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
     }
 
@@ -116,8 +135,8 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         DeclarationId::Id(id) => id,
         DeclarationId::Func(func) => {
           source.replace(
-            func.range.start(),
-            func.range.end(),
+            func.range.start,
+            func.range.end,
             &format!("{}{}{}", func.prefix, DEFAULT_EXPORT, func.suffix),
             None,
           );
@@ -151,8 +170,8 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       }
 
       source.replace(
-        self.range_stmt.start(),
-        self.range.start(),
+        self.range_stmt.start,
+        self.range.start,
         "/* harmony default export */ ",
         None,
       );
@@ -207,16 +226,30 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       };
 
       source.replace(
-        self.range_stmt.start(),
-        self.range.start(),
+        self.range_stmt.start,
+        self.range.start,
         &format!("{}(", content),
         None,
       );
-      source.replace(self.range.end(), self.range_stmt.end(), ");", None);
+      source.replace_with_enforce(
+        self.range.end,
+        self.range_stmt.end,
+        ");",
+        None,
+        ReplacementEnforce::Post,
+      );
     }
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }

@@ -16,7 +16,7 @@ impl CreateChunkAssetsOccasion {
     Self { storage }
   }
 
-  pub async fn use_cache<'a, G, F>(
+  pub async fn use_cache<G, F>(
     &self,
     compilation: &Compilation,
     chunk: &Chunk,

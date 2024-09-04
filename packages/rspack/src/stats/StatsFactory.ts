@@ -7,7 +7,12 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
+import type {
+	JsStats,
+	JsStatsCompilation,
+	JsStatsError,
+	JsStatsWarning
+} from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
@@ -24,6 +29,7 @@ export type KnownStatsFactoryContext = {
 	// runtime?: RuntimeSpec | undefined;
 	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
 	cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+	getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
 	getInner: (compilation: Compilation) => JsStats;
 };
 
@@ -165,12 +171,13 @@ export class StatsFactory {
 		});
 
 		const hooks = this.hooks;
-		this._caches = Object.keys(hooks).reduce((prev, curr) => {
-			return {
-				...prev,
-				[curr]: new Map()
-			};
-		}, {} as Cache);
+		const caches = {} as Cache;
+
+		for (const key of Object.keys(hooks)) {
+			caches[key as keyof Cache] = new Map();
+		}
+
+		this._caches = caches;
 		this._inCreate = false;
 	}
 
@@ -210,10 +217,9 @@ export class StatsFactory {
 		data: any,
 		fn: CallFn
 	) {
-		for (const hook of this._getAllLevelHooks(hookMap, cache, type)) {
-			data = fn(hook, data);
-		}
-		return data;
+		return this._getAllLevelHooks(hookMap, cache, type).reduce((data, hook) => {
+			return fn(hook, data);
+		}, data);
 	}
 
 	_forEachLevelFilter(
@@ -285,10 +291,7 @@ export class StatsFactory {
 				h.call(comparators, context)
 			);
 			if (comparators.length > 0) {
-				items.sort(
-					// @ts-expect-error number of arguments is correct
-					concatComparators(...comparators)
-				);
+				items.sort(concatComparators(...comparators));
 			}
 
 			// run filter on sorted items
@@ -344,10 +347,7 @@ export class StatsFactory {
 				h => h.call(comparators2, context)
 			);
 			if (comparators2.length > 0) {
-				resultItems.sort(
-					// @ts-expect-error number of arguments is correct
-					concatComparators(...comparators2)
-				);
+				resultItems.sort(concatComparators(...comparators2));
 			}
 
 			// group result items

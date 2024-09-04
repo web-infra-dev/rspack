@@ -16,59 +16,58 @@
 			"packages/**/etc/**/*",
 			"crates/**/*",
 			"tests/**/*",
-			"packages/rspack-plugin-preact-refresh/tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
-			"packages/rspack-plugin-mini-css-extract/test/cases/**/*",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": false,
+			"recommended": true,
 			"a11y": {
-				"useButtonType": "error",
-				"noSvgWithoutTitle": "error"
+				"useKeyWithClickEvents": "off"
 			},
 			"complexity": {
-				"useArrowFunction": "error",
-				"useLiteralKeys": "error",
-				"noForEach": "error"
+				"noStaticOnlyClass": "off",
+				"noThisInStatic": "off",
+				"noBannedTypes": "off"
+			},
+			"correctness": {
+				"noConstructorReturn": "off",
+				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noUnusedTemplateLiteral": "error",
-				"useNodejsImportProtocol": "error",
-				"noUselessElse": "error",
-				"noNonNullAssertion": "off",
-				"useNumberNamespace": "error",
-				"useConst": "error",
-				"useImportType": "error",
-				"useExportType": "error",
-				"useEnumInitializers": "error",
-				"useSelfClosingElements": "error"
+				"noNonNullAssertion": "off"
+			},
+			"performance": {
+				"noDelete": "off"
 			},
 			"suspicious": {
-				"noDoubleEquals": "error"
+				"noFallthroughSwitchClause": "off",
+				"noConfusingVoidType": "off",
+				"noPrototypeBuiltins": "off",
+				"noImplicitAnyLet": "off",
+				"noAssignInExpressions": "off",
+				"noArrayIndexKey": "off",
+				"noControlCharactersInRegex": "off",
+				"noExplicitAny": "off"
 			}
 		},
 		"ignore": [
 			"tests/**/*",
 			"crates/**/*",
 			"packages/rspack-test-tools/template",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
+			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},

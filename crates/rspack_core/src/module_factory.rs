@@ -3,7 +3,9 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{BoxDependency, BoxModule, CompilerOptions, Context, ModuleIdentifier, Resolve};
+use crate::{
+  BoxDependency, BoxModule, CompilerOptions, Context, ModuleIdentifier, ModuleLayer, Resolve,
+};
 
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
@@ -13,6 +15,7 @@ pub struct ModuleFactoryCreateData {
   pub dependency: BoxDependency,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
+  pub issuer_layer: Option<ModuleLayer>,
 
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -30,13 +33,11 @@ impl ModuleFactoryCreateData {
   }
 
   pub fn add_file_dependency(&mut self, file: PathBuf) {
-    if file.is_absolute() {
-      self.file_dependencies.insert(file);
-    }
+    self.file_dependencies.insert(file);
   }
 
   pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {
-    self.file_dependencies.extend(files.into_iter());
+    self.file_dependencies.extend(files);
   }
 
   pub fn add_context_dependency(&mut self, context: PathBuf) {
@@ -44,7 +45,7 @@ impl ModuleFactoryCreateData {
   }
 
   pub fn add_context_dependencies(&mut self, contexts: impl IntoIterator<Item = PathBuf>) {
-    self.context_dependencies.extend(contexts.into_iter());
+    self.context_dependencies.extend(contexts);
   }
 
   pub fn add_missing_dependency(&mut self, missing: PathBuf) {

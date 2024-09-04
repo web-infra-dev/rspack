@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, ModuleDependency, ModuleGraph,
+  AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
+  DependencyCategory, DependencyId, ModuleDependency, ModuleGraph,
 };
 use rustc_hash::FxHashSet;
 
@@ -15,9 +15,10 @@ pub struct CssDependency {
   pub(crate) identifier: String,
   pub(crate) content: String,
   pub(crate) context: String,
-  pub(crate) media: String,
-  pub(crate) supports: String,
-  pub(crate) source_map: String,
+  pub(crate) media: Option<String>,
+  pub(crate) supports: Option<String>,
+  pub(crate) source_map: Option<String>,
+  pub(crate) layer: Option<String>,
 
   // One module can be split apart by using `@import` in the middle of one module
   pub(crate) identifier_index: u32,
@@ -37,11 +38,12 @@ impl CssDependency {
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
     identifier: String,
+    layer: Option<String>,
     content: String,
     context: String,
-    media: String,
-    supports: String,
-    source_map: String,
+    media: Option<String>,
+    supports: Option<String>,
+    source_map: Option<String>,
     identifier_index: u32,
     order_index: u32,
     cacheable: bool,
@@ -55,6 +57,7 @@ impl CssDependency {
       id: DependencyId::new(),
       identifier,
       content,
+      layer,
       context,
       media,
       supports,
@@ -109,6 +112,14 @@ impl Dependency for CssDependency {
       start: self.order_index,
       end: self.order_index + 1,
     })
+  }
+
+  fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {
+    self.layer.as_ref()
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::Transitive
   }
 }
 

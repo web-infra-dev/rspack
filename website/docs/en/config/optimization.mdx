@@ -1,6 +1,6 @@
-import PropertyType from '../../../components/property-type.tsx';
+import PropertyType from '../../../components/PropertyType.tsx';
 
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
 
@@ -45,12 +45,6 @@ Whether to minimize the bundle.
 Whether to merge chunks which contain the same modules. Setting optimization.mergeDuplicateChunks
 to false will disable this optimization.
 
-:::info
-This optimization currently has the potential to significantly impact performance.
-
-If you are encountering performance issue, and you are using `optimization.splitChunks`, also have set `optimization.splitChunks.chunks` to 'all', you can disable `optimization.mergeDuplicateChunks`.
-:::
-
 ## optimization.minimizer
 
 <PropertyType
@@ -64,11 +58,11 @@ If you are encountering performance issue, and you are using `optimization.split
 />
 
 Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
-and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/swc-css-minimizer-rspack-plugin) are used.
+and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) are used.
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
 ```js title=rspack.config.js
-const minifyPlugin = require('@rspack/plugin-minify');
+const terserPlugin = require('terser-webpack-plugin');
 module.exports = {
   context: __dirname,
   target: 'node',
@@ -77,11 +71,7 @@ module.exports = {
   },
   optimization: {
     minimize: true,
-    minimizer: [
-      new minifyPlugin({
-        minifier: 'terser',
-      }),
-    ],
+    minimizer: [new terserPlugin()],
   },
 };
 ```
@@ -98,11 +88,17 @@ module.exports = {
     // but you can use '...', it represents the default minimizers
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
-        format: {
-          comments: false,
+        minimizerOptions: {
+          format: {
+            comments: false,
+          },
         },
       }),
-      new rspack.SwcCssMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          errorRecovery: false,
+        },
+      }),
     ],
   },
 };
@@ -127,7 +123,7 @@ Setting it to `true` or `'multiple'` will add an additional chunk containing onl
 
 Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk.
 
-## optimization.sideEffects
+## optimization.realContentHash
 
 <PropertyType
   type="boolean | 'flag'"
@@ -136,46 +132,6 @@ Setting it to `'single'` will extract the runtime code of all entry points into 
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-
-```json
-{
-  "name": "npm module",
-  "version": "1.0.0",
-  "sideEffects": ["**/src/*.js"]
-}
-```
-
-Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
-
-`optimization.sideEffects` depended on `builtins.treeShaking` to be enabled.
-
-This configuration has a build time cost, but eliminating modules has positive impact on performance because of less code generation. Effect of this optimization depends on your codebase.
-
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    sideEffects: true,
-  },
-};
-```
-
-If you only want Rspack use the manual `sideEffects` flag via (package.json and module.rule.sideEffects) and don't analyse code:
-
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    sideEffects: 'flag',
-  },
-};
-```
-
-:::info Tip
-When `optimization.sideEffects` is true , Rspack will also flag modules as side effect free when they contain only side effect free statements.
-:::
-
-## optimization.realContentHash
 
 Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes. This feature will enable by default in production mode.
 
@@ -192,7 +148,7 @@ module.exports = {
 
 ## optimization.splitChunks
 
-- **Type:** `false | object`
+<PropertyType type="false | object" />
 
 Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
 
@@ -201,6 +157,75 @@ It is enabled by default for dynamically imported modules.
 To turn it off, set it to `false`.
 
 See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
+
+## optimization.sideEffects
+
+<PropertyType
+  type="boolean | 'flag'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: "'flag'", mode: 'development' },
+  ]}
+/>
+
+```json
+{
+  "name": "npm module",
+  "version": "1.0.0",
+  "sideEffects": ["**/src/*.js"]
+}
+```
+
+Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
+
+:::tip
+Please note that `sideEffects` should be in the npm module's `package.json` file and doesn't mean that you need to set `sideEffects` to `false` in your own project's `package.json` which requires that npm module.
+:::
+
+`optimization.sideEffects` depends on [`optimization.providedExports`](#optimizationprovidedexports) to be enabled.
+This dependency has a build time cost, but eliminating modules has positive impact on performance because of less code generation.
+Effect of this optimization depends on your codebase, try it for possible performance wins.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    sideEffects: true,
+  },
+};
+```
+
+If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `module.rule.sideEffects`) and don't analyse source code:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    sideEffects: 'flag',
+  },
+};
+```
+
+The `'flag'` value is used by default in non-production builds.
+
+:::tip
+When `optimization.sideEffects` is true , Rspack will also flag modules as side effect free when they contain only side effect free statements.
+:::
+
+## optimization.providedExports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  optimization: {
+    providedExports: false,
+  },
+};
+```
 
 ## optimization.usedExports
 
@@ -236,42 +261,6 @@ module.exports = {
 };
 ```
 
-## optimization.innerGraph
-
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-`optimization.innerGraph` tells Rspack whether to conduct inner graph analysis for unused exports.
-
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    innerGraph: false,
-  },
-};
-```
-
-## optimization.providedExports
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
-
-```js title=rspack.config.js
-module.exports = {
-  //...
-  optimization: {
-    providedExports: false,
-  },
-};
-```
-
 ## optimization.mangleExports
 
 <PropertyType
@@ -283,6 +272,7 @@ module.exports = {
 />
 
 `optimization.mangleExports` allows to control export mangling.
+
 The following values are supported:
 
 | option          | description                                                                                                                        |
@@ -292,10 +282,54 @@ The following values are supported:
 | true            | Same as 'deterministic'                                                                                                            |
 | false           | Keep original name. Good for readability and debugging.                                                                            |
 
+## optimization.innerGraph
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+`optimization.innerGraph` tells Rspack whether to perform a more detailed analysis of variable assignments. This helps Rspack to identify unused module exports, thereby reducing the size of the bundled output.
+
+For example:
+
+```js
+import { value } from 'lib';
+
+const value2 = value;
+
+function f1() {
+  console.log(value);
+}
+
+function f2() {
+  console.log(value2);
+}
+```
+
+Here we assign the `value` to `value2`. Both `value2` and `value` are accessed within the functions `f2` and `f1` respectively, but the functions are not called, hence `value2` and `value` are not actually used, thus the import of `value` can be removed.
+
+## optimization.concatenateModules
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Tells Rspack to find segments of the module graph which can be safely concatenated into a single module. Depends on [optimization.providedExports](#optimizationprovidedexports) and [optimization.usedExports](#optimizationusedexports). By default `optimization.concatenateModules` is enabled in `production` mode and disabled elsewise.
+
 ## optimization.nodeEnv
 
-- **Type:** `boolean | string`
-- **Default:** `false`
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
 `optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
@@ -317,3 +351,15 @@ module.exports = {
 :::tip
 When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
 :::
+
+## optimization.emitOnErrors
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
+  ]}
+/>
+
+Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. Critical errors are emitted into the generated code and will cause errors at runtime.

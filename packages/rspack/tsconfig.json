@@ -5,16 +5,30 @@
     "rootDir": "src",
     "resolveJsonModule": true,
     "paths": {
-      "zod": ["../compiled/zod"],
-      "neo-async": ["../compiled/neo-async"],
-      "watchpack": ["../compiled/watchpack"],
-      "graceful-fs": ["../compiled/graceful-fs"],
-      "browserslist": ["../compiled/browserslist"],
-      "enhanced-resolve": ["../compiled/enhanced-resolve"],
+      "zod": [
+        "../compiled/zod"
+      ],
+      "neo-async": [
+        "../compiled/neo-async"
+      ],
+      "watchpack": [
+        "../compiled/watchpack"
+      ],
+      "graceful-fs": [
+        "../compiled/graceful-fs"
+      ],
+      "browserslist": [
+        "../compiled/browserslist"
+      ],
+      "enhanced-resolve": [
+        "../compiled/enhanced-resolve"
+      ],
       "enhanced-resolve/lib/CachedInputFileSystem": [
         "../compiled/enhanced-resolve/CachedInputFileSystem"
       ],
-      "zod-validation-error": ["../compiled/zod-validation-error"],
+      "zod-validation-error": [
+        "../compiled/zod-validation-error"
+      ],
       "json-parse-even-better-errors": [
         "../compiled/json-parse-even-better-errors"
       ],
@@ -23,17 +37,15 @@
       ]
     }
   },
-  "include": ["src", "src/**/*.json"],
+  "include": [
+    "src",
+    "src/**/*.json"
+  ],
   "exclude": [
     "src/config/schema.check.js",
     "src/container/default.runtime.js"
   ],
   "ts-node": {
     "transpileOnly": true
-  },
-  "references": [
-    {
-      "path": "../rspack-lite-tapable"
-    }
-  ]
+  }
 }

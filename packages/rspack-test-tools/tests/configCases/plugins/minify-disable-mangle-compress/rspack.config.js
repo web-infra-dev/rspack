@@ -15,8 +15,10 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			mangle: false,
-			compress: false
+			minimizerOptions: {
+				mangle: false,
+				compress: false
+			}
 		})
 	]
 };

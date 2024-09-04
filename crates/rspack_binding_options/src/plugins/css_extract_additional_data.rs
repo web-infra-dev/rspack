@@ -8,7 +8,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_loader_runner::AdditionalData;
 use rspack_napi::{threadsafe_js_value_ref::ThreadsafeJsValueRef, JsCallback, NapiResultExt};
-use rspack_plugin_extract_css::{CssExtractJsonData, CssExtractJsonDataList};
+use rspack_plugin_extract_css::CssExtractJsonDataList;
 use tokio::sync::oneshot;
 
 #[plugin]
@@ -43,37 +43,14 @@ async fn additional_data(&self, additional_data: &mut AdditionalData) -> Result<
       && let Ok(data) = data.coerce_to_object()
       && let Ok(Some(data)) = data.get::<_, String>("css-extract-rspack-plugin")
     {
-      let mut list = data.split("__RSPACK_CSS_EXTRACT_SEP__");
-      let mut data_list = vec![];
-      while let Some(identifier) = list.next() {
-        #[allow(clippy::unwrap_used)]
-        {
-          // parse the css data from js loader
-          // data:
-          // [identifier]__RSPACK_CSS_EXTRACT_SEP__
-          // [content]__RSPACK_CSS_EXTRACT_SEP__
-          // [context]__RSPACK_CSS_EXTRACT_SEP__
-          // [media]__RSPACK_CSS_EXTRACT_SEP__
-          // [supports]__RSPACK_CSS_EXTRACT_SEP__
-          // [sourceMap]__RSPACK_CSS_EXTRACT_SEP__
-          // [identifier]__RSPACK_CSS_EXTRACT_SEP__ ... repeated
-          // [content]__RSPACK_CSS_EXTRACT_SEP__
-          data_list.push(CssExtractJsonData {
-            identifier: identifier.into(),
-            content: list.next().unwrap().into(),
-            context: list.next().unwrap().into(),
-            media: list.next().unwrap().into(),
-            supports: list.next().unwrap().into(),
-            source_map: list.next().unwrap().into(),
-            identifier_index: list
-              .next()
-              .unwrap()
-              .parse()
-              .expect("Cannot parse identifier_index, this should never happen"),
-            filepath: list.next().unwrap().into(),
-          });
-        }
-      }
+      let data_list: Vec<rspack_plugin_extract_css::CssExtractJsonData> = data
+        .split("__RSPACK_CSS_EXTRACT_SEP__")
+        .map(|info| {
+          serde_json::from_str(info)
+            .unwrap_or_else(|e| panic!("failed to parse CssExtractJsonData: {}", e))
+        })
+        .collect();
+
       old_data.insert(CssExtractJsonDataList(data_list));
     };
     tx.send(old_data)

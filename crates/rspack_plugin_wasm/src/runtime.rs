@@ -5,6 +5,7 @@ use rspack_core::{
   RuntimeModule, RuntimeModuleStage,
 };
 use rspack_util::infallible::ResultInfallibleExt as _;
+use rspack_util::itoa;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -43,7 +44,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       .get("[contenthash]")
       .or(hash_len_map.get("[hash]"))
     {
-      Some(hash_len) => format!("\" + wasmModuleHash.slice(0, {}) + \"", hash_len),
+      Some(hash_len) => format!("\" + wasmModuleHash.slice(0, {}) + \"", itoa!(*hash_len)),
       None => "\" + wasmModuleHash + \"".to_string(),
     };
 
@@ -62,7 +63,11 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       RawSource::from(get_async_wasm_loading(
         &self
           .generate_load_binary_code
-          .replace("$PATH", &format!("\"{}\"", path)),
+          .replace("$PATH", &format!("\"{}\"", path))
+          .replace(
+            "$IMPORT_META_NAME",
+            compilation.options.output.import_meta_name.as_str(),
+          ),
         self.supports_streaming,
       ))
       .boxed(),

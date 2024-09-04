@@ -224,6 +224,7 @@ pub struct JavascriptParserOptions {
   pub strict_export_presence: bool,
   pub worker: Vec<String>,
   pub override_strict: Option<OverrideStrict>,
+  pub import_meta: bool,
 }
 
 #[derive(Debug, Clone, MergeFrom)]
@@ -385,13 +386,13 @@ impl MergeFrom for AssetGeneratorDataUrl {
   }
 }
 
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Hash)]
 pub struct AssetGeneratorDataUrlOptions {
   pub encoding: Option<DataUrlEncoding>,
   pub mimetype: Option<String>,
 }
 
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Hash)]
 pub enum DataUrlEncoding {
   None,
   Base64,
@@ -503,6 +504,7 @@ impl Default for CssExportsConvention {
 }
 
 pub type DescriptionData = HashMap<String, RuleSetCondition>;
+pub type With = HashMap<String, RuleSetCondition>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -563,11 +565,7 @@ impl DataRef<'_> {
 
 impl RuleSetCondition {
   #[async_recursion]
-  pub async fn try_match(
-    &self,
-    data: impl Into<DataRef<'async_recursion>> + Send + Sync + Copy + 'async_recursion,
-  ) -> Result<bool> {
-    let data: DataRef = data.into();
+  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
     match self {
       Self::String(s) => Ok(
         data
@@ -592,10 +590,7 @@ pub struct RuleSetLogicalConditions {
 
 impl RuleSetLogicalConditions {
   #[async_recursion]
-  pub async fn try_match(
-    &self,
-    data: impl Into<DataRef<'async_recursion>> + Send + Sync + Copy + 'async_recursion,
-  ) -> Result<bool> {
+  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
     if let Some(and) = &self.and
       && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
     {
@@ -625,15 +620,17 @@ pub struct FuncUseCtx {
 #[derive(Debug, Clone)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
+  /// Loader ident or query will be appended if it exists.
   pub loader: String,
   /// Loader options
+  /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
 }
 
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Derivative, Default)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
@@ -652,19 +649,28 @@ pub struct ModuleRule {
   pub resource_fragment: Option<RuleSetCondition>,
   pub dependency: Option<RuleSetCondition>,
   pub issuer: Option<RuleSetCondition>,
+  pub issuer_layer: Option<RuleSetCondition>,
   pub scheme: Option<RuleSetCondition>,
   pub mimetype: Option<RuleSetCondition>,
   pub description_data: Option<DescriptionData>,
+  pub with: Option<With>,
+  pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
+  pub effect: ModuleRuleEffect,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
+  pub layer: Option<String>,
   #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
-  pub one_of: Option<Vec<ModuleRule>>,
-  pub rules: Option<Vec<ModuleRule>>,
   pub enforce: ModuleRuleEnforce,
 }
 

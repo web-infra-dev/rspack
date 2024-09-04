@@ -28,6 +28,9 @@ export default defineConfig({
   route: {
     cleanUrls: true,
   },
+  ssg: {
+    strict: true,
+  },
   plugins: [
     pluginSitemap({
       domain: PUBLISH_URL,
@@ -75,7 +78,7 @@ export default defineConfig({
         content: 'https://discord.gg/sYK4QjyZ4V',
       },
       {
-        icon: 'twitter',
+        icon: 'x',
         mode: 'link',
         content: 'https://twitter.com/rspack_dev',
       },
@@ -112,6 +115,9 @@ export default defineConfig({
     ],
   },
   builderConfig: {
+    dev: {
+      lazyCompilation: true,
+    },
     plugins: [
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
@@ -119,7 +125,7 @@ export default defineConfig({
         type: 'website',
         url: PUBLISH_URL,
         image:
-          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-0-alpha.png',
+          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-0.png',
         description: 'Fast Rust-based Web Bundler',
         twitter: {
           site: '@rspack_dev',
@@ -149,18 +155,6 @@ export default defineConfig({
           },
         },
       ],
-    },
-    output: {
-      copy: {
-        patterns: [
-          {
-            from: path.join(__dirname, 'docs', 'public', '_redirects'),
-          },
-          {
-            from: path.join(__dirname, 'docs', 'public', '_headers'),
-          },
-        ],
-      },
     },
   },
 });

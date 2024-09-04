@@ -23,6 +23,7 @@ struct SystemLibraryPluginParsed<'a> {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 struct SystemLibraryJavascriptModulesPluginPlugin;
 
 #[plugin]

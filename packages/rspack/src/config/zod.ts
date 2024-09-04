@@ -1,3 +1,4 @@
+import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
@@ -29,7 +30,12 @@ export type Dependencies = z.infer<typeof dependencies>;
 //#endregion
 
 //#region Context
-const context = z.string();
+const context = z.string().refine(
+	val => nodePath.isAbsolute(val),
+	val => ({
+		message: `The provided value ${JSON.stringify(val)} must be an absolute path.`
+	})
+);
 export type Context = z.infer<typeof context>;
 //#endregion
 
@@ -151,6 +157,9 @@ export type LibraryOptions = z.infer<typeof libraryOptions>;
 const library = libraryName.or(libraryOptions).optional();
 export type Library = z.infer<typeof library>;
 
+const layer = z.string().or(z.null());
+export type Layer = z.infer<typeof layer>;
+
 const entryFilename = filename;
 export type EntryFilename = z.infer<typeof entryFilename>;
 
@@ -173,7 +182,8 @@ const entryDescription = z.strictObject({
 	wasmLoading: wasmLoading.optional(),
 	filename: entryFilename.optional(),
 	library: libraryOptions.optional(),
-	dependOn: entryDependOn.optional()
+	dependOn: entryDependOn.optional(),
+	layer: layer.optional()
 });
 export type EntryDescription = z.infer<typeof entryDescription>;
 
@@ -186,9 +196,12 @@ export type EntryObject = z.infer<typeof entryObject>;
 const entryStatic = entryObject.or(entryUnnamed);
 export type EntryStatic = z.infer<typeof entryStatic>;
 
-const entry = entryStatic.or(
-	z.function().returns(entryStatic.or(z.promise(entryStatic)))
-);
+const entryDynamic = z
+	.function()
+	.returns(entryStatic.or(z.promise(entryStatic)));
+export type EntryDynamic = z.infer<typeof entryDynamic>;
+
+const entry = entryStatic.or(entryDynamic);
 export type Entry = z.infer<typeof entry>;
 //#endregion
 
@@ -263,6 +276,9 @@ export type EnabledWasmLoadingTypes = z.infer<typeof enabledWasmLoadingTypes>;
 
 const importFunctionName = z.string();
 export type ImportFunctionName = z.infer<typeof importFunctionName>;
+
+const importMetaName = z.string();
+export type ImportMetaName = z.infer<typeof importMetaName>;
 
 const iife = z.boolean();
 export type Iife = z.infer<typeof iife>;
@@ -339,6 +355,7 @@ const output = z.strictObject({
 	chunkFilename: chunkFilename.optional(),
 	crossOriginLoading: crossOriginLoading.optional(),
 	cssFilename: cssFilename.optional(),
+	cssHeadDataCompression: z.boolean().optional(),
 	cssChunkFilename: cssChunkFilename.optional(),
 	hotUpdateMainFilename: hotUpdateMainFilename.optional(),
 	hotUpdateChunkFilename: hotUpdateChunkFilename.optional(),
@@ -357,6 +374,7 @@ const output = z.strictObject({
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),
 	globalObject: globalObject.optional(),
 	importFunctionName: importFunctionName.optional(),
+	importMetaName: importMetaName.optional(),
 	iife: iife.optional(),
 	wasmLoading: wasmLoading.optional(),
 	enabledWasmLoadingTypes: enabledWasmLoadingTypes.optional(),
@@ -499,6 +517,7 @@ const baseRuleSetRule = z.strictObject({
 	exclude: ruleSetCondition.optional(),
 	include: ruleSetCondition.optional(),
 	issuer: ruleSetCondition.optional(),
+	issuerLayer: ruleSetCondition.optional(),
 	dependency: ruleSetCondition.optional(),
 	resource: ruleSetCondition.optional(),
 	resourceFragment: ruleSetCondition.optional(),
@@ -506,7 +525,9 @@ const baseRuleSetRule = z.strictObject({
 	scheme: ruleSetCondition.optional(),
 	mimetype: ruleSetCondition.optional(),
 	descriptionData: z.record(ruleSetCondition).optional(),
+	with: z.record(ruleSetCondition).optional(),
 	type: z.string().optional(),
+	layer: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
 	use: ruleSetUse.optional(),
@@ -586,6 +607,7 @@ const javascriptParserOptions = z.strictObject({
 	dynamicImportPreload: dynamicImportPreload.optional(),
 	dynamicImportPrefetch: dynamicImportPrefetch.optional(),
 	dynamicImportFetchPriority: dynamicImportFetchPriority.optional(),
+	importMeta: z.boolean().optional(),
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
 	wrappedContextCritical: wrappedContextCritical.optional(),
@@ -773,8 +795,7 @@ const allowTarget = z.union([
 		"es2019",
 		"es2020",
 		"es2021",
-		"es2022",
-		"browserslist"
+		"es2022"
 	]),
 	z.literal("node"),
 	z.literal("async-node"),
@@ -826,6 +847,10 @@ const allowTarget = z.union([
 	),
 	z.custom<`node-webkit${number}.${number}`>(
 		value => typeof value === "string" && /^node-webkit\d+\.\d+$/.test(value)
+	),
+	z.literal("browserslist"),
+	z.custom<`browserslist:${string}`>(
+		value => typeof value === "string" && /^browserslist:(.+)$/.test(value)
 	)
 ]);
 
@@ -854,6 +879,7 @@ export const externalsType = z.enum([
 	"system",
 	"promise",
 	"import",
+	"module-import",
 	"script",
 	"node-commonjs"
 ]);
@@ -990,11 +1016,11 @@ export type DevTool = z.infer<typeof devTool>;
 const nodeOptions = z.strictObject({
 	__dirname: z
 		.boolean()
-		.or(z.enum(["warn-mock", "mock", "eval-only"]))
+		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	__filename: z
 		.boolean()
-		.or(z.enum(["warn-mock", "mock", "eval-only"]))
+		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	global: z.boolean().or(z.literal("warn")).optional()
 });
@@ -1123,7 +1149,12 @@ const statsOptions = z.strictObject({
 	groupReasonsByOrigin: z.boolean().optional(),
 	errorDetails: z.boolean().optional(),
 	errorStack: z.boolean().optional(),
-	moduleTrace: z.boolean().optional()
+	moduleTrace: z.boolean().optional(),
+	cachedModules: z.boolean().optional(),
+	cachedAssets: z.boolean().optional(),
+	cached: z.boolean().optional(),
+	errorsSpace: z.number().optional(),
+	warningsSpace: z.number().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -1138,9 +1169,27 @@ export interface RspackPluginInstance {
 }
 export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 
+// The Compiler type of webpack is not exactly the same as Rspack.
+// It is allowed to use webpack plugins in in the Rspack config,
+// so we have defined a loose type here to adapt to webpack plugins.
+export type WebpackCompiler = any;
+
+export interface WebpackPluginInstance {
+	apply: (compiler: WebpackCompiler) => void;
+	[k: string]: any;
+}
+export type WebpackPluginFunction = (
+	this: WebpackCompiler,
+	compiler: WebpackCompiler
+) => void;
+
 const plugin = z.union([
-	z.custom<RspackPluginInstance>(),
-	z.custom<RspackPluginFunction>(),
+	z.custom<
+		| RspackPluginInstance
+		| RspackPluginFunction
+		| WebpackPluginInstance
+		| WebpackPluginFunction
+	>(),
 	falsy
 ]);
 const plugins = plugin.array();
@@ -1195,11 +1244,14 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
 	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
 	minChunks: z.number().min(1).optional(),
+	usedExports: z.boolean().optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
+	maxAsyncRequests: z.number().optional(),
+	maxInitialRequests: z.number().optional(),
 	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
@@ -1228,8 +1280,6 @@ const optimizationSplitChunksOptions = z.strictObject({
 	cacheGroups: z
 		.record(z.literal(false).or(optimizationSplitChunksCacheGroup))
 		.optional(),
-	maxAsyncRequests: z.number().optional(),
-	maxInitialRequests: z.number().optional(),
 	fallbackCacheGroup: z
 		.strictObject({
 			chunks: optimizationSplitChunksChunks.optional(),
@@ -1264,7 +1314,8 @@ const optimization = z.strictObject({
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
-	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
+	nodeEnv: z.union([z.string(), z.literal(false)]).optional(),
+	emitOnErrors: z.boolean().optional()
 });
 export type Optimization = z.infer<typeof optimization>;
 //#endregion
@@ -1280,11 +1331,30 @@ const rspackFutureOptions = z.strictObject({
 				.or(z.array(z.enum(["version", "uniqueId"])))
 				.optional()
 		})
-		.optional()
+		.optional(),
+	newIncremental: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
+const listenOptions = z.object({
+	port: z.number().optional(),
+	host: z.string().optional(),
+	backlog: z.number().optional(),
+	path: z.string().optional(),
+	exclusive: z.boolean().optional(),
+	readableAll: z.boolean().optional(),
+	writableAll: z.boolean().optional(),
+	ipv6Only: z.boolean().optional()
+});
+
 const lazyCompilationOptions = z.object({
+	backend: z
+		.object({
+			client: z.string().optional(),
+			listen: z.number().optional().or(listenOptions),
+			protocol: z.enum(["http", "https"]).optional()
+		})
+		.optional(),
 	imports: z.boolean().optional(),
 	entries: z.boolean().optional(),
 	test: z
@@ -1301,6 +1371,7 @@ const experiments = z.strictObject({
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),
 	css: z.boolean().optional(),
+	layers: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
 });

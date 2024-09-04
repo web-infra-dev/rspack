@@ -1,4 +1,6 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, SpanExt};
+use rspack_core::{
+  ConstDependency, Dependency, DependencyType, ImportAttributes, RealDependencyLocation, SpanExt,
+};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -8,6 +10,7 @@ use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::dependency::{HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency};
+use crate::utils::object_properties::get_attributes;
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
 
 fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
@@ -56,6 +59,7 @@ pub struct HarmonySpecifierData {
   pub source: Atom,
   pub ids: Vec<Atom>,
   pub source_order: i32,
+  pub attributes: Option<ImportAttributes>,
 }
 
 impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
@@ -66,13 +70,16 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
+    let range: RealDependencyLocation = import_decl.span.into();
+    let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
     let dependency = HarmonyImportSideEffectDependency::new(
       source.into(),
       parser.last_harmony_import_order,
-      import_decl.span.into(),
+      range.with_source(parser.source_map.clone()),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
       false,
+      attributes,
     );
     parser.dependencies.push(Box::new(dependency));
 
@@ -95,7 +102,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
   fn import_specifier(
     &self,
     parser: &mut JavascriptParser,
-    _statement: &ImportDecl,
+    statement: &ImportDecl,
     source: &Atom,
     id: Option<&Atom>,
     name: &Atom,
@@ -108,6 +115,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
         source: source.clone(),
         ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
         source_order: parser.last_harmony_import_order,
+        attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
       }),
     );
     Some(true)
@@ -126,21 +134,20 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
-
+    let range: RealDependencyLocation = ident.span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       parser.in_short_hand,
       !parser.is_asi_position(ident.span_lo()),
-      ident.span.real_lo(),
-      ident.span.real_hi(),
+      range.with_source(parser.source_map.clone()),
       settings.ids,
       parser.in_tagged_template_tag,
       true,
       HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       parser.properties_in_destructuring.remove(&ident.sym),
-      ident.span,
+      settings.attributes,
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));
@@ -182,32 +189,32 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
-    let (start, end) = if members.len() > non_optional_members.len() {
+    let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_expr(
         callee,
         (members.len() - non_optional_members.len()) as i32,
       );
-      (expr.span().real_lo(), expr.span().real_hi())
+      expr.span()
     } else {
-      (callee.span().real_lo(), callee.span().real_hi())
+      callee.span()
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
+    let range: RealDependencyLocation = span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
       !parser.is_asi_position(call_expr.span_lo()),
-      start,
-      end,
+      range.with_source(parser.source_map.clone()),
       ids,
       true,
       direct_import,
       HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
-      callee.span(),
+      settings.attributes,
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));
@@ -247,31 +254,31 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
-    let (start, end) = if members.len() > non_optional_members.len() {
+    let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_member(
         member_expr,
         (members.len() - non_optional_members.len()) as i32,
       );
-      (expr.span().real_lo(), expr.span().real_hi())
+      expr.span()
     } else {
-      (member_expr.span.real_lo(), member_expr.span.real_hi())
+      member_expr.span()
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
+    let range: RealDependencyLocation = span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
       !parser.is_asi_position(member_expr.span_lo()),
-      start,
-      end,
+      range.with_source(parser.source_map.clone()),
       ids,
       false,
       false, // x.xx()
       HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
-      member_expr.span,
+      settings.attributes,
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));

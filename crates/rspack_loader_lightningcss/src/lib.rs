@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use config::Config;
 use derivative::Derivative;
+pub use lightningcss;
 use lightningcss::{
   printer::{PrinterOptions, PseudoClasses},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
@@ -13,7 +14,7 @@ use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
-mod config;
+pub mod config;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
@@ -29,9 +30,13 @@ pub struct LightningCssLoader {
 }
 
 impl LightningCssLoader {
-  pub fn new(visitors: Option<Vec<LightningcssLoaderVisitor>>, config: Config) -> Self {
+  pub fn new(
+    visitors: Option<Vec<LightningcssLoaderVisitor>>,
+    config: Config,
+    ident: &str,
+  ) -> Self {
     Self {
-      id: LIGHTNINGCSS_LOADER_IDENTIFIER.into(),
+      id: ident.into(),
       visitors: visitors.map(|v| Mutex::new(v)),
       config,
     }
@@ -42,7 +47,7 @@ impl LightningCssLoader {
       return Ok(());
     };
 
-    let filename = resource_path.to_string_lossy().into_owned();
+    let filename = resource_path.as_str().to_string();
 
     let Some(content) = std::mem::take(&mut loader_context.content) else {
       return Ok(());
@@ -152,7 +157,7 @@ impl LightningCssLoader {
 
     let content = stylesheet
       .to_css(PrinterOptions {
-        minify: false,
+        minify: self.config.minify.unwrap_or(false),
         source_map: if enable_sourcemap {
           Some(&mut source_map)
         } else {

@@ -1,14 +1,10 @@
 use std::{fmt::Display, sync::Arc};
 
 use miette::{Diagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan};
-use once_cell::sync::Lazy;
 use swc_core::common::SourceFile;
 use thiserror::Error;
 
 use crate::RspackSeverity;
-
-#[allow(clippy::rc_buffer)]
-static EMPTY_STRING: Lazy<Arc<String>> = Lazy::new(|| Arc::new("".to_string()));
 
 #[derive(Debug, Error)]
 #[error(transparent)]
@@ -53,7 +49,7 @@ pub struct TraceableError {
   message: String,
   severity: Severity,
   #[allow(clippy::rc_buffer)]
-  src: Arc<String>,
+  src: Option<Arc<String>>,
   label: SourceSpan,
   help: Option<String>,
   url: Option<String>,
@@ -82,7 +78,7 @@ impl Diagnostic for TraceableError {
   }
 
   fn source_code(&self) -> Option<&dyn SourceCode> {
-    Some(&self.src)
+    self.src.as_ref().map(|s| &**s as &dyn SourceCode)
   }
 
   fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
@@ -131,7 +127,7 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    Self::from_arc_string(source_file.src.clone(), start, end, title, message)
+    Self::from_arc_string(Some(source_file.src.clone()), start, end, title, message)
   }
 
   pub fn from_file(
@@ -141,15 +137,15 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    Self::from_arc_string(Arc::new(file_src), start, end, title, message)
+    Self::from_arc_string(Some(Arc::new(file_src)), start, end, title, message)
   }
-
-  pub fn from_empty_file(start: usize, end: usize, title: String, message: String) -> Self {
-    Self::from_arc_string(EMPTY_STRING.clone(), start, end, title, message)
+  // lazy set source_file if we can't know the source content in advance
+  pub fn from_lazy_file(start: usize, end: usize, title: String, message: String) -> Self {
+    Self::from_arc_string(None, start, end, title, message)
   }
 
   pub fn from_arc_string(
-    src: Arc<String>,
+    src: Option<Arc<String>>,
     start: usize,
     end: usize,
     title: String,

@@ -65,7 +65,10 @@ export abstract class BasicRunner<
 		}
 		this.baseModuleScope = this.createBaseModuleScope();
 		if (typeof this._options.testConfig.moduleScope === "function") {
-			this._options.testConfig.moduleScope(this.baseModuleScope);
+			this._options.testConfig.moduleScope(
+				this.baseModuleScope,
+				this._options.stats
+			);
 		}
 		this.createRunner();
 		const res = this.getRequire()(

@@ -1,13 +1,16 @@
 mod factory;
 mod resolver_impl;
 use std::borrow::Borrow;
+use std::fmt;
 use std::fs;
-use std::{fmt, path::PathBuf};
+use std::path::PathBuf;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
+use rspack_paths::AssertUtf8;
+use rspack_paths::Utf8PathBuf;
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
@@ -19,14 +22,14 @@ use crate::{
   SharedPluginDriver,
 };
 
-static RELATIVE_PATH_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
+static RELATIVE_PATH_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
 
-static PARENT_PATH_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.\.[\/]").expect("should init regex"));
+static PARENT_PATH_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\.\.[\/]").expect("should init regex"));
 
-static CURRENT_DIR_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
+static CURRENT_DIR_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
 
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {
@@ -56,7 +59,7 @@ pub enum ResolveResult {
 /// Contains the raw `package.json` value if there is one.
 #[derive(Clone)]
 pub struct Resource {
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
   pub query: String,
   pub fragment: String,
   pub description_data: Option<DescriptionData>,
@@ -78,8 +81,7 @@ impl Eq for Resource {}
 impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> String {
-    let mut buf =
-      insert_zero_width_space_for_fragment(&self.path.display().to_string()).into_owned();
+    let mut buf = insert_zero_width_space_for_fragment(self.path.as_str()).into_owned();
     buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
     buf.push_str(&self.fragment);
     buf
@@ -120,7 +122,11 @@ pub fn resolve_for_error_hints(
     });
     let resolver = plugin_driver.resolver_factory.get(dep);
     if let Ok(ResolveResult::Resource(resource)) = resolver.resolve(base_dir, args.specifier) {
-      let relative_path = resource.path.relative(args.context);
+      let relative_path = resource
+        .path
+        .as_std_path()
+        .relative(args.context)
+        .assert_utf8();
       let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
         .captures_iter(args.specifier)
         .next()
@@ -128,15 +134,15 @@ pub fn resolve_for_error_hints(
       {
         // If the specifier is a relative path pointing to the current directory,
         // we can suggest the path relative to the current directory.
-        format!("{}{}", prefix, relative_path.to_string_lossy())
+        format!("{}{}", prefix, relative_path)
       } else if PARENT_PATH_REGEX.is_match(args.specifier) {
         // If the specifier is a relative path to which the parent directory is,
         // then we return the relative path directly.
-        relative_path.to_string_lossy().to_string()
+        relative_path.as_str().to_string()
       } else {
         // If the specifier is a package name like or some arbitrary alias,
         // then we return the full path.
-        resource.path.to_string_lossy().to_string()
+        resource.path.as_str().to_string()
       };
       return Some(format!("Did you mean '{}'?
 
@@ -231,10 +237,10 @@ which tries to resolve these kind of requests in the current directory too.",
             file.ok().and_then(|file| {
               file.path().file_stem().and_then(|file_stem| {
                 if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
-                  let mut suggestion = file.path().relative(&args.context);
+                  let mut suggestion = file.path().relative(&args.context).assert_utf8();
 
-                  if !suggestion.to_string_lossy().starts_with('.') {
-                    suggestion = PathBuf::from(format!("./{}", suggestion.to_string_lossy()));
+                  if !suggestion.as_str().starts_with('.') {
+                    suggestion = Utf8PathBuf::from(format!("./{}", suggestion));
                   }
                   Some(suggestion)
                 } else {
@@ -251,19 +257,15 @@ which tries to resolve these kind of requests in the current directory too.",
 
         let mut hint: Vec<String> = vec![];
         for suggestion in suggestions {
-          let suggestion_ext = suggestion
-            .extension()
-            .map(|e| e.to_string_lossy())
-            .unwrap_or_default();
-          let suggestion_path = suggestion.to_string_lossy();
+          let suggestion_ext = suggestion.extension().unwrap_or_default();
           let specifier = args.specifier;
 
           hint.push(format!(
-          "Found module '{suggestion_path}'. However, it's not possible to request this module without the extension 
+          "Found module '{suggestion}'. However, it's not possible to request this module without the extension 
 if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
 
 1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
-2. use '{suggestion_path}' instead of '{specifier}'
+2. use '{suggestion}' instead of '{specifier}'
 "));
         }
 
