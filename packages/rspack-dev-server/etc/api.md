@@ -6,30 +6,247 @@
 
 /// <reference types="node" />
 
-import { Compiler } from '@rspack/core';
+import * as bonjour_service from 'bonjour-service';
+import * as chokidar from 'chokidar';
+import { Compiler as Compiler_2 } from '@rspack/core';
 import { DevServer as Configuration } from '@rspack/core';
-import type { FSWatcher } from 'chokidar';
-import { MultiCompiler } from '@rspack/core';
-import type { Server } from 'node:http';
-import type { Socket } from 'node:net';
-import WebpackDevServer from 'webpack-dev-server';
+import * as connect_history_api_fallback from 'connect-history-api-fallback';
+import * as express from 'express';
+import * as express_serve_static_core from 'express-serve-static-core';
+import type { FSWatcher as FSWatcher_2 } from 'chokidar';
+import * as http from 'http';
+import * as http_proxy_middleware from 'http-proxy-middleware';
+import * as https from 'https';
+import { MultiCompiler as MultiCompiler_2 } from '@rspack/core';
+import * as net from 'net';
+import * as serve_index from 'serve-index';
+import * as serve_static from 'serve-static';
+import type { Server as Server_2 } from 'node:http';
+import type { Socket as Socket_2 } from 'node:net';
+import * as sockjs from 'sockjs';
+import * as webpack from 'webpack';
+import * as webpack_dev_middleware from 'webpack-dev-middleware';
+import * as ws from 'ws';
+
+// @public (undocumented)
+type ByPass = (
+req: Request_2,
+res: Response_2,
+proxyConfig: ProxyConfigArrayItem,
+) => any;
+
+// @public (undocumented)
+type ClientConfiguration = {
+    logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | undefined;
+    overlay?:
+    | boolean
+    | {
+        warnings?: OverlayMessageOptions | undefined;
+        errors?: OverlayMessageOptions | undefined;
+        runtimeErrors?: OverlayMessageOptions | undefined;
+    }
+    | undefined;
+    progress?: boolean | undefined;
+    reconnect?: number | boolean | undefined;
+    webSocketTransport?: string | undefined;
+    webSocketURL?: string | WebSocketURL | undefined;
+};
+
+// @public (undocumented)
+type ClientConnection = (
+| ws.WebSocket
+| (sockjs.Connection & {
+    send: ws.WebSocket["send"];
+    terminate: ws.WebSocket["terminate"];
+    ping: ws.WebSocket["ping"];
+})
+) & {
+    isAlive?: boolean;
+};
+
+// @public (undocumented)
+type Compiler = webpack.Compiler;
 
 export { Configuration }
+
+// @public (undocumented)
+type Configuration_2 = {
+    ipc?: string | boolean | undefined;
+    host?: string | undefined;
+    port?: Port | undefined;
+    hot?: boolean | "only" | undefined;
+    liveReload?: boolean | undefined;
+    devMiddleware?:
+    | DevMiddlewareOptions<
+    express.Request<
+    express_serve_static_core.ParamsDictionary,
+    any,
+    any,
+    qs.ParsedQs,
+    Record<string, any>
+    >,
+    express.Response<any, Record<string, any>>
+    >
+    | undefined;
+    compress?: boolean | undefined;
+    allowedHosts?: string | string[] | undefined;
+    historyApiFallback?:
+    | boolean
+    | connect_history_api_fallback.Options
+    | undefined;
+    bonjour?:
+    | boolean
+    | Record<string, never>
+    | bonjour_service.Service
+    | undefined;
+    watchFiles?:
+    | string
+    | string[]
+    | WatchFiles
+    | (string | WatchFiles)[]
+    | undefined;
+    static?: string | boolean | Static | (string | Static)[] | undefined;
+    https?: boolean | ServerOptions | undefined;
+    http2?: boolean | undefined;
+    server?: string | ServerConfiguration | undefined;
+    webSocketServer?: string | boolean | WebSocketServerConfiguration | undefined;
+    proxy?: ProxyConfigArray | undefined;
+    open?: string | boolean | Open | (string | Open)[] | undefined;
+    setupExitSignals?: boolean | undefined;
+    client?: boolean | ClientConfiguration | undefined;
+    headers?:
+    | Headers_2
+    | ((
+    req: Request_2,
+    res: Response_2,
+    context: DevMiddlewareContext<Request_2, Response_2>,
+    ) => Headers_2)
+    | undefined;
+    onListening?: ((devServer: Server) => void) | undefined;
+    setupMiddlewares?:
+    | ((middlewares: Middleware[], devServer: Server) => Middleware[])
+    | undefined;
+};
+
+// @public (undocumented)
+type DevMiddlewareContext<
+T extends express.Request<
+express_serve_static_core.ParamsDictionary,
+any,
+any,
+qs.ParsedQs,
+Record<string, any>
+>,
+U extends express.Response<any, Record<string, any>>,
+> = webpack_dev_middleware.Context<T, U>;
+
+// @public (undocumented)
+type DevMiddlewareOptions<
+T extends express.Request<
+express_serve_static_core.ParamsDictionary,
+any,
+any,
+qs.ParsedQs,
+Record<string, any>
+>,
+U extends express.Response<any, Record<string, any>>,
+> = webpack_dev_middleware.Options<T, U>;
+
+// @public (undocumented)
+type ExpressErrorRequestHandler = express.ErrorRequestHandler;
+
+// @public (undocumented)
+type ExpressRequestHandler = express.RequestHandler;
+
+// @public (undocumented)
+type FSWatcher = chokidar.FSWatcher;
+
+// @public (undocumented)
+type Headers_2 =
+| Array<{
+    key: string;
+    value: string;
+}>
+| Record<string, string | string[]>;
+
+// @public (undocumented)
+type Host = "local-ip" | "local-ipv4" | "local-ipv6" | string;
+
+// @public (undocumented)
+type HttpProxyMiddlewareOptions = http_proxy_middleware.Options;
+
+// @public (undocumented)
+type HttpProxyMiddlewareOptionsFilter = http_proxy_middleware.Filter;
+
+// @public (undocumented)
+type Middleware =
+| {
+    name?: string;
+    path?: string;
+    middleware: ExpressRequestHandler | ExpressErrorRequestHandler;
+}
+| ExpressRequestHandler
+| ExpressErrorRequestHandler;
+
+// @public (undocumented)
+type MultiCompiler = webpack.MultiCompiler;
+
+// @public (undocumented)
+type NextFunction = express.NextFunction;
+
+// @public (undocumented)
+type Open = {
+    app?: string | string[] | OpenApp | undefined;
+    target?: string | string[] | undefined;
+};
+
+// @public (undocumented)
+type OpenApp = {
+    name?: string | undefined;
+    arguments?: string[] | undefined;
+};
+
+// @public (undocumented)
+type OverlayMessageOptions = boolean | ((error: Error) => void);
+
+// @public (undocumented)
+type Port = number | string | "auto";
+
+// @public (undocumented)
+type ProxyConfigArray = (
+| ProxyConfigArrayItem
+| ((
+req?: Request_2 | undefined,
+res?: Response_2 | undefined,
+next?: NextFunction | undefined,
+) => ProxyConfigArrayItem)
+)[];
+
+// @public (undocumented)
+type ProxyConfigArrayItem = {
+    path?: HttpProxyMiddlewareOptionsFilter | undefined;
+    context?: HttpProxyMiddlewareOptionsFilter | undefined;
+} & {
+    bypass?: ByPass;
+} & HttpProxyMiddlewareOptions;
+
+// @public (undocumented)
+type Request_2 = express.Request;
 
 // @public (undocumented)
 interface ResolvedDevServer extends Configuration {
     // (undocumented)
     allowedHosts: "auto" | string[] | "all";
     // (undocumented)
-    bonjour: false | Record<string, never> | WebpackDevServer.BonjourOptions;
+    bonjour: false | Record<string, never> | Server.BonjourOptions;
     // (undocumented)
-    client: WebpackDevServer.ClientConfiguration;
+    client: Server.ClientConfiguration;
     // (undocumented)
     compress: boolean;
     // (undocumented)
     devMiddleware: Configuration["devMiddleware"];
     // (undocumented)
-    historyApiFallback: false | WebpackDevServer.ConnectHistoryApiFallbackOptions;
+    historyApiFallback: false | Server.ConnectHistoryApiFallbackOptions;
     // (undocumented)
     host?: string;
     // (undocumented)
@@ -41,41 +258,1306 @@ interface ResolvedDevServer extends Configuration {
     // (undocumented)
     magicHtml: boolean;
     // (undocumented)
-    open: WebpackDevServer.Open[];
+    open: Server.Open[];
     // (undocumented)
     port: number | string;
     // (undocumented)
-    proxy: WebpackDevServer.ProxyConfigArray;
+    proxy: Server.ProxyConfigArray;
     // (undocumented)
-    server: WebpackDevServer.ServerConfiguration;
+    server: Server.ServerConfiguration;
     // (undocumented)
     setupExitSignals: boolean;
     // (undocumented)
-    static: false | Array<WebpackDevServer.NormalizedStatic>;
+    static: false | Array<Server.NormalizedStatic>;
     // (undocumented)
-    watchFiles: WebpackDevServer.WatchFiles[];
+    watchFiles: Server.WatchFiles[];
     // (undocumented)
-    webSocketServer: false | WebpackDevServer.WebSocketServerConfiguration;
+    webSocketServer: false | Server.WebSocketServerConfiguration;
 }
 
 // @public (undocumented)
-export class RspackDevServer extends WebpackDevServer {
-    constructor(options: Configuration, compiler: Compiler | MultiCompiler);
-    compiler: Compiler | MultiCompiler;
+type Response_2 = express.Response;
+
+// @public (undocumented)
+export class RspackDevServer extends Server {
+    constructor(options: Configuration, compiler: Compiler_2 | MultiCompiler_2);
+    compiler: Compiler_2 | MultiCompiler_2;
     // (undocumented)
     initialize(): Promise<void>;
     options: ResolvedDevServer;
     // (undocumented)
-    server: Server;
+    server: Server_2;
     // (undocumented)
-    sockets: Socket[];
+    sockets: Socket_2[];
     // (undocumented)
-    staticWatchers: FSWatcher[];
+    staticWatchers: FSWatcher_2[];
     // (undocumented)
     static version: string;
     // (undocumented)
-    webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
+    webSocketServer: Server.WebSocketServerImplementation | undefined;
 }
+
+// @public (undocumented)
+class Server {
+    constructor(
+    options:
+    | webpack.Compiler
+    | webpack.MultiCompiler
+    | Configuration_2
+    | undefined,
+    compiler: Compiler | MultiCompiler | Configuration_2,
+    );
+    app: express.Application | undefined;
+    // (undocumented)
+    compiler: webpack.Compiler | webpack.MultiCompiler;
+    // (undocumented)
+    static findCacheDir(): string;
+    // (undocumented)
+    static findIp(gateway: string): string | undefined;
+    // (undocumented)
+    static getFreePort(port: Port, host: string): Promise<number | string>;
+    // (undocumented)
+    static getHostname(hostname: Host): Promise<string>;
+    // (undocumented)
+    static internalIP(family: "v4" | "v6"): Promise<string | undefined>;
+    // (undocumented)
+    static internalIPSync(family: "v4" | "v6"): string | undefined;
+    // (undocumented)
+    invalidate(
+    callback?: webpack_dev_middleware.Callback | undefined,
+    ): void;
+    // (undocumented)
+    static isAbsoluteURL(URL: string): boolean;
+    logger: ReturnType<Compiler["getInfrastructureLogger"]>;
+    // (undocumented)
+    middleware:
+    | webpack_dev_middleware.API<
+    express.Request<
+    express_serve_static_core.ParamsDictionary,
+    any,
+    any,
+    qs.ParsedQs,
+    Record<string, any>
+    >,
+    express.Response<any, Record<string, any>>
+    >
+    | null
+    | undefined;
+    // (undocumented)
+    options: Configuration_2;
+    // (undocumented)
+    static get schema(): {
+        title: string;
+        type: string;
+        definitions: {
+            AllowedHosts: {
+                anyOf: (
+                | {
+                    type: string;
+                    minItems: number;
+                    items: {
+                        $ref: string;
+                    };
+                    enum?: undefined;
+                    $ref?: undefined;
+                }
+                | {
+                    enum: string[];
+                    type?: undefined;
+                    minItems?: undefined;
+                    items?: undefined;
+                    $ref?: undefined;
+                }
+                | {
+                    $ref: string;
+                    type?: undefined;
+                    minItems?: undefined;
+                    items?: undefined;
+                    enum?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            AllowedHostsItem: {
+                type: string;
+                minLength: number;
+            };
+            Bonjour: {
+                anyOf: (
+                | {
+                    type: string;
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    description?: undefined;
+                    link?: undefined;
+                }
+                | {
+                    type: string /** @typedef {import("express").ErrorRequestHandler} ExpressErrorRequestHandler */;
+                    description: string;
+                    link: string;
+                    cli?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            Client: {
+                description: string;
+                link: string;
+                anyOf: (
+                | {
+                    enum: boolean[];
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    type?: undefined;
+                    additionalProperties?: undefined;
+                    properties?: undefined;
+                }
+                | {
+                    type: string;
+                    additionalProperties: boolean;
+                    properties: {
+                        logging: {
+                            $ref: string;
+                        };
+                        overlay: {
+                            $ref: string;
+                        };
+                        progress: {
+                            $ref: string;
+                        };
+                        reconnect: {
+                            $ref: string;
+                        };
+                        webSocketTransport: {
+                            $ref: string;
+                        };
+                        webSocketURL: {
+                            $ref: string;
+                        };
+                    };
+                    enum?: undefined;
+                    cli?: undefined;
+                }
+                )[];
+            };
+            ClientLogging: {
+                enum: string[];
+                description: string;
+                link: string;
+            };
+            ClientOverlay: {
+                anyOf: (
+                | {
+                    description: string;
+                    link: string;
+                    type: string;
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    additionalProperties?: undefined;
+                    properties?: undefined;
+                }
+                | {
+                    type: string;
+                    additionalProperties: boolean;
+                    properties: {
+                        errors: {
+                            anyOf: (
+                            | {
+                                description: string;
+                                type: string;
+                                cli: {
+                                    negatedDescription: string;
+                                };
+                                instanceof?: undefined;
+                            }
+                            | {
+                                instanceof: string;
+                                description: string;
+                                type?: undefined;
+                                cli?: undefined;
+                            }
+                            )[];
+                        };
+                        warnings: {
+                            anyOf: (
+                            | {
+                                description: string;
+                                type: string;
+                                cli: {
+                                    negatedDescription: string;
+                                };
+                                instanceof?: undefined;
+                            }
+                            | {
+                                instanceof: string /**
+                                * @typedef {import("ws").WebSocketServer | import("sockjs").Server & { close: import("ws").WebSocketServer["close"] }} WebSocketServer
+                                */;
+                                description: string;
+                                type?: undefined;
+                                cli?: undefined;
+                            }
+                            )[];
+                        };
+                        runtimeErrors: {
+                            anyOf: (
+                            | {
+                                description: string;
+                                type: string;
+                                cli: {
+                                    negatedDescription: string;
+                                };
+                                instanceof?: undefined;
+                            }
+                            | {
+                                instanceof: string;
+                                description: string;
+                                type?: undefined;
+                                cli?: undefined;
+                            }
+                            )[];
+                        };
+                        trustedTypesPolicyName: {
+                            description: string;
+                            type: string;
+                        };
+                    };
+                    description?: undefined;
+                    link?: undefined;
+                    cli?: undefined;
+                }
+                )[];
+            };
+            ClientProgress: {
+                description: string;
+                link: string;
+                type: string;
+                cli: {
+                    negatedDescription: string;
+                };
+            };
+            ClientReconnect: {
+                description: string;
+                link: string;
+                anyOf: (
+                | {
+                    type: string;
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    minimum?: undefined;
+                }
+                | {
+                    type: string;
+                    minimum: number;
+                    cli?: undefined;
+                }
+                )[];
+            };
+            ClientWebSocketTransport: {
+                anyOf: {
+                    $ref: string;
+                }[];
+                description: string;
+                link: string;
+            };
+            ClientWebSocketTransportEnum: {
+                enum: string[];
+            };
+            ClientWebSocketTransportString: {
+                type: string;
+                minLength: number;
+            };
+            ClientWebSocketURL: {
+                description: string;
+                link: string;
+                anyOf: (
+                | {
+                    type: string;
+                    minLength: number;
+                    additionalProperties?: undefined;
+                    properties?: undefined;
+                }
+                | {
+                    type: string;
+                    additionalProperties: boolean;
+                    properties: {
+                        hostname: {
+                            description: string;
+                            type: string;
+                            minLength: number;
+                        };
+                        pathname: {
+                            description: string;
+                            type: string;
+                        };
+                        password: {
+                            description: string;
+                            type: string;
+                        };
+                        port: {
+                            description: string;
+                            anyOf: (
+                            | {
+                                type: string;
+                                minLength?: undefined;
+                            }
+                            | {
+                                type: string;
+                                minLength: number;
+                            }
+                            )[];
+                        };
+                        protocol: {
+                            description: string;
+                            anyOf: (
+                            | {
+                                enum: string[];
+                                type?: undefined;
+                                minLength?: undefined;
+                            }
+                            | {
+                                type: string;
+                                minLength: number;
+                                enum?: undefined;
+                            }
+                            )[];
+                        };
+                        username: {
+                            description: string;
+                            type: string;
+                        };
+                    };
+                    minLength?: undefined;
+                }
+                )[];
+            };
+            Compress: {
+                type: string;
+                description: string;
+                link: string;
+                cli: {
+                    negatedDescription: string;
+                };
+            };
+            DevMiddleware: {
+                description: string;
+                link: string;
+                type: string;
+                additionalProperties: boolean;
+            };
+            HeaderObject: {
+                type: string;
+                additionalProperties: boolean;
+                properties: {
+                    key: {
+                        description: string;
+                        type: string;
+                    };
+                    value: {
+                        description: string;
+                        type: string;
+                    };
+                };
+                cli: {
+                    exclude: boolean;
+                };
+            };
+            Headers: {
+                anyOf: (
+                | {
+                    type: string;
+                    items: {
+                        $ref: string;
+                    };
+                    minItems: number;
+                    instanceof?: undefined;
+                }
+                | {
+                    type: string;
+                    items?: undefined;
+                    minItems?: undefined;
+                    instanceof?: undefined;
+                }
+                | {
+                    instanceof: string;
+                    type?: undefined;
+                    items?: undefined;
+                    minItems?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            HistoryApiFallback: {
+                anyOf: (
+                | {
+                    type: string;
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    description?: undefined;
+                    link?: undefined;
+                }
+                | {
+                    type: string;
+                    description: string;
+                    link: string;
+                    cli?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            Host: {
+                description: string;
+                link: string;
+                anyOf: (
+                | {
+                    enum: string[];
+                    type?: undefined;
+                    minLength?: undefined;
+                }
+                | {
+                    type: string;
+                    minLength: number;
+                    enum?: undefined;
+                }
+                )[];
+            };
+            Hot: {
+                anyOf: (
+                | {
+                    type: string;
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    enum?: undefined;
+                }
+                | {
+                    enum: string[];
+                    type?: undefined;
+                    cli?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            IPC: {
+                anyOf: (
+                | {
+                    type: string;
+                    minLength: number;
+                    enum?: undefined;
+                }
+                | {
+                    type: string;
+                    enum: boolean[];
+                    minLength?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            LiveReload: {
+                type: string;
+                description: string;
+                cli: {
+                    negatedDescription: string;
+                };
+                link: string;
+            };
+            OnListening: {
+                instanceof: string;
+                description: string;
+                link: string;
+            };
+            Open: {
+                anyOf: (
+                | {
+                    type: string;
+                    items: {
+                        anyOf: {
+                            $ref: string;
+                        }[];
+                    };
+                    $ref?: undefined;
+                }
+                | {
+                    $ref: string;
+                    type?: undefined;
+                    items?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            OpenBoolean: {
+                type: string;
+                cli: {
+                    negatedDescription: string;
+                };
+            };
+            OpenObject: {
+                type: string;
+                additionalProperties: boolean;
+                properties: {
+                    target: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                type: string;
+                            };
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                    app: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            additionalProperties: boolean;
+                            properties: {
+                                name: {
+                                    anyOf: (
+                                    | {
+                                        type: string;
+                                        items: {
+                                            type: string;
+                                            minLength: number;
+                                        };
+                                        minItems: number;
+                                        minLength?: undefined;
+                                    }
+                                    | {
+                                        type: string;
+                                        minLength: number;
+                                        items?: undefined;
+                                        minItems?: undefined;
+                                    }
+                                    )[];
+                                };
+                                arguments: {
+                                    items: {
+                                        type: string;
+                                        minLength: number;
+                                    };
+                                };
+                            };
+                            minLength?: undefined;
+                            description?: undefined;
+                            cli?: undefined;
+                        }
+                        | {
+                            type: string;
+                            minLength: number;
+                            description: string;
+                            cli: {
+                                exclude: boolean;
+                            };
+                            additionalProperties?: undefined;
+                            properties?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                };
+            };
+            OpenString: {
+                type: string;
+                minLength: number;
+            };
+            Port: {
+                anyOf: (
+                | {
+                    type: string;
+                    minimum: number;
+                    maximum: number;
+                    minLength?: undefined;
+                    enum?: undefined;
+                }
+                | {
+                    type: string;
+                    minLength: number;
+                    minimum?: undefined;
+                    maximum?: undefined;
+                    enum?: undefined;
+                }
+                | {
+                    enum: string[];
+                    type?: undefined;
+                    minimum?: undefined;
+                    maximum?: undefined;
+                    minLength?: undefined;
+                }
+                )[];
+                description: string;
+                link: string /** @type {WebSocketURL} */;
+            };
+            Proxy: {
+                type: string;
+                items: {
+                    anyOf: (
+                    | {
+                        type: string;
+                        instanceof?: undefined;
+                    }
+                    | {
+                        instanceof: string;
+                        type?: undefined;
+                    }
+                    )[];
+                };
+                description: string;
+                link: string;
+            };
+            Server: {
+                anyOf: {
+                    $ref: string;
+                }[];
+                link: string;
+                description: string;
+            };
+            ServerType: {
+                enum: string[];
+            };
+            ServerEnum: {
+                enum: string[];
+                cli: {
+                    exclude: boolean;
+                };
+            };
+            ServerString: {
+                type: string;
+                minLength: number;
+                cli: {
+                    exclude: boolean;
+                };
+            };
+            ServerObject: {
+                type: string;
+                properties: {
+                    type: {
+                        anyOf: {
+                            $ref: string;
+                        }[];
+                    };
+                    options: {
+                        $ref: string;
+                    };
+                };
+                additionalProperties: boolean;
+            };
+            ServerOptions: {
+                type: string;
+                additionalProperties: boolean;
+                properties: {
+                    passphrase: {
+                        type: string;
+                        description: string;
+                    };
+                    requestCert: {
+                        type: string;
+                        description: string;
+                        cli: {
+                            negatedDescription: string;
+                        };
+                    };
+                    ca: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                anyOf: (
+                                | {
+                                    type: string;
+                                    instanceof?: undefined;
+                                }
+                                | {
+                                    instanceof: string;
+                                    type?: undefined;
+                                }
+                                )[];
+                            };
+                            instanceof?: undefined;
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                            instanceof?: undefined;
+                        }
+                        | {
+                            instanceof: string;
+                            type?: undefined;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                    cert: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                anyOf: (
+                                | {
+                                    type: string;
+                                    instanceof?: undefined;
+                                }
+                                | {
+                                    instanceof: string;
+                                    type?: undefined;
+                                }
+                                )[];
+                            };
+                            instanceof?: undefined;
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                            instanceof?: undefined;
+                        }
+                        | {
+                            instanceof: string;
+                            type?: undefined;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                    crl: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                anyOf: (
+                                | {
+                                    type: string;
+                                    instanceof?: undefined;
+                                }
+                                | {
+                                    instanceof: string;
+                                    type?: undefined;
+                                }
+                                )[];
+                            };
+                            instanceof?: undefined;
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                            instanceof?: undefined;
+                        }
+                        | {
+                            instanceof: string;
+                            type?: undefined;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                    key: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                anyOf: (
+                                | {
+                                    type: string;
+                                    instanceof?: undefined;
+                                    additionalProperties?: undefined;
+                                }
+                                | {
+                                    instanceof: string;
+                                    type?: undefined;
+                                    additionalProperties?: undefined;
+                                }
+                                | {
+                                    type: string;
+                                    additionalProperties: boolean;
+                                    instanceof?: undefined;
+                                }
+                                )[];
+                            };
+                            instanceof?: undefined;
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                            instanceof?: undefined;
+                        }
+                        | {
+                            instanceof: string;
+                            type?: undefined;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                    pfx: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                anyOf: (
+                                | {
+                                    type: string;
+                                    instanceof?: undefined;
+                                    additionalProperties?: undefined;
+                                }
+                                | {
+                                    instanceof: string;
+                                    type?: undefined;
+                                    additionalProperties?: undefined;
+                                }
+                                | {
+                                    type: string;
+                                    additionalProperties: boolean;
+                                    instanceof?: undefined;
+                                }
+                                )[];
+                            };
+                            instanceof?: undefined;
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                            instanceof?: undefined;
+                        }
+                        | {
+                            instanceof: string;
+                            type?: undefined;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                };
+            };
+            SetupExitSignals: {
+                type: string;
+                description: string;
+                link: string;
+                cli: {
+                    exclude: boolean;
+                };
+            };
+            SetupMiddlewares: {
+                instanceof: string;
+                description: string;
+                link: string;
+            };
+            Static: {
+                anyOf: (
+                | {
+                    type: string;
+                    items: {
+                        anyOf: {
+                            $ref: string;
+                        }[];
+                    };
+                    cli?: undefined;
+                    $ref?: undefined;
+                }
+                | {
+                    type: string;
+                    cli: {
+                        negatedDescription: string;
+                    };
+                    items?: undefined;
+                    $ref?: undefined;
+                }
+                | {
+                    $ref: string;
+                    type?: undefined;
+                    items?: undefined;
+                    cli?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            StaticObject: {
+                type: string;
+                additionalProperties: boolean;
+                properties: {
+                    directory: {
+                        type: string;
+                        minLength: number;
+                        description: string;
+                        link: string;
+                    };
+                    staticOptions: {
+                        type: string;
+                        link: string;
+                        additionalProperties: boolean;
+                    };
+                    publicPath: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                type: string;
+                            };
+                            minItems: number;
+                        }
+                        | {
+                            type: string;
+                            items?: undefined;
+                            minItems?: undefined;
+                        }
+                        )[];
+                        description: string;
+                        link: string;
+                    };
+                    serveIndex: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            cli: {
+                                negatedDescription: string;
+                            };
+                            additionalProperties?: undefined;
+                        }
+                        | {
+                            type: string;
+                            additionalProperties: boolean;
+                            cli?: undefined;
+                        }
+                        )[];
+                        description: string;
+                        link: string;
+                    };
+                    watch: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            cli: {
+                                negatedDescription: string;
+                            };
+                            description?: undefined;
+                            link?: undefined;
+                        }
+                        | {
+                            type: string;
+                            description: string;
+                            link: string;
+                            cli?: undefined;
+                        }
+                        )[];
+                        description: string;
+                        link: string;
+                    };
+                };
+            };
+            StaticString: {
+                type: string;
+                minLength: number;
+            };
+            WatchFiles: {
+                anyOf: (
+                | {
+                    type: string;
+                    items: {
+                        anyOf: {
+                            $ref: string;
+                        }[];
+                    };
+                    $ref?: undefined;
+                }
+                | {
+                    $ref: string;
+                    type?: undefined;
+                    items?: undefined;
+                }
+                )[];
+                description: string;
+                link: string;
+            };
+            WatchFilesObject: {
+                cli: {
+                    exclude: boolean;
+                };
+                type: string;
+                properties: {
+                    paths: {
+                        anyOf: (
+                        | {
+                            type: string;
+                            items: {
+                                type: string;
+                                minLength: number;
+                            };
+                            minLength?: undefined;
+                        }
+                        | {
+                            type: string;
+                            minLength: number;
+                            items?: undefined;
+                        }
+                        )[];
+                        description: string;
+                    };
+                    options: {
+                        type: string;
+                        description: string;
+                        link: string;
+                        additionalProperties: boolean;
+                    };
+                };
+                additionalProperties: boolean;
+            };
+            WatchFilesString: {
+                type: string;
+                minLength: number;
+            };
+            WebSocketServer: {
+                anyOf: {
+                    $ref: string;
+                }[];
+                description: string;
+                link: string;
+            };
+            WebSocketServerType: {
+                enum: string[];
+            };
+            WebSocketServerEnum: {
+                anyOf: (
+                | {
+                    enum: boolean[];
+                    cli: {
+                        negatedDescription: string;
+                        exclude?: undefined;
+                    };
+                }
+                | {
+                    enum: string[];
+                    cli: {
+                        exclude: boolean;
+                        negatedDescription?: undefined;
+                    };
+                }
+                )[];
+            };
+            WebSocketServerFunction: {
+                instanceof: string;
+            };
+            WebSocketServerObject: {
+                type: string;
+                properties: {
+                    type: {
+                        anyOf: {
+                            $ref: string;
+                        }[];
+                    };
+                    options: {
+                        type: string;
+                        additionalProperties: boolean;
+                        cli: {
+                            exclude: boolean;
+                        };
+                    };
+                };
+                additionalProperties: boolean;
+            };
+            WebSocketServerString: {
+                type: string;
+                minLength: number;
+                cli: {
+                    exclude: boolean;
+                };
+            };
+        };
+        additionalProperties: boolean;
+        properties: {
+            allowedHosts: {
+                $ref: string;
+            };
+            bonjour: {
+                $ref: string;
+            };
+            client: {
+                $ref: string;
+            };
+            compress: {
+                $ref: string;
+            };
+            devMiddleware: {
+                $ref: string;
+            };
+            headers: {
+                $ref: string;
+            };
+            historyApiFallback: {
+                $ref: string;
+            };
+            host: {
+                $ref: string;
+            };
+            hot: {
+                $ref: string;
+            };
+            ipc: {
+                $ref: string;
+            };
+            liveReload: {
+                $ref: string;
+            };
+            onListening: {
+                $ref: string;
+            };
+            open: {
+                $ref: string;
+            };
+            port: {
+                $ref: string;
+            };
+            proxy: {
+                $ref: string;
+            };
+            server: {
+                $ref: string;
+            };
+            setupExitSignals: {
+                $ref: string;
+            };
+            setupMiddlewares: {
+                $ref: string;
+            };
+            static: {
+                $ref: string;
+            };
+            watchFiles: {
+                $ref: string;
+            };
+            webSocketServer: {
+                $ref: string;
+            };
+        };
+    };
+    // (undocumented)
+    sendMessage(
+    clients: ClientConnection[],
+    type: string,
+    data?: any,
+    params?: any,
+    ): void;
+    server: http.Server | undefined | null;
+    sockets: Socket[];
+    // (undocumented)
+    start(): Promise<void>;
+    // (undocumented)
+    startCallback(callback?: ((err?: Error) => void) | undefined): void;
+    staticWatchers: FSWatcher[];
+    // (undocumented)
+    stop(): Promise<void>;
+    // (undocumented)
+    stopCallback(callback?: ((err?: Error) => void) | undefined): void;
+    // (undocumented)
+    watchFiles(
+    watchPath: string | string[],
+    watchOptions?: chokidar.WatchOptions | undefined,
+    ): void;
+    webSocketServer: WebSocketServerImplementation | undefined | null;
+}
+
+// @public (undocumented)
+namespace Server {
+        { DEFAULT_STATS, type Schema, type Compiler, type MultiCompiler, type WebpackConfiguration, type StatsOptions, type StatsCompilation, type Stats, type MultiStats, type NetworkInterfaceInfo, type NextFunction, type ExpressRequestHandler, type ExpressErrorRequestHandler, type WatchOptions, type FSWatcher, type ConnectHistoryApiFallbackOptions, type Bonjour, type BonjourOptions, type RequestHandler, type HttpProxyMiddlewareOptions, type HttpProxyMiddlewareOptionsFilter, type ServeIndexOptions, type ServeStaticOptions, type IPv4, type IPv6, type Socket, type IncomingMessage, type ServerResponse, type OpenOptions, type ServerOptions, type Request, type Response, type DevMiddlewareOptions, type DevMiddlewareContext, type Host, type Port, type WatchFiles, type Static, type NormalizedStatic, type ServerConfiguration, type WebSocketServerConfiguration, type ClientConnection, type WebSocketServer, type WebSocketServerImplementation, type ByPass, type ProxyConfigArrayItem, type ProxyConfigArray, type OpenApp, type Open, type NormalizedOpen, type WebSocketURL, type OverlayMessageOptions, type ClientConfiguration, type Headers, type Middleware, type Configuration };
+}
+
+// @public (undocumented)
+type ServerConfiguration = {
+    type?: string | undefined;
+    options?: ServerOptions | undefined;
+};
+
+// @public (undocumented)
+type ServerOptions = https.ServerOptions & {
+    spdy?: {
+        plain?: boolean | undefined;
+        ssl?: boolean | undefined;
+        "x-forwarded-for"?: string | undefined;
+        protocol?: string | undefined;
+        protocols?: string[] | undefined;
+    };
+};
+
+// @public (undocumented)
+type Socket = net.Socket;
+
+// @public (undocumented)
+type Static = {
+    directory?: string | undefined;
+    publicPath?: string | string[] | undefined;
+    serveIndex?: boolean | serve_index.Options | undefined;
+    staticOptions?:
+    | serve_static.ServeStaticOptions<
+    http.ServerResponse<http.IncomingMessage>
+    >
+    | undefined;
+    watch?:
+    | boolean
+    | (chokidar.WatchOptions & {
+        aggregateTimeout?: number | undefined;
+        ignored?: WatchOptions["ignored"];
+        poll?: number | boolean | undefined;
+    })
+    | undefined;
+};
+
+// @public (undocumented)
+type WatchFiles = {
+    paths: string | string[];
+    options?:
+    | (chokidar.WatchOptions & {
+        aggregateTimeout?: number | undefined;
+        ignored?: WatchOptions["ignored"];
+        poll?: number | boolean | undefined;
+    })
+    | undefined;
+};
+
+// @public (undocumented)
+type WatchOptions = chokidar.WatchOptions;
+
+// @public (undocumented)
+type WebSocketServer =
+| ws.WebSocketServer
+| (sockjs.Server & {
+    close: ws.WebSocketServer["close"];
+});
+
+// @public (undocumented)
+type WebSocketServerConfiguration = {
+    type?: string | Function | undefined;
+    options?: Record<string, any> | undefined;
+};
+
+// @public (undocumented)
+type WebSocketServerImplementation = {
+    implementation: WebSocketServer;
+    clients: ClientConnection[];
+};
+
+// @public (undocumented)
+type WebSocketURL = {
+    hostname?: string | undefined;
+    password?: string | undefined;
+    pathname?: string | undefined;
+    port?: string | number | undefined;
+    protocol?: string | undefined;
+    username?: string | undefined;
+};
 
 // (No @packageDocumentation comment for this package)
 
