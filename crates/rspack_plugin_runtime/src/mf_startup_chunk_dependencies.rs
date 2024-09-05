@@ -1,11 +1,15 @@
 use async_trait::async_trait;
+use rspack_core::rspack_sources::ConcatSource;
 use rspack_core::{
-  ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationRuntimeRequirementInTree, CompilerOptions, ConcatSource, Plugin, PluginContext,
-  RawSource, RenderSource, RuntimeGlobals, RuntimeModuleExt,
+  ApplyContext, ChunkLoading, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions,
+  ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::JsPlugin;
+use rspack_plugin_javascript::{JavascriptModulesRenderStartup, RenderSource};
 
 use crate::runtime_module::{
   is_enabled_for_chunk, StartupChunkDependenciesRuntimeModule, StartupEntrypointRuntimeModule,
@@ -111,21 +115,33 @@ fn render_startup(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let federation_runtime_module = compilation
     .chunk_graph
-    .get_chunk_entry_modules_iterable(chunk_ukey)
-    .find(|module| module.context.ends_with(".federation"));
+    .get_chunk_entry_modules(chunk_ukey)
+    .iter();
 
-  if let Some(federation_runtime_module) = federation_runtime_module {
-    let federation_module_id = compilation
-      .chunk_graph
-      .get_module_id(federation_runtime_module);
-    source.add(RawSource::from(format!(
-      "{}({});\n",
-      RuntimeGlobals::REQUIRE,
-      federation_module_id
-    )));
-  }
+  // if let Some(federation_runtime_module) = federation_runtime_module {
+  //   let federation_module_id = compilation
+  //     .chunk_graph
+  //     .get_module_id(federation_runtime_module);
+  //   source.add(RawSource::from(format!(
+  //     "{}({});\n",
+  //     RuntimeGlobals::REQUIRE,
+  //     federation_module_id
+  //   )));
+  // }
 
-  render_source.source = source.boxed();
+  // render_source.source = source.boxed();
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for MfStartupChunkDependenciesPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  hooks.render_startup.tap(render_startup::new(self));
+  // hooks.chunk_hash.tap(js_chunk_hash::new(self));
   Ok(())
 }
 
@@ -157,9 +173,9 @@ impl Plugin for MfStartupChunkDependenciesPlugin {
       .tap(additional_chunk_runtime_requirements::new(self));
     ctx
       .context
-      .compilation_hooks
-      .render_startup
-      .tap(render_startup::new(self));
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
     Ok(())
   }
 }

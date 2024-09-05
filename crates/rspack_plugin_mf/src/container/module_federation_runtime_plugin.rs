@@ -3,13 +3,14 @@ use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ApplyContext, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  ApplyContext, BooleanMatcher, Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin, PluginContext,
   RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_runtime::chunk_has_js;
+use rspack_plugin_runtime::MfStartupChunkDependenciesPlugin;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -104,13 +105,19 @@ impl Plugin for ModuleFederationRuntimePlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
+    options: &mut CompilerOptions,
   ) -> Result<()> {
     ctx
       .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+
+    let mf_startup_chunk_dependencies_plugin =
+      MfStartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Jsonp), true);
+
+    mf_startup_chunk_dependencies_plugin.apply(ctx, options)?;
+
     Ok(())
   }
 }

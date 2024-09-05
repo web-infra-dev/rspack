@@ -50,9 +50,9 @@
         "--inspect-brk",
         "${workspaceFolder}/packages/rspack-cli/bin/rspack",
         "-c",
-        "rspack.config.js"
+        "webpack.config.js"
       ],
-      "cwd": "${workspaceFolder}/examples/issue-11673",
+      "cwd": "${workspaceFolder}/tests/webpack-test/configCases/container/3-container-full",
       "presentation": {
         "hidden": true
       }

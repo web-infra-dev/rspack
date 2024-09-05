@@ -25,6 +25,8 @@ pub use runtime_module::{
 };
 mod startup_chunk_dependencies;
 pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
+mod mf_startup_chunk_dependencies;
+pub use mf_startup_chunk_dependencies::MfStartupChunkDependenciesPlugin;
 mod chunk_prefetch_preload;
 pub use chunk_prefetch_preload::ChunkPrefetchPreloadPlugin;
 mod bundler_info;
