@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  graceful-fs@4.2.10:
+    hash: ivtm2a2cfr5pomcfbedhmr5v2q
+    path: patches/graceful-fs@4.2.10.patch
+
 importers:
 
   .:
@@ -397,7 +402,7 @@ importers:
         version: 5.12.0
       graceful-fs:
         specifier: 4.2.10
-        version: 4.2.10
+        version: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       json-parse-even-better-errors:
         specifier: ^3.0.0
         version: 3.0.1
@@ -986,7 +991,7 @@ importers:
         version: 3.36.1
       css-loader:
         specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@1.0.0)(webpack@5.94.0(webpack-cli@5.1.4))
+        version: 6.11.0(@rspack/core@1.0.3)(webpack@5.94.0(webpack-cli@5.1.4))
       date-fns:
         specifier: ^2.29.3
         version: 2.30.0
@@ -1040,7 +1045,7 @@ importers:
         version: 5.12.0
       graceful-fs:
         specifier: 4.2.10
-        version: 4.2.10
+        version: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       neo-async:
         specifier: 2.6.2
         version: 2.6.2
@@ -2841,19 +2846,14 @@ packages:
       typescript:
         optional: true
 
-  '@rspack/binding-darwin-arm64@1.0.0':
-    resolution: {integrity: sha512-ZHQk9YK+swlTG48kJTgzFUW9T26KjhLXRok5la7t2AMoiuHyhGHHgC5iQfPJLZ62XzcJ/rfqs2rwakl97151jQ==}
-    cpu: [arm64]
-    os: [darwin]
-
   '@rspack/binding-darwin-arm64@1.0.0-rc.0':
     resolution: {integrity: sha512-4S/+q8HN69ErWUjGDePExqiNuKIEGYKEoT+91+Wz55jQV4NY1mNGRojKVKjZkz7MvbPEZ1howtpDcHuUE2+QhQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rspack/binding-darwin-x64@1.0.0':
-    resolution: {integrity: sha512-qhTXm9wUhv2lBjsqqfCu59RchH1/2jursdPAmTqGc7zMReZdZvtJs2Ri6Ma1M48BLLu+7fS4fbL8Rw1g78TOOQ==}
-    cpu: [x64]
+  '@rspack/binding-darwin-arm64@1.0.3':
+    resolution: {integrity: sha512-MZlQpDRJkjIJJqmYMiziwz9vLXi1KjORYW6hemC2umDfOzUmlkRPBUF8oEqXaUQ+zYLbjhk4iTSbFdrlqUR+6w==}
+    cpu: [arm64]
     os: [darwin]
 
   '@rspack/binding-darwin-x64@1.0.0-rc.0':
@@ -2861,18 +2861,18 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@rspack/binding-linux-arm64-gnu@1.0.0':
-    resolution: {integrity: sha512-yKnlsWgvydJRxDBGGKC+cyDeoSzIvOzuVqCloy5oAFAGOMXMY6bznxrkE6/olGZncdeLEpnJzZmXSuF1dYc8ow==}
-    cpu: [arm64]
-    os: [linux]
+  '@rspack/binding-darwin-x64@1.0.3':
+    resolution: {integrity: sha512-Ke8Tw3+j5YFFIHjlqrEDnW5fbZU14s+l5LhLVaw6gVXH4yAAyFaZejaIViGi5fhKkdKmCXm0nVTK1KhhASZxAw==}
+    cpu: [x64]
+    os: [darwin]
 
   '@rspack/binding-linux-arm64-gnu@1.0.0-rc.0':
     resolution: {integrity: sha512-gqURooSNYGlwvgLE1xu8rz68E4Mfa2MONGTNMkre5aIYX2ZOd/MKGaB/R062Oj/78BIHmIGWcoz5GnBxBwToyw==}
     cpu: [arm64]
     os: [linux]
 
-  '@rspack/binding-linux-arm64-musl@1.0.0':
-    resolution: {integrity: sha512-dKFmlqlF4FELT/AX02hSwX8aRawjH5zAliQzYnvgrqcEyCKE60vKacGJQ3ZeRyru6dh5MlbUNW4H1+TDT+cDVA==}
+  '@rspack/binding-linux-arm64-gnu@1.0.3':
+    resolution: {integrity: sha512-Ydm6rsBnPYlKfWtz6sPRgAgJ5fQ+zFSHplR4bFlARIOXeWPn7ckQvFZrmKexuR0ULjG3Z4sbfrU6udc2MAWvig==}
     cpu: [arm64]
     os: [linux]
 
@@ -2881,9 +2881,9 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@rspack/binding-linux-x64-gnu@1.0.0':
-    resolution: {integrity: sha512-fRk9i8aE4FiwW7+LkNyw+5vfFzJ8BZ2seAL9V5U2iwYwYibzFJsukg3h3Uh+IsGm30/7+ZRENtGwybQiMruL4g==}
-    cpu: [x64]
+  '@rspack/binding-linux-arm64-musl@1.0.3':
+    resolution: {integrity: sha512-2aS65Xne3W6qJJ5PN5oL/bMbkUeYpsQduT+ML6vY6hqvi6W6wYtkvHwscQ4HisxKQFWdB2bsE1+UT34XgHpijw==}
+    cpu: [arm64]
     os: [linux]
 
   '@rspack/binding-linux-x64-gnu@1.0.0-rc.0':
@@ -2891,8 +2891,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@rspack/binding-linux-x64-musl@1.0.0':
-    resolution: {integrity: sha512-qcTJC8o3KvLwsnrJJcuBjfzSrjEbACMiCB4RtbFNecXDtI+Nputx1CO1SlUrINC25/44ILketf0/hsdBQHk60g==}
+  '@rspack/binding-linux-x64-gnu@1.0.3':
+    resolution: {integrity: sha512-6UWii/GBkV0B98RSjJr9Za5Y8rvU1vQpE5+8vb26pvo3Sh3kvRfOmSeIFyqR3I92er5SQKmEp8uggb74st6QGQ==}
     cpu: [x64]
     os: [linux]
 
@@ -2901,19 +2901,19 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@rspack/binding-win32-arm64-msvc@1.0.0':
-    resolution: {integrity: sha512-gqtakP0Yl2aj+Q/Giwgt31hz8eOZpo2s+sJlkMJGVdIF4dejB31a8vbj/VNGeSN1tDRiLI4cyqa5eQU//t26aQ==}
-    cpu: [arm64]
-    os: [win32]
+  '@rspack/binding-linux-x64-musl@1.0.3':
+    resolution: {integrity: sha512-tpKGPJEe6vkkH3bsDz+l7xndNrOGxDvbDVOXV0uSESnRr6Pef5253Bi5PNooGLSaWQlXVDdazhi6x1beVHI2eg==}
+    cpu: [x64]
+    os: [linux]
 
   '@rspack/binding-win32-arm64-msvc@1.0.0-rc.0':
     resolution: {integrity: sha512-ob510ObXoIBAMjPE8iBwvhWQ8Hd4v7bJSgImUBhSGExYI+z8b/gl8tNg8y1fttLtNO8j05rj9QFsGcZmv89Zsg==}
     cpu: [arm64]
     os: [win32]
 
-  '@rspack/binding-win32-ia32-msvc@1.0.0':
-    resolution: {integrity: sha512-nLfGu5DjdzwawzZ7zK69vZX5aL1Gt9+Ovfz4RlngDq/D5ZzqCnNWw93cqKADgFRWS4qK9vOD9RXNNnkyWB2SEw==}
-    cpu: [ia32]
+  '@rspack/binding-win32-arm64-msvc@1.0.3':
+    resolution: {integrity: sha512-9FwP64T6yeq3cG1JQG0VagTMuJxJCT45G9LN5RTJ2kxJ4T28vL7uEc9usPpXOyd6xpbzTKXX0mVxL+c8x0EhZQ==}
+    cpu: [arm64]
     os: [win32]
 
   '@rspack/binding-win32-ia32-msvc@1.0.0-rc.0':
@@ -2921,9 +2921,9 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@rspack/binding-win32-x64-msvc@1.0.0':
-    resolution: {integrity: sha512-H9PqjgtZMw5aP+eXdFo7bgSP/Ycwn3oW81uI9qFqOOQ90W+o3T9ItghHBf2/ksc5GHibd208EwOBNxbKwjZDSQ==}
-    cpu: [x64]
+  '@rspack/binding-win32-ia32-msvc@1.0.3':
+    resolution: {integrity: sha512-nXbeh0206bGiwV1vgY8UDk92sZ2yMvJenevnnLtGFSMTRQ46Z2f9n+mUO1GlvpanR1HAfhgPddlKasIncTJmPQ==}
+    cpu: [ia32]
     os: [win32]
 
   '@rspack/binding-win32-x64-msvc@1.0.0-rc.0':
@@ -2931,14 +2931,19 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rspack/binding@1.0.0':
-    resolution: {integrity: sha512-eLyqSEM1h/exJYn98k+9MRktP8AYDB13x5oVn8hoxVucuhk0TubFqQSX8h9SQcZp1O3j/Z8eWWwOaNPe3JU40Q==}
+  '@rspack/binding-win32-x64-msvc@1.0.3':
+    resolution: {integrity: sha512-htBi4xt+iXD/NCEo/q4fYSg5YfXymK9P9zI36NFvfguQbhwqy4JgBx0IorjDFl5qvG70sdUzY7x98DJEseGScQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@rspack/binding@1.0.0-rc.0':
     resolution: {integrity: sha512-mx0x4ho0ndHpOnSjAEOoQZohTqJLYOl4hLEvQLEnXIPTdMjZtpiLUyuyKtzv6DrXDV5La3bsZuzbcdMyqkSWpg==}
 
-  '@rspack/core@1.0.0':
-    resolution: {integrity: sha512-F4RA9uOLLvD1oTKa96Gcly+Sro1qaqPNENadFyiPwepa7DrwexQa/ym6CQKbvKMOYGKlVSFDPUmgFAirz35ETg==}
+  '@rspack/binding@1.0.3':
+    resolution: {integrity: sha512-wRLUDyi/6jFDDZJIov4uh9H9hJNk7JKDEhaMLM/5lJzzWsTLBB/q6JB1VAdIzOzBhYsU8iIMEVuG3Uih1H43uw==}
+
+  '@rspack/core@1.0.0-rc.0':
+    resolution: {integrity: sha512-sxS6QfVm7FbuKIYai8CyxMv5WH3MVdQmowVEqIZ/Fa8+PX17/sO5dg8tAFYAEzpCe/4dC93eYh9APr3Vc4ditQ==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@swc/helpers': '>=0.5.1'
@@ -2946,8 +2951,8 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/core@1.0.0-rc.0':
-    resolution: {integrity: sha512-sxS6QfVm7FbuKIYai8CyxMv5WH3MVdQmowVEqIZ/Fa8+PX17/sO5dg8tAFYAEzpCe/4dC93eYh9APr3Vc4ditQ==}
+  '@rspack/core@1.0.3':
+    resolution: {integrity: sha512-BqyBSrcTtsm1EDI10TrK6tEfNsy5vEnVDnbI0HBuQBH1zhKblnvsu6Y2bbS9+OGmB+OPEr76CmuZtzb+7V3wrQ==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@swc/helpers': '>=0.5.1'
@@ -10882,7 +10887,7 @@ snapshots:
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-changed-files: 29.7.0
       jest-config: 29.7.0(@types/node@20.12.7)(ts-node@10.9.2(@types/node@20.12.7)(typescript@5.0.2))
       jest-haste-map: 29.7.0
@@ -10954,7 +10959,7 @@ snapshots:
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
       glob: 7.2.3
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-instrument: 6.0.2
       istanbul-lib-report: 3.0.1
@@ -10978,7 +10983,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       callsites: 3.1.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   '@jest/test-result@29.7.0':
     dependencies:
@@ -10990,7 +10995,7 @@ snapshots:
   '@jest/test-sequencer@29.7.0':
     dependencies:
       '@jest/test-result': 29.7.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       slash: 3.0.0
 
@@ -11003,7 +11008,7 @@ snapshots:
       chalk: 4.1.2
       convert-source-map: 2.0.0
       fast-json-stable-stringify: 2.1.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       jest-regex-util: 29.6.3
       jest-util: 29.7.0
@@ -11535,7 +11540,7 @@ snapshots:
 
   '@pnpm/network.ca-file@1.0.2':
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   '@pnpm/npm-conf@2.2.0':
     dependencies:
@@ -11685,71 +11690,58 @@ snapshots:
       '@microsoft/api-extractor': 7.43.1(@types/node@20.12.7)
       typescript: 5.0.2
 
-  '@rspack/binding-darwin-arm64@1.0.0':
-    optional: true
-
   '@rspack/binding-darwin-arm64@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-darwin-x64@1.0.0':
+  '@rspack/binding-darwin-arm64@1.0.3':
     optional: true
 
   '@rspack/binding-darwin-x64@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-linux-arm64-gnu@1.0.0':
+  '@rspack/binding-darwin-x64@1.0.3':
     optional: true
 
   '@rspack/binding-linux-arm64-gnu@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-linux-arm64-musl@1.0.0':
+  '@rspack/binding-linux-arm64-gnu@1.0.3':
     optional: true
 
   '@rspack/binding-linux-arm64-musl@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-linux-x64-gnu@1.0.0':
+  '@rspack/binding-linux-arm64-musl@1.0.3':
     optional: true
 
   '@rspack/binding-linux-x64-gnu@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-linux-x64-musl@1.0.0':
+  '@rspack/binding-linux-x64-gnu@1.0.3':
     optional: true
 
   '@rspack/binding-linux-x64-musl@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-win32-arm64-msvc@1.0.0':
+  '@rspack/binding-linux-x64-musl@1.0.3':
     optional: true
 
   '@rspack/binding-win32-arm64-msvc@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-win32-ia32-msvc@1.0.0':
+  '@rspack/binding-win32-arm64-msvc@1.0.3':
     optional: true
 
   '@rspack/binding-win32-ia32-msvc@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding-win32-x64-msvc@1.0.0':
+  '@rspack/binding-win32-ia32-msvc@1.0.3':
     optional: true
 
   '@rspack/binding-win32-x64-msvc@1.0.0-rc.0':
     optional: true
 
-  '@rspack/binding@1.0.0':
-    optionalDependencies:
-      '@rspack/binding-darwin-arm64': 1.0.0
-      '@rspack/binding-darwin-x64': 1.0.0
-      '@rspack/binding-linux-arm64-gnu': 1.0.0
-      '@rspack/binding-linux-arm64-musl': 1.0.0
-      '@rspack/binding-linux-x64-gnu': 1.0.0
-      '@rspack/binding-linux-x64-musl': 1.0.0
-      '@rspack/binding-win32-arm64-msvc': 1.0.0
-      '@rspack/binding-win32-ia32-msvc': 1.0.0
-      '@rspack/binding-win32-x64-msvc': 1.0.0
+  '@rspack/binding-win32-x64-msvc@1.0.3':
     optional: true
 
   '@rspack/binding@1.0.0-rc.0':
@@ -11764,12 +11756,17 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.0.0-rc.0
       '@rspack/binding-win32-x64-msvc': 1.0.0-rc.0
 
-  '@rspack/core@1.0.0':
-    dependencies:
-      '@module-federation/runtime-tools': 0.5.1
-      '@rspack/binding': 1.0.0
-      '@rspack/lite-tapable': 1.0.0
-      caniuse-lite: 1.0.30001654
+  '@rspack/binding@1.0.3':
+    optionalDependencies:
+      '@rspack/binding-darwin-arm64': 1.0.3
+      '@rspack/binding-darwin-x64': 1.0.3
+      '@rspack/binding-linux-arm64-gnu': 1.0.3
+      '@rspack/binding-linux-arm64-musl': 1.0.3
+      '@rspack/binding-linux-x64-gnu': 1.0.3
+      '@rspack/binding-linux-x64-musl': 1.0.3
+      '@rspack/binding-win32-arm64-msvc': 1.0.3
+      '@rspack/binding-win32-ia32-msvc': 1.0.3
+      '@rspack/binding-win32-x64-msvc': 1.0.3
     optional: true
 
   '@rspack/core@1.0.0-rc.0(@swc/helpers@0.5.12)':
@@ -11780,6 +11777,14 @@ snapshots:
       caniuse-lite: 1.0.30001654
     optionalDependencies:
       '@swc/helpers': 0.5.12
+
+  '@rspack/core@1.0.3':
+    dependencies:
+      '@module-federation/runtime-tools': 0.5.1
+      '@rspack/binding': 1.0.3
+      '@rspack/lite-tapable': 1.0.0
+      caniuse-lite: 1.0.30001654
+    optional: true
 
   '@rspack/lite-tapable@1.0.0': {}
 
@@ -13588,7 +13593,7 @@ snapshots:
       babel-plugin-istanbul: 6.1.1
       babel-preset-jest: 29.6.3(@babel/core@7.24.4)
       chalk: 4.1.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       slash: 3.0.0
     transitivePeerDependencies:
       - supports-color
@@ -13920,7 +13925,7 @@ snapshots:
       chownr: 1.1.4
       figgy-pudding: 3.5.2
       glob: 7.2.3
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       infer-owner: 1.0.4
       lru-cache: 5.1.1
       mississippi: 3.0.0
@@ -14279,7 +14284,7 @@ snapshots:
   configstore@5.0.1:
     dependencies:
       dot-prop: 5.3.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       make-dir: 3.1.0
       unique-string: 2.0.0
       write-file-atomic: 3.0.3
@@ -14438,7 +14443,7 @@ snapshots:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-config: 29.7.0(@types/node@20.12.7)(ts-node@10.9.2(@types/node@20.12.7)(typescript@5.0.2))
       jest-util: 29.7.0
       prompts: 2.4.2
@@ -14498,7 +14503,7 @@ snapshots:
       semver: 7.6.2
       webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.94.0))
 
-  css-loader@6.11.0(@rspack/core@1.0.0)(webpack@5.94.0(webpack-cli@5.1.4)):
+  css-loader@6.11.0(@rspack/core@1.0.3)(webpack@5.94.0(webpack-cli@5.1.4)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.38)
       postcss: 8.4.38
@@ -14509,7 +14514,7 @@ snapshots:
       postcss-value-parser: 4.2.0
       semver: 7.6.0
     optionalDependencies:
-      '@rspack/core': 1.0.0
+      '@rspack/core': 1.0.3
       webpack: 5.94.0(webpack-cli@5.1.4)
 
   css-loader@6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0))):
@@ -14787,7 +14792,7 @@ snapshots:
   del@6.1.1:
     dependencies:
       globby: 11.1.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       is-glob: 4.0.3
       is-path-cwd: 2.2.0
       is-path-inside: 3.0.3
@@ -14971,17 +14976,17 @@ snapshots:
 
   enhanced-resolve@5.12.0:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       tapable: 2.2.1
 
   enhanced-resolve@5.17.0:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       tapable: 2.2.1
 
   enhanced-resolve@5.17.1:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       tapable: 2.2.1
 
   entities@2.2.0: {}
@@ -15435,25 +15440,25 @@ snapshots:
 
   fs-extra@10.1.0:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jsonfile: 6.1.0
       universalify: 2.0.1
 
   fs-extra@11.2.0:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jsonfile: 6.1.0
       universalify: 2.0.1
 
   fs-extra@7.0.1:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jsonfile: 4.0.0
       universalify: 0.1.2
 
   fs-write-stream-atomic@1.0.10:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       iferr: 0.1.5
       imurmurhash: 0.1.4
       readable-stream: 2.3.8
@@ -15621,7 +15626,7 @@ snapshots:
       to-readable-stream: 1.0.0
       url-parse-lax: 3.0.0
 
-  graceful-fs@4.2.10: {}
+  graceful-fs@4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q): {}
 
   graceful-fs@4.2.11: {}
 
@@ -16291,7 +16296,7 @@ snapshots:
       ci-info: 3.9.0
       deepmerge: 4.3.1
       glob: 7.2.3
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-circus: 29.7.0
       jest-environment-node: 29.7.0
       jest-get-type: 29.6.3
@@ -16364,7 +16369,7 @@ snapshots:
       '@types/node': 20.12.7
       anymatch: 3.1.3
       fb-watchman: 2.0.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-regex-util: 29.6.3
       jest-util: 29.7.0
       jest-worker: 29.7.0
@@ -16391,7 +16396,7 @@ snapshots:
       '@jest/types': 29.6.3
       '@types/stack-utils': 2.0.3
       chalk: 4.1.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       micromatch: 4.0.5
       pretty-format: 29.7.0
       slash: 3.0.0
@@ -16419,7 +16424,7 @@ snapshots:
   jest-resolve@29.7.0:
     dependencies:
       chalk: 4.1.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       jest-pnp-resolver: 1.2.3(jest-resolve@29.7.0)
       jest-util: 29.7.0
@@ -16438,7 +16443,7 @@ snapshots:
       '@types/node': 20.12.7
       chalk: 4.1.2
       emittery: 0.13.1
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-docblock: 29.7.0
       jest-environment-node: 29.7.0
       jest-haste-map: 29.7.0
@@ -16468,7 +16473,7 @@ snapshots:
       cjs-module-lexer: 1.2.3
       collect-v8-coverage: 1.0.2
       glob: 7.2.3
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
@@ -16500,7 +16505,7 @@ snapshots:
       babel-preset-current-node-syntax: 1.0.1(@babel/core@7.24.4)
       chalk: 4.1.2
       expect: 29.7.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-diff: 29.7.0
       jest-get-type: 29.6.3
       jest-matcher-utils: 29.7.0
@@ -16518,7 +16523,7 @@ snapshots:
       '@types/node': 20.12.7
       chalk: 4.1.2
       ci-info: 3.9.0
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       picomatch: 2.3.1
 
   jest-validate@29.7.0:
@@ -16683,13 +16688,13 @@ snapshots:
 
   jsonfile@4.0.0:
     optionalDependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   jsonfile@6.1.0:
     dependencies:
       universalify: 2.0.1
     optionalDependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   jstransformer@1.0.0:
     dependencies:
@@ -16747,7 +16752,7 @@ snapshots:
       tslib: 2.6.2
     optionalDependencies:
       errno: 0.1.8
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       image-size: 0.5.5
       make-dir: 2.1.0
       mime: 1.6.0
@@ -16761,7 +16766,7 @@ snapshots:
       tslib: 2.6.2
     optionalDependencies:
       errno: 0.1.8
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       image-size: 0.5.5
       make-dir: 2.1.0
       mime: 1.6.0
@@ -16815,7 +16820,7 @@ snapshots:
 
   load-json-file@6.2.0:
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       parse-json: 5.2.0
       strip-bom: 4.0.0
       type-fest: 0.6.0
@@ -19589,7 +19594,7 @@ snapshots:
   watchpack@2.4.1:
     dependencies:
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   wbuf@1.7.3:
     dependencies:
@@ -19689,7 +19694,7 @@ snapshots:
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
       express: 4.19.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.6(@types/express@4.17.21)
       ipaddr.js: 2.1.0
@@ -19730,7 +19735,7 @@ snapshots:
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
       express: 4.19.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.6(@types/express@4.17.21)
       ipaddr.js: 2.1.0
@@ -19771,7 +19776,7 @@ snapshots:
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
       express: 4.19.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.6(@types/express@4.17.21)
       ipaddr.js: 2.1.0
