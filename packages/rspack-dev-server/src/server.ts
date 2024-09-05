@@ -76,12 +76,13 @@ export class RspackDevServer extends WebpackDevServer {
 			case "string":
 				// could be 'sockjs', 'ws', or a path that should be required
 				if (clientTransport === "sockjs") {
+					// ts-alias doesn't support alias require.resolve so we have to do it manually
 					clientImplementation = require.resolve(
-						"webpack-dev-server/client/clients/SockJSClient"
+						"../compiled/webpack-dev-server/client/clients/SockJSClient"
 					);
 				} else if (clientTransport === "ws") {
 					clientImplementation = require.resolve(
-						"webpack-dev-server/client/clients/WebSocketClient"
+						"../compiled/webpack-dev-server/client/clients/WebSocketClient"
 					);
 				} else {
 					try {
