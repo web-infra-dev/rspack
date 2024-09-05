@@ -227,13 +227,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
         .await?;
 
+      // Manually clean up ChunkGraph and chunks
+      for module_identifier in new_modules {
+        compilation
+          .chunk_graph
+          .disconnect_chunk_and_module(&ukey, module_identifier);
+      }
+      for runtime_module in new_runtime_modules {
+        compilation
+          .chunk_graph
+          .disconnect_chunk_and_runtime_module(&ukey, &runtime_module);
+      }
+      compilation.chunk_graph.remove_chunk(&ukey);
+      #[allow(clippy::unwrap_used)]
+      let hot_update_chunk = compilation.chunk_by_ukey.remove(&ukey).unwrap();
+
       compilation.extend_diagnostics(diagnostics);
 
       for entry in manifest {
         let filename = if entry.has_filename() {
           entry.filename().to_string()
         } else {
-          let hot_update_chunk = compilation.chunk_by_ukey.expect_get(&ukey);
           compilation
             .get_path(
               &compilation.options.output.hot_update_chunk_filename,
@@ -261,20 +275,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         compilation.emit_asset(filename, asset);
       }
-
-      // Manually clean up ChunkGraph and chunks
-      for module_identifier in new_modules {
-        compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(&ukey, module_identifier);
-      }
-      for runtime_module in new_runtime_modules {
-        compilation
-          .chunk_graph
-          .disconnect_chunk_and_runtime_module(&ukey, &runtime_module);
-      }
-      compilation.chunk_graph.remove_chunk(&ukey);
-      compilation.chunk_by_ukey.remove(&ukey);
 
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime.as_ref()) {
