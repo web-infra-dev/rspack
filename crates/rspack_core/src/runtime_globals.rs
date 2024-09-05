@@ -248,6 +248,7 @@ bitflags! {
     const RSPACK_UNIQUE_ID = 1 << 64;
 
     const HAS_FETCH_PRIORITY = 1 << 65;
+    const FEDERATION_STARTUP = 1 << 66; // Add this line
   }
 }
 
@@ -334,6 +335,7 @@ impl RuntimeGlobals {
       R::HAS_CSS_MODULES => "has css modules",
 
       R::HAS_FETCH_PRIORITY => "has fetch priority",
+      R::FEDERATION_STARTUP => "federation-entry-startup",
       _ => unreachable!(),
     }
   }
