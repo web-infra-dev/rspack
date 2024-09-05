@@ -24,6 +24,30 @@ import { applyDevServerPatch } from "./patch";
 applyDevServerPatch();
 
 export class RspackDevServer extends WebpackDevServer {
+	static async getFreePort(port: string, host: string) {
+		if (typeof port !== "undefined" && port !== null && port !== "auto") {
+			return port;
+		}
+
+		const pRetry = require("p-retry");
+		const getPort = require("webpack-dev-server/lib/getPort");
+		const basePort =
+			typeof process.env.WEBPACK_DEV_SERVER_BASE_PORT !== "undefined"
+				? Number.parseInt(process.env.WEBPACK_DEV_SERVER_BASE_PORT, 10)
+				: 8080;
+
+		// Try to find unused port and listen on it for 3 times,
+		// if port is not specified in options.
+		const defaultPortRetry =
+			typeof process.env.WEBPACK_DEV_SERVER_PORT_RETRY !== "undefined"
+				? Number.parseInt(process.env.WEBPACK_DEV_SERVER_PORT_RETRY, 10)
+				: 3;
+
+		return pRetry(() => getPort(basePort, host), {
+			retries: defaultPortRetry
+		});
+	}
+
 	/**
 	 * resolved after `normalizedOptions`
 	 */

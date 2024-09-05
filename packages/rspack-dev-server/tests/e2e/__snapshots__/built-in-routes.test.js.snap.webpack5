@@ -1,0 +1,83 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Built in routes with multi config should handle GET request to directory index and list all middleware directories: console messages 1`] = `[]`;
+
+exports[`Built in routes with multi config should handle GET request to directory index and list all middleware directories: directory list 1`] = `
+"<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body><h1>Assets Report:</h1><div><h2>Compilation: unnamed[0]</h2><ul><li>
+              <strong><a href="/bundle1/foo.js" target="_blank">foo.js</a></strong>
+            </li><li>
+              <strong><a href="/bundle1/path/to/file.html" target="_blank">path/to/file.html</a></strong>
+            </li></ul></div><div><h2>Compilation: named</h2><ul><li>
+              <strong><a href="/bundle2/bar.js" target="_blank">bar.js</a></strong>
+            </li></ul></div><div><h2>Compilation: other</h2><ul><li>
+              <strong><a href="bar.js" target="_blank">bar.js</a></strong>
+            </li></ul></div></body></html>"
+`;
+
+exports[`Built in routes with multi config should handle GET request to directory index and list all middleware directories: page errors 1`] = `[]`;
+
+exports[`Built in routes with multi config should handle GET request to directory index and list all middleware directories: response headers content-type 1`] = `"text/html"`;
+
+exports[`Built in routes with multi config should handle GET request to directory index and list all middleware directories: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handle GET request to directory index and list all middleware directories: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle GET request to directory index and list all middleware directories: directory list 1`] = `
+"<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body><h1>Assets Report:</h1><div><h2>Compilation: unnamed</h2><ul><li>
+              <strong><a href="main.js" target="_blank">main.js</a></strong>
+            </li><li>
+              <strong><a href="index.html" target="_blank">index.html</a></strong>
+            </li><li>
+              <strong><a href="test.html" target="_blank">test.html</a></strong>
+            </li></ul></div></body></html>"
+`;
+
+exports[`Built in routes with simple config should handle GET request to directory index and list all middleware directories: page errors 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle GET request to directory index and list all middleware directories: response headers content-type 1`] = `"text/html"`;
+
+exports[`Built in routes with simple config should handle GET request to directory index and list all middleware directories: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handle GET request to invalidate endpoint: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle GET request to invalidate endpoint: page errors 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle GET request to invalidate endpoint: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handle GET request to magic async chunk: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle GET request to magic async chunk: response headers content-type 1`] = `"application/javascript; charset=utf-8"`;
+
+exports[`Built in routes with simple config should handle GET request to magic async chunk: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handle HEAD request to directory index: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle HEAD request to directory index: directory list 1`] = `""`;
+
+exports[`Built in routes with simple config should handle HEAD request to directory index: page errors 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle HEAD request to directory index: response headers content-type 1`] = `"text/html"`;
+
+exports[`Built in routes with simple config should handle HEAD request to directory index: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handle HEAD request to magic async chunk: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handle HEAD request to magic async chunk: response headers content-type 1`] = `"application/javascript; charset=utf-8"`;
+
+exports[`Built in routes with simple config should handle HEAD request to magic async chunk: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handles GET request to sockjs bundle: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handles GET request to sockjs bundle: page errors 1`] = `[]`;
+
+exports[`Built in routes with simple config should handles GET request to sockjs bundle: response headers content-type 1`] = `"application/javascript"`;
+
+exports[`Built in routes with simple config should handles GET request to sockjs bundle: response status 1`] = `200`;
+
+exports[`Built in routes with simple config should handles HEAD request to sockjs bundle: console messages 1`] = `[]`;
+
+exports[`Built in routes with simple config should handles HEAD request to sockjs bundle: page errors 1`] = `[]`;
+
+exports[`Built in routes with simple config should handles HEAD request to sockjs bundle: response headers content-type 1`] = `"application/javascript"`;
+
+exports[`Built in routes with simple config should handles HEAD request to sockjs bundle: response status 1`] = `200`;
