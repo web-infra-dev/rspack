@@ -124,17 +124,7 @@ exports[`API latest async API should work and allow to rerun dev server multiple
 ]
 `;
 
-exports[`API latest async API should work and allow to rerun dev server multiple times: console messages 2`] = `
-[
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-]
-`;
-
 exports[`API latest async API should work and allow to rerun dev server multiple times: page errors 1`] = `[]`;
-
-exports[`API latest async API should work and allow to rerun dev server multiple times: page errors 2`] = `[]`;
 
 exports[`API latest async API should work when using configured manually: console messages 1`] = `
 [

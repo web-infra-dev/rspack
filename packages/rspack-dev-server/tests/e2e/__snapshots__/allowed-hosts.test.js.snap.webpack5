@@ -30,37 +30,11 @@ exports[`allowed hosts check host headers should always allow any host if option
 
 exports[`allowed hosts check host headers should always allow any host if options.allowedHosts is all: response status 1`] = `200`;
 
-exports[`allowed hosts check host headers should always allow value from the \`host\` options if options.allowedHosts is auto: console messages 1`] = `[]`;
-
-exports[`allowed hosts check host headers should always allow value from the \`host\` options if options.allowedHosts is auto: page errors 1`] = `[]`;
-
-exports[`allowed hosts check host headers should always allow value from the \`host\` options if options.allowedHosts is auto: response status 1`] = `200`;
-
 exports[`allowed hosts check host headers should always allow value of the \`host\` option from the \`client.webSocketURL\` option if options.allowedHosts is auto: console messages 1`] = `[]`;
 
 exports[`allowed hosts check host headers should always allow value of the \`host\` option from the \`client.webSocketURL\` option if options.allowedHosts is auto: page errors 1`] = `[]`;
 
 exports[`allowed hosts check host headers should always allow value of the \`host\` option from the \`client.webSocketURL\` option if options.allowedHosts is auto: response status 1`] = `200`;
-
-exports[`allowed hosts should connect web socket client using "[::1] host to web socket server with the "auto" value ("sockjs"): console messages 1`] = `
-[
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-]
-`;
-
-exports[`allowed hosts should connect web socket client using "[::1] host to web socket server with the "auto" value ("sockjs"): page errors 1`] = `[]`;
-
-exports[`allowed hosts should connect web socket client using "[::1] host to web socket server with the "auto" value ("ws"): console messages 1`] = `
-[
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-]
-`;
-
-exports[`allowed hosts should connect web socket client using "[::1] host to web socket server with the "auto" value ("ws"): page errors 1`] = `[]`;
 
 exports[`allowed hosts should connect web socket client using "127.0.0.1" host to web socket server with the "auto" value ("sockjs"): console messages 1`] = `
 [
