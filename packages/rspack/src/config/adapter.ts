@@ -336,8 +336,8 @@ function getRawModule(
 	);
 	return {
 		rules,
-		parser: getRawParserOptionsByModuleType(module.parser),
-		generator: getRawGeneratorOptionsByModuleType(module.generator),
+		parser: getRawParserOptionsMap(module.parser),
+		generator: getRawGeneratorOptionsMap(module.generator),
 		noParse: module.noParse
 	};
 }
@@ -575,7 +575,7 @@ function getRawRuleSetLogicalConditions(
 	};
 }
 
-function getRawParserOptionsByModuleType(
+function getRawParserOptionsMap(
 	parser: ParserOptionsByModuleType
 ): Record<string, RawParserOptions> {
 	return Object.fromEntries(
@@ -585,11 +585,11 @@ function getRawParserOptionsByModuleType(
 	);
 }
 
-function getRawGeneratorOptionsByModuleType(
-	parser: GeneratorOptionsByModuleType
+function getRawGeneratorOptionsMap(
+	generator: GeneratorOptionsByModuleType
 ): Record<string, RawGeneratorOptions> {
 	return Object.fromEntries(
-		Object.entries(parser)
+		Object.entries(generator)
 			.map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
 			.filter(([k, v]) => v !== undefined)
 	);
@@ -606,8 +606,10 @@ function getRawParserOptions(
 		};
 	}
 	if (type === "javascript") {
-		// Filter this out, since `parser["javascript"]` already merge into `parser["javascript/*"]` in default.ts
-		return;
+		return {
+			type: "javascript",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
 	}
 	if (type === "javascript/auto") {
 		return {
@@ -677,23 +679,14 @@ function getRawJavascriptParserOptions(
 				? "false"
 				: parser.reexportExportsPresence,
 		strictExportPresence: parser.strictExportPresence ?? false,
-		worker: getRawJavascriptParserOptionsWorker(parser.worker!),
+		worker:
+			typeof parser.worker === "boolean"
+				? parser.worker
+					? ["..."]
+					: []
+				: parser.worker ?? ["..."],
 		overrideStrict: parser.overrideStrict
 	};
-}
-
-function getRawJavascriptParserOptionsWorker(
-	worker: boolean | string[]
-): RawJavascriptParserOptions["worker"] {
-	const DEFAULT_SYNTAX = [
-		"Worker",
-		"SharedWorker",
-		"navigator.serviceWorker.register()",
-		"Worker from worker_threads"
-	];
-	return (
-		worker === false ? [] : Array.isArray(worker) ? worker : ["..."]
-	).flatMap(item => (item === "..." ? DEFAULT_SYNTAX : item));
 }
 
 function getRawAssetParserOptions(
