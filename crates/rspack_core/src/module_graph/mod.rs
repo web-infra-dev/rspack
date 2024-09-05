@@ -645,6 +645,22 @@ impl<'a> ModuleGraph<'a> {
       .map(|b| &**b)
   }
 
+  pub fn block_by_id_mut(
+    &mut self,
+    block_id: &AsyncDependenciesBlockIdentifier,
+  ) -> Option<&mut Box<AsyncDependenciesBlock>> {
+    self
+      .loop_partials_mut(
+        |p| p.blocks.contains_key(block_id),
+        |p, search_result| {
+          p.blocks.insert(*block_id, search_result);
+        },
+        |p| p.blocks.get(block_id).cloned(),
+        |p| p.blocks.get_mut(block_id),
+      )?
+      .as_mut()
+  }
+
   pub fn block_by_id_expect(
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
