@@ -8,7 +8,6 @@ use super::{
   Error, Result,
 };
 
-#[derive(Debug)]
 pub struct NativeFileSystem;
 
 impl WritableFileSystem for NativeFileSystem {
@@ -35,7 +34,6 @@ cfg_async! {
   use futures::future::BoxFuture;
 
   use crate::{AsyncReadableFileSystem, AsyncWritableFileSystem};
-  #[derive(Debug)]
   pub struct AsyncNativeFileSystem;
 
   impl AsyncWritableFileSystem for AsyncNativeFileSystem {

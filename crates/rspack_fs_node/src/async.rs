@@ -4,7 +4,6 @@ use rspack_paths::Utf8Path;
 
 use crate::node::ThreadsafeNodeFS;
 
-#[derive(Debug)]
 pub struct AsyncNodeWritableFileSystem(ThreadsafeNodeFS);
 
 impl AsyncNodeWritableFileSystem {
