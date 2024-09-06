@@ -700,11 +700,12 @@ impl NormalModuleFactory {
             javascript_options,
             options,
             |javascript_options, options| match (javascript_options, options) {
-              (ParserOptions::Javascript(a), ParserOptions::JavascriptAuto(b))
-              | (ParserOptions::Javascript(a), ParserOptions::JavascriptDynamic(b))
-              | (ParserOptions::Javascript(a), ParserOptions::JavascriptEsm(b)) => {
-                ParserOptions::Javascript(a.merge_from(b))
-              }
+              (
+                ParserOptions::Javascript(a),
+                ParserOptions::JavascriptAuto(b)
+                | ParserOptions::JavascriptDynamic(b)
+                | ParserOptions::JavascriptEsm(b),
+              ) => ParserOptions::Javascript(a.merge_from(b)),
               _ => unreachable!(),
             },
           )
@@ -729,12 +730,12 @@ impl NormalModuleFactory {
         (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
           ParserOptions::CssModule(a.merge_from(b))
         }
-        (ParserOptions::Javascript(a), ParserOptions::Javascript(b))
-        | (ParserOptions::Javascript(a), ParserOptions::JavascriptAuto(b))
-        | (ParserOptions::Javascript(a), ParserOptions::JavascriptDynamic(b))
-        | (ParserOptions::Javascript(a), ParserOptions::JavascriptEsm(b)) => {
-          ParserOptions::Javascript(a.merge_from(b))
-        }
+        (
+          ParserOptions::Javascript(a),
+          ParserOptions::JavascriptAuto(b)
+          | ParserOptions::JavascriptDynamic(b)
+          | ParserOptions::JavascriptEsm(b),
+        ) => ParserOptions::Javascript(a.merge_from(b)),
         (global, _) => global,
       },
     );
