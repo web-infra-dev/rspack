@@ -60,6 +60,7 @@ cfg_async! {
   use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
   #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
+  #[derive(Debug)]
   pub struct ThreadsafeNodeFS {
     #[napi(ts_type = "(name: string, content: Buffer) => Promise<void> | void")]
     pub write_file: ThreadsafeFunction<(String, Buffer), ()>,

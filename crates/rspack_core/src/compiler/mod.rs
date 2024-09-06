@@ -2,7 +2,6 @@ mod compilation;
 mod hmr;
 mod make;
 mod module_executor;
-
 use std::sync::Arc;
 
 use rspack_error::Result;
@@ -50,12 +49,9 @@ pub struct CompilerHooks {
 }
 
 #[derive(Debug)]
-pub struct Compiler<T>
-where
-  T: AsyncWritableFileSystem + Send + Sync,
-{
+pub struct Compiler {
   pub options: Arc<CompilerOptions>,
-  pub output_filesystem: T,
+  pub output_filesystem: Box<dyn AsyncWritableFileSystem + Send + Sync>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -67,15 +63,12 @@ where
   unaffected_modules_cache: Arc<UnaffectedModulesCache>,
 }
 
-impl<T> Compiler<T>
-where
-  T: AsyncWritableFileSystem + Send + Sync,
-{
+impl Compiler {
   #[instrument(skip_all)]
   pub fn new(
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
-    output_filesystem: T,
+    output_filesystem: Box<dyn AsyncWritableFileSystem + Send + Sync>,
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
