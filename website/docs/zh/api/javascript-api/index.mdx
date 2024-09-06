@@ -121,13 +121,13 @@ const compiler = rspack({
 const watching = compiler.watch(
   {
     // 示例
-    aggregateTimeout： 300,
-    poll： undefined,
+    aggregateTimeout: 300,
+    poll: undefined,
   },
   (err, stats) => {
     // 这里打印 watch/build 结果...
     console.log(stats);
-  }
+  },
 );
 ```
 

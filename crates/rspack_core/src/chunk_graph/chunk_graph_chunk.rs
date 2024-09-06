@@ -64,6 +64,11 @@ impl ChunkGraph {
       .entry(chunk_ukey)
       .or_default();
   }
+
+  pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) {
+    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey);
+  }
+
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
     debug_assert!(!self
       .chunk_graph_chunk_by_chunk_ukey
@@ -255,6 +260,29 @@ impl ChunkGraph {
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
     if !cgc.runtime_modules.contains(&module_identifier) {
       cgc.runtime_modules.push(module_identifier);
+    }
+  }
+
+  pub fn disconnect_chunk_and_runtime_module(
+    &mut self,
+    chunk: &ChunkUkey,
+    module_identifier: &ModuleIdentifier,
+  ) {
+    let cgm = self
+      .chunk_graph_module_by_module_identifier
+      .get_mut(module_identifier);
+    if let Some(cgm) = cgm {
+      cgm.runtime_in_chunks.remove(chunk);
+    }
+
+    let cgc = self.chunk_graph_chunk_by_chunk_ukey.get_mut(chunk);
+    if let Some(cgc) = cgc {
+      cgc.runtime_modules = cgc
+        .runtime_modules
+        .iter()
+        .copied()
+        .filter(|id| *id != *module_identifier)
+        .collect::<Vec<_>>();
     }
   }
 
