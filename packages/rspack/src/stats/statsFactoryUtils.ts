@@ -1,5 +1,6 @@
 import type * as binding from "@rspack/binding";
 
+import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation, NormalizedStatsOptions } from "../Compilation";
 import {
 	type Comparator,
@@ -8,21 +9,88 @@ import {
 } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
-export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
-
-export type KnownStatsChunk = Omit<
-	binding.JsStatsChunk,
-	"sizes" | "origins"
-> & {
-	sizes: Record<string, number>;
-	origins: StatsChunkOrigin[];
+export type KnownStatsChunkGroup = {
+	name?: string;
+	chunks?: (string | number)[];
+	assets?: { name: string; size?: number }[];
+	filteredAssets?: number;
+	assetsSize?: number;
+	auxiliaryAssets?: { name: string; size?: number }[];
+	filteredAuxiliaryAssets?: number;
+	auxiliaryAssetsSize?: number;
+	children?: {
+		preload?: StatsChunkGroup[];
+		prefetch?: StatsChunkGroup[];
+	};
+	childAssets?: {
+		preload?: string[];
+		prefetch?: string[];
+	};
+	isOverSizeLimit?: boolean;
 };
 
-export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related">;
+export type KnownStatsChunk = {
+	type: string;
+	rendered: boolean;
+	initial: boolean;
+	entry: boolean;
+	// recorded: boolean;
+	reason?: string;
+	size: number;
+	sizes?: Record<string, number>;
+	names?: string[];
+	idHints?: string[];
+	runtime?: string[];
+	files?: string[];
+	auxiliaryFiles?: string[];
+	hash?: string;
+	childrenByOrder?: Record<string, (string | number)[]>;
+	id?: string | number;
+	siblings?: (string | number)[];
+	parents?: (string | number)[];
+	children?: (string | number)[];
+	modules?: StatsModule[];
+	filteredModules?: number;
+	origins?: StatsChunkOrigin[];
+};
 
-export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
+export type KnownAssetInfo = {
+	immutable?: boolean;
+	minimized?: boolean;
+	fullhash?: string | string[];
+	chunkhash?: string | string[];
+	// modulehash?: string | string[];
+	contenthash?: string | string[];
+	sourceFilename?: string;
+	size?: number;
+	development?: boolean;
+	hotModuleReplacement?: boolean;
+	javascriptModule?: boolean;
+	related?: Record<string, string | string[]>;
+};
 
-export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info">;
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
+
+export type StatsChunkGroup = KnownStatsChunkGroup & Record<string, any>;
+
+export type KnownStatsAsset = {
+	type: string;
+	name: string;
+	info: AssetInfo;
+	size: number;
+	emitted: boolean;
+	// comparedForEmit: boolean;
+	cached: boolean;
+	related?: StatsAsset[];
+	chunkNames?: (string | number)[];
+	chunkIdHints?: (string | number)[];
+	chunks?: (string | null | undefined)[];
+	auxiliaryChunkNames?: (string | number)[];
+	auxiliaryChunks?: (string | null | undefined)[];
+	auxiliaryChunkIdHints?: (string | number)[];
+	filteredRelated?: number;
+	isOverSizeLimit?: boolean;
+};
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
@@ -80,20 +148,32 @@ export type KnownStatsProfile = {
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
-export type StatsModuleIssuer = Omit<
-	binding.JsStatsModuleIssuer,
-	"identifier"
-> & {
+export type KnownStatsModuleIssuer = {
 	identifier?: string;
-} & Record<string, any>;
+	name?: string;
+	id?: string | number;
+	// profile?: StatsProfile;
+};
 
-export type StatsError = Omit<binding.JsStatsError, "moduleIdentifier"> & {
-	moduleIdentifier?: string;
-} & Record<string, any>;
+export type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
-export type StatsWarnings = Omit<binding.JsStatsWarning, "moduleIdentifier"> & {
+export type KnownStatsError = {
+	message: string;
+	chunkName?: string;
+	chunkEntry?: boolean;
+	chunkInitial?: boolean;
+	file?: string;
 	moduleIdentifier?: string;
-} & Record<string, any>;
+	moduleName?: string;
+	loc?: string;
+	chunkId?: string | number;
+	moduleId?: string | number;
+	moduleTrace?: StatsModuleTraceItem[];
+	details?: any;
+	stack?: string;
+};
+
+export type StatsError = KnownStatsError & Record<string, any>;
 
 export type StatsModuleTraceItem = {
 	originIdentifier?: string;
@@ -104,12 +184,22 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = Omit<
-	binding.JsStatsModuleReason,
-	"moduleIdentifier"
-> & {
+export type KnownStatsModuleReason = {
 	moduleIdentifier?: string;
-} & Record<string, any>;
+	module?: string;
+	moduleName?: string;
+	resolvedModuleIdentifier?: string;
+	resolvedModule?: string;
+	type?: string;
+	// active: boolean;
+	// explanation?: string;
+	userRequest?: string;
+	// loc?: string;
+	moduleId?: string | null;
+	resolvedModuleId?: string | number | null;
+};
+
+export type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
 
 export type KnownStatsChunkOrigin = {
 	module: string;
@@ -144,7 +234,7 @@ export type KnownStatsCompilation = {
 	namedChunkGroups?: Record<string, StatsChunkGroup>;
 	errors?: StatsError[];
 	errorsCount?: number;
-	warnings?: StatsWarnings[];
+	warnings?: StatsError[];
 	warningsCount?: number;
 	filteredModules?: number;
 	children?: StatsCompilation[];
@@ -187,7 +277,7 @@ type ExtractorsByOption<T, O> = {
 	) => void;
 };
 
-export type PreprocessedAsset = StatsAsset & {
+export type PreprocessedAsset = binding.JsStatsAsset & {
 	type: string;
 	related: PreprocessedAsset[];
 	info: binding.JsStatsAssetInfo;
@@ -216,9 +306,9 @@ export type SimpleExtractors = {
 		StatsModuleReason
 	>;
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
-	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
+	chunkOrigin: ExtractorsByOption<JsOriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsWarnings>;
+	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
@@ -551,3 +641,63 @@ export const mergeToObject = (
 export function resolveStatsMillisecond(s: binding.JsStatsMillisecond) {
 	return s.secs * 1000 + s.subsecMillis;
 }
+
+export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
+	let filtered = 0;
+	// Can not fit into limit
+	// print only messages
+	if (errors.length + 1 >= max) {
+		return {
+			errors: errors.map(error => {
+				if (typeof error === "string" || !error.details) return error;
+				filtered++;
+				return { ...error, details: "" };
+			}),
+			filtered
+		};
+	}
+	let fullLength = errors.length;
+	let result = errors;
+
+	let i = 0;
+	for (; i < errors.length; i++) {
+		const error = errors[i];
+		if (typeof error !== "string" && error.details) {
+			const splitted = error.details.split("\n");
+			const len = splitted.length;
+			fullLength += len;
+			if (fullLength > max) {
+				result = i > 0 ? errors.slice(0, i) : [];
+				const overLimit = fullLength - max + 1;
+				const error = errors[i++];
+				result.push({
+					...error,
+					details: error.details!.split("\n").slice(0, -overLimit).join("\n"),
+					filteredDetails: overLimit
+				});
+				filtered = errors.length - i;
+				for (; i < errors.length; i++) {
+					const error = errors[i];
+					if (typeof error === "string" || !error.details) result.push(error);
+					result.push({ ...error, details: "" });
+				}
+				break;
+			}
+			if (fullLength === max) {
+				result = errors.slice(0, ++i);
+				filtered = errors.length - i;
+				for (; i < errors.length; i++) {
+					const error = errors[i];
+					if (typeof error === "string" || !error.details) result.push(error);
+					result.push({ ...error, details: "" });
+				}
+				break;
+			}
+		}
+	}
+
+	return {
+		errors: result,
+		filtered
+	};
+};

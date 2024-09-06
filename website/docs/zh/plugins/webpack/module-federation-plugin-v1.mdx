@@ -1,8 +1,6 @@
-import { ApiMeta, Stability } from '@components/ApiMeta';
+import { Stability } from '@components/ApiMeta';
 
 # ModuleFederationPluginV1
-
-<ApiMeta addedVersion={'0.4.5'} stability={Stability.Experimental} />
 
 该插件对应 Module Federation v1.0，即 [webpack 中的 ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/)。
 
@@ -28,4 +26,4 @@ module.exports = {
 };
 ```
 
-ModuleFederationPluginV1 的配置基本与 [ModuleFederationPlugin](https://github.com/plugins/webpack/module-federation-plugin) 相同，但不支持 `implementation` 和 `runtimePlugins` 字段。
+ModuleFederationPluginV1 的配置基本与 [ModuleFederationPlugin](https://github.com/plugins/webpack/module-federation-plugin) 相同，但不支持 `implementation` 、 `runtimePlugins` 、`shareStrategy` 字段。

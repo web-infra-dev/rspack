@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::itoa;
 use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, Span, SyntaxContext};
@@ -134,7 +135,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         resource_data
           .resource_path
           .as_ref()
-          .map(|p| p.to_string_lossy().to_string())
+          .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),
       source.source().to_string(),
@@ -370,6 +371,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 }
 
+// Todo(shulaoda): check if this can be removed
 fn span_to_location(span: Span, source: &str) -> Option<String> {
   let r = ropey::Rope::from_str(source);
   let start = span.real_lo();
@@ -382,12 +384,19 @@ fn span_to_location(span: Span, source: &str) -> Option<String> {
   let end_line = r.char_to_line(end_char_offset);
   let end_column = end_char_offset - r.line_to_char(end_line);
   if start_line == end_line {
-    Some(format!("{}:{start_column}-{end_column}", start_line + 1))
+    Some(format!(
+      "{}:{}-{}",
+      itoa!(start_line + 1),
+      itoa!(start_column),
+      itoa!(end_column)
+    ))
   } else {
     Some(format!(
-      "{}:{start_column}-{}:{end_column}",
-      start_line + 1,
-      end_line + 1
+      "{}:{}-{}:{}",
+      itoa!(start_line + 1),
+      itoa!(start_column),
+      itoa!(end_line + 1),
+      itoa!(end_column)
     ))
   }
 }

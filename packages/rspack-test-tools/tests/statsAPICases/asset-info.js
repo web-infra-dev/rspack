@@ -39,6 +39,7 @@ module.exports = {
 		    "auxiliaryChunks": Array [
 		      "909",
 		    ],
+		    "cached": false,
 		    "chunkIdHints": Array [],
 		    "chunkNames": Array [],
 		    "chunks": Array [],
@@ -53,10 +54,12 @@ module.exports = {
 		      ],
 		      "hotModuleReplacement": false,
 		      "immutable": true,
+		      "isOverSizeLimit": false,
 		      "minimized": false,
 		      "related": Object {},
 		      "sourceFilename": "fixtures/asset/image.png",
 		    },
+		    "isOverSizeLimit": false,
 		    "name": "89a353e9c515885abd8e.png",
 		    "related": Array [],
 		    "size": 14910,
@@ -66,6 +69,7 @@ module.exports = {
 		    "auxiliaryChunkIdHints": Array [],
 		    "auxiliaryChunkNames": Array [],
 		    "auxiliaryChunks": Array [],
+		    "cached": false,
 		    "chunkIdHints": Array [],
 		    "chunkNames": Array [
 		      "main",
@@ -82,6 +86,7 @@ module.exports = {
 		      "fullhash": Array [],
 		      "hotModuleReplacement": false,
 		      "immutable": false,
+		      "isOverSizeLimit": false,
 		      "javascriptModule": false,
 		      "minimized": false,
 		      "related": Object {
@@ -90,9 +95,10 @@ module.exports = {
 		        ],
 		      },
 		    },
+		    "isOverSizeLimit": false,
 		    "name": "main.js",
 		    "related": Array [],
-		    "size": 2425,
+		    "size": 2763,
 		    "type": "asset",
 		  },
 		]

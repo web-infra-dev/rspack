@@ -48,12 +48,13 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		orphanModules: true,
 		runtimeModules: true,
 		// exclude: false,
-		// errorsSpace: Infinity,
-		// warningsSpace: Infinity,
+		excludeModules: false,
+		errorsSpace: Number.POSITIVE_INFINITY,
+		warningsSpace: Number.POSITIVE_INFINITY,
 		modulesSpace: Number.POSITIVE_INFINITY,
-		// chunkModulesSpace: Infinity,
+		chunkModulesSpace: Number.POSITIVE_INFINITY,
 		assetsSpace: Number.POSITIVE_INFINITY,
-		// reasonsSpace: Infinity,
+		reasonsSpace: Number.POSITIVE_INFINITY,
 		children: true
 	},
 	detailed: {
@@ -75,20 +76,20 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		publicPath: true,
 		logging: true,
 		runtimeModules: true,
-		// exclude: false,
-		// errorsSpace: 1000,
-		// warningsSpace: 1000,
+		excludeModules: false,
+		errorsSpace: 1000,
+		warningsSpace: 1000,
 		modulesSpace: 1000,
-		assetsSpace: 1000
-		// reasonsSpace: 1000
+		assetsSpace: 1000,
+		reasonsSpace: 1000
 	},
 	minimal: {
 		all: false,
 		version: true,
 		timings: true,
 		modules: true,
-		// errorsSpace: 0,
-		// warningsSpace: 0,
+		errorsSpace: 0,
+		warningsSpace: 0,
 		modulesSpace: 0,
 		assets: true,
 		assetsSpace: 0,
@@ -102,7 +103,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		all: false,
 		errors: true,
 		errorsCount: true,
-		// errorsSpace: Infinity,
+		errorsSpace: Number.POSITIVE_INFINITY,
 		moduleTrace: true,
 		logging: "error"
 	},
@@ -110,10 +111,10 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
 		all: false,
 		errors: true,
 		errorsCount: true,
-		// errorsSpace: Infinity,
+		errorsSpace: Number.POSITIVE_INFINITY,
 		warnings: true,
 		warningsCount: true,
-		// warningsSpace: Infinity,
+		warningsSpace: Number.POSITIVE_INFINITY,
 		logging: "warn"
 	},
 	summary: {
@@ -218,7 +219,7 @@ const DEFAULTS: StatsDefault = {
 		cached !== undefined ? cached : forToString ? all === true : all !== false,
 	moduleAssets: OFF_FOR_TO_STRING,
 	depth: OFF_FOR_TO_STRING,
-	// cachedAssets: OFF_FOR_TO_STRING,
+	cachedAssets: OFF_FOR_TO_STRING,
 	reasons: OFF_FOR_TO_STRING,
 	reasonsSpace: (o, { forToString }) =>
 		forToString ? 15 : Number.POSITIVE_INFINITY,
@@ -306,8 +307,7 @@ const NORMALIZER = {
 		});
 	},
 	logging: (value: any) => {
-		if (value === true) value = "log";
-		return value;
+		return value === true ? "log" : value;
 	},
 	loggingDebug: (value: any) => {
 		const array = !Array.isArray(value) ? (value ? [value] : []) : value;

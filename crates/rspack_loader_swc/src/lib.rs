@@ -69,8 +69,8 @@ impl SwcLoader {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }
       }
-      swc_options.filename = resource_path.to_string_lossy().to_string();
-      swc_options.source_file_name = Some(resource_path.to_string_lossy().to_string());
+      swc_options.filename = resource_path.as_str().to_string();
+      swc_options.source_file_name = Some(resource_path.as_str().to_string());
 
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
         loader_context.emit_diagnostic(Diagnostic::warn(
@@ -87,30 +87,16 @@ impl SwcLoader {
     };
 
     let source = content.try_into_string()?;
-    let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
-      .map_err(AnyhowError::from)?;
-
-    let rspack_options = &*loader_context.context.options;
-    let swc_options = c.options();
-    let top_level_mark = swc_options
-      .top_level_mark
-      .expect("`top_level_mark` should be initialized");
-    let unresolved_mark = swc_options
-      .unresolved_mark
-      .expect("`unresolved_mark` should be initialized");
+    let c = SwcCompiler::new(
+      resource_path.into_std_path_buf(),
+      source.clone(),
+      swc_options,
+    )
+    .map_err(AnyhowError::from)?;
 
     let built = c
       .parse(None, |_| {
-        transformer::transform(
-          &resource_path,
-          rspack_options,
-          Some(c.comments()),
-          top_level_mark,
-          unresolved_mark,
-          c.cm().clone(),
-          &source,
-          &self.options_with_additional.rspack_experiments,
-        )
+        transformer::transform(&self.options_with_additional.rspack_experiments)
       })
       .map_err(AnyhowError::from)?;
 

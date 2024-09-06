@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, ErrorSpan, GroupOptions,
-  ImportAttributes,
+  AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, GroupOptions, ImportAttributes,
+  RealDependencyLocation,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -107,13 +107,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
     if param.is_string() {
-      let span = ErrorSpan::from(node.span);
       if matches!(mode, DynamicImportMode::Eager) {
         let dep = ImportEagerDependency::new(
-          node.span.real_lo(),
-          node.span.real_hi(),
           param.string().as_str().into(),
-          Some(span),
+          node.span.into(),
           exports,
           attributes,
         );
@@ -121,19 +118,15 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         return Some(true);
       }
       let dep = Box::new(ImportDependency::new(
-        node.span.real_lo(),
-        node.span.real_hi(),
         param.string().as_str().into(),
-        Some(span),
+        node.span.into(),
         exports,
         attributes,
       ));
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
-        Some(DependencyLocation::new(
-          span.start,
-          span.end,
-          Some(parser.source_map.clone()),
+        Some(DependencyLocation::Real(
+          Into::<RealDependencyLocation>::into(node.span).with_source(parser.source_map.clone()),
         )),
         None,
         vec![dep],
@@ -159,9 +152,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser
         .dependencies
         .push(Box::new(ImportContextDependency::new(
-          import_call.span.real_lo(),
-          import_call.span.real_hi(),
-          node.span.real_hi(),
           ContextOptions {
             mode: mode.into(),
             recursive: true,
@@ -188,7 +178,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             referenced_exports: exports,
             attributes,
           },
-          Some(node.span.into()),
+          node.span().into(),
+          (import_call.span.real_lo(), import_call.span.real_hi()),
           parser.in_try,
         )));
       Some(true)

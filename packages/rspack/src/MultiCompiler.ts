@@ -16,7 +16,7 @@ import MultiWatching from "./MultiWatching";
 import type { WatchOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import ArrayQueue from "./util/ArrayQueue";
-import type { WatchFileSystem } from "./util/fs";
+import type { InputFileSystem, WatchFileSystem } from "./util/fs";
 
 interface Node<T> {
 	compiler: Compiler;
@@ -66,24 +66,33 @@ export class MultiCompiler {
 		compilers: Compiler[] | Record<string, Compiler>,
 		options?: MultiCompilerOptions
 	) {
+		let normalizedCompilers;
 		if (!Array.isArray(compilers)) {
-			compilers = Object.entries(compilers).map(([name, compiler]) => {
-				compiler.name = name;
-				return compiler;
-			});
+			normalizedCompilers = Object.entries(compilers).map(
+				([name, compiler]) => {
+					compiler.name = name;
+					return compiler;
+				}
+			);
+		} else {
+			normalizedCompilers = compilers;
 		}
 
 		this.hooks = {
 			done: new liteTapable.SyncHook(["stats"]),
-			invalid: new liteTapable.MultiHook(compilers.map(c => c.hooks.invalid)),
-			run: new liteTapable.MultiHook(compilers.map(c => c.hooks.run)),
+			invalid: new liteTapable.MultiHook(
+				normalizedCompilers.map(c => c.hooks.invalid)
+			),
+			run: new liteTapable.MultiHook(normalizedCompilers.map(c => c.hooks.run)),
 			watchClose: new liteTapable.SyncHook([]),
-			watchRun: new liteTapable.MultiHook(compilers.map(c => c.hooks.watchRun)),
+			watchRun: new liteTapable.MultiHook(
+				normalizedCompilers.map(c => c.hooks.watchRun)
+			),
 			infrastructureLog: new liteTapable.MultiHook(
-				compilers.map(c => c.hooks.infrastructureLog)
+				normalizedCompilers.map(c => c.hooks.infrastructureLog)
 			)
 		};
-		this.compilers = compilers;
+		this.compilers = normalizedCompilers;
 		this._options = {
 			parallelism: options?.parallelism || Number.POSITIVE_INFINITY
 		};
@@ -153,7 +162,7 @@ export class MultiCompiler {
 		throw new Error("Cannot read outputFileSystem of a MultiCompiler");
 	}
 
-	set inputFileSystem(value) {
+	set inputFileSystem(value: InputFileSystem) {
 		for (const compiler of this.compilers) {
 			compiler.inputFileSystem = value;
 		}
@@ -531,9 +540,7 @@ export class MultiCompiler {
 
 	purgeInputFileSystem() {
 		for (const compiler of this.compilers) {
-			if (compiler.inputFileSystem?.purge) {
-				compiler.inputFileSystem.purge();
-			}
+			compiler.inputFileSystem?.purge?.();
 		}
 	}
 

@@ -1,18 +1,12 @@
 use std::sync::LazyLock;
-use std::{
-  borrow::Cow,
-  fmt::Debug,
-  hash::Hash,
-  path::{Path, PathBuf},
-  str::FromStr,
-  string::ParseError,
-};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
 
 use derivative::Derivative;
 use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -28,7 +22,7 @@ pub enum PathInfo {
 
 #[derive(Debug)]
 pub struct OutputOptions {
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
   pub pathinfo: PathInfo,
   pub clean: bool,
   pub public_path: PublicPath,
@@ -322,15 +316,25 @@ impl PublicPath {
   }
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
-    let public_path = match Path::new(filename).parent() {
-      None => "".to_string(),
+    let public_path = match Utf8Path::new(filename).parent() {
+      None => String::new(),
       Some(dirname) => compilation
         .options
         .output
         .path
-        .relative(compilation.options.output.path.join(dirname).absolutize())
-        .to_string_lossy()
-        .to_string(),
+        .as_std_path()
+        .relative(
+          compilation
+            .options
+            .output
+            .path
+            .join(dirname)
+            .into_std_path_buf()
+            .absolutize(),
+        )
+        .assert_utf8()
+        .as_str()
+        .to_owned(),
     };
     Self::ensure_ends_with_slash(public_path)
   }

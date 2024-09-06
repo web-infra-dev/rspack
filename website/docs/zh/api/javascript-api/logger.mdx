@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import LoggerType from '../../types/logger.mdx';
 import Columns from '@components/Columns';
@@ -36,7 +36,7 @@ Rspack logger 可以在 [loaders](/guide/features/loader) 和 [plugins](/guide/f
 插件中有两种方式来获取 Logger：
 
 1. [compilation.getLogger](/api/javascript-api/compilation#getlogger): 日志内容会被存储到 Stats 中，适合输出与一次 Compilation 关联的日志。
-2. `compiler.getInfrastructureLogger`: 日志内容不会被存储，适合输出不与 Compilation 关联的全局信息。
+2. [compiler.getInfrastructureLogger](/api/javascript-api/compiler#getinfrastructurelogger): 日志内容不会被存储，适合输出不与 Compilation 关联的全局信息。
 
 可以在插件中通过如下代码获得 Logger：
 

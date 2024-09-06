@@ -5,7 +5,11 @@ module.exports = {
 		"b": "./b.cjs",
 		"c": "./c.js",
 		"d": "./d.mjs",
-		"e": "./e/index.js"
+		"e": "./e/index.js",
+		"f": "./f/index.js"
+	},
+	externals: {
+		path: 'node-commonjs path',
 	},
 	output: {
 		filename: `[name].js`,
@@ -34,6 +38,7 @@ module.exports = {
 					expect(assets['c.js']._value).toMatchSnapshot("unambiguous should bail out");
 					expect(assets['d.js']._value).toMatchSnapshot(".mjs should concat");
 					expect(assets['e.js']._value).toMatchSnapshot(".cjs should bail out when bundling");
+					expect(assets['f.js']._value).toMatchSnapshot("external module should bail out when bundling");
 				});
 			};
 			this.hooks.compilation.tap("testcase", handler);

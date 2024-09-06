@@ -3,7 +3,6 @@ use std::{any::Any, fmt::Debug};
 use dyn_clone::{clone_trait_object, DynClone};
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
-use rspack_error::ErrorLocation;
 use rspack_util::ext::AsAny;
 use swc_core::ecma::atoms::Atom;
 
@@ -18,6 +17,13 @@ use crate::ImportAttributes;
 use crate::ModuleLayer;
 use crate::RuntimeSpec;
 use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, UsedByExports};
+
+#[derive(Debug, Clone, Copy)]
+pub enum AffectType {
+  True,
+  False,
+  Transitive,
+}
 
 pub trait Dependency:
   AsDependencyTemplate
@@ -67,7 +73,7 @@ pub trait Dependency:
     ConnectionState::Bool(true)
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
+  fn loc(&self) -> Option<String> {
     None
   }
 
@@ -100,6 +106,8 @@ pub trait Dependency:
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()
   }
+
+  fn could_affect_referencing_module(&self) -> AffectType;
 }
 
 impl dyn Dependency + '_ {

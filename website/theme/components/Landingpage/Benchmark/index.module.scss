@@ -1,0 +1,41 @@
+.bottomLink {
+  display: block;
+  margin-top: 16px;
+  font-size: 16px;
+  color: var(--landingpage-title-color);
+
+  &:hover {
+    color: var(--rp-c-link);
+  }
+}
+
+.button {
+  display: flex;
+  padding: var(--Button-horizontal-padding, 12px) 24px;
+
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+
+  // style
+  border-radius: 25px;
+  border: 2px solid var(--orange-gradient, #ff8b00);
+  // text
+  color: var(--landingpage-title-color, #0b0c0e);
+  text-align: center;
+
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 24px */
+  text-transform: capitalize;
+
+  &:hover {
+    transition: all 0.2s;
+    opacity: 0.8;
+  }
+
+  &:active {
+    opacity: 0.6;
+  }
+}

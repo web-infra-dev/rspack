@@ -1,6 +1,7 @@
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
+  DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RealDependencyLocation,
+  RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -15,8 +16,7 @@ pub struct WasmImportDependency {
   // only_direct_import: bool,
   /// the WASM AST node
   pub desc: WasmNode,
-
-  span: Option<ErrorSpan>,
+  span: Option<RealDependencyLocation>,
 }
 
 impl WasmImportDependency {
@@ -48,16 +48,16 @@ impl Dependency for WasmImportDependency {
     &DependencyType::WasmImport
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
-  }
-
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 

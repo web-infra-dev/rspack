@@ -204,7 +204,6 @@ npm/**/*.node
 
 # Precompiled config schema
 packages/rspack/src/config/schema.check.js
-justfile
 
 ## Angular Incremental Build Cache
 **/.angular/
@@ -221,6 +220,8 @@ tests/webpack-test/**/dev-defaults.webpack.lock
 
 tests/plugin-test/css-extract/js
 !tests/plugin-test/css-extract/**/node_modules
+
+tests/plugin-test/html-plugin/js
 
 /webpack-examples/**/dist
 

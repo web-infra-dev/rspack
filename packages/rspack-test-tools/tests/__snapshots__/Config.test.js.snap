@@ -2,12 +2,17 @@
 
 exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
 "body {
-  & .-ca56f23580d7bbb484-used {
+  & ._-ca56f23580d7bbb484-used {
     color: #00f;
   }
 }
 
-head{--webpack--909:used:-ca56f23580d7bĒ484-ĀĂ/&_368;}"
+head{--webpack--909:used:_-ca56f23580d7bē484-ĀĂ/&_368;}"
+`;
+
+exports[`config config/builtin-lightningcss-loader/minify exported tests css content minifyed 1`] = `
+".foo{-webkit-transition:all .5s;transition:all .5s}.bar{padding:0}
+head{--webpack--909:&_487;}"
 `;
 
 exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
@@ -256,7 +261,7 @@ exports[`config config/css/export-selector exported tests should have correct cs
 
 /* #endregion \\"./style.module.css?imported\\" */
 
-head{--webpack--imported_js:foo:foo/bar:b a r/local:local/dashName:dashName/&\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
+head{--webpack--imported_js:foo:foo/bar:b\\\\ a\\\\ r/local:local/dashName:dashName/&\\\\.\\\\/style\\\\.module\\\\.css\\\\?imported;}"
 `;
 
 exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `"5d8d67b36a3d70a5cea9.png"`;
@@ -455,6 +460,99 @@ exports[`config config/library/modern-module-force-concaten step  should pass: .
 "
 ;// CONCATENATED MODULE: ./d.mjs
 const d = 'd'
+"
+`;
+
+exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
+"import { createRequire as __WEBPACK_EXTERNAL_createRequire } from \\"module\\";
+var __webpack_modules__ = ({
+\\"17\\": (function (module) {
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)(\\"path\\");
+
+}),
+\\"441\\": (function (module, __unused_webpack_exports, __webpack_require__) {
+const path = __webpack_require__(17)
+
+module.exports = path.sep
+
+
+}),
+
+});
+/************************************************************************/
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+/************************************************************************/
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-harmony modules
+__webpack_require__.n = function (module) {
+	var getter = module && module.__esModule ?
+		function () { return module['default']; } :
+		function () { return module; };
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+
+
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
+/************************************************************************/
+
+// EXTERNAL MODULE: ./f/bar.cjs
+var bar = __webpack_require__(\\"441\\");
+var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
+;// CONCATENATED MODULE: ./f/foo.js
+const foo = 'foo'
+
+;// CONCATENATED MODULE: ./f/index.js
+
+
+
+const value = foo + (bar_default())
+
+
+
+export { value };
 "
 `;
 

@@ -1,6 +1,3 @@
-const rspack = require('@rspack/core')
-const browserslist = require('browserslist')
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
@@ -18,7 +15,7 @@ module.exports = {
 						/** @type {import("@rspack/core").LightningcssLoaderOptions} */
 						options: {
 							unusedSymbols: ['unused'],
-							targets: browserslist('> 0.2%')
+							targets: '> 0.2%'
 						}
 					}
 				],

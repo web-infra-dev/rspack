@@ -303,3 +303,11 @@ impl CodeGenerationResults {
     code_generation_result.hash.as_ref()
   }
 }
+
+#[derive(Debug)]
+pub struct CodeGenerationJob {
+  pub module: ModuleIdentifier,
+  pub hash: RspackHashDigest,
+  pub runtime: RuntimeSpec,
+  pub runtimes: Vec<RuntimeSpec>,
+}

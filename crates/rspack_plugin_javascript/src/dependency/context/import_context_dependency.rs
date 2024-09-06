@@ -1,4 +1,6 @@
-use rspack_core::{AsModuleDependency, ContextDependency};
+use rspack_core::{
+  AsModuleDependency, Compilation, ContextDependency, RealDependencyLocation, RuntimeSpec,
+};
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
@@ -9,32 +11,26 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
-  callee_start: u32,
-  callee_end: u32,
-  args_end: u32,
   id: DependencyId,
   options: ContextOptions,
-  span: Option<ErrorSpan>,
+  range: RealDependencyLocation,
+  range_callee: (u32, u32),
   resource_identifier: String,
   optional: bool,
 }
 
 impl ImportContextDependency {
   pub fn new(
-    callee_start: u32,
-    callee_end: u32,
-    args_end: u32,
     options: ContextOptions,
-    span: Option<ErrorSpan>,
+    range: RealDependencyLocation,
+    range_callee: (u32, u32),
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
-      callee_start,
-      callee_end,
-      args_end,
       options,
-      span,
+      range,
+      range_callee,
       id: DependencyId::new(),
       resource_identifier,
       optional,
@@ -56,7 +52,11 @@ impl Dependency for ImportContextDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -100,14 +100,22 @@ impl DependencyTemplate for ImportContextDependency {
       self,
       source,
       code_generatable_context,
-      self.callee_start,
-      self.callee_end,
-      self.args_end,
+      self.range_callee.0,
+      self.range_callee.1,
+      self.range.end,
     );
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

@@ -1,6 +1,6 @@
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, RuntimeGlobals, RuntimeRequirementsDependency,
-  SpanExt,
+  BuildMetaDefaultObject, BuildMetaExportsType, RealDependencyLocation, RuntimeGlobals,
+  RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
@@ -70,11 +70,7 @@ fn is_module_exports_member_expr_start<E: ExprLike>(expr: &E) -> bool {
 }
 
 fn get_value_of_property_description(expr_or_spread: &ExprOrSpread) -> Option<&Expr> {
-  if let ExprOrSpread {
-    expr: box Expr::Object(ObjectLit { props, .. }),
-    ..
-  } = expr_or_spread
-  {
+  if let Expr::Object(ObjectLit { props, .. }) = expr_or_spread.expr.unwrap_parens() {
     for prop in props {
       if let PropOrSpread::Prop(prop) = prop
         && let Prop::KeyValue(key_value_prop) = &**prop
@@ -395,13 +391,13 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // exports.aaa = require('xx');
           // module.exports.aaa = require('xx');
           // this.aaa = require('xx');
+          let range: RealDependencyLocation = assign_expr.span.into();
           parser
             .dependencies
             .push(Box::new(CommonJsExportRequireDependency::new(
               param.string().to_string(),
               parser.in_try,
-              Some(assign_expr.span.into()),
-              (assign_expr.span().real_lo(), assign_expr.span().real_hi()),
+              range,
               base,
               remaining,
               !parser.is_statement_level_expression(assign_expr.span()),

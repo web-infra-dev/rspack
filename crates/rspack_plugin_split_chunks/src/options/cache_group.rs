@@ -36,10 +36,11 @@ pub struct CacheGroup {
   /// number of referenced chunks
   pub min_chunks: u32,
   pub id_hint: String,
-  pub max_initial_requests: u32,
-  pub max_async_requests: u32,
+  pub max_initial_requests: f64, // f64 for compat js Infinity
+  pub max_async_requests: f64,   // f64 for compat js Infinity
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
   pub filename: Option<Filename>,
   pub automatic_name_delimiter: String,
+  pub used_exports: bool,
 }

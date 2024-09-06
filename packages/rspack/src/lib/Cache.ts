@@ -32,12 +32,13 @@ const needCalls = (
 	times: number,
 	callback: () => void
 ): ((error: Error | null) => void) => {
+	let leftTimes = times;
 	return err => {
-		if (--times === 0) {
+		if (--leftTimes === 0) {
 			return callback();
 		}
-		if (err && times > 0) {
-			times = 0;
+		if (err && leftTimes > 0) {
+			leftTimes = 0;
 			return callback();
 		}
 	};
@@ -78,11 +79,12 @@ export class Cache {
 	get<T>(identifier: string, etag: Etag | null, callback: CallbackCache<T>) {
 		const gotHandlers: GotHandler<any>[] = [];
 
-		this.hooks.get.callAsync(identifier, etag, gotHandlers, (err, result) => {
+		this.hooks.get.callAsync(identifier, etag, gotHandlers, (err, res) => {
 			if (err) {
 				callback(makeWebpackError(err, "Cache.hooks.get"));
 				return;
 			}
+			let result = res;
 			if (result === null) {
 				result = undefined;
 			}

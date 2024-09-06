@@ -147,7 +147,9 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.16
       - name: Check licenses
         if: steps.filter.outputs.src == 'true'
         run: cargo deny check license
@@ -286,7 +288,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.8.0
+      - uses: cargo-bins/cargo-binstall@v1.10.2
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 

@@ -23,9 +23,9 @@ pub struct PseudoClasses {
   pub focus_within: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[derive(Debug, Default)]
 pub struct Config {
+  pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
@@ -34,4 +34,40 @@ pub struct Config {
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Option<Vec<String>>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RawConfig {
+  pub minify: Option<bool>,
+  pub error_recovery: Option<bool>,
+  pub targets: Option<Vec<String>>,
+  pub include: Option<u32>,
+  pub exclude: Option<u32>,
+  pub draft: Option<Draft>,
+  pub non_standard: Option<NonStandard>,
+  pub pseudo_classes: Option<PseudoClasses>,
+  pub unused_symbols: Option<Vec<String>>,
+}
+
+impl TryFrom<RawConfig> for Config {
+  type Error = rspack_error::miette::Report;
+  fn try_from(value: RawConfig) -> Result<Self, Self::Error> {
+    Ok(Self {
+      minify: value.minify,
+      error_recovery: value.error_recovery,
+      targets: value
+        .targets
+        .map(lightningcss::targets::Browsers::from_browserslist)
+        .transpose()
+        .map_err(|err| rspack_error::error!("Failed to parse browserslist: {}", err))?
+        .flatten(),
+      include: value.include,
+      exclude: value.exclude,
+      draft: value.draft,
+      non_standard: value.non_standard,
+      pseudo_classes: value.pseudo_classes,
+      unused_symbols: value.unused_symbols,
+    })
+  }
 }

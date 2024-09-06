@@ -10,7 +10,8 @@ const config = {
 		"ts-jest": {
 			tsconfig: "<rootDir>/tests/tsconfig.json"
 		}
-	}
+	},
+	prettierPath: require.resolve("prettier-2")
 };
 
 module.exports = config;

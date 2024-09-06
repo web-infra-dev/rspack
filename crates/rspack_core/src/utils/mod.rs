@@ -16,6 +16,7 @@ mod concatenated_module_visitor;
 mod concatenation_scope;
 mod extract_url_and_global;
 mod fast_actions;
+mod file_counter;
 mod find_graph_roots;
 mod hash;
 mod identifier;
@@ -35,6 +36,7 @@ pub use concatenation_scope::*;
 pub use self::comment::*;
 pub use self::extract_url_and_global::*;
 pub use self::fast_actions::*;
+pub use self::file_counter::FileCounter;
 pub use self::find_graph_roots::*;
 pub use self::hash::*;
 pub use self::identifier::*;
@@ -77,7 +79,7 @@ pub fn parse_to_url(url: &str) -> url::Url {
 /// ```
 pub fn join_string_component(mut components: Vec<String>) -> String {
   match components.len() {
-    0 => "".to_string(),
+    0 => String::new(),
     1 => std::mem::take(&mut components[0]),
     2 => {
       format!("{} and {}", components[0], components[1])

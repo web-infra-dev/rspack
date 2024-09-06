@@ -1,7 +1,6 @@
 use std::collections::hash_map::Entry;
 
 use indexmap::IndexMap;
-use itertools::Itertools;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
@@ -11,18 +10,17 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::queue::Queue;
 use swc_core::ecma::atoms::Atom;
 
-use crate::utils::queue::Queue;
-
-struct FlagDependencyExportsProxy<'a> {
+struct FlagDependencyExportsState<'a> {
   mg: &'a mut ModuleGraph<'a>,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: IdentifierMap<IdentifierSet>,
 }
 
-impl<'a> FlagDependencyExportsProxy<'a> {
+impl<'a> FlagDependencyExportsState<'a> {
   pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
     Self {
       mg,
@@ -32,11 +30,10 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
-  pub fn apply(&mut self) {
+  pub fn apply(&mut self, modules: IdentifierSet) {
     let mut q = Queue::new();
 
-    let module_ids = self.mg.modules().keys().cloned().collect_vec();
-    for module_id in module_ids {
+    for module_id in modules {
       let mgm = self
         .mg
         .module_graph_module_by_identifier(&module_id)
@@ -77,7 +74,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       exports_info.set_has_provide_info(self.mg);
       q.enqueue(module_id);
-      // TODO: mem cache
     }
 
     while let Some(module_id) = q.dequeue() {
@@ -96,6 +92,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     }
   }
 
+  #[tracing::instrument(skip_all, fields(module = ?self.current_module_id))]
   pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
@@ -128,18 +125,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         dep.get_exports(self.mg),
         exports_specs_from_dependencies,
       );
-    }
-    if let Some(deps) = block.get_presentational_dependencies_for_block() {
-      for dep in deps {
-        let Some(dep) = dep.as_dependency() else {
-          continue;
-        };
-        self.process_dependency(
-          *dep.id(),
-          dep.get_exports(self.mg),
-          exports_specs_from_dependencies,
-        );
-      }
     }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
@@ -368,7 +353,22 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  FlagDependencyExportsProxy::new(&mut compilation.get_module_graph_mut()).apply();
+  let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
+    compilation
+      .unaffected_modules_cache
+      .get_affected_modules_with_module_graph()
+      .lock()
+      .expect("should lock")
+      .clone()
+  } else {
+    compilation
+      .get_module_graph()
+      .modules()
+      .keys()
+      .copied()
+      .collect()
+  };
+  FlagDependencyExportsState::new(&mut compilation.get_module_graph_mut()).apply(modules);
   Ok(())
 }
 

@@ -1,13 +1,16 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.js.org/configuration/entry-context/#context" />
 
 # Context
 
-The `context` configuration is used to set the base directory for Rspack builds.
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'process.cwd()' }]}
+/>
 
-- **Type:** `string`
-- **Default:** `process.cwd()`
+The `context` configuration is used to set the base directory for Rspack builds.
 
 `context` is an absolute path that is used as the base path for relative paths in Rspack configurations such as [entry](config/entry) and [output](config/output).
 

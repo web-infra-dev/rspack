@@ -1,6 +1,6 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 
-<WebpackLicense from="https://webpack.js.org/api/loaders/#inline-matchresource" />
+<WebpackLicense from="https://webpack.docschina.org/api/loaders/#inline-matchresource" />
 
 # 内联 matchResource
 
@@ -11,14 +11,14 @@ import WebpackLicense from '@components/webpack-license';
 
 ```js title="file.js"
 /*STYLE: body { background: red; } */
-console.log('yep')；
+console.log('yep');
 ```
 
 Loader 可以将该文件转化为以下文件，并使用 `matchResource` 来应用用户指定的 CSS 处理规则：
 
 ```js title="file.js (transformed by loader)"
-import './file.js.css!=! extract-style-loader/getStyles!./file.js'；
-console.log('yep')；
+import './file.js.css!=! extract-style-loader/getStyles!./file.js';
+console.log('yep');
 ```
 
 这会将 `extract-style-loader/getStyles!./file.js` 作为一个依赖添加到编译流程中，并将结果作为 `file.js.css`。

@@ -37,12 +37,11 @@ async fn process_resource<Context: Send>(
   let resource_data = &loader_context.resource_data;
   if loader_context.content.is_none() {
     if let Some(resource_path) = resource_data.resource_path.as_deref()
-      && !resource_path.to_string_lossy().is_empty()
+      && !resource_path.as_str().is_empty()
     {
-      let result = tokio::fs::read(resource_path).await.map_err(|e| {
-        let r = resource_path.to_string_lossy().to_string();
-        error!("{e}, failed to read {r}")
-      })?;
+      let result = tokio::fs::read(resource_path)
+        .await
+        .map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
       let resource = &resource_data.resource;
@@ -69,7 +68,7 @@ async fn create_loader_context<Context: 'static>(
   if let Some(resource_path) = &resource_data.resource_path
     && resource_path.is_absolute()
   {
-    file_dependencies.insert(resource_path.clone());
+    file_dependencies.insert(resource_path.clone().into_std_path_buf());
   }
 
   let mut loader_context = LoaderContext {
@@ -107,8 +106,8 @@ pub async fn run_loaders<Context: 'static + Send>(
   additional_data: AdditionalData,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
-    .iter()
-    .map(|i| i.clone().into())
+    .into_iter()
+    .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
 
   let mut cx =

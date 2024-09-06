@@ -171,12 +171,13 @@ export class StatsFactory {
 		});
 
 		const hooks = this.hooks;
-		this._caches = Object.keys(hooks).reduce((prev, curr) => {
-			return {
-				...prev,
-				[curr]: new Map()
-			};
-		}, {} as Cache);
+		const caches = {} as Cache;
+
+		for (const key of Object.keys(hooks)) {
+			caches[key as keyof Cache] = new Map();
+		}
+
+		this._caches = caches;
 		this._inCreate = false;
 	}
 
@@ -216,10 +217,9 @@ export class StatsFactory {
 		data: any,
 		fn: CallFn
 	) {
-		for (const hook of this._getAllLevelHooks(hookMap, cache, type)) {
-			data = fn(hook, data);
-		}
-		return data;
+		return this._getAllLevelHooks(hookMap, cache, type).reduce((data, hook) => {
+			return fn(hook, data);
+		}, data);
 	}
 
 	_forEachLevelFilter(

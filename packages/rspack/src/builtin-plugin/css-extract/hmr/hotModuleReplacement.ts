@@ -50,19 +50,16 @@ function getCurrentScriptUrl(moduleId: string) {
 		srcByModuleId[moduleId] = src;
 	}
 
-	return (fileMap: string): Option<Array<string>> => {
+	return (fileMap: string): Option<Array<string>> | null => {
 		if (!src) {
 			return null;
 		}
 
-		const splitResult = src.split(/([^\\/]+)\.js$/);
-		const filename = splitResult?.[1];
+		const splitResult = src.match(/([^\\/]+)\.js$/);
+		// biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
+		const filename = splitResult && splitResult[1];
 
-		if (!filename) {
-			return [src.replace(".js", ".css")];
-		}
-
-		if (!fileMap) {
+		if (!filename || !fileMap) {
 			return [src.replace(".js", ".css")];
 		}
 
@@ -77,15 +74,18 @@ function getCurrentScriptUrl(moduleId: string) {
 }
 
 function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
+	let normalizedUrl;
 	if (!url) {
 		if (!el.href) {
 			return;
 		}
 
-		url = el.href.split("?")[0];
+		normalizedUrl = el.href.split("?")[0];
+	} else {
+		normalizedUrl = url;
 	}
 
-	if (!isUrlRequest(url)) {
+	if (!isUrlRequest(normalizedUrl)) {
 		return;
 	}
 
@@ -95,7 +95,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		return;
 	}
 
-	if (!url || !(url.indexOf(".css") > -1)) {
+	if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
 		return;
 	}
 
@@ -111,7 +111,9 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		}
 
 		newEl.isLoaded = true;
-		el.parentNode?.removeChild(el);
+		if (el.parentNode) {
+			el.parentNode.removeChild(el);
+		}
 	});
 
 	newEl.addEventListener("error", () => {
@@ -120,25 +122,33 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		}
 
 		newEl.isLoaded = true;
-		el.parentNode?.removeChild(el);
+		if (el.parentNode) {
+			el.parentNode.removeChild(el);
+		}
 	});
 
-	newEl.href = `${url}?${Date.now()}`;
+	newEl.href = `${normalizedUrl}?${Date.now()}`;
+
+	const parent = el.parentNode;
+
+	if (!parent) {
+		return;
+	}
 
 	if (el.nextSibling) {
-		el.parentNode?.insertBefore(newEl, el.nextSibling);
+		parent.insertBefore(newEl, el.nextSibling);
 	} else {
-		el.parentNode?.appendChild(newEl);
+		parent.appendChild(newEl);
 	}
 }
 
 function getReloadUrl(href: string, src: Array<string>): string {
 	let ret = "";
 
-	href = normalizeUrl(href);
+	const normalizedHref = normalizeUrl(href);
 
 	src.some(url => {
-		if (href.indexOf(src as unknown as string) > -1) {
+		if (normalizedHref.indexOf(src as unknown as string) > -1) {
 			ret = url;
 		}
 	});
@@ -224,7 +234,8 @@ function cssReload(moduleId: string, options: Record<string, any>) {
 		}
 
 		if (reloaded) {
-			console.log("[HMR] css reload %s", src?.join(" "));
+			// biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
+			console.log("[HMR] css reload %s", src && src.join(" "));
 		} else {
 			console.log("[HMR] Reload all css");
 

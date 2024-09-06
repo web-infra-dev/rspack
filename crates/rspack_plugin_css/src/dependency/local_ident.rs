@@ -1,8 +1,11 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec,
-  ExportsSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
+  ExportsOfExportsSpec, ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::ext::DynHash;
+
+use crate::utils::escape_css;
 
 #[derive(Debug, Clone)]
 pub struct CssLocalIdentDependency {
@@ -56,6 +59,10 @@ impl Dependency for CssLocalIdentDependency {
       ..Default::default()
     })
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl DependencyTemplate for CssLocalIdentDependency {
@@ -64,11 +71,25 @@ impl DependencyTemplate for CssLocalIdentDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(self.start, self.end, &self.local_ident, None);
+    source.replace(
+      self.start,
+      self.end,
+      &escape_css(&self.local_ident, false),
+      None,
+    );
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.local_ident.dyn_hash(hasher);
   }
 }
 

@@ -18,15 +18,19 @@ type CodeValue = any;
 
 class EnvironmentPlugin {
 	keys: string[];
-	defaultValues: Record<string, string>;
+	defaultValues: Record<string, string | undefined | null>;
 
-	constructor(...keys: string[] | [Record<string, string> | string]) {
+	constructor(
+		...keys:
+			| string[]
+			| [Record<string, string | undefined | null> | string | string[]]
+	) {
 		if (keys.length === 1 && Array.isArray(keys[0])) {
 			this.keys = keys[0];
 			this.defaultValues = {};
 		} else if (keys.length === 1 && keys[0] && typeof keys[0] === "object") {
 			this.keys = Object.keys(keys[0]);
-			this.defaultValues = keys[0];
+			this.defaultValues = keys[0] as Record<string, string | undefined | null>;
 		} else {
 			this.keys = keys as string[];
 			this.defaultValues = {};
@@ -49,7 +53,7 @@ class EnvironmentPlugin {
 			if (value === undefined) {
 				compiler.hooks.thisCompilation.tap("EnvironmentPlugin", compilation => {
 					const error = new WebpackError(
-						`EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://webpack.js.org/plugins/environment-plugin for example.`
+						`EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://rspack.dev/plugins/webpack/environment-plugin for example.`
 					);
 
 					error.name = "EnvVariableNotDefinedError";

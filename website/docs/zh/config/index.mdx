@@ -80,6 +80,14 @@ export = config;
 }
 ```
 
+如果你使用的 Node.js 版本支持 [--experimental-transform-types](https://nodejs.org/api/cli.html#--experimental-transform-types) 功能，那么可以使用 Node.js 内置的 TS 解析功能,而不需要安装 `ts-node`
+
+```json title="package.json"
+{
+  "build": "NODE_OPTIONS=--experimental-transform-types rspack build"
+}
+```
+
 注意，如果 JS 文件不存在，Rspack 将首先搜索 JavaScript，然后才是 TypeScript。
 
 ## 指定配置文件

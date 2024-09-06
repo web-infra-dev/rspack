@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
 # Module
 
@@ -134,35 +138,48 @@ module.exports = {
 
 #### module.parser.javascript.dynamicImportMode
 
-- **类型：** `'lazy' | 'eager'`
-- **默认值：** `'lazy'`
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
 
-指定动态导入的全局模式。
+指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
 
 #### module.parser.javascript.dynamicImportPrefetch
 
-<ApiMeta addedVersion="0.4.5" />
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **类型：** `boolean | number`
-- **默认值：** `false`
-
-指定动态导入的全局 prefetch。
+指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
 
 #### module.parser.javascript.dynamicImportPreload
 
-<ApiMeta addedVersion="0.4.5" />
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-指定动态导入的全局 preload。
+指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
 
-- **类型：** `boolean | number`
-- **默认值：** `false`
+#### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
 
 #### module.parser.javascript.url
 
-<ApiMeta addedVersion="0.4.4" />
-
-- **类型：** `true | false | 'relative'`
-- **默认值：** `true`
+<PropertyType
+  type="true | false | 'relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 启用 `new URL()` 语法解析。
 
@@ -178,28 +195,36 @@ module.exports = {
 
 #### module.parser.javascript.exprContextCritical
 
-<ApiMeta addedVersion="0.6.3" />
-
-- **类型：** `boolean | undefined`
-- **默认值：** `true`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 启用完全动态依赖（`import(variable)`）的警告。
 
 #### module.parser.javascript.wrappedContextCritical
 
-<ApiMeta addedVersion="0.6.3" />
-
-- **类型：** `boolean | undefined`
-- **默认值：** `false`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
 
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否要解析替换 `import.meta`。
+
 #### module.parser.javascript.exportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **类型：** `"error" | "warn" | "auto" | false`
-- **默认值：** `"auto"`
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
 
 当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
 
@@ -210,26 +235,13 @@ module.exports = {
 
 #### module.parser.javascript.importExportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **类型：** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 当使用了不存在的导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
 
-#### module.parser.javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-是否要解析替换 `import.meta`。
-
 #### module.parser.javascript.reexportExportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **类型：** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
 
@@ -237,7 +249,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-- **类型：** `string[] | boolean`
+<PropertyType type="string[] | boolean" />
 
 为 Worker 解析提供自定义的语法，常用于支持 Worklet：
 
@@ -266,7 +278,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
-- **类型：** `'strict' | 'non-strict'`
+<PropertyType type="'strict' | 'non-strict'" />
 
 将模块覆盖为严格模式或非严格模式。
 
@@ -274,19 +286,13 @@ module.exports = {
 
 ### module.parser["javascript/auto"]
 
-<ApiMeta addedVersion="0.6.3" />
-
 `javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
 
 ### module.parser["javascript/dynamic"]
 
-<ApiMeta addedVersion="0.6.3" />
-
 `javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
 
 ### module.parser["javascript/esm"]
-
-<ApiMeta addedVersion="0.6.3" />
 
 `javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
 
@@ -299,8 +305,6 @@ module.exports = {
 :::
 
 #### module.parser["css/auto"].namedExports
-
-<ApiMeta addedVersion="0.6.0" />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -339,8 +343,6 @@ import classes, { class1, class2 } from './index.module.css';
 
 #### module.parser.css.namedExports
 
-<ApiMeta addedVersion="0.6.0" />
-
 和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
 
 ### module.parser["css/module"]
@@ -352,8 +354,6 @@ import classes, { class1, class2 } from './index.module.css';
 :::
 
 #### module.parser["css/module"].namedExports
-
-<ApiMeta addedVersion="0.6.0" />
 
 和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
 
@@ -473,7 +473,7 @@ dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类
 
 #### module.generator.asset.filename
 
-- **类型：** `string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
 - **支持的 Template string：** 参考 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
@@ -585,16 +585,12 @@ module.exports = {
 
 #### module.generator["css/auto"].exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
-
 - **类型：** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **默认值：** `'as-is'`
 
 自定义 CSS 导出名称如何导出到 JavaScript 模块，例如保留原样、转换为驼峰命名等等。
 
 #### module.generator["css/auto"].exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 - **类型：** `boolean`
 - **默认值：** `true` for node environments, `false` for web environments.
@@ -605,16 +601,12 @@ module.exports = {
 
 #### module.generator["css/auto"].localIdentName
 
-<ApiMeta addedVersion="0.6.0" />
-
 - **类型：** `string`
 - **默认值：** `[uniqueName]-[id]-[local]`
 
 自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
 #### module.generator["css/auto"].esModule
-
-<ApiMeta addedVersion="0.6.4" />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -658,24 +650,14 @@ function Button() {
 `css` 模块的生成器选项。
 
 :::warning
-只有在 `experiments.css = true` 时该配置才会生效
+只有在 `experiments.css = true` 时该配置才会生效。
 :::
 
-#### module.generator.css.exportsConvention
-
-<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
-
-和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
-
 #### module.generator.css.exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
 
 #### module.generator.css.esModule
-
-<ApiMeta addedVersion="0.6.4" />
 
 和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
 
@@ -689,25 +671,17 @@ function Button() {
 
 #### module.generator["css/module"].exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
-
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
 
 #### module.generator["css/module"].exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
 
 #### module.generator["css/module"].localIdentName
 
-<ApiMeta addedVersion="0.6.0" />
-
 和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
 
 #### module.generator["css/module"].esModule
-
-<ApiMeta addedVersion="0.6.4" />
 
 和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
 

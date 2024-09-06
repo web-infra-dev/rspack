@@ -18,6 +18,8 @@ it("should handle bit operation", () => {
   if ((1 ^ 2) !== 3) require("fail");
   if ((1 << 1) !== 2) require("fail");
   if ((2 >> 1) !== 1) require("fail");
+  if ((2 >> 32) !== 2) require("fail");
+  if ((2 << 32) !== 2) require("fail");
 });
 
 it("should handle number operation", () => {

@@ -1,5 +1,6 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
-use rspack_error::ErrorLocation;
+use rspack_core::{
+  ConstDependency, Dependency, DependencyType, ImportAttributes, RealDependencyLocation, SpanExt,
+};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -69,12 +70,12 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
+    let range: RealDependencyLocation = import_decl.span.into();
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
     let dependency = HarmonyImportSideEffectDependency::new(
       source.into(),
       parser.last_harmony_import_order,
-      ErrorLocation::new(import_decl.span, &parser.source_map),
-      import_decl.span.into(),
+      range.with_source(parser.source_map.clone()),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
       false,
@@ -133,15 +134,14 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
-
+    let range: RealDependencyLocation = ident.span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       parser.in_short_hand,
       !parser.is_asi_position(ident.span_lo()),
-      ErrorLocation::new(ident.span(), &parser.source_map),
-      ident.span.into(),
+      range.with_source(parser.source_map.clone()),
       settings.ids,
       parser.in_tagged_template_tag,
       true,
@@ -201,14 +201,14 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
+    let range: RealDependencyLocation = span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
       !parser.is_asi_position(call_expr.span_lo()),
-      ErrorLocation::new(span, &parser.source_map),
-      span.into(),
+      range.with_source(parser.source_map.clone()),
       ids,
       true,
       direct_import,
@@ -265,14 +265,14 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
+    let range: RealDependencyLocation = span.into();
     let dep = HarmonyImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
       !parser.is_asi_position(member_expr.span_lo()),
-      ErrorLocation::new(span, &parser.source_map),
-      span.into(),
+      range.with_source(parser.source_map.clone()),
       ids,
       false,
       false, // x.xx()

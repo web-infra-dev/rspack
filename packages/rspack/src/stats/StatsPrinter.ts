@@ -177,10 +177,9 @@ export class StatsPrinter {
 		data: AsArray<T>[0],
 		fn: (hook: SyncWaterfallHook<T>, data: AsArray<T>[0]) => AsArray<T>[0]
 	): AsArray<T>[0] {
-		for (const hook of this._getAllLevelHooks(hookMap, type)) {
-			data = fn(hook, data);
-		}
-		return data;
+		return this._getAllLevelHooks(hookMap, type).reduce((data, hook) => {
+			return fn(hook, data);
+		}, data);
 	}
 
 	print(

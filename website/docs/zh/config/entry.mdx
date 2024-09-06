@@ -1,15 +1,17 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/entry-context/#entry" />
 
 # Entry
 
+<PropertyType
+  type="string | string[] | Record<string, string | string[] | EntryDescription> | Function"
+  defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
+/>
+
 入口：该选项用于设置 Rspack 构建的入口。
-
-- **类型：** `string | string[] | Record<string, string | string[] | EntryDescription> | Function`
-
-- **默认值：** `'./src/index.js'`
 
 ## 单个入口
 
@@ -86,25 +88,19 @@ module.exports = {
 
 #### EntryDescription.import
 
-- **类型：**
-
-  ```ts
-  type EntryItem = string[] | string;
-  ```
-
-- **默认值：** `'./src/index.js'`
+<PropertyType
+  type="string[] | string"
+  defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
+/>
 
 入口模块的路径。
 
 #### EntryDescription.runtime
 
-- **类型：**
-
-  ```ts
-  type EntryRuntime = false | string;
-  ```
-
-- **默认值：** `undefined`
+<PropertyType
+  type="false | string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 运行时 chunk 的名称。设置 `runtime` 后，会创建一个新的运行时 chunk。你也可以将它设置为 `false` 来避免一个新的运行时 chunk。
 
@@ -123,82 +119,92 @@ module.exports = {
 
 #### EntryDescription.chunkLoading
 
-<ApiMeta addedVersion={'0.2.6'} />
+<PropertyType
+  type="false | string | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-- **类型：**
-
-  ```ts
-  type ChunkLoading = false | ChunkLoadingType;
-  type ChunkLoadingType =
-    | ('jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import')
-    | string;
-  ```
-
-- **默认值：** `undefined`
-
-决定该入口在加载 chunk 时的加载方式。
+设置当前入口在加载 chunk 时的加载方式。
 
 #### EntryDescription.asyncChunks
 
-<ApiMeta addedVersion={'0.2.6'} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-- **类型：** `boolean`
-- **默认值：** `true`
-
-是否为该入口创建按需加载的异步 chunk。
+是否为当前入口创建按需加载的异步 chunk。
 
 #### EntryDescription.publicPath
 
-<ApiMeta addedVersion={'0.2.6'} />
+<PropertyType
+  type="'auto' | string | (pathData: PathData, assetInfo?: AssetInfo) => string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-- **类型：**
-
-  ```ts
-  type PublicPath =
-    | 'auto'
-    | string
-    | ((pathData: PathData, assetInfo?: AssetInfo) => string);
-  ```
-
-- **默认值：** `undefined`
-
-修改该入口引用的资源的 publicPath。
+修改当前入口引用的资源的 publicPath。
 
 #### EntryDescription.baseUri
 
-<ApiMeta addedVersion={'0.2.6'} />
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-- **类型：** `string`
-- **默认值：** `undefined`
-
-修改该入口引用的资源的 baseURI。
+修改当前入口引用的资源的 baseURI。
 
 #### EntryDescription.filename
 
-<ApiMeta addedVersion={'0.2.6'} />
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-- **类型：** `string`
-- **默认值：** `undefined`
-
-修改该入口所生成 chunk 的文件名。
+修改当前入口所生成 chunk 的文件名。
 
 #### EntryDescription.library
 
-<ApiMeta addedVersion={'0.3.12'} />
+<PropertyType
+  type="string | string[] | object"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-修改该入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
+修改当前入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
 
 #### EntryDescription.dependOn
 
-- **类型：**
-
-  ```ts
-  type EntryDependOn = string[] | string;
-  ```
-
-- **默认值：** `undefined`
+<PropertyType
+  type="string[] | string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
 设置当前入口所依赖的入口。使用 `dependOn` 选项你可以与另一个入口 chunk 共享模块。
+
+#### EntryDescription.wasmLoading
+
+<PropertyType
+  type="'fetch' | 'async-node'"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+设置当前入口加载 WebAssembly 模块的方式。默认可使用的方式有 `'fetch'`（web/WebWorker），`'async-node'`（Node.js），其他额外方式可由插件提供。
+
+其默认值会根据 [target](/config/target) 的变化而变化：
+
+- 如果 target 设置为 `'web'`，`'webworker'`，`'electron-renderer'` 或 `'node-webkit'` 其中之一，其默认值为 `'fetch'`。
+- 如果 target 设置为 `'node'`，`'async-node'`，`'electron-main'` 或 `'electron-preload'`，其默认值为 `'async-node'`。
+
+#### EntryDescription.layer
+
+<ApiMeta addedVersion={'1.0.0-beta.1'} />
+
+<PropertyType
+  type="string | null"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+设置当前入口的 Layer，以在 SplitChunks、Rules、Stats、Externals 中通过 Layer 匹配使对应配置生效。
+
+:::warning
+只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
+:::
 
 ## 动态入口
 

@@ -89,7 +89,7 @@ __webpack_require__.e = function (chunkId) {
           // return url for filenames not based on template
           
           // return url for filenames based on template
-          return "" + chunkId + ".$" + {"\\css\\chunk": "54c1620e9adda545f913","\\js\\chunk": "b523517f75dc2dc67471",}[chunkId] + "$.js";
+          return "" + chunkId + ".$" + {"\\css\\chunk": "4a3005774b9c87375771","\\js\\chunk": "72af0486428d84ff9609",}[chunkId] + "$.js";
         };
       
 })();
@@ -100,14 +100,14 @@ __webpack_require__.e = function (chunkId) {
           // return url for filenames not based on template
           
           // return url for filenames based on template
-          return "" + chunkId + ".$" + "fcf981e297c26c279077" + "$.css";
+          return "" + chunkId + ".$" + "9311d6f1607d2d130d8e" + "$.css";
         };
       
 })();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = function () {
-	return "6e5a487e296e19337ffa";
+	return "930b6e3f0ca31fc490a2";
 };
 
 })();
@@ -211,14 +211,17 @@ __webpack_require__.r = function(exports) {
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
     var document = __webpack_require__.g.document;
     if (!scriptUrl && document) {
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }
-        }
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }
+      }
       }
     
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",

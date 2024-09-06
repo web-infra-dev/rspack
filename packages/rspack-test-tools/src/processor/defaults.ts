@@ -22,17 +22,27 @@ const escapedCwdRegExp = new RegExp(
 	"g"
 );
 const normalize = (str: string) => {
+	let normalizedStr;
 	if (CURRENT_CWD.startsWith("/")) {
-		str = str.replace(new RegExp(quoteMeta(CURRENT_CWD), "g"), "<cwd>");
+		normalizedStr = str.replace(
+			new RegExp(quoteMeta(CURRENT_CWD), "g"),
+			"<cwd>"
+		);
 	} else {
-		str = str.replace(cwdRegExp, (m, g) => `<cwd>${g.replace(/\\/g, "/")}`);
-		str = str.replace(
+		normalizedStr = str.replace(
+			cwdRegExp,
+			(_, g) => `<cwd>${g.replace(/\\/g, "/")}`
+		);
+		normalizedStr = normalizedStr.replace(
 			escapedCwdRegExp,
-			(m, g) => `<cwd>${g.replace(/\\\\/g, "/")}`
+			(_, g) => `<cwd>${g.replace(/\\\\/g, "/")}`
 		);
 	}
-	str = str.replace(/@@ -\d+,\d+ \+\d+,\d+ @@/g, "@@ ... @@");
-	return str;
+	normalizedStr = normalizedStr.replace(
+		/@@ -\d+,\d+ \+\d+,\d+ @@/g,
+		"@@ ... @@"
+	);
+	return normalizedStr;
 };
 
 class Diff {
@@ -114,12 +124,13 @@ export class DefaultsConfigProcessor<
 		process.chdir(cwd);
 		const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
 			require("@rspack/core").config;
-		config = getNormalizedWebpackOptions(config);
-		applyWebpackOptionsDefaults(config);
+		const normalizedConfig = getNormalizedWebpackOptions(config);
+		applyWebpackOptionsDefaults(normalizedConfig);
 		// make snapshot stable
-		(config as any).experiments.rspackFuture.bundlerInfo.version = "$version$";
+		(normalizedConfig as any).experiments.rspackFuture.bundlerInfo.version =
+			"$version$";
 		process.chdir(CURRENT_CWD);
-		return config;
+		return normalizedConfig;
 	}
 
 	static addSnapshotSerializer(expectImpl: jest.Expect) {

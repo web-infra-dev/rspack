@@ -12,10 +12,11 @@ use rspack_napi::{
   },
   Ref,
 };
+use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{JsCompilation, ToJsCompatSource};
-use crate::identifier::JsIdentifier;
+use super::ToJsCompatSource;
+use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
@@ -112,7 +113,7 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
       }),
       message: stats.message,
       loc: stats.loc,
-      file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      file: stats.file.map(|f| f.as_str().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,
@@ -164,7 +165,7 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
         .into()
       }),
       message: stats.message,
-      file: stats.file.map(|f| f.to_string_lossy().to_string()),
+      file: stats.file.map(|f| f.as_str().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,
@@ -328,7 +329,7 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
         args: Some(vec![format!(
           "{}: {} ms",
           label,
-          secs * 1000 + subsec_nanos as u64 / 1000000
+          itoa!(secs * 1000 + subsec_nanos as u64 / 1000000)
         )]),
         trace: None,
       },
@@ -355,8 +356,8 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
           } else {
             hit as f32 / total as f32 * 100_f32
           },
-          hit,
-          total,
+          itoa!(hit),
+          itoa!(total),
         )]),
         trace: None,
       },
@@ -418,6 +419,7 @@ pub struct JsStatsAssetInfo {
   pub contenthash: Vec<String>,
   pub fullhash: Vec<String>,
   pub related: Vec<JsStatsAssetInfoRelated>,
+  pub is_over_size_limit: Option<bool>,
 }
 
 impl FromNapiValue for JsStatsAssetInfo {
@@ -446,6 +448,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
         .into_iter()
         .map(Into::into)
         .collect::<Vec<_>>(),
+      is_over_size_limit: stats.is_over_size_limit,
     }
   }
 }
@@ -794,6 +797,9 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
 pub struct JsStatsModuleReason {
   #[napi(ts_type = "JsModuleDescriptor")]
   pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  #[napi(ts_type = "JsModuleDescriptor")]
+  pub resolved_module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_chunks: Option<u32>,
   pub r#type: Option<&'static str>,
   pub user_request: Option<String>,
 }
@@ -818,6 +824,15 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
         }
         .into()
       }),
+      resolved_module_descriptor: stats.resolved_module_identifier.map(|identifier| {
+        JsModuleDescriptor {
+          identifier: identifier.into(),
+          name: stats.resolved_module_name.unwrap_or_default().into_owned(),
+          id: stats.resolved_module_id.map(|s| s.to_string()),
+        }
+        .into()
+      }),
+      module_chunks: stats.module_chunks,
       r#type: stats.r#type,
       user_request: stats.user_request.map(|i| i.to_owned()),
     }
@@ -993,7 +1008,9 @@ pub struct JsStatsChunkGroup {
   pub assets_size: f64,
   pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
   pub auxiliary_assets_size: Option<f64>,
+  pub is_over_size_limit: Option<bool>,
   pub children: Option<JsStatsChunkGroupChildren>,
+  pub child_assets: Option<JsStatsChildGroupChildAssets>,
 }
 
 impl FromNapiValue for JsStatsChunkGroup {
@@ -1017,6 +1034,32 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
         .map(|assets| assets.into_iter().map(Into::into).collect()),
       auxiliary_assets_size: stats.auxiliary_assets_size,
       children: stats.children.map(|i| i.into()),
+      child_assets: stats.child_assets.map(|i| i.into()),
+      is_over_size_limit: stats.is_over_size_limit,
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsChildGroupChildAssets {
+  pub preload: Option<Vec<String>>,
+  pub prefetch: Option<Vec<String>>,
+}
+
+impl FromNapiValue for JsStatsChildGroupChildAssets {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    unreachable!()
+  }
+}
+
+impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAssets {
+  fn from(stats: rspack_core::StatschunkGroupChildAssets) -> Self {
+    Self {
+      preload: (!stats.preload.is_empty()).then_some(stats.preload),
+      prefetch: (!stats.prefetch.is_empty()).then_some(stats.prefetch),
     }
   }
 }

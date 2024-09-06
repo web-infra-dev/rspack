@@ -1,89 +1,93 @@
 WARNING in ./index.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackPrefetch` expected true or a number, but received: "aaa".
-         ╭─[1:0]
-       1 │ ╭─▶ import(/*
-       2 │ │     webpackPrefetch: "aaa",
-       3 │ │     webpackPreload: "aaa",
-       4 │ │     webpackIgnore: asdf,
-       5 │ │     webpackMode: "unknown",
-       6 │ │     webpackFetchPriority: "unknown",
-       7 │ │     webpackInclude: unknown,
-       8 │ │     webpackExclude: "asdfasdf",
-       9 │ ╰─▶ */'./a');
+         ╭─[2:19]
+       1 │ import(/*
+       2 │   webpackPrefetch: "aaa",
+         ·                    ─────
+       3 │   webpackPreload: "aaa",
+       4 │   webpackIgnore: asdf,
          ╰────
 
 WARNING in ./index.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackPreload` expected true or a number, but received: "aaa".
-         ╭─[1:0]
-       1 │ ╭─▶ import(/*
-       2 │ │     webpackPrefetch: "aaa",
-       3 │ │     webpackPreload: "aaa",
-       4 │ │     webpackIgnore: asdf,
-       5 │ │     webpackMode: "unknown",
-       6 │ │     webpackFetchPriority: "unknown",
-       7 │ │     webpackInclude: unknown,
-       8 │ │     webpackExclude: "asdfasdf",
-       9 │ ╰─▶ */'./a');
+         ╭─[3:18]
+       1 │ import(/*
+       2 │   webpackPrefetch: "aaa",
+       3 │   webpackPreload: "aaa",
+         ·                   ─────
+       4 │   webpackIgnore: asdf,
+       5 │   webpackMode: "unknown",
          ╰────
 
 WARNING in ./index.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackIgnore` expected true or false, but received: asdf.
-         ╭─[1:0]
-       1 │ ╭─▶ import(/*
-       2 │ │     webpackPrefetch: "aaa",
-       3 │ │     webpackPreload: "aaa",
-       4 │ │     webpackIgnore: asdf,
-       5 │ │     webpackMode: "unknown",
-       6 │ │     webpackFetchPriority: "unknown",
-       7 │ │     webpackInclude: unknown,
-       8 │ │     webpackExclude: "asdfasdf",
-       9 │ ╰─▶ */'./a');
+         ╭─[4:17]
+       2 │   webpackPrefetch: "aaa",
+       3 │   webpackPreload: "aaa",
+       4 │   webpackIgnore: asdf,
+         ·                  ────
+       5 │   webpackMode: "unknown",
+       6 │   webpackFetchPriority: "unknown",
          ╰────
 
 WARNING in ./index.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackFetchPriority` expected "low", "high" or "auto", but received: "unknown".
-         ╭─[1:0]
-       1 │ ╭─▶ import(/*
-       2 │ │     webpackPrefetch: "aaa",
-       3 │ │     webpackPreload: "aaa",
-       4 │ │     webpackIgnore: asdf,
-       5 │ │     webpackMode: "unknown",
-       6 │ │     webpackFetchPriority: "unknown",
-       7 │ │     webpackInclude: unknown,
-       8 │ │     webpackExclude: "asdfasdf",
-       9 │ ╰─▶ */'./a');
+         ╭─[6:24]
+       4 │   webpackIgnore: asdf,
+       5 │   webpackMode: "unknown",
+       6 │   webpackFetchPriority: "unknown",
+         ·                         ─────────
+       7 │   webpackInclude: unknown,
+       8 │   webpackExclude: "asdfasdf",
          ╰────
 
 WARNING in ./index.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackInclude` expected a regular expression, but received: unknown.
-         ╭─[1:0]
-       1 │ ╭─▶ import(/*
-       2 │ │     webpackPrefetch: "aaa",
-       3 │ │     webpackPreload: "aaa",
-       4 │ │     webpackIgnore: asdf,
-       5 │ │     webpackMode: "unknown",
-       6 │ │     webpackFetchPriority: "unknown",
-       7 │ │     webpackInclude: unknown,
-       8 │ │     webpackExclude: "asdfasdf",
-       9 │ ╰─▶ */'./a');
+         ╭─[7:18]
+       5 │   webpackMode: "unknown",
+       6 │   webpackFetchPriority: "unknown",
+       7 │   webpackInclude: unknown,
+         ·                   ───────
+       8 │   webpackExclude: "asdfasdf",
+       9 │ */'./a');
          ╰────
 
 WARNING in ./index.js
   ⚠ Module parse warning:
   ╰─▶   ⚠ Magic comments parse failed: `webpackExclude` expected a regular expression, but received: "asdfasdf".
-         ╭─[1:0]
-       1 │ ╭─▶ import(/*
-       2 │ │     webpackPrefetch: "aaa",
-       3 │ │     webpackPreload: "aaa",
-       4 │ │     webpackIgnore: asdf,
-       5 │ │     webpackMode: "unknown",
-       6 │ │     webpackFetchPriority: "unknown",
-       7 │ │     webpackInclude: unknown,
-       8 │ │     webpackExclude: "asdfasdf",
-       9 │ ╰─▶ */'./a');
-         ╰────
+          ╭─[8:18]
+        6 │   webpackFetchPriority: "unknown",
+        7 │   webpackInclude: unknown,
+        8 │   webpackExclude: "asdfasdf",
+          ·                   ──────────
+        9 │ */'./a');
+       10 │ import(/* webpackPrefetch: "aaa" */'./a');
+          ╰────
+
+WARNING in ./index.js
+  ⚠ Module parse warning:
+  ╰─▶   ⚠ Magic comments parse failed: `webpackPrefetch` expected true or a number, but received: "aaa".
+          ╭─[10:27]
+        8 │   webpackExclude: "asdfasdf",
+        9 │ */'./a');
+       10 │ import(/* webpackPrefetch: "aaa" */'./a');
+          ·                            ─────
+       11 │ import(
+       12 │     /*webpackPrefetch:"aaa"*/'./a'
+          ╰────
+
+WARNING in ./index.js
+  ⚠ Module parse warning:
+  ╰─▶   ⚠ Magic comments parse failed: `webpackPrefetch` expected true or a number, but received: "aaa".
+          ╭─[12:22]
+       10 │ import(/* webpackPrefetch: "aaa" */'./a');
+       11 │ import(
+       12 │     /*webpackPrefetch:"aaa"*/'./a'
+          ·                       ─────
+       13 │ );
+          ╰────

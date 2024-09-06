@@ -37,9 +37,6 @@ export default class MultiStats {
 		options: { [x: string]: any; children?: any },
 		context: (KnownCreateStatsOptionsContext & Record<string, any>) | undefined
 	) {
-		if (!options) {
-			options = {};
-		}
 		const { children: childrenOptions = undefined, ...baseOptions } =
 			typeof options === "string" ? { preset: options } : options;
 
@@ -65,32 +62,36 @@ export default class MultiStats {
 			warningsCount: children.every(o => o.warningsCount),
 			errors: children.every(o => o.errors),
 			warnings: children.every(o => o.warnings),
-			children
+			children,
+			context: "",
+			version: ""
 		};
 	}
 
-	toJson(options?: any) {
-		options = this.#createChildOptions(options, { forToString: false });
+	toJson(options: any) {
+		const childOptions = this.#createChildOptions(options || {}, {
+			forToString: false
+		});
 
 		const obj: StatsCompilation = {};
 		obj.children = this.stats.map((stat, idx) => {
-			const obj = stat.toJson(options.children[idx]);
+			const obj = stat.toJson(childOptions.children[idx]);
 			const compilationName = stat.compilation.name;
 			const name =
 				compilationName &&
 				identifierUtils.makePathsRelative(
-					options.context,
+					childOptions.context,
 					compilationName,
 					stat.compilation.compiler.root
 				);
 			obj.name = name;
 			return obj;
 		});
-		if (options.version) {
+		if (childOptions.version) {
 			obj.rspackVersion = require("../package.json").version;
 			obj.version = require("../package.json").webpackVersion;
 		}
-		if (options.hash) {
+		if (childOptions.hash) {
 			obj.hash = obj.children.map(j => j.hash).join("");
 		}
 		const mapError = (j: any, obj: any) => {
@@ -101,7 +102,7 @@ export default class MultiStats {
 					: j.name
 			};
 		};
-		if (options.errors) {
+		if (childOptions.errors) {
 			obj.errors = [];
 			for (const j of obj.children) {
 				for (const i of j.errors || []) {
@@ -109,7 +110,7 @@ export default class MultiStats {
 				}
 			}
 		}
-		if (options.warnings) {
+		if (childOptions.warnings) {
 			obj.warnings = [];
 			for (const j of obj.children) {
 				for (const i of j.warnings || []) {
@@ -117,13 +118,13 @@ export default class MultiStats {
 				}
 			}
 		}
-		if (options.errorsCount) {
+		if (childOptions.errorsCount) {
 			obj.errorsCount = 0;
 			for (const j of obj.children) {
 				obj.errorsCount += j.errorsCount || 0;
 			}
 		}
-		if (options.warningsCount) {
+		if (childOptions.warningsCount) {
 			obj.warningsCount = 0;
 			for (const j of obj.children) {
 				obj.warningsCount += j.warningsCount || 0;
@@ -133,15 +134,18 @@ export default class MultiStats {
 	}
 
 	toString(options: any) {
-		options = this.#createChildOptions(options, { forToString: true });
+		const childOptions = this.#createChildOptions(options || {}, {
+			forToString: true
+		});
+
 		const results = this.stats.map((stat, idx) => {
-			const str = stat.toString(options.children[idx]);
+			const str = stat.toString(childOptions.children[idx]);
 			const compilationName = stat.compilation.name;
 			const name =
 				compilationName &&
 				identifierUtils
 					.makePathsRelative(
-						options.context,
+						childOptions.context,
 						compilationName,
 						stat.compilation.compiler.root
 					)

@@ -58,7 +58,6 @@ impl RuntimeModule for RemoteRuntimeModule {
         let id = compilation
           .chunk_graph
           .get_module_id(m.identifier())
-          .as_deref()
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
@@ -68,7 +67,6 @@ impl RuntimeModule for RemoteRuntimeModule {
         let external_module_id = compilation
           .chunk_graph
           .get_module_id(external_module.identifier())
-          .as_deref()
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         remotes.push(id.to_string());
         id_to_remote_data_mapping.insert(

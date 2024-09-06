@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use std::sync::LazyLock;
+use std::{borrow::Cow, hash::Hash};
 
 use rayon::prelude::*;
 use regex::Regex;
@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, identifier::make_paths_relative};
+use rspack_util::identifier::make_paths_relative;
 
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
@@ -53,7 +53,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
 
 fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   let mut filename_hash = RspackHash::from(&options.output);
-  filename.dyn_hash(&mut filename_hash);
+  filename.hash(&mut filename_hash);
   let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()
 }

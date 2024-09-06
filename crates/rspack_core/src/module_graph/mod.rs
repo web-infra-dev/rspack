@@ -237,6 +237,7 @@ impl<'a> ModuleGraph<'a> {
     res
   }
 
+  #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
@@ -414,7 +415,7 @@ impl<'a> ModuleGraph<'a> {
     // avoid violating rustc borrow rules
     let mut add_outgoing_connection = vec![];
     let mut delete_outgoing_connection = vec![];
-    for connection_id in outgoing_connections.into_iter() {
+    for connection_id in outgoing_connections {
       let connection = match self.connection_by_connection_id(&connection_id) {
         Some(con) => con,
         // removed
@@ -455,7 +456,7 @@ impl<'a> ModuleGraph<'a> {
     // avoid violating rustc borrow rules
     let mut add_incoming_connection = vec![];
     let mut delete_incoming_connection = vec![];
-    for connection_id in old_mgm.incoming_connections().clone().into_iter() {
+    for connection_id in old_mgm.incoming_connections().clone() {
       let connection = match self.connection_by_connection_id(&connection_id) {
         Some(con) => con,
         None => continue,
@@ -642,6 +643,22 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.blocks.get(block_id))?
       .as_ref()
       .map(|b| &**b)
+  }
+
+  pub fn block_by_id_mut(
+    &mut self,
+    block_id: &AsyncDependenciesBlockIdentifier,
+  ) -> Option<&mut Box<AsyncDependenciesBlock>> {
+    self
+      .loop_partials_mut(
+        |p| p.blocks.contains_key(block_id),
+        |p, search_result| {
+          p.blocks.insert(*block_id, search_result);
+        },
+        |p| p.blocks.get(block_id).cloned(),
+        |p| p.blocks.get_mut(block_id),
+      )?
+      .as_mut()
   }
 
   pub fn block_by_id_expect(
@@ -1033,7 +1050,11 @@ impl<'a> ModuleGraph<'a> {
       .insert(dep_id, DependencyExtraMeta { ids });
   }
 
-  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+  pub fn update_module(
+    &mut self,
+    dep_id: &DependencyId,
+    module_id: &ModuleIdentifier,
+  ) -> Option<ConnectionId> {
     let connection_id = *self
       .connection_id_by_dependency_id(dep_id)
       .expect("should have connection id");
@@ -1041,7 +1062,7 @@ impl<'a> ModuleGraph<'a> {
       .connection_by_connection_id_mut(&connection_id)
       .expect("should have connection");
     if connection.module_identifier() == module_id {
-      return;
+      return None;
     }
 
     // clone connection
@@ -1096,6 +1117,7 @@ impl<'a> ModuleGraph<'a> {
       mgm.add_incoming_connection(new_connection_id);
       mgm.remove_incoming_connection(&connection_id);
     }
+    Some(new_connection_id)
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
@@ -1209,7 +1231,7 @@ impl<'a> ModuleGraph<'a> {
       .expect("should have condition");
     match condition {
       DependencyCondition::False => ConnectionState::Bool(false),
-      DependencyCondition::Fn(f) => f(connection, runtime, self),
+      DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
     }
   }
 

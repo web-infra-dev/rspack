@@ -897,9 +897,11 @@ function getRawExperiments(
 }
 
 function getRawRspackFutureOptions(
-	_future: RspackFutureOptions
+	future: RspackFutureOptions
 ): RawRspackFuture {
-	return {};
+	return {
+		newIncremental: future.newIncremental!
+	};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {

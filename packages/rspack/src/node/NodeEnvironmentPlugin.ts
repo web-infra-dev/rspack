@@ -17,6 +17,7 @@ import {
 	type LoggerConsole,
 	createConsoleLogger
 } from "../logging/createConsoleLogger";
+import type { InputFileSystem } from "../util/fs";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
 
@@ -44,17 +45,19 @@ export default class NodeEnvironmentPlugin {
 					stream: infrastructureLogging.stream!
 				}) as LoggerConsole)
 		});
-		compiler.inputFileSystem = new CachedInputFileSystem(fs, 60000);
-		const inputFileSystem = compiler.inputFileSystem;
+
+		const inputFileSystem: InputFileSystem = new CachedInputFileSystem(
+			fs,
+			60000
+		);
+		compiler.inputFileSystem = inputFileSystem;
 		compiler.outputFileSystem = fs;
 		compiler.intermediateFileSystem = fs;
-		compiler.watchFileSystem = new NodeWatchFileSystem(
-			compiler.inputFileSystem
-		);
+		compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
 				compiler.fsStartTime = Date.now();
-				inputFileSystem.purge();
+				inputFileSystem.purge?.();
 			}
 		});
 	}

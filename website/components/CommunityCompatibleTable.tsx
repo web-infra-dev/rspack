@@ -48,6 +48,23 @@ export interface PluginSupportStatus {
   description?: string;
 }
 
+const getNotesText = (
+  lang: string,
+  description: PluginSupportStatus['description'],
+  status: PluginSupportStatus['status'],
+) => {
+  if (description) {
+    return (
+      <div>
+        <Markdown>{description}</Markdown>
+      </div>
+    );
+  }
+  if (status === CompatibleStatus.NotCompatible) {
+    return lang === 'zh' ? '待支持' : 'To be implemented';
+  }
+};
+
 export const CommunityPluginCompatibleTable: React.FC = () => {
   const lang = useLang() as 'zh' | 'en';
 
@@ -89,7 +106,8 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'eslint-webpack-plugin',
       url: 'https://github.com/webpack-contrib/eslint-webpack-plugin',
-      status: CompatibleStatus.Compatible,
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['eslint-webpack-plugin-desc'],
     },
     {
       name: 'fork-ts-checker-webpack-plugin',
@@ -171,6 +189,51 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       status: CompatibleStatus.Compatible,
     },
     {
+      name: '@nx/webpack',
+      url: 'https://www.npmjs.com/package/@nx/webpack',
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['@nx/webpack-desc'],
+    },
+    {
+      name: 'webpack-filter-warnings-plugin',
+      url: 'https://github.com/mattlewis92/webpack-filter-warnings-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['webpack-filter-warnings-plugin-desc'],
+    },
+    {
+      name: 'speed-measure-webpack-plugin',
+      url: 'https://www.npmjs.com/package/speed-measure-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['speed-measure-webpack-plugin-desc'],
+    },
+    {
+      name: 'circular-dependency-plugin',
+      url: 'https://github.com/aackerman/circular-dependency-plugin',
+      status: CompatibleStatus.NotCompatible,
+      description: i18n[lang]['circular-dependency-plugin-desc'],
+    },
+    {
+      name: 'critters-webpack-plugin',
+      url: 'https://github.com/GoogleChromeLabs/critters',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'html-webpack-tags-plugin',
+      url: 'https://github.com/jharris4/html-webpack-tags-plugin',
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['html-webpack-tags-plugin-desc'],
+    },
+    {
+      name: '@loadable/webpack-plugin',
+      url: 'https://www.npmjs.com/package/@loadable/webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'error-overlay-webpack-plugin',
+      url: 'https://github.com/gregberge/error-overlay-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
       name: 'webpackbar',
       url: 'https://www.npmjs.com/package/webpackbar',
       status: CompatibleStatus.NotCompatible,
@@ -204,6 +267,78 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       url: 'https://github.com/arcanis/pnp-webpack-plugin',
       status: CompatibleStatus.NotCompatible,
       description: i18n[lang]['resolve-plugin-un-support-desc'],
+    },
+    {
+      name: '@ngtools/webpack',
+      url: 'https://www.npmjs.com/package/@ngtools/webpack',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'eslint-import-resolver-webpack',
+      url: 'https://www.npmjs.com/package/eslint-import-resolver-webpack',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: '@storybook/react-docgen-typescript-plugin',
+      url: 'https://github.com/hipstersmoothie/react-docgen-typescript-plugin',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'assets-webpack-plugin',
+      url: 'https://github.com/ztoben/assets-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'last-call-webpack-plugin',
+      url: 'https://github.com/NMFR/last-call-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: '@soda/friendly-errors-webpack-plugin',
+      url: 'https://github.com/sodatea/friendly-errors-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'webpack-assets-manifest',
+      url: 'https://github.com/webdeveric/webpack-assets-manifest',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: 'git-revision-webpack-plugin',
+      url: 'https://www.npmjs.com/package/git-revision-webpack-plugin',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'filemanager-webpack-plugin',
+      url: 'https://github.com/gregnb/filemanager-webpack-plugin',
+      status: CompatibleStatus.Compatible,
+    },
+    {
+      name: '@cypress/webpack-preprocessor',
+      url: 'https://github.com/cypress-io/cypress',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: '@intlify/unplugin-vue-i18n',
+      url: 'https://github.com/intlify/bundle-tools',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'add-asset-html-webpack-plugin',
+      url: 'https://github.com/SimenB/add-asset-html-webpack-plugin',
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['needs-html-webpack-plugin'],
+    },
+    {
+      name: 'webpack-remove-empty-scripts',
+      url: 'https://github.com/webdiscus/webpack-remove-empty-scripts',
+      status: CompatibleStatus.NotCompatible,
+    },
+    {
+      name: 'html-webpack-harddisk-plugin',
+      url: 'https://github.com/jantimon/html-webpack-harddisk-plugin',
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['needs-html-webpack-plugin'],
     },
     {
       name: 'webpack-virtual-modules',
@@ -267,19 +402,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const { symbol, en, zh } = SUPPORT_STATUS_LOCALIZED[status];
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
-          const notesText = (() => {
-            if (description) {
-              return (
-                <div>
-                  <Markdown>{description}</Markdown>
-                </div>
-              );
-            }
-            if (status === CompatibleStatus.NotCompatible) {
-              return lang === 'zh' ? '待支持' : 'To be implemented';
-            }
-          })();
-
           return {
             name: (
               <a href={url} target="_blank" rel="noreferrer">
@@ -287,7 +409,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
               </a>
             ),
             status: statusText,
-            notes: notesText,
+            notes: getNotesText(lang, description, status),
           };
         })}
     />

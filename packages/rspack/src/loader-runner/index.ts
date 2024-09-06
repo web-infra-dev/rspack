@@ -105,7 +105,9 @@ function createLoaderObject(
 				obj.ident = ident;
 			}
 
-			obj.type = value.type;
+			// CHANGE: `rspack_core` returns empty string for `undefined` type.
+			// Comply to webpack test case: tests/webpack-test/cases/loaders/cjs-loader-type/index.js
+			obj.type = value.type === "" ? undefined : value.type;
 			if (obj.options === null) obj.query = "";
 			else if (obj.options === undefined) obj.query = "";
 			else if (typeof obj.options === "string") obj.query = `?${obj.options}`;
@@ -395,6 +397,7 @@ function createLoaderContext(
 					._lastCompilation!.__internal_getInner()
 					.importModule(
 						request,
+						options.layer,
 						options.publicPath,
 						options.baseUri,
 						context._module.moduleIdentifier,
@@ -428,6 +431,7 @@ function createLoaderContext(
 			._lastCompilation!.__internal_getInner()
 			.importModule(
 				request,
+				options.layer,
 				options.publicPath,
 				options.baseUri,
 				context._module.moduleIdentifier,
@@ -594,7 +598,8 @@ function createLoaderContext(
 		);
 	};
 	loaderContext.rootContext = compiler.context;
-	loaderContext.emitError = function emitError(error) {
+	loaderContext.emitError = function emitError(err) {
+		let error = err;
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
@@ -611,7 +616,8 @@ function createLoaderContext(
 			severity: JsRspackSeverity.Error
 		});
 	};
-	loaderContext.emitWarning = function emitWarning(warning) {
+	loaderContext.emitWarning = function emitWarning(warn) {
+		let warning = warn;
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
@@ -735,7 +741,10 @@ function createLoaderContext(
 	let compilation: Compilation | undefined = compiler._lastCompilation;
 	let step = 0;
 	while (compilation) {
-		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
+		NormalModule.getCompilationHooks(compilation).loader.call(
+			loaderContext,
+			loaderContext._module
+		);
 		compilation = compilation.compiler.parentCompilation;
 		step++;
 		if (step > 1000) {

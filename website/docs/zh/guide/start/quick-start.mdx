@@ -45,17 +45,37 @@ Rsbuild 是由 Rspack 驱动的高性能构建工具，由 Rspack 团队开发�
 
 Rspack CLI 是对标 Webpack CLI 的工具，提供基础的 `serve` 和 `build` 构建命令。
 
-执行如下命令即可创建基于 Rspack CLI 项目：
+执行如下命令即可创建基于 Rspack CLI 的项目：
 
 <PackageManagerTabs command="create rspack@latest" />
 
 然后按照提示操作。
 
+### 快速创建
+
+[create-rspack](https://www.npmjs.com/package/create-rspack) 和 [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) 提供了一些 CLI 选项。通过设置这些 CLI 选项，你可以跳过交互式的选择步骤，一键创建项目。
+
+比如，一键创建 React 项目到 `my-project` 目录：
+
+```bash
+# Rspack CLI
+npx create-rspack --dir my-project --template react
+# Rsbuild
+npx create-rsbuild --dir my-project --template react
+# 使用缩写
+npx create-rsbuild -d my-project -t react
+```
+
 ## 在线示例
 
 我们提供了基于 Rsbuild 的在线示例，通过示例项目，你可以直观感受 Rspack 的构建性能和 Rsbuild 的开发体验：
 
-- [Rsbuild codesandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+- [Rsbuild CodeSandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+
+你也可以使用 [豆包 MarsCode](https://www.marscode.cn/) 快速创建一个在线的 Rsbuild 项目：
+
+1. 访问 [MarsCode - Rsbuild 模板](https://www.marscode.cn/dashboard/template-detail?id=8e8qr0k282d6wn)。
+2. 登录，点击右上角的「使用模板」按钮即可。
 
 ## 手动安装
 
@@ -99,10 +119,11 @@ npm init -y
 
 社区中已经有一些基于 Rspack 的工具链：
 
-- 如果你需要开发一个静态站点（如文档站），你可以尝试 [Rspress](https://rspress.dev)。
-- 如果你需要分析构建过程和构建产物，你可以尝试 [Rsdoctor](https://rsdoctor.dev)。
-- 如果你需要一个 React 全栈框架来构建 Web 应用，你可以尝试 [Modern.js](https://modernjs.dev/)。
-- 如果你需要在 Monorepo 中使用 Rspack，打造快速、可扩展的构建系统，你可以尝试 [Nx](https://nx.dev)。
+- 如果你需要开发一个静态站点（如文档站），可以尝试 [Rspress](https://rspress.dev)。
+- 如果你需要开发一个工具库或组件库，可以尝试 [Rslib](https://github.com/web-infra-dev/rslib)。
+- 如果你需要分析构建过程和构建产物，可以尝试 [Rsdoctor](https://rsdoctor.dev)。
+- 如果你需要一个 React 全栈框架来构建 Web 应用，可以尝试 [Modern.js](https://modernjs.dev/)。
+- 如果你需要在 Monorepo 中使用 Rspack，打造快速、可扩展的构建系统，可以尝试 [Nx](https://nx.dev)。
 
 > 访问 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 来发现更多 Rspack 生态中的项目。
 

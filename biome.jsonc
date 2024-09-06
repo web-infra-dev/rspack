@@ -16,17 +16,13 @@
 			"packages/**/etc/**/*",
 			"crates/**/*",
 			"tests/**/*",
-			"packages/rspack-plugin-preact-refresh/tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
-			"packages/rspack-plugin-mini-css-extract/test/cases/**/*",
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},
@@ -47,15 +43,10 @@
 				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noParameterAssign": "off",
 				"noNonNullAssertion": "off"
 			},
 			"performance": {
-				"noDelete": "off",
-				"noAccumulatingSpread": "off"
-			},
-			"security": {
-				"noGlobalEval": "off"
+				"noDelete": "off"
 			},
 			"suspicious": {
 				"noFallthroughSwitchClause": "off",
@@ -77,8 +68,6 @@
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack-dev-server/client",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},

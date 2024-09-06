@@ -11,7 +11,6 @@ import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
 import {
 	type FeatureOptions,
-	browserslistToTargets,
 	toFeatures
 } from "../builtin-loader/lightningcss";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
@@ -26,7 +25,6 @@ import type {
 	RuleSetUseItem,
 	Target
 } from "./zod";
-import browserslist = require("browserslist");
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -137,7 +135,7 @@ export interface LoaderContext<OptionsType = {}> {
 	addBuildDependency(file: string): void;
 	importModule(
 		request: string,
-		options: { publicPath?: PublicPath; baseUri?: string },
+		options: { layer?: string; publicPath?: PublicPath; baseUri?: string },
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;
@@ -213,12 +211,8 @@ const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
 
 const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
 	if (o && typeof o === "object") {
-		if (o.targets && typeof o.targets === "string") {
-			o.targets = browserslistToTargets(browserslist(o.targets));
-		}
-
-		if (o.targets && Array.isArray(o.targets)) {
-			o.targets = browserslistToTargets(browserslist(o.targets));
+		if (typeof o.targets === "string") {
+			o.targets = [o.targets];
 		}
 
 		if (o.include && typeof o.include === "object") {
@@ -263,7 +257,12 @@ function createRawModuleRuleUsesImpl(
 		let isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
 			o = getBuiltinLoaderOptions(use.loader, use.options, options);
-			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);
+			// keep json with indent so miette can show pretty error
+			o = isNil(o)
+				? undefined
+				: typeof o === "string"
+					? o
+					: JSON.stringify(o, null, 2);
 			isBuiltin = true;
 		}
 

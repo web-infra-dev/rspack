@@ -1,7 +1,6 @@
-use std::path::Path;
-
 use futures::future::BoxFuture;
 use rspack_fs::r#async::AsyncWritableFileSystem;
+use rspack_paths::Utf8Path;
 
 use crate::node::ThreadsafeNodeFS;
 
@@ -14,9 +13,9 @@ impl AsyncNodeWritableFileSystem {
 }
 
 impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
-  fn create_dir(&self, dir: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let dir = dir.to_string_lossy().to_string();
-    let fut = async move {
+  fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {
+    let fut = async {
+      let dir = dir.as_str().to_string();
       self.0.mkdir.call(dir).await.map_err(|e| {
         rspack_fs::Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
@@ -28,9 +27,9 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn create_dir_all(&self, dir: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let dir = dir.to_string_lossy().to_string();
-    let fut = async move {
+  fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {
+    let fut = async {
+      let dir = dir.as_str().to_string();
       self
         .0
         .mkdirp
@@ -47,10 +46,14 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn write(&self, file: &Path, data: &[u8]) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let file = file.to_string_lossy().to_string();
-    let data = data.to_vec();
-    let fut = async move {
+  fn write<'a>(
+    &'a self,
+    file: &'a Utf8Path,
+    data: &'a [u8],
+  ) -> BoxFuture<'a, rspack_fs::Result<()>> {
+    let fut = async {
+      let file = file.as_str().to_string();
+      let data = data.to_vec();
       self
         .0
         .write_file
@@ -66,9 +69,9 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn remove_file(&self, file: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let file = file.to_string_lossy().to_string();
-    let fut = async move {
+  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {
+    let fut = async {
+      let file = file.as_str().to_string();
       self
         .0
         .remove_file
@@ -85,9 +88,9 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn remove_dir_all(&self, dir: &Path) -> BoxFuture<'_, rspack_fs::Result<()>> {
-    let dir = dir.to_string_lossy().to_string();
-    let fut = async move {
+  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {
+    let fut = async {
+      let dir = dir.as_str().to_string();
       self
         .0
         .remove_dir_all

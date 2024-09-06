@@ -39,6 +39,10 @@ impl Dependency for ContainerExposedDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for ContainerExposedDependency {

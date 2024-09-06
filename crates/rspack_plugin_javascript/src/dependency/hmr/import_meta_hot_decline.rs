@@ -1,6 +1,7 @@
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, RealDependencyLocation,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -8,18 +9,14 @@ use swc_core::ecma::atoms::Atom;
 pub struct ImportMetaHotDeclineDependency {
   id: DependencyId,
   request: Atom,
-  start: u32,
-  end: u32,
-  span: Option<ErrorSpan>,
+  range: RealDependencyLocation,
 }
 
 impl ImportMetaHotDeclineDependency {
-  pub fn new(start: u32, end: u32, request: Atom, span: Option<ErrorSpan>) -> Self {
+  pub fn new(request: Atom, range: RealDependencyLocation) -> Self {
     Self {
-      start,
-      end,
       request,
-      span,
+      range,
       id: DependencyId::new(),
     }
   }
@@ -39,7 +36,11 @@ impl Dependency for ImportMetaHotDeclineDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -68,8 +69,8 @@ impl DependencyTemplate for ImportMetaHotDeclineDependency {
     code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
-      self.start,
-      self.end,
+      self.range.start,
+      self.range.end,
       module_id(
         code_generatable_context.compilation,
         &self.id,
@@ -83,6 +84,14 @@ impl DependencyTemplate for ImportMetaHotDeclineDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

@@ -1,11 +1,11 @@
 use itertools::Itertools;
 use rspack_core::{
-  module_raw, process_export_info, property_access, AsContextDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportInfoProvided,
+  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable,
-  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  RealDependencyLocation, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -18,8 +18,7 @@ pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  span: Option<ErrorSpan>,
-  range: (u32, u32),
+  range: RealDependencyLocation,
   base: ExportsBase,
   names: Vec<Atom>,
   ids: Vec<Atom>,
@@ -30,8 +29,7 @@ impl CommonJsExportRequireDependency {
   pub fn new(
     request: String,
     optional: bool,
-    span: Option<ErrorSpan>,
-    range: (u32, u32),
+    range: RealDependencyLocation,
     base: ExportsBase,
     names: Vec<Atom>,
     result_used: bool,
@@ -40,7 +38,6 @@ impl CommonJsExportRequireDependency {
       id: DependencyId::new(),
       request,
       optional,
-      span,
       range,
       base,
       names,
@@ -335,6 +332,10 @@ impl Dependency for CommonJsExportRequireDependency {
       })
       .collect_vec()
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
+  }
 }
 
 impl DependencyTemplate for CommonJsExportRequireDependency {
@@ -421,7 +422,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
         ),
         None => format!("/* unused reexport */ {}", require_expr),
       };
-      source.replace(self.range.0, self.range.1, expr.as_str(), None)
+      source.replace(self.range.start, self.range.end, expr.as_str(), None)
     } else if self.base.is_define_property() {
       panic!("TODO")
     } else {
@@ -431,6 +432,14 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

@@ -27,6 +27,7 @@ Object {
         "force": true,
         "version": "$version$",
       },
+      "newIncremental": false,
     },
     "topLevelAwait": true,
   },
@@ -47,7 +48,7 @@ Object {
     "environment": Object {
       "arrowFunction": true,
       "asyncFunction": true,
-      "bigIntLiteral": undefined,
+      "bigIntLiteral": true,
       "const": true,
       "destructuring": true,
       "document": true,
@@ -236,6 +237,7 @@ Object {
   "optimization": Object {
     "chunkIds": "natural",
     "concatenateModules": false,
+    "emitOnErrors": true,
     "innerGraph": false,
     "mangleExports": false,
     "mergeDuplicateChunks": true,
@@ -286,6 +288,7 @@ Object {
       "maxInitialRequests": Infinity,
       "minChunks": 1,
       "minSize": 10000,
+      "usedExports": false,
     },
     "usedExports": false,
   },
@@ -317,7 +320,7 @@ Object {
     "environment": Object {
       "arrowFunction": true,
       "asyncFunction": true,
-      "bigIntLiteral": undefined,
+      "bigIntLiteral": true,
       "const": true,
       "destructuring": true,
       "document": true,

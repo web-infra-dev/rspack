@@ -1,7 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
 use std::hash::Hash;
-use std::path::PathBuf;
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -382,7 +381,7 @@ async fn render_manifest(
           selected_module.readable_identifier(&compilation.options.context)
         ),
       )
-      .with_file(Some(PathBuf::from(&output_path)))
+      .with_file(Some(output_path.to_owned().into()))
       .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }

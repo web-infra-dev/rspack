@@ -495,11 +495,13 @@ impl<'parser> JavascriptParser<'parser> {
     if self.is_statement_level_expression(expr.span())
       && let Some(old) = self.statement_path.pop()
     {
+      let prev = self.prev_statement;
       for expr in exprs {
         self.statement_path.push(expr.span().into());
         self.walk_expression(expr);
-        self.statement_path.pop();
+        self.prev_statement = self.statement_path.pop();
       }
+      self.prev_statement = prev;
       self.statement_path.push(old);
     } else {
       self.walk_expressions(exprs);
@@ -540,18 +542,26 @@ impl<'parser> JavascriptParser<'parser> {
         self.walk_prop_name(&getter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &getter.body {
-          self.walk_statement(Statement::Block(body));
-        }
+        self.in_function_scope(true, std::iter::empty(), |parser| {
+          if let Some(body) = &getter.body {
+            parser.walk_statement(Statement::Block(body));
+          }
+        });
         self.top_level_scope = was_top_level;
       }
       Prop::Setter(setter) => {
         self.walk_prop_name(&setter.key);
         let was_top_level = self.top_level_scope;
         self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &setter.body {
-          self.walk_statement(Statement::Block(body));
-        }
+        self.in_function_scope(
+          true,
+          std::iter::once(Cow::Borrowed(setter.param.as_ref())),
+          |parser| {
+            if let Some(body) = &setter.body {
+              parser.walk_statement(Statement::Block(body));
+            }
+          },
+        );
         self.top_level_scope = was_top_level;
       }
       Prop::Method(method) => {
@@ -957,6 +967,10 @@ impl<'parser> JavascriptParser<'parser> {
 
           if let Some(member) = callee.as_member() {
             self.walk_expression(&member.obj);
+            if let Some(computed) = member.prop.as_computed() {
+              self.walk_expression(&computed.expr);
+            }
+          } else if let Some(member) = callee.as_super_prop() {
             if let Some(computed) = member.prop.as_computed() {
               self.walk_expression(&computed.expr);
             }

@@ -1,17 +1,15 @@
 use std::borrow::Cow;
-use std::hash::Hash;
 use std::iter;
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
-use rspack_util::{json_stringify, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, impl_module_meta_info, property_access,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
@@ -34,7 +32,7 @@ pub enum ExternalRequest {
 
 #[derive(Debug, Clone)]
 pub struct ExternalRequestValue {
-  primary: String,
+  pub primary: String,
   rest: Option<Vec<String>>,
 }
 
@@ -123,16 +121,35 @@ pub struct ExternalModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   id: Identifier,
   pub request: ExternalRequest,
-  external_type: ExternalType,
+  pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  pub user_request: String,
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
+  dependency_meta: DependencyMeta,
+}
+
+#[derive(Debug)]
+pub enum ExternalTypeEnum {
+  Import,
+  Module,
+}
+
+pub type MetaExternalType = Option<ExternalTypeEnum>;
+
+#[derive(Debug)]
+pub struct DependencyMeta {
+  pub external_type: MetaExternalType,
 }
 
 impl ExternalModule {
-  pub fn new(request: ExternalRequest, external_type: ExternalType, user_request: String) -> Self {
+  pub fn new(
+    request: ExternalRequest,
+    external_type: ExternalType,
+    user_request: String,
+    dependency_meta: DependencyMeta,
+  ) -> Self {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
@@ -147,6 +164,7 @@ impl ExternalModule {
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::empty(),
+      dependency_meta,
     }
   }
 
@@ -170,6 +188,7 @@ impl ExternalModule {
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let mut runtime_requirements: RuntimeGlobals = Default::default();
+
     let source = match self.external_type.as_str() {
       "this" if let Some(request) = request => format!(
         "{} = (function() {{ return {}; }}());",
@@ -203,7 +222,7 @@ impl ExternalModule {
                 .to_string(),
               InitFragmentStage::StageHarmonyImports,
               0,
-              InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+              InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
             )
             .boxed(),
@@ -234,52 +253,58 @@ impl ExternalModule {
           to_identifier(id)
         )
       }
-      "import" if let Some(request) = request => format!(
-        "{} = {};",
-        get_namespace_object_export(concatenation_scope),
-        get_source_for_import(request, compilation)
-      ),
+      "module" | "import" | "module-import" if let Some(request) = request => {
+        match self.get_module_import_type(external_type) {
+          "import" => {
+            format!(
+              "{} = {};",
+              get_namespace_object_export(concatenation_scope),
+              get_source_for_import(request, compilation)
+            )
+          }
+          "module" => {
+            if compilation.options.output.module {
+              let id = to_identifier(&request.primary);
+              chunk_init_fragments.push(
+                NormalInitFragment::new(
+                  format!(
+                    "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
+                    id.clone(),
+                    json_stringify(request.primary())
+                  ),
+                  InitFragmentStage::StageHarmonyImports,
+                  0,
+                  InitFragmentKey::ModuleExternal(request.primary().into()),
+                  None,
+                )
+                .boxed(),
+              );
+              format!(
+                r#"
+{} = __WEBPACK_EXTERNAL_MODULE_{}__;
+"#,
+                get_namespace_object_export(concatenation_scope),
+                id.clone()
+              )
+            } else {
+              format!(
+                "{} = {};",
+                get_namespace_object_export(concatenation_scope),
+                get_source_for_import(request, compilation)
+              )
+            }
+          }
+          r#type => panic!(
+            "Unhandled external type: {} in \"module-import\" type",
+            r#type
+          ),
+        }
+      }
       "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope),
         get_source_for_default_case(false, request)
       ),
-      "module" if let Some(request) = request => {
-        if compilation.options.output.module {
-          let id = to_identifier(&request.primary);
-          chunk_init_fragments.push(
-            NormalInitFragment::new(
-              format!(
-                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
-                id.clone(),
-                json_stringify(request.primary())
-              ),
-              InitFragmentStage::StageHarmonyImports,
-              0,
-              InitFragmentKey::ExternalModule(request.primary().into()),
-              None,
-            )
-            .boxed(),
-          );
-          runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-          format!(
-            r#"
-var x = y => {{ var x = {{}}; {}(x, y); return x; }}
-var y = x => () => x
-{} = __WEBPACK_EXTERNAL_MODULE_{}__;
-"#,
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-            get_namespace_object_export(concatenation_scope),
-            id.clone()
-          )
-        } else {
-          format!(
-            "{} = {};",
-            get_namespace_object_export(concatenation_scope),
-            get_source_for_import(request, compilation)
-          )
-        }
-      }
       "script" if let Some(request) = request => {
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
@@ -308,13 +333,29 @@ if(typeof {global} !== "undefined") return resolve();
           load_script = RuntimeGlobals::LOAD_SCRIPT.name()
         )
       }
-      _ => "".to_string(),
+      _ => String::new(),
     };
     Ok((
       RawSource::from(source).boxed(),
       chunk_init_fragments,
       runtime_requirements,
     ))
+  }
+
+  fn get_module_import_type<'a>(&self, external_type: &'a ExternalType) -> &'a str {
+    match external_type.as_str() {
+      "module-import" => {
+        if let Some(external_type) = self.dependency_meta.external_type.as_ref() {
+          match external_type {
+            ExternalTypeEnum::Import => "import",
+            ExternalTypeEnum::Module => "module",
+          }
+        } else {
+          "module"
+        }
+      }
+      import_or_module => import_or_module,
+    }
   }
 }
 
@@ -407,14 +448,12 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
+    let (_, external_type) = self.get_request_and_external_type();
 
     let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       top_level_declarations: Some(FxHashSet::default()),
       strict: true,
       ..Default::default()
@@ -431,12 +470,15 @@ impl Module for ExternalModule {
     match self.external_type.as_str() {
       "this" => build_result.build_info.strict = false,
       "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "script" | "promise" => build_result.build_meta.has_top_level_await = true,
-      "import" => {
-        build_result.build_meta.has_top_level_await = true;
-        build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
-      }
+      "module" | "import" | "module-import" => match self.get_module_import_type(external_type) {
+        "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
+        "import" => {
+          build_result.build_meta.has_top_level_await = true;
+          build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        }
+        _ => {}
+      },
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
     build_result
@@ -448,6 +490,7 @@ impl Module for ExternalModule {
     Ok(build_result)
   }
 
+  #[tracing::instrument(name = "ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -507,21 +550,19 @@ impl Module for ExternalModule {
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     Some(Cow::Borrowed(self.user_request.as_str()))
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    self.id.dyn_hash(hasher);
+    let is_optional = compilation.get_module_graph().is_optional(&self.id);
+    is_optional.dyn_hash(hasher);
+    module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
+  }
 }
 
 impl_empty_diagnosable_trait!(ExternalModule);
-
-impl Hash for ExternalModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__ExternalModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for ExternalModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for ExternalModule {}

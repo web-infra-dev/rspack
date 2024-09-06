@@ -1,7 +1,6 @@
 [
   "faq",
   "glossary",
-  "benchmark",
   {
     "type": "dir",
     "name": "planning",

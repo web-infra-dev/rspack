@@ -7,7 +7,7 @@ class Plugin {
     apply(compiler) {
         compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
 
-            compilation.hooks.finishModules.tap(PLUGIN_NAME, () => {
+            compilation.hooks.seal.tap(PLUGIN_NAME, () => {
                 expect(Array.from(compilation.entries.keys())).toEqual(["main", "foo"]);
 
                 const entry = compilation.entries.get("foo");

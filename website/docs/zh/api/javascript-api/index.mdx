@@ -1,7 +1,7 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import { PackageManagerTabs } from '@theme';
-import { ApiMeta, Stability } from '@components/ApiMeta';
+import { Stability } from '@components/ApiMeta';
 import CompilerType from '../../types/compiler.mdx';
 import WatchingType from '../../types/watching.mdx';
 import StatsType from '../../types/stats.mdx';
@@ -45,6 +45,13 @@ rspack({}, (err, stats) => {
 });
 ```
 
+```ts
+function rspack(
+  options: MultiRspackOptions | RspackOptions,
+  callback?: Callback<Error, MultiStats | Stats>,
+): null | MultiCompiler | Compiler;
+```
+
 :::tip 提示
 `err` 对象**不包含**编译错误，必须使用 `stats.hasErrors()` 单独处理，文档的[错误处理](/api/javascript-api/index#错误处理)将对这部分进行详细介绍。`err` 对象只包含 Rspack 相关的问题，例如配置错误等。
 :::
@@ -64,11 +71,7 @@ rspack({}, (err, stats) => {
 
 `Compiler` 实例上的 `hooks` 属性，用于将一个插件注册到 `Compiler` 的生命周期中的所有钩子事件上。Rspack 使用 [`RspackOptionsApply`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/rspackOptionsApply.ts) 来配置 `Compiler` 实例以及所有内置插件。
 
-使用 `run` 方法启动所有编译工作。完成之后，执行传入的的 `callback` 函数。最终记录下来的概括信息（stats）和错误（errors），都应在这个 callback 函数中获取。
-
-:::warning 警告
-这个 API 一次仅支持一个编译。当使用 `run` 或者 `watch` 时，调用 `close`，并等待它完成后再次执行 `run` 或者 `watch`。并发编译将破坏输出文件。
-:::
+> 关于 Compiler 的更多细节请参考 [Compiler API](/api/javascript-api/compiler)。
 
 <Collapse>
   <CollapsePanel
@@ -82,7 +85,7 @@ rspack({}, (err, stats) => {
 
 ## 执行
 
-调用 `Compiler` 实例的 `run` 方法跟上文提到的快速执行方法很类似：
+使用 `run` 方法启动所有编译工作。完成之后，执行传入的的 `callback` 函数。最终记录下来的概括信息（stats）和错误（errors），都应在这个 callback 函数中获取。
 
 ```js
 import { rspack } from '@rspack/core';
@@ -101,16 +104,12 @@ compiler.run((err, stats) => {
 ```
 
 :::warning 警告
-不要忘记关闭 compiler，这样低优先级的工作（比如持久缓存）就有机会完成。
+该 API 不支持并发编译。当你使用 `run` 或 `watch` 时，请先调用 `close` 并等待其完成，然后再调用 `run` 或 `watch`。并发编译会破坏输出文件。
 :::
 
 ## 监听
 
 调用 `watch` 方法会触发 Rspack 执行，但之后会监听变更（很像 CLI 命令： `rspack --watch`），一旦 Rspack 检测到文件变更，就会重新执行编译。该方法返回一个 `Watching` 实例。
-
-```js
-watch(watchOptions, callback);
-```
 
 ```js
 import { rspack } from '@rspack/core';
@@ -122,13 +121,13 @@ const compiler = rspack({
 const watching = compiler.watch(
   {
     // 示例
-    aggregateTimeout： 300,
-    poll： undefined,
+    aggregateTimeout: 300,
+    poll: undefined,
   },
   (err, stats) => {
     // 这里打印 watch/build 结果...
     console.log(stats);
-  }
+  },
 );
 ```
 
@@ -137,6 +136,8 @@ const watching = compiler.watch(
 :::warning 警告
 文件系统不正确的问题，可能会对单次修改触发多次构建。因此，在上面的示例中，一次修改可能会多次触发 `console.log` 语句。用户应该预知此行为，并且可能需要检查 `stats.hash` 来查看文件哈希是否确实变更。
 :::
+
+> 关于 Watching 的更多细节请参考 [`Compiler.watch`](/api/javascript-api/compiler#watch)。
 
 <Collapse>
   <CollapsePanel
@@ -148,29 +149,7 @@ const watching = compiler.watch(
   </CollapsePanel>
 </Collapse>
 
-## 关闭 `Watching`
-
-`watch` 方法返回一个 `Watching` 实例，该实例会暴露一个 `.close(callback)` 方法。调用该方法将会结束监听：
-
-```js
-watching.close(closeErr => {
-  console.log('Watching Ended.');
-});
-```
-
-:::warning 警告
-不允许在监听器关闭或者失效前再次监听或执行。
-:::
-
-## 无效化 `Watching`
-
-使用 `watching.invalidate`，你可以手动使当前编译轮次无效，而无需停止监控过程：
-
-```js
-watching.invalidate();
-```
-
-## Stats 对象
+## Stats
 
 `stats` 对象会被作为 [`rspack()`](/api/javascript-api/index#rspack) 回调函数的第二个参数传递，可以通过它获取到代码编译过程中的有用信息，包括：
 
@@ -184,76 +163,13 @@ watching.invalidate();
 当使用 `MultiCompiler` 时，会返回一个 `MultiStats` 实例，它实现与 `stats` 相同的接口，也就是下面描述的方法。
 :::
 
+> 关于 Stats 对象更多细节请参考 [Stats API](/api/javascript-api/stats)。
+
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="stats">
     <StatsType />
   </CollapsePanel>
 </Collapse>
-
-`stats` 对象暴露了以下方法：
-
-### stats.hasErrors()
-
-可以用来检查编译期是否有错误，返回值为 `true` 或 `false`。
-
-### stats.hasWarnings()
-
-可以用来检查编译期是否有警告，返回值为 `true` 或 `false`。
-
-### stats.toJson(options)
-
-以 JSON 对象形式返回编译信息。`options` 可以是一个字符串（预设值）或是颗粒化控制的对象：
-
-```js
-stats.toJson('minimal');
-```
-
-```js
-stats.toJson({
-  assets: false,
-  hash: true,
-});
-```
-
-所有可用的配置选项和预设值都可查询 [Stats 配置](/config/stats)，生成的 Stats 对象结构可查询 [Stats 对象](/api/javascript-api/stats-json)。
-
-### stats.toString(options)
-
-以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
-
-配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：
-
-```js
-stats.toString({
-  // 增加控制台颜色开关
-  colors: true,
-});
-```
-
-下面是 `stats.toString()` 用法的示例：
-
-```js
-import { rspack } from '@rspack/core';
-
-rspack(
-  {
-    // ...
-  },
-  (err, stats) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    console.log(
-      stats.toString({
-        chunks: false, // 使构建过程更静默无输出
-        colors: true, // 在控制台展示颜色
-      }),
-    );
-  },
-);
-```
 
 ## MultiCompiler
 
@@ -273,9 +189,7 @@ rspack(
 );
 ```
 
-:::warning 警告
-多个配置对象在执行时，不会并行执行。每个配置都只会在前一个处理结束后，才进行处理。
-:::
+> 关于 MultiCompiler 对象更多细节请参考 [MultiCompiler API](/api/javascript-api/compiler#multicompiler)。
 
 ## 错误处理
 

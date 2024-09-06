@@ -1,13 +1,16 @@
 [package]
-edition = "2021"
-license = "MIT"
-name    = "rspack_collections"
-version = "0.1.0"
-
+description             = "rspack collections"
+documentation.workspace = true
+edition                 = "2021"
+homepage.workspace      = true
+license                 = "MIT"
+name                    = "rspack_collections"
+repository.workspace    = true
+version                 = "0.1.0"
 [dependencies]
 dashmap  = { workspace = true }
 hashlink = { workspace = true }
 indexmap = { workspace = true }
 rayon    = { workspace = true }
-serde    = { workspace = true }
+serde    = { workspace = true, features = ["derive"] }
 ustr     = { workspace = true, features = ["serde"] }

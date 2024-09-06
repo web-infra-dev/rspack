@@ -34,7 +34,11 @@ import {
 } from "../util/comparators";
 import { makePathsRelative, parseResource } from "../util/identifier";
 import type { GroupConfig } from "../util/smartGrouping";
-import type { KnownStatsFactoryContext, StatsFactory } from "./StatsFactory";
+import type {
+	KnownStatsFactoryContext,
+	StatsFactory,
+	StatsFactoryContext
+} from "./StatsFactory";
 import type {
 	KnownStatsAsset,
 	KnownStatsLoggingEntry,
@@ -45,11 +49,13 @@ import type {
 	StatsChunk,
 	StatsChunkOrigin,
 	StatsError,
+	StatsModuleReason,
 	StatsProfile
 } from "./statsFactoryUtils";
 import {
 	assetGroup,
 	countWithChildren,
+	errorsSpaceLimit,
 	iterateConfig,
 	mergeToObject,
 	moduleGroup,
@@ -148,9 +154,9 @@ const ASSETS_GROUPERS: Record<
 			// groupByFlag("comparedForEmit");
 			// groupByFlag("isOverSizeLimit");
 		}
-		// if (groupAssetsByEmitStatus || !options.cachedAssets) {
-		// 	groupByFlag("cached", !options.cachedAssets);
-		// }
+		if (groupAssetsByEmitStatus || !options.cachedAssets) {
+			groupByFlag("cached", !options.cachedAssets);
+		}
 		if (groupAssetsByPath || groupAssetsByExtension) {
 			groupConfigs.push({
 				getKeys: asset => {
@@ -535,15 +541,43 @@ const SORTERS: Record<
 	"chunk.rootModules": MODULES_SORTER,
 	"chunk.modules": MODULES_SORTER,
 	"module.modules": MODULES_SORTER,
-	// not support module.reasons (missing Module.identifier())
+	"module.reasons": {
+		_: comparators => {
+			comparators.push(
+				compareSelect((x: StatsModuleReason) => x.moduleIdentifier, compareIds)
+			);
+			comparators.push(
+				compareSelect(
+					(x: StatsModuleReason) => x.resolvedModuleIdentifier,
+					compareIds
+				)
+			);
+			comparators.push(
+				compareSelect(
+					(x: StatsModuleReason) => x.dependency,
+					compareSelect((x: StatsModuleReason) => x.type, compareIds)
+					// concatComparators(
+					// 	compareSelect(
+					// 		/**
+					// 		 * @param {Dependency} x dependency
+					// 		 * @returns {DependencyLocation} location
+					// 		 */
+					// 		x => x.loc,
+					// 		compareLocations
+					// 	),
+					// 	compareSelect(x => x.type, compareIds)
+					// )
+				)
+			);
+		}
+	},
 	"chunk.origins": {
 		_: comparators => {
 			comparators.push(
-				// compareSelect(
-				// 	origin =>
-				// 		origin.module ? chunkGraph.getModuleId(origin.module) : undefined,
-				// 	compareIds
-				// ),
+				compareSelect(
+					(origin: StatsChunkOrigin) => origin.moduleId,
+					compareIds
+				),
 				compareSelect((origin: JsOriginRecord) => origin.loc, compareIds),
 				compareSelect((origin: JsOriginRecord) => origin.request, compareIds)
 			);
@@ -970,32 +1004,32 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			factory
 		) => {
 			const { type, cachedGetErrors } = context;
-			// const rawErrors = cachedGetErrors!(compilation);
+			const rawErrors = cachedGetErrors!(compilation);
 			const factorizedErrors = factory.create(
 				`${type}.errors`,
 				cachedGetErrors!(compilation),
 				context
 			);
-			// let filtered = 0;
-			// if (options.errorDetails === "auto" && rawErrors.length >= 3) {
-			// 	filtered = rawErrors
-			// 		.map(e => typeof e !== "string" && e.details)
-			// 		.filter(Boolean).length;
-			// }
-			// if (
-			// 	options.errorDetails === true ||
-			// 	!Number.isFinite(options.errorsSpace)
-			// ) {
-			// 	object.errors = factorizedErrors;
-			// 	if (filtered) object.filteredErrorDetailsCount = filtered;
-			// 	return;
-			// }
-			// const [errors, filteredBySpace] = errorsSpaceLimit(
-			// 	factorizedErrors,
-			// 	options.errorsSpace
-			// );
-			// object.filteredErrorDetailsCount = filtered + filteredBySpace;
-			object.errors = factorizedErrors;
+			let filtered = 0;
+			if (options.errorDetails === "auto" && rawErrors.length >= 3) {
+				filtered = rawErrors
+					.map(e => typeof e !== "string" && e.details)
+					.filter(Boolean).length;
+			}
+			if (
+				options.errorDetails === true ||
+				!Number.isFinite(options.errorsSpace)
+			) {
+				object.errors = factorizedErrors;
+				if (filtered) object.filteredErrorDetailsCount = filtered;
+				return;
+			}
+			const { errors, filtered: filteredBySpace } = errorsSpaceLimit(
+				factorizedErrors,
+				options.errorsSpace
+			);
+			object.filteredErrorDetailsCount = filtered + filteredBySpace;
+			object.errors = errors;
 		},
 		errorsCount: (
 			object,
@@ -1019,26 +1053,26 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				cachedGetWarnings!(compilation),
 				context
 			);
-			// let filtered = 0;
-			// if (options.errorDetails === "auto") {
-			// 	filtered = cachedGetWarnings!(compilation)
-			// 		.map(e => typeof e !== "string" && e.details)
-			// 		.filter(Boolean).length;
-			// }
-			// if (
-			// 	options.errorDetails === true ||
-			// 	!Number.isFinite(options.warningsSpace)
-			// ) {
-			// 	object.warnings = rawWarnings;
-			// 	if (filtered) object.filteredWarningDetailsCount = filtered;
-			// 	return;
-			// }
-			// const [warnings, filteredBySpace] = errorsSpaceLimit(
-			// 	rawWarnings,
-			// 	options.warningsSpace
-			// );
-			// object.filteredWarningDetailsCount = filtered + filteredBySpace;
-			object.warnings = rawWarnings;
+			let filtered = 0;
+			if (options.errorDetails === "auto") {
+				filtered = cachedGetWarnings!(compilation)
+					.map(e => typeof e !== "string" && e.details)
+					.filter(Boolean).length;
+			}
+			if (
+				options.errorDetails === true ||
+				!Number.isFinite(options.warningsSpace)
+			) {
+				object.warnings = rawWarnings;
+				if (filtered) object.filteredWarningDetailsCount = filtered;
+				return;
+			}
+			const { errors: warnings, filtered: filteredBySpace } = errorsSpaceLimit(
+				rawWarnings,
+				options.warningsSpace
+			);
+			object.filteredWarningDetailsCount = filtered + filteredBySpace;
+			object.warnings = warnings;
 		},
 		warningsCount: (object, compilation, context: KnownStatsFactoryContext) => {
 			const { cachedGetWarnings } = context;
@@ -1069,11 +1103,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				)
 			};
 			// - comparedForEmit
-			// - cached
-			Object.assign(
-				object,
-				factory.create(`${context.type}$visible`, asset, context)
-			);
+			const cached = !object.emitted;
+			object.cached = cached;
+			if (!cached || options.cachedAssets) {
+				Object.assign(
+					object,
+					factory.create(`${context.type}$visible`, asset, context)
+				);
+			}
 		}
 	},
 	asset$visible: {
@@ -1092,12 +1129,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context
 			);
 			object.filteredRelated = asset.related
-				? asset.related.length - object.related.length
+				? asset.related.length - object.related!.length
 				: undefined;
 		},
 		ids: (object, asset) => {
 			object.chunks = asset.chunks;
 			object.auxiliaryChunks = asset.auxiliaryChunks;
+		},
+		performance: (object, asset) => {
+			object.isOverSizeLimit = asset.info.isOverSizeLimit;
 		}
 	},
 	chunkGroup: {
@@ -1118,7 +1158,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.auxiliaryAssets = chunkGroup.auxiliaryAssets;
 			object.auxiliaryAssetsSize = chunkGroup.auxiliaryAssetsSize;
 			object.children = chunkGroup.children;
-			// - childAssets
+			object.childAssets = chunkGroup.childAssets;
+		},
+		performance: (object, { chunkGroup }) => {
+			object.isOverSizeLimit = chunkGroup.isOverSizeLimit;
 		}
 	},
 	module: {
@@ -1204,12 +1247,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		reasons: (object, module, context, options, factory) => {
 			const { type } = context;
-			object.reasons = factory.create(
+			const groupsReasons = factory.create(
 				`${type.slice(0, -8)}.reasons`,
 				module.commonAttributes.reasons,
 				context
 			);
-			// object.filteredReasons
+			const limited = spaceLimited(groupsReasons, options.reasonsSpace);
+			object.reasons = limited.children;
+			object.filteredReasons = limited.filteredChildren;
 		},
 		source: (object, module) => {
 			const { commonAttributes } = module;
@@ -1279,6 +1324,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			if (module.moduleDescriptor) {
 				object.identifier = module.moduleDescriptor.identifier;
 				object.name = module.moduleDescriptor.name;
+				// - profile
 			}
 		},
 		ids: (object, module) => {
@@ -1293,10 +1339,21 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			object.type = reason.type;
 			object.userRequest = reason.userRequest;
+			if (reason.resolvedModuleDescriptor) {
+				object.resolvedModuleIdentifier =
+					reason.resolvedModuleDescriptor.identifier;
+				object.resolvedModule = reason.resolvedModuleDescriptor.name;
+			}
+			// - explanation
+			// - active
+			// - loc
 		},
 		ids: (object, reason) => {
 			object.moduleId = reason.moduleDescriptor
 				? reason.moduleDescriptor.id
+				: null;
+			object.resolvedModuleId = reason.resolvedModuleDescriptor
+				? reason.resolvedModuleDescriptor.id
 				: null;
 		}
 	},
@@ -1329,28 +1386,40 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		chunkModules: (object, chunk, context, options, factory) => {
 			const { type } = context;
-			object.modules = factory.create(
+			const groupedModules = factory.create(
 				`${type}.modules`,
 				chunk.modules,
 				context
 			);
+			const limited = spaceLimited(groupedModules, options.chunkModulesSpace);
+			object.modules = limited.children;
+			object.filteredModules = limited.filteredChildren;
 		},
 		chunkOrigins: (object, chunk, context, options, factory) => {
-			object.origins = chunk.origins.map<StatsChunkOrigin>(origin => {
-				const { moduleDescriptor, loc, request } = origin;
-				const statsChunkOrigin: StatsChunkOrigin = {
-					module: moduleDescriptor ? moduleDescriptor.identifier : "",
-					moduleIdentifier: moduleDescriptor ? moduleDescriptor.identifier : "",
-					moduleName: moduleDescriptor ? moduleDescriptor.name : "",
-					moduleId: moduleDescriptor ? moduleDescriptor.id : undefined,
-					loc,
-					request
-				};
-				return statsChunkOrigin;
-			});
+			const { type } = context;
+			object.origins = factory.create(
+				`${type}.origins`,
+				chunk.origins,
+				context
+			);
 		}
 	},
-	// chunkOrigin
+	chunkOrigin: {
+		_: (object, origin, context) => {
+			const { moduleDescriptor, loc, request } = origin;
+			const statsChunkOrigin = {
+				module: moduleDescriptor ? moduleDescriptor.identifier : "",
+				moduleIdentifier: moduleDescriptor ? moduleDescriptor.identifier : "",
+				moduleName: moduleDescriptor ? moduleDescriptor.name : "",
+				loc,
+				request
+			};
+			Object.assign(object, statsChunkOrigin);
+		},
+		ids: (object, origin) => {
+			object.moduleId = origin.moduleDescriptor?.id;
+		}
+	},
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
@@ -1369,19 +1438,44 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.moduleId = module.moduleDescriptor.id;
 		}
 	}
-	// moduleTraceDependency
+	// - moduleTraceDependency
 };
 
-/**
- * only support below factories:
- * - compilation
- * - compilation.assets
- * - compilation.assets[].asset
- * - compilation.chunks
- * - compilation.chunks[].chunk
- * - compilation.modules
- * - compilation.modules[].module
- */
+const FILTER: Record<
+	string,
+	Record<
+		string,
+		(
+			thing: any,
+			context: StatsFactoryContext,
+			options: NormalizedStatsOptions
+		) => boolean | undefined
+	>
+> = {
+	"module.reasons": {
+		"!orphanModules": reason => {
+			if (reason.moduleChunks === 0) {
+				return false;
+			}
+		}
+	}
+};
+
+const FILTER_RESULTS: Record<
+	string,
+	Record<
+		string,
+		(
+			thing: Object,
+			context: StatsFactoryContext,
+			options: NormalizedStatsOptions
+		) => boolean | undefined
+	>
+> = {
+	// Deprecated: "compilation.warnings": {}
+	// Keep this object to retain this phase.
+};
+
 export class DefaultStatsFactoryPlugin {
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("DefaultStatsFactoryPlugin", compilation => {
@@ -1396,14 +1490,20 @@ export class DefaultStatsFactoryPlugin {
 								fn(obj, data, ctx, options, stats)
 							);
 					});
-					// not support filter module.reasons.!orphanModules
-					// iterateConfig(FILTER, options, (hookFor, fn) => {
-					// 	stats.hooks.filter
-					// 		.for(hookFor)
-					// 		.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
-					// 			fn(item, ctx, options, idx, i)
-					// 		);
-					// });
+					iterateConfig(FILTER, options, (hookFor, fn) => {
+						stats.hooks.filter
+							.for(hookFor)
+							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
+								fn(item, ctx, options, idx, i)
+							);
+					});
+					iterateConfig(FILTER_RESULTS, options, (hookFor, fn) => {
+						stats.hooks.filterResults
+							.for(hookFor)
+							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
+								fn(item, ctx, options, idx, i)
+							);
+					});
 					iterateConfig(SORTERS, options, (hookFor, fn) => {
 						stats.hooks.sort
 							.for(hookFor)

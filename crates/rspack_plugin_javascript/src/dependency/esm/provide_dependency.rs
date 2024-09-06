@@ -1,12 +1,13 @@
 use itertools::Itertools;
 use rspack_core::{
-  create_exports_object_referenced, module_raw, ExtendedReferencedExport, ModuleGraph,
+  create_exports_object_referenced, module_raw, Compilation, ExtendedReferencedExport, ModuleGraph,
   NormalInitFragment, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ErrorSpan};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
+use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone)]
@@ -60,6 +61,10 @@ impl Dependency for ProvideDependency {
       vec![ExtendedReferencedExport::Array(self.ids.clone())]
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for ProvideDependency {
@@ -91,7 +96,8 @@ impl DependencyTemplate for ProvideDependency {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
     let Some(con) = module_graph.connection_by_dependency(&self.id) else {
-      unreachable!();
+      // not find connection, maybe because it's not resolved in make phase, and `bail` is false
+      return;
     };
     let exports_info = module_graph.get_exports_info(con.module_identifier());
     let used_name =
@@ -111,7 +117,7 @@ impl DependencyTemplate for ProvideDependency {
       ),
       InitFragmentStage::StageProvides,
       1,
-      InitFragmentKey::ExternalModule(format!("provided {}", self.identifier)),
+      InitFragmentKey::ModuleExternal(format!("provided {}", self.identifier)),
       None,
     )));
     source.replace(self.start, self.end, &self.identifier, None);
@@ -119,6 +125,16 @@ impl DependencyTemplate for ProvideDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.identifier.dyn_hash(hasher);
+    self.ids.dyn_hash(hasher);
   }
 }
 

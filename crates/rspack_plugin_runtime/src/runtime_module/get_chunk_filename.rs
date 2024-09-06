@@ -9,7 +9,7 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
   RuntimeModule, SourceType,
 };
-use rspack_util::infallible::ResultInfallibleExt;
+use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
 
 use super::create_fake_chunk;
@@ -221,7 +221,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         Some(hash_len) => format!(
           "\" + {}().slice(0, {}) + \"",
           RuntimeGlobals::GET_FULL_HASH,
-          hash_len
+          itoa!(*hash_len)
         ),
         None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
       };
@@ -292,7 +292,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           Some(hash_len) => format!(
             "\" + {}().slice(0, {}) + \"",
             RuntimeGlobals::GET_FULL_HASH,
-            hash_len
+            itoa!(*hash_len)
           ),
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };

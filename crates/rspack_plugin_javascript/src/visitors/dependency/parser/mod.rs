@@ -415,6 +415,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn set_asi_position(&mut self, pos: BytePos) -> bool {
+    self.semicolons.insert(pos)
+  }
+
   pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {
     self.semicolons.remove(&pos)
   }

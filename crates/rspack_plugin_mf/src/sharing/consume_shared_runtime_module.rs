@@ -50,7 +50,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       let id = compilation
         .chunk_graph
         .get_module_id(module)
-        .clone()
+        .map(|s| s.to_string())
         .expect("should have moduleId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
       ids.push(id.clone());
       let code_gen = compilation

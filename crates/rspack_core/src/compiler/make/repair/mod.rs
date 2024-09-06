@@ -12,6 +12,7 @@ use super::MakeArtifact;
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
+  unaffected_cache::UnaffectedModulesCache,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilerOptions, DependencyType, Module, ModuleFactory,
   ModuleProfile, NormalModuleSource, ResolverFactory, SharedPluginDriver,
@@ -24,6 +25,7 @@ pub struct MakeTaskContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub old_cache: Arc<OldCache>,
+  pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
 
   pub artifact: MakeArtifact,
@@ -37,6 +39,7 @@ impl MakeTaskContext {
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
       old_cache: compilation.old_cache.clone(),
+      unaffected_modules_cache: compilation.unaffected_modules_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       artifact,
     }
@@ -61,6 +64,7 @@ impl MakeTaskContext {
       self.loader_resolver_factory.clone(),
       None,
       self.old_cache.clone(),
+      self.unaffected_modules_cache.clone(),
       None,
       Default::default(),
       Default::default(),

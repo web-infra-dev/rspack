@@ -15,8 +15,10 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			format: {
-				comments: "all"
+			minimizerOptions: {
+				format: {
+					comments: "all"
+				}
 			}
 		})
 	]

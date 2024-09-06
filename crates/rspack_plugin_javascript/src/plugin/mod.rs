@@ -31,9 +31,10 @@ use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_core::{
-  basic_function, render_init_fragments, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId,
-  ConcatenatedModuleIdent, ExportsArgument, Module, RuntimeGlobals, SourceType, SpanExt,
+  basic_function, render_init_fragments, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
+  ChunkRenderContext, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationId, ConcatenatedModuleIdent, ExportsArgument, Module, RuntimeGlobals, SourceType,
+  SpanExt,
 };
 use rspack_core::{BoxModule, IdentCollector};
 use rspack_error::Result;
@@ -387,9 +388,8 @@ impl JsPlugin {
             buf2.push("// This entry module can't be inlined in diff mode".into());
             allow_inline_startup = false;
           }
-          let entry_runtime_requirements = compilation
-            .chunk_graph
-            .get_module_runtime_requirements(*module, &chunk.runtime);
+          let entry_runtime_requirements =
+            ChunkGraph::get_module_runtime_requirements(compilation, *module, &chunk.runtime);
           if allow_inline_startup
             && let Some(entry_runtime_requirements) = entry_runtime_requirements
             && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
@@ -693,9 +693,8 @@ impl JsPlugin {
         chunk_init_fragments.extend(fragments);
         chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().expect("should have build_info").strict;
-        let module_runtime_requirements = compilation
-          .chunk_graph
-          .get_module_runtime_requirements(*m_identifier, &chunk.runtime);
+        let module_runtime_requirements =
+          ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, &chunk.runtime);
         let exports = module_runtime_requirements
           .map(|r| r.contains(RuntimeGlobals::EXPORTS))
           .unwrap_or_default();

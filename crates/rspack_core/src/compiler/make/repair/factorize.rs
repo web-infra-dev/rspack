@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
@@ -115,7 +114,10 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         // Wrap source code if available
         if let Some(s) = self.original_module_source {
-          e = e.with_source_code(s.source().to_string());
+          let has_source_code = e.source_code().is_some();
+          if !has_source_code {
+            e = e.with_source_code(s.source().to_string());
+          }
         }
         // Bail out if `options.bail` set to `true`,
         // which means 'Fail out on the first error instead of tolerating it.'
@@ -204,7 +206,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       context_dependencies,
       missing_dependencies,
       diagnostics,
-      ..
     } = *self;
     let artifact = &mut context.artifact;
     if !diagnostics.is_empty() {

@@ -1,5 +1,5 @@
-function normalizeUrl(urlString: string): string {
-	urlString = urlString.trim();
+function normalizeUrl(url: string): string {
+	const urlString = url.trim();
 
 	if (/^data:/i.test(urlString)) {
 		return urlString;

@@ -1,8 +1,8 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 
-<WebpackLicense from="https://webpack.docschina.org/api/stats/" />
+<WebpackLicense from="https://webpack.js.org/api/stats/" />
 
-# Stats JSON Data
+# Stats JSON
 
 While using Rspack, you can use the following command to generate a JSON file of the statistics module information to analyze the module dependency relationship:
 
@@ -100,6 +100,8 @@ type StatsAsset = {
   };
   // related assets, like source-map
   related: StatsAsset[];
+  // whether the asset exceeds performance.maxAssetSize
+  isOverSizeLimit?: boolean;
 };
 ```
 
@@ -293,6 +295,15 @@ type StatsChunkGroup = {
     // prefetch children chunk groups
     prefetch?: Array<StatsChunkGroup>;
   };
+  // Assets of ordered children chunk groups, order by preload/prefetch
+  children?: {
+    // preload assets
+    preload?: Array<string>;
+    // prefetch assets
+    prefetch?: Array<string>;
+  };
+  // Whether the assets of this entrypoint exceeds performance.maxEntrypointSize
+  isOverSizeLimit?: boolean;
 };
 ```
 

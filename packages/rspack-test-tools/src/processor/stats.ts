@@ -47,9 +47,13 @@ export class StatsProcessor<
 			? instance.compilers
 			: [instance];
 		for (const compiler of compilers) {
+			if (!compiler.inputFileSystem) {
+				continue;
+			}
 			const ifs = compiler.inputFileSystem;
-			compiler.inputFileSystem = Object.create(ifs);
-			compiler.inputFileSystem.readFile = (...args: any[]) => {
+			const inputFileSystem = Object.create(ifs);
+			compiler.inputFileSystem = inputFileSystem;
+			inputFileSystem.readFile = (...args: any[]) => {
 				const callback = args.pop();
 				ifs.readFile.apply(
 					ifs,
@@ -60,7 +64,7 @@ export class StatsProcessor<
 								return callback(null, result);
 							callback(null, escapeEOL(result.toString("utf-8")));
 						}
-					])
+					]) as Parameters<typeof ifs.readFile>
 				);
 			};
 

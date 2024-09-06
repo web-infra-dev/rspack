@@ -1,8 +1,9 @@
 use std::sync::LazyLock;
-use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
+use rspack_core::ChunkGraph;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
@@ -344,41 +345,41 @@ impl PluginCssExtract {
         if let Some(header) = header {
           external_source.add(header);
         }
-        if !module.media.is_empty() {
+        if let Some(media) = &module.media {
           static MEDIA_RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), &module.media);
+          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
           external_source.add(RawSource::from(new_content.to_string() + "\n"));
         } else {
           external_source.add(RawSource::from(content.to_string() + "\n"));
         }
       } else {
+        let mut need_supports = false;
+        let mut need_media = false;
+
         if let Some(header) = header {
           source.add(header);
         }
-        if !module.supports.is_empty() {
-          source.add(RawSource::from(format!(
-            "@supports ({}) {{\n",
-            &module.supports
-          )));
+
+        if let Some(supports) = &module.supports
+          && !supports.is_empty()
+        {
+          need_supports = true;
+          source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
         }
 
-        if !module.media.is_empty() {
-          source.add(RawSource::from(format!("@media {} {{\n", &module.media)));
+        if let Some(media) = &module.media
+          && !media.is_empty()
+        {
+          need_media = true;
+          source.add(RawSource::from(format!("@media {} {{\n", media)));
         }
 
-        // TODO: layer support
+        if let Some(layer) = &module.layer {
+          source.add(RawSource::from(format!("@layer {} {{\n", layer)));
+        }
 
-        let undo_path = get_undo_path(
-          &filename,
-          compilation
-            .options
-            .output
-            .path
-            .to_str()
-            .expect("should have output.path"),
-          false,
-        );
+        let undo_path = get_undo_path(&filename, compilation.options.output.path.as_str(), false);
 
         let content = ABSOLUTE_PUBLIC_PATH_RE.replace_all(&content, "");
         let content = SINGLE_DOT_PATH_SEGMENT_RE.replace_all(&content, ".");
@@ -391,21 +392,27 @@ impl PluginCssExtract {
             .unwrap_or(&undo_path),
         );
 
-        if !module.source_map.is_empty() {
+        if let Some(source_map) = &module.source_map {
           source.add(SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
-            source_map: SourceMap::from_json(&module.source_map).expect("invalid sourcemap"),
+            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
           }))
         } else {
           source.add(RawSource::from(content.to_string()));
         }
 
         source.add(RawSource::from("\n"));
-        if !module.media.is_empty() {
+
+        if need_media {
           source.add(RawSource::from("}\n"));
         }
-        if !module.supports.is_empty() {
+
+        if need_supports {
+          source.add(RawSource::from("}\n"));
+        }
+
+        if module.layer.is_some() {
           source.add(RawSource::from("}\n"));
         }
       }
@@ -533,24 +540,15 @@ async fn content_hash(
   let used_modules =
     rspack_plugin_css::CssPlugin::get_modules_in_order(chunk, rendered_modules, compilation)
       .0
-      .into_iter()
-      .filter_map(|module| module.downcast_ref::<CssModule>());
+      .into_iter();
 
   let mut hasher = hashes
     .entry(SOURCE_TYPE[0])
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   used_modules
-    .map(|m| {
-      m.build_info()
-        .expect("css module built")
-        .hash
-        .as_ref()
-        .expect("css module should have hash")
-    })
-    .for_each(|current| {
-      current.hash(&mut hasher);
-    });
+    .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), &chunk.runtime))
+    .for_each(|current| current.hash(&mut hasher));
 
   Ok(())
 }
@@ -645,7 +643,7 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
             .join("\n")
         ),
       )
-      .with_file(Some(PathBuf::from(render_result.filename())))
+      .with_file(Some(render_result.filename().to_owned().into()))
       .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }

@@ -33,16 +33,17 @@ export default function ({
 		colorSuffix: string
 	): string => {
 		if (str === "") return str;
-		prefix = currentIndent + prefix;
+		const prefixWithIndent = currentIndent + prefix;
+
 		if (colors) {
 			return (
-				prefix +
+				prefixWithIndent +
 				colorPrefix +
 				str.replace(/\n/g, `${colorSuffix}\n${prefix}${colorPrefix}`) +
 				colorSuffix
 			);
 		}
-		return prefix + str.replace(/\n/g, `\n${prefix}`);
+		return prefixWithIndent + str.replace(/\n/g, `\n${prefix}`);
 	};
 
 	const clearStatusMessage = () => {
@@ -138,8 +139,8 @@ export default function ({
 			})) as () => void,
 		status: appendOnly
 			? writeColored("<s> ", "", "")
-			: (name, ...args) => {
-					args = args.filter(Boolean);
+			: (name, ...argsWithEmpty) => {
+					const args = argsWithEmpty.filter(Boolean);
 					if (name === undefined && args.length === 0) {
 						clearStatusMessage();
 						currentStatusMessage = undefined;

@@ -21,7 +21,7 @@ use super::{
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
@@ -79,8 +79,10 @@ fn resolve_matched_configs(
         compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
-      resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());
-      compilation.file_dependencies.insert(resource.path);
+      resolved.insert(resource.path.as_str().to_string(), config.clone());
+      compilation
+        .file_dependencies
+        .insert(resource.path.into_std_path_buf());
     } else if ABSOLUTE_REQUEST.is_match(request) {
       resolved.insert(request.to_owned(), config.clone());
     } else if request.ends_with('/') {
@@ -282,7 +284,7 @@ impl ConsumeSharedPlugin {
           .ok()
       })
       .and_then(|i| match i {
-        ResolveResult::Resource(r) => Some(r.path.to_string_lossy().into_owned()),
+        ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
         ResolveResult::Ignored => None,
       });
     let required_version = self

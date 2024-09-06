@@ -1,21 +1,17 @@
+use std::path::PathBuf;
 use std::sync::LazyLock;
-use std::{
-  borrow::Cow,
-  fs,
-  hash::Hash,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{borrow::Cow, fs, hash::Hash, sync::Arc};
 
 use indoc::formatdoc;
 use itertools::Itertools;
 use regex::{Captures, Regex};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Diagnostic, Result};
-use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_util::itoa;
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -23,14 +19,15 @@ use swc_core::atoms::Atom;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
-  returning_function, to_path, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
-  BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation,
-  ConcatenationScope, ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory,
-  DependencyId, DependencyType, DynamicImportMode, ExportsType, FactoryMeta,
-  FakeNamespaceObjectMode, GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer,
-  ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  module_update_hash, returning_function, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
+  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
+  DependencyType, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType,
+  RealDependencyLocation, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -144,7 +141,7 @@ pub struct ContextOptions {
 #[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
   pub addon: String,
-  pub resource: String,
+  pub resource: Utf8PathBuf,
   pub resource_query: String,
   pub resource_fragment: String,
   pub context_options: ContextOptions,
@@ -172,14 +169,6 @@ pub struct ContextModule {
   build_meta: Option<BuildMeta>,
 }
 
-impl PartialEq for ContextModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier == other.identifier
-  }
-}
-
-impl Eq for ContextModule {}
-
 impl ContextModule {
   pub fn new(options: ContextModuleOptions, resolve_factory: Arc<ResolverFactory>) -> Self {
     Self {
@@ -200,7 +189,6 @@ impl ContextModule {
       .get_module_id(self.identifier)
       .as_ref()
       .expect("module id not found")
-      .as_str()
   }
 
   fn get_fake_map(
@@ -225,8 +213,7 @@ impl ContextModule {
         compilation
           .chunk_graph
           .get_module_id(*m)
-          .clone()
-          .map(|id| (id, dep))
+          .map(|id| (id.to_string(), dep))
       })
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
@@ -269,7 +256,7 @@ impl ContextModule {
 
   fn get_fake_map_init_statement(&self, fake_map: &FakeMapValue) -> String {
     match fake_map {
-      FakeMapValue::Bit(_) => "".to_string(),
+      FakeMapValue::Bit(_) => String::new(),
       FakeMapValue::Map(map) => format!("var fakeMap = {}", json_stringify(map)),
     }
   }
@@ -321,7 +308,8 @@ impl ContextModule {
         });
         let module_id = module_graph
           .module_identifier_by_dependency_id(dep_id)
-          .and_then(|module| compilation.chunk_graph.get_module_id(*module).clone());
+          .and_then(|module| compilation.chunk_graph.get_module_id(*module))
+          .map(|s| s.to_string());
         // module_id could be None in weak mode
         dep.map(|dep| (dep, module_id))
       })
@@ -461,7 +449,7 @@ impl ContextModule {
           })?;
         let module_id = module_graph
           .module_identifier_by_dependency_id(d)
-          .and_then(|m| compilation.chunk_graph.get_module_id(*m).as_ref())?;
+          .and_then(|m| compilation.chunk_graph.get_module_id(*m))?;
         Some((chunks, user_request, module_id.to_string()))
       })
       .collect::<Vec<_>>();
@@ -510,7 +498,7 @@ impl ContextModule {
       format!(
         "{}(ids[{}])",
         RuntimeGlobals::ENSURE_CHUNK,
-        chunks_start_position
+        itoa!(chunks_start_position)
       )
     };
     let return_module_object = self.get_return_module_object_source(
@@ -866,7 +854,7 @@ impl Module for ContextModule {
       id += layer;
       id += ")/";
     }
-    id += &contextify(options.context, &self.options.resource);
+    id += &contextify(options.context, self.options.resource.as_str());
     id.push(' ');
     id.push_str(self.options.context_options.mode.as_str());
     if self.options.context_options.recursive {
@@ -881,19 +869,15 @@ impl Module for ContextModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let (dependencies, blocks) = self.resolve_dependencies()?;
 
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
     let mut context_dependencies: HashSet<PathBuf> = Default::default();
-    context_dependencies.insert(PathBuf::from(&self.options.resource));
+    context_dependencies.insert(self.options.resource.clone().into_std_path_buf());
 
     let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       context_dependencies,
       ..Default::default()
     };
@@ -911,6 +895,7 @@ impl Module for ContextModule {
     })
   }
 
+  #[tracing::instrument(name = "ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -973,6 +958,16 @@ impl Module for ContextModule {
     );
     Ok(code_generation_result)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
+  }
 }
 
 impl_empty_diagnosable_trait!(ContextModule);
@@ -980,13 +975,6 @@ impl_empty_diagnosable_trait!(ContextModule);
 impl Identifiable for ContextModule {
   fn identifier(&self) -> Identifier {
     self.identifier
-  }
-}
-
-impl Hash for ContextModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__ContextModule".hash(state);
-    self.identifier.hash(state);
   }
 }
 
@@ -1000,7 +988,7 @@ static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
 impl ContextModule {
   fn visit_dirs(
     ctx: &str,
-    dir: &Path,
+    dir: &Utf8Path,
     dependencies: &mut Vec<ContextElementDependency>,
     options: &ContextModuleOptions,
     resolve_options: &ResolveInnerOptions,
@@ -1011,11 +999,11 @@ impl ContextModule {
     let include = &options.context_options.include;
     let exclude = &options.context_options.exclude;
     for entry in fs::read_dir(dir).into_diagnostic()? {
-      let path = entry.into_diagnostic()?.path();
-      let path_str = path.to_string_lossy().to_string();
+      let path = entry.into_diagnostic()?.path().assert_utf8();
+      let path_str = path.as_str();
 
       if let Some(exclude) = exclude
-        && exclude.test(&path_str)
+        && exclude.test(path_str)
       {
         // ignore excluded files
         continue;
@@ -1025,15 +1013,12 @@ impl ContextModule {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
         }
-      } else if path
-        .file_name()
-        .map_or(false, |name| name.to_string_lossy().starts_with('.'))
-      {
+      } else if path.file_name().map_or(false, |name| name.starts_with('.')) {
         // ignore hidden files
         continue;
       } else {
         if let Some(include) = include
-          && !include.test(&path_str)
+          && !include.test(path_str)
         {
           // ignore not included files
           continue;
@@ -1041,8 +1026,8 @@ impl ContextModule {
 
         // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
         let relative_path = {
+          let mut path_str = path_str.to_owned();
           let p = path_str
-            .clone()
             .drain(ctx.len()..)
             .collect::<String>()
             .replace('\\', "/");
@@ -1081,7 +1066,7 @@ impl ContextModule {
             layer: options.layer.clone(),
             options: options.context_options.clone(),
             resource_identifier: ContextElementDependency::create_resource_identifier(
-              &options.resource,
+              options.resource.as_str(),
               &path,
               options.context_options.attributes.as_ref(),
             ),
@@ -1109,8 +1094,8 @@ impl ContextModule {
 
     let mut context_element_dependencies = vec![];
     Self::visit_dirs(
+      self.options.resource.as_str(),
       &self.options.resource,
-      Path::new(&self.options.resource),
       &mut context_element_dependencies,
       &self.options,
       &resolver.options(),
@@ -1127,15 +1112,13 @@ impl ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
+      let loc = RealDependencyLocation::new(
+        self.options.context_options.start,
+        self.options.context_options.end,
+      );
       let mut block = AsyncDependenciesBlock::new(
         self.identifier,
-        Some(
-          (
-            self.options.context_options.start,
-            self.options.context_options.end,
-          )
-            .into(),
-        ),
+        Some(DependencyLocation::Real(loc)),
         None,
         context_element_dependencies
           .into_iter()
@@ -1149,6 +1132,7 @@ impl ContextModule {
       blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
+      // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
       for context_element_dependency in context_element_dependencies {
         let group_options = self
           .options
@@ -1202,7 +1186,7 @@ impl ContextModule {
 }
 
 fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  let mut id = String::from(&options.resource);
+  let mut id = options.resource.as_str().to_owned();
   if !options.resource_query.is_empty() {
     id += "|";
     id += &options.resource_query;
@@ -1270,7 +1254,7 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
 
 pub fn normalize_context(str: &str) -> String {
   if str == "./" || str == "." {
-    return "".to_string();
+    return String::new();
   }
   if str.ends_with('/') {
     return str.to_string();

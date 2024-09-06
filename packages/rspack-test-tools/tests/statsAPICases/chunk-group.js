@@ -26,17 +26,18 @@ module.exports = {
 		    "assets": Array [
 		      Object {
 		        "name": "main.js",
-		        "size": 14167,
+		        "size": 14505,
 		      },
 		    ],
-		    "assetsSize": 14167,
+		    "assetsSize": 14505,
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "main.js.map",
-		        "size": 681,
+		        "size": 684,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 681,
+		    "auxiliaryAssetsSize": 684,
+		    "childAssets": Object {},
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -50,10 +51,10 @@ module.exports = {
 		          "auxiliaryAssets": Array [
 		            Object {
 		              "name": "chunk.js.map",
-		              "size": 508,
+		              "size": 514,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 508,
+		          "auxiliaryAssetsSize": 514,
 		          "chunks": Array [
 		            "919",
 		          ],
@@ -65,6 +66,7 @@ module.exports = {
 		      "909",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": false,
 		    "name": "main",
 		  },
 		}
@@ -82,10 +84,18 @@ module.exports = {
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "chunk.js.map",
-		        "size": 508,
+		        "size": 514,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 508,
+		    "auxiliaryAssetsSize": 514,
+		    "childAssets": Object {
+		      "prefetch": Array [
+		        "chunk-b.js",
+		      ],
+		      "preload": Array [
+		        "chunk-b.js",
+		      ],
+		    },
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -141,6 +151,7 @@ module.exports = {
 		      "919",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk",
 		  },
 		  "chunk-a": Object {
@@ -153,11 +164,13 @@ module.exports = {
 		    "assetsSize": 136,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [
 		      "807",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk-a",
 		  },
 		  "chunk-b": Object {
@@ -170,11 +183,13 @@ module.exports = {
 		    "assetsSize": 136,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [
 		      "805",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk-b",
 		  },
 		  "chunk-c": Object {
@@ -187,28 +202,31 @@ module.exports = {
 		    "assetsSize": 136,
 		    "auxiliaryAssets": Array [],
 		    "auxiliaryAssetsSize": 0,
+		    "childAssets": Object {},
 		    "children": Object {},
 		    "chunks": Array [
 		      "212",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": undefined,
 		    "name": "chunk-c",
 		  },
 		  "main": Object {
 		    "assets": Array [
 		      Object {
 		        "name": "main.js",
-		        "size": 14167,
+		        "size": 14505,
 		      },
 		    ],
-		    "assetsSize": 14167,
+		    "assetsSize": 14505,
 		    "auxiliaryAssets": Array [
 		      Object {
 		        "name": "main.js.map",
-		        "size": 681,
+		        "size": 684,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 681,
+		    "auxiliaryAssetsSize": 684,
+		    "childAssets": Object {},
 		    "children": Object {
 		      "prefetch": Array [
 		        Object {
@@ -222,10 +240,10 @@ module.exports = {
 		          "auxiliaryAssets": Array [
 		            Object {
 		              "name": "chunk.js.map",
-		              "size": 508,
+		              "size": 514,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 508,
+		          "auxiliaryAssetsSize": 514,
 		          "chunks": Array [
 		            "919",
 		          ],
@@ -237,6 +255,7 @@ module.exports = {
 		      "909",
 		    ],
 		    "filteredAssets": 0,
+		    "isOverSizeLimit": false,
 		    "name": "main",
 		  },
 		}

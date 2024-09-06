@@ -1,9 +1,10 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_plugin_swc_js_minimizer"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
+description = "rspack swc minifier plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_swc_js_minimizer"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,13 +12,12 @@ version    = "0.1.0"
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_hash = { path = "../rspack_hash" }
-rspack_hook = { path = "../rspack_hook" }
-rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_regex = { path = "../rspack_regex" }
-rspack_util = { path = "../rspack_util" }
+rspack_core = { version = "0.1.0", path = "../rspack_core" }
+rspack_error = { version = "0.1.0", path = "../rspack_error" }
+rspack_hash = { version = "0.1.0", path = "../rspack_hash" }
+rspack_hook = { version = "0.1.0", path = "../rspack_hook" }
+rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascript" }
+rspack_util = { version = "0.1.0", path = "../rspack_util" }
 serde_json = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
@@ -28,7 +28,6 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_optimization",
   "ecma_transforms_module",
   "ecma_transforms_compat",
-  "ecma_transforms_proposal",
   "ecma_transforms_typescript",
   "ecma_quote",
 ] }

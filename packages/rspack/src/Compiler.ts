@@ -21,6 +21,7 @@ import {
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
 import {
+	HtmlRspackPlugin,
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin
 } from "./builtin-plugin";
@@ -63,7 +64,11 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginInstance
 } from "./config";
-import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
+import type {
+	InputFileSystem,
+	OutputFileSystem,
+	WatchFileSystem
+} from "./util/fs";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -122,6 +127,7 @@ class Compiler {
 	};
 
 	webpack: typeof rspack;
+	rspack: typeof rspack;
 	name?: string;
 	parentCompilation?: Compilation;
 	root: Compiler;
@@ -133,7 +139,7 @@ class Compiler {
 	infrastructureLogger: any;
 	watching?: Watching;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	intermediateFileSystem: any;
 	outputFileSystem: OutputFileSystem | null;
 	watchFileSystem: WatchFileSystem | null;
@@ -210,6 +216,7 @@ class Compiler {
 		};
 
 		this.webpack = rspack;
+		this.rspack = rspack;
 		this.root = this;
 		this.outputPath = "";
 
@@ -295,75 +302,81 @@ class Compiler {
 				"Compiler.getInfrastructureLogger(name) called without a name"
 			);
 		}
+
+		let normalizedName = name;
 		return new Logger(
 			(type, args) => {
-				if (typeof name === "function") {
-					name = name();
-					if (!name) {
+				if (typeof normalizedName === "function") {
+					normalizedName = normalizedName();
+					if (!normalizedName) {
 						throw new TypeError(
 							"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
 						);
 					}
 				} else {
 					if (
-						this.hooks.infrastructureLog.call(name, type, args) === undefined
+						this.hooks.infrastructureLog.call(normalizedName, type, args) ===
+						undefined
 					) {
 						if (this.infrastructureLogger !== undefined) {
-							this.infrastructureLogger(name, type, args);
+							this.infrastructureLogger(normalizedName, type, args);
 						}
 					}
 				}
 			},
 			(childName): any => {
-				if (typeof name === "function") {
-					if (typeof childName === "function") {
+				let normalizedChildName = childName;
+				if (typeof normalizedName === "function") {
+					if (typeof normalizedChildName === "function") {
 						// @ts-expect-error
 						return this.getInfrastructureLogger(_ => {
-							if (typeof name === "function") {
-								name = name();
-								if (!name) {
+							if (typeof normalizedName === "function") {
+								normalizedName = normalizedName();
+								if (!normalizedName) {
 									throw new TypeError(
 										"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							if (typeof childName === "function") {
-								childName = childName();
-								if (!childName) {
+							if (typeof normalizedChildName === "function") {
+								normalizedChildName = normalizedChildName();
+								if (!normalizedChildName) {
 									throw new TypeError(
 										"Logger.getChildLogger(name) called with a function not returning a name"
 									);
 								}
 							}
-							return `${name}/${childName}`;
+							return `${normalizedName}/${normalizedChildName}`;
 						});
 					}
 					return this.getInfrastructureLogger(() => {
-						if (typeof name === "function") {
-							name = name();
-							if (!name) {
+						if (typeof normalizedName === "function") {
+							normalizedName = normalizedName();
+							if (!normalizedName) {
 								throw new TypeError(
 									"Compiler.getInfrastructureLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${normalizedName}/${normalizedChildName}`;
 					});
 				}
-				if (typeof childName === "function") {
+				if (typeof normalizedChildName === "function") {
 					return this.getInfrastructureLogger(() => {
-						if (typeof childName === "function") {
-							childName = childName();
-							if (!childName) {
+						if (typeof normalizedChildName === "function") {
+							normalizedChildName = normalizedChildName();
+							if (!normalizedChildName) {
 								throw new TypeError(
 									"Logger.getChildLogger(name) called with a function not returning a name"
 								);
 							}
 						}
-						return `${name}/${childName}`;
+						return `${normalizedName}/${normalizedChildName}`;
 					});
 				}
-				return this.getInfrastructureLogger(`${name}/${childName}`);
+				return this.getInfrastructureLogger(
+					`${normalizedName}/${normalizedChildName}`
+				);
 			}
 		);
 	}
@@ -500,9 +513,7 @@ class Compiler {
 	}
 
 	purgeInputFileSystem() {
-		if (this.inputFileSystem?.purge) {
-			this.inputFileSystem.purge();
-		}
+		this.inputFileSystem?.purge?.();
 	}
 
 	/**
@@ -1004,6 +1015,11 @@ class Compiler {
 				() => this.#compilation!.hooks.afterProcessAssets,
 				queried => () => queried.call(this.#compilation!.assets)
 			),
+			registerCompilationSealTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationSeal,
+				() => this.#compilation!.hooks.seal,
+				queried => () => queried.call()
+			),
 			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterSeal,
 				() => this.#compilation!.hooks.afterSeal,
@@ -1184,6 +1200,92 @@ class Compiler {
 					queried.call(Chunk.__from_binding(chunk, this.#compilation!), hash);
 					const digestResult = hash.digest(this.options.output.hashDigest);
 					return Buffer.from(digestResult);
+				}
+			),
+			registerHtmlPluginBeforeAssetTagGenerationTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.beforeAssetTagGeneration,
+					queried => async (data: binding.JsBeforeAssetTagGenerationData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTags,
+				queried => async (data: binding.JsAlterAssetTagsData) => {
+					return await queried.promise(data);
+				}
+			),
+			registerHtmlPluginAlterAssetTagGroupsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTagGroups,
+				queried => async (data: binding.JsAlterAssetTagGroupsData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterTemplateExecutionTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.afterTemplateExecution,
+					queried => async (data: binding.JsAfterTemplateExecutionData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).beforeEmit,
+				queried => async (data: binding.JsBeforeEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAfterEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).afterEmit,
+				queried => async (data: binding.JsAfterEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
 				}
 			)
 		};

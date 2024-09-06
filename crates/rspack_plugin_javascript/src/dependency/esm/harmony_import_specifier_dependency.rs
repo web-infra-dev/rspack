@@ -1,14 +1,14 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedByExports,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, RealDependencyLocation, ReferencedExport,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
-use rspack_error::{Diagnostic, ErrorLocation};
+use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
@@ -23,8 +23,7 @@ pub struct HarmonyImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  loc: ErrorLocation,
-  span: ErrorSpan,
+  range: RealDependencyLocation,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
@@ -44,8 +43,7 @@ impl HarmonyImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    loc: ErrorLocation,
-    span: ErrorSpan,
+    range: RealDependencyLocation,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
@@ -62,8 +60,7 @@ impl HarmonyImportSpecifierDependency {
       source_order,
       shorthand,
       asi_safe,
-      loc,
-      span,
+      range,
       ids,
       call,
       direct_import,
@@ -144,9 +141,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       // TODO do this by PureExpressionDependency.
       let value = format!("/* \"{}\" unused */null", self.request);
       if self.shorthand {
-        source.insert(self.span.end, &format!(": {value}"), None);
+        source.insert(self.range.end, &format!(": {value}"), None);
       } else {
-        source.replace(self.span.start, self.span.end, &value, None)
+        source.replace(self.range.start, self.range.end, &value, None)
       }
       return;
     }
@@ -203,14 +200,22 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     };
 
     if self.shorthand {
-      source.insert(self.span.end, format!(": {export_expr}").as_str(), None);
+      source.insert(self.range.end, format!(": {export_expr}").as_str(), None);
     } else {
-      source.replace(self.span.start, self.span.end, export_expr.as_str(), None);
+      source.replace(self.range.start, self.range.end, export_expr.as_str(), None);
     }
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 
@@ -219,12 +224,15 @@ impl Dependency for HarmonyImportSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(self.span)
+    Some(rspack_core::ErrorSpan::new(
+      self.range.start,
+      self.range.end,
+    ))
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -265,6 +273,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
+  #[tracing::instrument(skip_all)]
   fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
@@ -326,6 +335,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
       ids.remove(ids.len() - 1);
     }
     self.get_referenced_exports_in_destructuring(Some(&ids))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 

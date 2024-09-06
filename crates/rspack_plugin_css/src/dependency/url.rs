@@ -1,7 +1,8 @@
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, PublicPath, TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleIdentifier, PublicPath, RealDependencyLocation, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -10,25 +11,15 @@ use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
 pub struct CssUrlDependency {
   id: DependencyId,
   request: String,
-  span: Option<ErrorSpan>,
-  start: u32,
-  end: u32,
+  range: RealDependencyLocation,
   replace_function: bool,
 }
 
 impl CssUrlDependency {
-  pub fn new(
-    request: String,
-    span: Option<ErrorSpan>,
-    start: u32,
-    end: u32,
-    replace_function: bool,
-  ) -> Self {
+  pub fn new(request: String, range: RealDependencyLocation, replace_function: bool) -> Self {
     Self {
       request,
-      span,
-      start,
-      end,
+      range,
       id: DependencyId::new(),
       replace_function,
     }
@@ -74,7 +65,11 @@ impl Dependency for CssUrlDependency {
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    self.span
+    Some(ErrorSpan::new(self.range.start, self.range.end))
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -110,12 +105,20 @@ impl DependencyTemplate for CssUrlDependency {
       } else {
         target_url
       };
-      source.replace(self.start, self.end, &content, None);
+      source.replace(self.range.start, self.range.end, &content, None);
     }
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

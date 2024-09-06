@@ -1,0 +1,22 @@
+{
+  "name": "rspack-react-starter",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development rspack serve",
+    "build": "cross-env NODE_ENV=production rspack build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@rspack/plugin-react-refresh": "1.0.0",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "cross-env": "^7.0.3",
+    "react-refresh": "^0.14.0"
+  }
+}

@@ -72,7 +72,7 @@ pub fn get_filename_without_hash_length<F: Clone>(
           Some(m) => m.as_str().parse().ok(),
           None => None,
         } {
-          hash_len_map.insert(key.to_string(), hash_len);
+          hash_len_map.insert((*key).to_string(), hash_len);
         }
         key
       })

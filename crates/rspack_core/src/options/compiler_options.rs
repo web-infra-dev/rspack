@@ -40,4 +40,8 @@ impl CompilerOptions {
   pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
     self.experiments.incremental_rebuild.emit_asset
   }
+
+  pub fn new_incremental_enabled(&self) -> bool {
+    self.experiments.rspack_future.new_incremental
+  }
 }

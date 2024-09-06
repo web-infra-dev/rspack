@@ -249,6 +249,7 @@ export type FeatureOptions = {
 };
 
 export type LoaderOptions = {
+	minify?: boolean;
 	errorRecovery?: boolean;
 	targets?: Targets | string[] | string;
 	include?: FeatureOptions;

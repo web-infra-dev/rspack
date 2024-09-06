@@ -51,6 +51,7 @@ module.exports = {
 		    Object {
 		      "auxiliaryChunkIdHints": Array [],
 		      "auxiliaryChunkNames": Array [],
+		      "cached": false,
 		      "chunkIdHints": Array [],
 		      "chunkNames": Array [],
 		      "emitted": true,
@@ -61,6 +62,7 @@ module.exports = {
 		        "fullhash": Array [],
 		        "hotModuleReplacement": false,
 		        "immutable": false,
+		        "isOverSizeLimit": false,
 		        "javascriptModule": false,
 		        "minimized": true,
 		        "related": Object {},
@@ -72,6 +74,7 @@ module.exports = {
 		    Object {
 		      "auxiliaryChunkIdHints": Array [],
 		      "auxiliaryChunkNames": Array [],
+		      "cached": false,
 		      "chunkIdHints": Array [],
 		      "chunkNames": Array [
 		        "main",
@@ -84,6 +87,7 @@ module.exports = {
 		        "fullhash": Array [],
 		        "hotModuleReplacement": false,
 		        "immutable": false,
+		        "isOverSizeLimit": false,
 		        "javascriptModule": false,
 		        "minimized": true,
 		        "related": Object {},
@@ -104,6 +108,7 @@ module.exports = {
 		        Object {
 		          "auxiliaryChunkIdHints": Array [],
 		          "auxiliaryChunkNames": Array [],
+		          "cached": false,
 		          "chunkIdHints": Array [],
 		          "chunkNames": Array [
 		            "TestChild",

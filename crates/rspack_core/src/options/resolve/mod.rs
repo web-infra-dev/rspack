@@ -1,9 +1,10 @@
 mod clever_merge;
 mod value_type;
 
-use std::{borrow::Cow, path::PathBuf};
+use std::borrow::Cow;
 
 use hashlink::LinkedHashMap;
+use rspack_paths::Utf8PathBuf;
 
 use crate::DependencyCategory;
 
@@ -82,7 +83,7 @@ pub struct Resolve {
   /// Configure resolve options by the type of module request.
   pub by_dependency: Option<ByDependency>,
   /// The JSON files to use for descriptions
-  /// Default is ["package.json"]
+  /// Default is [`package.json`]
   pub description_files: Option<DescriptionFiles>,
   /// If enforce_extension is set to EnforceExtension::Enabled, resolution will not allow extension-less files. This means require('./foo.js') will resolve, while require('./foo') will not.
   pub enforce_extension: Option<EnforceExtension>,
@@ -97,7 +98,7 @@ pub struct TsconfigOptions {
   /// You may provide
   /// * a relative path to the configuration file. It will be resolved relative to cwd.
   /// * an absolute path to the configuration file.
-  pub config_file: PathBuf,
+  pub config_file: Utf8PathBuf,
 
   /// Support for Typescript Project References.
   pub references: TsconfigReferences,
@@ -106,7 +107,7 @@ pub struct TsconfigOptions {
 impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
   fn from(val: TsconfigOptions) -> Self {
     rspack_resolver::TsconfigOptions {
-      config_file: val.config_file,
+      config_file: val.config_file.into(),
       references: val.references.into(),
     }
   }
@@ -119,7 +120,7 @@ pub enum TsconfigReferences {
   /// Use the `references` field from tsconfig read from `config_file`.
   Auto,
   /// Manually provided relative or absolute path.
-  Paths(Vec<PathBuf>),
+  Paths(Vec<Utf8PathBuf>),
 }
 
 impl From<TsconfigReferences> for rspack_resolver::TsconfigReferences {
@@ -127,7 +128,9 @@ impl From<TsconfigReferences> for rspack_resolver::TsconfigReferences {
     match val {
       TsconfigReferences::Disabled => rspack_resolver::TsconfigReferences::Disabled,
       TsconfigReferences::Auto => rspack_resolver::TsconfigReferences::Auto,
-      TsconfigReferences::Paths(paths) => rspack_resolver::TsconfigReferences::Paths(paths),
+      TsconfigReferences::Paths(paths) => {
+        rspack_resolver::TsconfigReferences::Paths(paths.into_iter().map(Into::into).collect())
+      }
     }
   }
 }

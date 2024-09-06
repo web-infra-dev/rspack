@@ -6,17 +6,18 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportInfoProvided,
-  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ImportAttributes,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec,
+  ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RealDependencyLocation, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
-  Diagnostic, DiagnosticExt, ErrorLocation, TraceableError,
+  Diagnostic, DiagnosticExt, TraceableError,
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -40,8 +41,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub export_all: bool,
   pub source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
-  loc: ErrorLocation,
-  span: ErrorSpan,
+  range: RealDependencyLocation,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
@@ -56,8 +56,7 @@ impl HarmonyExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
-    loc: ErrorLocation,
-    span: ErrorSpan,
+    range: RealDependencyLocation,
     export_presence_mode: ExportPresenceMode,
     attributes: Option<ImportAttributes>,
   ) -> Self {
@@ -72,8 +71,7 @@ impl HarmonyExportImportedSpecifierDependency {
       resource_identifier,
       export_all,
       other_star_exports,
-      loc,
-      span,
+      range,
       export_presence_mode,
       attributes,
     }
@@ -956,7 +954,7 @@ impl HarmonyExportImportedSpecifierDependency {
         else {
           continue;
         };
-        if conflicting_module == imported_module {
+        if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
         let Some(conflicting_export_info) =
@@ -1037,6 +1035,14 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
   }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+  }
 }
 
 impl Dependency for HarmonyExportImportedSpecifierDependency {
@@ -1044,12 +1050,12 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<ErrorLocation> {
-    Some(self.loc)
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 
   fn span(&self) -> Option<ErrorSpan> {
-    Some(self.span)
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -1237,6 +1243,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     Some(self.source_order)
   }
 
+  #[tracing::instrument(skip_all)]
   fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
@@ -1331,6 +1338,38 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       }
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
+  }
+}
+
+struct HarmonyExportImportedSpecifierDependencyCondition(DependencyId);
+
+impl DependencyConditionFn for HarmonyExportImportedSpecifierDependencyCondition {
+  fn get_connection_state(
+    &self,
+    _conn: &rspack_core::ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState {
+    let dep = module_graph
+      .dependency_by_id(&self.0)
+      .expect("should have dependency");
+    let down_casted_dep = dep
+      .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+      .expect("should be HarmonyExportImportedSpecifierDependency");
+    let mode = down_casted_dep.get_mode(
+      down_casted_dep.name.clone(),
+      module_graph,
+      &down_casted_dep.id,
+      runtime,
+    );
+    ConnectionState::Bool(!matches!(
+      mode.ty,
+      ExportModeType::Unused | ExportModeType::EmptyStar
+    ))
+  }
 }
 
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
@@ -1357,24 +1396,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::Fn(Arc::new(
-      move |_mc, runtime, module_graph: &ModuleGraph| {
-        let dep = module_graph
-          .dependency_by_id(&id)
-          .expect("should have dependency");
-        let down_casted_dep = dep
-          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-          .expect("should be HarmonyExportImportedSpecifierDependency");
-        let mode = down_casted_dep.get_mode(
-          down_casted_dep.name.clone(),
-          module_graph,
-          &down_casted_dep.id,
-          runtime,
-        );
-        ConnectionState::Bool(!matches!(
-          mode.ty,
-          ExportModeType::Unused | ExportModeType::EmptyStar
-        ))
-      },
+      HarmonyExportImportedSpecifierDependencyCondition(id),
     )))
   }
 }

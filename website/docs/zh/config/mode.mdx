@@ -1,14 +1,16 @@
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
+
+<WebpackLicense from="https://webpack.js.org/configuration/node/" />
+
 # Mode
 
+<PropertyType
+  type="'production' | 'development' | 'none'"
+  defaultValueList={[{ defaultValue: "'production'" }]}
+/>
+
 模式：该选项用于设置 Rspack 的构建模式，以启用对应模式下的默认优化策略。
-
-- **类型：**
-
-```ts
-type Mode = 'production' | 'development' | 'none';
-```
-
-- **默认值：** `'production'`
 
 ## 用法
 

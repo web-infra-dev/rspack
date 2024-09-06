@@ -149,7 +149,7 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
       no_sources,
       public_path: opts.public_path,
       module_filename_template,
-      module: opts.module.unwrap_or(false),
+      module: opts.module.unwrap_or(true),
       source_root: opts.source_root,
       test,
     }

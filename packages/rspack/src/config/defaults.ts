@@ -46,6 +46,7 @@ import type {
 	Optimization,
 	Performance,
 	ResolveOptions,
+	RspackFutureOptions,
 	RuleSetRules,
 	SnapshotOptions
 } from "./zod";
@@ -110,6 +111,11 @@ export const applyRspackOptionsDefaults = (
 		entry: options.entry,
 		futureDefaults: options.experiments.futureDefaults!
 	});
+	// bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
+	applybundlerInfoDefaults(
+		options.experiments.rspackFuture,
+		options.output.library
+	);
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
 		targetProperties
@@ -120,11 +126,14 @@ export const applyRspackOptionsDefaults = (
 		return options.output.library
 			? options.output.library.type
 			: options.output.module
-				? "module"
+				? "module-import"
 				: "var";
 	});
 
-	applyNodeDefaults(options.node, { targetProperties });
+	applyNodeDefaults(options.node, {
+		targetProperties,
+		outputModule: options.output.module
+	});
 
 	applyLoaderDefaults(options.loader, {
 		targetProperties,
@@ -194,16 +203,27 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
+	// rspackFuture.bundlerInfo default value is applied after applyDefaults
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "bundlerInfo", {});
-		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
+		D(experiments.rspackFuture, "newIncremental", false);
+	}
+};
+
+const applybundlerInfoDefaults = (
+	rspackFuture?: RspackFutureOptions,
+	library?: Library
+) => {
+	if (typeof rspackFuture === "object") {
+		D(rspackFuture, "bundlerInfo", {});
+		if (typeof rspackFuture.bundlerInfo === "object") {
 			D(
-				experiments.rspackFuture.bundlerInfo,
+				rspackFuture.bundlerInfo,
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "bundler", "rspack");
-			D(experiments.rspackFuture.bundlerInfo, "force", true);
+			D(rspackFuture.bundlerInfo, "bundler", "rspack");
+			// don't inject for library mode
+			D(rspackFuture.bundlerInfo, "force", !library);
 		}
 	}
 };
@@ -782,7 +802,7 @@ const applyOutputDefaults = (
 		(v === undefined && c) || v;
 
 	F(environment, "globalThis", () => tp?.globalThis);
-	F(environment, "bigIntLiteral", () => tp?.bigIntLiteral);
+	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
 	F(environment, "const", () => tp && optimistic(tp.const));
 	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
 	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
@@ -858,7 +878,10 @@ const applyLoaderDefaults = (
 
 const applyNodeDefaults = (
 	node: Node,
-	{ targetProperties }: { targetProperties: any }
+	{
+		outputModule,
+		targetProperties
+	}: { targetProperties: any; outputModule?: boolean }
 ) => {
 	if (node === false) return;
 
@@ -869,12 +892,14 @@ const applyNodeDefaults = (
 	});
 	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
-		if (targetProperties?.node) return "eval-only";
+		if (targetProperties?.node)
+			return outputModule ? "node-module" : "eval-only";
 		return "warn-mock";
 	});
 	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
-		if (targetProperties?.node) return "eval-only";
+		if (targetProperties?.node)
+			return outputModule ? "node-module" : "eval-only";
 		return "warn-mock";
 	});
 };
@@ -915,11 +940,12 @@ const applyOptimizationDefaults = (
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);
+	D(optimization, "emitOnErrors", !production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	D(optimization, "concatenateModules", production);
-	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
+	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `LightningCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
 		new LightningCssMinimizerRspackPlugin()
@@ -937,7 +963,7 @@ const applyOptimizationDefaults = (
 		);
 		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
-		// D(splitChunks, "usedExports", optimization.usedExports === true);
+		D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
 		// F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));

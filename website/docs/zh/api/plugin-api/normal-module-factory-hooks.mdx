@@ -3,11 +3,35 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory 钩子
 
+`NormalModuleFactory` 被 [Compiler](/api/javascript-api/compiler) 用来生成模块（`NormalModule`）。从每个入口模块（`entry`）开始，它解析模块的依赖请求，得到依赖的最终路径，从而根据最终路径创建 `NormalModule`，并进一步解析新创建出的模块的依赖请求，递归此过程，以此将每个模块通过 `NormalModuleFactory` 创建为 `NormalModule`。
+
+`NormalModuleFactory` 提供以下生命周期钩子。它们可以像 `Compiler` 钩子一样被使用：
+
+```js
+NormalModuleFactory.hooks.someHook.tap(/* ... */);
+```
+
+所有钩子均继承自 `Tapable`，除了 `tap()`，你还可以使用 `tapAsync()` 和 `tapPromise()`，具体取决于钩子的类型。
+
 ## `beforeResolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
 当遇到新的依赖请求时调用。可以通过返回 `false` 来忽略依赖项。否则，应该返回 `undefined` 以继续。
+
+`beforeResolve` 在模块解析过程的最开始阶段触发，用于在模块解析之前，拦截并修改模块的请求信息。通过这个钩子，可以对模块请求进行预处理、过滤或阻止某些模块的解析。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', resolveData => {
+      // 访问和修改模块请求信息
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
 
 <Collapse>
   <CollapsePanel
@@ -23,11 +47,21 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
-:::warning
-目前不支持返回模块实例，返回 `undefined` 以继续。
-:::
+在请求开始解析之前调用，返回 `undefined` 以继续。
 
-在请求开始解析之前调用。
+`factorize` 用于在模块实例化之前插入自定义逻辑，修改模块的创建过程。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.factorize.tap('MyPlugin', resolveData => {
+      // 访问和修改模块请求信息
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
 
 <Collapse>
   <CollapsePanel
@@ -38,16 +72,28 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
     <ResolveDataType />
   </CollapsePanel>
 </Collapse>
+
+:::warning
+目前不支持返回模块实例。这个钩子会影响模块的创建过程，请谨慎使用。
+:::
 
 ## `resolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
-:::warning
-目前不支持返回模块实例和 `false`
-:::
+在请求被解析之前调用，返回 `undefined` 以继续。`resolve` 用于在模块解析开始之前，拦截并修改模块的请求信息。通过这个钩子可以对模块请求进行预处理。
 
-在请求被解析之前调用，返回 `undefined` 以继续。
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.resolve.tap('MyPlugin', resolveData => {
+      // 访问和修改模块请求信息
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
 
 <Collapse>
   <CollapsePanel
@@ -59,11 +105,29 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
   </CollapsePanel>
 </Collapse>
 
+:::warning
+目前不支持返回模块实例和 `false`。
+:::
+
 ## `afterResolve`
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
-在请求被解析后调用。
+在模块的请求被解析后调用。
+
+`afterResolve` 用于在模块解析完成之后，进一步处理或修改模块的解析结果。它在模块解析过程的末尾触发，意味着在这个阶段，模块的路径、请求信息等已经确定。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.afterResolve.tap('MyPlugin', resolveData => {
+      // 访问和修改解析后的模块信息
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
 
 <Collapse>
   <CollapsePanel
@@ -81,14 +145,27 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 在带有 scheme 的解析（URI）请求之前调用。
 
+`resolveForScheme` 通常用于处理具有特定协议的模块请求，例如 `file://`、`https://` 等。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.resolveForScheme.tap('MyPlugin', resourceData => {
+      console.log(JSON.stringify(resourceData, null, 2));
+    });
+  },
+);
+```
+
 <Collapse>
   <CollapsePanel className="collapse-code-panel" header="ResourceDataWithData.ts" key="ResourceDataWithData">
 ```ts
 type ResourceDataWithData = {
-	resource: string;
-	path: string;
-	query?: string;
-	fragment?: string;
+  resource: string;
+  path: string;
+  query?: string;
+  fragment?: string;
   data?: Record<string, any>;
 };
 ```
