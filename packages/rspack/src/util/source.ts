@@ -1,8 +1,6 @@
 import type { JsCompatSource } from "@rspack/binding";
 import { RawSource, Source, SourceMapSource } from "webpack-sources";
 
-import { isNil } from "./index";
-
 class JsSource extends Source {
 	static __from_binding(source: JsCompatSource): Source {
 		if (!source.map) {
@@ -18,22 +16,13 @@ class JsSource extends Source {
 
 	static __to_binding(source: Source) {
 		const sourceSource = source.source();
-		const isBuffer = Buffer.isBuffer(sourceSource);
 
 		if (source instanceof RawSource) {
 			return {
-				source: source.buffer(),
-				isBuffer
+				source: source.buffer()
 			};
 		}
 
-		const buffer =
-			source.buffer?.() ??
-			(isBuffer
-				? sourceSource
-				: sourceSource instanceof ArrayBuffer
-					? Buffer.from(sourceSource)
-					: Buffer.from(sourceSource));
 		const map = JSON.stringify(
 			source.map?.({
 				columns: true
@@ -41,9 +30,8 @@ class JsSource extends Source {
 		);
 
 		return {
-			source: buffer,
-			map: isNil(map) ? map : Buffer.from(map),
-			isBuffer
+			source: sourceSource,
+			map
 		};
 	}
 }
