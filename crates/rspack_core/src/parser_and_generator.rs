@@ -32,7 +32,7 @@ pub struct ParseContext<'a> {
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
 }

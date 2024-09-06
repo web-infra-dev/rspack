@@ -27,11 +27,13 @@ impl PreactRefreshLoader {
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for PreactRefreshLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let content = std::mem::take(&mut loader_context.content).expect("Content should be available");
+    let content = loader_context
+      .take_content()
+      .expect("Content should be available");
     let mut source = content.try_into_string()?;
     source += "\n";
     source += include_str!("runtime.js");
-    loader_context.content = Some(source.into());
+    loader_context.patch(source);
     Ok(())
   }
 }

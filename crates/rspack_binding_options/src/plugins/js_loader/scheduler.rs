@@ -1,7 +1,7 @@
 use napi::Either;
 use rspack_core::{
-  LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding, RunnerContext,
-  BUILTIN_LOADER_PREFIX,
+  AdditionalData, LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding,
+  RunnerContext, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
@@ -46,9 +46,6 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
-  if let Some(data) = &from.additional_data {
-    to.additional_data.insert(data.clone());
-  }
   to.cacheable = from.cacheable;
   to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
   to.context_dependencies = from
@@ -66,16 +63,24 @@ pub(crate) fn merge_loader_context(
     .into_iter()
     .map(Into::into)
     .collect();
-  to.content = match from.content {
+
+  let content = match from.content {
     Either::A(_) => None,
     Either::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
   };
-  to.source_map = from
+  let source_map = from
     .source_map
     .as_ref()
     .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
     .transpose()
     .map_err(|e| error!(e.to_string()))?;
+  let additional_data = from.additional_data.take().map(|data| {
+    let mut additional = AdditionalData::default();
+    additional.insert(data);
+    additional
+  });
+
+  to.patch((content, source_map, additional_data));
 
   // update loader status
   to.loader_items = to

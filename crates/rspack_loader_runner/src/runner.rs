@@ -62,7 +62,6 @@ async fn create_loader_context<Context: 'static>(
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-  additional_data: AdditionalData,
 ) -> Result<LoaderContext<Context>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   if let Some(resource_path) = &resource_data.resource_path
@@ -81,7 +80,7 @@ async fn create_loader_context<Context: 'static>(
     content: None,
     context,
     source_map: None,
-    additional_data,
+    additional_data: None,
     state: State::Init,
     loader_index: 0,
     loader_items,
@@ -102,15 +101,13 @@ pub async fn run_loaders<Context: 'static + Send>(
   resource_data: Arc<ResourceData>,
   plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-  additional_data: AdditionalData,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .into_iter()
     .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
 
-  let mut cx =
-    create_loader_context(loaders, resource_data, plugins, context, additional_data).await?;
+  let mut cx = create_loader_context(loaders, resource_data, plugins, context).await?;
 
   loop {
     match cx.state {
@@ -190,7 +187,7 @@ pub struct LoaderResult {
   pub build_dependencies: HashSet<PathBuf>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
 }
 
 impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {

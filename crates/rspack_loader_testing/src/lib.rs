@@ -10,11 +10,11 @@ pub struct SimpleLoader;
 #[async_trait]
 impl Loader<RunnerContext> for SimpleLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let Some(content) = loader_context.content.take() else {
+    let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
     let export = format!("{}-simple", content.try_into_string()?);
-    loader_context.content = Some(format!("module.exports = {}", json!(export)).into());
+    loader_context.patch(format!("module.exports = {}", json!(export)));
     Ok(())
   }
 }
@@ -29,10 +29,10 @@ pub struct SimpleAsyncLoader;
 #[async_trait]
 impl Loader<RunnerContext> for SimpleAsyncLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let Some(content) = loader_context.content.take() else {
+    let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
-    loader_context.content = Some(format!("{}-async-simple", content.try_into_string()?).into());
+    loader_context.patch(format!("{}-async-simple", content.try_into_string()?));
     Ok(())
   }
 }
@@ -47,15 +47,14 @@ pub struct PitchingLoader;
 #[async_trait]
 impl Loader<RunnerContext> for PitchingLoader {
   async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    loader_context.content = Some(
+    loader_context.patch(
       [
         loader_context
           .remaining_request()
           .display_with_suffix(loader_context.resource()),
         loader_context.previous_request().to_string(),
       ]
-      .join(":")
-      .into(),
+      .join(":"),
     );
     Ok(())
   }

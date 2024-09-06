@@ -31,36 +31,43 @@ impl Debug for CssExtractRspackAdditionalDataPlugin {
 }
 
 #[plugin_hook(NormalModuleAdditionalData for CssExtractRspackAdditionalDataPlugin)]
-async fn additional_data(&self, additional_data: &mut AdditionalData) -> Result<()> {
-  if !additional_data.contains::<ThreadsafeJsValueRef<Unknown>>() {
+async fn additional_data(&self, additional_data: &mut Option<&mut AdditionalData>) -> Result<()> {
+  if !additional_data
+    .as_ref()
+    .is_some_and(|data| data.contains::<ThreadsafeJsValueRef<Unknown>>())
+  {
     return Ok(());
   }
-  let (tx, rx) = oneshot::channel::<AdditionalData>();
-  let mut old_data = std::mem::take(additional_data);
-  self.js_callback.call(Box::new(move |env| {
-    if let Some(data) = old_data.get::<ThreadsafeJsValueRef<Unknown>>()
-      && let Ok(data) = data.get(env)
-      && let Ok(data) = data.coerce_to_object()
-      && let Ok(Some(data)) = data.get::<_, String>("css-extract-rspack-plugin")
-    {
-      let data_list: Vec<rspack_plugin_extract_css::CssExtractJsonData> = data
-        .split("__RSPACK_CSS_EXTRACT_SEP__")
-        .map(|info| {
-          serde_json::from_str(info)
-            .unwrap_or_else(|e| panic!("failed to parse CssExtractJsonData: {}", e))
-        })
-        .collect();
+  if let Some(mut old_data) = additional_data.take().map(|data| std::mem::take(data)) {
+    let (tx, rx) = oneshot::channel::<AdditionalData>();
+    self.js_callback.call(Box::new(move |env| {
+      if let Some(data) = old_data
+        .get::<ThreadsafeJsValueRef<Unknown>>()
+        .and_then(|data| data.get(env).ok())
+        .and_then(|data| data.coerce_to_object().ok())
+        .and_then(|data| data.get::<_, String>("css-extract-rspack-plugin").ok())
+        .flatten()
+      {
+        let data_list: Vec<rspack_plugin_extract_css::CssExtractJsonData> = data
+          .split("__RSPACK_CSS_EXTRACT_SEP__")
+          .map(|info| {
+            serde_json::from_str(info)
+              .unwrap_or_else(|e| panic!("failed to parse CssExtractJsonData: {}", e))
+          })
+          .collect();
 
-      old_data.insert(CssExtractJsonDataList(data_list));
-    };
-    tx.send(old_data)
-      .expect("should send `additional_data` for `CssExtractRspackAdditionalDataPlugin`");
-  }));
-  let new_data = rx
-    .await
-    .expect("should receive `additional_data` for `CssExtractRspackAdditionalDataPlugin`");
-  // ignore the default value here
-  let _ = std::mem::replace(additional_data, new_data);
+        old_data.insert(CssExtractJsonDataList(data_list));
+      };
+      tx.send(old_data)
+        .expect("should send `additional_data` for `CssExtractRspackAdditionalDataPlugin`");
+    }));
+    let new_data = rx
+      .await
+      .expect("should receive `additional_data` for `CssExtractRspackAdditionalDataPlugin`");
+    if let Some(data) = additional_data.as_mut() {
+      let _ = std::mem::replace(*data, new_data);
+    }
+  }
   Ok(())
 }
 
