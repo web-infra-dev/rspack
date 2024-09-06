@@ -63,7 +63,7 @@ export class RspackDevServer extends WebpackDevServer {
     constructor(options: Configuration, compiler: Compiler | MultiCompiler);
     compiler: Compiler | MultiCompiler;
     // (undocumented)
-    static getFreePort(port: string, host: string): Promise<any>;
+    static getFreePort: (port: string, host: string) => Promise<any>;
     // (undocumented)
     initialize(): Promise<void>;
     options: ResolvedDevServer;

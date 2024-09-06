@@ -106,6 +106,28 @@ var status = {
 	currentHash: typeof __webpack_hash__ !== "undefined" ? __webpack_hash__ : ""
 };
 
+var decodeOverlayOptions = function decodeOverlayOptions(overlayOptions) {
+	if (typeof overlayOptions === "object") {
+		["warnings", "errors", "runtimeErrors"].forEach(function (property) {
+			if (typeof overlayOptions[property] === "string") {
+				var overlayFilterFunctionString = decodeURIComponent(
+					overlayOptions[property]
+				);
+
+				// eslint-disable-next-line no-new-func
+				var overlayFilterFunction = new Function(
+					"message",
+					"var callback = ".concat(
+						overlayFilterFunctionString,
+						"\n        return callback(message)"
+					)
+				);
+				overlayOptions[property] = overlayFilterFunction;
+			}
+		});
+	}
+};
+
 /** @type {Options} */
 var options = {
 	hot: false,
@@ -132,6 +154,7 @@ if (parsedResourceQuery.progress === "true") {
 	options.progress = true;
 	enabledFeatures.Progress = true;
 }
+
 if (parsedResourceQuery.overlay) {
 	try {
 		options.overlay = JSON.parse(parsedResourceQuery.overlay);
@@ -149,6 +172,7 @@ if (parsedResourceQuery.overlay) {
 			},
 			options.overlay
 		);
+		decodeOverlayOptions(options.overlay);
 	}
 	enabledFeatures.Overlay = true;
 }
@@ -232,6 +256,7 @@ var onSocketMessage = {
 			return;
 		}
 		options.overlay = value;
+		decodeOverlayOptions(options.overlay);
 	},
 	/**
 	 * @param {number} value
@@ -321,16 +346,22 @@ var onSocketMessage = {
 		for (var i = 0; i < printableWarnings.length; i++) {
 			log.warn(printableWarnings[i]);
 		}
-		var needShowOverlayForWarnings =
+		var overlayWarningsSetting =
 			typeof options.overlay === "boolean"
 				? options.overlay
 				: options.overlay && options.overlay.warnings;
-		if (needShowOverlayForWarnings) {
-			overlay.send({
-				type: "BUILD_ERROR",
-				level: "warning",
-				messages: _warnings
-			});
+		if (overlayWarningsSetting) {
+			var warningsToDisplay =
+				typeof overlayWarningsSetting === "function"
+					? _warnings.filter(overlayWarningsSetting)
+					: _warnings;
+			if (warningsToDisplay.length) {
+				overlay.send({
+					type: "BUILD_ERROR",
+					level: "warning",
+					messages: _warnings
+				});
+			}
 		}
 		if (params && params.preventReloading) {
 			return;
@@ -352,16 +383,22 @@ var onSocketMessage = {
 		for (var i = 0; i < printableErrors.length; i++) {
 			log.error(printableErrors[i]);
 		}
-		var needShowOverlayForErrors =
+		var overlayErrorsSettings =
 			typeof options.overlay === "boolean"
 				? options.overlay
 				: options.overlay && options.overlay.errors;
-		if (needShowOverlayForErrors) {
-			overlay.send({
-				type: "BUILD_ERROR",
-				level: "error",
-				messages: _errors
-			});
+		if (overlayErrorsSettings) {
+			var errorsToDisplay =
+				typeof overlayErrorsSettings === "function"
+					? _errors.filter(overlayErrorsSettings)
+					: _errors;
+			if (errorsToDisplay.length) {
+				overlay.send({
+					type: "BUILD_ERROR",
+					level: "error",
+					messages: _errors
+				});
+			}
 		}
 	},
 	/**
