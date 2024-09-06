@@ -3,13 +3,14 @@ use std::hash::Hash;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   merge_runtime, to_identifier, ApplyContext, ChunkUkey, CodeGenerationExportsFinalNames,
-  Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
-  CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions, LibraryOptions,
-  ModuleIdentifier, Plugin, PluginContext,
+  Compilation, CompilationFinishModules, CompilationOptimizeChunkModules, CompilationParams,
+  CompilerCompilation, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
+  DependenciesBlock, Dependency, LibraryOptions, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_javascript::ModuleConcatenationPlugin;
 use rspack_plugin_javascript::{
   ConcatConfiguration, JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin,
@@ -17,6 +18,7 @@ use rspack_plugin_javascript::{
 };
 use rustc_hash::FxHashSet as HashSet;
 
+use super::modern_module::ModernModuleImportDependency;
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
 const PLUGIN_NAME: &str = "rspack.ModernModuleLibraryPlugin";
@@ -189,6 +191,74 @@ fn render_startup(
   Ok(())
 }
 
+#[plugin_hook(CompilationFinishModules for ModernModuleLibraryPlugin)]
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  let mut mg = compilation.get_module_graph_mut();
+  let modules = mg.modules();
+  let module_ids = modules.keys().cloned().collect::<Vec<_>>();
+
+  for module_id in module_ids {
+    let mut deps_to_replace = Vec::new();
+    let module = mg
+      .module_by_identifier(&module_id)
+      .expect("should have mgm");
+    let connections = mg.get_outgoing_connections(&module_id);
+    let block_ids = module.get_blocks();
+
+    for block_id in block_ids {
+      let block = mg.block_by_id(block_id).expect("should have block");
+      for block_dep_id in block.get_dependencies() {
+        let block_dep = mg.dependency_by_id(block_dep_id);
+        if let Some(block_dep) = block_dep {
+          if let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>() {
+            let import_dep_connection = connections
+              .iter()
+              .find(|c| c.dependency_id == *block_dep_id);
+
+            // Try find the connection with a import dependency pointing to an external module.
+            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
+            if let Some(import_dep_connection) = import_dep_connection {
+              let import_module_id = import_dep_connection.module_identifier();
+              let import_module = mg
+                .module_by_identifier(import_module_id)
+                .expect("should have mgm");
+
+              if let Some(external_module) = import_module.as_external_module() {
+                let new_dep = ModernModuleImportDependency::new(
+                  import_dependency.request.as_str().into(),
+                  external_module.request.clone(),
+                  external_module.external_type.clone(),
+                  import_dependency.range.clone(),
+                  None,
+                );
+
+                deps_to_replace.push((
+                  *block_id,
+                  block_dep.clone(),
+                  new_dep.clone(),
+                  import_dep_connection.id,
+                ));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (block_id, dep, new_dep, connection_id) in deps_to_replace.iter() {
+      let block = mg.block_by_id_mut(block_id).expect("should have block");
+      let dep_id = dep.id();
+      block.remove_dependency_id(*dep_id);
+      let boxed_dep = Box::new(new_dep.clone()) as Box<dyn rspack_core::Dependency>;
+      block.add_dependency_id(*new_dep.id());
+      mg.add_dependency(boxed_dep);
+      mg.revoke_connection(connection_id, true);
+    }
+  }
+
+  Ok(())
+}
+
 #[plugin_hook(JavascriptModulesChunkHash for ModernModuleLibraryPlugin)]
 async fn js_chunk_hash(
   &self,
@@ -256,6 +326,11 @@ impl Plugin for ModernModuleLibraryPlugin {
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
 
     Ok(())
   }

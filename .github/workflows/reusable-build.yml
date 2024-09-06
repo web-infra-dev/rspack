@@ -71,16 +71,11 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
-      - name: Git Clean
+      - name: Clean
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
-        shell: bash
-        run: |
-          git config --system core.longpaths true
-          echo "rm -rf node_modules"
-          rm -rf node_modules
-          echo "git clean -ffdx -e target"
-          git clean -ffdx -e target
-          git reset --hard HEAD
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
@@ -225,16 +220,11 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
-      - name: Git Clean
+      - name: Clean
         if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
-        shell: bash
-        run: |
-          git config --system core.longpaths true
-          echo "rm -rf node_modules"
-          rm -rf node_modules
-          echo "git clean -ffdx -e target"
-          git clean -ffdx -e target
-          git reset --hard HEAD
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact
@@ -282,16 +272,11 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
-      - name: Git Clean
+      - name: Clean
         if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
-        shell: bash
-        run: |
-          git config --system core.longpaths true
-          echo "rm -rf node_modules"
-          rm -rf node_modules
-          echo "git clean -ffdx -e target"
-          git clean -ffdx -e target
-          git reset --hard HEAD
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
 
       - name: Download bindings
         if: ${{ !inputs.skipable }}

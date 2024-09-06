@@ -198,7 +198,11 @@ const context = import.meta.webpackContext('./locales', {
 });
 ```
 
-> 传递给 `import.meta.webpackContext()` 的第一个参数必须是字面量。
+:::tip
+Rspack 在编译时，会通过静态分析来解析 `import.meta.webpackContext()` 的参数，因此参数必须是[字面量](https://developer.mozilla.org/en-US/docs/Glossary/Literal)。
+
+例如，`regExp` 的值不允许传入一个变量，也不允许传入 `new RegExp()` 生成的值，只能是一个正则表达式字面量。
+:::
 
 #### context API
 

@@ -22,6 +22,18 @@ rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash               = { workspace = true }
 serde_json               = { workspace = true }
 tracing                  = { workspace = true }
+swc_core = { workspace = true, features = [
+  "__parser",
+  "__utils",
+  "common_sourcemap",
+  "ecma_preset_env",
+  "ecma_transforms_optimization",
+  "ecma_transforms_module",
+  "ecma_transforms_compat",
+  "ecma_transforms_typescript",
+  "base",
+  "ecma_quote",
+] }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

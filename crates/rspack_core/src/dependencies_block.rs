@@ -187,6 +187,12 @@ impl DependenciesBlock for AsyncDependenciesBlock {
   }
 }
 
+impl AsyncDependenciesBlock {
+  pub fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependency_ids.retain(|dep| dep != &dependency);
+  }
+}
+
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(code(AsyncDependencyToInitialChunkError))]
 #[error("It's not allowed to load an initial chunk on demand. The chunk name \"{0}\" is already used by an entrypoint.")]

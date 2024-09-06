@@ -3,6 +3,7 @@
 mod amd_library_plugin;
 mod assign_library_plugin;
 mod export_property_library_plugin;
+mod modern_module;
 mod modern_module_library_plugin;
 mod module_library_plugin;
 mod system_library_plugin;

@@ -429,7 +429,27 @@ pub fn handle_const_operation(
         None
       }
     }
-    BinaryOp::BitAnd | BinaryOp::BitXor | BinaryOp::BitOr | BinaryOp::LShift | BinaryOp::RShift => {
+    BinaryOp::LShift | BinaryOp::RShift => {
+      if let Some(left_number) = left.as_int()
+        && let Some(right_number) = right.as_int()
+      {
+        // only the lower 5 bits are used when shifting, so don't do anything
+        // if the shift amount is outside [0,32)
+        if (0..32).contains(&right_number) {
+          res.set_number(match expr.op {
+            BinaryOp::LShift => left_number << right_number,
+            BinaryOp::RShift => left_number >> right_number,
+            _ => unreachable!(),
+          } as f64);
+        } else {
+          res.set_number(left_number as f64);
+        }
+        Some(res)
+      } else {
+        None
+      }
+    }
+    BinaryOp::BitAnd | BinaryOp::BitXor | BinaryOp::BitOr => {
       if let Some(left_number) = left.as_int()
         && let Some(right_number) = right.as_int()
       {
@@ -437,8 +457,6 @@ pub fn handle_const_operation(
           BinaryOp::BitAnd => left_number & right_number,
           BinaryOp::BitXor => left_number ^ right_number,
           BinaryOp::BitOr => left_number | right_number,
-          BinaryOp::LShift => left_number << right_number,
-          BinaryOp::RShift => left_number >> right_number,
           _ => unreachable!(),
         } as f64);
         Some(res)
