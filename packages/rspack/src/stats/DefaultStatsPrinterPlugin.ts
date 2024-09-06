@@ -45,7 +45,12 @@ const getResourceName = (resource: string) => {
 };
 
 const getModuleName = (name: string) => {
-	const [, prefix, resource] = /^(.*!)?([^!]*)$/.exec(name) || [];
+	const matchResourceMatch = /^([^!]+)!=!/.exec(name);
+	const n = matchResourceMatch
+		? matchResourceMatch[0] +
+			getResourceName(name.slice(matchResourceMatch[0].length))
+		: name;
+	const [, prefix, resource] = /^(.*!)?([^!]*)$/.exec(n) || [];
 	return [prefix, getResourceName(resource)];
 };
 
