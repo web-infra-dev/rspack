@@ -4,6 +4,7 @@ mod make;
 mod module_executor;
 use std::sync::Arc;
 
+use derivative::Derivative;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
@@ -48,9 +49,11 @@ pub struct CompilerHooks {
   pub asset_emitted: CompilerAssetEmittedHook,
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
+  #[derivative(Debug = "ignore")]
   pub output_filesystem: Box<dyn AsyncWritableFileSystem + Send + Sync>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,

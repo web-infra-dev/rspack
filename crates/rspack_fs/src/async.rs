@@ -1,11 +1,9 @@
-use std::fmt::Debug;
-
 use futures::future::BoxFuture;
 use rspack_paths::Utf8Path;
 
 use crate::Result;
 
-pub trait AsyncWritableFileSystem: Debug {
+pub trait AsyncWritableFileSystem {
   /// Creates a new, empty directory at the provided path.
   ///
   /// NOTE: If a parent of the given path doesn’t exist, this function is supposed to return an error.
