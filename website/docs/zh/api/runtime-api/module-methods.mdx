@@ -323,4 +323,8 @@ const context = require.context('../', true, /\.stories\.js$/);
 const context = require.context('./locales', true, /\.json$/, 'lazy');
 ```
 
-> 传递给 `require.context()` 的参数必须是字面量。
+:::tip
+Rspack 在编译时，会通过静态分析来解析 `require.context` 的参数，因此参数必须是[字面量](https://developer.mozilla.org/en-US/docs/Glossary/Literal)。
+
+例如，`filter` 的值不允许传入一个变量，也不允许传入 `new RegExp()` 生成的值，只能是一个正则表达式字面量。
+:::
