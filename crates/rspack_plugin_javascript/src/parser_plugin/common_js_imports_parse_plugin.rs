@@ -4,12 +4,14 @@ use rspack_core::{
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::Severity;
 use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Ident, Lit, MemberExpr, UnaryExpr};
+use swc_core::ecma::ast::{CallExpr, Expr, Ident, MemberExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::RequireHeaderDependency;
-use crate::dependency::{CommonJsFullRequireDependency, CommonJsRequireContextDependency};
-use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
+use crate::dependency::{
+  CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
+  RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
+  RequireResolveHeaderDependency,
+};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::visitors::{
   context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
@@ -47,23 +49,107 @@ fn create_commonjs_require_context_dependency(
   CommonJsRequireContextDependency::new(options, span.into(), (start, end), parser.in_try)
 }
 
+fn create_require_resolve_context_dependency(
+  parser: &mut JavascriptParser,
+  param: &BasicEvaluatedExpression,
+  expr: &Expr,
+  range: RealDependencyLocation,
+  weak: bool,
+) -> RequireResolveContextDependency {
+  let start = range.start;
+  let end = range.end;
+  let result = create_context_dependency(param, expr, parser);
+  let options = ContextOptions {
+    mode: if weak {
+      ContextMode::Weak
+    } else {
+      ContextMode::Sync
+    },
+    recursive: true,
+    reg_exp: context_reg_exp(&result.reg, "", None, parser),
+    include: None,
+    exclude: None,
+    category: DependencyCategory::CommonJS,
+    request: format!("{}{}{}", result.context, result.query, result.fragment),
+    context: result.context,
+    namespace_object: ContextNameSpaceObject::Unset,
+    group_options: None,
+    replaces: result.replaces,
+    start,
+    end,
+    referenced_exports: None,
+    attributes: None,
+  };
+  RequireResolveContextDependency::new(options, range, parser.in_try)
+}
+
 pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
-  fn add_require_resolve(&self, parser: &mut JavascriptParser, node: &CallExpr, weak: bool) {
-    if !node.args.is_empty()
-      && let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit())
-    {
-      let range: RealDependencyLocation = node.span.into();
+  fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
+    if call_expr.args.len() != 1 {
+      return;
+    }
+
+    let argument_expr = &call_expr.args[0].expr;
+    let param = parser.evaluate_expression(argument_expr);
+    let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
+      call_expr.callee.span().into(),
+    ));
+
+    if param.is_conditional() {
+      for option in param.options() {
+        if !self.process_resolve_item(parser, option, weak) {
+          self.process_resolve_context(parser, option, argument_expr, weak);
+        }
+      }
+      parser.dependencies.push(require_resolve_header_dependency);
+    } else {
+      if !self.process_resolve_item(parser, &param, weak) {
+        self.process_resolve_context(parser, &param, argument_expr, weak);
+      }
+      parser.dependencies.push(require_resolve_header_dependency);
+    }
+  }
+
+  fn process_resolve_item(
+    &self,
+    parser: &mut JavascriptParser,
+    param: &BasicEvaluatedExpression,
+    weak: bool,
+  ) -> bool {
+    if param.is_string() {
       parser
         .dependencies
         .push(Box::new(RequireResolveDependency::new(
-          str.value.to_string(),
-          range,
+          param.string().to_string(),
+          param.range().into(),
           weak,
           parser.in_try,
         )));
+
+      return true;
     }
+
+    false
+  }
+
+  fn process_resolve_context(
+    &self,
+    parser: &mut JavascriptParser,
+    param: &BasicEvaluatedExpression,
+    argument_expr: &Expr,
+    weak: bool,
+  ) {
+    let dep = create_require_resolve_context_dependency(
+      parser,
+      param,
+      argument_expr,
+      param.range().into(),
+      weak,
+    );
+
+    parser.dependencies.push(Box::new(dep));
   }
 
   fn chain_handler(
@@ -369,10 +455,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     {
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE {
-      self.add_require_resolve(parser, call_expr, false);
+      self.process_resolve(parser, call_expr, false);
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE_WEAK {
-      self.add_require_resolve(parser, call_expr, true);
+      self.process_resolve(parser, call_expr, true);
       Some(true)
     } else {
       None

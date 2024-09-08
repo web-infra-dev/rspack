@@ -85,7 +85,7 @@ impl DependencyTemplate for RequireResolveDependency {
   ) {
     source.replace(
       self.range.start,
-      self.range.end,
+      self.range.end - 1,
       module_id(
         code_generatable_context.compilation,
         &self.id,
