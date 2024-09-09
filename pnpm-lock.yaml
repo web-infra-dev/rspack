@@ -16,6 +16,9 @@ importers:
       '@biomejs/biome':
         specifier: 1.8.0
         version: 1.8.0
+      '@jest/reporters':
+        specifier: 29.7.0
+        version: 29.7.0
       '@microsoft/api-extractor':
         specifier: ^7.43.1
         version: 7.43.1(@types/node@20.12.7)

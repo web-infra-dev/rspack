@@ -8,6 +8,10 @@ const config = {
 		"@rspack/test-tools/setup-expect",
 		"@rspack/test-tools/setup-env"
 	],
+	reporters: [
+		["default", null],
+		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: [
