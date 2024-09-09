@@ -207,6 +207,12 @@ exports[`statsOutput statsOutput/logging-loader should print correct stats for 1
 "
 `;
 
+exports[`statsOutput statsOutput/match-resource-data-url should print correct stats for 1`] = `
+"runtime modules 677 bytes 3 modules
+./index.js 150 bytes [built] [code generated]
+./a.js!=!data:javascript,var __looooooooo.. 98 bytes [built] [code generated]"
+`;
+
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
 "ERROR in × JavaScript parsing error: Expected a semicolon
    ╭─[1:8]
