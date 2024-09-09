@@ -2,332 +2,332 @@
 
 exports[`logging should work and do not log messages about hot and live reloading is enabled (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading disabled, Progress disabled, Overlay enabled.",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading disabled, Progress disabled, Overlay enabled.,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and do not log messages about hot and live reloading is enabled (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading disabled, Progress disabled, Overlay enabled.",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading disabled, Progress disabled, Overlay enabled.,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log errors by default (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "[webpack-dev-server] Errors while compiling. Reload prevented.",
-  "[webpack-dev-server] ERROR
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
+  [webpack-dev-server] Errors while compiling. Reload prevented.,
+  [webpack-dev-server] ERROR
   × Error: Error from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:90:43)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log errors by default (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "[webpack-dev-server] Errors while compiling. Reload prevented.",
-  "[webpack-dev-server] ERROR
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
+  [webpack-dev-server] Errors while compiling. Reload prevented.,
+  [webpack-dev-server] ERROR
   × Error: Error from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:90:43)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log message about live reloading is enabled (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log message about live reloading is enabled (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot and live reloading is enabled (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot and live reloading is enabled (sockjs) 2`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot and live reloading is enabled (sockjs) 3`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot and live reloading is enabled (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot and live reloading is enabled (ws) 2`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot and live reloading is enabled (ws) 3`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot is enabled (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading disabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading disabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log messages about hot is enabled (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading disabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading disabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log only error (sockjs) 1`] = `
 [
-  "Hey.",
-  "[webpack-dev-server] Errors while compiling. Reload prevented.",
-  "[webpack-dev-server] ERROR
+  Hey.,
+  [webpack-dev-server] Errors while compiling. Reload prevented.,
+  [webpack-dev-server] ERROR
   × Error: Error from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:143:43)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log only error (ws) 1`] = `
 [
-  "Hey.",
-  "[webpack-dev-server] Errors while compiling. Reload prevented.",
-  "[webpack-dev-server] ERROR
+  Hey.,
+  [webpack-dev-server] Errors while compiling. Reload prevented.,
+  [webpack-dev-server] ERROR
   × Error: Error from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:143:43)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log static changes (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "[webpack-dev-server] "<cwd>/tests/fixtures/client-config/static/foo.txt" from static directory was changed. Reloading...",
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
+  [webpack-dev-server] "<cwd>/tests/fixtures/client-config/static/foo.txt" from static directory was changed. Reloading...,
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log static changes (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "[webpack-dev-server] "<cwd>/tests/fixtures/client-config/static/foo.txt" from static directory was changed. Reloading...",
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
+  [webpack-dev-server] "<cwd>/tests/fixtures/client-config/static/foo.txt" from static directory was changed. Reloading...,
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work and log warning and errors (sockjs) 1`] = `
 [
-  "Hey.",
-  "[webpack-dev-server] Warnings while compiling.",
-  "[webpack-dev-server] WARNING
+  Hey.,
+  [webpack-dev-server] Warnings while compiling.,
+  [webpack-dev-server] WARNING
   ⚠ Error: Warning from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:167:21)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
-  "[webpack-dev-server] Errors while compiling. Reload prevented.",
-  "[webpack-dev-server] ERROR
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
+  [webpack-dev-server] Errors while compiling. Reload prevented.,
+  [webpack-dev-server] ERROR
   × Error: Error from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:169:43)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log warning and errors (ws) 1`] = `
 [
-  "Hey.",
-  "[webpack-dev-server] Warnings while compiling.",
-  "[webpack-dev-server] WARNING
+  Hey.,
+  [webpack-dev-server] Warnings while compiling.,
+  [webpack-dev-server] WARNING
   ⚠ Error: Warning from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:167:21)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
-  "[webpack-dev-server] Errors while compiling. Reload prevented.",
-  "[webpack-dev-server] ERROR
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
+  [webpack-dev-server] Errors while compiling. Reload prevented.,
+  [webpack-dev-server] ERROR
   × Error: Error from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:169:43)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log warnings by default (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "[webpack-dev-server] Warnings while compiling.",
-  "[webpack-dev-server] WARNING
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
+  [webpack-dev-server] Warnings while compiling.,
+  [webpack-dev-server] WARNING
   ⚠ Error: Warning from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:71:21)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work and log warnings by default (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "[webpack-dev-server] Warnings while compiling.",
-  "[webpack-dev-server] WARNING
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
+  [webpack-dev-server] Warnings while compiling.,
+  [webpack-dev-server] WARNING
   ⚠ Error: Warning from compilation
-  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:71:21)
-  │     at SyncHook.callAsyncStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
-  │     at SyncHook.callStageRange (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
-  │     at QueriedHook.call (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
-  │     at /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
-  │     at last.function (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
-",
+  │     at Object.fn (<cwd>/tests/e2e/logging.test.js:<line>:<row>)
+  │     at SyncHook.callAsyncStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at SyncHook.callStageRange (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at QueriedHook.call (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+  │     at <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+  │     at last.function (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "info" (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "info" (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "log" (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "log" (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "none" (sockjs) 1`] = `
 [
-  "Hey.",
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "none" (ws) 1`] = `
 [
-  "Hey.",
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "verbose" (sockjs) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;
 
 exports[`logging should work when the "client.logging" is "verbose" (ws) 1`] = `
 [
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
+  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
+  [HMR] Waiting for update signal from WDS...,
+  Hey.,
 ]
 `;

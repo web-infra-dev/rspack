@@ -383,14 +383,3 @@ exports[`hot and live reload should work with manual client setup and allow to e
 `;
 
 exports[`hot and live reload should work with manual client setup and allow to enable live reload (default): page errors 1`] = `[]`;
-
-exports[`hot disabled HMR plugin should NOT register the HMR plugin before compilation is complete: console messages 1`] = `
-[
-  "[webpack-dev-server] Server started: Hot Module Replacement disabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "Hey.",
-]
-`;
-
-exports[`hot disabled HMR plugin should NOT register the HMR plugin before compilation is complete: page errors 1`] = `[]`;
-
-exports[`hot disabled HMR plugin should NOT register the HMR plugin before compilation is complete: response status 1`] = `200`;

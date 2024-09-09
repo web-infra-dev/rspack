@@ -8,6 +8,7 @@ const HTMLGeneratorPlugin = require("../helpers/html-generator-plugin");
 const config = require("../fixtures/client-config/webpack.config");
 const runBrowser = require("../helpers/run-browser");
 const port = require("../helpers/ports-map").logging;
+require("../helpers/normalize");
 
 describe("logging", () => {
 	const webSocketServers = [
@@ -227,15 +228,7 @@ describe("logging", () => {
 					}
 
 					expect(
-						consoleMessages.map(message =>
-							message
-								.text()
-								.replace(/\\/g, "/")
-								.replace(
-									new RegExp(process.cwd().replace(/\\/g, "/"), "g"),
-									"<cwd>"
-								)
-						)
+						consoleMessages.map(message => message.text().replace(/\\/g, "/"))
 					).toMatchSnapshot();
 				} catch (error) {
 					throw error;
