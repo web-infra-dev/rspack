@@ -1,4 +1,7 @@
-import type { RawCssExtractPluginOption } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawCssExtractPluginOption
+} from "@rspack/binding";
 
 import type { Compiler } from "../..";
 import { MODULE_TYPE } from "./loader";
@@ -53,8 +56,7 @@ export class CssExtractRspackPlugin {
 		}
 
 		compiler.__internal__registerBuiltinPlugin({
-			// @ts-expect-error CssExtractRspackPlugin is a constant value of BuiltinPlugin
-			name: "CssExtractRspackPlugin",
+			name: BuiltinPluginName.CssExtractRspackPlugin,
 			options: this.normalizeOptions(this.options)
 		});
 	}
@@ -112,8 +114,7 @@ export class CssExtractRspackPlugin {
 							JSON.stringify(k),
 							JSON.stringify(options.attributes![k as string])
 						])
-						.reduce((obj, [k, v]) => {
-							// @ts-expect-error
+						.reduce((obj: Record<string, string>, [k, v]) => {
 							obj[k] = v;
 							return obj;
 						}, {}) as Record<string, string>)

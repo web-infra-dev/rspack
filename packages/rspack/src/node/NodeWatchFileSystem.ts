@@ -38,7 +38,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		startTime: number,
 		options: Watchpack.WatchOptions,
 		callback: (
-			error: Error,
+			error: Error | null,
 			fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
 			contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
 			changedFiles: Set<string>,
@@ -101,7 +101,6 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			const { fileTimeInfoEntries, contextTimeInfoEntries } = fetchTimeInfo();
 
 			callback(
-				// @ts-expect-error
 				null,
 				fileTimeInfoEntries,
 				contextTimeInfoEntries,
@@ -119,8 +118,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			close: () => {
 				if (this.watcher) {
 					this.watcher.close();
-					// @ts-expect-error
-					this.watcher = null;
+					this.watcher = null as any;
 				}
 			},
 			pause: () => {

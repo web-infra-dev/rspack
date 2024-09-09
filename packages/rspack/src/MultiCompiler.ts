@@ -205,7 +205,8 @@ export class MultiCompiler {
 	validateDependencies(
 		callback: liteTapable.Callback<Error, MultiStats>
 	): boolean {
-		const edges = new Set<{ source: Compiler; target: Compiler }>();
+		type Edge = { source: Compiler; target: Compiler };
+		const edges = new Set<Edge>();
 		const missing: string[] = [];
 		const targetFound = (compiler: Compiler) => {
 			for (const edge of edges) {
@@ -215,11 +216,10 @@ export class MultiCompiler {
 			}
 			return false;
 		};
-		// @ts-expect-error
-		const sortEdges = (e1, e2) => {
+		const sortEdges = (e1: Edge, e2: Edge) => {
 			return (
-				e1.source.name.localeCompare(e2.source.name) ||
-				e1.target.name.localeCompare(e2.target.name)
+				e1.source.name!.localeCompare(e2.source.name!) ||
+				e1.target.name!.localeCompare(e2.target.name!)
 			);
 		};
 		for (const source of this.compilers) {
@@ -238,8 +238,9 @@ export class MultiCompiler {
 				}
 			}
 		}
-		/** @type {string[]} */
-		const errors = missing.map(m => `Compiler dependency \`${m}\` not found.`);
+		const errors: string[] = missing.map(
+			m => `Compiler dependency \`${m}\` not found.`
+		);
 		const stack = this.compilers.filter(c => !targetFound(c));
 		while (stack.length > 0) {
 			const current = stack.pop();
@@ -254,8 +255,7 @@ export class MultiCompiler {
 			}
 		}
 		if (edges.size > 0) {
-			/** @type {string[]} */
-			const lines = Array.from(edges)
+			const lines: string[] = Array.from(edges)
 				.sort(sortEdges)
 				.map(edge => `${edge.source.name} -> ${edge.target.name}`);
 			lines.unshift("Circular dependency found in compiler dependencies.");
@@ -292,8 +292,6 @@ export class MultiCompiler {
 		) => void,
 		callback: liteTapable.Callback<Error, MultiStats>
 	): SetupResult[] {
-		/** @typedef {{ compiler: Compiler, setupResult: SetupResult, result: Stats, state: "pending" | "blocked" | "queued" | "starting" | "running" | "running-outdated" | "done", children: Node[], parents: Node[] }} Node */
-
 		// State transitions for nodes:
 		// -> blocked (initial)
 		// blocked -> starting [running++] (when all parents done)
@@ -336,13 +334,12 @@ export class MultiCompiler {
 		let errored = false;
 		let running = 0;
 		const parallelism = this._options.parallelism!;
-		/**
-		 * @param {Node} node node
-		 * @param {Error=} err error
-		 * @param {Stats=} stats result
-		 * @returns {void}
-		 */
-		const nodeDone = (node: Node<SetupResult>, err: Error, stats: Stats) => {
+
+		const nodeDone = (
+			node: Node<SetupResult>,
+			err: Error,
+			stats: Stats
+		): void => {
 			if (errored) return;
 			if (err) {
 				errored = true;
@@ -375,7 +372,7 @@ export class MultiCompiler {
 		 * @param {Node} node node
 		 * @returns {void}
 		 */
-		const nodeInvalidFromParent = (node: Node<SetupResult>) => {
+		const nodeInvalidFromParent = (node: Node<SetupResult>): void => {
 			if (node.state === "done") {
 				node.state = "blocked";
 			} else if (node.state === "running") {
@@ -389,7 +386,7 @@ export class MultiCompiler {
 		 * @param {Node} node node
 		 * @returns {void}
 		 */
-		const nodeInvalid = (node: Node<SetupResult>) => {
+		const nodeInvalid = (node: Node<SetupResult>): void => {
 			if (node.state === "done") {
 				node.state = "pending";
 			} else if (node.state === "running") {
@@ -403,8 +400,7 @@ export class MultiCompiler {
 		 * @param {Node} node node
 		 * @returns {void}
 		 */
-		// @ts-expect-error
-		const nodeChange = node => {
+		const nodeChange = (node: Node<SetupResult>): void => {
 			nodeInvalid(node);
 			if (node.state === "pending") {
 				node.state = "blocked";
@@ -421,8 +417,7 @@ export class MultiCompiler {
 				(node.setupResult = setup(
 					node.compiler,
 					i,
-					// @ts-expect-error
-					nodeDone.bind(null, node),
+					nodeDone.bind(null, node) as liteTapable.Callback<Error, Stats>,
 					() => node.state !== "starting" && node.state !== "running",
 					() => nodeChange(node),
 					() => nodeInvalid(node)
@@ -445,8 +440,11 @@ export class MultiCompiler {
 				) {
 					running++;
 					node.state = "starting";
-					// @ts-expect-error
-					run(node.compiler, node.setupResult!, nodeDone.bind(null, node));
+					run(
+						node.compiler,
+						node.setupResult!,
+						nodeDone.bind(null, node) as liteTapable.Callback<Error, Stats>
+					);
 					node.state = "running";
 				}
 			}
@@ -489,18 +487,15 @@ export class MultiCompiler {
 
 		if (this.validateDependencies(handler)) {
 			const watchings = this.#runGraph(
-				// @ts-expect-error
-				(compiler: Compiler, idx, done, isBlocked, setChanged, setInvalid) => {
-					const watching = compiler.watch(
-						// @ts-expect-error
-						Array.isArray(watchOptions) ? watchOptions[idx] : watchOptions,
-						// @ts-expect-error
-						done
+				(compiler, idx, done, isBlocked, setChanged, setInvalid) => {
+					const watching = compiler!.watch(
+						Array.isArray(watchOptions) ? watchOptions[idx!] : watchOptions,
+						done!
 					);
 					if (watching) {
-						watching.onInvalid = setInvalid;
-						watching.onChange = setChanged;
-						watching.isBlocked = isBlocked;
+						watching.onInvalid = setInvalid!;
+						watching.onChange = setChanged!;
+						watching.isBlocked = isBlocked!;
 					}
 					return watching;
 				},
@@ -510,7 +505,6 @@ export class MultiCompiler {
 				},
 				handler
 			);
-			// @ts-expect-error
 			return new MultiWatching(watchings, this);
 		}
 
@@ -550,8 +544,9 @@ export class MultiCompiler {
 			(compiler, cb) => {
 				compiler.close(cb);
 			},
-			// @ts-expect-error
-			callback
+			// cannot be resolved without any
+			// Type 'Error | null | undefined' is not assignable to type 'Error | null'
+			callback as (err: Error | null | undefined) => void
 		);
 	}
 }

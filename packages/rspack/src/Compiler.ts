@@ -62,7 +62,8 @@ import type {
 	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
-	RspackPluginInstance
+	RspackPluginInstance,
+	WatchOptions
 } from "./config";
 import type {
 	InputFileSystem,
@@ -328,8 +329,7 @@ class Compiler {
 				let normalizedChildName = childName;
 				if (typeof normalizedName === "function") {
 					if (typeof normalizedChildName === "function") {
-						// @ts-expect-error
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger(() => {
 							if (typeof normalizedName === "function") {
 								normalizedName = normalizedName();
 								if (!normalizedName) {
@@ -391,13 +391,14 @@ class Compiler {
 		handler: liteTapable.Callback<Error, Stats>
 	): Watching {
 		if (this.running) {
-			// @ts-expect-error
-			return handler(new ConcurrentCompilationError());
+			// cannot be resolved without any
+			// copy from webpack
+			// Type 'void' is not assignable to type 'Watching'.
+			return handler(new ConcurrentCompilationError()) as any;
 		}
 		this.running = true;
 		this.watchMode = true;
-		// @ts-expect-error
-		this.watching = new Watching(this, watchOptions, handler);
+		this.watching = new Watching(this, watchOptions as WatchOptions, handler);
 		return this.watching;
 	}
 
@@ -411,8 +412,7 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
-			// @ts-expect-error
-			const finalCallback = (err, stats?) => {
+			const finalCallback = (err: Error | null, stats?: Stats) => {
 				this.idle = true;
 				this.cache.beginIdle();
 				this.idle = true;
@@ -423,7 +423,7 @@ class Compiler {
 				if (callback) {
 					callback(err, stats);
 				}
-				this.hooks.afterDone.call(stats);
+				this.hooks.afterDone.call(stats!);
 			};
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {

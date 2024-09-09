@@ -90,8 +90,7 @@ export const compareChunkGroupsByIndex = (
 	a: ChunkGroup,
 	b: ChunkGroup
 ): -1 | 0 | 1 => {
-	//@ts-expect-error copy from webpack
-	return a.index < b.index ? -1 : 1;
+	return a.index! < b.index! ? -1 : 1;
 };
 
 const compareSelectCache: TwoKeyWeakMap<
