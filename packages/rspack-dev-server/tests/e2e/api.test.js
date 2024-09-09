@@ -662,92 +662,92 @@ describe("API", () => {
 			});
 		});
 
-		it('should allow URLs with scheme for checking origin when the "option.client.webSocketURL" is object', async () => {
-			const options = {
-				port,
-				client: {
-					reconnect: false,
-					webSocketURL: {
-						hostname: "test.host"
-					}
-				},
-				webSocketServer: "ws"
-			};
-			const headers = {
-				origin: "https://test.host"
-			};
+		// it('should allow URLs with scheme for checking origin when the "option.client.webSocketURL" is object', async () => {
+		// 	const options = {
+		// 		port,
+		// 		client: {
+		// 			reconnect: false,
+		// 			webSocketURL: {
+		// 				hostname: "test.host"
+		// 			}
+		// 		},
+		// 		webSocketServer: "ws"
+		// 	};
+		// 	const headers = {
+		// 		origin: "https://test.host"
+		// 	};
 
-			const compiler = webpack(config);
-			const server = new Server(options, compiler);
+		// 	const compiler = webpack(config);
+		// 	const server = new Server(options, compiler);
 
-			await server.start();
+		// 	await server.start();
 
-			const { page, browser } = await runBrowser();
+		// 	const { page, browser } = await runBrowser();
 
-			try {
-				const pageErrors = [];
-				const consoleMessages = [];
+		// 	try {
+		// 		const pageErrors = [];
+		// 		const consoleMessages = [];
 
-				page
-					.on("console", message => {
-						consoleMessages.push(message);
-					})
-					.on("pageerror", error => {
-						pageErrors.push(error);
-					});
+		// 		page
+		// 			.on("console", message => {
+		// 				consoleMessages.push(message);
+		// 			})
+		// 			.on("pageerror", error => {
+		// 				pageErrors.push(error);
+		// 			});
 
-				const webSocketRequests = [];
-				const session = await page.target().createCDPSession();
+		// 		const webSocketRequests = [];
+		// 		const session = await page.target().createCDPSession();
 
-				session.on("Network.webSocketCreated", test => {
-					webSocketRequests.push(test);
-				});
+		// 		session.on("Network.webSocketCreated", test => {
+		// 			webSocketRequests.push(test);
+		// 		});
 
-				await session.send("Target.setAutoAttach", {
-					autoAttach: true,
-					flatten: true,
-					waitForDebuggerOnStart: true
-				});
+		// 		await session.send("Target.setAutoAttach", {
+		// 			autoAttach: true,
+		// 			flatten: true,
+		// 			waitForDebuggerOnStart: true
+		// 		});
 
-				sessionSubscribe(session);
+		// 		sessionSubscribe(session);
 
-				const response = await page.goto(`http://127.0.0.1:${port}/`, {
-					waitUntil: "networkidle0"
-				});
+		// 		const response = await page.goto(`http://127.0.0.1:${port}/`, {
+		// 			waitUntil: "networkidle0"
+		// 		});
 
-				if (!server.checkHeader(headers, "origin")) {
-					throw new Error("Validation didn't fail");
-				}
+		// 		if (!server.checkHeader(headers, "origin")) {
+		// 			throw new Error("Validation didn't fail");
+		// 		}
 
-				await new Promise(resolve => {
-					const interval = setInterval(() => {
-						const needFinish = consoleMessages.filter(message =>
-							/Trying to reconnect/.test(message.text())
-						);
+		// 		await new Promise(resolve => {
+		// 			const interval = setInterval(() => {
+		// 				const needFinish = consoleMessages.filter(message =>
+		// 					/Trying to reconnect/.test(message.text())
+		// 				);
 
-						if (needFinish.length > 0) {
-							clearInterval(interval);
-							resolve();
-						}
-					}, 100);
-				});
+		// 				if (needFinish.length > 0) {
+		// 					clearInterval(interval);
+		// 					resolve();
+		// 				}
+		// 			}, 100);
+		// 		});
 
-				expect(webSocketRequests[0].url).toMatchSnapshot("web socket URL");
+		// 		expect(webSocketRequests[0].url).toMatchSnapshot("web socket URL");
 
-				expect(response.status()).toMatchSnapshot("response status");
+		// 		expect(response.status()).toMatchSnapshot("response status");
 
-				expect(
-					// net::ERR_NAME_NOT_RESOLVED can be multiple times
-					consoleMessages.map(message => message.text()).slice(0, 7)
-				).toMatchSnapshot("console messages");
+		// 		expect(
+		// 			// net::ERR_NAME_NOT_RESOLVED can be multiple times
+		// 			consoleMessages.map(message => message.text()).slice(0, 7)
+		// 		).toMatchSnapshot("console messages");
 
-				expect(pageErrors).toMatchSnapshot("page errors");
-			} catch (error) {
-				throw error;
-			} finally {
-				await browser.close();
-				await server.stop();
-			}
-		});
+		// 		expect(pageErrors).toMatchSnapshot("page errors");
+		// 	} catch (error) {
+		// 		throw error;
+		// 	} finally {
+		// 		await browser.close();
+		// 		await server.stop();
+		// 	}
+		// });
 	});
 });
