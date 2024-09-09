@@ -9,6 +9,7 @@ const config = require("../fixtures/overlay-config/webpack.config");
 const trustedTypesConfig = require("../fixtures/overlay-config/trusted-types.webpack.config");
 const runBrowser = require("../helpers/run-browser");
 const port = require("../helpers/ports-map").overlay;
+require("../helpers/normalize");
 
 class ErrorPlugin {
 	constructor(message, skipCounter) {

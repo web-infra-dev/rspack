@@ -1,39 +1,39 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`overlay should not show a warning when "client.overlay" is "false": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show a warning when "client.overlay.warnings" is "false": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show an error when "client.overlay" is "false": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show an error when "client.overlay.errors" is "false": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error and allow to close: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -117,27 +117,27 @@ exports[`overlay should not show initially, then show on an error and allow to c
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error and allow to close: page html after close 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error and allow to close: page html initial 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error and allow to close: page html with error 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -154,11 +154,11 @@ exports[`overlay should not show initially, then show on an error and allow to c
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then hide on fix: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -242,27 +242,27 @@ exports[`overlay should not show initially, then show on an error, then hide on 
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then hide on fix: page html after fix error 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then hide on fix: page html initial 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then hide on fix: page html with error 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -279,11 +279,11 @@ exports[`overlay should not show initially, then show on an error, then hide on 
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then show other error, then hide on fix: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -367,11 +367,11 @@ exports[`overlay should not show initially, then show on an error, then show oth
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then show other error, then hide on fix: overlay html 2`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -455,27 +455,27 @@ exports[`overlay should not show initially, then show on an error, then show oth
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then show other error, then hide on fix: page html after fix error 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then show other error, then hide on fix: page html initial 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then show other error, then hide on fix: page html with error 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -492,11 +492,11 @@ exports[`overlay should not show initially, then show on an error, then show oth
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should not show initially, then show on an error, then show other error, then hide on fix: page html with other error 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -513,11 +513,11 @@ exports[`overlay should not show initially, then show on an error, then show oth
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning after invalidation: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -592,27 +592,27 @@ exports[`overlay should show a warning after invalidation: overlay html 1`] = `
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning after invalidation: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -629,11 +629,11 @@ exports[`overlay should show a warning after invalidation: page html 1`] = `
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and error for initial compilation and protects against xss: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -708,17 +708,17 @@ exports[`overlay should show a warning and error for initial compilation and pro
           "
         >
           ⚠ Error: &lt;strong&gt;strong&lt;/strong&gt; │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
       <div
@@ -746,27 +746,27 @@ exports[`overlay should show a warning and error for initial compilation and pro
           "
         >
           × Error: &lt;strong&gt;strong&lt;/strong&gt; │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and error for initial compilation and protects against xss: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -783,11 +783,11 @@ exports[`overlay should show a warning and error for initial compilation and pro
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and error for initial compilation: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -862,17 +862,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
       <div
@@ -900,17 +900,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
       <div
@@ -939,17 +939,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
       <div
@@ -978,17 +978,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
       <div
@@ -1017,27 +1017,27 @@ exports[`overlay should show a warning and error for initial compilation: overla
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and error for initial compilation: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1054,11 +1054,11 @@ exports[`overlay should show a warning and error for initial compilation: page h
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and hide them after closing connection: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1133,27 +1133,27 @@ exports[`overlay should show a warning and hide them after closing connection: o
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and hide them after closing connection: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1170,19 +1170,19 @@ exports[`overlay should show a warning and hide them after closing connection: p
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning and hide them after closing connection: page html 2`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning for initial compilation: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1257,27 +1257,27 @@ exports[`overlay should show a warning for initial compilation: overlay html 1`]
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning for initial compilation: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1294,11 +1294,11 @@ exports[`overlay should show a warning for initial compilation: page html 1`] = 
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning when "client.overlay" is "true": overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1373,27 +1373,27 @@ exports[`overlay should show a warning when "client.overlay" is "true": overlay 
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning when "client.overlay" is "true": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1410,11 +1410,11 @@ exports[`overlay should show a warning when "client.overlay" is "true": page htm
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning when "client.overlay.errors" is "true": overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1489,27 +1489,27 @@ exports[`overlay should show a warning when "client.overlay.errors" is "true": o
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning when "client.overlay.errors" is "true": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1526,11 +1526,11 @@ exports[`overlay should show a warning when "client.overlay.errors" is "true": p
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning when "client.overlay.warnings" is "true": overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1605,27 +1605,27 @@ exports[`overlay should show a warning when "client.overlay.warnings" is "true":
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show a warning when "client.overlay.warnings" is "true": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1642,11 +1642,11 @@ exports[`overlay should show a warning when "client.overlay.warnings" is "true":
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show an ansi formatted error for initial compilation: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1741,28 +1741,28 @@ exports[`overlay should show an ansi formatted error for initial compilation: ov
             "
           >
             │ at Object.fn
-            (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+            (<cwd>/tests/e2e/overlay.test.js:33:31)
             │ at SyncHook.callAsyncStageRange
-            (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
             │ at SyncHook.callStageRange
-            (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
             │ at QueriedHook.call
-            (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
             │ at
-            /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+            <root>/packages/rspack/dist/Compiler.js:570:21
             │ at last.function
-            (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+            (<root>/packages/rspack/dist/Compiler.js:862:28)
           </span>
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show an ansi formatted error for initial compilation: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1779,11 +1779,11 @@ exports[`overlay should show an ansi formatted error for initial compilation: pa
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error after invalidation: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1858,27 +1858,27 @@ exports[`overlay should show an error after invalidation: overlay html 1`] = `
           "
         >
           × Error: Error from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error after invalidation: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -1895,11 +1895,11 @@ exports[`overlay should show an error after invalidation: page html 1`] = `
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error for initial compilation: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -1975,27 +1975,27 @@ exports[`overlay should show an error for initial compilation: overlay html 1`] 
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error for initial compilation: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2012,11 +2012,11 @@ exports[`overlay should show an error for initial compilation: page html 1`] = `
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error when "client.overlay" is "true": overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2092,27 +2092,27 @@ exports[`overlay should show an error when "client.overlay" is "true": overlay h
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error when "client.overlay" is "true": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2129,11 +2129,11 @@ exports[`overlay should show an error when "client.overlay" is "true": page html
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error when "client.overlay.errors" is "true": overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2209,27 +2209,27 @@ exports[`overlay should show an error when "client.overlay.errors" is "true": ov
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error when "client.overlay.errors" is "true": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2246,11 +2246,11 @@ exports[`overlay should show an error when "client.overlay.errors" is "true": pa
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error when "client.overlay.warnings" is "true": overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2325,27 +2325,27 @@ exports[`overlay should show an error when "client.overlay.warnings" is "true": 
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show an error when "client.overlay.warnings" is "true": page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2362,11 +2362,11 @@ exports[`overlay should show an error when "client.overlay.warnings" is "true": 
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show error for uncaught promise rejection: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2446,11 +2446,11 @@ exports[`overlay should show error for uncaught promise rejection: overlay html 
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show error for uncaught runtime error: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2531,11 +2531,11 @@ exports[`overlay should show error for uncaught runtime error: overlay html 1`] 
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show error when it is not filtered: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2610,27 +2610,27 @@ exports[`overlay should show error when it is not filtered: overlay html 1`] = `
           "
         >
           × Error: Unfiltered error │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show error when it is not filtered: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2647,11 +2647,11 @@ exports[`overlay should show error when it is not filtered: page html 1`] = `
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show overlay when "Content-Security-Policy" is "default-src 'self'" was used: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2727,27 +2727,27 @@ exports[`overlay should show overlay when "Content-Security-Policy" is "default-
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:34:33)
+          (<cwd>/tests/e2e/overlay.test.js:33:31)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show overlay when "Content-Security-Policy" is "default-src 'self'" was used: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2764,11 +2764,11 @@ exports[`overlay should show overlay when "Content-Security-Policy" is "default-
     "
   ></iframe>
 </body>
-"
+
 `;
 
 exports[`overlay should show warning when it is not filtered: overlay html 1`] = `
-"<body>
+<body>
   <div
     id="webpack-dev-server-client-overlay-div"
     style="
@@ -2843,27 +2843,27 @@ exports[`overlay should show warning when it is not filtered: overlay html 1`] =
           "
         >
           ⚠ Error: Unfiltered warning │ at Object.fn
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack-dev-server/tests/e2e/overlay.test.js:60:35)
+          (<cwd>/tests/e2e/overlay.test.js:58:35)
           │ at SyncHook.callAsyncStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
           │ at SyncHook.callStageRange
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
           │ at QueriedHook.call
-          (/Users/bytedance/rspack-dev/rspack/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
           │ at
-          /Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:570:21
           │ at last.function
-          (/Users/bytedance/rspack-dev/rspack/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:862:28)
         </div>
       </div>
     </div>
   </div>
 </body>
-"
+
 `;
 
 exports[`overlay should show warning when it is not filtered: page html 1`] = `
-"<body>
+<body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>
 
@@ -2880,5 +2880,5 @@ exports[`overlay should show warning when it is not filtered: page html 1`] = `
     "
   ></iframe>
 </body>
-"
+
 `;
