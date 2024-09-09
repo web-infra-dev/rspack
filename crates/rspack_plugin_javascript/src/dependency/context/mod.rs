@@ -102,7 +102,7 @@ fn context_dependency_template_as_id(
     .module_graph_module_by_dependency_id(id)
     .is_none()
   {
-    source.replace(range.start, range.end - 1, &expr, None);
+    source.replace(range.start, range.end, &expr, None);
     return;
   }
 
@@ -116,5 +116,5 @@ fn context_dependency_template_as_id(
     &format!("{}.resolve(", &expr),
     None,
   );
-  source.replace(range.end - 1, range.end - 1, ")", None);
+  source.replace(range.end, range.end, ")", None);
 }

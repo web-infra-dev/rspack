@@ -119,11 +119,12 @@ impl CommonJsImportsParserPlugin {
     weak: bool,
   ) -> bool {
     if param.is_string() {
+      let (start, end) = param.range();
       parser
         .dependencies
         .push(Box::new(RequireResolveDependency::new(
           param.string().to_string(),
-          param.range().into(),
+          (start, end - 1).into(),
           weak,
           parser.in_try,
         )));
@@ -141,11 +142,12 @@ impl CommonJsImportsParserPlugin {
     argument_expr: &Expr,
     weak: bool,
   ) {
+    let (start, end) = param.range();
     let dep = create_require_resolve_context_dependency(
       parser,
       param,
       argument_expr,
-      param.range().into(),
+      (start, end - 1).into(),
       weak,
     );
 
