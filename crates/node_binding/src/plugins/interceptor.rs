@@ -1558,6 +1558,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
             Some(r) => Some(r.try_into()?),
             None => None,
           },
+          recursive: todo!(),
         };
         Ok(AfterResolveResult::Data(Box::new(data)))
       }

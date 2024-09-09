@@ -3388,6 +3388,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_context_replacement"
+version = "0.1.0"
+dependencies = [
+ "dashmap 5.5.3",
+ "derivative",
+ "futures",
+ "glob",
+ "lazy_static",
+ "pathdiff",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_futures",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_regex",
+ "rspack_util",
+ "rustc-hash 1.1.0",
+ "sugar_path",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_copy"
 version = "0.1.0"
 dependencies = [

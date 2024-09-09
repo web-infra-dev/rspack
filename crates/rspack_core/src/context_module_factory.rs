@@ -32,6 +32,8 @@ pub struct BeforeResolveData {
   // context_dependencies
   // create_data
   // cacheable
+  pub recursive: bool,
+  pub reg_exp: Option<RspackRegex>,
 }
 
 #[derive(Clone)]
@@ -52,7 +54,7 @@ pub struct AfterResolveData {
   // context_dependencies: HashSet<String>,
   pub request: String,
   // mode
-  // recursive: bool,
+  pub recursive: bool,
   pub reg_exp: Option<RspackRegex>,
   // namespace_object
   // addon: String,
@@ -118,9 +120,18 @@ impl ContextModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
+    let dependency = data
+      .dependency
+      .as_context_dependency()
+      .expect("should be context dependency");
+
+    let dependency_options = dependency.options();
+
     let before_resolve_data = BeforeResolveData {
       context: data.context.to_string(),
       request: data.request().map(|r| r.to_string()),
+      recursive: dependency_options.recursive,
+      reg_exp: dependency_options.reg_exp.clone(),
     };
 
     match self
@@ -286,6 +297,7 @@ impl ContextModuleFactory {
       context: context_options.context.clone(),
       request: context_options.request.clone(),
       reg_exp: context_options.reg_exp.clone(),
+      recursive: context_options.recursive,
     };
 
     match self
