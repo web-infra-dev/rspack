@@ -316,10 +316,49 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
 
-      - name: Run test
-        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
+      - name: Install llvm-tools-preview
+        run: rustup component add llvm-tools-preview
+      - uses: cargo-bins/cargo-binstall@v1.10.2
+      - run: cargo binstall --no-confirm cargo-llvm-cov
 
+      - name: Run test coverage
+        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
+        # equal to cargo test
+        run: cargo llvm-cov --workspace --exclude rspack_binding_options --exclude rspack_node --lcov --output-path lcov.info
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codecov
+          path: lcov.info
+
+  # codecov often fails, use another workflow for retry
+  rust_test_codecov_upload:
+    name: Rust Test Coverage Upload
+    needs: [rust_changes, rust_test]
+    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
+    # Check if the event is not triggered by a fork by checking whether CODECOV_TOKEN is set
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - name: Checkout
+        if: env.CODECOV_TOKEN
+        uses: actions/checkout@v4
+
+      - name: Download coverage file
+        if: env.CODECOV_TOKEN
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: codecov
+
+      - name: Upload to codecov.io
+        if: env.CODECOV_TOKEN
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          files: lcov.info
   run_benchmark:
     name: Run benchmark
     runs-on: ubuntu-latest
