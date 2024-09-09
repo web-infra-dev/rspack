@@ -204,7 +204,11 @@ const HtmlRspackPluginImpl = create(
 		}
 
 		const rawTemplateParameters = c.templateParameters;
-		let templateParameters;
+		let templateParameters:
+			| boolean
+			| Record<string, any>
+			| ((params: string) => Promise<string>)
+			| undefined;
 		if (typeof rawTemplateParameters === "function") {
 			templateParameters = async (data: string) => {
 				const newData = await rawTemplateParameters(JSON.parse(data));

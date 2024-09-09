@@ -67,7 +67,7 @@ export const getter = (
 	obj: HashableObject,
 	hashFunction: string | HashConstructor = "md4"
 ): LazyHashedEtag => {
-	let innerMap;
+	let innerMap: WeakMap<HashableObject, LazyHashedEtag> | undefined;
 	if (typeof hashFunction === "string") {
 		innerMap = mapStrings.get(hashFunction);
 		if (innerMap === undefined) {

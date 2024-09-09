@@ -147,8 +147,8 @@ export default function ansiHTML(text: string) {
 				this.splice(0, count);
 			}
 		});
-		let seq;
 		let rep = "";
+		let seq: string;
 		while ((seq = match[0])) {
 			match.advance(1);
 			rep += applySeq(seq);

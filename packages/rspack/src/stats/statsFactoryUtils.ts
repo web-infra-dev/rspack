@@ -476,7 +476,7 @@ export const spaceLimited = (
 		if (limit < max) {
 			// calculate how much we are over the size limit
 			// this allows to approach the limit faster
-			let oversize;
+			let oversize: number;
 			// If each group would take 1 line the total would be below the maximum
 			// collapse some groups, keep items
 			while (
