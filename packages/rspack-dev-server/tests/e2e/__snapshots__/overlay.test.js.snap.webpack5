@@ -592,17 +592,17 @@ exports[`overlay should show a warning after invalidation: overlay html 1`] = `
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -708,17 +708,17 @@ exports[`overlay should show a warning and error for initial compilation and pro
           "
         >
           ⚠ Error: &lt;strong&gt;strong&lt;/strong&gt; │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
       <div
@@ -746,17 +746,17 @@ exports[`overlay should show a warning and error for initial compilation and pro
           "
         >
           × Error: &lt;strong&gt;strong&lt;/strong&gt; │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -862,17 +862,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
       <div
@@ -900,17 +900,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
       <div
@@ -939,17 +939,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
       <div
@@ -978,17 +978,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
       <div
@@ -1017,17 +1017,17 @@ exports[`overlay should show a warning and error for initial compilation: overla
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1133,17 +1133,17 @@ exports[`overlay should show a warning and hide them after closing connection: o
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1257,17 +1257,17 @@ exports[`overlay should show a warning for initial compilation: overlay html 1`]
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1373,17 +1373,17 @@ exports[`overlay should show a warning when "client.overlay" is "true": overlay 
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1489,17 +1489,17 @@ exports[`overlay should show a warning when "client.overlay.errors" is "true": o
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1605,17 +1605,17 @@ exports[`overlay should show a warning when "client.overlay.warnings" is "true":
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1741,17 +1741,17 @@ exports[`overlay should show an ansi formatted error for initial compilation: ov
             "
           >
             │ at Object.fn
-            (<cwd>/tests/e2e/overlay.test.js:33:31)
+            (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
             │ at SyncHook.callAsyncStageRange
-            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
             │ at SyncHook.callStageRange
-            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
             │ at QueriedHook.call
-            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+            (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
             │ at
-            <root>/packages/rspack/dist/Compiler.js:570:21
+            <root>/packages/rspack/dist/Compiler.js:<line>:<row>
             │ at last.function
-            (<root>/packages/rspack/dist/Compiler.js:862:28)
+            (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
           </span>
         </div>
       </div>
@@ -1858,17 +1858,17 @@ exports[`overlay should show an error after invalidation: overlay html 1`] = `
           "
         >
           × Error: Error from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -1975,17 +1975,17 @@ exports[`overlay should show an error for initial compilation: overlay html 1`] 
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -2092,17 +2092,17 @@ exports[`overlay should show an error when "client.overlay" is "true": overlay h
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -2209,17 +2209,17 @@ exports[`overlay should show an error when "client.overlay.errors" is "true": ov
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -2325,17 +2325,17 @@ exports[`overlay should show an error when "client.overlay.warnings" is "true": 
           "
         >
           ⚠ Error: Warning from compilation │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -2440,7 +2440,7 @@ exports[`overlay should show error for uncaught promise rejection: overlay html 
             font-family: Menlo, Consolas, monospace;
           "
         >
-          Async error at &lt;anonymous&gt;:3:26
+          Async error at &lt;anonymous&gt;:<line>:<row>
         </div>
       </div>
     </div>
@@ -2524,8 +2524,8 @@ exports[`overlay should show error for uncaught runtime error: overlay html 1`] 
             font-family: Menlo, Consolas, monospace;
           "
         >
-          Injected error at throwError (&lt;anonymous&gt;:2:15) at
-          &lt;anonymous&gt;:3:9
+          Injected error at throwError (&lt;anonymous&gt;:<line>:<row>) at
+          &lt;anonymous&gt;:<line>:<row>
         </div>
       </div>
     </div>
@@ -2610,17 +2610,17 @@ exports[`overlay should show error when it is not filtered: overlay html 1`] = `
           "
         >
           × Error: Unfiltered error │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -2727,17 +2727,17 @@ exports[`overlay should show overlay when "Content-Security-Policy" is "default-
         >
           × Error: Error from compilation. Can't find 'test' module. │ at
           Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:33:31)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>
@@ -2843,17 +2843,17 @@ exports[`overlay should show warning when it is not filtered: overlay html 1`] =
           "
         >
           ⚠ Error: Unfiltered warning │ at Object.fn
-          (<cwd>/tests/e2e/overlay.test.js:58:35)
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
           │ at SyncHook.callAsyncStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:240:21)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at SyncHook.callStageRange
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:259:14)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at QueriedHook.call
-          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:218:26)
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
           │ at
-          <root>/packages/rspack/dist/Compiler.js:570:21
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
           │ at last.function
-          (<root>/packages/rspack/dist/Compiler.js:862:28)
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
         </div>
       </div>
     </div>

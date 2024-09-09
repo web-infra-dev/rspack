@@ -31,6 +31,7 @@ const normalize = str => {
 		);
 	}
 	normalizedStr = normalizedStr.split(ROOT).join("<root>");
+	normalizedStr = normalizedStr.replace(/:\d+:\d+/g, ":<line>:<row>");
 	normalizedStr = normalizedStr.replace(
 		/@@ -\d+,\d+ \+\d+,\d+ @@/g,
 		"@@ ... @@"
