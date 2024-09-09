@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.0",
+    "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "^7.43.1",
     "@microsoft/api-extractor-model": "^7.28.14",
     "@rspack/cli": "workspace:*",
