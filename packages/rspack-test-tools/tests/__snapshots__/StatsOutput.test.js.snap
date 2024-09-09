@@ -482,7 +482,7 @@ exports[`statsOutput statsOutput/try-require-resolve-module should print correct
    ╭─[2:20]
  1 │ try {
  2 │     require.resolve('./missing-module')
-   ·                     ───────────────────
+   ·                     ──────────────────
  3 │ } catch (e) {
  4 │ 
    ╰────
@@ -496,7 +496,7 @@ exports[`statsOutput statsOutput/try-require-resolve-weak-module should print co
    ╭─[2:24]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')
-   ·                         ───────────────────
+   ·                         ──────────────────
  3 │ } catch (e) {
  4 │ 
    ╰────
