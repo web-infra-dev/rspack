@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
-use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
@@ -12,10 +11,7 @@ use crate::{
   fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
-impl<T> Compiler<T>
-where
-  T: AsyncWritableFileSystem + Send + Sync,
-{
+impl Compiler {
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,

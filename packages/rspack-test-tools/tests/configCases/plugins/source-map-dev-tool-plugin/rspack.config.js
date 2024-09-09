@@ -19,6 +19,15 @@ module.exports = {
 		}),
 		new rspack.DefinePlugin({
 			CONTEXT: JSON.stringify(__dirname)
-		})
+		}),
+		compiler => {
+			compiler.hooks.compilation.tap("PLUGIN", compilation => {
+				compilation.hooks.afterProcessAssets.tap("PLUGIN", assets => {
+					for (const asset of Object.values(assets)) {
+						expect(typeof asset.source()).toBe("string");
+					}
+				});
+			});
+		}
 	]
 };
