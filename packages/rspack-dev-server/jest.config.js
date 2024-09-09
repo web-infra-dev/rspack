@@ -12,7 +12,7 @@ const config = {
 		"<rootDir>/tests/e2e/host.test.js",
 		// TODO: not support progress plugin event yet
 		"<rootDir>/tests/e2e/progress.test.js",
-		// TODO: check why this test throw erro when run with other tests
+		// TODO: check why this test throw error when run with other tests
 		"<rootDir>/tests/e2e/watch-files.test.js"
 	],
 	cache: false,
