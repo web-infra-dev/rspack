@@ -14,7 +14,7 @@ impl Loader<RunnerContext> for SimpleLoader {
       return Ok(());
     };
     let export = format!("{}-simple", content.try_into_string()?);
-    loader_context.patch(format!("module.exports = {}", json!(export)));
+    loader_context.finish_with(format!("module.exports = {}", json!(export)));
     Ok(())
   }
 }
@@ -32,7 +32,7 @@ impl Loader<RunnerContext> for SimpleAsyncLoader {
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
-    loader_context.patch(format!("{}-async-simple", content.try_into_string()?));
+    loader_context.finish_with(format!("{}-async-simple", content.try_into_string()?));
     Ok(())
   }
 }
@@ -47,7 +47,7 @@ pub struct PitchingLoader;
 #[async_trait]
 impl Loader<RunnerContext> for PitchingLoader {
   async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    loader_context.patch(
+    loader_context.finish_with(
       [
         loader_context
           .remaining_request()
@@ -65,3 +65,35 @@ impl Identifiable for PitchingLoader {
   }
 }
 pub const PITCHING_LOADER_IDENTIFIER: &str = "builtin:test-pitching-loader";
+
+pub struct PassthroughLoader;
+#[async_trait]
+impl Loader<RunnerContext> for PassthroughLoader {
+  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    let patch_data = loader_context.take_all();
+    loader_context.finish_with(patch_data);
+    Ok(())
+  }
+}
+impl Identifiable for PassthroughLoader {
+  fn identifier(&self) -> Identifier {
+    PASS_THROUGH_LOADER_IDENTIFIER.into()
+  }
+}
+pub const PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-passthrough-loader";
+
+pub struct NoPassthroughLoader;
+#[async_trait]
+impl Loader<RunnerContext> for NoPassthroughLoader {
+  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    let (content, _, _) = loader_context.take_all();
+    loader_context.finish_with(content);
+    Ok(())
+  }
+}
+impl Identifiable for NoPassthroughLoader {
+  fn identifier(&self) -> Identifier {
+    NO_PASS_THROUGH_LOADER_IDENTIFIER.into()
+  }
+}
+pub const NO_PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-no-passthrough-loader";

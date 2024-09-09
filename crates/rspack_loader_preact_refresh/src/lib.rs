@@ -33,7 +33,7 @@ impl Loader<RunnerContext> for PreactRefreshLoader {
     let mut source = content.try_into_string()?;
     source += "\n";
     source += include_str!("runtime.js");
-    loader_context.patch(source);
+    loader_context.finish_with(source);
     Ok(())
   }
 }

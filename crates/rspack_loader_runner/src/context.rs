@@ -150,16 +150,29 @@ impl<Context> LoaderContext<Context> {
     )
   }
 
-  pub fn patch(&mut self, patch: impl Into<LoaderPatch>) {
-    let patch = patch.into();
-    self.content = patch.content;
-    self.source_map = patch.source_map;
-    self.additional_data = patch.additional_data;
+  pub fn finish_with(&mut self, patch: impl Into<LoaderPatch>) {
+    self.__finish_with(patch);
+    self.current_loader().set_finish_called();
+  }
+
+  pub fn finish_with_empty(&mut self) {
+    self.content = None;
+    self.source_map = None;
+    self.additional_data = None;
+    self.current_loader().set_finish_called();
   }
 
   #[inline]
   pub fn state(&self) -> State {
     self.state
+  }
+
+  #[doc(hidden)]
+  pub fn __finish_with(&mut self, patch: impl Into<LoaderPatch>) {
+    let patch = patch.into();
+    self.content = patch.content;
+    self.source_map = patch.source_map;
+    self.additional_data = patch.additional_data;
   }
 }
 

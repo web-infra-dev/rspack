@@ -184,12 +184,12 @@ impl LightningCssLoader {
         .to_json(None)
         .map_err(|e| rspack_error::error!(e.to_string()))?;
 
-      loader_context.patch((
+      loader_context.finish_with((
         content.code,
         SourceMap::from_json(&source_map).expect("should be able to generate source-map"),
       ));
     } else {
-      loader_context.patch(content.code);
+      loader_context.finish_with(content.code);
     }
 
     Ok(())

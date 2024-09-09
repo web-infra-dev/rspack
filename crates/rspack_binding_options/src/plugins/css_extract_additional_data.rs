@@ -38,7 +38,7 @@ async fn additional_data(&self, additional_data: &mut Option<&mut AdditionalData
   {
     return Ok(());
   }
-  if let Some(mut old_data) = additional_data.take().map(|data| std::mem::take(data)) {
+  if let Some(mut old_data) = additional_data.as_mut().map(|data| std::mem::take(*data)) {
     let (tx, rx) = oneshot::channel::<AdditionalData>();
     self.js_callback.call(Box::new(move |env| {
       if let Some(data) = old_data

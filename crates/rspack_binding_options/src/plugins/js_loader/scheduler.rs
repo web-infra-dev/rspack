@@ -79,8 +79,7 @@ pub(crate) fn merge_loader_context(
     additional.insert(data);
     additional
   });
-
-  to.patch((content, source_map, additional_data));
+  to.__finish_with((content, source_map, additional_data));
 
   // update loader status
   to.loader_items = to
@@ -95,6 +94,8 @@ pub(crate) fn merge_loader_context(
         to.set_pitch_executed()
       }
       to.set_data(from.data);
+      // JS loader should always be considered as finished
+      to.set_finish_called();
       to
     })
     .collect();

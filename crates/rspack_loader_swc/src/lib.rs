@@ -137,7 +137,7 @@ impl SwcLoader {
       .map(|m| SourceMap::from_json(&m))
       .transpose()
       .map_err(|e| error!(e.to_string()))?;
-    loader_context.patch((code, map));
+    loader_context.finish_with((code, map));
 
     Ok(())
   }

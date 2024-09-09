@@ -42,7 +42,7 @@ Promise.resolve().then(function() {
   $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
 });
 "#;
-    loader_context.patch(source);
+    loader_context.finish_with(source);
     Ok(())
   }
 }
