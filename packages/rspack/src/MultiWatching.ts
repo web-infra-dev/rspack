@@ -31,7 +31,7 @@ class MultiWatching {
 			asyncLib.each(
 				this.watchings,
 				(watching, callback) => watching.invalidate(callback),
-				// cannot be resolved without any
+				// cannot be resolved without assertion
 				// Type 'Error | null | undefined' is not assignable to type 'Error | null'
 				callback as (err: Error | null | undefined) => void
 			);
@@ -52,7 +52,7 @@ class MultiWatching {
 				this.compiler.hooks.watchClose.call();
 				if (typeof callback === "function") {
 					this.compiler.running = false;
-					// cannot be resolved without any
+					// cannot be resolved without assertion
 					// Type 'Error | null | undefined' is not assignable to type 'Error | null'
 					callback(err as Error | null);
 				}

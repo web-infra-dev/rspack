@@ -55,9 +55,9 @@ export default function ({
 
 	const writeStatusMessage = () => {
 		if (!currentStatusMessage) return;
-		// cannot be resolved without any, copy from webpack
+		// cannot be resolved without assertion, copy from webpack
 		// Property 'columns' does not exist on type 'WritableStream'.ts(2339)
-		const l = (stream as any).columns;
+		const l: number = (stream as unknown as { columns: number }).columns;
 		const args = l
 			? truncateArgs(currentStatusMessage, l - 1)
 			: currentStatusMessage;

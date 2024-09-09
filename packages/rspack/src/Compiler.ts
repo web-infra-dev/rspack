@@ -391,14 +391,18 @@ class Compiler {
 		handler: liteTapable.Callback<Error, Stats>
 	): Watching {
 		if (this.running) {
-			// cannot be resolved without any
+			// cannot be resolved without assertion
 			// copy from webpack
 			// Type 'void' is not assignable to type 'Watching'.
-			return handler(new ConcurrentCompilationError()) as any;
+			return handler(new ConcurrentCompilationError()) as unknown as Watching;
 		}
 		this.running = true;
 		this.watchMode = true;
-		this.watching = new Watching(this, watchOptions as WatchOptions, handler);
+		this.watching = new Watching(
+			this,
+			watchOptions as WatchOptions,
+			handler as (error?: Error, stats?: Stats) => void
+		);
 		return this.watching;
 	}
 

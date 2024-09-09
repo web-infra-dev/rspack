@@ -544,7 +544,7 @@ export class MultiCompiler {
 			(compiler, cb) => {
 				compiler.close(cb);
 			},
-			// cannot be resolved without any
+			// cannot be resolved without assertion
 			// Type 'Error | null | undefined' is not assignable to type 'Error | null'
 			callback as (err: Error | null | undefined) => void
 		);
