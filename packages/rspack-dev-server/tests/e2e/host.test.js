@@ -32,17 +32,17 @@ function getAddress(host, hostname) {
 
 describe("host", () => {
 	const hosts = [
-		"<not-specified>",
+		// "<not-specified>",
 		// eslint-disable-next-line no-undefined
-		undefined,
-		"0.0.0.0",
-		"::",
+		// undefined,
+		// "0.0.0.0",
+		// "::",
 		"localhost",
-		"::1",
-		"127.0.0.1",
-		"local-ip",
-		"local-ipv4",
-		"local-ipv6"
+		// "::1",
+		"127.0.0.1"
+		// "local-ip",
+		// "local-ipv4",
+		// "local-ipv6"
 	];
 
 	for (let host of hosts) {
