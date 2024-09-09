@@ -534,6 +534,9 @@ importers:
         specifier: ^8.16.0
         version: 8.17.1
     devDependencies:
+      '@jest/test-sequencer':
+        specifier: ^29.7.0
+        version: 29.7.0
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
