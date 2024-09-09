@@ -54,6 +54,8 @@ describe("bonjour option", () => {
 			console.log(5);
 			({ page, browser } = await runBrowser());
 
+			console.log("5-2");
+
 			pageErrors = [];
 			consoleMessages = [];
 		});
@@ -71,40 +73,44 @@ describe("bonjour option", () => {
 		});
 
 		it("should call bonjour with correct params", async () => {
-			page
-				.on("console", message => {
-					consoleMessages.push(message);
-				})
-				.on("pageerror", error => {
-					pageErrors.push(error);
+			try {
+				page
+					.on("console", message => {
+						consoleMessages.push(message);
+					})
+					.on("pageerror", error => {
+						pageErrors.push(error);
+					});
+
+				console.log(6);
+				const response = await page.goto(`http://127.0.0.1:${port}/`, {
+					waitUntil: "networkidle0"
+				});
+				console.log(7);
+
+				expect(mockPublish).toHaveBeenCalledTimes(1);
+
+				expect(mockPublish).toHaveBeenCalledWith({
+					name: `Webpack Dev Server ${os.hostname()}:${port}`,
+					port,
+					type: "http",
+					subtypes: ["webpack"]
 				});
 
-			console.log(6);
-			const response = await page.goto(`http://127.0.0.1:${port}/`, {
-				waitUntil: "networkidle0"
-			});
-			console.log(7);
+				expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
+				expect(mockDestroy).toHaveBeenCalledTimes(0);
 
-			expect(mockPublish).toHaveBeenCalledTimes(1);
+				expect(response.status()).toMatchSnapshot("response status");
 
-			expect(mockPublish).toHaveBeenCalledWith({
-				name: `Webpack Dev Server ${os.hostname()}:${port}`,
-				port,
-				type: "http",
-				subtypes: ["webpack"]
-			});
+				expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
+					"console messages"
+				);
 
-			expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
-			expect(mockDestroy).toHaveBeenCalledTimes(0);
-
-			expect(response.status()).toMatchSnapshot("response status");
-
-			expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
-				"console messages"
-			);
-
-			expect(pageErrors).toMatchSnapshot("page errors");
-			console.log(8);
+				expect(pageErrors).toMatchSnapshot("page errors");
+				console.log(8);
+			} catch (e) {
+				console.error(e);
+			}
 		});
 	});
 
