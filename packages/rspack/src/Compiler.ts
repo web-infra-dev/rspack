@@ -398,11 +398,7 @@ class Compiler {
 		}
 		this.running = true;
 		this.watchMode = true;
-		this.watching = new Watching(
-			this,
-			watchOptions as WatchOptions,
-			handler as (error?: Error, stats?: Stats) => void
-		);
+		this.watching = new Watching(this, watchOptions as WatchOptions, handler);
 		return this.watching;
 	}
 
@@ -587,11 +583,13 @@ class Compiler {
 			)
 		];
 
-		for (const name in this.hooks) {
-			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
-				//@ts-ignore
+		for (const hookName in this.hooks) {
+			type HookNames = keyof Compiler["hooks"];
+
+			const name = hookName as unknown as HookNames;
+
+			if (canInherentFromParent(name)) {
 				if (childCompiler.hooks[name]) {
-					//@ts-ignore
 					childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
 				}
 			}
@@ -1317,7 +1315,7 @@ class Compiler {
 			}
 		}
 		if (this.#nonSkippableRegisters.join() !== kinds.join()) {
-			this.#getInstance((error, instance) => {
+			this.#getInstance((_error, instance) => {
 				instance!.setNonSkippableRegisters(kinds);
 				this.#nonSkippableRegisters = kinds;
 			});
