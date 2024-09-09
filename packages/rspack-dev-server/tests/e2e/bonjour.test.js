@@ -29,47 +29,57 @@ describe("bonjour option", () => {
 		let consoleMessages;
 
 		beforeEach(async () => {
-			console.log(1);
-			jest.mock("bonjour-service", () => {
-				return {
-					Bonjour: jest.fn().mockImplementation(() => {
-						return {
-							publish: mockPublish,
-							unpublishAll: mockUnpublishAll,
-							destroy: mockDestroy
-						};
-					})
-				};
-			});
+			try {
+				console.log(1);
+				jest.mock("bonjour-service", () => {
+					return {
+						Bonjour: jest.fn().mockImplementation(() => {
+							return {
+								publish: mockPublish,
+								unpublishAll: mockUnpublishAll,
+								destroy: mockDestroy
+							};
+						})
+					};
+				});
 
-			console.log(2);
-			compiler = webpack(config);
+				console.log(2);
+				compiler = webpack(config);
 
-			console.log(3);
-			server = new Server({ port, bonjour: true }, compiler);
+				console.log(3);
+				server = new Server({ port, bonjour: true }, compiler);
 
-			console.log(4);
-			await server.start();
+				console.log(4);
+				await server.start();
 
-			console.log(5);
-			({ page, browser } = await runBrowser());
+				console.log(5);
+				({ page, browser } = await runBrowser());
 
-			console.log("5-2");
+				console.log("5-2");
 
-			pageErrors = [];
-			consoleMessages = [];
+				pageErrors = [];
+				consoleMessages = [];
+			} catch (e) {
+				console.error("error in before each");
+				console.error(e);
+			}
 		});
 
 		afterEach(async () => {
-			console.log(9);
-			await browser.close();
-			await server.stop();
+			try {
+				console.log(9);
+				await browser.close();
+				await server.stop();
 
-			console.log(10);
-			mockPublish.mockReset();
-			mockUnpublishAll.mockReset();
-			mockDestroy.mockReset();
-			console.log(11);
+				console.log(10);
+				mockPublish.mockReset();
+				mockUnpublishAll.mockReset();
+				mockDestroy.mockReset();
+				console.log(11);
+			} catch (e) {
+				console.error("error in after each");
+				console.error(e);
+			}
 		});
 
 		it("should call bonjour with correct params", async () => {
