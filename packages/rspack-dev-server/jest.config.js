@@ -26,7 +26,7 @@ const config = {
 		]
 	},
 	// Add this to find out which test timeouts
-	// testSequencer: "<rootDir>/tests/helpers/sequencer.js",
+	testSequencer: "<rootDir>/tests/helpers/sequencer.js",
 	snapshotResolver: "<rootDir>/tests/helpers/snapshot-resolver.js",
 	setupFilesAfterEnv: ["<rootDir>/tests/helpers/setup-test.js"],
 	globalSetup: "<rootDir>/tests/helpers/global-setup-test.js",
