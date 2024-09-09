@@ -198,6 +198,12 @@ static WORKER_FROM_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
 
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
+const DEFAULT_SYNTAX: [&str; 4] = [
+  "Worker",
+  "SharedWorker",
+  "navigator.serviceWorker.register()",
+  "Worker from worker_threads",
+];
 
 #[derive(Debug, Clone)]
 struct WorkerSpecifierData {
@@ -214,40 +220,50 @@ impl WorkerPlugin {
       pattern_syntax: FxHashMap::default(),
     };
     for syntax in syntax_list {
-      if let Some(syntax) = syntax.strip_prefix('*')
-        && let Some(first_dot) = syntax.find('.')
-        && let Some(syntax) = syntax.strip_suffix("()")
-      {
-        let pattern = &syntax[0..first_dot];
-        let members = &syntax[first_dot + 1..];
-        if let Some(value) = this.pattern_syntax.get_mut(pattern) {
-          value.insert(members.to_string());
-        } else {
-          this.pattern_syntax.insert(
-            pattern.to_string(),
-            FxHashSet::from_iter([members.to_string()]),
-          );
-        }
-      } else if let Some(syntax) = syntax.strip_suffix("()") {
-        this.call_syntax.insert(syntax.to_string());
-      } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
-        let ids = &captures[1];
-        let is_call = &captures.get(2).is_some();
-        let source = &captures[3];
-        if *is_call {
-          this
-            .from_call_syntax
-            .insert((ids.to_string(), source.to_string()));
-        } else {
-          this
-            .from_new_syntax
-            .insert((ids.to_string(), source.to_string()));
+      if syntax == "..." {
+        for syntax in DEFAULT_SYNTAX {
+          this.handle_syntax(syntax);
         }
       } else {
-        this.new_syntax.insert(syntax.to_string());
+        this.handle_syntax(syntax);
       }
     }
     this
+  }
+
+  fn handle_syntax(&mut self, syntax: &str) {
+    if let Some(syntax) = syntax.strip_prefix('*')
+      && let Some(first_dot) = syntax.find('.')
+      && let Some(syntax) = syntax.strip_suffix("()")
+    {
+      let pattern = &syntax[0..first_dot];
+      let members = &syntax[first_dot + 1..];
+      if let Some(value) = self.pattern_syntax.get_mut(pattern) {
+        value.insert(members.to_string());
+      } else {
+        self.pattern_syntax.insert(
+          pattern.to_string(),
+          FxHashSet::from_iter([members.to_string()]),
+        );
+      }
+    } else if let Some(syntax) = syntax.strip_suffix("()") {
+      self.call_syntax.insert(syntax.to_string());
+    } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
+      let ids = &captures[1];
+      let is_call = &captures.get(2).is_some();
+      let source = &captures[3];
+      if *is_call {
+        self
+          .from_call_syntax
+          .insert((ids.to_string(), source.to_string()));
+      } else {
+        self
+          .from_new_syntax
+          .insert((ids.to_string(), source.to_string()));
+      }
+    } else {
+      self.new_syntax.insert(syntax.to_string());
+    }
   }
 }
 
