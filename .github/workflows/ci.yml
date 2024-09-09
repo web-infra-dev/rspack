@@ -335,30 +335,25 @@ jobs:
   # codecov often fails, use another workflow for retry
   rust_test_codecov_upload:
     name: Rust Test Coverage Upload
-    needs: [rust_changes, rust_test]
-    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
+    if: github.repository_owner == 'web-infra-dev'
+    needs: [rust_test]
     runs-on: ubuntu-latest
-    # Check if the event is not triggered by a fork by checking whether CODECOV_TOKEN is set
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout
-        if: env.CODECOV_TOKEN
         uses: actions/checkout@v4
 
       - name: Download coverage file
-        if: env.CODECOV_TOKEN
         uses: actions/download-artifact@v4.1.7
         with:
           name: codecov
 
       - name: Upload to codecov.io
-        if: env.CODECOV_TOKEN
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           files: lcov.info
+
   run_benchmark:
     name: Run benchmark
     runs-on: ubuntu-latest
