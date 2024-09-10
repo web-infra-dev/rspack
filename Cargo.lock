@@ -2944,6 +2944,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "derivative",
+ "futures",
  "glob",
  "napi-derive",
  "napi-h",
@@ -2964,6 +2965,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
+ "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",

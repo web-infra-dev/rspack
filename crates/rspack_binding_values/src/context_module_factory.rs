@@ -7,6 +7,8 @@ use crate::RawRegex;
 pub struct JsContextModuleFactoryBeforeResolveData {
   pub context: String,
   pub request: Option<String>,
+  pub reg_exp: Option<RawRegex>,
+  pub recursive: bool,
 }
 
 pub type JsContextModuleFactoryBeforeResolveResult =
@@ -18,6 +20,7 @@ pub struct JsContextModuleFactoryAfterResolveData {
   pub context: String,
   pub request: String,
   pub reg_exp: Option<RawRegex>,
+  pub recursive: bool,
 }
 
 pub type JsContextModuleFactoryAfterResolveResult =

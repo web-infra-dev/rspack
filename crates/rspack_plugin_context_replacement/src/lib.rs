@@ -1,5 +1,4 @@
 use derivative::Derivative;
-use futures::future::BoxFuture;
 use rspack_core::{
   AfterResolveResult, ApplyContext, BeforeResolveResult, CompilerOptions,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve, Plugin, PluginContext,
@@ -8,20 +7,11 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 
-enum ResolveResult {
-  Before(BeforeResolveResult),
-  After(AfterResolveResult),
-}
-
-pub type ContentCallback =
-  Box<dyn Fn(&mut ResolveResult) -> BoxFuture<'static, Result<()>> + Sync + Send>;
-
 pub struct ContextReplacementPluginOptions {
-  resource_reg_exp: RspackRegex,
-  new_content_resource: Option<String>,
-  new_content_recursive: Option<bool>,
-  new_content_reg_exp: Option<RspackRegex>,
-  new_content_callback: Option<ContentCallback>,
+  pub resource_reg_exp: RspackRegex,
+  pub new_content_resource: Option<String>,
+  pub new_content_recursive: Option<bool>,
+  pub new_content_reg_exp: Option<RspackRegex>,
 }
 
 #[plugin]
@@ -32,8 +22,6 @@ pub struct ContextReplacementPlugin {
   new_content_resource: Option<String>,
   new_content_recursive: Option<bool>,
   new_content_reg_exp: Option<RspackRegex>,
-  #[derivative(Debug = "ignore")]
-  new_content_callback: Option<ContentCallback>,
 }
 
 impl ContextReplacementPlugin {
@@ -43,7 +31,6 @@ impl ContextReplacementPlugin {
       options.new_content_resource,
       options.new_content_recursive,
       options.new_content_reg_exp,
-      options.new_content_callback,
     )
   }
 }
@@ -61,13 +48,13 @@ async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<Be
       if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
         data.reg_exp = Some(new_content_reg_exp.clone());
       }
-      if let Some(new_content_callback) = &self.new_content_callback {
-        // new_content_callback(&mut result).await?;
-      } else {
-        // for (const d of result.dependencies) {
-        //   if (d.critical) d.critical = false;
-        // }
-      }
+      // if let Some(new_content_callback) = &self.new_content_after_resolve_callback {
+      //   // new_content_callback(&mut result).await?;
+      // } else {
+      //   // for (const d of result.dependencies) {
+      //   //   if (d.critical) d.critical = false;
+      //   // }
+      // }
     }
   }
 
@@ -96,13 +83,13 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
       if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
         data.reg_exp = Some(new_content_reg_exp.clone());
       }
-      if let Some(new_content_callback) = &self.new_content_callback {
-        // new_content_callback(&mut result).await?;
-      } else {
-        // for (const d of result.dependencies) {
-        //   if (d.critical) d.critical = false;
-        // }
-      }
+      // if let Some(new_content_callback) = &self.new_content_callback {
+      //   // new_content_callback(&mut result).await?;
+      // } else {
+      //   // for (const d of result.dependencies) {
+      //   //   if (d.critical) d.critical = false;
+      //   // }
+      // }
     }
   }
   Ok(result)

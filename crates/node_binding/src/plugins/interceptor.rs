@@ -53,6 +53,7 @@ use rspack_core::{
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   Scheme,
 };
+use rspack_error::miette::IntoDiagnostic;
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -1507,9 +1508,15 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
     let js_result = match result {
       BeforeResolveResult::Ignored => JsContextModuleFactoryBeforeResolveResult::A(false),
       BeforeResolveResult::Data(d) => {
+        let reg_exp = match d.reg_exp {
+          Some(js_regex) => Some(js_regex.try_into().into_diagnostic()?),
+          None => None,
+        };
         JsContextModuleFactoryBeforeResolveResult::B(JsContextModuleFactoryBeforeResolveData {
           context: d.context,
           request: d.request,
+          reg_exp,
+          recursive: d.recursive,
         })
       }
     };
@@ -1517,9 +1524,15 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
       Ok(js_result) => match js_result {
         napi::bindgen_prelude::Either::A(_) => Ok(BeforeResolveResult::Ignored),
         napi::bindgen_prelude::Either::B(d) => {
+          let reg_exp = match d.reg_exp {
+            Some(js_regex) => Some(js_regex.try_into()?),
+            None => None,
+          };
           let data = BeforeResolveData {
             context: d.context,
             request: d.request,
+            reg_exp,
+            recursive: d.recursive,
           };
           Ok(BeforeResolveResult::Data(Box::new(data)))
         }
@@ -1544,6 +1557,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
           context: d.context.to_owned(),
           request: d.request.to_owned(),
           reg_exp: d.reg_exp.clone().map(|r| r.into()),
+          recursive: d.recursive,
         })
       }
     };
@@ -1558,7 +1572,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
             Some(r) => Some(r.try_into()?),
             None => None,
           },
-          recursive: todo!(),
+          recursive: d.recursive,
         };
         Ok(AfterResolveResult::Data(Box::new(data)))
       }

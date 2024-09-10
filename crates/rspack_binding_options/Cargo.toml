@@ -15,6 +15,7 @@ ignored = ["tracing"]
 [dependencies]
 async-trait                           = { workspace = true }
 derivative                            = { workspace = true }
+futures                               = { workspace = true }
 glob                                  = { workspace = true }
 napi                                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                           = { workspace = true }
@@ -35,6 +36,7 @@ rspack_napi_macros                    = { version = "0.1.0", path = "../rspack_n
 rspack_paths                          = { version = "0.1.0", path = "../rspack_paths" }
 rspack_plugin_asset                   = { version = "0.1.0", path = "../rspack_plugin_asset" }
 rspack_plugin_banner                  = { version = "0.1.0", path = "../rspack_plugin_banner" }
+rspack_plugin_context_replacement     = { version = "0.1.0", path = "../rspack_plugin_context_replacement" }
 rspack_plugin_copy                    = { version = "0.1.0", path = "../rspack_plugin_copy" }
 rspack_plugin_css                     = { version = "0.1.0", path = "../rspack_plugin_css" }
 rspack_plugin_devtool                 = { version = "0.1.0", path = "../rspack_plugin_devtool" }
