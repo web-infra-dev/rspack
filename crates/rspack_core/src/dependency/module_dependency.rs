@@ -15,7 +15,9 @@ pub trait ModuleDependency: Dependency {
   /// This is only intended used to display better diagnostics.
   /// So it might not be precise as it is using [crate::Dependency::span] as the default value.
   fn source_span(&self) -> Option<ErrorSpan> {
-    self.span()
+    self
+      .range()
+      .map(|range| ErrorSpan::new(range.start, range.end))
   }
 
   // TODO: move to ModuleGraphConnection

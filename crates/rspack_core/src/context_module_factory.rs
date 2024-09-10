@@ -7,9 +7,10 @@ use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ErrorSpan, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Clone)]
@@ -221,7 +222,9 @@ impl ContextModuleFactory {
       specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
-      span: dependency.span(),
+      span: dependency
+        .range()
+        .map(|range| ErrorSpan::new(range.start, range.end)),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),

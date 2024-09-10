@@ -9,6 +9,7 @@ use swc_core::ecma::atoms::Atom;
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
 use super::ExportsSpec;
+use super::RealDependencyLocation;
 use super::{DependencyCategory, DependencyId, DependencyType};
 use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
@@ -16,7 +17,7 @@ use crate::ExtendedReferencedExport;
 use crate::ImportAttributes;
 use crate::ModuleLayer;
 use crate::RuntimeSpec;
-use crate::{ConnectionState, Context, ErrorSpan, ModuleGraph, UsedByExports};
+use crate::{ConnectionState, Context, ModuleGraph, UsedByExports};
 
 #[derive(Debug, Clone, Copy)]
 pub enum AffectType {
@@ -77,7 +78,7 @@ pub trait Dependency:
     None
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
+  fn range(&self) -> Option<&RealDependencyLocation> {
     None
   }
 

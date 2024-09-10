@@ -1,4 +1,4 @@
-use rspack_core::BoxDependency;
+use rspack_core::{BoxDependency, RealDependencyLocation};
 use rspack_plugin_javascript::{visitors::JavascriptParser, JavascriptParserPlugin};
 use rspack_util::fx_hash::FxDashMap;
 use serde::Deserialize;
@@ -60,7 +60,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
                 supports.clone(),
                 source_map.clone(),
                 *identifier_index,
-                index as u32,
+                RealDependencyLocation::new(index as u32, (index + 1) as u32),
                 parser.build_info.cacheable,
                 parser.build_info.file_dependencies.clone(),
                 parser.build_info.context_dependencies.clone(),

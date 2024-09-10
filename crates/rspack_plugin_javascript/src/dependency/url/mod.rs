@@ -1,7 +1,7 @@
 use rspack_core::{
   get_dependency_used_by_exports_condition, module_id, AsContextDependency, Compilation,
   Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
+  DependencyType, ModuleDependency, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
@@ -47,8 +47,8 @@ impl Dependency for URLDependency {
     &DependencyType::NewUrl
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
