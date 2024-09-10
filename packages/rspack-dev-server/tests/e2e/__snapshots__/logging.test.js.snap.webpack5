@@ -169,10 +169,6 @@ exports[`logging should work and log static changes (sockjs) 1`] = `
   [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
   [HMR] Waiting for update signal from WDS...,
   Hey.,
-  [webpack-dev-server] "<cwd>/tests/fixtures/client-config/static/foo.txt" from static directory was changed. Reloading...,
-  [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.,
-  [HMR] Waiting for update signal from WDS...,
-  Hey.,
 ]
 `;
 
