@@ -1,9 +1,10 @@
 use camino::Utf8PathBuf;
 use rkyv::{
-  ser::{ScratchSpace, Serializer},
+  rancor::{Fallible, Source},
+  ser::Writer,
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Fallible,
+  Place,
 };
 
 use super::AsPreset;
@@ -13,19 +14,15 @@ impl ArchiveWith<Utf8PathBuf> for AsPreset {
   type Resolver = StringResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &Utf8PathBuf,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    ArchivedString::resolve_from_str(field.as_str(), pos, resolver, out);
+  fn resolve_with(field: &Utf8PathBuf, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedString::resolve_from_str(field.as_str(), resolver, out);
   }
 }
 
 impl<S> SerializeWith<Utf8PathBuf, S> for AsPreset
 where
-  S: ?Sized + Serializer + ScratchSpace,
+  S: ?Sized + Fallible + Writer,
+  S::Error: Source,
 {
   #[inline]
   fn serialize_with(field: &Utf8PathBuf, serializer: &mut S) -> Result<Self::Resolver, S::Error> {

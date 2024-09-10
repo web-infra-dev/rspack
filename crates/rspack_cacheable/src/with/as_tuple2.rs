@@ -1,16 +1,11 @@
 use rkyv::{
-  out_field,
-  validation::ArchiveContext,
+  rancor::Fallible,
+  tuple::ArchivedTuple2,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  CheckBytes, Fallible,
+  Place,
 };
 
-use crate::{with::AsCacheable, DeserializeError};
-
-pub struct Tuple2<A, B> {
-  a: A,
-  b: B,
-}
+use crate::with::AsCacheable;
 
 pub struct AsTuple2<A = AsCacheable, B = AsCacheable> {
   _target: (A, B),
@@ -21,21 +16,17 @@ where
   A: ArchiveWith<K>,
   B: ArchiveWith<V>,
 {
-  type Archived = Tuple2<A::Archived, B::Archived>;
-  type Resolver = Tuple2<A::Resolver, B::Resolver>;
+  type Archived = ArchivedTuple2<A::Archived, B::Archived>;
+  type Resolver = ArchivedTuple2<A::Resolver, B::Resolver>;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &(K, V),
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    let (fp, fo) = out_field!(out.a);
-    A::resolve_with(&field.0, pos + fp, resolver.a, fo);
-
-    let (fp, fo) = out_field!(out.b);
-    B::resolve_with(&field.1, pos + fp, resolver.b, fo);
+  fn resolve_with(field: &(K, V), resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let field_ptr = unsafe { &raw mut (*out.ptr()).0 };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    A::resolve_with(&field.0, resolver.0, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).1 };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    B::resolve_with(&field.1, resolver.1, field_out);
   }
 }
 
@@ -46,44 +37,27 @@ where
 {
   #[inline]
   fn serialize_with(field: &(K, V), serializer: &mut S) -> Result<Self::Resolver, S::Error> {
-    Ok(Tuple2 {
-      a: A::serialize_with(&field.0, serializer)?,
-      b: B::serialize_with(&field.1, serializer)?,
-    })
+    Ok(ArchivedTuple2(
+      A::serialize_with(&field.0, serializer)?,
+      B::serialize_with(&field.1, serializer)?,
+    ))
   }
 }
 
-impl<A, B, C> CheckBytes<C> for Tuple2<A, B>
-where
-  A: CheckBytes<C>,
-  B: CheckBytes<C>,
-  C: ArchiveContext + ?Sized,
-{
-  type Error = DeserializeError;
-
-  #[inline]
-  unsafe fn check_bytes<'a>(value: *const Self, context: &mut C) -> Result<&'a Self, Self::Error> {
-    A::check_bytes(core::ptr::addr_of!((*value).a), context)
-      .map_err(|_| DeserializeError::CheckBytesError)?;
-    B::check_bytes(core::ptr::addr_of!((*value).b), context)
-      .map_err(|_| DeserializeError::CheckBytesError)?;
-    Ok(&*value)
-  }
-}
-
-impl<A, B, K, V, D> DeserializeWith<Tuple2<A::Archived, B::Archived>, (K, V), D> for AsTuple2<A, B>
+impl<A, B, K, V, D> DeserializeWith<ArchivedTuple2<A::Archived, B::Archived>, (K, V), D>
+  for AsTuple2<A, B>
 where
   A: ArchiveWith<K> + DeserializeWith<A::Archived, K, D>,
   B: ArchiveWith<V> + DeserializeWith<B::Archived, V, D>,
   D: ?Sized + Fallible,
 {
   fn deserialize_with(
-    field: &Tuple2<A::Archived, B::Archived>,
+    field: &ArchivedTuple2<A::Archived, B::Archived>,
     deserializer: &mut D,
   ) -> Result<(K, V), D::Error> {
     Ok((
-      A::deserialize_with(&field.a, deserializer)?,
-      B::deserialize_with(&field.b, deserializer)?,
+      A::deserialize_with(&field.0, deserializer)?,
+      B::deserialize_with(&field.1, deserializer)?,
     ))
   }
 }

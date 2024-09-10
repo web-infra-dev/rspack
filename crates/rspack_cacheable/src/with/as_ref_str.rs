@@ -1,8 +1,9 @@
 use rkyv::{
-  ser::{ScratchSpace, Serializer},
+  rancor::{Fallible, Source},
+  ser::Writer,
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Fallible,
+  Place,
 };
 
 pub struct AsRefStr;
@@ -22,20 +23,16 @@ where
   type Resolver = StringResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &T,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    ArchivedString::resolve_from_str(field.as_str(), pos, resolver, out);
+  fn resolve_with(field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedString::resolve_from_str(field.as_str(), resolver, out);
   }
 }
 
 impl<T, S> SerializeWith<T, S> for AsRefStr
 where
   T: AsRefStrConverter,
-  S: ?Sized + Serializer + ScratchSpace,
+  S: ?Sized + Fallible + Writer,
+  S::Error: Source,
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, S::Error> {

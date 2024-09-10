@@ -1,51 +1,23 @@
-use core::{marker::PhantomData, ptr};
 use std::collections::HashMap;
 
-use rkyv::{from_archived, validation::validators::DefaultValidator, Archived, CheckBytes};
+use rkyv::bytecheck::CheckBytes;
 
-use super::{ArchivedDynMetadata, DYN_REGISTRY};
-use crate::DeserializeError;
+use crate::{CacheableValidator, DeserializeError};
 
 type CheckBytesDyn =
-  unsafe fn(*const u8, &mut DefaultValidator<'_>) -> Result<(), DeserializeError>;
+  unsafe fn(*const u8, &mut CacheableValidator<'_>) -> Result<(), DeserializeError>;
 
+/// # Safety
+///
+/// Run T::check_bytes
 pub unsafe fn default_check_bytes_dyn<T>(
   bytes: *const u8,
-  context: &mut DefaultValidator<'_>,
+  context: &mut CacheableValidator<'_>,
 ) -> Result<(), DeserializeError>
 where
-  T: for<'a> CheckBytes<DefaultValidator<'a>>,
+  T: for<'a> CheckBytes<CacheableValidator<'a>>,
 {
-  match T::check_bytes(bytes.cast(), context) {
-    Ok(_) => Ok(()),
-    Err(_) => Err(DeserializeError::CheckBytesError),
-  }
-}
-
-impl<T: ?Sized, C: ?Sized> CheckBytes<C> for ArchivedDynMetadata<T> {
-  type Error = DeserializeError;
-
-  unsafe fn check_bytes<'a>(value: *const Self, context: &mut C) -> Result<&'a Self, Self::Error> {
-    let Ok(dyn_id) = Archived::<u64>::check_bytes(ptr::addr_of!((*value).dyn_id), context) else {
-      return Err(DeserializeError::CheckBytesError);
-    };
-    if PhantomData::<T>::check_bytes(ptr::addr_of!((*value).phantom), context).is_err() {
-      return Err(DeserializeError::CheckBytesError);
-    }
-
-    let cached_vtable_ptr = ptr::addr_of!((*value).cached_vtable);
-    let Ok(cached_vtable) = Archived::<u64>::check_bytes(cached_vtable_ptr, context) else {
-      return Err(DeserializeError::CheckBytesError);
-    };
-
-    if let Some(impl_data) = DYN_REGISTRY.get(&from_archived!(*dyn_id)) {
-      let cached_vtable = from_archived!(*cached_vtable);
-      if cached_vtable == 0 || &(cached_vtable as usize) == impl_data {
-        return Ok(&*value);
-      }
-    }
-    Err(DeserializeError::CheckBytesError)
-  }
+  T::check_bytes(bytes.cast(), context)
 }
 
 pub struct CheckBytesEntry {

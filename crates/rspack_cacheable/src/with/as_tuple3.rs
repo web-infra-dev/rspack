@@ -1,17 +1,11 @@
 use rkyv::{
-  out_field,
-  validation::ArchiveContext,
+  rancor::Fallible,
+  tuple::ArchivedTuple3,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  CheckBytes, Fallible,
+  Place,
 };
 
-use crate::{with::AsCacheable, DeserializeError};
-
-pub struct Tuple3<A, B, C> {
-  a: A,
-  b: B,
-  c: C,
-}
+use crate::with::AsCacheable;
 
 pub struct AsTuple3<A = AsCacheable, B = AsCacheable, C = AsCacheable> {
   _target: (A, B, C),
@@ -23,24 +17,20 @@ where
   B: ArchiveWith<V>,
   C: ArchiveWith<H>,
 {
-  type Archived = Tuple3<A::Archived, B::Archived, C::Archived>;
-  type Resolver = Tuple3<A::Resolver, B::Resolver, C::Resolver>;
+  type Archived = ArchivedTuple3<A::Archived, B::Archived, C::Archived>;
+  type Resolver = ArchivedTuple3<A::Resolver, B::Resolver, C::Resolver>;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &(K, V, H),
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    let (fp, fo) = out_field!(out.a);
-    A::resolve_with(&field.0, pos + fp, resolver.a, fo);
-
-    let (fp, fo) = out_field!(out.b);
-    B::resolve_with(&field.1, pos + fp, resolver.b, fo);
-
-    let (fp, fo) = out_field!(out.c);
-    C::resolve_with(&field.2, pos + fp, resolver.c, fo);
+  fn resolve_with(field: &(K, V, H), resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let field_ptr = unsafe { &raw mut (*out.ptr()).0 };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    A::resolve_with(&field.0, resolver.0, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).1 };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    B::resolve_with(&field.1, resolver.1, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).2 };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    C::resolve_with(&field.2, resolver.2, field_out);
   }
 }
 
@@ -52,37 +42,17 @@ where
 {
   #[inline]
   fn serialize_with(field: &(K, V, H), serializer: &mut S) -> Result<Self::Resolver, S::Error> {
-    Ok(Tuple3 {
-      a: A::serialize_with(&field.0, serializer)?,
-      b: B::serialize_with(&field.1, serializer)?,
-      c: C::serialize_with(&field.2, serializer)?,
-    })
-  }
-}
-
-impl<A, B, C, T> CheckBytes<T> for Tuple3<A, B, C>
-where
-  A: CheckBytes<T>,
-  B: CheckBytes<T>,
-  C: CheckBytes<T>,
-  T: ArchiveContext + ?Sized,
-{
-  type Error = DeserializeError;
-
-  #[inline]
-  unsafe fn check_bytes<'a>(value: *const Self, context: &mut T) -> Result<&'a Self, Self::Error> {
-    A::check_bytes(core::ptr::addr_of!((*value).a), context)
-      .map_err(|_| DeserializeError::CheckBytesError)?;
-    B::check_bytes(core::ptr::addr_of!((*value).b), context)
-      .map_err(|_| DeserializeError::CheckBytesError)?;
-    C::check_bytes(core::ptr::addr_of!((*value).c), context)
-      .map_err(|_| DeserializeError::CheckBytesError)?;
-    Ok(&*value)
+    Ok(ArchivedTuple3(
+      A::serialize_with(&field.0, serializer)?,
+      B::serialize_with(&field.1, serializer)?,
+      C::serialize_with(&field.2, serializer)?,
+    ))
   }
 }
 
 impl<A, B, C, K, V, H, D>
-  DeserializeWith<Tuple3<A::Archived, B::Archived, C::Archived>, (K, V, H), D> for AsTuple3<A, B, C>
+  DeserializeWith<ArchivedTuple3<A::Archived, B::Archived, C::Archived>, (K, V, H), D>
+  for AsTuple3<A, B, C>
 where
   A: ArchiveWith<K> + DeserializeWith<A::Archived, K, D>,
   B: ArchiveWith<V> + DeserializeWith<B::Archived, V, D>,
@@ -90,13 +60,13 @@ where
   D: ?Sized + Fallible,
 {
   fn deserialize_with(
-    field: &Tuple3<A::Archived, B::Archived, C::Archived>,
+    field: &ArchivedTuple3<A::Archived, B::Archived, C::Archived>,
     deserializer: &mut D,
   ) -> Result<(K, V, H), D::Error> {
     Ok((
-      A::deserialize_with(&field.a, deserializer)?,
-      B::deserialize_with(&field.b, deserializer)?,
-      C::deserialize_with(&field.c, deserializer)?,
+      A::deserialize_with(&field.0, deserializer)?,
+      B::deserialize_with(&field.1, deserializer)?,
+      C::deserialize_with(&field.2, deserializer)?,
     ))
   }
 }

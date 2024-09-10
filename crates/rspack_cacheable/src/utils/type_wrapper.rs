@@ -1,11 +1,10 @@
 use rkyv::{
-  collections::util::validation::ArchivedEntryError,
-  out_field,
-  ser::{ScratchSpace, Serializer},
+  bytecheck::{CheckBytes, StructCheckContext},
+  rancor::{Fallible, Source, Trace},
+  ser::{Allocator, Writer},
   string::{ArchivedString, StringResolver},
-  validation::ArchiveContext,
   vec::{ArchivedVec, VecResolver},
-  Archive, CheckBytes, Deserialize, Fallible, Serialize,
+  Archive, Deserialize, Place, Portable, Serialize,
 };
 
 pub struct TypeWrapperRef<'a> {
@@ -18,6 +17,8 @@ pub struct ArchivedTypeWrapper {
   bytes: ArchivedVec<u8>,
 }
 
+unsafe impl Portable for ArchivedTypeWrapper {}
+
 pub struct TypeWrapper {
   pub type_name: String,
   pub bytes: Vec<u8>,
@@ -28,12 +29,13 @@ impl<'a> Archive for TypeWrapperRef<'a> {
   type Resolver = (StringResolver, VecResolver);
 
   #[inline]
-  unsafe fn resolve(&self, pos: usize, resolver: Self::Resolver, out: *mut Self::Archived) {
-    let (fp, fo) = out_field!(out.type_name);
-    ArchivedString::resolve_from_str(self.type_name, pos + fp, resolver.0, fo);
-
-    let (fp, fo) = out_field!(out.bytes);
-    ArchivedVec::resolve_from_len(self.bytes.len(), pos + fp, resolver.1, fo);
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let field_ptr = unsafe { &raw mut (*out.ptr()).type_name };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    ArchivedString::resolve_from_str(self.type_name, resolver.0, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).bytes };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    ArchivedVec::resolve_from_len(self.bytes.len(), resolver.1, field_out);
   }
 }
 
@@ -42,14 +44,15 @@ impl Archive for TypeWrapper {
   type Resolver = (StringResolver, VecResolver);
 
   #[inline]
-  unsafe fn resolve(&self, _pos: usize, _resolver: Self::Resolver, _out: *mut Self::Archived) {
+  fn resolve(&self, _resolver: Self::Resolver, _out: Place<Self::Archived>) {
     unreachable!()
   }
 }
 
 impl<'a, S> Serialize<S> for TypeWrapperRef<'a>
 where
-  S: Serializer + ScratchSpace + Fallible + ?Sized,
+  S: ?Sized + Fallible + Writer + Allocator,
+  S::Error: Source,
 {
   #[inline]
   fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
@@ -60,30 +63,40 @@ where
   }
 }
 
-impl<C> CheckBytes<C> for ArchivedTypeWrapper
+unsafe impl<C> CheckBytes<C> for ArchivedTypeWrapper
 where
   ArchivedString: CheckBytes<C>,
   ArchivedVec<u8>: CheckBytes<C>,
-  C: ArchiveContext + ?Sized,
+  C: Fallible + ?Sized,
+  C::Error: Trace,
 {
-  type Error = ArchivedEntryError<
-    <ArchivedString as CheckBytes<C>>::Error,
-    <ArchivedVec<u8> as CheckBytes<C>>::Error,
-  >;
-
-  #[inline]
-  unsafe fn check_bytes<'a>(bytes: *const Self, context: &mut C) -> Result<&'a Self, Self::Error> {
-    ArchivedString::check_bytes(core::ptr::addr_of!((*bytes).type_name), context)
-      .map_err(ArchivedEntryError::KeyCheckError)?;
-    ArchivedVec::<u8>::check_bytes(core::ptr::addr_of!((*bytes).bytes), context)
-      .map_err(ArchivedEntryError::ValueCheckError)?;
-    Ok(&*bytes)
+  unsafe fn check_bytes(bytes: *const Self, context: &mut C) -> Result<(), C::Error> {
+    ArchivedString::check_bytes(core::ptr::addr_of!((*bytes).type_name), context).map_err(|e| {
+      <C::Error as Trace>::trace(
+        e,
+        StructCheckContext {
+          struct_name: "ArchivedTypeWrapper",
+          field_name: "type_name",
+        },
+      )
+    })?;
+    ArchivedVec::<u8>::check_bytes(core::ptr::addr_of!((*bytes).bytes), context).map_err(|e| {
+      <C::Error as Trace>::trace(
+        e,
+        StructCheckContext {
+          struct_name: "ArchivedTypeWrapper",
+          field_name: "bytes",
+        },
+      )
+    })?;
+    Ok(())
   }
 }
 
 impl<D> Deserialize<TypeWrapper, D> for ArchivedTypeWrapper
 where
   D: Fallible + ?Sized,
+  D::Error: Source,
 {
   #[inline]
   fn deserialize(&self, deserializer: &mut D) -> Result<TypeWrapper, D::Error> {

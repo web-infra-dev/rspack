@@ -15,9 +15,9 @@ struct Module {
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct App {
-  #[with(AsVec)]
+  #[cacheable(with=AsVec)]
   modules: FxHashSet<Module>,
-  #[with(AsVec<AsString>)]
+  #[cacheable(with=AsVec<AsString>)]
   paths: Vec<PathBuf>,
 }
 

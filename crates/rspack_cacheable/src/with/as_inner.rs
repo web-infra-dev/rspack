@@ -1,9 +1,10 @@
 use rkyv::{
+  munge::munge,
   option::ArchivedOption,
-  out_field,
-  ser::{ScratchSpace, Serializer},
+  rancor::Fallible,
+  traits::NoUndef,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Fallible,
+  Place,
 };
 
 use crate::with::AsCacheable;
@@ -26,20 +27,16 @@ where
   type Archived = A::Archived;
   type Resolver = A::Resolver;
 
-  unsafe fn resolve_with(
-    field: &T,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    A::resolve_with(field.to_inner(), pos, resolver, out)
+  #[inline]
+  fn resolve_with(field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    A::resolve_with(field.to_inner(), resolver, out)
   }
 }
 
 impl<T, A, O, S> SerializeWith<T, S> for AsInner<A>
 where
   T: AsInnerConverter<Inner = O>,
-  S: Fallible + ScratchSpace + Serializer + ?Sized,
+  S: Fallible + ?Sized,
   A: ArchiveWith<O> + SerializeWith<O, S>,
 {
   fn serialize_with(field: &T, s: &mut S) -> Result<Self::Resolver, S::Error> {
@@ -80,6 +77,11 @@ enum ArchivedOptionTag {
 struct ArchivedOptionVariantNone(ArchivedOptionTag);
 #[repr(C)]
 struct ArchivedOptionVariantSome<T>(ArchivedOptionTag, T);
+
+// SAFETY: `ArchivedOptionTag` is `repr(u8)` and so always consists of a single
+// well-defined byte.
+unsafe impl NoUndef for ArchivedOptionTag {}
+
 impl<O, A> ArchiveWith<once_cell::sync::OnceCell<O>> for AsInner<A>
 where
   A: ArchiveWith<O>,
@@ -87,29 +89,34 @@ where
   type Archived = ArchivedOption<<A as ArchiveWith<O>>::Archived>;
   type Resolver = Option<<A as ArchiveWith<O>>::Resolver>;
 
-  unsafe fn resolve_with(
+  fn resolve_with(
     field: &once_cell::sync::OnceCell<O>,
-    pos: usize,
     resolver: Self::Resolver,
-    out: *mut Self::Archived,
+    out: Place<Self::Archived>,
   ) {
+    // port rkyv::with::Map
     match resolver {
       None => {
-        let out = out.cast::<ArchivedOptionVariantNone>();
-        core::ptr::addr_of_mut!((*out).0).write(ArchivedOptionTag::None);
+        let out = unsafe { out.cast_unchecked::<ArchivedOptionVariantNone>() };
+        munge!(let ArchivedOptionVariantNone(tag) = out);
+        tag.write(ArchivedOptionTag::None);
       }
       Some(resolver) => {
-        let out = out.cast::<ArchivedOptionVariantSome<<A as ArchiveWith<O>>::Archived>>();
-        core::ptr::addr_of_mut!((*out).0).write(ArchivedOptionTag::Some);
+        let out = unsafe {
+          out.cast_unchecked::<ArchivedOptionVariantSome<<A as ArchiveWith<O>>::Archived>>()
+        };
+        munge!(let ArchivedOptionVariantSome(tag, out_value) = out);
+        tag.write(ArchivedOptionTag::Some);
 
         let value = if let Some(value) = field.get() {
           value
         } else {
-          core::hint::unreachable_unchecked();
+          unsafe {
+            core::hint::unreachable_unchecked();
+          }
         };
 
-        let (fp, fo) = out_field!(out.1);
-        A::resolve_with(value, pos + fp, resolver, fo);
+        A::resolve_with(value, resolver, out_value);
       }
     }
   }
@@ -117,7 +124,7 @@ where
 
 impl<A, O, S> SerializeWith<once_cell::sync::OnceCell<O>, S> for AsInner<A>
 where
-  S: Fallible + ScratchSpace + Serializer + ?Sized,
+  S: Fallible + ?Sized,
   A: ArchiveWith<O> + SerializeWith<O, S>,
 {
   fn serialize_with(

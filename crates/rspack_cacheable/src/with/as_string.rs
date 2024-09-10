@@ -1,6 +1,7 @@
 use rkyv::{
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
+  Place,
 };
 
 use crate::{CacheableDeserializer, CacheableSerializer, DeserializeError, SerializeError};
@@ -27,18 +28,13 @@ where
   type Resolver = AsStringResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    _field: &T,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
+  fn resolve_with(_field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
     let AsStringResolver { inner, value } = resolver;
-    ArchivedString::resolve_from_str(&value, pos, inner, out);
+    ArchivedString::resolve_from_str(&value, inner, out);
   }
 }
 
-impl<T> SerializeWith<T, CacheableSerializer> for AsString
+impl<'a, T> SerializeWith<T, CacheableSerializer<'a>> for AsString
 where
   T: AsStringConverter,
 {

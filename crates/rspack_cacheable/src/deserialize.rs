@@ -1,85 +1,90 @@
+use std::{any::Any, ptr::NonNull};
+
 use rkyv::{
-  check_archived_root,
-  de::{deserializers::SharedDeserializeMap, SharedDeserializeRegistry, SharedPointer},
-  validation::validators::DefaultValidator,
-  Archive, CheckBytes, Deserialize, Fallible,
+  access,
+  api::{deserialize_using, high::HighValidator},
+  bytecheck::CheckBytes,
+  de::{ErasedPtr, Pool, Pooling},
+  rancor::{BoxedError, Source, Strategy, Trace},
+  Archive, Deserialize,
 };
+
+const CONTEXT_ADDR: usize = 2;
+unsafe fn default_drop(_: ErasedPtr) {}
 
 #[derive(Debug)]
 pub enum DeserializeError {
-  /// A validation error occurred
-  CheckBytesError,
-  /// A shared pointer was added multiple times
-  DuplicateSharedPointer,
-  /// A deserialize failed occurred
+  RkyvError(BoxedError),
+  DynCheckBytesNotRegister,
+  // A deserialize failed occurred
   DeserializeFailed(&'static str),
 }
 
 impl std::fmt::Display for DeserializeError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::CheckBytesError => {
-        write!(f, "CheckBytesError")
-      }
-      Self::DuplicateSharedPointer => {
-        write!(f, "DuplicateSharedPointer")
-      }
-      Self::DeserializeFailed(s) => {
-        write!(f, "DeserializeFailed {}", s)
-      }
+  fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    //    write!(f, "{}", self.inner)?;
+    Ok(())
+  }
+}
+
+impl std::error::Error for DeserializeError {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    //    self.inner.source()
+    todo!()
+  }
+}
+
+impl Trace for DeserializeError {
+  fn trace<R>(self, _trace: R) -> Self
+  where
+    R: std::fmt::Debug + std::fmt::Display + Send + Sync + 'static,
+  {
+    todo!()
+    //    Self::RkyvError()
+    //      inner: self.inner.trace(trace),
+    //    }
+  }
+}
+
+impl Source for DeserializeError {
+  fn new<T: std::error::Error + Send + Sync + 'static>(source: T) -> Self {
+    Self::RkyvError(BoxedError::new(source))
+  }
+}
+
+pub type CacheableValidator<'a> = HighValidator<'a, DeserializeError>;
+pub type CacheableDeserializer = Strategy<Pool, DeserializeError>;
+
+/*pub fn get_deserializer_context<'a, C: Any>(
+  deserializer: &'a mut CacheableDeserializer,
+) -> Option<&'a C> {
+  match deserializer.start_pooling(CONTEXT_ADDR) {
+    PoolingState::Finished(ptr) => {
+      let ctx = unsafe { &*(ptr.data_address()) as &dyn Any };
+      ctx.downcast_ref::<C>()
     }
+    _ => None,
   }
-}
+}*/
 
-impl std::error::Error for DeserializeError {}
-
-pub struct CacheableDeserializer {
-  shared: SharedDeserializeMap,
-  context: *const (),
-}
-
-impl CacheableDeserializer {
-  fn new<C>(context: &C) -> Self {
-    Self {
-      shared: SharedDeserializeMap::default(),
-      context: context as *const C as *const (),
-    }
-  }
-
-  // TODO change to safe implement
-  pub unsafe fn context<C>(&self) -> &C {
-    &*self.context.cast::<C>()
-  }
-}
-
-impl Fallible for CacheableDeserializer {
-  type Error = DeserializeError;
-}
-
-impl SharedDeserializeRegistry for CacheableDeserializer {
-  fn get_shared_ptr(&mut self, ptr: *const u8) -> Option<&dyn SharedPointer> {
-    self.shared.get_shared_ptr(ptr)
-  }
-
-  fn add_shared_ptr(
-    &mut self,
-    ptr: *const u8,
-    shared: Box<dyn SharedPointer>,
-  ) -> Result<(), Self::Error> {
-    self
-      .shared
-      .add_shared_ptr(ptr, shared)
-      .map_err(|_| DeserializeError::DuplicateSharedPointer)
-  }
-}
-
-pub fn from_bytes<T, C>(bytes: &[u8], context: &C) -> Result<T, DeserializeError>
+pub fn from_bytes<T, C: Any>(bytes: &[u8], context: &C) -> Result<T, DeserializeError>
 where
   T: Archive,
-  T::Archived: for<'a> CheckBytes<DefaultValidator<'a>> + Deserialize<T, CacheableDeserializer>,
+  T::Archived: for<'a> CheckBytes<CacheableValidator<'a>> + Deserialize<T, CacheableDeserializer>,
 {
-  let mut deserializer = CacheableDeserializer::new(context);
-  check_archived_root::<T>(bytes)
-    .map_err(|_| DeserializeError::CheckBytesError)?
-    .deserialize(&mut deserializer)
+  let mut deserializer = Pool::default();
+  unsafe {
+    let ctx_ptr = ErasedPtr::new(NonNull::new_unchecked(context as *const _ as *mut ()));
+    Pooling::<DeserializeError>::start_pooling(&mut deserializer, CONTEXT_ADDR);
+    Pooling::<DeserializeError>::finish_pooling(
+      &mut deserializer,
+      CONTEXT_ADDR,
+      ctx_ptr,
+      default_drop,
+    )?;
+  }
+  deserialize_using(
+    access::<T::Archived, DeserializeError>(bytes)?,
+    &mut deserializer,
+  )
 }

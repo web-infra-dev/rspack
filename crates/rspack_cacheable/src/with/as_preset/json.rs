@@ -2,6 +2,7 @@ use json::JsonValue;
 use rkyv::{
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
+  Place,
 };
 
 use super::AsPreset;
@@ -17,18 +18,13 @@ impl ArchiveWith<JsonValue> for AsPreset {
   type Resolver = JsonResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    _field: &JsonValue,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
+  fn resolve_with(_field: &JsonValue, resolver: Self::Resolver, out: Place<Self::Archived>) {
     let JsonResolver { inner, value } = resolver;
-    ArchivedString::resolve_from_str(&value, pos, inner, out);
+    ArchivedString::resolve_from_str(&value, inner, out);
   }
 }
 
-impl SerializeWith<JsonValue, CacheableSerializer> for AsPreset {
+impl<'a> SerializeWith<JsonValue, CacheableSerializer<'a>> for AsPreset {
   #[inline]
   fn serialize_with(
     field: &JsonValue,

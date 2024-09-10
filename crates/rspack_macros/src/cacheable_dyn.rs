@@ -32,46 +32,55 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
       #input
 
         const _: () = {
-            use core::alloc::Layout;
-            use std::alloc::LayoutError;
+            use std::alloc::{Layout, LayoutError};
 
-            use rspack_cacheable::__private::{
+            use rspack_cacheable::__private::rkyv::{
+                bytecheck::CheckBytes,
                 ptr_meta,
-                rkyv::{
-                    validation::{validators::DefaultValidator, LayoutRaw},
-                    ArchivePointee, ArchiveUnsized, ArchivedMetadata, CheckBytes, DeserializeUnsized,
-                    SerializeUnsized,
-                },
+                traits::{ArchivePointee, LayoutRaw},
+                ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
             };
             use rspack_cacheable::{
                 r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn},
-                CacheableDeserializer, CacheableSerializer, DeserializeError, SerializeError,
+                CacheableDeserializer, CacheableSerializer, CacheableValidator, DeserializeError,
+                SerializeError,
             };
 
-            impl #impl_generics ptr_meta::Pointee for dyn #trait_ident #ty_generics #where_clause {
+            unsafe impl #impl_generics ptr_meta::Pointee for dyn #trait_ident #ty_generics #where_clause {
                 type Metadata = ptr_meta::DynMetadata<Self>;
             }
-
-            #trait_vis trait #deserialize_trait_ident #ty_generics: DeserializeDyn<dyn #trait_ident #ty_generics> {}
-            impl #ty_generics ptr_meta::Pointee for dyn #deserialize_trait_ident #ty_generics {
-                type Metadata = ptr_meta::DynMetadata<Self>;
-            }
-
-            impl<__O: DeserializeDyn<dyn #trait_ident #ty_generics>, #generic_params> #deserialize_trait_ident #ty_generics for __O {}
 
             impl #ty_generics ArchiveUnsized for dyn #trait_ident #ty_generics {
                 type Archived = dyn #deserialize_trait_ident #ty_generics;
-                type MetadataResolver = ();
 
-                unsafe fn resolve_metadata(
-                    &self,
-                    _: usize,
-                    _: Self::MetadataResolver,
-                    out: *mut ArchivedMetadata<Self>,
-                ) {
-                    ArchivedDynMetadata::emplace(#trait_ident::__dyn_id(self), out);
+                fn archived_metadata(&self) -> ArchivedMetadata<Self> {
+                    ArchivedDynMetadata::new(#trait_ident::__dyn_id(self))
                 }
             }
+
+            impl #ty_generics LayoutRaw for dyn #trait_ident #ty_generics {
+                fn layout_raw(
+                    metadata: <Self as ptr_meta::Pointee>::Metadata,
+                ) -> Result<Layout, LayoutError> {
+                    Ok(metadata.layout())
+                }
+            }
+
+            impl #ty_generics SerializeUnsized<CacheableSerializer<'_>> for dyn #trait_ident #ty_generics {
+                fn serialize_unsized(
+                    &self,
+                    serializer: &mut CacheableSerializer
+                ) -> Result<usize, SerializeError> {
+                    self.serialize_dyn(serializer)
+                }
+            }
+
+            #trait_vis trait #deserialize_trait_ident #ty_generics: DeserializeDyn<dyn #trait_ident #ty_generics> + Portable {}
+            unsafe impl #ty_generics ptr_meta::Pointee for dyn #deserialize_trait_ident #ty_generics {
+                type Metadata = ptr_meta::DynMetadata<Self>;
+            }
+
+            impl<__T: DeserializeDyn<dyn #trait_ident #ty_generics> + Portable, #generic_params> #deserialize_trait_ident #ty_generics for __T {}
 
             impl #ty_generics ArchivePointee for dyn #deserialize_trait_ident #ty_generics {
                 type ArchivedMetadata = ArchivedDynMetadata<Self>;
@@ -79,44 +88,25 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                 fn pointer_metadata(
                     archived: &Self::ArchivedMetadata,
                 ) -> <Self as ptr_meta::Pointee>::Metadata {
-                    archived.pointer_metadata()
+                    archived.lookup_metadata()
                 }
             }
 
-            impl #ty_generics SerializeUnsized<CacheableSerializer> for dyn #trait_ident #ty_generics {
-                fn serialize_unsized(
-                    &self,
-                    mut serializer: &mut CacheableSerializer
-                ) -> Result<usize, SerializeError> {
-                    self.serialize_dyn(&mut serializer)
-                }
-
-                fn serialize_metadata(
-                    &self,
-                    _: &mut CacheableSerializer
-                ) -> Result<Self::MetadataResolver, SerializeError> {
-                    Ok(())
-                }
-            }
 
             impl #ty_generics DeserializeUnsized<dyn #trait_ident #ty_generics, CacheableDeserializer> for dyn #deserialize_trait_ident #ty_generics {
                 unsafe fn deserialize_unsized(
                     &self,
-                    mut deserializer: &mut CacheableDeserializer,
-                    mut alloc: impl FnMut(Layout) -> *mut u8,
-                ) -> Result<*mut (), DeserializeError> {
-                    self.deserialize_dyn(&mut deserializer, &mut alloc)
+                    deserializer: &mut CacheableDeserializer,
+                    out: *mut dyn #trait_ident #ty_generics
+                ) -> Result<(), DeserializeError> {
+                    self.deserialize_dyn(deserializer, out)
                 }
 
-                fn deserialize_metadata(
-                    &self,
-                    mut deserializer: &mut CacheableDeserializer,
-                ) -> Result<<dyn #trait_ident #ty_generics as ptr_meta::Pointee>::Metadata, DeserializeError> {
-                    self.deserialize_dyn_metadata(&mut deserializer)
+                fn deserialize_metadata(&self) -> <dyn #trait_ident #ty_generics as ptr_meta::Pointee>::Metadata {
+                    self.deserialized_pointer_metadata()
                 }
             }
 
-            // CheckBytes
             impl #ty_generics LayoutRaw for dyn #deserialize_trait_ident #ty_generics {
                 fn layout_raw(
                     metadata: <Self as ptr_meta::Pointee>::Metadata,
@@ -124,19 +114,20 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                     Ok(metadata.layout())
                 }
             }
-            impl #ty_generics CheckBytes<DefaultValidator<'_>> for dyn #deserialize_trait_ident #ty_generics {
-                type Error = DeserializeError;
+
+            // CheckBytes
+            unsafe impl #ty_generics CheckBytes<CacheableValidator<'_>> for dyn #deserialize_trait_ident #ty_generics {
                 #[inline]
-                unsafe fn check_bytes<'a>(
+                unsafe fn check_bytes(
                     value: *const Self,
-                    context: &mut DefaultValidator<'_>,
-                ) -> Result<&'a Self, Self::Error> {
-                    let vtable: usize = core::mem::transmute(ptr_meta::metadata(value));
+                    context: &mut CacheableValidator,
+                ) -> Result<(), DeserializeError> {
+                    let vtable: usize = std::mem::transmute(ptr_meta::metadata(value));
                     if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
                         check_bytes_dyn(value.cast(), context)?;
-                        Ok(&*value)
+                        Ok(())
                     } else {
-                        Err(DeserializeError::CheckBytesError)
+                        Err(DeserializeError::DynCheckBytesNotRegister)
                     }
                 }
             }
@@ -194,11 +185,9 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
       #input
 
       const _: () = {
-          use core::alloc::Layout;
-
           use rspack_cacheable::__private::{
-              inventory, ptr_meta,
-              rkyv::{ArchiveUnsized, Archived, Deserialize},
+              inventory,
+              rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
           };
           use rspack_cacheable::{
               r#dyn::{
@@ -222,26 +211,18 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
           where
               #archived_target_ident: Deserialize<#target_ident, CacheableDeserializer>,
           {
-              unsafe fn deserialize_dyn(
+              fn deserialize_dyn(
                   &self,
                   deserializer: &mut CacheableDeserializer,
-                  alloc: &mut dyn FnMut(Layout) -> *mut u8,
-              ) -> Result<*mut (), DeserializeError> {
-                  let result = alloc(Layout::new::<#target_ident>()).cast::<#target_ident>();
-                  assert!(!result.is_null());
-                  result.write(self.deserialize(deserializer)?);
-                  Ok(result as *mut ())
+                  out: *mut dyn #trait_ident
+              ) -> Result<(), DeserializeError> {
+                  unsafe {
+                      <Self as DeserializeUnsized<#target_ident, _>>::deserialize_unsized(self, deserializer, out.cast())
+                  }
               }
 
-              fn deserialize_dyn_metadata(
-                  &self,
-                  _: &mut CacheableDeserializer,
-              ) -> Result<<dyn #trait_ident as ptr_meta::Pointee>::Metadata, DeserializeError> {
-                  unsafe {
-                      Ok(core::mem::transmute(ptr_meta::metadata(
-                          core::ptr::null::<#target_ident>() as *const dyn #trait_ident,
-                      )))
-                  }
+              fn deserialized_pointer_metadata(&self) -> ptr_meta::DynMetadata<dyn #trait_ident> {
+                  ptr_meta::metadata(core::ptr::null::<#target_ident>() as *const dyn #trait_ident)
               }
           }
       };

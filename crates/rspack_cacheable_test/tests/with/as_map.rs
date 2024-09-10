@@ -16,9 +16,9 @@ struct Module {
 #[cacheable]
 #[derive(Debug)]
 struct App {
-  #[with(AsMap<AsCacheable, AsCacheable>)]
+  #[cacheable(with=AsMap<AsCacheable, AsCacheable>)]
   modules: FxHashMap<String, Module>,
-  #[with(AsMap<AsCacheable, AsString>)]
+  #[cacheable(with=AsMap<AsCacheable, AsString>)]
   paths: DashMap<String, PathBuf>,
 }
 

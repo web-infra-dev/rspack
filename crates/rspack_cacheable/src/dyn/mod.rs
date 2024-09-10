@@ -1,12 +1,19 @@
-use core::{alloc::Layout, marker::PhantomData, ptr};
-use std::collections::HashMap;
+use core::marker::PhantomData;
+use std::{
+  collections::HashMap,
+  hash::{Hash, Hasher},
+};
 
 use inventory;
-use ptr_meta::{DynMetadata, Pointee};
-use rkyv::{from_archived, ser::Serializer, to_archived, Archived, Serialize};
+use rkyv::{
+  bytecheck::{CheckBytes, StructCheckContext},
+  ptr_meta::{DynMetadata, Pointee},
+  rancor::{Fallible, Trace},
+  traits::NoUndef,
+  Archived, Portable, SerializeUnsized,
+};
 
 pub mod validation;
-
 use crate::{CacheableDeserializer, CacheableSerializer, DeserializeError, SerializeError};
 
 /// A trait object that can be archived.
@@ -15,59 +22,134 @@ pub trait SerializeDyn {
   fn serialize_dyn(&self, serializer: &mut CacheableSerializer) -> Result<usize, SerializeError>;
 }
 
-impl<T: Serialize<CacheableSerializer>> SerializeDyn for T {
+impl<T> SerializeDyn for T
+where
+  T: for<'a> SerializeUnsized<CacheableSerializer<'a>>,
+{
   fn serialize_dyn(&self, serializer: &mut CacheableSerializer) -> Result<usize, SerializeError> {
-    serializer.serialize_value(self)
+    self.serialize_unsized(serializer)
   }
 }
 
-/// A trait object forked from rkyv_dyn::DeserializeDyn
+/// A trait object that can be deserialized.
 ///
-/// This trait will override some internal methods params.
-/// 1. deserializer from `&mut dyn DynDeserializer` to `CacheableDeserializer`
-/// 2. return Error from `DynError` to `DeserializeError`
+/// See [`SerializeDyn`] for more information.
 pub trait DeserializeDyn<T: Pointee + ?Sized> {
-  /// Deserializes the given value as a trait object.
-  unsafe fn deserialize_dyn(
+  /// Deserializes this value into the given out pointer.
+  fn deserialize_dyn(
     &self,
     deserializer: &mut CacheableDeserializer,
-    alloc: &mut dyn FnMut(Layout) -> *mut u8,
-  ) -> Result<*mut (), DeserializeError>;
+    out: *mut T,
+  ) -> Result<(), DeserializeError>;
 
-  /// Returns the metadata for the deserialized version of this value.
-  fn deserialize_dyn_metadata(
-    &self,
-    deserializer: &mut CacheableDeserializer,
-  ) -> Result<T::Metadata, DeserializeError>;
+  /// Returns the pointer metadata for the deserialized form of this type.
+  fn deserialized_pointer_metadata(&self) -> DynMetadata<T>;
 }
 
 /// The archived version of `DynMetadata`.
 pub struct ArchivedDynMetadata<T: ?Sized> {
   dyn_id: Archived<u64>,
-  cached_vtable: Archived<u64>,
   phantom: PhantomData<T>,
 }
 
+impl<T: ?Sized> Default for ArchivedDynMetadata<T> {
+  fn default() -> Self {
+    Self {
+      dyn_id: Archived::<u64>::from_native(0),
+      phantom: PhantomData::default(),
+    }
+  }
+}
+impl<T: ?Sized> Hash for ArchivedDynMetadata<T> {
+  #[inline]
+  fn hash<H: Hasher>(&self, state: &mut H) -> () {
+    Hash::hash(&self.dyn_id, state);
+  }
+}
+impl<T: ?Sized> PartialEq for ArchivedDynMetadata<T> {
+  #[inline]
+  fn eq(&self, other: &ArchivedDynMetadata<T>) -> bool {
+    self.dyn_id == other.dyn_id
+  }
+}
+impl<T: ?Sized> Eq for ArchivedDynMetadata<T> {}
+impl<T: ?Sized> PartialOrd for ArchivedDynMetadata<T> {
+  #[inline]
+  fn partial_cmp(&self, other: &ArchivedDynMetadata<T>) -> Option<::core::cmp::Ordering> {
+    PartialOrd::partial_cmp(&self.dyn_id, &other.dyn_id)
+  }
+}
+impl<T: ?Sized> Ord for ArchivedDynMetadata<T> {
+  #[inline]
+  fn cmp(&self, other: &ArchivedDynMetadata<T>) -> ::core::cmp::Ordering {
+    Ord::cmp(&self.dyn_id, &other.dyn_id)
+  }
+}
+impl<T: ?Sized> Clone for ArchivedDynMetadata<T> {
+  fn clone(&self) -> ArchivedDynMetadata<T> {
+    ArchivedDynMetadata {
+      dyn_id: self.dyn_id.clone(),
+      phantom: Default::default(),
+    }
+  }
+}
+impl<T: ?Sized> Copy for ArchivedDynMetadata<T> {}
+impl<T: ?Sized> Unpin for ArchivedDynMetadata<T> {}
+unsafe impl<T: ?Sized> Sync for ArchivedDynMetadata<T> {}
+unsafe impl<T: ?Sized> Send for ArchivedDynMetadata<T> {}
+unsafe impl<T: ?Sized> NoUndef for ArchivedDynMetadata<T> {}
+unsafe impl<T: ?Sized> Portable for ArchivedDynMetadata<T> {}
+unsafe impl<T: ?Sized, C> CheckBytes<C> for ArchivedDynMetadata<T>
+where
+  C: Fallible + ?Sized,
+  C::Error: Trace,
+  Archived<u64>: CheckBytes<C>,
+  PhantomData<T>: CheckBytes<C>,
+{
+  unsafe fn check_bytes(
+    value: *const Self,
+    context: &mut C,
+  ) -> ::core::result::Result<(), C::Error> {
+    Archived::<u64>::check_bytes(&raw const (*value).dyn_id, context).map_err(|e| {
+      C::Error::trace(
+        e,
+        StructCheckContext {
+          struct_name: "ArchivedDynMetadata",
+          field_name: "dyn_id",
+        },
+      )
+    })?;
+    PhantomData::<T>::check_bytes(&raw const (*value).phantom, context).map_err(|e| {
+      C::Error::trace(
+        e,
+        StructCheckContext {
+          struct_name: "ArchivedDynMetadata",
+          field_name: "phantom",
+        },
+      )
+    })?;
+    Ok(())
+  }
+}
+
 impl<T: ?Sized> ArchivedDynMetadata<T> {
-  /// Creates a new `ArchivedDynMetadata` for the given type.
-  ///
-  /// # Safety
-  ///
-  /// `out` must point to a valid location for an `ArchivedDynMetadata<T>`.
-  pub unsafe fn emplace(dyn_id: u64, out: *mut Self) {
-    ptr::addr_of_mut!((*out).dyn_id).write(to_archived!(dyn_id));
-    ptr::addr_of_mut!((*out).cached_vtable).write(to_archived!(0u64));
+  pub fn new(dyn_id: u64) -> Self {
+    Self {
+      dyn_id: Archived::<u64>::from_native(dyn_id),
+      phantom: PhantomData,
+    }
   }
 
-  pub fn vtable(&self) -> usize {
-    *DYN_REGISTRY
-      .get(from_archived!(&self.dyn_id))
-      .expect("attempted to get vtable for an unregistered impl")
-  }
-
-  /// Gets the `DynMetadata` associated with this `ArchivedDynMetadata`.
-  pub fn pointer_metadata(&self) -> DynMetadata<T> {
-    unsafe { core::mem::transmute(self.vtable()) }
+  /// Returns the pointer metadata for the trait object this metadata refers
+  /// to.
+  pub fn lookup_metadata(&self) -> DynMetadata<T> {
+    unsafe {
+      std::mem::transmute(
+        *DYN_REGISTRY
+          .get(&self.dyn_id.to_native())
+          .expect("attempted to get vtable for an unregistered impl"),
+      )
+    }
   }
 }
 

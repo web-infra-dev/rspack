@@ -10,7 +10,7 @@ fn test_manual_cacheable() {
     rspack_cacheable::__private::rkyv::Deserialize,
     rspack_cacheable::__private::rkyv::Serialize,
   )]
-  #[archive(check_bytes, crate = "rspack_cacheable::__private::rkyv")]
+  #[rkyv(crate=rspack_cacheable::__private::rkyv)]
   #[derive(Debug, PartialEq, Eq)]
   struct Person {
     name: String,
@@ -48,41 +48,38 @@ fn test_manual_cacheable_with_macro() {
 
   #[allow(non_upper_case_globals)]
   const _: () = {
+    use rkyv::{
+      rancor::Fallible,
+      with::{ArchiveWith, DeserializeWith, SerializeWith},
+      Archive, Deserialize, Place, Serialize,
+    };
     use rspack_cacheable::__private::rkyv;
-    impl rkyv::Archive for Person {
-      type Archived = <AsRefStr as rkyv::with::ArchiveWith<Person>>::Archived;
-      type Resolver = <AsRefStr as rkyv::with::ArchiveWith<Person>>::Resolver;
+    impl Archive for Person {
+      type Archived = <AsRefStr as ArchiveWith<Person>>::Archived;
+      type Resolver = <AsRefStr as ArchiveWith<Person>>::Resolver;
       #[inline]
-      unsafe fn resolve(&self, pos: usize, resolver: Self::Resolver, out: *mut Self::Archived) {
-        <rkyv::with::With<Person, AsRefStr>>::cast(self).resolve(pos, resolver, out)
+      fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+        <AsRefStr as ArchiveWith<Person>>::resolve_with(self, resolver, out)
       }
     }
-    impl<S> rkyv::Serialize<S> for Person
+    impl<S> Serialize<S> for Person
     where
-      rkyv::with::With<Person, AsRefStr>: rkyv::Serialize<S>,
-      S: rkyv::Fallible + ?Sized,
+      S: Fallible + ?Sized,
+      AsRefStr: SerializeWith<Person, S>,
     {
       #[inline]
       fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
-        <rkyv::with::With<Person, AsRefStr>>::cast(self).serialize(serializer)
+        AsRefStr::serialize_with(self, serializer)
       }
     }
-    impl<D: rkyv::Fallible + ?Sized> rkyv::Deserialize<Person, D>
-      for <AsRefStr as rkyv::with::ArchiveWith<Person>>::Archived
+    impl<D> Deserialize<Person, D> for <AsRefStr as ArchiveWith<Person>>::Archived
     where
-      rkyv::with::With<Person, AsRefStr>: rkyv::Archive,
-      rkyv::Archived<rkyv::with::With<Person, AsRefStr>>:
-        rkyv::Deserialize<rkyv::with::With<Person, AsRefStr>, D>,
+      D: Fallible + ?Sized,
+      AsRefStr: DeserializeWith<<AsRefStr as ArchiveWith<Person>>::Archived, Person, D>,
     {
       #[inline]
-      fn deserialize(&self, _deserializer: &mut D) -> Result<Person, D::Error> {
-        Ok(
-          rkyv::Deserialize::<rkyv::with::With<Person, AsRefStr>, D>::deserialize(
-            self,
-            _deserializer,
-          )?
-          .into_inner(),
-        )
+      fn deserialize(&self, deserializer: &mut D) -> Result<Person, D::Error> {
+        AsRefStr::deserialize_with(self, deserializer)
       }
     }
   };

@@ -1,12 +1,10 @@
 use rkyv::{
-  bytecheck::BoolCheckError,
-  collections::util::validation::ArchivedEntryError,
-  out_field,
-  ser::Serializer,
+  bytecheck::{CheckBytes, StructCheckContext},
+  rancor::{Fallible, Source, Trace},
+  ser::Writer,
   string::{ArchivedString, StringResolver},
-  validation::ArchiveContext,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, CheckBytes, Deserialize, Fallible,
+  Archive, Deserialize, Place, Portable,
 };
 use rspack_resolver::AliasValue;
 
@@ -17,6 +15,8 @@ pub struct ArchivedAliasValue {
   path: ArchivedString,
 }
 
+unsafe impl Portable for ArchivedAliasValue {}
+
 pub struct AliasValueResolver {
   path: StringResolver,
 }
@@ -26,27 +26,27 @@ impl ArchiveWith<AliasValue> for AsPreset {
   type Resolver = AliasValueResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &AliasValue,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    let (fp, fo) = out_field!(out.is_ignore);
+  fn resolve_with(field: &AliasValue, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let field_ptr = unsafe { &raw mut (*out.ptr()).is_ignore };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
     let is_ignore = matches!(field, AliasValue::Ignore);
-    is_ignore.resolve(pos + fp, (), fo);
-
+    is_ignore.resolve((), field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).path };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
     let path = if let AliasValue::Path(path) = field {
       path
     } else {
       ""
     };
-    let (fp, fo) = out_field!(out.path);
-    ArchivedString::resolve_from_str(path, pos + fp, resolver.path, fo);
+    ArchivedString::resolve_from_str(path, resolver.path, field_out);
   }
 }
 
-impl<S: Fallible + Serializer + ?Sized> SerializeWith<AliasValue, S> for AsPreset {
+impl<S> SerializeWith<AliasValue, S> for AsPreset
+where
+  S: Fallible + Writer + ?Sized,
+  S::Error: Source,
+{
   #[inline]
   fn serialize_with(field: &AliasValue, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
     let path = if let AliasValue::Path(path) = field {
@@ -60,20 +60,33 @@ impl<S: Fallible + Serializer + ?Sized> SerializeWith<AliasValue, S> for AsPrese
   }
 }
 
-impl<C> CheckBytes<C> for ArchivedAliasValue
+unsafe impl<C> CheckBytes<C> for ArchivedAliasValue
 where
   ArchivedString: CheckBytes<C>,
-  C: ArchiveContext + ?Sized,
+  C: Fallible + ?Sized,
+  C::Error: Trace,
+  bool: CheckBytes<C>,
 {
-  type Error = ArchivedEntryError<BoolCheckError, <ArchivedString as CheckBytes<C>>::Error>;
-
-  #[inline]
-  unsafe fn check_bytes<'a>(value: *const Self, context: &mut C) -> Result<&'a Self, Self::Error> {
-    bool::check_bytes(core::ptr::addr_of!((*value).is_ignore), context)
-      .map_err(ArchivedEntryError::KeyCheckError)?;
-    ArchivedString::check_bytes(core::ptr::addr_of!((*value).path), context)
-      .map_err(ArchivedEntryError::ValueCheckError)?;
-    Ok(&*value)
+  unsafe fn check_bytes(value: *const Self, context: &mut C) -> Result<(), C::Error> {
+    bool::check_bytes(core::ptr::addr_of!((*value).is_ignore), context).map_err(|e| {
+      <C::Error as Trace>::trace(
+        e,
+        StructCheckContext {
+          struct_name: "ArchivedAliasValue",
+          field_name: "is_ignore",
+        },
+      )
+    })?;
+    ArchivedString::check_bytes(core::ptr::addr_of!((*value).path), context).map_err(|e| {
+      <C::Error as Trace>::trace(
+        e,
+        StructCheckContext {
+          struct_name: "ArchivedAliasValue",
+          field_name: "path",
+        },
+      )
+    })?;
+    Ok(())
   }
 }
 

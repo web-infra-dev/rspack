@@ -31,9 +31,9 @@ impl AsStringConverter for Regex {
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct Module {
-  #[with(AsString)]
+  #[cacheable(with=AsString)]
   path: PathBuf,
-  #[with(AsString)]
+  #[cacheable(with=AsString)]
   regex: Regex,
 }
 

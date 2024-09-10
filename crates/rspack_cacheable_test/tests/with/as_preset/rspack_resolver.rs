@@ -7,7 +7,7 @@ use rspack_resolver::{Alias, AliasValue};
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct ResolverOption {
-  #[with(AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>>)]
+  #[cacheable(with=AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>>)]
   alias: Option<Alias>,
 }
 

@@ -29,7 +29,7 @@ impl DeserializeWith<(), Arc<CompilerOptions>, CacheableDeserializer> for FromCo
     _: &(),
     d: &mut CacheableDeserializer,
   ) -> Result<Arc<CompilerOptions>, DeserializeError> {
-    let ctx = unsafe { d.context::<CacheContext>() };
+    let ctx = d.context::<CacheContext>();
     Ok(ctx.options.clone())
   }
 }

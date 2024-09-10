@@ -2,6 +2,7 @@ use lightningcss::targets::Browsers;
 use rkyv::{
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
+  Place,
 };
 
 use super::AsPreset;
@@ -17,18 +18,13 @@ impl ArchiveWith<Browsers> for AsPreset {
   type Resolver = BrowsersResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    _field: &Browsers,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
+  fn resolve_with(_field: &Browsers, resolver: Self::Resolver, out: Place<Self::Archived>) {
     let BrowsersResolver { inner, value } = resolver;
-    ArchivedString::resolve_from_str(&value, pos, inner, out);
+    ArchivedString::resolve_from_str(&value, inner, out);
   }
 }
 
-impl SerializeWith<Browsers, CacheableSerializer> for AsPreset {
+impl<'a> SerializeWith<Browsers, CacheableSerializer<'a>> for AsPreset {
   #[inline]
   fn serialize_with(
     field: &Browsers,

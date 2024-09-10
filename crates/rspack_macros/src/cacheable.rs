@@ -2,18 +2,22 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
   parse::{Parse, ParseStream},
-  parse_macro_input, Item, Result, Token,
+  parse_macro_input, parse_quote,
+  visit_mut::VisitMut,
+  Field, Item, Result, Token, Type,
 };
 
 mod kw {
   syn::custom_keyword!(with);
 }
 pub struct CacheableArgs {
+  pub crate_path: syn::Path,
   pub with: Option<syn::Path>,
 }
 impl Parse for CacheableArgs {
   fn parse(input: ParseStream) -> Result<Self> {
     let mut with = None;
+    let mut crate_path = parse_quote! { ::rspack_cacheable };
 
     let mut needs_punct = false;
     while !input.is_empty() {
@@ -21,7 +25,11 @@ impl Parse for CacheableArgs {
         input.parse::<Token![,]>()?;
       }
 
-      if input.peek(kw::with) {
+      if input.peek(syn::token::Crate) {
+        input.parse::<syn::token::Crate>()?;
+        input.parse::<Token![=]>()?;
+        crate_path = input.parse::<syn::Path>()?;
+      } else if input.peek(kw::with) {
         if with.is_some() {
           return Err(input.error("duplicate with argument"));
         }
@@ -38,26 +46,71 @@ impl Parse for CacheableArgs {
       needs_punct = true;
     }
 
-    Ok(Self { with })
+    Ok(Self { crate_path, with })
   }
 }
 
-pub fn impl_cacheable(tokens: TokenStream) -> TokenStream {
-  let input = parse_macro_input!(tokens as Item);
+struct FieldAttrVisitor {
+  clean: bool,
+}
+
+impl VisitMut for FieldAttrVisitor {
+  fn visit_field_mut(&mut self, f: &mut Field) {
+    if self.clean {
+      f.attrs.retain(|item| !item.path().is_ident("cacheable"));
+      return;
+    }
+
+    for attr in f.attrs.iter_mut() {
+      let mut with_info = None;
+      if attr.path().is_ident("cacheable") {
+        attr
+          .parse_nested_meta(|meta| {
+            if meta.path.is_ident("with") {
+              meta.input.parse::<Token![=]>()?;
+              with_info = Some(meta.input.parse::<Type>()?);
+              return Ok(());
+            }
+            Err(meta.error("unrecognized cacheable arguments"))
+          })
+          .unwrap();
+      }
+
+      if let Some(with_info) = with_info {
+        *attr = parse_quote!(#[rkyv(with=#with_info)]);
+      }
+    }
+  }
+}
+
+pub fn impl_cacheable(tokens: TokenStream, crate_path: syn::Path) -> TokenStream {
+  let mut input = parse_macro_input!(tokens as Item);
+
+  let mut visitor = FieldAttrVisitor { clean: false };
+  visitor.visit_item_mut(&mut input);
+
   quote! {
       #[derive(
           rspack_cacheable::__private::rkyv::Archive,
           rspack_cacheable::__private::rkyv::Deserialize,
           rspack_cacheable::__private::rkyv::Serialize
       )]
-      #[archive(check_bytes, crate="rspack_cacheable::__private::rkyv")]
+      #[rkyv(crate=#crate_path::__private::rkyv)]
       #input
   }
   .into()
 }
 
-pub fn impl_cacheable_with(tokens: TokenStream, with: syn::Path) -> TokenStream {
-  let input = parse_macro_input!(tokens as Item);
+pub fn impl_cacheable_with(
+  tokens: TokenStream,
+  crate_path: syn::Path,
+  with: syn::Path,
+) -> TokenStream {
+  let mut input = parse_macro_input!(tokens as Item);
+
+  let mut visitor = FieldAttrVisitor { clean: true };
+  visitor.visit_item_mut(&mut input);
+
   // TODO use _impl_generics, _ty_generics, _where_clause
   let (ident, _impl_generics, _ty_generics, _where_clause) = match &input {
     Item::Enum(input) => {
@@ -72,43 +125,42 @@ pub fn impl_cacheable_with(tokens: TokenStream, with: syn::Path) -> TokenStream 
   };
   let archived = quote! {<#with as rkyv::with::ArchiveWith<#ident>>::Archived};
   let resolver = quote! {<#with as rkyv::with::ArchiveWith<#ident>>::Resolver};
-  let rkyv_with = quote! {rkyv::with::With<#ident, #with>};
   quote! {
       #input
       #[allow(non_upper_case_globals)]
       const _: () = {
-          use rspack_cacheable::__private::rkyv;
-          impl rkyv::Archive for #ident {
+          use #crate_path::__private::rkyv;
+          use rkyv::{
+              rancor::Fallible,
+              with::{ArchiveWith, DeserializeWith, SerializeWith},
+              Archive, Deserialize, Place, Serialize
+          };
+          impl Archive for #ident {
               type Archived = #archived;
               type Resolver = #resolver;
               #[inline]
-              unsafe fn resolve(&self, pos: usize, resolver: Self::Resolver, out: *mut Self::Archived) {
-                  <#rkyv_with>::cast(self).resolve(pos, resolver, out)
+              fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+                  <#with as ArchiveWith<#ident>>::resolve_with(self, resolver, out)
               }
           }
-          impl<S> rkyv::Serialize<S> for #ident
+          impl<S> Serialize<S> for #ident
           where
-              #rkyv_with: rkyv::Serialize<S>,
-              S: rkyv::Fallible + ?Sized,
+              S: Fallible + ?Sized,
+              #with: SerializeWith<#ident, S>
           {
               #[inline]
               fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
-                  <#rkyv_with>::cast(self).serialize(serializer)
+                  #with::serialize_with(self, serializer)
               }
           }
-          impl<D: rkyv::Fallible + ?Sized> rkyv::Deserialize<#ident, D> for #archived
+          impl<D> Deserialize<#ident, D> for #archived
           where
-              #rkyv_with: rkyv::Archive,
-              rkyv::Archived<#rkyv_with>: rkyv::Deserialize<#rkyv_with, D>,
+              D: Fallible + ?Sized,
+              #with: DeserializeWith<#archived, #ident, D>
           {
               #[inline]
-              fn deserialize(&self, _deserializer: &mut D) -> Result<#ident, D::Error> {
-                  Ok(
-                      rkyv::Deserialize::<#rkyv_with, D>::deserialize(
-                          self,
-                          _deserializer,
-                      )?.into_inner()
-                  )
+              fn deserialize(&self, deserializer: &mut D) -> Result<#ident, D::Error> {
+                  #with::deserialize_with(self, deserializer)
               }
           }
       };

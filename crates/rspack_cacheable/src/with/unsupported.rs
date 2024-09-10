@@ -1,4 +1,7 @@
-use rkyv::with::{ArchiveWith, DeserializeWith, SerializeWith};
+use rkyv::{
+  with::{ArchiveWith, DeserializeWith, SerializeWith},
+  Place,
+};
 
 use crate::{CacheableDeserializer, CacheableSerializer, DeserializeError, SerializeError};
 
@@ -8,10 +11,10 @@ impl<F> ArchiveWith<F> for Unsupported {
   type Archived = ();
   type Resolver = ();
 
-  unsafe fn resolve_with(_: &F, _: usize, _: Self::Resolver, _: *mut Self::Archived) {}
+  fn resolve_with(_: &F, _: Self::Resolver, _: Place<Self::Archived>) {}
 }
 
-impl<F> SerializeWith<F, CacheableSerializer> for Unsupported {
+impl<'a, F> SerializeWith<F, CacheableSerializer<'a>> for Unsupported {
   fn serialize_with(_: &F, _: &mut CacheableSerializer) -> Result<(), SerializeError> {
     Err(SerializeError::SerializeFailed("unsupported field"))
   }

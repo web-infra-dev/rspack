@@ -1,9 +1,10 @@
 use rkyv::{
-  ser::{ScratchSpace, Serializer},
+  rancor::Fallible,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Archived, Deserialize, Fallible, Resolver, Serialize,
+  Archive, Archived, Deserialize, Place, Resolver, Serialize,
 };
 
+// port rkyv::with::Identity
 pub struct AsCacheable;
 
 impl<T: Archive> ArchiveWith<T> for AsCacheable {
@@ -11,20 +12,15 @@ impl<T: Archive> ArchiveWith<T> for AsCacheable {
   type Resolver = Resolver<T>;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &T,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    field.resolve(pos, resolver, out)
+  fn resolve_with(field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    field.resolve(resolver, out)
   }
 }
 
 impl<T, S> SerializeWith<T, S> for AsCacheable
 where
   T: Archive + Serialize<S>,
-  S: ?Sized + Serializer + ScratchSpace,
+  S: ?Sized + Fallible,
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, S::Error> {

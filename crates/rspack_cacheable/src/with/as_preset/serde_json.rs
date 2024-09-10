@@ -1,6 +1,7 @@
 use rkyv::{
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
+  Place,
 };
 use serde_json::Value;
 
@@ -17,18 +18,13 @@ impl ArchiveWith<Value> for AsPreset {
   type Resolver = SerdeJsonResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    _field: &Value,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
+  fn resolve_with(_field: &Value, resolver: Self::Resolver, out: Place<Self::Archived>) {
     let SerdeJsonResolver { inner, value } = resolver;
-    ArchivedString::resolve_from_str(&value, pos, inner, out);
+    ArchivedString::resolve_from_str(&value, inner, out);
   }
 }
 
-impl SerializeWith<Value, CacheableSerializer> for AsPreset {
+impl<'a> SerializeWith<Value, CacheableSerializer<'a>> for AsPreset {
   #[inline]
   fn serialize_with(
     field: &Value,

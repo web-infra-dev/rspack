@@ -1,8 +1,9 @@
 use rkyv::{
-  ser::{ScratchSpace, Serializer},
+  rancor::{Fallible, Source},
+  ser::Writer,
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Fallible,
+  Place,
 };
 use ustr::Ustr;
 
@@ -13,19 +14,15 @@ impl ArchiveWith<Ustr> for AsPreset {
   type Resolver = StringResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    field: &Ustr,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    ArchivedString::resolve_from_str(field.as_str(), pos, resolver, out);
+  fn resolve_with(field: &Ustr, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedString::resolve_from_str(field.as_str(), resolver, out);
   }
 }
 
 impl<S> SerializeWith<Ustr, S> for AsPreset
 where
-  S: ?Sized + Serializer + ScratchSpace,
+  S: ?Sized + Fallible + Writer,
+  S::Error: Source,
 {
   #[inline]
   fn serialize_with(field: &Ustr, serializer: &mut S) -> Result<Self::Resolver, S::Error> {

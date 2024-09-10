@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
 
 use rkyv::{
-  ser::{ScratchSpace, Serializer},
+  rancor::Fallible,
+  ser::{Allocator, Writer},
   vec::{ArchivedVec, VecResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Fallible, Serialize,
+  Archive, Place, Serialize,
 };
 
 use crate::{with::AsCacheable, CacheableDeserializer, DeserializeError};
@@ -15,15 +16,15 @@ impl<A: ArchiveWith<O>, O> Archive for RefWrapper<'_, A, O> {
   type Archived = A::Archived;
   type Resolver = A::Resolver;
 
-  unsafe fn resolve(&self, pos: usize, resolver: Self::Resolver, out: *mut Self::Archived) {
-    A::resolve_with(self.0, pos, resolver, out)
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    A::resolve_with(self.0, resolver, out)
   }
 }
 
 impl<A, O, S> Serialize<S> for RefWrapper<'_, A, O>
 where
   A: ArchiveWith<O> + SerializeWith<O, S>,
-  S: Fallible + Serializer + ?Sized,
+  S: Fallible + ?Sized,
 {
   fn serialize(&self, s: &mut S) -> Result<Self::Resolver, S::Error> {
     A::serialize_with(self.0, s)
@@ -38,9 +39,9 @@ pub struct AsVec<T = AsCacheable> {
 pub trait AsVecConverter {
   type Item;
   fn len(&self) -> usize;
-  fn iter(&self) -> impl ExactSizeIterator<Item = &Self::Item>;
+  fn iter(&self) -> impl Iterator<Item = &Self::Item>;
   fn from(
-    data: impl ExactSizeIterator<Item = Result<Self::Item, DeserializeError>>,
+    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
   ) -> Result<Self, DeserializeError>
   where
     Self: Sized;
@@ -54,28 +55,24 @@ where
   type Archived = ArchivedVec<A::Archived>;
   type Resolver = VecResolver;
 
-  unsafe fn resolve_with(
-    field: &T,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    ArchivedVec::resolve_from_len(field.len(), pos, resolver, out)
+  fn resolve_with(field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedVec::resolve_from_len(field.len(), resolver, out)
   }
 }
 
 impl<T, A, O, S> SerializeWith<T, S> for AsVec<A>
 where
   T: AsVecConverter<Item = O>,
-  S: Fallible + ScratchSpace + Serializer + ?Sized,
+  S: Fallible + Allocator + Writer + ?Sized,
   A: ArchiveWith<O> + SerializeWith<O, S>,
 {
   fn serialize_with(field: &T, s: &mut S) -> Result<Self::Resolver, S::Error> {
     let iter = field
       .iter()
-      .map(|value| RefWrapper::<'_, A, O>(value, PhantomData));
+      .map(|value| RefWrapper::<'_, A, O>(value, PhantomData))
+      .collect::<Vec<_>>();
 
-    ArchivedVec::serialize_from_iter(iter, s)
+    ArchivedVec::serialize_from_slice(&iter, s)
   }
 }
 
@@ -98,11 +95,11 @@ impl<T> AsVecConverter for Vec<T> {
   fn len(&self) -> usize {
     self.len()
   }
-  fn iter(&self) -> impl ExactSizeIterator<Item = &Self::Item> {
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
     <[T]>::iter(self)
   }
   fn from(
-    data: impl ExactSizeIterator<Item = Result<Self::Item, DeserializeError>>,
+    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
   ) -> Result<Self, DeserializeError> {
     data.collect::<Result<Vec<_>, DeserializeError>>()
   }
@@ -118,11 +115,11 @@ where
   fn len(&self) -> usize {
     self.len()
   }
-  fn iter(&self) -> impl ExactSizeIterator<Item = &Self::Item> {
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
     self.iter()
   }
   fn from(
-    data: impl ExactSizeIterator<Item = Result<Self::Item, DeserializeError>>,
+    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
   ) -> Result<Self, DeserializeError> {
     data.collect::<Result<std::collections::HashSet<T, S>, DeserializeError>>()
   }
@@ -138,11 +135,11 @@ where
   fn len(&self) -> usize {
     self.len()
   }
-  fn iter(&self) -> impl ExactSizeIterator<Item = &Self::Item> {
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
     self.iter()
   }
   fn from(
-    data: impl ExactSizeIterator<Item = Result<Self::Item, DeserializeError>>,
+    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
   ) -> Result<Self, DeserializeError> {
     data.collect::<Result<indexmap::IndexSet<T, S>, DeserializeError>>()
   }

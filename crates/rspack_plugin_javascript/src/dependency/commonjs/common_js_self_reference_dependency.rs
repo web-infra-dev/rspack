@@ -15,7 +15,6 @@ use super::ExportsBase;
 #[derive(Debug, Clone)]
 pub struct CommonJsSelfReferenceDependency {
   id: DependencyId,
-  #[with(AsTuple2)]
   range: (u32, u32),
   base: ExportsBase,
   #[with(AsVec<AsPreset>)]

@@ -1,6 +1,7 @@
 use rkyv::{
   vec::{ArchivedVec, VecResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
+  Place,
 };
 
 use crate::{CacheableDeserializer, CacheableSerializer, DeserializeError, SerializeError};
@@ -25,17 +26,12 @@ impl<T> ArchiveWith<T> for AsBytes {
   type Resolver = AsBytesResolver;
 
   #[inline]
-  unsafe fn resolve_with(
-    _field: &T,
-    pos: usize,
-    resolver: Self::Resolver,
-    out: *mut Self::Archived,
-  ) {
-    ArchivedVec::resolve_from_len(resolver.len, pos, resolver.inner, out)
+  fn resolve_with(_field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedVec::resolve_from_len(resolver.len, resolver.inner, out)
   }
 }
 
-impl<T> SerializeWith<T, CacheableSerializer> for AsBytes
+impl<'a, T> SerializeWith<T, CacheableSerializer<'a>> for AsBytes
 where
   T: AsBytesConverter,
 {

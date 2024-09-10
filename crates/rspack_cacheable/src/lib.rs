@@ -10,11 +10,11 @@ mod serialize;
 pub mod __private {
   #[doc(hidden)]
   pub extern crate inventory;
-  #[doc(hidden)]
-  pub extern crate ptr_meta;
+  //  #[doc(hidden)]
+  //  pub extern crate ptr_meta;
   #[doc(hidden)]
   pub extern crate rkyv;
 }
 
-pub use deserialize::{from_bytes, CacheableDeserializer, DeserializeError};
+pub use deserialize::{from_bytes, CacheableDeserializer, CacheableValidator, DeserializeError};
 pub use serialize::{to_bytes, CacheableSerializer, SerializeError};

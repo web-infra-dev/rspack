@@ -8,11 +8,11 @@ use rspack_cacheable::{
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct Data {
-  #[with(AsInner<AsString>)]
+  #[cacheable(with=AsInner<AsString>)]
   path: Arc<PathBuf>,
-  #[with(AsInner)]
+  #[cacheable(with=AsInner)]
   block1: once_cell::sync::OnceCell<usize>,
-  #[with(AsInner)]
+  #[cacheable(with=AsInner)]
   block2: once_cell::sync::OnceCell<usize>,
 }
 
