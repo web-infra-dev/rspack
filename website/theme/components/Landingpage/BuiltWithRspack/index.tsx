@@ -12,6 +12,7 @@ import bytedanceLogo from './assets/bytedance.svg';
 import discordLogo from './assets/discord.svg';
 import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
+import nioLogo from './assets/nio.svg';
 
 type Company = {
   name: string;
@@ -58,6 +59,12 @@ const companyList: Company[] = [
     logo: discordLogo,
     url: 'https://discord.com',
     width: 140,
+  },
+  {
+    name: 'NIO',
+    logo: nioLogo,
+    url: 'https://nio.com',
+    width: 115,
   },
 ];
 
