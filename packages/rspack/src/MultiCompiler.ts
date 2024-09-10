@@ -66,7 +66,7 @@ export class MultiCompiler {
 		compilers: Compiler[] | Record<string, Compiler>,
 		options?: MultiCompilerOptions
 	) {
-		let normalizedCompilers;
+		let normalizedCompilers: Compiler[];
 		if (!Array.isArray(compilers)) {
 			normalizedCompilers = Object.entries(compilers).map(
 				([name, compiler]) => {

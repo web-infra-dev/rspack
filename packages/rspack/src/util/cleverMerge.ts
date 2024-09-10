@@ -420,7 +420,7 @@ const mergeEntries = (
 					byValues: secondEntry.byValues
 				};
 			}
-			let newBase;
+			let newBase: ObjectParsedPropertyEntry["base"];
 			const intermediateByValues = new Map(firstEntry.byValues);
 			for (const [key, value] of intermediateByValues) {
 				intermediateByValues.set(

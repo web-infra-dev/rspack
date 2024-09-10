@@ -9,7 +9,7 @@
  */
 
 export const last = <T>(set: Iterable<T>): T | undefined => {
-	let last;
+	let last: T | undefined;
 	for (const item of set) last = item;
 	return last;
 };
