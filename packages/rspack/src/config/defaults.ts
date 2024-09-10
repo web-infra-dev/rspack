@@ -121,10 +121,10 @@ export const applyRspackOptionsDefaults = (
 		targetProperties
 	});
 
-	// @ts-expect-error
 	F(options, "externalsType", () => {
 		return options.output.library
-			? options.output.library.type
+			? // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
+				(options.output.library.type as any)
 			: options.output.module
 				? "module-import"
 				: "var";
@@ -1087,8 +1087,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
-					// @ts-expect-error
-					obj[prop] = newArray;
+					obj[prop] = newArray as any;
 				}
 				const items = factory();
 				if (items !== undefined) {
