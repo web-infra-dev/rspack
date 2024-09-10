@@ -1,5 +1,5 @@
 /**
- * Some types are modified from https://github.com/swc-project/swc/blob/16a38851/packages/types/index.ts#L647
+ * Some types are modified from https://github.com/swc-project/swc/blob/f63a481833ebe9b5eae0708ee69b6a50b946ee28/packages/types/index.ts#L647
  * license at https://github.com/swc-project/swc/blob/main/LICENSE
  */
 import type { PluginImportOptions } from "./pluginImport";
@@ -63,7 +63,23 @@ export interface SwcLoaderEsParserConfig {
 	/**
 	 * Defaults to `false`
 	 */
-	importAssertions?: boolean;
+	importAttributes?: boolean;
+	/**
+	 * Defaults to `false`
+	 */
+	allowSuperOutsideMethod?: boolean;
+	/**
+	 * Defaults to `false`
+	 */
+	allowReturnOutsideFunction?: boolean;
+	/**
+	 * Defaults to `false`
+	 */
+	autoAccessors?: boolean;
+	/**
+	 * Defaults to `false`
+	 */
+	explicitResourceManagement?: boolean;
 }
 
 /**
@@ -230,6 +246,10 @@ export interface SwcLoaderJscConfig {
 		 * Disable builtin transforms. If enabled, only Wasm plugins are used.
 		 */
 		disableBuiltinTransformsForInternalTesting?: boolean;
+		/**
+		 * Emit isolated dts files for each module.
+		 */
+		emitIsolatedDts?: boolean;
 	};
 	baseUrl?: string;
 	paths?: {
