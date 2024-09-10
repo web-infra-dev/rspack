@@ -1,11 +1,11 @@
 use itertools::Itertools;
+use rspack_core::DependencyType;
 use rspack_core::{
   create_exports_object_referenced, module_raw, Compilation, ExtendedReferencedExport, ModuleGraph,
   NormalInitFragment, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -44,10 +44,6 @@ impl Dependency for ProvideDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Provided
-  }
-
-  fn span(&self) -> Option<ErrorSpan> {
-    None
   }
 
   fn get_referenced_exports(

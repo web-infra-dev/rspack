@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@rstack-dev/doc-ui':
-        specifier: 1.3.2
-        version: 1.3.2(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: 1.4.2
+        version: 1.4.2(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       antd:
         specifier: 5.19.3
         version: 5.19.3(date-fns@2.30.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -710,8 +710,8 @@ packages:
     resolution: {integrity: sha512-bwZldJkS0tZfPrS04JAgrhuvGU81fOZ1BTd/wgPCRXJshuU5nBo01JHoq3D8WaTa4wtRQKo0i1yMs6pS+Xu0EA==}
     engines: {node: '>=14.17.6'}
 
-  '@rstack-dev/doc-ui@1.3.2':
-    resolution: {integrity: sha512-AfBn+j16IbYpJNJox1uFYin+ffmgn0P/ImYVfPGjzMi8tlYW352g6gqO0AlQo/YAFoGSCB4BGY0KIXk1IeeUEQ==}
+  '@rstack-dev/doc-ui@1.4.2':
+    resolution: {integrity: sha512-dC1L65hIqzO0OwPtKXf7Y+wJJCy5FudEibUf8XW9AAaTM47/izBR768zTdhv+IIwk+40ZsBp7jnIIEsR05BnNQ==}
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
@@ -3953,7 +3953,7 @@ snapshots:
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       rspack-plugin-virtual-module: 0.1.12
 
-  '@rstack-dev/doc-ui@1.3.2(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@rstack-dev/doc-ui@1.4.2(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       framer-motion: 11.3.4(@emotion/is-prop-valid@0.8.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
     transitivePeerDependencies:

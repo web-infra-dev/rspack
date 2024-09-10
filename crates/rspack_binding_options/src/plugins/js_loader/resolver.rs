@@ -75,6 +75,8 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoa
       rspack_loader_preact_refresh::PreactRefreshLoader::default().with_identifier(builtin.into()),
     ));
   }
+
+  // TODO: should be compiled with a different cfg
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
     return Ok(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
   }
@@ -83,6 +85,12 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoa
   }
   if builtin.starts_with(rspack_loader_testing::PITCHING_LOADER_IDENTIFIER) {
     return Ok(Arc::new(rspack_loader_testing::PitchingLoader));
+  }
+  if builtin.starts_with(rspack_loader_testing::PASS_THROUGH_LOADER_IDENTIFIER) {
+    return Ok(Arc::new(rspack_loader_testing::PassthroughLoader));
+  }
+  if builtin.starts_with(rspack_loader_testing::NO_PASS_THROUGH_LOADER_IDENTIFIER) {
+    return Ok(Arc::new(rspack_loader_testing::NoPassthroughLoader));
   }
   unreachable!("Unexpected builtin loader: {builtin}")
 }

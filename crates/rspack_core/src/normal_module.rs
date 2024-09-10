@@ -8,7 +8,6 @@ use std::{
   },
 };
 
-use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_collections::{Identifiable, IdentifierSet};
@@ -38,14 +37,6 @@ use crate::{
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-
-bitflags! {
-  #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-  pub struct ModuleSyntax: u8 {
-    const COMMONJS = 1 << 0;
-    const ESM = 1 << 1;
-  }
-}
 
 #[derive(Debug, Clone)]
 pub enum ModuleIssuer {
@@ -85,7 +76,7 @@ define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<R
 define_hook!(NormalModuleLoaderShouldYield: SyncSeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
 define_hook!(NormalModuleLoaderStartYielding: AsyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
 define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
-define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut AdditionalData));
+define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut Option<&mut AdditionalData>));
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
@@ -419,14 +410,11 @@ impl Module for NormalModule {
       current_loader: Default::default(),
     });
 
-    let additional_data = AdditionalData::default();
-
     let loader_result = run_loaders(
       self.loaders.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
       build_context.runner_context,
-      additional_data,
     )
     .await;
     let (mut loader_result, ds) = match loader_result {
@@ -457,7 +445,7 @@ impl Module for NormalModule {
       .plugin_driver
       .normal_module_hooks
       .additional_data
-      .call(&mut loader_result.additional_data)
+      .call(&mut loader_result.additional_data.as_mut())
       .await?;
     self.add_diagnostics(ds);
 

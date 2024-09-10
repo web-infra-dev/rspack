@@ -9,6 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::itoa;
 
 use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
@@ -90,7 +91,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                   "webpack/container/reference/{}{}",
                   key,
                   (i > 0)
-                    .then(|| format!("/fallback-{}", i))
+                    .then(|| format!("/fallback-{}", itoa!(i)))
                     .unwrap_or_default()
                 )
               }

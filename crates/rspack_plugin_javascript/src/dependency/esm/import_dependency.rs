@@ -1,7 +1,7 @@
 use rspack_core::{
   create_exports_object_referenced, module_namespace_promise, Compilation, DependencyType,
-  ErrorSpan, ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph,
-  RealDependencyLocation, ReferencedExport, RuntimeSpec,
+  ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph, RealDependencyLocation,
+  ReferencedExport, RuntimeSpec,
 };
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -55,8 +55,8 @@ pub fn create_import_dependency_referenced_exports(
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
   id: DependencyId,
-  request: Atom,
-  range: RealDependencyLocation,
+  pub request: Atom,
+  pub range: RealDependencyLocation,
   referenced_exports: Option<Vec<Atom>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
@@ -103,8 +103,8 @@ impl Dependency for ImportDependency {
     self.attributes.as_ref()
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(

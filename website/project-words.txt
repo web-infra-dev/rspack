@@ -161,6 +161,7 @@ swcjsminimizerplugin
 swcjsminimizerrspackplugin
 swcpack
 sxzz
+systemjs
 tailwind
 tailwindcss
 Terser

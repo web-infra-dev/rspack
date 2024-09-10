@@ -16,19 +16,19 @@ function _objectSpread(target) {
 		i % 2
 			? ownKeys(Object(source), !0).forEach(function (key) {
 					_defineProperty(target, key, source[key]);
-			  })
+				})
 			: Object.getOwnPropertyDescriptors
-			? Object.defineProperties(
-					target,
-					Object.getOwnPropertyDescriptors(source)
-			  )
-			: ownKeys(Object(source)).forEach(function (key) {
-					Object.defineProperty(
+				? Object.defineProperties(
 						target,
-						key,
-						Object.getOwnPropertyDescriptor(source, key)
-					);
-			  });
+						Object.getOwnPropertyDescriptors(source)
+					)
+				: ownKeys(Object(source)).forEach(function (key) {
+						Object.defineProperty(
+							target,
+							key,
+							Object.getOwnPropertyDescriptor(source, key)
+						);
+					});
 	}
 	return target;
 }
@@ -183,15 +183,15 @@ var overlay =
 					? {
 							trustedTypesPolicyName: options.overlay.trustedTypesPolicyName,
 							catchRuntimeError: options.overlay.runtimeErrors
-					  }
+						}
 					: {
 							trustedTypesPolicyName: false,
 							catchRuntimeError: options.overlay
-					  }
-		  )
+						}
+			)
 		: {
 				send: function send() {}
-		  };
+			};
 var onSocketMessage = {
 	hot: function hot() {
 		if (parsedResourceQuery.hot === "false") {

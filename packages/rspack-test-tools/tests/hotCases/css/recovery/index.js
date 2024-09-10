@@ -1,4 +1,4 @@
-import "./index.css";
+import "./main";
 
 it("css recovery", done => {
 	NEXT(

@@ -1,7 +1,8 @@
+use napi::bindgen_prelude::FromNapiValue;
 use napi_derive::napi;
 use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation};
 
-use crate::{JsChunk, JsCompilation};
+use crate::{JsChunk, JsCompilation, ModuleDTOWrapper};
 
 #[napi(object)]
 pub struct JsChunkGroup {
@@ -13,6 +14,23 @@ pub struct JsChunkGroup {
   pub index: Option<u32>,
   pub name: Option<String>,
   pub is_initial: bool,
+  pub origins: Vec<JsChunkGroupOrigin>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsChunkGroupOrigin {
+  #[napi(ts_type = "ModuleDTO")]
+  pub module: Option<ModuleDTOWrapper>,
+  pub request: Option<String>,
+}
+
+impl FromNapiValue for JsChunkGroupOrigin {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    unreachable!()
+  }
 }
 
 impl JsChunkGroup {
@@ -31,6 +49,16 @@ impl JsChunkGroup {
       inner_ukey: cg.ukey.as_u32(),
       name: cg.name().map(|name| name.to_string()),
       is_initial: cg.is_initial(),
+      origins: cg
+        .origins()
+        .iter()
+        .map(|origin| JsChunkGroupOrigin {
+          module: origin
+            .module_id
+            .map(|module_id| ModuleDTOWrapper::new(module_id, compilation)),
+          request: origin.request.clone(),
+        })
+        .collect::<Vec<_>>(),
     }
   }
 }

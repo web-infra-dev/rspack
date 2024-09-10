@@ -85,12 +85,7 @@ impl ModuleFilenameHelpers {
 
         let hash = get_hash(&identifier, output_options);
 
-        let resource = short_identifier
-          .clone()
-          .split('!')
-          .last()
-          .unwrap_or("")
-          .to_string();
+        let resource = short_identifier.split('!').last().unwrap_or("").to_string();
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");

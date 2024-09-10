@@ -38,7 +38,7 @@ rspack_loader_runner = { version = "0.1.0", path = "../rspack_loader_runner" }
 rspack_macros = { version = "0.1.0", path = "../rspack_macros" }
 rspack_paths = { version = "0.1.0", path = "../rspack_paths" }
 rspack_regex = { version = "0.1.0", path = "../rspack_regex" }
-rspack_resolver = { version = "0.3.0", features = ["package_json_raw_json_api", "yarn_pnp"] }
+rspack_resolver = { version = "0.3.1", features = ["package_json_raw_json_api"] }
 rspack_sources = { workspace = true }
 rspack_util = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash = { workspace = true }

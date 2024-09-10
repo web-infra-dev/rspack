@@ -3,7 +3,7 @@ use rspack_core::{
 };
 use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
+use rspack_core::{DependencyType, TemplateContext};
 
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
@@ -51,8 +51,8 @@ impl Dependency for ImportContextDependency {
     &DependencyType::ImportContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

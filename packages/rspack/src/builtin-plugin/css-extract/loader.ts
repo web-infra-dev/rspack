@@ -106,9 +106,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	const callback = this.async();
 	const filepath = this.resourcePath;
 
-	let { publicPath } =
-		/** @type {Compilation} */
-		this._compilation!.outputOptions;
+	let { publicPath } = this._compilation!.outputOptions;
 
 	if (typeof options.publicPath === "string") {
 		// eslint-disable-next-line prefer-destructuring
@@ -141,9 +139,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			| { default: Record<string, any>; __esModule: true }
 			| Record<string, any>
 	) => {
-		/** @type {Locals | undefined} */
 		let locals: Record<string, string> | undefined;
-		let namedExport;
+		let namedExport: boolean;
 
 		const esModule =
 			typeof options.esModule !== "undefined" ? options.esModule : true;
@@ -167,9 +164,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 							locals = {};
 						}
 
-						/** @type {Locals} */ locals[key] = (
-							originalExports as Record<string, string>
-						)[key];
+						locals[key] = (originalExports as Record<string, string>)[key];
 					}
 				}
 			} else {
@@ -228,10 +223,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 
 					const localsString = identifiers
 						.map(
-							([id, key]) =>
-								`\nvar ${id} = ${stringifyLocal(
-									/** @type {Locals} */ locals![key]
-								)};`
+							([id, key]) => `\nvar ${id} = ${stringifyLocal(locals![key])};`
 						)
 						.join("");
 					const exportsString = `export { ${identifiers
@@ -284,7 +276,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{
 			layer: options.layer,
-			publicPath: /** @type {Filename} */ publicPathForExtract,
+			publicPath: publicPathForExtract,
 			baseUri: `${BASE_URI}/`
 		},
 		(error, exports) => {

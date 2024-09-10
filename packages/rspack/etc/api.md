@@ -35,6 +35,7 @@ import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import { JsBeforeEmitData } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
+import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsContextModuleOptions } from '@rspack/binding';
@@ -54,7 +55,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import type { ModuleDTO } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
-import type { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
@@ -965,6 +966,8 @@ export class ChunkGroup {
     isInitial(): boolean;
     // (undocumented)
     get name(): Readonly<string | undefined>;
+    // (undocumented)
+    get origins(): ReadonlyArray<JsChunkGroupOrigin>;
 }
 
 // @public (undocumented)
@@ -4634,14 +4637,14 @@ export const HtmlRspackPlugin: {
         publicPath?: string | undefined;
         hash?: boolean | undefined;
         chunks?: string[] | undefined;
-        template?: string | undefined;
-        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-        inject?: boolean | "head" | "body" | undefined;
         base?: string | {
             target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
             href?: string | undefined;
         } | undefined;
+        template?: string | undefined;
+        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+        inject?: boolean | "head" | "body" | undefined;
         scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
         excludeChunks?: string[] | undefined;
         sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4656,14 +4659,14 @@ export const HtmlRspackPlugin: {
             publicPath?: string | undefined;
             hash?: boolean | undefined;
             chunks?: string[] | undefined;
-            template?: string | undefined;
-            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-            inject?: boolean | "head" | "body" | undefined;
             base?: string | {
                 target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
                 href?: string | undefined;
             } | undefined;
+            template?: string | undefined;
+            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+            inject?: boolean | "head" | "body" | undefined;
             scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
             excludeChunks?: string[] | undefined;
             sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4737,14 +4740,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
     } | undefined;
+    template?: string | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+    inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
     excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4757,14 +4760,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
     } | undefined;
+    template?: string | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+    inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
     excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -7277,11 +7280,11 @@ export class MultiStats {
 class MultiWatching {
     constructor(watchings: Watching[], compiler: MultiCompiler);
     // (undocumented)
-    close(callback: any): void;
+    close(callback: Callback<Error, void>): void;
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: any): void;
+    invalidate(callback: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
@@ -15741,7 +15744,7 @@ interface WatchFileSystem {
 
 // @public (undocumented)
 export class Watching {
-    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: (error?: Error, stats?: Stats) => void);
+    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: Callback<Error, Stats>);
     // (undocumented)
     blocked: boolean;
     // (undocumented)
@@ -15751,21 +15754,21 @@ export class Watching {
     // (undocumented)
     compiler: Compiler;
     // (undocumented)
-    handler: (error?: Error, stats?: Stats) => void;
+    handler: Callback<Error, Stats>;
     // (undocumented)
     invalid: boolean;
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
-    isBlocked?: () => boolean;
+    isBlocked: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
     // (undocumented)
     lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
-    onChange?: () => void;
+    onChange: () => void;
     // (undocumented)
-    onInvalid?: () => void;
+    onInvalid: () => void;
     // (undocumented)
     pausedWatcher?: Watcher;
     // (undocumented)

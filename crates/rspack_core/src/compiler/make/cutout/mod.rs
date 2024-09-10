@@ -125,7 +125,9 @@ impl Cutout {
     }
 
     // do revoke module and collect deps
-    force_build_deps.extend(artifact.revoke_modules(force_build_modules));
+    for id in force_build_modules {
+      force_build_deps.extend(artifact.revoke_module(&id));
+    }
 
     let mut module_graph = artifact.get_module_graph_mut();
     for dep_id in remove_entry_deps {

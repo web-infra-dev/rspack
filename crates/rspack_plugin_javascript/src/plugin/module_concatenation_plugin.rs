@@ -18,6 +18,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
@@ -884,8 +885,8 @@ impl ModuleConcatenationPlugin {
     logger.time_end(start);
     logger.debug(format!(
       "{} potential root modules, {} potential inner modules",
-      relevant_modules.len(),
-      possible_inners.len(),
+      itoa!(relevant_modules.len()),
+      itoa!(possible_inners.len()),
     ));
 
     let start = logger.time("sort relevant modules");
@@ -996,25 +997,25 @@ impl ModuleConcatenationPlugin {
     if !concat_configurations.is_empty() {
       logger.debug(format!(
         "{} successful concat configurations (avg size: {}), {} bailed out completely",
-        concat_configurations.len(),
-        stats_size_sum / concat_configurations.len(),
-        stats_empty_configurations
+        itoa!(concat_configurations.len()),
+        itoa!(stats_size_sum / concat_configurations.len()),
+        itoa!(stats_empty_configurations)
       ));
     }
 
     logger.debug(format!(
         "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
-        stats_candidates,
-        statistics.cached,
-        statistics.already_in_config,
-        statistics.invalid_module,
-        statistics.incorrect_chunks,
-        statistics.incorrect_dependency,
-        statistics.incorrect_chunks_of_importer,
-        statistics.incorrect_module_dependency,
-        statistics.incorrect_runtime_condition,
-        statistics.importer_failed,
-        statistics.added
+        itoa!(stats_candidates),
+        itoa!(statistics.cached),
+        itoa!(statistics.already_in_config),
+        itoa!(statistics.invalid_module),
+        itoa!(statistics.incorrect_chunks),
+        itoa!(statistics.incorrect_dependency),
+        itoa!(statistics.incorrect_chunks_of_importer),
+        itoa!(statistics.incorrect_module_dependency),
+        itoa!(statistics.incorrect_runtime_condition),
+        itoa!(statistics.importer_failed),
+        itoa!(statistics.added)
     ));
 
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371

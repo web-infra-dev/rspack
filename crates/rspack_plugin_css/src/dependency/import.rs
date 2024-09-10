@@ -1,7 +1,7 @@
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, RealDependencyLocation,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyType, ModuleDependency, RealDependencyLocation, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -34,8 +34,8 @@ impl Dependency for CssImportDependency {
     &DependencyType::CssImport
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

@@ -38,6 +38,9 @@ use crate::{
 static REGEX_IS_MODULES: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
 
+static REGEX_IS_COMMENTS: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("Invalid regex"));
+
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
 
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
@@ -195,7 +198,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           ))),
         css_module_lexer::Dependency::LocalClass { name, range, .. }
         | css_module_lexer::Dependency::LocalId { name, range, .. } => {
-          let (prefix, name) = name.split_at(1); // split '#' or '.'
+          let (_prefix, name) = name.split_at(1); // split '#' or '.'
           let local_ident = LocalIdentOptions::new(
             resource_data,
             self
@@ -223,9 +226,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
             );
           }
           dependencies.push(Box::new(CssLocalIdentDependency::new(
-            format!("{prefix}{local_ident}"),
+            local_ident,
             convention_names,
-            range.start,
+            range.start + 1,
             range.end,
           )));
         }
@@ -315,6 +318,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
           let convention_names = export_locals_convention(prop, convention);
+          let value = REGEX_IS_COMMENTS.replace_all(value, "");
           for name in convention_names.iter() {
             update_css_exports(
               exports,
@@ -434,7 +438,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                       escape_css(&v.ident, false)
                     )
                   } else {
-                    format!("{}:{}/", escaped, &v.ident)
+                    format!("{}:{}/", escaped, escape_css(&v.ident, false))
                   }
                 })
                 .collect::<Vec<_>>()

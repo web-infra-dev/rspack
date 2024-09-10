@@ -1,0 +1,52 @@
+name: Clean Repository
+
+inputs:
+  target:
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Git Clean
+      shell: bash
+      run: |
+        git config --system core.longpaths true
+        rm -rf node_modules
+        git clean -ffdx -e target
+        git reset --hard HEAD
+
+    - name: Clean Large Directories by Size
+      if: ${{ !contains(inputs.target, 'windows') }}
+      shell: bash
+      run: |
+        if [ -d "target" ]; then
+          TARGET_SIZE=$(du -s target | awk '{print $1}')
+          MAX_SIZE=$((50 * 1024 * 1024))
+
+          echo "MAX_SIZE = $MAX_SIZE"
+          if [ "$TARGET_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "`target` directory size is greater than 50GB, deleting..."
+            rm -rf target
+          else
+            echo "`target` directory size is within limits."
+          fi
+        fi
+
+    - name: Clean Large Directories by Time
+      if: ${{ contains(inputs.target, 'windows') }}
+      shell: bash
+      run: |
+        if [ -d "target" ]; then
+          TARGET_CREATION_TIME=$(powershell -Command "(Get-Item 'target').CreationTime")
+          TWO_WEEKS_AGO=$(date -d '2 weeks ago' +%s)
+
+          echo "TARGET_CREATION_TIME = $TARGET_CREATION_TIME"
+
+          if [ "$TARGET_CREATION_TIME" -lt "$TWO_WEEKS_AGO" ]; then
+            echo "'target' directory is older than 2 weeks, deleting..."
+            rm -rf target
+          else
+            echo "'target' directory is within 2 weeks."
+          fi
+        fi

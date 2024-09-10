@@ -74,7 +74,7 @@ function getCurrentScriptUrl(moduleId: string) {
 }
 
 function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
-	let normalizedUrl;
+	let normalizedUrl: string;
 	if (!url) {
 		if (!el.href) {
 			return;

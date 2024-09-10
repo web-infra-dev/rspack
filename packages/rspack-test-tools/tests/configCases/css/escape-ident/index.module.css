@@ -1,0 +1,8 @@
+:export {
+  a: "aaa" 123;
+  b: multiple lines /**
+    comment1
+    comment2
+    comment3
+  */ bbb/* comment4 */
+}

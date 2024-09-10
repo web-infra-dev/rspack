@@ -33,7 +33,8 @@ jobs:
         uses: ./.github/actions/pnpm-cache
 
       - name: Create Release Pull Request
-        uses: hardfist/rspack-action@rspack
+        # https://github.com/rspack-contrib/rspack-action
+        uses: rspack-contrib/rspack-action@rspack
         with:
           version: node ./x version ${{inputs.version || 'patch'}}
           createGithubReleases: false

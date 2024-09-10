@@ -18,7 +18,7 @@ use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableErr
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_hook::define_hook;
 use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
-use rspack_util::{ext::DynHash, source_map::SourceMapKind, swc::join_atom};
+use rspack_util::{ext::DynHash, itoa, source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
@@ -508,7 +508,7 @@ impl Module for ConcatenatedModule {
     Cow::Owned(format!(
       "{} + {} modules",
       self.root_module_ctxt.readable_identifier,
-      self.modules.len() - 1
+      itoa!(self.modules.len() - 1)
     ))
   }
 
@@ -1607,7 +1607,7 @@ impl ConcatenatedModule {
           source_order: dep
             .source_order()
             .expect("source order should not be empty"),
-          range_start: dep.span().map(|span| span.start),
+          range_start: dep.range().map(|range| range.start),
         })
       })
       .collect::<Vec<_>>();
@@ -2260,14 +2260,14 @@ pub fn find_new_name(
   }
 
   let mut i = 0;
-  let mut name_with_number = to_identifier(&format!("{}_{}", name, i)).into();
+  let mut name_with_number = to_identifier(&format!("{}_{}", name, itoa!(i))).into();
   while used_names1.contains(&name_with_number)
     || used_names2
       .map(|map| map.contains(&name_with_number))
       .unwrap_or_default()
   {
     i += 1;
-    name_with_number = to_identifier(&format!("{}_{}", name, i)).into();
+    name_with_number = to_identifier(&format!("{}_{}", name, itoa!(i))).into();
   }
 
   name_with_number

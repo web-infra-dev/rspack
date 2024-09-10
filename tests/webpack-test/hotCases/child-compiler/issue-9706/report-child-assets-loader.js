@@ -1,5 +1,5 @@
 const {
-	SingleEntryPlugin,
+	EntryPlugin: SingleEntryPlugin,
 	node: { NodeTemplatePlugin }
 } = require("@rspack/core");
 

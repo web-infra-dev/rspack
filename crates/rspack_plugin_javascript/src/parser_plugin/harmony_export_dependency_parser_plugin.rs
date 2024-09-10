@@ -97,6 +97,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         range.with_source(parser.source_map.clone()),
       ))
     };
+    let is_asi_safe = !parser.is_asi_position(statement.span_lo());
+    if !is_asi_safe {
+      parser.set_asi_position(statement.span_hi());
+    }
     parser.dependencies.push(dep);
     Some(true)
   }
@@ -134,6 +138,10 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     );
     if export_name.is_none() {
       parser.build_info.all_star_exports.push(dep.id);
+    }
+    let is_asi_safe = !parser.is_asi_position(statement.span_lo());
+    if !is_asi_safe {
+      parser.set_asi_position(statement.span_hi());
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)
