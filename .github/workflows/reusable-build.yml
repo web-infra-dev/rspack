@@ -298,6 +298,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Setup firefox
+        if: ${{ !contains(inputs.target, 'windows') }}
+        uses: browser-actions/setup-firefox@latest
+        with:
+          firefox-version: latest
+
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
