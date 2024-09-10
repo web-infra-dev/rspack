@@ -77,7 +77,7 @@ function callback(
 当这个函数被调用时，你应该返回 `undefined` 以避免 loader 结果的歧义。
 
 传递给 `this.callback` 的值会传递给下一个 loader。
-当没有返回值时，例如 `meta`，下一个 loader 将不会收到它。
+`sourceMap` 和 `meta` 参数是可选的，如果没有传递，那么下一个 loader 将不会收到它们。
 :::
 
 ## this.context
