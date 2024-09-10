@@ -73,6 +73,13 @@ function callback(
 
 第一个参数必须是 `Error` 或者 `null`，会标记当前模块为编译失败，第二个参数是一个 `string` 或者 `Buffer`，表示模块被该 Loader 处理后的文件内容，第三个参数是一个可以该 Loader 处理后的 source map，第四个参数会被 Rspack 忽略，可以是任何东西（例如一些元数据）。
 
+:::warning
+当这个函数被调用时，你应该返回 `undefined` 以避免 loader 结果的歧义。
+
+传递给 `this.callback` 的值会传递给下一个 loader。
+当没有返回值时，例如 `meta`，下一个 loader 将不会收到它。
+:::
+
 ## this.context
 
 当前模块所在的目录。
