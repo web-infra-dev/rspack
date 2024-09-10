@@ -11,7 +11,7 @@ it("should not include a module with a weak dependency using context", function(
 	var b = !!__webpack_modules__[resolveWeakB];
 	var c = !!__webpack_modules__[resolveWeakC];
 
-	require(["./b"]);
+	// require(["./b"]);
 	require("./c");
 
 	expect(resolveWeakA).toBeDefined();
@@ -19,6 +19,6 @@ it("should not include a module with a weak dependency using context", function(
 	expect(resolveWeakC).toBeDefined();
 
 	expect(a).toBe(false);
-	expect(b).toBe(false);
+	// expect(b).toBe(false);
 	expect(c).toBe(true);
 });

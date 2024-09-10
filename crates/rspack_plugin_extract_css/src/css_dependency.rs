@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, ModuleDependency, ModuleGraph,
+  DependencyCategory, DependencyId, ModuleDependency, ModuleGraph, RealDependencyLocation,
 };
 use rustc_hash::FxHashSet;
 
@@ -24,8 +24,9 @@ pub struct CssDependency {
   pub(crate) identifier_index: u32,
 
   // determine module's postOrderIndex
-  pub(crate) order_index: u32,
-
+  // @TODO(shulaoda) Does this have any additional side effects?
+  // pub(crate) order_index: u32,
+  range: RealDependencyLocation,
   resource_identifier: String,
   pub(crate) cacheable: bool,
   pub(crate) file_dependencies: FxHashSet<PathBuf>,
@@ -45,7 +46,7 @@ impl CssDependency {
     supports: Option<String>,
     source_map: Option<String>,
     identifier_index: u32,
-    order_index: u32,
+    range: RealDependencyLocation,
     cacheable: bool,
     file_dependencies: FxHashSet<PathBuf>,
     context_dependencies: FxHashSet<PathBuf>,
@@ -63,7 +64,7 @@ impl CssDependency {
       supports,
       source_map,
       identifier_index,
-      order_index,
+      range,
       resource_identifier,
       cacheable,
       file_dependencies,
@@ -107,11 +108,8 @@ impl Dependency for CssDependency {
   // it can keep the right order, but Rspack uses HashSet,
   // when determining the postOrderIndex, Rspack uses
   // dependency span to set correct order
-  fn span(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(rspack_core::ErrorSpan {
-      start: self.order_index,
-      end: self.order_index + 1,
-    })
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {

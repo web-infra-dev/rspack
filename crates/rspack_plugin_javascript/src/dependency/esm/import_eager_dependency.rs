@@ -1,6 +1,6 @@
 use rspack_core::{
   module_namespace_promise, AsContextDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ImportAttributes, ModuleDependency,
+  DependencyId, DependencyTemplate, DependencyType, ImportAttributes, ModuleDependency,
   RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
@@ -61,8 +61,8 @@ impl Dependency for ImportEagerDependency {
     self.attributes.as_ref()
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(

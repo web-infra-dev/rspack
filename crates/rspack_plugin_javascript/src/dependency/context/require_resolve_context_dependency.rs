@@ -1,15 +1,14 @@
 use rspack_core::{
-  module_raw, AsModuleDependency, Compilation, ContextDependency, RealDependencyLocation,
-  RuntimeSpec,
+  AffectType, AsModuleDependency, Compilation, ContextDependency, ContextOptions,
+  ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, RealDependencyLocation, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType};
-use rspack_core::{TemplateContext, TemplateReplaceSource};
 
-use super::create_resource_identifier_for_context_dependency;
+use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
 #[derive(Debug, Clone)]
-pub struct ImportMetaContextDependency {
+pub struct RequireResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: RealDependencyLocation,
@@ -17,42 +16,42 @@ pub struct ImportMetaContextDependency {
   optional: bool,
 }
 
-impl ImportMetaContextDependency {
+impl RequireResolveContextDependency {
   pub fn new(options: ContextOptions, range: RealDependencyLocation, optional: bool) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
+      id: DependencyId::new(),
       options,
       range,
       resource_identifier,
       optional,
-      id: DependencyId::new(),
     }
   }
 }
 
-impl Dependency for ImportMetaContextDependency {
+impl Dependency for RequireResolveContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Esm
+    &DependencyCategory::CommonJS
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ImportMetaContext
+    &DependencyType::RequireContext
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
-    Some(&self.range)
+  fn span(&self) -> Option<ErrorSpan> {
+    Some(ErrorSpan::new(self.range.start, self.range.end))
   }
 
-  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    rspack_core::AffectType::True
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 
-impl ContextDependency for ImportMetaContextDependency {
+impl ContextDependency for RequireResolveContextDependency {
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -77,31 +76,18 @@ impl ContextDependency for ImportMetaContextDependency {
     self.optional
   }
 
-  fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
-    rspack_core::ContextTypePrefix::Normal
+  fn type_prefix(&self) -> ContextTypePrefix {
+    ContextTypePrefix::Normal
   }
 }
 
-impl DependencyTemplate for ImportMetaContextDependency {
+impl DependencyTemplate for RequireResolveContextDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      compilation,
-      runtime_requirements,
-      ..
-    } = code_generatable_context;
-
-    let content = module_raw(
-      compilation,
-      runtime_requirements,
-      &self.id,
-      &self.options.request,
-      self.optional,
-    );
-    source.replace(self.range.start, self.range.end, &content, None);
+    context_dependency_template_as_id(self, source, code_generatable_context, &self.range);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
@@ -117,4 +103,4 @@ impl DependencyTemplate for ImportMetaContextDependency {
   }
 }
 
-impl AsModuleDependency for ImportMetaContextDependency {}
+impl AsModuleDependency for RequireResolveContextDependency {}
