@@ -264,6 +264,7 @@ export enum BuiltinPluginName {
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  ContextReplacementPlugin = 'ContextReplacementPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -470,11 +471,14 @@ export interface JsContextModuleFactoryAfterResolveData {
   context: string
   request: string
   regExp?: RawRegex
+  recursive: boolean
 }
 
 export interface JsContextModuleFactoryBeforeResolveData {
   context: string
   request?: string
+  regExp?: RawRegex
+  recursive: boolean
 }
 
 export interface JsCreateData {
@@ -1123,6 +1127,13 @@ export interface RawContainerReferencePluginOptions {
   remotes: Array<RawRemoteOptions>
   shareScope?: string
   enhanced: boolean
+}
+
+export interface RawContextReplacementPluginOptions {
+  resourceRegExp: RawRegex
+  newContentResource?: string
+  newContentRecursive?: boolean
+  newContentRegExp?: RawRegex
 }
 
 export interface RawCopyGlobOptions {

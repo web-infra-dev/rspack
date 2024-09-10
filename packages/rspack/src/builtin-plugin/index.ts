@@ -64,3 +64,4 @@ export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
 export * from "./NoEmitOnErrorsPlugin";
+export * from "./ContextReplacementPlugin";

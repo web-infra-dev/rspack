@@ -48,6 +48,7 @@ export type ContextModuleFactoryAfterResolveResult =
 			context: string;
 			request: string;
 			regExp?: RegExp;
+			recursive: boolean;
 			dependencies: Array<any>;
 	  };
 

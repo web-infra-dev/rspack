@@ -1166,6 +1166,7 @@ class Compiler {
 											: undefined,
 										request: bindingData.request,
 										context: bindingData.context,
+										recursive: bindingData.recursive,
 										// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
 										dependencies: []
 									} satisfies ContextModuleFactoryAfterResolveResult)
@@ -1181,7 +1182,8 @@ class Compiler {
 													source: ret.regExp.source,
 													flags: ret.regExp.flags
 												}
-											: undefined
+											: undefined,
+										recursive: ret.recursive
 									} satisfies binding.JsContextModuleFactoryAfterResolveData)
 								: false;
 							return result;
