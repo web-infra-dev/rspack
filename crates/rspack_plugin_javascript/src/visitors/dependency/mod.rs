@@ -56,7 +56,7 @@ pub fn scan_dependencies(
   semicolons: &mut FxHashSet<BytePos>,
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
-  additional_data: AdditionalData,
+  additional_data: Option<AdditionalData>,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_map,

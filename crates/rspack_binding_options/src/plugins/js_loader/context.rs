@@ -94,17 +94,17 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .to_js_module()
         .expect("CompilerModuleContext::to_js_module should not fail."),
       hot: cx.hot,
-      content: match &cx.content {
+      content: match cx.content() {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
         None => Either::A(Null),
       },
       additional_data: cx
-        .additional_data
-        .get::<ThreadsafeJsValueRef<Unknown>>()
+        .additional_data()
+        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
         .cloned(),
       source_map: cx
-        .source_map
-        .clone()
+        .source_map()
+        .cloned()
         .map(|v| v.to_json())
         .transpose()
         .map_err(|e| error!(e.to_string()))?
