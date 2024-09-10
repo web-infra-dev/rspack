@@ -28,7 +28,10 @@ pub struct PluginCssExtractParserPlugin {
 
 impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    let deps = if let Some(additional_data) = parser.additional_data.get::<CssExtractJsonDataList>()
+    let deps = if let Some(additional_data) = parser
+      .additional_data
+      .as_ref()
+      .and_then(|data| data.get::<CssExtractJsonDataList>())
     {
       if let Some(deps) = self.cache.get(additional_data) {
         deps.clone()

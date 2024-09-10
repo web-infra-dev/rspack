@@ -253,16 +253,16 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		let o;
+		let o: string | undefined;
 		let isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
-			o = getBuiltinLoaderOptions(use.loader, use.options, options);
+			const temp = getBuiltinLoaderOptions(use.loader, use.options, options);
 			// keep json with indent so miette can show pretty error
-			o = isNil(o)
+			o = isNil(temp)
 				? undefined
-				: typeof o === "string"
-					? o
-					: JSON.stringify(o, null, 2);
+				: typeof temp === "string"
+					? temp
+					: JSON.stringify(temp, null, 2);
 			isBuiltin = true;
 		}
 

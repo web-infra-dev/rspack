@@ -506,9 +506,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let start = logger.time("collect source maps");
+  let raw_assets = compilation
+    .assets()
+    .iter()
+    .filter(|(_filename, asset)| asset.info.related.source_map.is_none())
+    .collect::<Vec<_>>();
   let mapped_asstes = self
     .mapped_assets_cache
-    .use_cache(compilation.assets(), |assets| {
+    .use_cache(raw_assets, |assets| {
       self.map_assets(compilation, &file_to_chunk, assets)
     })
     .await?;

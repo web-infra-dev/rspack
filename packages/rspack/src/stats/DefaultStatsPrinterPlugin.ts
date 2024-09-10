@@ -125,7 +125,7 @@ const SIMPLE_PRINTERS: Record<
 			nameMessage && versionMessage
 				? `${nameMessage} (${versionMessage})`
 				: versionMessage || nameMessage || "Rspack";
-		let statusMessage;
+		let statusMessage: string;
 		if (errorsMessage && warningsMessage) {
 			statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
 		} else if (errorsMessage) {

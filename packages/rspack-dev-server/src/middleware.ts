@@ -63,7 +63,7 @@ export function getRspackMemoryAssets(
 		if (!buffer) {
 			return next();
 		}
-		let contentType;
+		let contentType: string;
 		if (filename === "") {
 			contentType = "text/html; charset=utf-8";
 		} else {

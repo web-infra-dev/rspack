@@ -22,7 +22,7 @@ const escapedCwdRegExp = new RegExp(
 	"g"
 );
 const normalize = (str: string) => {
-	let normalizedStr;
+	let normalizedStr: string;
 	if (CURRENT_CWD.startsWith("/")) {
 		normalizedStr = str.replace(
 			new RegExp(quoteMeta(CURRENT_CWD), "g"),
@@ -70,7 +70,7 @@ export class DefaultsConfigProcessor<
 	) {
 		super({
 			options: context => {
-				let res;
+				let res: TCompilerOptions<T>;
 				if (typeof _defaultsConfigOptions.options === "function") {
 					res = _defaultsConfigOptions.options(context);
 				} else {
