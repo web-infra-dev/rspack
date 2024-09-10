@@ -2,13 +2,16 @@ mod common_js_require_context_dependency;
 mod import_context_dependency;
 mod import_meta_context_dependency;
 mod require_context_dependency;
+mod require_resolve_context_dependency;
 
 pub use common_js_require_context_dependency::CommonJsRequireContextDependency;
 pub use import_context_dependency::ImportContextDependency;
 pub use import_meta_context_dependency::ImportMetaContextDependency;
 pub use require_context_dependency::RequireContextDependency;
+pub use require_resolve_context_dependency::RequireResolveContextDependency;
 use rspack_core::{
-  module_raw, ContextDependency, ContextOptions, TemplateContext, TemplateReplaceSource,
+  module_raw, ContextDependency, ContextMode, ContextOptions, RealDependencyLocation,
+  TemplateContext, TemplateReplaceSource,
 };
 
 fn create_resource_identifier_for_context_dependency(
@@ -71,4 +74,47 @@ fn context_dependency_template_as_require_call(
     source.replace(*start, *end - 1, content, None);
   }
   source.replace(callee_start, callee_end, &expr, None);
+}
+
+fn context_dependency_template_as_id(
+  dep: &dyn ContextDependency,
+  source: &mut TemplateReplaceSource,
+  code_generatable_context: &mut TemplateContext,
+  range: &RealDependencyLocation,
+) {
+  let TemplateContext {
+    compilation,
+    runtime_requirements,
+    ..
+  } = code_generatable_context;
+  let id = dep.id();
+
+  let expr = module_raw(
+    compilation,
+    runtime_requirements,
+    id,
+    dep.request(),
+    dep.options().mode == ContextMode::Weak,
+  );
+
+  if compilation
+    .get_module_graph()
+    .module_graph_module_by_dependency_id(id)
+    .is_none()
+  {
+    source.replace(range.start, range.end, &expr, None);
+    return;
+  }
+
+  for (content, start, end) in &dep.options().replaces {
+    source.replace(*start, *end - 1, content, None);
+  }
+
+  source.replace(
+    range.start,
+    range.start,
+    &format!("{}.resolve(", &expr),
+    None,
+  );
+  source.replace(range.end, range.end, ")", None);
 }
