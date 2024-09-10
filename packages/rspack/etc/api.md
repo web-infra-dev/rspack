@@ -4626,14 +4626,14 @@ export const HtmlRspackPlugin: {
         publicPath?: string | undefined;
         hash?: boolean | undefined;
         chunks?: string[] | undefined;
-        template?: string | undefined;
-        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-        inject?: boolean | "head" | "body" | undefined;
         base?: string | {
             target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
             href?: string | undefined;
         } | undefined;
+        template?: string | undefined;
+        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+        inject?: boolean | "head" | "body" | undefined;
         scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
         excludeChunks?: string[] | undefined;
         sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4648,14 +4648,14 @@ export const HtmlRspackPlugin: {
             publicPath?: string | undefined;
             hash?: boolean | undefined;
             chunks?: string[] | undefined;
-            template?: string | undefined;
-            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-            inject?: boolean | "head" | "body" | undefined;
             base?: string | {
                 target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
                 href?: string | undefined;
             } | undefined;
+            template?: string | undefined;
+            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+            inject?: boolean | "head" | "body" | undefined;
             scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
             excludeChunks?: string[] | undefined;
             sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4729,14 +4729,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
     } | undefined;
+    template?: string | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+    inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
     excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4749,14 +4749,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
     } | undefined;
+    template?: string | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+    inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
     excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
