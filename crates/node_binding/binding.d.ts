@@ -1213,6 +1213,17 @@ export interface RawEntryDynamicResult {
 export interface RawEnvironment {
   const?: boolean
   arrowFunction?: boolean
+  asyncFunction?: boolean
+  bigIntLiteral?: boolean
+  destructuring?: boolean
+  document?: boolean
+  dynamicImport?: boolean
+  forOf?: boolean
+  globalThis?: boolean
+  module?: boolean
+  nodePrefixForCoreModules?: boolean
+  optionalChaining?: boolean
+  templateLiteral?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {

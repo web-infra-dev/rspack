@@ -96,13 +96,14 @@ pub mod resolver;
 pub use resolver::*;
 pub mod concatenated_module;
 pub mod reserved_names;
-
+mod runtime_template;
 pub use rspack_loader_runner::{
   get_scheme, parse_resource, AdditionalData, ResourceData, ResourceParsedData, Scheme,
   BUILTIN_LOADER_PREFIX,
 };
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_sources;
+pub use runtime_template::*;
 
 #[cfg(debug_assertions)]
 pub mod debug_info;

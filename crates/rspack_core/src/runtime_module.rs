@@ -12,6 +12,9 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
+  fn template(&self) -> Vec<(String, String)> {
+    vec![]
+  }
   // webpack fullHash || dependentHash
   fn cacheable(&self) -> bool {
     true

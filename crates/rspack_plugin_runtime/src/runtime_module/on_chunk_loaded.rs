@@ -22,7 +22,17 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/on_chunk_loaded.js")).boxed())
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/on_chunk_loaded.ejs").to_string(),
+    )]
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let content = compilation
+      .runtime_template
+      .render(self.id.as_str(), None)?;
+    Ok(RawSource::from(content).boxed())
   }
 }
