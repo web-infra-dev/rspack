@@ -1,8 +1,7 @@
 use rspack_core::{
   AffectType, AsModuleDependency, Compilation, ContextDependency, ContextOptions,
   ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, RealDependencyLocation, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  DependencyType, RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
@@ -42,8 +41,8 @@ impl Dependency for RequireResolveContextDependency {
     &DependencyType::RequireContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {
