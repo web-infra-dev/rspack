@@ -7,6 +7,7 @@ use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 
 use crate::{
@@ -21,10 +22,15 @@ pub enum PathInfo {
 }
 
 #[derive(Debug)]
+pub struct OutputClean {
+  keep: Option<RspackRegex>,
+}
+
+#[derive(Debug)]
 pub struct OutputOptions {
   pub path: Utf8PathBuf,
   pub pathinfo: PathInfo,
-  pub clean: bool,
+  pub clean: Option<OutputClean>,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,

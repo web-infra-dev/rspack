@@ -237,7 +237,8 @@ impl Compiler {
 
   #[instrument(name = "emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
-    if self.options.output.clean {
+    // @TODO(shulaoda): use `CleanPlugin` instead
+    if let Some(clean) = self.options.output.clean {
       if self.emitted_asset_versions.is_empty() {
         self
           .output_filesystem
