@@ -2,6 +2,7 @@ import {
 	BuiltinPluginName,
 	type RawLightningCssMinimizerRspackPluginOptions
 } from "@rspack/binding";
+import browserslist from 'browserslist';
 
 import {
 	type Drafts,
@@ -37,7 +38,7 @@ export const LightningCssMinimizerRspackPlugin = create(
 	): RawLightningCssMinimizerRspackPluginOptions => {
 		const { include, exclude, draft, nonStandard, pseudoClasses } =
 			options?.minimizerOptions ?? {};
-		const targets = options?.minimizerOptions?.targets ?? "fully supports es6"; // last not support es module chrome version
+		const targets = options?.minimizerOptions?.targets ?? browserslist(null);
 		return {
 			test: options?.test,
 			include: options?.include,

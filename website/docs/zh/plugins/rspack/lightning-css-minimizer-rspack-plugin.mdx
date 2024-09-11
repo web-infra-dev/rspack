@@ -77,7 +77,7 @@ document.body.className = styles.a;
 
 :::info
 
-1. 默认 `targets` 为 `"fully supports es6"`，以保证压缩后不会出现高级语法导致浏览器不兼容（压缩过程中可能会出现由于高级语法更短而将低级语法转为高级语法）。
+1. 默认 `targets` 是通过 [browserslist](https://github.com/browserslist/browserslist) 配置的。如果没有找到配置，browserslist 会使用默认值： `> 0.5%, last 2 versions, Firefox ESR, not dead`。
 2. `exclude` 选项默认配置了所有的 features。我们通常会在[builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 或其他 loaders 中进行语法降级，所以此插件默认 exclude 所有的 features，避免在 minimize 过程中进行语法降级。
 
 我们建议并鼓励用户配置自己所需的 `targets`，以获得最好的压缩效果。

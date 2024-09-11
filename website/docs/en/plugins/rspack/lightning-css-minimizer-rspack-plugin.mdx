@@ -77,7 +77,7 @@ Below are the configurations supported, `targets` configuration is plain browser
 
 :::info
 
-1. The default `targets` is set to `"fully supports es6"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+1. The default `targets` are configured using [browserslist](https://github.com/browserslist/browserslist) . If configuration is not found, browserslist will use defaults: `> 0.5%, last 2 versions, Firefox ESR, not dead`。
 2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
 
 We recommend and encourage users to configure their own `targets` to achieve the best minification results.
