@@ -590,20 +590,21 @@ export async function runLoaders(
 		return (context, request, callback) => {
 			if (callback) {
 				child.resolve({}, context, request, getResolveContext(), callback);
-			} else {
-				return new Promise((resolve, reject) => {
-					child.resolve(
-						{},
-						context,
-						request,
-						getResolveContext(),
-						(err, result) => {
-							if (err) reject(err);
-							else resolve(result);
-						}
-					);
-				});
+				// TODO: return value may be undefined
+				return undefined as unknown as Promise<any>;
 			}
+			return new Promise((resolve, reject) => {
+				child.resolve(
+					{},
+					context,
+					request,
+					getResolveContext(),
+					(err, result) => {
+						if (err) reject(err);
+						else resolve(result);
+					}
+				);
+			});
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {

@@ -111,7 +111,7 @@ export interface LoaderContext<OptionsType = {}> {
 	): void;
 	getResolve(
 		options: Resolve
-	): (context: any, request: any, callback: any) => Promise<any> | undefined;
+	): (context: any, request: any, callback: any) => Promise<any>;
 	getLogger(name: string): Logger;
 	emitError(error: Error): void;
 	emitWarning(warning: Error): void;

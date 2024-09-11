@@ -5928,7 +5928,7 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     getOptions(schema?: any): OptionsType;
     // (undocumented)
-    getResolve(options: Resolve): (context: any, request: any, callback: any) => Promise<any> | undefined;
+    getResolve(options: Resolve): (context: any, request: any, callback: any) => Promise<any>;
     // (undocumented)
     hot?: boolean;
     // (undocumented)

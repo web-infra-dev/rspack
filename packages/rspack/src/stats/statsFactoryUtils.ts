@@ -347,10 +347,17 @@ export const iterateConfig = (
 		for (const option of Object.keys(subConfig)) {
 			if (option !== "_") {
 				if (option.startsWith("!")) {
-					// string cannot be used as key, so use as any
-					if ((options as any)[option.slice(1)]) continue;
+					if (
+						// string cannot be used as key, so use "as"
+						(options as Record<string, StatsOptions[keyof StatsOptions]>)[
+							option.slice(1)
+						]
+					)
+						continue;
 				} else {
-					const value = (options as any)[option];
+					const value = (
+						options as Record<string, StatsOptions[keyof StatsOptions]>
+					)[option];
 					if (
 						value === false ||
 						value === undefined ||
