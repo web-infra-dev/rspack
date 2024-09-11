@@ -45,7 +45,12 @@ pub const RSC_SERVER_ACTION_CLIENT_LOADER_IDENTIFIER: &str =
 impl Loader<RunnerContext> for RSCServerActionClientLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
-    let resource_path = loader_context.resource_path().and_then(|f| f.to_str());
+    let resource_path_str = loader_context
+      .resource_path()
+      .and_then(|f| f.to_str())
+      .unwrap_or("");
+    let resource_query_str = loader_context.resource_query().unwrap_or("");
+    let resource = format!("{}{}", resource_path_str, resource_query_str);
 
     let rsc_info = loader_context.additional_data.get::<RSCAdditionalData>();
     if let Some(RSCAdditionalData {
@@ -54,6 +59,7 @@ impl Loader<RunnerContext> for RSCServerActionClientLoader {
     }) = rsc_info
     {
       if has_server_directive(directives) {
+        let mut has_default = false;
         let mut source = format!(
           r#"
 import {{ createServerReference }} from "{}";
@@ -63,11 +69,21 @@ import {{ createServerReference }} from "{}";
         let code = exports
           .iter()
           .map(|f| {
-            let id = generate_action_id(resource_path.unwrap(), &f.n);
-            format!(r#"export const {} = createServerReference("{}");"#, f.n, id)
+            let id = generate_action_id(&resource, &f.n);
+            if f.n.eq("default") {
+              has_default = true;
+              format!(r#"const _default = createServerReference("{}");"#, id)
+            } else {
+              format!(r#"export const {} = createServerReference("{}");"#, f.n, id)
+            }
           })
           .join("\n");
         source = format!("{}{}", source, code);
+        if has_default {
+          source += r#"
+export default _default;
+"#
+        }
         loader_context.content = Some(source.into());
       } else {
         loader_context.content = Some(content);
