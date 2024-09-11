@@ -200,16 +200,23 @@ impl RSCClientEntryRspackPlugin {
         .as_ref()
         .and_then(|f| f.to_str())
         .expect("TODO:");
-      if visited_modules.contains(resource_path_str) {
+      let resource_query = &data.resource_query;
+      let resource_query_str = if let Some(query) = resource_query.as_ref() {
+        query
+      } else {
+        ""
+      };
+      let resource_str = format!("{}{}", resource_path_str, resource_query_str);
+      if visited_modules.contains(&resource_str) {
         return;
       }
-      visited_modules.insert(String::from(resource_path_str));
+      visited_modules.insert(resource_str.clone());
       let is_server_action = match module.build_info() {
         Some(build_info) => has_server_directive(&build_info.directives),
         None => false,
       };
       if is_server_action {
-        entry_server_imports.insert(String::from(resource_path_str));
+        entry_server_imports.insert(String::from(resource_str));
       };
       let mg = compilation.get_module_graph();
       for connection in mg.get_outgoing_connections(&module.identifier()) {

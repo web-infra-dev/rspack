@@ -118,13 +118,20 @@ impl RSCServerReferenceManifest {
             Some(build_info) => has_server_directive(&build_info.directives),
             None => false,
           };
-          let resource = resolved_data
+          let resource_path = resolved_data
             .and_then(|f| f.resource_path.as_ref())
             .and_then(|f| f.to_str())
             .expect("TODO:");
+          let resource_query = resolved_data.and_then(|f| f.resource_query.as_ref());
+          let resource_query_str = if let Some(query) = resource_query {
+            query
+          } else {
+            ""
+          };
+          let resource = format!("{}{}", resource_path, resource_query_str);
 
           if chunk_group.name().is_some() {
-            if RSC_SERVER_ACTION_ENTRY_RE.is_match(resource) {
+            if RSC_SERVER_ACTION_ENTRY_RE.is_match(resource_path) {
               self.add_server_action_ref(module_id, chunk_group.name().unwrap(), &mut mapping);
             }
           }
@@ -174,7 +181,7 @@ impl RSCServerReferenceManifest {
               }
             }
             if is_server_action {
-              self.add_server_import_ref(resource, names, &mut server_manifest);
+              self.add_server_import_ref(&resource, names, &mut server_manifest);
             }
           };
         }
