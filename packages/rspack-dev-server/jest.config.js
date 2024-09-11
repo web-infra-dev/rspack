@@ -6,7 +6,7 @@ const config = {
 	testEnvironmentOptions: {
 		url: "http://localhost/"
 	},
-	testMatch: ["<rootDir>/tests/*.test.ts", ["<rootDir>/tests/e2e/*.test.js"]],
+	testMatch: ["<rootDir>/tests/*.test.ts", "<rootDir>/tests/e2e/*.test.js"],
 	testPathIgnorePatterns: [
 		// TODO: check why http proxy server throw error with websocket server
 		"<rootDir>/tests/e2e/allowed-hosts.test.js",
