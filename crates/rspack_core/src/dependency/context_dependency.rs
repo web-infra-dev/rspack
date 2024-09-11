@@ -17,13 +17,6 @@ pub trait ContextDependency: Dependency {
 
   fn critical(&self) -> &Option<Diagnostic>;
   fn critical_mut(&mut self) -> &mut Option<Diagnostic>;
-
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
-    if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
-    }
-    None
-  }
 }
 
 pub trait AsContextDependency {
