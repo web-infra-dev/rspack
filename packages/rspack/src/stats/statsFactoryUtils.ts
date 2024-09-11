@@ -439,7 +439,7 @@ export const spaceLimited = (
 	let children: any[] | undefined = undefined;
 	let filteredChildren: number | undefined = undefined;
 	// This are the groups, which take 1+ lines each
-	const groups = [];
+	const groups: ItemChildren = [];
 	// The sizes of the groups are stored in groupSizes
 	const groupSizes = [];
 	// This are the items, which take 1 line each
@@ -497,14 +497,13 @@ export const spaceLimited = (
 				}
 				for (let i = 0; i < groups.length; i++) {
 					if (groupSizes[i] === maxGroupSize) {
-						// @ts-expect-error
 						const group = groups[i];
 						// run this algorithm recursively and limit the size of the children to
 						// current size - oversize / number of groups
 						// So it should always end up being smaller
 						const headerSize = group.filteredChildren ? 2 : 1;
 						const limited = spaceLimited(
-							group.children,
+							group.children!,
 							maxGroupSize -
 								// we should use ceil to always feet in max
 								Math.ceil(oversize / groups.length) -
@@ -578,7 +577,7 @@ export const sortByField = (
 	field: string
 ): ((a1: Object, a2: Object) => number) => {
 	if (!field) {
-		const noSort = (a: any, b: any) => 0;
+		const noSort = (_a: any, _b: any) => 0;
 		return noSort;
 	}
 
@@ -586,7 +585,6 @@ export const sortByField = (
 
 	let sortFn = compareSelect(
 		(m: Record<string, any>) => m[fieldKey],
-		// @ts-expect-error
 		compareIds
 	);
 

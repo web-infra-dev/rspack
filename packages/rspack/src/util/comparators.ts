@@ -70,10 +70,7 @@ export const concatComparators = (...comps: Array<Comparator>): Comparator => {
 	return result;
 };
 
-export const compareIds = (
-	a: string | number,
-	b: string | number
-): -1 | 0 | 1 => {
+export const compareIds = <T = string | number>(a: T, b: T): -1 | 0 | 1 => {
 	if (typeof a !== typeof b) {
 		return typeof a < typeof b ? -1 : 1;
 	}
