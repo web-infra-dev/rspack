@@ -8,21 +8,20 @@ const config = {
 	},
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
-		...(isWin || process.env.CI ? [] : ["<rootDir>/tests/e2e/*.test.js"])
+		...(isWin ? [] : ["<rootDir>/tests/e2e/*.test.js"])
 	],
-	testPathIgnorePatterns:
-		isWin || process.env.CI
-			? []
-			: [
-					// TODO: check why http proxy server throw error with websocket server
-					"<rootDir>/tests/e2e/allowed-hosts.test.js",
-					// TODO: check why this test timeout
-					"<rootDir>/tests/e2e/host.test.js",
-					// TODO: not support progress plugin event yet
-					"<rootDir>/tests/e2e/progress.test.js",
-					// TODO: check why this test throw error when run with other tests
-					"<rootDir>/tests/e2e/watch-files.test.js"
-				],
+	testPathIgnorePatterns: isWin
+		? []
+		: [
+				// TODO: check why http proxy server throw error with websocket server
+				"<rootDir>/tests/e2e/allowed-hosts.test.js",
+				// TODO: check why this test timeout
+				"<rootDir>/tests/e2e/host.test.js",
+				// TODO: not support progress plugin event yet
+				"<rootDir>/tests/e2e/progress.test.js",
+				// TODO: check why this test throw error when run with other tests
+				"<rootDir>/tests/e2e/watch-files.test.js"
+			],
 	cache: false,
 	testTimeout: process.env.CI ? 120000 : 30000,
 	transform: {
