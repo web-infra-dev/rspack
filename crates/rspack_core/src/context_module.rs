@@ -1299,14 +1299,12 @@ fn alternative_requests(
 
   for item in std::mem::take(&mut items) {
     items.push(item.clone());
-    // TODO resolveOptions.modules can be array
     for module in resolve_options.modules() {
       let dir = module.replace('\\', "/");
-      let full_path: String = format!("{}{}", item.context.replace('\\', "/"), &item.request[1..]);
-      if full_path.starts_with(&dir) {
+      if item.request.starts_with(&format!("./{}/", dir)) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
-          full_path[(dir.len() + 1)..].to_string(),
+          item.request[dir.len() + 3..].to_string(),
         ));
       }
     }
