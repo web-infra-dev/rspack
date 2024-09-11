@@ -1,7 +1,8 @@
 import type * as binding from "@rspack/binding";
 
 import type { JsOriginRecord } from "@rspack/binding";
-import type { Compilation, NormalizedStatsOptions } from "../Compilation";
+import type { Compilation } from "../Compilation";
+import type { StatsOptions } from "../config";
 import {
 	type Comparator,
 	compareIds,
@@ -338,7 +339,7 @@ export const uniqueOrderedArray = <T, I>(
 
 export const iterateConfig = (
 	config: Record<string, Record<string, Function>>,
-	options: NormalizedStatsOptions,
+	options: StatsOptions,
 	fn: (a1: string, a2: Function) => void
 ) => {
 	for (const hookFor of Object.keys(config)) {
@@ -346,9 +347,10 @@ export const iterateConfig = (
 		for (const option of Object.keys(subConfig)) {
 			if (option !== "_") {
 				if (option.startsWith("!")) {
-					if (options[option.slice(1)]) continue;
+					// string cannot be used as key, so use as any
+					if ((options as any)[option.slice(1)]) continue;
 				} else {
-					const value = options[option];
+					const value = (options as any)[option];
 					if (
 						value === false ||
 						value === undefined ||
@@ -609,7 +611,9 @@ export const assetGroup = (children: StatsAsset[]) => {
 	};
 };
 
-export const moduleGroup = (children: KnownStatsModule[]) => {
+export const moduleGroup = (
+	children: { size: number; sizes: Record<string, number> }[]
+): { size: number; sizes: Record<string, number> } => {
 	let size = 0;
 	const sizes: Record<string, number> = {};
 	for (const module of children) {

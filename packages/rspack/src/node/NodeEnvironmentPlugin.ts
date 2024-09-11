@@ -7,8 +7,8 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-// @ts-expect-error
-import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
+// @ts-expect-error we directly import from enhanced-resolve inner js file to improve performance
+import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem.js";
 import fs from "graceful-fs";
 
 import type { Compiler } from "..";

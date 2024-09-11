@@ -50,24 +50,21 @@ export interface AdditionalData {
 	[index: string]: any;
 }
 
+export type LoaderContextCallback = (
+	err?: Error | null,
+	content?: string | Buffer,
+	sourceMap?: string | SourceMap,
+	additionalData?: AdditionalData
+) => void;
+
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
 	resourcePath: string;
 	resourceQuery: string;
 	resourceFragment: string;
-	async(): (
-		err?: Error | null,
-		content?: string | Buffer,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	) => void;
-	callback(
-		err?: Error | null,
-		content?: string | Buffer,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	): void;
+	async(): LoaderContextCallback;
+	callback: LoaderContextCallback;
 	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
@@ -114,7 +111,7 @@ export interface LoaderContext<OptionsType = {}> {
 	): void;
 	getResolve(
 		options: Resolve
-	): (context: any, request: any, callback: any) => Promise<any>;
+	): (context: any, request: any, callback: any) => Promise<any> | undefined;
 	getLogger(name: string): Logger;
 	emitError(error: Error): void;
 	emitWarning(warning: Error): void;

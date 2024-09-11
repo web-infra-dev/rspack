@@ -33,6 +33,7 @@ import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
 	type LoaderContext,
+	type LoaderContextCallback,
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
@@ -236,22 +237,21 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 	fn: Function,
 	context: LoaderContext,
 	args: any[],
-	callback: (err: Error | null, args: any[]) => void
+	callback: (err: Error | null | undefined, args: any[]) => void
 ) {
 	let isSync = true;
 	let isDone = false;
 	let isError = false; // internal error
 	let reportedError = false;
-	// @ts-expect-error loader-runner leverages `arguments` to achieve the same functionality.
 	context.async = function async() {
 		if (isDone) {
-			if (reportedError) return; // ignore
+			if (reportedError) return undefined as any; // ignore
 			throw new Error("async(): The callback was already called.");
 		}
 		isSync = false;
 		return innerCallback;
 	};
-	const innerCallback = (context.callback = (err, ...args) => {
+	const innerCallback: LoaderContextCallback = (err, ...args) => {
 		if (isDone) {
 			if (reportedError) return; // ignore
 			throw new Error("callback(): The callback was already called.");
@@ -259,13 +259,14 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		isDone = true;
 		isSync = false;
 		try {
-			// @ts-expect-error
 			callback(err, args);
 		} catch (e) {
 			isError = true;
 			throw e;
 		}
-	});
+	};
+	context.callback = innerCallback;
+
 	try {
 		const result = (function LOADER_EXECUTION() {
 			return fn.apply(context, args);
@@ -273,8 +274,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		if (isSync) {
 			isDone = true;
 			if (result === undefined) {
-				// @ts-expect-error
-				callback();
+				callback(null, []);
 				return;
 			}
 			if (
@@ -306,8 +306,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		}
 		isDone = true;
 		reportedError = true;
-		// @ts-expect-error
-		callback(e);
+		callback(e as Error, []);
 	}
 });
 
@@ -585,7 +584,7 @@ export async function runLoaders(
 	loaderContext.resolve = function resolve(context, request, callback) {
 		resolver.resolve({}, context, request, getResolveContext(), callback);
 	};
-	// @ts-expect-error TODO
+
 	loaderContext.getResolve = function getResolve(options) {
 		const child = options ? resolver.withOptions(options as any) : resolver;
 		return (context, request, callback) => {
@@ -655,7 +654,7 @@ export async function runLoaders(
 		sourceMap?,
 		assetInfo?
 	) {
-		let source: Source;
+		let source: Source | undefined = undefined;
 		if (sourceMap) {
 			if (
 				typeof sourceMap === "string" &&
@@ -683,13 +682,10 @@ export async function runLoaders(
 				content
 			);
 		}
-		// @ts-expect-error
-		compiler._lastCompilation.__internal__emit_asset_from_loader(
+		compiler._lastCompilation!.__internal__emit_asset_from_loader(
 			name,
-			// @ts-expect-error
-			source,
-			// @ts-expect-error
-			assetInfo,
+			source!,
+			assetInfo!,
 			context._moduleIdentifier
 		);
 	};
