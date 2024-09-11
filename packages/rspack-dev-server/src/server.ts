@@ -14,7 +14,9 @@ import type { Socket } from "node:net";
 import { type Compiler, MultiCompiler } from "@rspack/core";
 import type { FSWatcher } from "chokidar";
 import rdm from "webpack-dev-middleware";
-import WebpackDevServer from "webpack-dev-server";
+import WebpackDevServer, {
+	type OverlayMessageOptions
+} from "webpack-dev-server";
 // @ts-ignore 'package.json' is not under 'rootDir'
 import { version } from "../package.json";
 
@@ -23,31 +25,39 @@ import { applyDevServerPatch } from "./patch";
 
 applyDevServerPatch();
 
-export class RspackDevServer extends WebpackDevServer {
-	static async getFreePort(port: string, host: string) {
-		if (typeof port !== "undefined" && port !== null && port !== "auto") {
-			return port;
-		}
+const encodeOverlaySettings = (setting: OverlayMessageOptions | undefined) =>
+	typeof setting === "function"
+		? encodeURIComponent(setting.toString())
+		: setting;
 
-		const pRetry = require("p-retry");
-		const getPort = require("webpack-dev-server/lib/getPort");
-		const basePort =
-			typeof process.env.WEBPACK_DEV_SERVER_BASE_PORT !== "undefined"
-				? Number.parseInt(process.env.WEBPACK_DEV_SERVER_BASE_PORT, 10)
-				: 8080;
-
-		// Try to find unused port and listen on it for 3 times,
-		// if port is not specified in options.
-		const defaultPortRetry =
-			typeof process.env.WEBPACK_DEV_SERVER_PORT_RETRY !== "undefined"
-				? Number.parseInt(process.env.WEBPACK_DEV_SERVER_PORT_RETRY, 10)
-				: 3;
-
-		return pRetry(() => getPort(basePort, host), {
-			retries: defaultPortRetry
-		});
+const getFreePort = async function getFreePort(port: string, host: string) {
+	if (typeof port !== "undefined" && port !== null && port !== "auto") {
+		return port;
 	}
 
+	const pRetry = require("p-retry");
+	const getPort = require("webpack-dev-server/lib/getPort");
+	const basePort =
+		typeof process.env.WEBPACK_DEV_SERVER_BASE_PORT !== "undefined"
+			? Number.parseInt(process.env.WEBPACK_DEV_SERVER_BASE_PORT, 10)
+			: 8080;
+
+	// Try to find unused port and listen on it for 3 times,
+	// if port is not specified in options.
+	const defaultPortRetry =
+		typeof process.env.WEBPACK_DEV_SERVER_PORT_RETRY !== "undefined"
+			? Number.parseInt(process.env.WEBPACK_DEV_SERVER_PORT_RETRY, 10)
+			: 3;
+
+	return pRetry(() => getPort(basePort, host), {
+		retries: defaultPortRetry
+	});
+};
+
+WebpackDevServer.getFreePort = getFreePort;
+
+export class RspackDevServer extends WebpackDevServer {
+	static getFreePort = getFreePort;
 	/**
 	 * resolved after `normalizedOptions`
 	 */
@@ -385,12 +395,19 @@ export class RspackDevServer extends WebpackDevServer {
 				}
 
 				if (typeof client.overlay !== "undefined") {
-					searchParams.set(
-						"overlay",
+					const overlayString =
 						typeof client.overlay === "boolean"
 							? String(client.overlay)
-							: JSON.stringify(client.overlay)
-					);
+							: JSON.stringify({
+									...client.overlay,
+									errors: encodeOverlaySettings(client.overlay.errors),
+									warnings: encodeOverlaySettings(client.overlay.warnings),
+									runtimeErrors: encodeOverlaySettings(
+										client.overlay.runtimeErrors
+									)
+								});
+
+					searchParams.set("overlay", overlayString);
 				}
 
 				if (typeof client.reconnect !== "undefined") {
