@@ -302,7 +302,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         uses: browser-actions/setup-chrome@v1
         with:
-          chrome-version: 120
+          chrome-version: "122.0.6261.128"
           install-dependencies: true
 
       ### x86_64-unknown-linux-gnu
