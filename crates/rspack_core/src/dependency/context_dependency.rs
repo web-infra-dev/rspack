@@ -1,4 +1,6 @@
-use crate::{ContextOptions, ContextTypePrefix, Dependency};
+use rspack_error::Diagnostic;
+
+use crate::{ContextOptions, ContextTypePrefix, Dependency, ModuleGraph};
 
 pub trait ContextDependency: Dependency {
   fn request(&self) -> &str;
@@ -12,6 +14,16 @@ pub trait ContextDependency: Dependency {
   }
 
   fn type_prefix(&self) -> ContextTypePrefix;
+
+  fn critical(&self) -> &Option<Diagnostic>;
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic>;
+
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    if let Some(critical) = self.critical() {
+      return Some(vec![critical.clone()]);
+    }
+    None
+  }
 }
 
 pub trait AsContextDependency {

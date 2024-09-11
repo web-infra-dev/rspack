@@ -1533,6 +1533,8 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
             request: d.request,
             reg_exp,
             recursive: d.recursive,
+            // TODO
+            dependencies: vec![],
           };
           Ok(BeforeResolveResult::Data(Box::new(data)))
         }

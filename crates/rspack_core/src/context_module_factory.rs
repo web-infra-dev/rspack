@@ -7,9 +7,10 @@ use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve, ContextModule, ContextModuleOptions, DependencyCategory, DependencyId, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Clone)]
@@ -25,7 +26,7 @@ pub struct BeforeResolveData {
   pub context: String,
   pub request: Option<String>,
   // assertions
-  // dependencies
+  pub dependencies: Vec<DependencyId>,
   // dependency_type
   // file_dependencies
   // missing_dependencies
@@ -132,6 +133,7 @@ impl ContextModuleFactory {
       request: data.request().map(|r| r.to_string()),
       recursive: dependency_options.recursive,
       reg_exp: dependency_options.reg_exp.clone(),
+      dependencies: vec![*dependency.id()],
     };
 
     match self

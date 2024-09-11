@@ -1,10 +1,9 @@
 use rspack_core::{
-  module_raw, AsModuleDependency, Compilation, ContextDependency, RealDependencyLocation,
-  RuntimeSpec,
+  module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan};
-use rspack_core::{TemplateContext, TemplateReplaceSource};
+use rspack_error::Diagnostic;
 
 use super::create_resource_identifier_for_context_dependency;
 
@@ -15,6 +14,7 @@ pub struct ImportMetaContextDependency {
   range: RealDependencyLocation,
   resource_identifier: String,
   optional: bool,
+  critical: Option<Diagnostic>,
 }
 
 impl ImportMetaContextDependency {
@@ -26,6 +26,7 @@ impl ImportMetaContextDependency {
       resource_identifier,
       optional,
       id: DependencyId::new(),
+      critical: None,
     }
   }
 }
@@ -79,6 +80,14 @@ impl ContextDependency for ImportMetaContextDependency {
 
   fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
     rspack_core::ContextTypePrefix::Normal
+  }
+
+  fn critical(&self) -> &Option<Diagnostic> {
+    &self.critical
+  }
+
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
+    &mut self.critical
   }
 }
 
