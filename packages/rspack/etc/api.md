@@ -54,7 +54,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import type { ModuleDTO } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
-import type { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
@@ -7269,11 +7269,11 @@ export class MultiStats {
 class MultiWatching {
     constructor(watchings: Watching[], compiler: MultiCompiler);
     // (undocumented)
-    close(callback: any): void;
+    close(callback: Callback<Error, void>): void;
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: any): void;
+    invalidate(callback: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
@@ -15733,7 +15733,7 @@ interface WatchFileSystem {
 
 // @public (undocumented)
 export class Watching {
-    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: (error?: Error, stats?: Stats) => void);
+    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: Callback<Error, Stats>);
     // (undocumented)
     blocked: boolean;
     // (undocumented)
@@ -15743,21 +15743,21 @@ export class Watching {
     // (undocumented)
     compiler: Compiler;
     // (undocumented)
-    handler: (error?: Error, stats?: Stats) => void;
+    handler: Callback<Error, Stats>;
     // (undocumented)
     invalid: boolean;
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
-    isBlocked?: () => boolean;
+    isBlocked: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
     // (undocumented)
     lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
-    onChange?: () => void;
+    onChange: () => void;
     // (undocumented)
-    onInvalid?: () => void;
+    onInvalid: () => void;
     // (undocumented)
     pausedWatcher?: Watcher;
     // (undocumented)

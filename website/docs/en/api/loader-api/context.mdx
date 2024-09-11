@@ -70,6 +70,13 @@ A function that can be called synchronously or asynchronously in order to return
 3. The third parameter is a source map that can be processed by the loader.
 4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
 
+:::warning
+In case this function is called, you should return `undefined` to avoid ambiguous loader results.
+
+The value passed to `this.callback` will be passed to the next loader in the chain.
+The `sourceMap` and `meta` parameters are optional. If they are not passed, the next loader will not receive them.
+:::
+
 ## this.clearDependencies()
 
 ```ts
