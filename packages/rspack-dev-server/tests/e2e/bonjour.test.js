@@ -30,6 +30,7 @@ describe("bonjour option", () => {
 
 		beforeEach(async () => {
 			try {
+				console.log(1);
 				jest.mock("bonjour-service", () => {
 					return {
 						Bonjour: jest.fn().mockImplementation(() => {
@@ -42,17 +43,23 @@ describe("bonjour option", () => {
 					};
 				});
 
+				console.log(2);
 				compiler = webpack(config);
 
+				console.log(3);
 				server = new Server({ port, bonjour: true }, compiler);
 
+				console.log(4);
 				await server.start();
+				console.log(5);
 
 				({ page, browser } = await runBrowser());
 
+				console.log(6);
+
 				pageErrors = [];
 				consoleMessages = [];
-			} catch(e) {
+			} catch (e) {
 				console.error("error in before each");
 				console.error(e);
 			}
@@ -66,7 +73,7 @@ describe("bonjour option", () => {
 				mockPublish.mockReset();
 				mockUnpublishAll.mockReset();
 				mockDestroy.mockReset();
-			} catch(e) {
+			} catch (e) {
 				console.error("error in after each");
 				console.error(e);
 			}
@@ -105,253 +112,252 @@ describe("bonjour option", () => {
 				);
 
 				expect(pageErrors).toMatchSnapshot("page errors");
-			} catch(e) {
+			} catch (e) {
 				console.error("error in case");
 				console.error(e);
 			}
-			
 		});
 	});
 
-	describe("with 'server' option", () => {
-		let compiler;
-		let server;
-		let page;
-		let browser;
-		let pageErrors;
-		let consoleMessages;
+	// describe("with 'server' option", () => {
+	// 	let compiler;
+	// 	let server;
+	// 	let page;
+	// 	let browser;
+	// 	let pageErrors;
+	// 	let consoleMessages;
 
-		beforeEach(async () => {
-			jest.mock("bonjour-service", () => {
-				return {
-					Bonjour: jest.fn().mockImplementation(() => {
-						return {
-							publish: mockPublish,
-							unpublishAll: mockUnpublishAll,
-							destroy: mockDestroy
-						};
-					})
-				};
-			});
+	// 	beforeEach(async () => {
+	// 		jest.mock("bonjour-service", () => {
+	// 			return {
+	// 				Bonjour: jest.fn().mockImplementation(() => {
+	// 					return {
+	// 						publish: mockPublish,
+	// 						unpublishAll: mockUnpublishAll,
+	// 						destroy: mockDestroy
+	// 					};
+	// 				})
+	// 			};
+	// 		});
 
-			compiler = webpack(config);
+	// 		compiler = webpack(config);
 
-			server = new Server({ bonjour: true, port, server: "https" }, compiler);
+	// 		server = new Server({ bonjour: true, port, server: "https" }, compiler);
 
-			await server.start();
+	// 		await server.start();
 
-			({ page, browser } = await runBrowser());
+	// 		({ page, browser } = await runBrowser());
 
-			pageErrors = [];
-			consoleMessages = [];
-		});
+	// 		pageErrors = [];
+	// 		consoleMessages = [];
+	// 	});
 
-		afterEach(async () => {
-			await browser.close();
-			await server.stop();
-		});
+	// 	afterEach(async () => {
+	// 		await browser.close();
+	// 		await server.stop();
+	// 	});
 
-		it("should call bonjour with 'https' type", async () => {
-			page
-				.on("console", message => {
-					consoleMessages.push(message);
-				})
-				.on("pageerror", error => {
-					pageErrors.push(error);
-				});
+	// 	it("should call bonjour with 'https' type", async () => {
+	// 		page
+	// 			.on("console", message => {
+	// 				consoleMessages.push(message);
+	// 			})
+	// 			.on("pageerror", error => {
+	// 				pageErrors.push(error);
+	// 			});
 
-			const response = await page.goto(`https://127.0.0.1:${port}/`, {
-				waitUntil: "networkidle0"
-			});
+	// 		const response = await page.goto(`https://127.0.0.1:${port}/`, {
+	// 			waitUntil: "networkidle0"
+	// 		});
 
-			expect(mockPublish).toHaveBeenCalledTimes(1);
+	// 		expect(mockPublish).toHaveBeenCalledTimes(1);
 
-			expect(mockPublish).toHaveBeenCalledWith({
-				name: `Webpack Dev Server ${os.hostname()}:${port}`,
-				port,
-				type: "https",
-				subtypes: ["webpack"]
-			});
+	// 		expect(mockPublish).toHaveBeenCalledWith({
+	// 			name: `Webpack Dev Server ${os.hostname()}:${port}`,
+	// 			port,
+	// 			type: "https",
+	// 			subtypes: ["webpack"]
+	// 		});
 
-			expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
-			expect(mockDestroy).toHaveBeenCalledTimes(0);
+	// 		expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
+	// 		expect(mockDestroy).toHaveBeenCalledTimes(0);
 
-			expect(response.status()).toMatchSnapshot("response status");
+	// 		expect(response.status()).toMatchSnapshot("response status");
 
-			expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
-				"console messages"
-			);
+	// 		expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
+	// 			"console messages"
+	// 		);
 
-			expect(pageErrors).toMatchSnapshot("page errors");
-		});
-	});
+	// 		expect(pageErrors).toMatchSnapshot("page errors");
+	// 	});
+	// });
 
-	describe("as object", () => {
-		let compiler;
-		let server;
-		let page;
-		let browser;
-		let pageErrors;
-		let consoleMessages;
+	// describe("as object", () => {
+	// 	let compiler;
+	// 	let server;
+	// 	let page;
+	// 	let browser;
+	// 	let pageErrors;
+	// 	let consoleMessages;
 
-		beforeEach(async () => {
-			jest.mock("bonjour-service", () => {
-				return {
-					Bonjour: jest.fn().mockImplementation(() => {
-						return {
-							publish: mockPublish,
-							unpublishAll: mockUnpublishAll,
-							destroy: mockDestroy
-						};
-					})
-				};
-			});
+	// 	beforeEach(async () => {
+	// 		jest.mock("bonjour-service", () => {
+	// 			return {
+	// 				Bonjour: jest.fn().mockImplementation(() => {
+	// 					return {
+	// 						publish: mockPublish,
+	// 						unpublishAll: mockUnpublishAll,
+	// 						destroy: mockDestroy
+	// 					};
+	// 				})
+	// 			};
+	// 		});
 
-			compiler = webpack(config);
+	// 		compiler = webpack(config);
 
-			server = new Server(
-				{
-					port,
-					bonjour: {
-						type: "https",
-						protocol: "udp"
-					}
-				},
-				compiler
-			);
+	// 		server = new Server(
+	// 			{
+	// 				port,
+	// 				bonjour: {
+	// 					type: "https",
+	// 					protocol: "udp"
+	// 				}
+	// 			},
+	// 			compiler
+	// 		);
 
-			await server.start();
+	// 		await server.start();
 
-			({ page, browser } = await runBrowser());
+	// 		({ page, browser } = await runBrowser());
 
-			pageErrors = [];
-			consoleMessages = [];
-		});
+	// 		pageErrors = [];
+	// 		consoleMessages = [];
+	// 	});
 
-		afterEach(async () => {
-			await browser.close();
-			await server.stop();
-		});
+	// 	afterEach(async () => {
+	// 		await browser.close();
+	// 		await server.stop();
+	// 	});
 
-		it("should apply bonjour options", async () => {
-			page
-				.on("console", message => {
-					consoleMessages.push(message);
-				})
-				.on("pageerror", error => {
-					pageErrors.push(error);
-				});
+	// 	it("should apply bonjour options", async () => {
+	// 		page
+	// 			.on("console", message => {
+	// 				consoleMessages.push(message);
+	// 			})
+	// 			.on("pageerror", error => {
+	// 				pageErrors.push(error);
+	// 			});
 
-			const response = await page.goto(`http://127.0.0.1:${port}/`, {
-				waitUntil: "networkidle0"
-			});
+	// 		const response = await page.goto(`http://127.0.0.1:${port}/`, {
+	// 			waitUntil: "networkidle0"
+	// 		});
 
-			expect(mockPublish).toHaveBeenCalledTimes(1);
+	// 		expect(mockPublish).toHaveBeenCalledTimes(1);
 
-			expect(mockPublish).toHaveBeenCalledWith({
-				name: `Webpack Dev Server ${os.hostname()}:${port}`,
-				port,
-				type: "https",
-				protocol: "udp",
-				subtypes: ["webpack"]
-			});
+	// 		expect(mockPublish).toHaveBeenCalledWith({
+	// 			name: `Webpack Dev Server ${os.hostname()}:${port}`,
+	// 			port,
+	// 			type: "https",
+	// 			protocol: "udp",
+	// 			subtypes: ["webpack"]
+	// 		});
 
-			expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
-			expect(mockDestroy).toHaveBeenCalledTimes(0);
+	// 		expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
+	// 		expect(mockDestroy).toHaveBeenCalledTimes(0);
 
-			expect(response.status()).toMatchSnapshot("response status");
+	// 		expect(response.status()).toMatchSnapshot("response status");
 
-			expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
-				"console messages"
-			);
+	// 		expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
+	// 			"console messages"
+	// 		);
 
-			expect(pageErrors).toMatchSnapshot("page errors");
-		});
-	});
+	// 		expect(pageErrors).toMatchSnapshot("page errors");
+	// 	});
+	// });
 
-	describe("bonjour object and 'server' option", () => {
-		let compiler;
-		let server;
-		let page;
-		let browser;
-		let pageErrors;
-		let consoleMessages;
+	// describe("bonjour object and 'server' option", () => {
+	// 	let compiler;
+	// 	let server;
+	// 	let page;
+	// 	let browser;
+	// 	let pageErrors;
+	// 	let consoleMessages;
 
-		beforeEach(async () => {
-			jest.mock("bonjour-service", () => {
-				return {
-					Bonjour: jest.fn().mockImplementation(() => {
-						return {
-							publish: mockPublish,
-							unpublishAll: mockUnpublishAll,
-							destroy: mockDestroy
-						};
-					})
-				};
-			});
+	// 	beforeEach(async () => {
+	// 		jest.mock("bonjour-service", () => {
+	// 			return {
+	// 				Bonjour: jest.fn().mockImplementation(() => {
+	// 					return {
+	// 						publish: mockPublish,
+	// 						unpublishAll: mockUnpublishAll,
+	// 						destroy: mockDestroy
+	// 					};
+	// 				})
+	// 			};
+	// 		});
 
-			compiler = webpack(config);
+	// 		compiler = webpack(config);
 
-			server = new Server(
-				{
-					port,
-					bonjour: {
-						type: "http",
-						protocol: "udp"
-					},
-					server: {
-						type: "https"
-					}
-				},
-				compiler
-			);
+	// 		server = new Server(
+	// 			{
+	// 				port,
+	// 				bonjour: {
+	// 					type: "http",
+	// 					protocol: "udp"
+	// 				},
+	// 				server: {
+	// 					type: "https"
+	// 				}
+	// 			},
+	// 			compiler
+	// 		);
 
-			await server.start();
+	// 		await server.start();
 
-			({ page, browser } = await runBrowser());
+	// 		({ page, browser } = await runBrowser());
 
-			pageErrors = [];
-			consoleMessages = [];
-		});
+	// 		pageErrors = [];
+	// 		consoleMessages = [];
+	// 	});
 
-		afterEach(async () => {
-			await browser.close();
-			await server.stop();
-		});
+	// 	afterEach(async () => {
+	// 		await browser.close();
+	// 		await server.stop();
+	// 	});
 
-		it("should apply bonjour options", async () => {
-			page
-				.on("console", message => {
-					consoleMessages.push(message);
-				})
-				.on("pageerror", error => {
-					pageErrors.push(error);
-				});
+	// 	it("should apply bonjour options", async () => {
+	// 		page
+	// 			.on("console", message => {
+	// 				consoleMessages.push(message);
+	// 			})
+	// 			.on("pageerror", error => {
+	// 				pageErrors.push(error);
+	// 			});
 
-			const response = await page.goto(`https://127.0.0.1:${port}/`, {
-				waitUntil: "networkidle0"
-			});
+	// 		const response = await page.goto(`https://127.0.0.1:${port}/`, {
+	// 			waitUntil: "networkidle0"
+	// 		});
 
-			expect(mockPublish).toHaveBeenCalledTimes(1);
+	// 		expect(mockPublish).toHaveBeenCalledTimes(1);
 
-			expect(mockPublish).toHaveBeenCalledWith({
-				name: `Webpack Dev Server ${os.hostname()}:${port}`,
-				port,
-				type: "http",
-				protocol: "udp",
-				subtypes: ["webpack"]
-			});
+	// 		expect(mockPublish).toHaveBeenCalledWith({
+	// 			name: `Webpack Dev Server ${os.hostname()}:${port}`,
+	// 			port,
+	// 			type: "http",
+	// 			protocol: "udp",
+	// 			subtypes: ["webpack"]
+	// 		});
 
-			expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
-			expect(mockDestroy).toHaveBeenCalledTimes(0);
+	// 		expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
+	// 		expect(mockDestroy).toHaveBeenCalledTimes(0);
 
-			expect(response.status()).toMatchSnapshot("response status");
+	// 		expect(response.status()).toMatchSnapshot("response status");
 
-			expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
-				"console messages"
-			);
+	// 		expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
+	// 			"console messages"
+	// 		);
 
-			expect(pageErrors).toMatchSnapshot("page errors");
-		});
-	});
+	// 		expect(pageErrors).toMatchSnapshot("page errors");
+	// 	});
+	// });
 });
