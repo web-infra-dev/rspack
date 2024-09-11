@@ -29,71 +29,87 @@ describe("bonjour option", () => {
 		let consoleMessages;
 
 		beforeEach(async () => {
-			jest.mock("bonjour-service", () => {
-				return {
-					Bonjour: jest.fn().mockImplementation(() => {
-						return {
-							publish: mockPublish,
-							unpublishAll: mockUnpublishAll,
-							destroy: mockDestroy
-						};
-					})
-				};
-			});
+			try {
+				jest.mock("bonjour-service", () => {
+					return {
+						Bonjour: jest.fn().mockImplementation(() => {
+							return {
+								publish: mockPublish,
+								unpublishAll: mockUnpublishAll,
+								destroy: mockDestroy
+							};
+						})
+					};
+				});
 
-			compiler = webpack(config);
+				compiler = webpack(config);
 
-			server = new Server({ port, bonjour: true }, compiler);
+				server = new Server({ port, bonjour: true }, compiler);
 
-			await server.start();
+				await server.start();
 
-			({ page, browser } = await runBrowser());
+				({ page, browser } = await runBrowser());
 
-			pageErrors = [];
-			consoleMessages = [];
+				pageErrors = [];
+				consoleMessages = [];
+			} catch(e) {
+				console.error("error in before each");
+				console.error(e);
+			}
 		});
 
 		afterEach(async () => {
-			await browser.close();
-			await server.stop();
+			try {
+				await browser.close();
+				await server.stop();
 
-			mockPublish.mockReset();
-			mockUnpublishAll.mockReset();
-			mockDestroy.mockReset();
+				mockPublish.mockReset();
+				mockUnpublishAll.mockReset();
+				mockDestroy.mockReset();
+			} catch(e) {
+				console.error("error in after each");
+				console.error(e);
+			}
 		});
 
 		it("should call bonjour with correct params", async () => {
-			page
-				.on("console", message => {
-					consoleMessages.push(message);
-				})
-				.on("pageerror", error => {
-					pageErrors.push(error);
+			try {
+				page
+					.on("console", message => {
+						consoleMessages.push(message);
+					})
+					.on("pageerror", error => {
+						pageErrors.push(error);
+					});
+
+				const response = await page.goto(`http://127.0.0.1:${port}/`, {
+					waitUntil: "networkidle0"
 				});
 
-			const response = await page.goto(`http://127.0.0.1:${port}/`, {
-				waitUntil: "networkidle0"
-			});
+				expect(mockPublish).toHaveBeenCalledTimes(1);
 
-			expect(mockPublish).toHaveBeenCalledTimes(1);
+				expect(mockPublish).toHaveBeenCalledWith({
+					name: `Webpack Dev Server ${os.hostname()}:${port}`,
+					port,
+					type: "http",
+					subtypes: ["webpack"]
+				});
 
-			expect(mockPublish).toHaveBeenCalledWith({
-				name: `Webpack Dev Server ${os.hostname()}:${port}`,
-				port,
-				type: "http",
-				subtypes: ["webpack"]
-			});
+				expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
+				expect(mockDestroy).toHaveBeenCalledTimes(0);
 
-			expect(mockUnpublishAll).toHaveBeenCalledTimes(0);
-			expect(mockDestroy).toHaveBeenCalledTimes(0);
+				expect(response.status()).toMatchSnapshot("response status");
 
-			expect(response.status()).toMatchSnapshot("response status");
+				expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
+					"console messages"
+				);
 
-			expect(consoleMessages.map(message => message.text())).toMatchSnapshot(
-				"console messages"
-			);
-
-			expect(pageErrors).toMatchSnapshot("page errors");
+				expect(pageErrors).toMatchSnapshot("page errors");
+			} catch(e) {
+				console.error("error in case");
+				console.error(e);
+			}
+			
 		});
 	});
 

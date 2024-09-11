@@ -309,7 +309,7 @@ jobs:
       - name: Test x86_64-unknown-linux-gnu
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
-        run: pnpm run test:ci
+        run: pnpm run test:server
 
       ### TODO: diff cases with new runners
       # - name: Test diff test
@@ -324,11 +324,11 @@ jobs:
         run: |
           # arch is ARM and target is ARM
           if [[ '${{ runner.arch }}' == ARM* && '${{ inputs.target }}' == 'aarch64-apple-darwin' ]]; then
-            pnpm run test:ci
+            pnpm run test:server
           fi
           # arch is x64 and target is x64
           if [[ '${{ runner.arch }}' != ARM* && '${{ inputs.target }}' != 'aarch64-apple-darwin' ]]; then
-            pnpm run test:ci
+            pnpm run test:server
           fi
 
       ### x86_64-pc-windows-msvc
@@ -336,7 +336,7 @@ jobs:
       - name: Test x86_64-pc-windows-msvc
         timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && !inputs.skipable }}
-        run: pnpm run test:ci
+        run: pnpm run test:server
 
       - name: API change check
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}

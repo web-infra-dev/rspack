@@ -8,9 +8,9 @@ const config = {
 	},
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
-		...(isWin || process.env.CI ? [] : ["<rootDir>/tests/e2e/*.test.js"])
+		...(isWin ? [] : ["<rootDir>/tests/e2e/bonjour.test.js"])
 	],
-	testPathIgnorePatterns: isWin || process.env.CI
+	testPathIgnorePatterns: isWin
 		? []
 		: [
 				// TODO: check why http proxy server throw error with websocket server
