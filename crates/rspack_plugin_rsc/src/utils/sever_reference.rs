@@ -120,8 +120,8 @@ impl RSCServerReferenceManifest {
           };
           let resource_path = resolved_data
             .and_then(|f| f.resource_path.as_ref())
-            .and_then(|f| f.to_str())
-            .expect("TODO:");
+            .and_then(|f| Some(f.as_str()))
+            .unwrap_or("");
           let resource_query = resolved_data.and_then(|f| f.resource_query.as_ref());
           let resource_query_str = if let Some(query) = resource_query {
             query
