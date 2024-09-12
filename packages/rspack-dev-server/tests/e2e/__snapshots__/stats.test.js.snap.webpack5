@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`stats should work and respect the "ignoreWarnings" option 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`stats should work using "{ assets: false }" value for the "stats" option 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`stats should work using "{}" value for the "stats" option 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`stats should work using "errors-only" value for the "stats" option 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`stats should work using "false" value for the "stats" option 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`stats should work using "undefined" value for the "stats" option 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`stats should work when "stats" is not specified 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
