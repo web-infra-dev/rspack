@@ -6,6 +6,7 @@ import {
 import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
+import abbLogo from './assets/abb.svg';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
@@ -13,7 +14,6 @@ import discordLogo from './assets/discord.svg';
 import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
-import abbLogo from './assets/abb.svg';
 
 type Company = {
   name: string;
