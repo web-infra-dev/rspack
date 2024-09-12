@@ -784,6 +784,10 @@ export async function runLoaders(
 		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
 		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
 	});
+	Object.defineProperty(loaderContext, "__internal__parseMeta", {
+		enumerable: true,
+		get: () => context.__internal__parseMeta
+	});
 
 	switch (loaderState) {
 		case JsLoaderState.Pitching: {

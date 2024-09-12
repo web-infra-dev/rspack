@@ -2,7 +2,7 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
@@ -73,6 +73,7 @@ async fn create_loader_context<Context: 'static>(
   let mut loader_context = LoaderContext {
     hot: false,
     cacheable: true,
+    parse_meta: Default::default(),
     file_dependencies,
     context_dependencies: Default::default(),
     missing_dependencies: Default::default(),
@@ -194,6 +195,7 @@ pub struct LoaderResult {
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<AdditionalData>,
+  pub parse_meta: HashMap<String, String>,
 }
 
 impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
@@ -218,6 +220,7 @@ impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderRes
         content,
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,
+        parse_meta: loader_context.parse_meta,
       }
       .with_diagnostic(loader_context.diagnostics),
     )

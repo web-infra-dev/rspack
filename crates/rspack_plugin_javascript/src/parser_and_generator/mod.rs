@@ -106,6 +106,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       loaders,
       module_parser_options,
       additional_data,
+      parse_meta,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -211,6 +212,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         additional_data,
+        parse_meta,
       )
     }) {
       Ok(result) => result,

@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::Mark;
 use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap};
 use swc_core::ecma::atoms::Atom;
@@ -57,6 +57,7 @@ pub fn scan_dependencies(
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   additional_data: Option<AdditionalData>,
+  parse_meta: FxHashMap<String, String>,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_map,
@@ -76,6 +77,7 @@ pub fn scan_dependencies(
     unresolved_mark,
     parser_plugins,
     additional_data,
+    parse_meta,
   );
 
   parser.walk_program(program.get_inner_program());

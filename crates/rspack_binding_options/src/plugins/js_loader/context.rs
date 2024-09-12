@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, JsResourceData, ToJsModule as _};
@@ -66,6 +68,8 @@ pub struct JsLoaderContext {
   pub content: Either<Null, Buffer>,
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
+  #[napi(js_name = "__internal__parseMeta")]
+  pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub file_dependencies: Vec<String>,
@@ -98,6 +102,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
         None => Either::A(Null),
       },
+      parse_meta: cx.parse_meta.clone().into_iter().collect(),
       additional_data: cx
         .additional_data()
         .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())

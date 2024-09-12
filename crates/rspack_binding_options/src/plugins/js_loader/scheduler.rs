@@ -100,6 +100,7 @@ pub(crate) fn merge_loader_context(
     })
     .collect();
   to.loader_index = from.loader_index;
+  to.parse_meta = from.parse_meta.into_iter().collect();
 
   Ok(())
 }
