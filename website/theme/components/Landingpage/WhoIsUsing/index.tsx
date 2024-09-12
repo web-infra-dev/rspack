@@ -10,6 +10,7 @@ import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
 import discordLogo from './assets/discord.svg';
+import getaroundLogo from './assets/getaround.svg';
 import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
@@ -65,6 +66,12 @@ const companyList: Company[] = [
     logo: nioLogo,
     url: 'https://nio.com',
     width: 115,
+  },
+  {
+    name: 'Getaround',
+    logo: getaroundLogo,
+    url: 'https://getaround.com',
+    width: 110,
   },
 ];
 
