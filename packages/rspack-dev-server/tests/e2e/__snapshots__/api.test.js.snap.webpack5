@@ -24,18 +24,6 @@ exports[`API Invalidate callback should use the provided \`callback\` function: 
 
 exports[`API Invalidate callback should use the provided \`callback\` function: response status 1`] = `200`;
 
-exports[`API Server.checkHostHeader should allow URLs with scheme for checking origin when the "option.client.webSocketURL" is object: console messages 1`] = `
-[
-  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
-  "[HMR] Waiting for update signal from WDS...",
-  "Hey.",
-  "WebSocket connection to 'ws://test.host:8158/ws' failed: Error in connection establishment: net::ERR_NAME_NOT_RESOLVED",
-  "[webpack-dev-server] JSHandle@object",
-  "[webpack-dev-server] Disconnected!",
-  "[webpack-dev-server] Trying to reconnect...",
-]
-`;
-
 exports[`API Server.checkHostHeader should allow URLs with scheme for checking origin when the "option.client.webSocketURL" is object: page errors 1`] = `[]`;
 
 exports[`API Server.checkHostHeader should allow URLs with scheme for checking origin when the "option.client.webSocketURL" is object: response status 1`] = `200`;
