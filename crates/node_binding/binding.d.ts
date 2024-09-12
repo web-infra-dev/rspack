@@ -99,8 +99,9 @@ export class JsCompilation {
   get chunkGroups(): Array<JsChunkGroup>
   get hash(): string | null
   dependencies(): DependenciesDto
-  pushDiagnostic(diagnostic: JsDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
+  pushDiagnostic(diagnostic: JsRspackDiagnostic): void
+  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
+  pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
@@ -280,6 +281,8 @@ export function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
 }
+
+export function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAdditionalTreeRuntimeRequirementsArg {
   chunk: JsChunk
@@ -480,8 +483,23 @@ export interface JsCreateData {
 }
 
 export interface JsDiagnostic {
-  severity: JsRspackSeverity
-  error: JsRspackError
+  message: string
+  help?: string
+  sourceCode?: string
+  location?: JsDiagnosticLocation
+  file?: string
+  severity: "error" | "warning"
+  moduleIdentifier?: string
+}
+
+export interface JsDiagnosticLocation {
+  text?: string
+  /** 1-based */
+  line: number
+  /** 0-based in bytes */
+  column: number
+  /** Length in bytes */
+  length: number
 }
 
 export interface JsEntryData {
@@ -684,6 +702,11 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRspackDiagnostic {
+  severity: JsRspackSeverity
+  error: JsRspackError
 }
 
 export interface JsRspackError {

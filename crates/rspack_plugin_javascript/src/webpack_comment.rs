@@ -240,7 +240,7 @@ fn byte_offset_to_location(rope: &ropey::Rope, start: usize, end: usize) -> Loca
 
 /// Convert match item to error span within the source
 ///
-/// # Panic
+/// # Panics
 ///
 /// Panics if `comment_span` is out-of-bound of `source`.
 /// Panics if either `match_start` or `match_end` is out-of-bound of `comment_text`.

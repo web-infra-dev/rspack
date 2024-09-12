@@ -1033,9 +1033,11 @@ export class Compilation {
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
-    __internal__pushDiagnostic(diagnostic: binding.JsDiagnostic): void;
+    __internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">): void;
     // @internal
-    __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
+    __internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
+    // @internal
+    __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // @internal
@@ -1858,6 +1860,29 @@ export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
 // @public (undocumented)
 const devtoolNamespace: z.ZodString;
+
+// @public (undocumented)
+interface Diagnostic {
+    // (undocumented)
+    file?: string;
+    // (undocumented)
+    help?: string;
+    location?: DiagnosticLocation;
+    // (undocumented)
+    message: string;
+    // (undocumented)
+    severity: "error" | "warning";
+    // (undocumented)
+    sourceCode?: string;
+}
+
+// @public (undocumented)
+interface DiagnosticLocation {
+    column: number;
+    length: number;
+    line: number;
+    text?: string;
+}
 
 // @public (undocumented)
 class DirectoryWatcher extends EventEmitter {
@@ -5917,6 +5942,7 @@ export interface LoaderContext<OptionsType = {}> {
     emitFile(name: string, content: string | Buffer, sourceMap?: string, assetInfo?: JsAssetInfo): void;
     // (undocumented)
     emitWarning(warning: Error): void;
+    experiments: LoaderExperiments;
     // (undocumented)
     fs: any;
     // (undocumented)
@@ -5991,6 +6017,12 @@ export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDe
 
 // @public (undocumented)
 export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer>;
+
+// @public (undocumented)
+interface LoaderExperiments {
+    // (undocumented)
+    emitDiagnostic(diagnostic: Diagnostic): void;
+}
 
 // @public (undocumented)
 class LoaderObject {

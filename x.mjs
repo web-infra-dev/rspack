@@ -203,11 +203,15 @@ const rspackCommand = program.command("rspack").alias("rs").description(`
 rspackCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
 	.action(async ({ debug }) => {
-		if (!debug) {
-			await $`npx rspack ${getVariadicArgs()}`;
-			return;
+		try {
+			if (!debug) {
+				await $`npx rspack ${getVariadicArgs()}`;
+				return;
+			}
+			await launchRspackCli(getVariadicArgs());
+		} catch (e) {
+			process.exit(e.exitCode);
 		}
-		await launchRspackCli(getVariadicArgs());
 	});
 
 // x rsd

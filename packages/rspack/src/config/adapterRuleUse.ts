@@ -66,6 +66,35 @@ export type ResolveCallback = (
 	req?: ResolveRequest
 ) => void;
 
+export interface DiagnosticLocation {
+	/** Text for highlighting the location */
+	text?: string;
+	/** 1-based line */
+	line: number;
+	/** 0-based column in bytes */
+	column: number;
+	/** Length in bytes */
+	length: number;
+}
+
+export interface Diagnostic {
+	message: string;
+	help?: string;
+	sourceCode?: string;
+	/**
+	 * Location to the source code.
+	 *
+	 * If `sourceCode` is not provided, location will be omitted.
+	 */
+	location?: DiagnosticLocation;
+	file?: string;
+	severity: "error" | "warning";
+}
+
+interface LoaderExperiments {
+	emitDiagnostic(diagnostic: Diagnostic): void;
+}
+
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
@@ -150,6 +179,11 @@ export interface LoaderContext<OptionsType = {}> {
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;
+	/**
+	 * This is an experimental API and maybe subject to change.
+	 * @experimental
+	 */
+	experiments: LoaderExperiments;
 	utils: {
 		absolutify: (context: string, request: string) => string;
 		contextify: (context: string, request: string) => string;

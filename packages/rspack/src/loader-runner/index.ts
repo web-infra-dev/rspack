@@ -16,7 +16,8 @@ import {
 	type JsLoaderContext,
 	type JsLoaderItem,
 	JsLoaderState,
-	JsRspackSeverity
+	JsRspackSeverity,
+	formatDiagnostic
 } from "@rspack/binding";
 import {
 	OriginalSource,
@@ -32,6 +33,7 @@ import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
+	type Diagnostic,
 	type LoaderContext,
 	type LoaderContextCallback,
 	isUseSimpleSourceMap,
@@ -624,7 +626,7 @@ export async function runLoaders(
 		)})`;
 		error = concatErrorMsgAndStack(error);
 		(error as RspackError).moduleIdentifier = this._module.identifier();
-		compiler._lastCompilation!.__internal__pushDiagnostic({
+		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
 		});
@@ -640,7 +642,7 @@ export async function runLoaders(
 		)})`;
 		warning = concatErrorMsgAndStack(warning);
 		(warning as RspackError).moduleIdentifier = this._module.identifier();
-		compiler._lastCompilation!.__internal__pushDiagnostic({
+		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
 		});
@@ -687,6 +689,20 @@ export async function runLoaders(
 		);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
+	loaderContext.experiments = {
+		emitDiagnostic: (diagnostic: Diagnostic) => {
+			const d = Object.assign({}, diagnostic, {
+				message:
+					diagnostic.severity === "warning"
+						? `ModuleWarning: ${diagnostic.message}`
+						: `ModuleError: ${diagnostic.message}`,
+				moduleIdentifier: context._module.moduleIdentifier
+			});
+			compiler._lastCompilation!.__internal__pushDiagnostic(
+				formatDiagnostic(d)
+			);
+		}
+	};
 
 	const getAbsolutify = memoize(() => absolutify.bindCache(compiler.root));
 	const getAbsolutifyInContext = memoize(() =>

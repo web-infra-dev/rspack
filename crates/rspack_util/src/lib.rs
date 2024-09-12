@@ -11,6 +11,7 @@ pub mod fx_hash;
 pub mod identifier;
 pub mod infallible;
 pub mod itoa;
+pub mod location;
 pub mod number_hash;
 pub mod path;
 pub mod queue;
