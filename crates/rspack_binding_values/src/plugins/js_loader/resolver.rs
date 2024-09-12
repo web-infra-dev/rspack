@@ -129,44 +129,52 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
     return Ok(Arc::new(rspack_loader_testing::NoPassthroughLoader));
   }
   if builtin.starts_with(RSC_PROXY_LOADER_IDENTIFIER) {
-    return Arc::new(
-      RSCProxyLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:rsc-proxy-loader options:{options:?},error: {e:?}")
-        }),
-      )
+    return Ok(Arc::new(
+      RSCProxyLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(
+          e,
+          options,
+          "failed to parse builtin:rsc-proxy-loader options",
+        )
+      })?)
       .with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(RSC_CLIENT_ENTRY_LOADER_IDENTIFIER) {
-    return Arc::new(
-      RSCClientEntryLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:rsc-client-entry-loader options:{options:?},error: {e:?}")
-        }),
-      )
+    return Ok(Arc::new(
+      RSCClientEntryLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(
+          e,
+          options,
+          "failed to parse builtin:rsc-client-entry-loader options",
+        )
+      })?)
       .with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(RSC_SERVER_ACTION_SERVER_LOADER_IDENTIFIER) {
-    return Arc::new(
-      RSCServerActionServerLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:rsc-server-action-server-loader options:{options:?},error: {e:?}")
-        }),
-      )
+    return Ok(Arc::new(
+      RSCServerActionServerLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(
+          e,
+          options,
+          "failed to parse builtin:rsc-server-action-server-loader options",
+        )
+      })?)
       .with_identifier(builtin.into()),
-    );
+    ));
   }
   if builtin.starts_with(RSC_SERVER_ACTION_CLIENT_LOADER_IDENTIFIER) {
-    return Arc::new(
-      RSCServerActionClientLoader::new(
-        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-          panic!("Could not parse builtin:rsc-server-action-client-loader options:{options:?},error: {e:?}")
-        }),
-      )
+    return Ok(Arc::new(
+      RSCServerActionClientLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
+        serde_error_to_miette(
+          e,
+          options,
+          "failed to parse builtin:rsc-server-client-server-loader options",
+        )
+      })?)
       .with_identifier(builtin.into()),
-    );
+    ));
   }
   unreachable!("Unexpected builtin loader: {builtin}")
 }

@@ -47,7 +47,7 @@ impl Loader<RunnerContext> for RSCServerActionClientLoader {
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
     let resource_path_str = loader_context
       .resource_path()
-      .and_then(|f| f.to_str())
+      .and_then(|f| Some(f.as_str()))
       .unwrap_or("");
     let resource_query_str = loader_context.resource_query().unwrap_or("");
     let resource = format!("{}{}", resource_path_str, resource_query_str);

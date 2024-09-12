@@ -113,7 +113,9 @@ pub const RSC_SERVER_ACTION_SERVER_LOADER_IDENTIFIER: &str =
 impl Loader<RunnerContext> for RSCServerActionServerLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
-    let resource_path = loader_context.resource_path().and_then(|f| f.to_str());
+    let resource_path = loader_context
+      .resource_path()
+      .and_then(|f| Some(f.as_str()));
     let mut source = content.try_into_string()?;
     let query = loader_context.resource_query();
 

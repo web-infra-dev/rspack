@@ -40,7 +40,9 @@ pub const RSC_PROXY_LOADER_IDENTIFIER: &str = "builtin:rsc-proxy-loader";
 impl Loader<RunnerContext> for RSCProxyLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let content = std::mem::take(&mut loader_context.content).expect("content should be available");
-    let resource_path = loader_context.resource_path().and_then(|f| f.to_str());
+    let resource_path = loader_context
+      .resource_path()
+      .and_then(|f| Some(f.as_str()));
 
     let rsc_info = loader_context.additional_data.get::<RSCAdditionalData>();
     if let Some(RSCAdditionalData {

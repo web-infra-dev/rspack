@@ -124,7 +124,7 @@ impl RSCClientEntryRspackPlugin {
       let resource_path_str = data
         .resource_path
         .as_ref()
-        .and_then(|f| f.to_str())
+        .and_then(|f| Some(f.as_str()))
         .expect("TODO:");
       let resource_query = &data.resource_query;
       let resource_query_str = if let Some(query) = resource_query.as_ref() {
@@ -198,7 +198,7 @@ impl RSCClientEntryRspackPlugin {
       let resource_path_str = data
         .resource_path
         .as_ref()
-        .and_then(|f| f.to_str())
+        .and_then(|f| Some(f.as_str()))
         .expect("TODO:");
       let resource_query = &data.resource_query;
       let resource_query_str = if let Some(query) = resource_query.as_ref() {
