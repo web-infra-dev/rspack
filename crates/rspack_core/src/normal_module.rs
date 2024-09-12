@@ -513,6 +513,7 @@ impl Module for NormalModule {
         additional_data: loader_result.additional_data,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
+        parse_meta: loader_result.parse_meta,
       })?
       .split_into_parts();
     if !diagnostics.is_empty() {
