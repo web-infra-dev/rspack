@@ -1,8 +1,7 @@
 use itertools::Itertools;
-use rspack_core::DependencyType;
 use rspack_core::{
-  create_exports_object_referenced, module_raw, Compilation, ExtendedReferencedExport, ModuleGraph,
-  NormalInitFragment, RuntimeSpec, UsedName,
+  create_exports_object_referenced, module_raw, Compilation, DependencyRange, DependencyType,
+  ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -12,19 +11,17 @@ use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ProvideDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
   request: Atom,
   identifier: String,
   ids: Vec<Atom>,
+  range: DependencyRange,
 }
 
 impl ProvideDependency {
-  pub fn new(start: u32, end: u32, request: Atom, identifier: String, ids: Vec<Atom>) -> Self {
+  pub fn new(range: DependencyRange, request: Atom, identifier: String, ids: Vec<Atom>) -> Self {
     Self {
-      start,
-      end,
+      range,
       request,
       identifier,
       ids,
@@ -36,6 +33,10 @@ impl ProvideDependency {
 impl Dependency for ProvideDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<String> {
+    Some(self.request.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -116,7 +117,7 @@ impl DependencyTemplate for ProvideDependency {
       InitFragmentKey::ModuleExternal(format!("provided {}", self.identifier)),
       None,
     )));
-    source.replace(self.start, self.end, &self.identifier, None);
+    source.replace(self.range.start, self.range.end, &self.identifier, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

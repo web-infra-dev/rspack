@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  ApplyContext, CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PluginContext, SpanExt,
+  ApplyContext, CompilerOptions, DependencyRange, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,11 +13,14 @@ use crate::{
   dependency::ProvideDependency, parser_and_generator::JavaScriptParserAndGenerator,
   visitors::JavascriptParser, BoxJavascriptParserPlugin,
 };
-
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
 
-fn dep(value: &ProvideValue, name: &str, start: u32, end: u32) -> Option<ProvideDependency> {
+fn create_provide_dep(
+  name: &str,
+  value: &ProvideValue,
+  range: DependencyRange,
+) -> Option<ProvideDependency> {
   if let Some(requests) = value.get(name) {
     let name_identifier = if name.contains(SOURCE_DOT) {
       format!("__webpack_provide_{}", name.replace(SOURCE_DOT, MODULE_DOT))
@@ -25,8 +28,7 @@ fn dep(value: &ProvideValue, name: &str, start: u32, end: u32) -> Option<Provide
       name.to_string()
     };
     return Some(ProvideDependency::new(
-      start,
-      end,
+      range,
       Atom::from(requests[0].as_str()),
       name_identifier,
       requests[1..]
@@ -84,13 +86,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    dep(
-      &self.provide,
-      for_name,
-      expr.callee.span().real_lo(),
-      expr.callee.span().real_hi(),
-    )
-    .map(|dep| {
+    create_provide_dep(for_name, &self.provide, expr.callee.span().into()).map(|dep| {
       parser.dependencies.push(Box::new(dep));
       // FIXME: webpack use `walk_expression` here
       parser.walk_expr_or_spread(&expr.args);
@@ -104,13 +100,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    dep(
-      &self.provide,
-      for_name,
-      expr.span().real_lo(),
-      expr.span().real_hi(),
-    )
-    .map(|dep| {
+    create_provide_dep(for_name, &self.provide, expr.span().into()).map(|dep| {
       parser.dependencies.push(Box::new(dep));
       true
     })
@@ -122,13 +112,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    dep(
-      &self.provide,
-      for_name,
-      ident.span.real_lo(),
-      ident.span.real_hi(),
-    )
-    .map(|dep| {
+    create_provide_dep(for_name, &self.provide, ident.span.into()).map(|dep| {
       parser.dependencies.push(Box::new(dep));
       true
     })
