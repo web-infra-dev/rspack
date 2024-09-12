@@ -13,6 +13,7 @@ import discordLogo from './assets/discord.svg';
 import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
+import abbLogo from './assets/abb.svg';
 
 type Company = {
   name: string;
@@ -65,6 +66,12 @@ const companyList: Company[] = [
     logo: nioLogo,
     url: 'https://nio.com',
     width: 115,
+  },
+  {
+    name: 'ABB',
+    logo: abbLogo,
+    url: 'https://abb-bank.az/en',
+    width: 180,
   },
 ];
 
