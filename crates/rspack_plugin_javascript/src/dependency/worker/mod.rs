@@ -1,3 +1,5 @@
+mod create_script_url_dependency;
+pub use create_script_url_dependency::CreateScriptUrlDependency;
 use rspack_core::{
   get_chunk_from_ukey, AsContextDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency,
