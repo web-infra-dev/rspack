@@ -269,15 +269,34 @@ isChild(): boolean;
 
 详见 [Compiler 钩子](/api/plugin-api/compiler-hooks)
 
-### rspack/webpack
+### rspack
 
-**类型：** `typeof rspack`
+- **类型：** `typeof rspack`
 
-获取当前的 `@rspack/core` 的导出，以此来获取关联的内部对象。这通常在 Rspack 被封装或者存在多个 Rspack 实例时很有用。
+获取当前的 `@rspack/core` 的导出，以此来获取关联的内部对象。当你无法直接引用 `@rspack/core`，或者存在多个 Rspack 实例时很有用。
+
+一个常见的例子是在 Rspack 插件中获取 [sources](/api/javascript-api/index#sources-对象) 对象：
+
+```js
+const { RawSource } = compiler.rspack.sources;
+const source = new RawSource('console.log("Hello, world!");');
+```
+
+### webpack
+
+- **类型：** `typeof rspack`
+
+等同于 `compiler.rspack`，该属性用于兼容 webpack 插件。
+
+如果你开发的 Rspack 插件需要兼容 webpack，可以使用该属性代替 `compiler.rspack`。
+
+```js
+console.log(compiler.webpack === compiler.rspack); // true
+```
 
 ### name
 
-**类型：** `string`
+- **类型：** `string`
 
 获取名称：
 
@@ -294,37 +313,37 @@ isChild(): boolean;
 
 ### root
 
-**类型：** `Compiler`
+- **类型：** `Compiler`
 
 获取根 Compiler 实例。
 
 ### options
 
-**类型：** `RspackOptionsNormalized`
+- **类型：** `RspackOptionsNormalized`
 
 获取根 Compiler 所使用的完整[构建配置](/config/index)。
 
 ### watchMode
 
-**类型：** `boolean`
+- **类型：** `boolean`
 
 是否通过 watch 启动。
 
 ### watching
 
-**类型：** `Watching`
+- **类型：** `Watching`
 
 获取 watch 启动下的监听控制对象，详见 [watch 方法](#watch)
 
 ### running
 
-**类型：** `boolean`
+- **类型：** `boolean`
 
 当前是否正在执行构建流程。
 
 ### inputFileSystem
 
-**类型：** `InputFileSystem`
+- **类型：** `InputFileSystem`
 
 获取用于从文件系统读取的代理对象，其内部有缓存等优化，以降低对同一文件的重复读取。
 
@@ -340,7 +359,7 @@ isChild(): boolean;
 
 ### outputFileSystem
 
-**类型：** `OutputFileSystem`
+- **类型：** `OutputFileSystem`
 
 获取用于输出到文件系统的代理对象，默认使用 `fs`。
 
@@ -356,7 +375,7 @@ isChild(): boolean;
 
 ### watchFileSystem
 
-**类型：** `WatchFileSystem`
+- **类型：** `WatchFileSystem`
 
 获取用于持续监听文件/目录变化的代理对象，提供一个 `watch` 方法来启动监听，并在回调中传入变更和移除的项目。
 
@@ -491,7 +510,7 @@ getInfrastructureLogger(name: string): Logger;
 
 #### compilers
 
-**类型：** `Compiler[]`
+- **类型：** `Compiler[]`
 
 获取包含的所有 Compiler 实例。
 
@@ -509,7 +528,7 @@ getInfrastructureLogger(name: string): Logger;
 
 <Badge text="只读" type="info" />
 
-**类型：** `RspackOptionsNormalized[]`
+- **类型：** `RspackOptionsNormalized[]`
 
 获取各个 Compiler 所使用的完整[构建配置](/config/index)。
 
@@ -517,7 +536,7 @@ getInfrastructureLogger(name: string): Logger;
 
 <Badge text="只写" type="info" />
 
-**类型：** `InputFileSystem`
+- **类型：** `InputFileSystem`
 
 为各个 Compiler 设置用于从文件系统读取的代理对象。
 
@@ -535,7 +554,7 @@ getInfrastructureLogger(name: string): Logger;
 
 <Badge text="只写" type="info" />
 
-**类型：** `OutputFileSystem`
+- **类型：** `OutputFileSystem`
 
 为各个 Compiler 设置用于输出到文件系统的代理对象。
 
@@ -553,7 +572,7 @@ getInfrastructureLogger(name: string): Logger;
 
 <Badge text="只写" type="info" />
 
-**类型：** `WatchFileSystem`
+- **类型：** `WatchFileSystem`
 
 为各个 Compiler 设置用于持续监听文件/目录变化的代理对象。
 
@@ -569,6 +588,6 @@ getInfrastructureLogger(name: string): Logger;
 
 #### running
 
-**类型：** `boolean`
+- **类型：** `boolean`
 
 当前是否正在执行构建流程。

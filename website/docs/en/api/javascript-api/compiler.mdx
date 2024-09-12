@@ -269,15 +269,34 @@ isChild(): boolean;
 
 See [compiler hooks](/api/plugin-api/compiler-hooks) for more details.
 
-### rspack/webpack
+### rspack
 
-**Type:** `typeof rspack`
+- **Type:** `typeof rspack`
 
-Get the exports of @rspack/core to obtain the associated internal objects. This is usually very useful when Rspack is wrapped or there are multiple Rspack instances.
+Get the exports of @rspack/core to obtain the associated internal objects. This is especially useful when you cannot directly reference `@rspack/core` or there are multiple Rspack instances.
+
+A common example is accessing the [sources](/api/javascript-api/index#sources-object) object in a Rspack plugin:
+
+```js
+const { RawSource } = compiler.rspack.sources;
+const source = new RawSource('console.log("Hello, world!");');
+```
+
+### webpack
+
+- **Type:** `typeof rspack`
+
+Equivalent to `compiler.rspack`, this property is used for compatibility with webpack plugins.
+
+If the Rspack plugin you are developing needs to be webpack compatible, you can use this property instead of `compiler.rspack`.
+
+```js
+console.log(compiler.webpack === compiler.rspack); // true
+```
 
 ### name
 
-**Type:** `string`
+- **Type:** `string`
 
 Get the name:
 
@@ -294,37 +313,37 @@ Current project root directory:
 
 ### root
 
-**Type:** `Compiler`
+- **Type:** `Compiler`
 
 Get the root of the child compiler tree.
 
 ### options
 
-**Type:** `RspackOptionsNormalized`
+- **Type:** `RspackOptionsNormalized`
 
 Get the full options used by this compiler.
 
 ### watchMode
 
-**Type:** `boolean`
+- **Type:** `boolean`
 
 Whether started through `compiler.watch`.
 
 ### watching
 
-**Type:** `Watching`
+- **Type:** `Watching`
 
 Get the watching object, see [watch method](#watch) for more details.
 
 ### running
 
-**Type:** `boolean`
+- **Type:** `boolean`
 
 Whether the compilation is currently being executed.
 
 ### inputFileSystem
 
-**Type:** `InputFileSystem`
+- **Type:** `InputFileSystem`
 
 Get the proxy object used for reading from the file system, which has optimizations such as caching inside to reduce duplicate reading of the same file.
 
@@ -340,7 +359,7 @@ Get the proxy object used for reading from the file system, which has optimizati
 
 ### outputFileSystem
 
-**Type:** `OutputFileSystem`
+- **Type:** `OutputFileSystem`
 
 Get the proxy object used for writing to the file system, `fs` by default.
 
@@ -356,7 +375,7 @@ Get the proxy object used for writing to the file system, `fs` by default.
 
 ### watchFileSystem
 
-**Type:** `WatchFileSystem`
+- **Type:** `WatchFileSystem`
 
 Get the proxy object used for watching files or directories changes, which provides a `watch` method to start watching, and passes in the changed and removed items in the callback.
 
@@ -491,7 +510,7 @@ getInfrastructureLogger(name: string): Logger;
 
 #### compilers
 
-**Type:** `Compiler[]`
+- **Type:** `Compiler[]`
 
 Get all included compilers.
 
@@ -509,7 +528,7 @@ Get all included compilers.
 
 <Badge text="ReadOnly" type="info" />
 
-**Type:** `RspackOptionsNormalized[]`
+- **Type:** `RspackOptionsNormalized[]`
 
 Get all the [full options](/config/index) used by the compilers.
 
@@ -517,7 +536,7 @@ Get all the [full options](/config/index) used by the compilers.
 
 <Badge text="WriteOnly" type="info" />
 
-**Type:** `InputFileSystem`
+- **Type:** `InputFileSystem`
 
 Set the proxy object used for reading from the file system for each compiler.
 
@@ -535,7 +554,7 @@ Set the proxy object used for reading from the file system for each compiler.
 
 <Badge text="WriteOnly" type="info" />
 
-**Type:** `OutputFileSystem`
+- **Type:** `OutputFileSystem`
 
 Set the proxy object used for writing from the file system for each compiler.
 
@@ -553,7 +572,7 @@ Set the proxy object used for writing from the file system for each compiler.
 
 <Badge text="WriteOnly" type="info" />
 
-**Type:** `WatchFileSystem`
+- **Type:** `WatchFileSystem`
 
 Set the proxy object used for watching files or directories changes for each compiler.
 
@@ -569,6 +588,6 @@ Set the proxy object used for watching files or directories changes for each com
 
 #### running
 
-**Type:** `boolean`
+- **Type:** `boolean`
 
 Whether the compilation is currently being executed.

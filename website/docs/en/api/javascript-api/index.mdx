@@ -15,7 +15,7 @@ Rspack provides a set of JavaScript APIs to be used in JavaScript runtimes like 
 The JavaScript API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
 
 :::tip
-`@rspack/core` is designed based on Webpack's JavaScript API to ensure functional consistency and a similar user experience.
+`@rspack/core` is designed based on webpack's JavaScript API to ensure functional consistency and a similar user experience.
 :::
 
 ## Installation
@@ -262,3 +262,16 @@ compiler.run((err, stats) => {
   });
 });
 ```
+
+## `sources` object
+
+`@rspack/core` exports the [webpack-sources](https://github.com/webpack/webpack-sources) module through `sources`. It provides a set of classes for creating and manipulating source code fragments and source maps. When developing Rspack plugins, you can use these classes to handle and manipulate source code.
+
+```js
+import { sources } from '@rspack/core';
+
+const { RawSource } = sources;
+const source = new RawSource('console.log("Hello, world!");');
+```
+
+For detailed usage, please refer to the [webpack-sources](https://github.com/webpack/webpack-sources) documentation.
