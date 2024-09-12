@@ -55,8 +55,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   toolStackTitle: '工具栈',
   toolStackDesc: '围绕 Rspack 打造的高性能工具栈，助力现代 Web 开发',
 
-  // Built with Rspack
-  builtWithRspack: '谁在使用 Rspack',
+  // Who is using
+  whoIsUsing: '谁在使用 Rspack',
 
   // HomeFooter
   coldStart: '冷启动（dev）',
