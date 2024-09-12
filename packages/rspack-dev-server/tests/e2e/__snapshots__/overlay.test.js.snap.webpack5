@@ -516,6 +516,14 @@ exports[`overlay should not show initially, then show on an error, then show oth
 
 `;
 
+exports[`overlay should not show overlay when Trusted Types are enabled, but policy is not allowed: page html 1`] = `
+<body>
+  <h1>webpack-dev-server is running...</h1>
+  <script type="text/javascript" charset="utf-8" src="/main.js"></script>
+</body>
+
+`;
+
 exports[`overlay should show a warning after invalidation: overlay html 1`] = `
 <body>
   <div
@@ -2747,6 +2755,240 @@ exports[`overlay should show overlay when "Content-Security-Policy" is "default-
 `;
 
 exports[`overlay should show overlay when "Content-Security-Policy" is "default-src 'self'" was used: page html 1`] = `
+<body>
+  <h1>webpack-dev-server is running...</h1>
+  <script type="text/javascript" charset="utf-8" src="/main.js"></script>
+
+  <iframe
+    id="webpack-dev-server-client-overlay"
+    src="about:blank"
+    style="
+      position: fixed;
+      inset: 0px;
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      z-index: 2147483647;
+    "
+  ></iframe>
+</body>
+
+`;
+
+exports[`overlay should show overlay when Trusted Types are enabled and the "require-trusted-types-for 'script'" header was used: overlay html 1`] = `
+<body>
+  <div
+    id="webpack-dev-server-client-overlay-div"
+    style="
+      position: fixed;
+      box-sizing: border-box;
+      inset: 0px;
+      width: 100vw;
+      height: 100vh;
+      font-size: large;
+      padding: 2rem 2rem 4rem;
+      line-height: 1.2;
+      white-space: pre-wrap;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: white;
+    "
+  >
+    <div
+      style="
+        color: rgb(232, 59, 70);
+        font-size: 2em;
+        white-space: pre-wrap;
+        font-family: sans-serif;
+        margin: 0px 2rem 2rem 0px;
+        flex: 0 0 auto;
+        max-height: 50%;
+        overflow: auto;
+      "
+    >
+      Compiled with problems:
+    </div>
+    <button
+      aria-label="Dismiss"
+      style="
+        color: rgb(255, 255, 255);
+        line-height: 1rem;
+        font-size: 1.5rem;
+        padding: 1rem;
+        cursor: pointer;
+        position: absolute;
+        right: 0px;
+        top: 0px;
+        background-color: transparent;
+        border: none;
+      "
+    >
+      ×
+    </button>
+    <div>
+      <div
+        style="
+          background-color: rgba(206, 17, 38, 0.1);
+          color: rgb(252, 207, 207);
+          padding: 1rem 1rem 1.5rem;
+        "
+      >
+        <div
+          style="
+            color: rgb(232, 59, 70);
+            font-size: 1.2em;
+            margin-bottom: 1rem;
+            font-family: sans-serif;
+          "
+        >
+          ERROR
+        </div>
+        <div
+          style="
+            line-height: 1.5;
+            font-size: 1rem;
+            font-family: Menlo, Consolas, monospace;
+          "
+        >
+          × Error: Error from compilation. Can't find 'test' module. │ at
+          Object.fn
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
+          │ at SyncHook.callAsyncStageRange
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+          │ at SyncHook.callStageRange
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+          │ at QueriedHook.call
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+          │ at
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+          │ at last.function
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+`;
+
+exports[`overlay should show overlay when Trusted Types are enabled and the "require-trusted-types-for 'script'" header was used: page html 1`] = `
+<body>
+  <h1>webpack-dev-server is running...</h1>
+  <script type="text/javascript" charset="utf-8" src="/main.js"></script>
+
+  <iframe
+    id="webpack-dev-server-client-overlay"
+    src="about:blank"
+    style="
+      position: fixed;
+      inset: 0px;
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      z-index: 2147483647;
+    "
+  ></iframe>
+</body>
+
+`;
+
+exports[`overlay should show overlay when Trusted Types are enabled: overlay html 1`] = `
+<body>
+  <div
+    id="webpack-dev-server-client-overlay-div"
+    style="
+      position: fixed;
+      box-sizing: border-box;
+      inset: 0px;
+      width: 100vw;
+      height: 100vh;
+      font-size: large;
+      padding: 2rem 2rem 4rem;
+      line-height: 1.2;
+      white-space: pre-wrap;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: white;
+    "
+  >
+    <div
+      style="
+        color: rgb(232, 59, 70);
+        font-size: 2em;
+        white-space: pre-wrap;
+        font-family: sans-serif;
+        margin: 0px 2rem 2rem 0px;
+        flex: 0 0 auto;
+        max-height: 50%;
+        overflow: auto;
+      "
+    >
+      Compiled with problems:
+    </div>
+    <button
+      aria-label="Dismiss"
+      style="
+        color: rgb(255, 255, 255);
+        line-height: 1rem;
+        font-size: 1.5rem;
+        padding: 1rem;
+        cursor: pointer;
+        position: absolute;
+        right: 0px;
+        top: 0px;
+        background-color: transparent;
+        border: none;
+      "
+    >
+      ×
+    </button>
+    <div>
+      <div
+        style="
+          background-color: rgba(206, 17, 38, 0.1);
+          color: rgb(252, 207, 207);
+          padding: 1rem 1rem 1.5rem;
+        "
+      >
+        <div
+          style="
+            color: rgb(232, 59, 70);
+            font-size: 1.2em;
+            margin-bottom: 1rem;
+            font-family: sans-serif;
+          "
+        >
+          ERROR
+        </div>
+        <div
+          style="
+            line-height: 1.5;
+            font-size: 1rem;
+            font-family: Menlo, Consolas, monospace;
+          "
+        >
+          × Error: Error from compilation. Can't find 'test' module. │ at
+          Object.fn
+          (<cwd>/tests/e2e/overlay.test.js:<line>:<row>)
+          │ at SyncHook.callAsyncStageRange
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+          │ at SyncHook.callStageRange
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+          │ at QueriedHook.call
+          (<root>/node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:<line>:<row>)
+          │ at
+          <root>/packages/rspack/dist/Compiler.js:<line>:<row>
+          │ at last.function
+          (<root>/packages/rspack/dist/Compiler.js:<line>:<row>)
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+`;
+
+exports[`overlay should show overlay when Trusted Types are enabled: page html 1`] = `
 <body>
   <h1>webpack-dev-server is running...</h1>
   <script type="text/javascript" charset="utf-8" src="/main.js"></script>

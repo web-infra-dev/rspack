@@ -1247,189 +1247,189 @@ describe("overlay", () => {
 		}
 	});
 
-	// it("should show overlay when Trusted Types are enabled", async () => {
-	//   const compiler = webpack(trustedTypesConfig);
+	it("should show overlay when Trusted Types are enabled", async () => {
+		const compiler = webpack(trustedTypesConfig);
 
-	//   new ErrorPlugin().apply(compiler);
+		new ErrorPlugin().apply(compiler);
 
-	//   const devServerOptions = {
-	//     port,
-	//     client: {
-	//       overlay: {
-	//         trustedTypesPolicyName: "webpack#dev-overlay",
-	//       },
-	//     },
-	//   };
-	//   const server = new Server(devServerOptions, compiler);
+		const devServerOptions = {
+			port,
+			client: {
+				overlay: {
+					trustedTypesPolicyName: "webpack#dev-overlay"
+				}
+			}
+		};
+		const server = new Server(devServerOptions, compiler);
 
-	//   await server.start();
+		await server.start();
 
-	//   const { page, browser } = await runBrowser();
+		const { page, browser } = await runBrowser();
 
-	//   try {
-	//     const consoleMessages = [];
+		try {
+			const consoleMessages = [];
 
-	//     page.on("console", (message) => {
-	//       consoleMessages.push(message.text());
-	//     });
+			page.on("console", message => {
+				consoleMessages.push(message.text());
+			});
 
-	//     await page.goto(`http://localhost:${port}/`, {
-	//       waitUntil: "networkidle0",
-	//     });
+			await page.goto(`http://localhost:${port}/`, {
+				waitUntil: "networkidle0"
+			});
 
-	//     // Delay for the overlay to appear
-	//     await delay(1000);
+			// Delay for the overlay to appear
+			await delay(1000);
 
-	//     const pageHtml = await page.evaluate(() => document.body.outerHTML);
-	//     const overlayHandle = await page.$("#webpack-dev-server-client-overlay");
-	//     const overlayFrame = await overlayHandle.contentFrame();
-	//     const overlayHtml = await overlayFrame.evaluate(
-	//       () => document.body.outerHTML,
-	//     );
+			const pageHtml = await page.evaluate(() => document.body.outerHTML);
+			const overlayHandle = await page.$("#webpack-dev-server-client-overlay");
+			const overlayFrame = await overlayHandle.contentFrame();
+			const overlayHtml = await overlayFrame.evaluate(
+				() => document.body.outerHTML
+			);
 
-	//     expect(
-	//       consoleMessages.filter((item) =>
-	//         /requires 'TrustedHTML' assignment/.test(item),
-	//       ),
-	//     ).toHaveLength(0);
-	//     expect(
-	//       await prettier.format(pageHtml, {
-	//         parser: "html",
-	//         plugins: [prettierHTML, prettierCSS],
-	//       }),
-	//     ).toMatchSnapshot("page html");
-	//     expect(
-	//       await prettier.format(overlayHtml, {
-	//         parser: "html",
-	//         plugins: [prettierHTML, prettierCSS],
-	//       }),
-	//     ).toMatchSnapshot("overlay html");
-	//   } catch (error) {
-	//     throw error;
-	//   } finally {
-	//     await browser.close();
-	//     await server.stop();
-	//   }
-	// });
+			expect(
+				consoleMessages.filter(item =>
+					/requires 'TrustedHTML' assignment/.test(item)
+				)
+			).toHaveLength(0);
+			expect(
+				await prettier.format(pageHtml, {
+					parser: "html",
+					plugins: [prettierHTML, prettierCSS]
+				})
+			).toMatchSnapshot("page html");
+			expect(
+				await prettier.format(overlayHtml, {
+					parser: "html",
+					plugins: [prettierHTML, prettierCSS]
+				})
+			).toMatchSnapshot("overlay html");
+		} catch (error) {
+			throw error;
+		} finally {
+			await browser.close();
+			await server.stop();
+		}
+	});
 
-	// it("should show overlay when Trusted Types are enabled and the \"require-trusted-types-for 'script'\" header was used", async () => {
-	//   const compiler = webpack(trustedTypesConfig);
+	it("should show overlay when Trusted Types are enabled and the \"require-trusted-types-for 'script'\" header was used", async () => {
+		const compiler = webpack(trustedTypesConfig);
 
-	//   new ErrorPlugin().apply(compiler);
+		new ErrorPlugin().apply(compiler);
 
-	//   const devServerOptions = {
-	//     port,
-	//     headers: [
-	//       {
-	//         key: "Content-Security-Policy",
-	//         value: "require-trusted-types-for 'script'",
-	//       },
-	//     ],
-	//     client: {
-	//       overlay: {
-	//         trustedTypesPolicyName: "webpack#dev-overlay",
-	//       },
-	//     },
-	//   };
-	//   const server = new Server(devServerOptions, compiler);
+		const devServerOptions = {
+			port,
+			headers: [
+				{
+					key: "Content-Security-Policy",
+					value: "require-trusted-types-for 'script'"
+				}
+			],
+			client: {
+				overlay: {
+					trustedTypesPolicyName: "webpack#dev-overlay"
+				}
+			}
+		};
+		const server = new Server(devServerOptions, compiler);
 
-	//   await server.start();
+		await server.start();
 
-	//   const { page, browser } = await runBrowser();
+		const { page, browser } = await runBrowser();
 
-	//   try {
-	//     const consoleMessages = [];
+		try {
+			const consoleMessages = [];
 
-	//     page.on("console", (message) => {
-	//       consoleMessages.push(message.text());
-	//     });
+			page.on("console", message => {
+				consoleMessages.push(message.text());
+			});
 
-	//     await page.goto(`http://localhost:${port}/`, {
-	//       waitUntil: "networkidle0",
-	//     });
+			await page.goto(`http://localhost:${port}/`, {
+				waitUntil: "networkidle0"
+			});
 
-	//     // Delay for the overlay to appear
-	//     await delay(1000);
+			// Delay for the overlay to appear
+			await delay(1000);
 
-	//     const pageHtml = await page.evaluate(() => document.body.outerHTML);
-	//     const overlayHandle = await page.$("#webpack-dev-server-client-overlay");
-	//     const overlayFrame = await overlayHandle.contentFrame();
-	//     const overlayHtml = await overlayFrame.evaluate(
-	//       () => document.body.outerHTML,
-	//     );
+			const pageHtml = await page.evaluate(() => document.body.outerHTML);
+			const overlayHandle = await page.$("#webpack-dev-server-client-overlay");
+			const overlayFrame = await overlayHandle.contentFrame();
+			const overlayHtml = await overlayFrame.evaluate(
+				() => document.body.outerHTML
+			);
 
-	//     await page.goto(`http://localhost:${port}/`, {
-	//       waitUntil: "networkidle0",
-	//     });
+			await page.goto(`http://localhost:${port}/`, {
+				waitUntil: "networkidle0"
+			});
 
-	//     expect(
-	//       consoleMessages.filter((item) =>
-	//         /requires 'TrustedHTML' assignment/.test(item),
-	//       ),
-	//     ).toHaveLength(0);
-	//     expect(
-	//       await prettier.format(pageHtml, {
-	//         parser: "html",
-	//         plugins: [prettierHTML, prettierCSS],
-	//       }),
-	//     ).toMatchSnapshot("page html");
-	//     expect(
-	//       await prettier.format(overlayHtml, {
-	//         parser: "html",
-	//         plugins: [prettierHTML, prettierCSS],
-	//       }),
-	//     ).toMatchSnapshot("overlay html");
-	//   } catch (error) {
-	//     throw error;
-	//   } finally {
-	//     await browser.close();
-	//     await server.stop();
-	//   }
-	// });
+			expect(
+				consoleMessages.filter(item =>
+					/requires 'TrustedHTML' assignment/.test(item)
+				)
+			).toHaveLength(0);
+			expect(
+				await prettier.format(pageHtml, {
+					parser: "html",
+					plugins: [prettierHTML, prettierCSS]
+				})
+			).toMatchSnapshot("page html");
+			expect(
+				await prettier.format(overlayHtml, {
+					parser: "html",
+					plugins: [prettierHTML, prettierCSS]
+				})
+			).toMatchSnapshot("overlay html");
+		} catch (error) {
+			throw error;
+		} finally {
+			await browser.close();
+			await server.stop();
+		}
+	});
 
-	// it("should not show overlay when Trusted Types are enabled, but policy is not allowed", async () => {
-	//   const compiler = webpack(trustedTypesConfig);
+	it("should not show overlay when Trusted Types are enabled, but policy is not allowed", async () => {
+		const compiler = webpack(trustedTypesConfig);
 
-	//   new ErrorPlugin().apply(compiler);
+		new ErrorPlugin().apply(compiler);
 
-	//   const devServerOptions = {
-	//     port,
-	//     client: {
-	//       overlay: {
-	//         trustedTypesPolicyName: "disallowed-policy",
-	//       },
-	//     },
-	//   };
-	//   const server = new Server(devServerOptions, compiler);
+		const devServerOptions = {
+			port,
+			client: {
+				overlay: {
+					trustedTypesPolicyName: "disallowed-policy"
+				}
+			}
+		};
+		const server = new Server(devServerOptions, compiler);
 
-	//   await server.start();
+		await server.start();
 
-	//   const { page, browser } = await runBrowser();
+		const { page, browser } = await runBrowser();
 
-	//   try {
-	//     await page.goto(`http://localhost:${port}/`, {
-	//       waitUntil: "networkidle0",
-	//     });
+		try {
+			await page.goto(`http://localhost:${port}/`, {
+				waitUntil: "networkidle0"
+			});
 
-	//     // Delay for the overlay to appear
-	//     await delay(1000);
+			// Delay for the overlay to appear
+			await delay(1000);
 
-	//     const pageHtml = await page.evaluate(() => document.body.outerHTML);
-	//     const overlayHandle = await page.$("#webpack-dev-server-client-overlay");
-	//     expect(overlayHandle).toBe(null);
-	//     expect(
-	//       await prettier.format(pageHtml, {
-	//         parser: "html",
-	//         plugins: [prettierHTML, prettierCSS],
-	//       }),
-	//     ).toMatchSnapshot("page html");
-	//   } catch (error) {
-	//     throw error;
-	//   } finally {
-	//     await browser.close();
-	//     await server.stop();
-	//   }
-	// });
+			const pageHtml = await page.evaluate(() => document.body.outerHTML);
+			const overlayHandle = await page.$("#webpack-dev-server-client-overlay");
+			expect(overlayHandle).toBe(null);
+			expect(
+				await prettier.format(pageHtml, {
+					parser: "html",
+					plugins: [prettierHTML, prettierCSS]
+				})
+			).toMatchSnapshot("page html");
+		} catch (error) {
+			throw error;
+		} finally {
+			await browser.close();
+			await server.stop();
+		}
+	});
 
 	it('should show an error when "client.overlay.errors" is "true"', async () => {
 		const compiler = webpack(config);

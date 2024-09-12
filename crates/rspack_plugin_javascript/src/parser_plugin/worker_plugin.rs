@@ -21,7 +21,7 @@ use super::{
   JavascriptParserPlugin,
 };
 use crate::{
-  dependency::WorkerDependency,
+  dependency::{CreateScriptUrlDependency, WorkerDependency},
   utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData},
   webpack_comment::try_extract_webpack_magic_comment,
@@ -118,6 +118,16 @@ fn add_dependencies(
   })));
 
   parser.blocks.push(Box::new(block));
+
+  if parser.compiler_options.output.trusted_types.is_some() {
+    parser
+      .dependencies
+      .push(Box::new(CreateScriptUrlDependency::new(
+        span.into(),
+        parsed_path.range,
+      )));
+  }
+
   if let Some(range) = range {
     parser
       .presentational_dependencies
