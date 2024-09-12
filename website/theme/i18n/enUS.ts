@@ -65,8 +65,8 @@ export const EN_US = {
   toolStackDesc:
     'High-performance tool stack built around Rspack to boost modern web development',
 
-  // Built with Rspack
-  builtWithRspack: 'Built with Rspack',
+  // Who is using
+  whoIsUsing: 'Trusted By Innovators',
 
   // HomeFooter
   coldStart: 'Cold Start',

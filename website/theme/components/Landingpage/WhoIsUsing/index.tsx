@@ -1,4 +1,4 @@
-import { BuiltWithRspack as BaseBuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
+import { BuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
 import {
   containerStyle,
   innerContainerStyle,
@@ -75,14 +75,14 @@ const companyList: Company[] = [
   },
 ];
 
-const BuiltWithRspack: React.FC = memo(() => {
+const WhoIsUsing: React.FC = memo(() => {
   const t = useI18n();
   return (
     <section className={containerStyle}>
       <div className={innerContainerStyle}>
-        <BaseBuiltWithRspack
+        <BuiltWithRspack
           companyList={companyList}
-          title={t('builtWithRspack')}
+          title={t('whoIsUsing')}
           LinkComp={Link}
         />
       </div>
@@ -90,4 +90,4 @@ const BuiltWithRspack: React.FC = memo(() => {
   );
 });
 
-export default BuiltWithRspack;
+export default WhoIsUsing;

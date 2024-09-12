@@ -11,8 +11,6 @@ export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/mini-css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
 	"__mini_css_extract_plugin_single_dot_path_segment__";
 
-const SERIALIZE_SEP = "__RSPACK_CSS_EXTRACT_SEP__";
-
 interface DependencyDescription {
 	identifier: string;
 	content: string;
@@ -105,6 +103,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;
+	const parseMeta = this.__internal__parseMeta;
 
 	let { publicPath } = this._compilation!.outputOptions;
 
@@ -260,16 +259,12 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				? hotLoader(result, { loaderContext: this, options, locals: locals! })
 				: result;
 
-		const additionalData: Record<string, any> = { ...data };
 		if (dependencies.length > 0) {
-			additionalData[CssExtractRspackPlugin.pluginName] = dependencies
-				.map(dep => {
-					return JSON.stringify(dep);
-				})
-				.join(SERIALIZE_SEP);
+			parseMeta[CssExtractRspackPlugin.pluginName] =
+				JSON.stringify(dependencies);
 		}
 
-		callback(null, resultSource, undefined, additionalData);
+		callback(null, resultSource, undefined, data);
 	};
 
 	this.importModule(

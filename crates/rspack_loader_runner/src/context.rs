@@ -4,7 +4,7 @@ use derivative::Derivative;
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 
 use crate::{
   loader::LoaderItemList, AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ResourceData,
@@ -39,6 +39,7 @@ pub struct LoaderContext<Context: 'static> {
   pub resource_data: Arc<ResourceData>,
   #[derivative(Debug = "ignore")]
   pub context: Context,
+  pub parse_meta: FxHashMap<String, String>,
 
   pub(crate) content: Option<Content>,
   pub(crate) source_map: Option<SourceMap>,
