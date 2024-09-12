@@ -71,7 +71,7 @@ const companyList: Company[] = [
     name: 'ABB',
     logo: abbLogo,
     url: 'https://abb-bank.az/en',
-    width: 180,
+    width: 100,
   },
 ];
 
