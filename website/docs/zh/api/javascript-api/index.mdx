@@ -15,7 +15,7 @@ Rspack 提供了一组 JavaScript API，可在 Node.js 或 Bun 等 JavaScript �
 当你需要自定义构建或开发流程时，JavaScript API 非常有用，因为此时所有的报告和错误处理都必须自行实现，Rspack 仅仅负责编译的部分。所以 [`stats`](/config/stats) 配置选项不会在 `rspack()` 调用中生效。
 
 :::tip 提示
-`@rspack/core` 是基于 Webpack JavaScript API 设计的，旨在提供一致的功能和相似的使用体验。
+`@rspack/core` 是基于 webpack 的 JavaScript API 设计的，旨在提供一致的功能和相似的使用体验。
 :::
 
 ## 安装
@@ -262,3 +262,16 @@ compiler.run((err, stats) => {
   });
 });
 ```
+
+## `sources` 对象
+
+`@rspack/core` 通过 `sources` 导出了 [webpack-sources](https://github.com/webpack/webpack-sources) 模块。它提供了一组 class，用于创建和操作源代码片段和源码映射。在开发 Rspack 插件时，你可以使用这些 class 来处理和操作源代码。
+
+```js
+import { sources } from '@rspack/core';
+
+const { RawSource } = sources;
+const source = new RawSource('console.log("Hello, world!");');
+```
+
+详细用法请参考 [webpack-sources](https://github.com/webpack/webpack-sources) 文档。
