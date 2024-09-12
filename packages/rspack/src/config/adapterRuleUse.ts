@@ -57,6 +57,15 @@ export type LoaderContextCallback = (
 	additionalData?: AdditionalData
 ) => void;
 
+export type ErrorWithDetails = Error & { details?: string };
+
+// aligned with https://github.com/webpack/webpack/blob/64e8e33151c3fabd3f1917851193e458a526e803/declarations/LoaderContext.d.ts#L19
+export type ResolveCallback = (
+	err: null | ErrorWithDetails,
+	res?: string | false,
+	req?: ResolveRequest
+) => void;
+
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
@@ -111,7 +120,12 @@ export interface LoaderContext<OptionsType = {}> {
 	): void;
 	getResolve(
 		options: Resolve
-	): (context: any, request: any, callback: any) => Promise<any>;
+	):
+		| ((context: string, request: string, callback: ResolveCallback) => void)
+		| ((
+				context: string,
+				request: string
+		  ) => Promise<string | false | undefined>);
 	getLogger(name: string): Logger;
 	emitError(error: Error): void;
 	emitWarning(warning: Error): void;

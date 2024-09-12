@@ -590,10 +590,10 @@ export async function runLoaders(
 		return (context, request, callback) => {
 			if (callback) {
 				child.resolve({}, context, request, getResolveContext(), callback);
-				// TODO: return value may be undefined
-				return undefined as unknown as Promise<any>;
+				return;
 			}
-			return new Promise((resolve, reject) => {
+			// TODO: (type) our native resolver return value is "string | false" but webpack type is "string"
+			return new Promise<string | false | undefined>((resolve, reject) => {
 				child.resolve(
 					{},
 					context,

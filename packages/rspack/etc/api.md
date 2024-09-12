@@ -3295,7 +3295,7 @@ export class EnvironmentPlugin {
 }
 
 // @public (undocumented)
-type ErrorWithDetail = Error & {
+type ErrorWithDetails = Error & {
     details?: string;
 };
 
@@ -5928,7 +5928,7 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     getOptions(schema?: any): OptionsType;
     // (undocumented)
-    getResolve(options: Resolve): (context: any, request: any, callback: any) => Promise<any>;
+    getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
     // (undocumented)
     hot?: boolean;
     // (undocumented)
@@ -9823,6 +9823,9 @@ export type ResolveAlias = z.infer<typeof resolveAlias>;
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
 
 // @public (undocumented)
+type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
+
+// @public (undocumented)
 type ResolveContext = {};
 
 // @public (undocumented)
@@ -9862,7 +9865,7 @@ class Resolver {
     // (undocumented)
     binding: binding.JsResolver;
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: (err: null | ErrorWithDetail, res?: string | false) => void): void;
+    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
