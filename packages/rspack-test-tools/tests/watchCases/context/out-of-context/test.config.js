@@ -1,6 +1,6 @@
 module.exports = {
 	documentType: 'fake',
-	findBundle() {
-		return ['bundle.css', 'bundle.js']
+	findBundle(i) {
+		return ["bundle.css", "bundle.js"]
 	}
 }
