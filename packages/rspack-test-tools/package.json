@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -73,8 +73,8 @@
     "@monaco-editor/react": "^4.6.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "1.0.0",
     "@rspack/plugin-preact-refresh": "1.0.0",
+    "@rspack/plugin-react-refresh": "1.0.0",
     "@swc/helpers": "0.5.8",
     "@swc/plugin-remove-console": "^2.0.8",
     "@types/babel__generator": "7.6.8",
