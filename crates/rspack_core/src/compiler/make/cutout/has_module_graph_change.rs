@@ -18,9 +18,9 @@ struct ModuleDeps {
 impl ModuleDeps {
   fn from_module(module_graph: &ModuleGraph, module_identifier: &ModuleIdentifier) -> Self {
     let mut res = Self::default();
-    let module = module_graph
-      .module_by_identifier(module_identifier)
-      .expect("should have module");
+    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+      return Self::default();
+    };
 
     let deps = module.get_dependencies();
     let mut child_deps: IdentifierMap<HashSet<Atom>> = Default::default();
