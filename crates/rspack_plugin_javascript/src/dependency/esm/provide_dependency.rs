@@ -1,7 +1,8 @@
 use itertools::Itertools;
 use rspack_core::{
-  create_exports_object_referenced, module_raw, Compilation, DependencyRange, DependencyType,
-  ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RuntimeSpec, UsedName,
+  create_exports_object_referenced, module_raw, Compilation, DependencyType,
+  ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RealDependencyLocation, RuntimeSpec,
+  UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -15,11 +16,16 @@ pub struct ProvideDependency {
   request: Atom,
   identifier: String,
   ids: Vec<Atom>,
-  range: DependencyRange,
+  range: RealDependencyLocation,
 }
 
 impl ProvideDependency {
-  pub fn new(range: DependencyRange, request: Atom, identifier: String, ids: Vec<Atom>) -> Self {
+  pub fn new(
+    range: RealDependencyLocation,
+    request: Atom,
+    identifier: String,
+    ids: Vec<Atom>,
+  ) -> Self {
     Self {
       range,
       request,
@@ -36,7 +42,7 @@ impl Dependency for ProvideDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    Some(self.request.to_string())
+    Some(self.range.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {

@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  ApplyContext, CompilerOptions, DependencyRange, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, PluginContext,
+  ApplyContext, CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PluginContext, RealDependencyLocation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -19,7 +19,7 @@ const MODULE_DOT: &str = r#"_dot_"#;
 fn create_provide_dep(
   name: &str,
   value: &ProvideValue,
-  range: DependencyRange,
+  range: RealDependencyLocation,
 ) -> Option<ProvideDependency> {
   if let Some(requests) = value.get(name) {
     let name_identifier = if name.contains(SOURCE_DOT) {
@@ -86,7 +86,13 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    create_provide_dep(for_name, &self.provide, expr.callee.span().into()).map(|dep| {
+    let range: RealDependencyLocation = expr.callee.span().into();
+    create_provide_dep(
+      for_name,
+      &self.provide,
+      range.with_source(parser.source_map.clone()),
+    )
+    .map(|dep| {
       parser.dependencies.push(Box::new(dep));
       // FIXME: webpack use `walk_expression` here
       parser.walk_expr_or_spread(&expr.args);
@@ -100,7 +106,13 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    create_provide_dep(for_name, &self.provide, expr.span().into()).map(|dep| {
+    let range: RealDependencyLocation = expr.span().into();
+    create_provide_dep(
+      for_name,
+      &self.provide,
+      range.with_source(parser.source_map.clone()),
+    )
+    .map(|dep| {
       parser.dependencies.push(Box::new(dep));
       true
     })
@@ -112,7 +124,13 @@ impl JavascriptParserPlugin for ProvidePlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    create_provide_dep(for_name, &self.provide, ident.span.into()).map(|dep| {
+    let range: RealDependencyLocation = ident.span.into();
+    create_provide_dep(
+      for_name,
+      &self.provide,
+      range.with_source(parser.source_map.clone()),
+    )
+    .map(|dep| {
       parser.dependencies.push(Box::new(dep));
       true
     })
