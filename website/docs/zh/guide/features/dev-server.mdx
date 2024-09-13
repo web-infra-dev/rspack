@@ -2,6 +2,15 @@
 
 Rspack CLI 内置了 `@rspack/dev-server` 用于开发调试，它的能力与 `webpack-dev-server` 相似，内置了 HMR、代理服务器等功能。
 
+:::warning
+
+`@rspack/dev-server` 中使用了 `webpack-dev-server@5` ，与 `webpack-dev-server@4` 有一些差异。
+
+- webpack-dev-server v5 最低支持的 Node.js 版本为 18.12.0。
+- 配置选项发生了若干变更，请参阅 [webpack-dev-server v5 的迁移指南](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md)。
+
+:::
+
 ### HMR
 
 Rspack 在 dev 模式下默认开启了 HMR，你也可以在 `rspack.config.js` 中配置 `devServer.hot` 选项来关闭 HMR。
@@ -25,12 +34,13 @@ Rspack 内置了一个简单的代理服务器，你可以在 `rspack.config.js`
 ```js
 module.exports = {
   devServer: {
-    proxy: {
-      '/api': {
+    proxy: [
+      {
+        context: ['/api'],
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
-    },
+    ],
   },
 };
 ```
