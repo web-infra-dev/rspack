@@ -71,19 +71,6 @@ impl ExternalRequestValue {
   }
 }
 
-fn get_namespace_object_export_with_name<'a, 'b>(
-  concatenation_scope: Option<&'a mut ConcatenationScope>,
-  source: &'a str,
-) -> Cow<'b, str> {
-  if let Some(concatenation_scope) = concatenation_scope {
-    let namespace_export_with_name = format!("{}{}", NAMESPACE_OBJECT_EXPORT, source);
-    concatenation_scope.register_namespace_export(&namespace_export_with_name);
-    "".into()
-  } else {
-    "module.exports".into()
-  }
-}
-
 fn get_namespace_object_export(
   concatenation_scope: Option<&mut ConcatenationScope>,
   supports_const: bool,
@@ -301,9 +288,11 @@ impl ExternalModule {
                 .boxed(),
               );
 
-              if concatenation_scope.is_some() {
+              if let Some(concatenation_scope) = concatenation_scope {
                 let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{}__", id);
-                get_namespace_object_export_with_name(concatenation_scope, &external_module_id);
+                let namespace_export_with_name =
+                  format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
+                concatenation_scope.register_namespace_export(&namespace_export_with_name);
                 String::new()
               } else {
                 format!(

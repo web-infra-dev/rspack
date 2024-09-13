@@ -1134,7 +1134,7 @@ export function parseModules(content: string, options?: {
 };
 
 // @public (undocumented)
-export function readConfigFile<T extends ECompilerType>(files: string[]): TCompilerOptions<T>[];
+export function readConfigFile<T extends ECompilerType>(files: string[], functionApply?: (config: (TCompilerOptions<T> | ((...args: unknown[]) => TCompilerOptions<T>))[]) => TCompilerOptions<T>[]): TCompilerOptions<T>[];
 
 // @public (undocumented)
 export function replaceModuleArgument(raw: string): string;

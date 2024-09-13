@@ -755,6 +755,7 @@ impl Module for ConcatenatedModule {
             }
           }
 
+          // Handle the name passed through by namespace_export_symbol
           if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
             if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
               && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
