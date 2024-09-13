@@ -154,8 +154,7 @@ impl ContextModuleFactory {
     data: &mut ModuleFactoryCreateData,
   ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
     let plugin_driver = &self.plugin_driver;
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
     let mut file_dependencies = Default::default();
