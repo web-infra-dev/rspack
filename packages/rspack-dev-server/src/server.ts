@@ -115,8 +115,11 @@ export class RspackDevServer extends WebpackDevServer {
 			),
 			"webpack/hot/dev-server": require.resolve("@rspack/core/hot/dev-server")
 		});
-		// @ts-expect-error
-		super.addAdditionalEntries(compiler);
-		removeResolveAlias("webpack-dev-server");
+		try {
+			// @ts-expect-error
+			super.addAdditionalEntries(compiler);
+		} finally {
+			removeResolveAlias("webpack-dev-server");
+		}
 	}
 }
