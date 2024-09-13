@@ -3,10 +3,5 @@ module.exports = {
 	optimization: {
 		sideEffects: true,
 		providedExports: true,
-	},
-	experiments: {
-		rspackFuture: {
-			newIncremental: true
-		}
 	}
 };

@@ -108,11 +108,13 @@ export class WatchProcessor<
 			if (!options.context) options.context = tempDir;
 			if (!options.entry) options.entry = "./index.js";
 			if (!options.target) options.target = "async-node";
+			if (!options.devtool) options.devtool = false;
 			if (!options.output) options.output = {};
 			if (!options.output.path) options.output.path = context.getDist();
 			if (typeof options.output.pathinfo === "undefined")
 				options.output.pathinfo = true;
-			if (!options.output.filename) options.output.filename = "bundle.js";
+			if (!options.output.filename)
+				options.output.filename = `bundle${index}.js`;
 			if (options.cache && (options.cache as any).type === "filesystem") {
 				const cacheDirectory = path.join(tempDir, ".cache");
 				(options.cache as any).cacheDirectory = cacheDirectory;
