@@ -2,6 +2,30 @@ use std::{fmt, sync::Arc};
 
 use derivative::Derivative;
 
+#[derive(Debug, Clone)]
+pub struct DependencyRange {
+  pub start: u32,
+  pub end: u32,
+}
+
+impl From<(u32, u32)> for DependencyRange {
+  fn from(range: (u32, u32)) -> Self {
+    Self {
+      start: range.0,
+      end: range.1,
+    }
+  }
+}
+
+impl From<swc_core::common::Span> for DependencyRange {
+  fn from(span: swc_core::common::Span) -> Self {
+    Self {
+      start: span.lo.0.saturating_sub(1),
+      end: span.hi.0.saturating_sub(1),
+    }
+  }
+}
+
 #[derive(Derivative)]
 #[derivative(Debug, Clone, Hash)]
 pub struct RealDependencyLocation {
