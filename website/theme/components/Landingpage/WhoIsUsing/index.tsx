@@ -43,7 +43,7 @@ const companyList: Company[] = [
     name: 'Amazon',
     logo: amazonLogo,
     url: 'https://amazon.com/',
-    width: 120,
+    width: 110,
   },
   {
     name: 'ByteDance',
@@ -67,7 +67,7 @@ const companyList: Company[] = [
     name: 'NIO',
     logo: nioLogo,
     url: 'https://nio.com',
-    width: 115,
+    width: 110,
   },
   {
     name: 'ABB',

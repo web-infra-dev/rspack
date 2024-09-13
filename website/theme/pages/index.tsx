@@ -26,15 +26,5 @@ export function HomeLayout() {
       <HomeFooter />
       <CopyRight />
     </>
-    // <BasicHomeLayout
-    //   afterFeatures={
-    //     <>
-    //       <Benchmark />
-    //       <Featured />
-    //       <ToolStack />
-    //       <HomeFooter />
-    //     </>
-    //   }
-    // />
   );
 }
