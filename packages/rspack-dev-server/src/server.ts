@@ -97,11 +97,6 @@ export class RspackDevServer extends WebpackDevServer {
 			}
 		}
 
-		if (typeof this.options.client === "object") {
-			// TODO: support progress plugin event
-			this.options.client.progress = false;
-		}
-
 		// @ts-expect-error
 		await super.initialize();
 	}
