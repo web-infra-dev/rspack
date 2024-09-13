@@ -6,6 +6,7 @@ import {
 import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
+import abbLogo from './assets/abb.svg';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
@@ -66,6 +67,12 @@ const companyList: Company[] = [
     logo: nioLogo,
     url: 'https://nio.com',
     width: 115,
+  },
+  {
+    name: 'ABB',
+    logo: abbLogo,
+    url: 'https://abb-bank.az/en',
+    width: 100,
   },
   {
     name: 'Sequoia',
