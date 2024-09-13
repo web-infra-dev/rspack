@@ -77,7 +77,17 @@ export function concatErrorMsgAndStack(
 	}
 	const hideStack = "hideStack" in err && err.hideStack;
 	if (!hideStack && "stack" in err) {
-		err.message = err.stack || err.message;
+		// This is intended to be different than webpack,
+		// here we want to treat the almost the same as `Error.stack` just without the stack.
+		// Webpack uses `Error.message`, however it does not contain the `Error.prototype.name`
+		// `xxx` -> `Error: xxx`. So they behave the same even if `hideStack` is set to `true`.
+		err.message = err.stack || err.toString();
+	} else {
+		// This is intended to be different than webpack,
+		// here we want to treat the almost the same as `Error.stack` just without the stack.
+		// Webpack uses `Error.message`, however it does not contain the `Error.prototype.name`
+		// `xxx` -> `Error: xxx`. So they behave the same even if `hideStack` is set to `true`.
+		err.message = err.toString();
 	}
 	// maybe `null`, use `undefined` to compatible with `Option<String>`
 	err.stack = err.stack || undefined;

@@ -8,6 +8,7 @@ use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::ext::AsAny;
 use rspack_util::source_map::SourceMapKind;
+use rustc_hash::FxHashMap;
 use swc_core::common::Span;
 
 use crate::{
@@ -33,6 +34,7 @@ pub struct ParseContext<'a> {
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<AdditionalData>,
+  pub parse_meta: FxHashMap<String, String>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
 }

@@ -618,12 +618,10 @@ export async function runLoaders(
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
-		const hasStack = !!error.stack;
 		error.name = "ModuleError";
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		!hasStack && Error.captureStackTrace(error);
 		error = concatErrorMsgAndStack(error);
 		(error as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({
@@ -636,12 +634,10 @@ export async function runLoaders(
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
-		const hasStack = !!warning.stack;
 		warning.name = "ModuleWarning";
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		hasStack && Error.captureStackTrace(warning);
 		warning = concatErrorMsgAndStack(warning);
 		(warning as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({
@@ -787,6 +783,10 @@ export async function runLoaders(
 		enumerable: true,
 		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
 		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
+	});
+	Object.defineProperty(loaderContext, "__internal__parseMeta", {
+		enumerable: true,
+		get: () => context.__internal__parseMeta
 	});
 
 	switch (loaderState) {

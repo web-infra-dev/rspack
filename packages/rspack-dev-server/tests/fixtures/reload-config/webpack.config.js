@@ -10,16 +10,13 @@ module.exports = {
 	output: {
 		path: "/"
 	},
-	experiments: {
-		css: true
-	},
 	module: {
-		// rules: [
-		//   {
-		//     test: /\.css$/,
-		//     use: [{ loader: "style-loader" }, { loader: "css-loader" }],
-		//   },
-		// ],
+		rules: [
+			{
+				test: /\.css$/,
+				use: [{ loader: "style-loader" }, { loader: "css-loader" }]
+			}
+		]
 	},
 	infrastructureLogging: {
 		level: "info",

@@ -149,6 +149,14 @@ export interface LoaderContext<OptionsType = {}> {
 	_compiler: Compiler;
 	_compilation: Compilation;
 	_module: Module;
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * Store some data from loader, and consume it from parser, it may be removed in the future
+	 *
+	 * @internal
+	 */
+	__internal__parseMeta: Record<string, string>;
 }
 
 export type LoaderDefinitionFunction<

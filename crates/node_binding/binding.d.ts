@@ -620,6 +620,7 @@ export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content: null | Buffer
   additionalData?: any
+  __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
   fileDependencies: Array<string>

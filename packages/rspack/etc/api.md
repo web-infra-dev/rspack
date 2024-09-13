@@ -5892,6 +5892,8 @@ const loader: z.ZodRecord<z.ZodString, z.ZodAny>;
 
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
+    // @internal
+    __internal__parseMeta: Record<string, string>;
     // (undocumented)
     addBuildDependency(file: string): void;
     // (undocumented)

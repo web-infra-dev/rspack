@@ -9,6 +9,7 @@ use rspack_core::{
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext,
 };
+use rspack_core::{CompilationAdditionalTreeRuntimeRequirements, RuntimeGlobals};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -83,6 +84,7 @@ async fn eval_devtool_plugin_compilation(
   hooks
     .inline_in_runtime_bailout
     .tap(eval_devtool_plugin_inline_in_runtime_bailout::new(self));
+
   Ok(())
 }
 
@@ -135,11 +137,16 @@ fn eval_devtool_plugin_render_module_content(
           .trim_start_matches('/')
       )
     );
-    // TODO: Implement support for the trustedTypes option.
-    // This will depend on the additionalModuleRuntimeRequirements hook.
+
+    let module_content =
+      simd_json::to_string(&format!("{source}{footer}")).expect("failed to parse string");
     RawSource::from(format!(
       "eval({});",
-      simd_json::to_string(&format!("{source}{footer}")).expect("failed to parse string")
+      if compilation.options.output.trusted_types.is_some() {
+        format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)
+      } else {
+        module_content
+      }
     ))
     .boxed()
   };
@@ -183,8 +190,27 @@ impl Plugin for EvalDevToolModulePlugin {
       .compiler_hooks
       .compilation
       .tap(eval_devtool_plugin_compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(eval_devtool_plugin_additional_tree_runtime_requirements::new(self));
     Ok(())
   }
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EvalDevToolModulePlugin)]
+async fn eval_devtool_plugin_additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  _chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
+
+  Ok(())
 }
 
 // https://tc39.es/ecma262/#sec-encode
