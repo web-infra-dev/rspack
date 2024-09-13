@@ -17,25 +17,10 @@ import WebpackDevServer from "webpack-dev-server";
 // @ts-ignore 'package.json' is not under 'rootDir'
 import { version } from "../package.json";
 
-import { addResolveAlias } from "./alias";
+import { addResolveAlias, removeResolveAlias } from "./alias";
 import type { DevServer, ResolvedDevServer } from "./config";
 import { applyDevServerPatch } from "./patch";
 
-// override
-addResolveAlias("webpack-dev-server", {
-	"../client/clients/SockJSClient": require.resolve(
-		"webpack-dev-server/client/clients/SockJSClient"
-	),
-	"../client/clients/WebSocketClient": require.resolve(
-		"webpack-dev-server/client/clients/WebSocketClient"
-	),
-	"../client/index.js": require.resolve("@rspack/dev-server/client/index"),
-	"webpack/hot/only-dev-server": require.resolve(
-		"@rspack/core/hot/only-dev-server"
-	),
-	"webpack/hot/dev-server": require.resolve("@rspack/core/hot/dev-server"),
-	webpack: require.resolve("@rspack/core")
-});
 applyDevServerPatch();
 
 const getFreePort = async function getFreePort(port: string, host: string) {
@@ -86,6 +71,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		super(options, compiler as any);
+		// override
 	}
 
 	async initialize() {
@@ -118,5 +104,19 @@ export class RspackDevServer extends WebpackDevServer {
 
 		// @ts-expect-error
 		await super.initialize();
+	}
+
+	// @ts-ignore
+	private override addAdditionalEntries(compiler: Compiler) {
+		addResolveAlias("webpack-dev-server", {
+			"../client/index.js": require.resolve("@rspack/dev-server/client/index"),
+			"webpack/hot/only-dev-server": require.resolve(
+				"@rspack/core/hot/only-dev-server"
+			),
+			"webpack/hot/dev-server": require.resolve("@rspack/core/hot/dev-server")
+		});
+		// @ts-expect-error
+		super.addAdditionalEntries(compiler);
+		removeResolveAlias("webpack-dev-server");
 	}
 }
