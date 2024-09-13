@@ -3295,7 +3295,7 @@ export class EnvironmentPlugin {
 }
 
 // @public (undocumented)
-type ErrorWithDetail = Error & {
+type ErrorWithDetails = Error & {
     details?: string;
 };
 
@@ -4511,10 +4511,10 @@ interface GlobalPassOption {
 type GotHandler<T = any> = (result: any | null, callback: (error: Error | null) => void) => void;
 
 // @public (undocumented)
-type GroupConfig = {
+type GroupConfig<T, R = T> = {
     getKeys: (arg0: any) => string[] | undefined;
-    createGroup: <T, R>(arg0: string, arg1: (T | R)[], arg2: T[]) => R;
-    getOptions?: (<T>(arg0: string, arg1: T[]) => GroupOptions) | undefined;
+    createGroup: (key: string, arg1: (T | R)[], arg2: T[]) => R;
+    getOptions?: ((key: string, arg1: T[]) => GroupOptions) | undefined;
 };
 
 // @public
@@ -4577,7 +4577,7 @@ type Hooks = Readonly<{
     extract: HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>;
     filter: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
     filterSorted: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
-    groupResults: HookMap<SyncBailHook<[GroupConfig[], StatsFactoryContext], undefined>>;
+    groupResults: HookMap<SyncBailHook<[GroupConfig<any>[], StatsFactoryContext], undefined>>;
     filterResults: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
     sort: HookMap<SyncBailHook<[
     ((arg1: any, arg2: any) => number)[],
@@ -5892,11 +5892,11 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     addMissingDependency(missing: string): void;
     // (undocumented)
-    async(): (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
+    async(): LoaderContextCallback;
     // (undocumented)
     cacheable(cacheable?: boolean): void;
     // (undocumented)
-    callback(err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData): void;
+    callback: LoaderContextCallback;
     // (undocumented)
     clearDependencies(): void;
     // (undocumented)
@@ -5930,7 +5930,7 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     getOptions(schema?: any): OptionsType;
     // (undocumented)
-    getResolve(options: Resolve): (context: any, request: any, callback: any) => Promise<any>;
+    getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
     // (undocumented)
     hot?: boolean;
     // (undocumented)
@@ -5979,6 +5979,9 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     version: 2;
 }
+
+// @public (undocumented)
+type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
 
 // @public (undocumented)
 export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
@@ -9822,6 +9825,9 @@ export type ResolveAlias = z.infer<typeof resolveAlias>;
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
 
 // @public (undocumented)
+type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
+
+// @public (undocumented)
 type ResolveContext = {};
 
 // @public (undocumented)
@@ -9861,7 +9867,7 @@ class Resolver {
     // (undocumented)
     binding: binding.JsResolver;
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: (err: null | ErrorWithDetail, res?: string | false) => void): void;
+    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)

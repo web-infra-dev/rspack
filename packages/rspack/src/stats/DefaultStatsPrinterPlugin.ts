@@ -1367,8 +1367,8 @@ export class DefaultStatsPrinterPlugin {
 									) {
 										start = options.colors[color];
 									} else {
-										// @ts-expect-error
-										start = AVAILABLE_COLORS[color];
+										start =
+											AVAILABLE_COLORS[color as keyof typeof AVAILABLE_COLORS];
 									}
 								}
 								if (start) {
@@ -1398,9 +1398,14 @@ export class DefaultStatsPrinterPlugin {
 					for (const key of Object.keys(SIMPLE_PRINTERS)) {
 						stats.hooks.print
 							.for(key)
-							.tap("DefaultStatsPrinterPlugin", (obj, ctx) =>
-								// @ts-expect-error
-								SIMPLE_PRINTERS[key](obj, ctx, stats)
+							.tap(
+								"DefaultStatsPrinterPlugin",
+								(obj, ctx) =>
+									SIMPLE_PRINTERS[key](
+										obj,
+										ctx as Required<StatsPrinterContext>,
+										stats
+									) as string
 							);
 					}
 
