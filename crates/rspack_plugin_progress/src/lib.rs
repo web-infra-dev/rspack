@@ -121,7 +121,7 @@ impl ProgressPlugin {
       .expect("failed to get current time")
       .as_millis() as u32;
 
-    if current_time - self.last_updated.load(Relaxed) > 500 {
+    if current_time - self.last_updated.load(Relaxed) > 200 {
       self.update()?;
       self.last_updated.store(current_time, Relaxed);
     }
