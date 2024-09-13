@@ -48,7 +48,7 @@ fn create_commonjs_require_context_dependency(
     attributes: None,
   };
   let mut dep =
-    CommonJsRequireContextDependency::new(options, span.into(), (start, end), parser.in_try);
+    CommonJsRequireContextDependency::new(options, span.into(), (start, end).into(), parser.in_try);
   *dep.critical_mut() = result.critical;
   dep
 }
@@ -200,8 +200,8 @@ impl CommonJsImportsParserPlugin {
       let range_expr: RealDependencyLocation = param.range().into();
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
-        Some(span.into()),
         range_expr.with_source(parser.source_map.clone()),
+        Some(span.into()),
         parser.in_try,
       );
       parser.dependencies.push(Box::new(dep));
@@ -311,7 +311,7 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
       },
       ident.span().into(),
-      (start, end),
+      (start, end).into(),
       parser.in_try,
     );
     *dep.critical_mut() = Some(

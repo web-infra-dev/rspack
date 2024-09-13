@@ -2,12 +2,11 @@ use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec, UsedName, DEFAULT_EXPORT,
+  property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
+  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
-use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -39,14 +38,14 @@ impl DeclarationInfo {
 pub struct HarmonyExportExpressionDependency {
   id: DependencyId,
   range: RealDependencyLocation,
-  range_stmt: RealDependencyLocation,
+  range_stmt: DependencyRange,
   declaration: Option<DeclarationId>,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
     range: RealDependencyLocation,
-    range_stmt: RealDependencyLocation,
+    range_stmt: DependencyRange,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {

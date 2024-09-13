@@ -1,7 +1,9 @@
 use rspack_core::{
-  AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleGraph,
-  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsModuleDependency, Compilation, ContextDependency, ContextOptions, ContextOptions, Dependency,
+  Dependency, DependencyCategory, DependencyCategory, DependencyId, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplate, DependencyType, DependencyType, ModuleGraph,
+  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateContext, TemplateReplaceSource,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -14,7 +16,7 @@ pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: RealDependencyLocation,
-  range_callee: (u32, u32),
+  range_callee: DependencyRange,
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
@@ -24,7 +26,7 @@ impl ImportContextDependency {
   pub fn new(
     options: ContextOptions,
     range: RealDependencyLocation,
-    range_callee: (u32, u32),
+    range_callee: DependencyRange,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
@@ -117,8 +119,8 @@ impl DependencyTemplate for ImportContextDependency {
       self,
       source,
       code_generatable_context,
-      self.range_callee.0,
-      self.range_callee.1,
+      self.range_callee.start,
+      self.range_callee.end,
       self.range.end,
     );
   }

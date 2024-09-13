@@ -2,10 +2,16 @@ use std::{fmt, sync::Arc};
 
 use derivative::Derivative;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct DependencyRange {
   pub start: u32,
   pub end: u32,
+}
+
+impl DependencyRange {
+  pub fn new(start: u32, end: u32) -> Self {
+    DependencyRange { end, start }
+  }
 }
 
 impl From<(u32, u32)> for DependencyRange {
