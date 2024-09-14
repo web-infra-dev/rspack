@@ -702,11 +702,11 @@ const baseRuleSetRule: z.ZodObject<{
     layer?: string | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
-    resource?: RuleSetCondition | undefined;
     loader?: string | undefined;
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
+    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -738,11 +738,11 @@ const baseRuleSetRule: z.ZodObject<{
     layer?: string | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
-    resource?: RuleSetCondition | undefined;
     loader?: string | undefined;
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
+    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -7743,7 +7743,7 @@ const optimization: z.ZodObject<{
     providedExports?: boolean | undefined;
     concatenateModules?: boolean | undefined;
     innerGraph?: boolean | undefined;
-    mangleExports?: boolean | "deterministic" | "size" | undefined;
+    mangleExports?: boolean | "size" | "deterministic" | undefined;
     nodeEnv?: string | false | undefined;
     emitOnErrors?: boolean | undefined;
 }, {
@@ -7809,7 +7809,7 @@ const optimization: z.ZodObject<{
     providedExports?: boolean | undefined;
     concatenateModules?: boolean | undefined;
     innerGraph?: boolean | undefined;
-    mangleExports?: boolean | "deterministic" | "size" | undefined;
+    mangleExports?: boolean | "size" | "deterministic" | undefined;
     nodeEnv?: string | false | undefined;
     emitOnErrors?: boolean | undefined;
 }>;
@@ -12000,7 +12000,7 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     }, {
@@ -12066,7 +12066,7 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     }>>;
@@ -13528,7 +13528,7 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     } | undefined;
@@ -14102,7 +14102,7 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     } | undefined;
