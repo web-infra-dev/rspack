@@ -51,12 +51,7 @@ export default function loadLoader(
 				(e as NodeJS.ErrnoException).code === "EMFILE"
 			) {
 				const retry = loadLoader.bind(null, loader, callback);
-				if (typeof setImmediate === "function") {
-					// node >= 0.9.0
-					return void setImmediate(retry);
-				}
-				// node < 0.9.0
-				return process.nextTick(retry);
+				return void setImmediate(retry);
 			}
 			return callback(e);
 		}

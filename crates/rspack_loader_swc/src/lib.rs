@@ -48,7 +48,7 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
-    let Some(content) = std::mem::take(&mut loader_context.content) else {
+    let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
 
@@ -64,7 +64,7 @@ impl SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = loader_context.source_map.clone() {
+      if let Some(pre_source_map) = loader_context.source_map().cloned() {
         if let Ok(source_map) = pre_source_map.to_json() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }
@@ -133,12 +133,11 @@ impl SwcLoader {
     let ast = c.into_js_ast(program);
     let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
 
-    loader_context.content = Some(code.into());
     let map = map
       .map(|m| SourceMap::from_json(&m))
       .transpose()
       .map_err(|e| error!(e.to_string()))?;
-    loader_context.source_map = map;
+    loader_context.finish_with((code, map));
 
     Ok(())
   }

@@ -1268,8 +1268,7 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
 #[async_trait]
 impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
   async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_module_dependency_mut()
       .expect("should be module dependency");
     match self
@@ -1305,8 +1304,7 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> rspack_error::Result<Option<BoxModule>> {
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_module_dependency_mut()
       .expect("should be module dependency");
     match self
@@ -1343,8 +1341,7 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> rspack_error::Result<Option<NormalModuleFactoryResolveResult>> {
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_module_dependency_mut()
       .expect("should be module dependency");
     match self
@@ -1487,7 +1484,7 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
     self
       .function
       .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
-        dependency_type: data.dependency.dependency_type().to_string(),
+        dependency_type: data.dependencies[0].dependency_type().to_string(),
         raw_request: create_data.raw_request.clone(),
         resource_resolve_data: create_data.resource_resolve_data.clone().into(),
         context: data.context.to_string(),

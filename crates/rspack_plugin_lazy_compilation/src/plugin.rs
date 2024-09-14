@@ -96,7 +96,7 @@ async fn normal_module_factory_module(
   create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let dep_type = module_factory_create_data.dependency.dependency_type();
+  let dep_type = module_factory_create_data.dependencies[0].dependency_type();
 
   if matches!(dep_type, DependencyType::LazyImport) {
     return Ok(());
@@ -134,7 +134,7 @@ async fn normal_module_factory_module(
     }
 
     // ignore global entry
-    let entry: Option<&EntryDependency> = module_factory_create_data.dependency.downcast_ref();
+    let entry: Option<&EntryDependency> = module_factory_create_data.dependencies[0].downcast_ref();
     let Some(entry) = entry else {
       return Ok(());
     };

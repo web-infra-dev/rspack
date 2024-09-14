@@ -1,6 +1,6 @@
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{
-  Compilation, DependencyType, ErrorSpan, ExternalRequest, ExternalType, ImportAttributes,
+  Compilation, DependencyType, ExternalRequest, ExternalType, ImportAttributes,
   RealDependencyLocation, RuntimeSpec,
 };
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -62,8 +62,8 @@ impl Dependency for ModernModuleImportDependency {
     self.attributes.as_ref()
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

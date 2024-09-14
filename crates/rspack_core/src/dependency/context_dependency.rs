@@ -1,6 +1,6 @@
 use rspack_error::Diagnostic;
 
-use crate::{ContextOptions, ContextTypePrefix, Dependency, ModuleGraph};
+use crate::{ContextOptions, ContextTypePrefix, Dependency};
 
 pub trait ContextDependency: Dependency {
   fn request(&self) -> &str;

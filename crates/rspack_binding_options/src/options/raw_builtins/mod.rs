@@ -92,10 +92,10 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
-  JsLoaderRunner, RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
-  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawContextReplacementPluginOptions,
+  RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
+  RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -189,7 +189,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, _env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -481,8 +481,6 @@ impl BuiltinPlugin {
         )
       }
       BuiltinPluginName::CssExtractRspackPlugin => {
-        let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();
-        plugins.push(additional_data_plugin);
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
           downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
         )

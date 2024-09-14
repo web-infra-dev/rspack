@@ -50,6 +50,7 @@ import type {
 	StatsChunkOrigin,
 	StatsError,
 	StatsModuleReason,
+	StatsModuleTraceItem,
 	StatsProfile
 } from "./statsFactoryUtils";
 import {
@@ -105,12 +106,13 @@ const MERGER: Record<
 const ASSETS_GROUPERS: Record<
 	string,
 	(
-		groupConfigs: GroupConfig[],
+		// use any type aligned with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/stats/StatsFactory.js#L18
+		groupConfigs: GroupConfig<KnownStatsAsset, any>[],
 		context: KnownStatsFactoryContext,
 		options: NormalizedStatsOptions
 	) => void
 > = {
-	_: (groupConfigs, context, options) => {
+	_: (groupConfigs, _context, options) => {
 		const groupByFlag = (name: keyof KnownStatsAsset, exclude?: boolean) => {
 			groupConfigs.push({
 				getKeys: (asset: KnownStatsAsset) => {
@@ -122,7 +124,6 @@ const ASSETS_GROUPERS: Record<
 						force: exclude
 					};
 				},
-				// @ts-expect-error
 				createGroup: (
 					key: string,
 					children: KnownStatsAsset[],
@@ -184,8 +185,7 @@ const ASSETS_GROUPERS: Record<
 					}
 					return keys;
 				},
-				// @ts-expect-error
-				createGroup: (key, children: KnownStatsAsset[]) => {
+				createGroup: (key: string, children: KnownStatsAsset[]) => {
 					return {
 						type: groupAssetsByPath ? "assets by path" : "assets by extension",
 						name: key,
@@ -202,8 +202,7 @@ const ASSETS_GROUPERS: Record<
 				getKeys: asset => {
 					return asset.info?.[name] ? ["1"] : undefined;
 				},
-				// @ts-expect-error
-				createGroup: (key, children: KnownStatsAsset[]) => {
+				createGroup: (key: string, children: KnownStatsAsset[]) => {
 					return {
 						type: "assets by info",
 						info: {
@@ -233,8 +232,7 @@ const ASSETS_GROUPERS: Record<
 				getKeys: asset => {
 					return asset[name];
 				},
-				// @ts-expect-error
-				createGroup: (key, children: KnownStatsAsset[]) => {
+				createGroup: (key: string, children: KnownStatsAsset[]) => {
 					return {
 						type: "assets by chunk",
 						[name]: [key],
@@ -249,7 +247,7 @@ const ASSETS_GROUPERS: Record<
 		groupByNames("chunkIdHints");
 		groupByNames("auxiliaryChunkIdHints");
 	},
-	excludeAssets: (groupConfigs, context, { excludeAssets }) => {
+	excludeAssets: (groupConfigs, _context, { excludeAssets }) => {
 		groupConfigs.push({
 			getKeys: asset => {
 				const ident = asset.name;
@@ -260,8 +258,11 @@ const ASSETS_GROUPERS: Record<
 				groupChildren: false,
 				force: true
 			}),
-			// @ts-expect-error
-			createGroup: (key, children: KnownStatsAsset[], assets) => ({
+			createGroup: (
+				_key: string,
+				children: KnownStatsAsset[],
+				assets: KnownStatsAsset[]
+			) => ({
 				type: "hidden assets",
 				filteredChildren: assets.length,
 				...assetGroup(children)
@@ -275,12 +276,12 @@ const MODULES_GROUPERS = (
 ): Record<
 	string,
 	(
-		groupConfigs: GroupConfig[],
+		groupConfigs: GroupConfig<KnownStatsModule, any>[],
 		context: KnownStatsFactoryContext,
 		options: NormalizedStatsOptions
 	) => void
 > => ({
-	_: (groupConfigs, context, options) => {
+	_: (groupConfigs, _context, options) => {
 		const groupByFlag = (name: string, type: unknown, exclude?: boolean) => {
 			groupConfigs.push({
 				getKeys: module => {
@@ -292,9 +293,8 @@ const MODULES_GROUPERS = (
 						force: exclude
 					};
 				},
-				// @ts-expect-error
 				createGroup: (
-					key,
+					key: string,
 					children: KnownStatsModule[],
 					modules: KnownStatsModule[]
 				) => {
@@ -353,7 +353,6 @@ const MODULES_GROUPERS = (
 						force: exclude
 					};
 				},
-				// @ts-expect-error
 				createGroup: (key, children: KnownStatsModule[], modules) => {
 					const exclude = key === "runtime" && !options.runtimeModules;
 					return {
@@ -396,8 +395,11 @@ const MODULES_GROUPERS = (
 					}
 					return keys;
 				},
-				// @ts-expect-error
-				createGroup: (key, children: KnownStatsModule[], modules) => {
+				createGroup: (
+					key: string,
+					children: KnownStatsModule[],
+					_modules: KnownStatsModule[]
+				) => {
 					const isDataUrl = key.startsWith("data:");
 					return {
 						type: isDataUrl
@@ -413,7 +415,7 @@ const MODULES_GROUPERS = (
 			});
 		}
 	},
-	excludeModules: (groupConfigs, context, { excludeModules }) => {
+	excludeModules: (groupConfigs, _context, { excludeModules }) => {
 		groupConfigs.push({
 			getKeys: module => {
 				const name = module.name;
@@ -426,8 +428,12 @@ const MODULES_GROUPERS = (
 				groupChildren: false,
 				force: true
 			}),
-			// @ts-expect-error
-			createGroup: (key, children: KnownStatsModule[], modules) => ({
+
+			createGroup: (
+				_key: string,
+				children: KnownStatsModule[],
+				_modules: KnownStatsModule[]
+			) => ({
 				type: "hidden modules",
 				filteredChildren: children.length,
 				...moduleGroup(children)
@@ -441,7 +447,7 @@ const RESULT_GROUPERS: Record<
 	Record<
 		string,
 		(
-			groupConfigs: GroupConfig[],
+			groupConfigs: GroupConfig<KnownStatsModule | KnownStatsAsset, any>[],
 			context: KnownStatsFactoryContext,
 			options: NormalizedStatsOptions
 		) => void
@@ -480,22 +486,22 @@ const RESULT_SORTERS: Record<
 	>
 > = {
 	"compilation.chunks": {
-		chunksSort: (comparators, context, { chunksSort }) => {
+		chunksSort: (comparators, _context, { chunksSort }) => {
 			comparators.push(sortByField(chunksSort));
 		}
 	},
 	"compilation.modules": {
-		modulesSort: (comparators, context, { modulesSort }) => {
+		modulesSort: (comparators, _context, { modulesSort }) => {
 			comparators.push(sortByField(modulesSort));
 		}
 	},
 	"chunk.modules": {
-		chunkModulesSort: (comparators, context, { chunkModulesSort }) => {
+		chunkModulesSort: (comparators, _context, { chunkModulesSort }) => {
 			comparators.push(sortByField(chunkModulesSort));
 		}
 	},
 	"module.modules": {
-		nestedModulesSort: (comparators, context, { nestedModulesSort }) => {
+		nestedModulesSort: (comparators, _context, { nestedModulesSort }) => {
 			comparators.push(sortByField(nestedModulesSort));
 		}
 	},
@@ -631,7 +637,7 @@ const EXTRACT_ERROR: Record<
 			`${type}.moduleTrace`,
 			error.moduleTrace,
 			context
-		);
+		) as StatsModuleTraceItem[];
 	},
 	errorDetails: (object, error) => {
 		object.details = error.details;
@@ -851,7 +857,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const assetsByChunkName = statsCompilation.assetsByChunkName!;
 
 			const assetMap: Map<String, PreprocessedAsset> = new Map();
-			const assets = new Set();
+			const assets: Set<PreprocessedAsset> = new Set();
 
 			for (const asset of compilationAssets) {
 				const item: PreprocessedAsset = {
@@ -914,7 +920,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { type, getStatsCompilation } = context;
 			const statsCompilation = getStatsCompilation(compilation);
 			const chunks = statsCompilation.chunks;
-			object.chunks = factory.create(`${type}.chunks`, chunks, context);
+			object.chunks = factory.create(
+				`${type}.chunks`,
+				chunks,
+				context
+			) as StatsChunk[];
 		},
 		modules: (
 			object,
@@ -1121,7 +1131,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.auxiliaryChunkIdHints =
 				asset.auxiliaryChunkIdHints.filter(Boolean);
 		},
-		relatedAssets: (object, asset, context, options, factory) => {
+		relatedAssets: (object, asset, context, _options, factory) => {
 			const { type } = context;
 			object.related = factory.create(
 				`${type.slice(0, -8)}.related`,
@@ -1201,7 +1211,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		}
 	},
 	module$visible: {
-		_: (object, module, context, options, factory) => {
+		_: (object, module, context, _options, factory) => {
 			const { type } = context;
 			const { commonAttributes } = module;
 			if (commonAttributes.moduleDescriptor) {
@@ -1320,7 +1330,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		}
 	},
 	moduleIssuer: {
-		_: (object, module, context, options, factory) => {
+		_: (object, module, _context, _options, _factory) => {
 			if (module.moduleDescriptor) {
 				object.identifier = module.moduleDescriptor.identifier;
 				object.name = module.moduleDescriptor.name;
@@ -1395,7 +1405,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.modules = limited.children;
 			object.filteredModules = limited.filteredChildren;
 		},
-		chunkOrigins: (object, chunk, context, options, factory) => {
+		chunkOrigins: (object, chunk, context, _options, factory) => {
 			const { type } = context;
 			object.origins = factory.create(
 				`${type}.origins`,
@@ -1405,7 +1415,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		}
 	},
 	chunkOrigin: {
-		_: (object, origin, context) => {
+		_: (object, origin, _context) => {
 			const { moduleDescriptor, loc, request } = origin;
 			const statsChunkOrigin = {
 				module: moduleDescriptor ? moduleDescriptor.identifier : "",
@@ -1423,7 +1433,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
-		_: (object, { origin, module }, context, { requestShortener }, factory) => {
+		_: (
+			object,
+			{ origin, module },
+			_context,
+			{ requestShortener },
+			_factory
+		) => {
 			if (origin.moduleDescriptor) {
 				object.originIdentifier = origin.moduleDescriptor.identifier;
 				object.originName = origin.moduleDescriptor.name;
@@ -1481,8 +1497,7 @@ export class DefaultStatsFactoryPlugin {
 		compiler.hooks.compilation.tap("DefaultStatsFactoryPlugin", compilation => {
 			compilation.hooks.statsFactory.tap(
 				"DefaultStatsFactoryPlugin",
-				// @ts-expect-error
-				(stats: StatsFactory, options: NormalizedStatsOptions, context) => {
+				(stats: StatsFactory, options: StatsOptions) => {
 					iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
 						stats.hooks.extract
 							.for(hookFor)

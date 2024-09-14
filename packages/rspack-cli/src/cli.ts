@@ -60,7 +60,7 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		let compiler;
+		let compiler: MultiCompiler | Compiler | null;
 		try {
 			compiler = rspack(config, isWatch ? callback : undefined);
 		} catch (e) {
@@ -80,13 +80,7 @@ export class RspackCLI {
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
 
-		let shouldUseColor;
-
-		if (useColor) {
-			shouldUseColor = useColor;
-		} else {
-			shouldUseColor = isColorSupported;
-		}
+		const shouldUseColor = useColor || isColorSupported;
 
 		return {
 			...createColors({ useColor: shouldUseColor }),

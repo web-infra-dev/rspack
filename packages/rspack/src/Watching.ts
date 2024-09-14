@@ -19,20 +19,20 @@ export class Watching {
 	watcher?: Watcher;
 	pausedWatcher?: Watcher;
 	compiler: Compiler;
-	handler: (error?: Error, stats?: Stats) => void;
+	handler: Callback<Error, Stats>;
 	callbacks: Callback<Error, void>[];
 	watchOptions: WatchOptions;
-	// @ts-expect-error
+	// @ts-expect-error  lastWatcherStartTime will be assigned with Date.now() during initialization
 	lastWatcherStartTime: number;
 	running: boolean;
 	blocked: boolean;
-	isBlocked?: () => boolean;
-	onChange?: () => void;
-	onInvalid?: () => void;
+	isBlocked: () => boolean;
+	onChange: () => void;
+	onInvalid: () => void;
 	invalid: boolean;
 	startTime?: number;
 	#invalidReported: boolean;
-	#closeCallbacks?: ((err?: Error) => void)[];
+	#closeCallbacks?: ((err?: Error | null) => void)[];
 	#initial: boolean;
 	#closed: boolean;
 	#collectedChangedFiles?: Set<string>;
@@ -42,7 +42,7 @@ export class Watching {
 	constructor(
 		compiler: Compiler,
 		watchOptions: WatchOptions,
-		handler: (error?: Error, stats?: Stats) => void
+		handler: Callback<Error, Stats>
 	) {
 		this.callbacks = [];
 		this.invalid = false;
@@ -103,7 +103,6 @@ export class Watching {
 					changedFiles,
 					removedFiles
 				);
-				// @ts-expect-error
 				this.onChange();
 			},
 			(fileName, changeTime) => {
@@ -111,7 +110,6 @@ export class Watching {
 					this.#invalidReported = true;
 					this.compiler.hooks.invalid.call(fileName, changeTime);
 				}
-				// @ts-expect-error
 				this.onInvalid();
 			}
 		);
@@ -135,11 +133,10 @@ export class Watching {
 			this.compiler.fileTimestamps = undefined;
 			this.compiler.contextTimestamps = undefined;
 			// this.compiler.fsStartTime = undefined;
-			const shutdown = (err: Error) => {
+			const shutdown = (err: Error | null) => {
 				this.compiler.hooks.watchClose.call();
-				const closeCallbacks = this.#closeCallbacks;
+				const closeCallbacks = this.#closeCallbacks!;
 				this.#closeCallbacks = undefined;
-				// @ts-expect-error
 				for (const cb of closeCallbacks) cb(err);
 			};
 			// TODO: compilation parameter support
@@ -156,7 +153,6 @@ export class Watching {
 			// } else {
 			// 	shutdown(err);
 			// }
-			// @ts-expect-error
 			shutdown(err);
 		};
 
@@ -192,7 +188,6 @@ export class Watching {
 			this.#invalidReported = true;
 			this.compiler.hooks.invalid.call(null, Date.now());
 		}
-		// @ts-expect-error
 		this.onChange();
 		this.#invalidate();
 	}
@@ -207,9 +202,7 @@ export class Watching {
 		changedFiles?: Set<string>,
 		removedFiles?: Set<string>
 	) {
-		// @ts-expect-error
 		this.#mergeWithCollected(changedFiles, removedFiles);
-		// @ts-expect-error
 		if (this.suspended || (this.isBlocked() && (this.blocked = true))) {
 			return;
 		}
@@ -329,7 +322,6 @@ export class Watching {
 
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
-			// @ts-expect-error
 			this.handler(null, stats);
 
 			process.nextTick(() => {
@@ -347,22 +339,21 @@ export class Watching {
 	}
 
 	#mergeWithCollected(
-		changedFiles: ReadonlySet<string>,
-		removedFiles: ReadonlySet<string>
+		changedFiles?: ReadonlySet<string>,
+		removedFiles?: ReadonlySet<string>
 	) {
 		if (!changedFiles) return;
-		if (!this.#collectedChangedFiles) {
+		if (!removedFiles) return;
+		if (!this.#collectedChangedFiles || !this.#collectedRemovedFiles) {
 			this.#collectedChangedFiles = new Set(changedFiles);
 			this.#collectedRemovedFiles = new Set(removedFiles);
 		} else {
 			for (const file of changedFiles) {
 				this.#collectedChangedFiles.add(file);
-				// @ts-expect-error
 				this.#collectedRemovedFiles.delete(file);
 			}
 			for (const file of removedFiles) {
 				this.#collectedChangedFiles.delete(file);
-				// @ts-expect-error
 				this.#collectedRemovedFiles.add(file);
 			}
 		}

@@ -230,7 +230,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
     } else {
       (Severity::Warning, "HarmonyLinkingWarning")
     };
-    let mut diagnostic = if let Some(span) = module_dependency.span()
+    let mut diagnostic = if let Some(span) = module_dependency.range()
       && let Some(source) = parent_module.original_source().map(|s| s.source())
     {
       Diagnostic::from(
@@ -380,8 +380,8 @@ impl Dependency for HarmonyImportSideEffectDependency {
     Some(self.range.to_string())
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn source_order(&self) -> Option<i32> {

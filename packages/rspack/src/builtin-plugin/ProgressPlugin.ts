@@ -6,17 +6,19 @@ import {
 import { create } from "./base";
 
 export type ProgressPluginArgument =
-	| Partial<RawProgressPluginOptions>
+	| Partial<Omit<RawProgressPluginOptions, "handler">>
+	| ((percentage: number, msg: string, ...args: string[]) => void)
 	| undefined;
 export const ProgressPlugin = create(
 	BuiltinPluginName.ProgressPlugin,
-	(progress: ProgressPluginArgument = {}): RawProgressPluginOptions => ({
-		prefix: progress.prefix ?? "",
-		profile: progress.profile ?? false,
-		template:
-			progress.template ??
-			"● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}",
-		tick: progress.tick,
-		progressChars: progress.progressChars ?? "━━"
-	})
+	(progress: ProgressPluginArgument = {}): RawProgressPluginOptions => {
+		if (typeof progress === "function") {
+			return {
+				handler: (percentage, msg, items) => {
+					progress(percentage, msg, ...items);
+				}
+			};
+		}
+		return progress;
+	}
 );

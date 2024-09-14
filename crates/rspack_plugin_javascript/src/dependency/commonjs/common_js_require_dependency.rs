@@ -1,7 +1,7 @@
 use rspack_core::{module_id, Compilation, RealDependencyLocation, RuntimeSpec};
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
+use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 
 #[derive(Debug, Clone)]
@@ -47,11 +47,8 @@ impl Dependency for CommonJsRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self
-      .range
-      .clone()
-      .map(|range| ErrorSpan::new(range.start, range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    self.range.as_ref()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

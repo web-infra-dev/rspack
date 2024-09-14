@@ -1,0 +1,61 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`host should work using "127.0.0.1" host and "auto" port: console messages 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`host should work using "127.0.0.1" host and "auto" port: page errors 1`] = `[]`;
+
+exports[`host should work using "127.0.0.1" host and port as number: console messages 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`host should work using "127.0.0.1" host and port as number: page errors 1`] = `[]`;
+
+exports[`host should work using "127.0.0.1" host and port as string: console messages 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`host should work using "127.0.0.1" host and port as string: page errors 1`] = `[]`;
+
+exports[`host should work using "localhost" host and "auto" port: console messages 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`host should work using "localhost" host and "auto" port: page errors 1`] = `[]`;
+
+exports[`host should work using "localhost" host and port as number: console messages 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`host should work using "localhost" host and port as number: page errors 1`] = `[]`;
+
+exports[`host should work using "localhost" host and port as string: console messages 1`] = `
+[
+  "[webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.",
+  "[HMR] Waiting for update signal from WDS...",
+  "Hey.",
+]
+`;
+
+exports[`host should work using "localhost" host and port as string: page errors 1`] = `[]`;

@@ -49,6 +49,7 @@ import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import MergeCaller from "./util/MergeCaller";
+import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
@@ -403,10 +404,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunk groups.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` are supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get`, `keys`, `values` and `entries` are supported now.
 	 */
-	get namedChunkGroups(): ReadonlyMap<string, Readonly<ChunkGroup>> {
-		return {
+	get namedChunkGroups() {
+		return createReadonlyMap<ChunkGroup>({
 			keys: (): IterableIterator<string> => {
 				const names = this.#inner.getNamedChunkGroupKeys();
 				return names[Symbol.iterator]();
@@ -417,7 +418,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					return chunk && ChunkGroup.__from_binding(chunk, this.#inner);
 				}
 			}
-		} as Map<string, Readonly<ChunkGroup>>;
+		});
 	}
 
 	get modules(): ReadonlySet<Module> {
@@ -433,10 +434,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunks.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` is supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get`, `keys`, `values` and `entries` are supported now.
 	 */
-	get namedChunks(): ReadonlyMap<string, Readonly<Chunk>> {
-		return {
+	get namedChunks() {
+		return createReadonlyMap<Chunk>({
 			keys: (): IterableIterator<string> => {
 				const names = this.#inner.getNamedChunkKeys();
 				return names[Symbol.iterator]();
@@ -447,7 +448,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					return chunk && Chunk.__from_binding(chunk, this.#inner);
 				}
 			}
-		} as Map<string, Readonly<Chunk>>;
+		});
 	}
 
 	get entries(): Map<string, EntryData> {

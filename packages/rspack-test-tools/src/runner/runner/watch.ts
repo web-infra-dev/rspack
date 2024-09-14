@@ -33,6 +33,7 @@ export class WatchRunner<
 		moduleScope.document = this.globalContext!.document;
 		moduleScope.STATE = this.state;
 		moduleScope.WATCH_STEP = this._watchOptions.stepName;
+		moduleScope.STATS_JSON = this._options.stats;
 		return moduleScope;
 	}
 

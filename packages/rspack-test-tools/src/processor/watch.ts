@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { merge } from "webpack-merge";
 
 import { ECompilerEvent } from "../compiler";
+import { readConfigFile } from "../helper";
 import copyDiff from "../helper/legacy/copyDiff";
 import type {
 	ECompilerType,
@@ -9,7 +11,6 @@ import type {
 	ITestEnv,
 	TCompilerOptions
 } from "../type";
-import { ConfigProcessor } from "./config";
 import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 // This file is used to port step number to rspack.config.js/webpack.config.js
@@ -38,7 +39,7 @@ export class WatchProcessor<
 	constructor(protected _watchOptions: IWatchProcessorOptions<T>) {
 		super({
 			overrideOptions: WatchProcessor.overrideOptions<T>(_watchOptions),
-			findBundle: ConfigProcessor.findBundle<T>,
+			findBundle: WatchProcessor.findBundle<T>,
 			..._watchOptions
 		});
 	}
@@ -93,6 +94,39 @@ export class WatchProcessor<
 		);
 	}
 
+	async config(context: ITestContext) {
+		this.multiCompilerOptions = [];
+		const caseOptions: TCompilerOptions<T>[] = Array.isArray(
+			this._multiOptions.configFiles
+		)
+			? readConfigFile(
+					this._multiOptions.configFiles!.map(i => context.getSource(i))
+				)
+			: [{}];
+
+		for (const [index, options] of caseOptions.entries()) {
+			const compilerOptions = merge(
+				typeof this._multiOptions.defaultOptions === "function"
+					? this._multiOptions.defaultOptions!(index, context)
+					: {},
+				options
+			);
+
+			if (typeof this._multiOptions.overrideOptions === "function") {
+				this._multiOptions.overrideOptions!(index, context, compilerOptions);
+			}
+
+			this.multiCompilerOptions.push(compilerOptions);
+		}
+
+		const compilerOptions =
+			this.multiCompilerOptions.length === 1
+				? this.multiCompilerOptions[0]
+				: this.multiCompilerOptions;
+		const compiler = this.getCompiler(context);
+		compiler.setOptions(compilerOptions as any);
+	}
+
 	static overrideOptions<T extends ECompilerType>({
 		tempDir,
 		name,
@@ -108,6 +142,7 @@ export class WatchProcessor<
 			if (!options.context) options.context = tempDir;
 			if (!options.entry) options.entry = "./index.js";
 			if (!options.target) options.target = "async-node";
+			if (!options.devtool) options.devtool = false;
 			if (!options.output) options.output = {};
 			if (!options.output.path) options.output.path = context.getDist();
 			if (typeof options.output.pathinfo === "undefined")
@@ -150,6 +185,19 @@ export class WatchProcessor<
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
 		};
+	}
+
+	static findBundle<T extends ECompilerType>(
+		index: number,
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	) {
+		const testConfig = context.getTestConfig();
+
+		if (typeof testConfig.findBundle === "function") {
+			return testConfig.findBundle!(index, options);
+		}
+		return "./bundle.js";
 	}
 }
 

@@ -603,6 +603,7 @@ export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content: null | Buffer
   additionalData?: any
+  __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
   fileDependencies: Array<string>
@@ -1609,11 +1610,12 @@ export interface RawPathData {
 }
 
 export interface RawProgressPluginOptions {
-  prefix: string
-  profile: boolean
-  template: string
+  prefix?: string
+  profile?: boolean
+  template?: string
   tick?: string | Array<string>
-  progressChars: string
+  progressChars?: string
+  handler?: (percent: number, msg: string, items: string[]) => void
 }
 
 export interface RawProvideOptions {

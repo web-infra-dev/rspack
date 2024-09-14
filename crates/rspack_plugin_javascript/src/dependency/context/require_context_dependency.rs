@@ -1,6 +1,6 @@
 use rspack_core::{
   module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleGraph,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleGraph,
   RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -44,8 +44,8 @@ impl Dependency for RequireContextDependency {
     &DependencyType::RequireContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

@@ -54,7 +54,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import type { ModuleDTO } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
-import type { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
@@ -3295,7 +3295,7 @@ export class EnvironmentPlugin {
 }
 
 // @public (undocumented)
-type ErrorWithDetail = Error & {
+type ErrorWithDetails = Error & {
     details?: string;
 };
 
@@ -4511,10 +4511,10 @@ interface GlobalPassOption {
 type GotHandler<T = any> = (result: any | null, callback: (error: Error | null) => void) => void;
 
 // @public (undocumented)
-type GroupConfig = {
+type GroupConfig<T, R = T> = {
     getKeys: (arg0: any) => string[] | undefined;
-    createGroup: <T, R>(arg0: string, arg1: (T | R)[], arg2: T[]) => R;
-    getOptions?: (<T>(arg0: string, arg1: T[]) => GroupOptions) | undefined;
+    createGroup: (key: string, arg1: (T | R)[], arg2: T[]) => R;
+    getOptions?: ((key: string, arg1: T[]) => GroupOptions) | undefined;
 };
 
 // @public
@@ -4577,7 +4577,7 @@ type Hooks = Readonly<{
     extract: HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>;
     filter: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
     filterSorted: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
-    groupResults: HookMap<SyncBailHook<[GroupConfig[], StatsFactoryContext], undefined>>;
+    groupResults: HookMap<SyncBailHook<[GroupConfig<any>[], StatsFactoryContext], undefined>>;
     filterResults: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
     sort: HookMap<SyncBailHook<[
     ((arg1: any, arg2: any) => number)[],
@@ -4626,14 +4626,14 @@ export const HtmlRspackPlugin: {
         publicPath?: string | undefined;
         hash?: boolean | undefined;
         chunks?: string[] | undefined;
-        template?: string | undefined;
-        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-        inject?: boolean | "head" | "body" | undefined;
         base?: string | {
             target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
             href?: string | undefined;
         } | undefined;
+        template?: string | undefined;
+        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+        inject?: boolean | "head" | "body" | undefined;
         scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
         excludeChunks?: string[] | undefined;
         sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4648,14 +4648,14 @@ export const HtmlRspackPlugin: {
             publicPath?: string | undefined;
             hash?: boolean | undefined;
             chunks?: string[] | undefined;
-            template?: string | undefined;
-            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-            inject?: boolean | "head" | "body" | undefined;
             base?: string | {
                 target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
                 href?: string | undefined;
             } | undefined;
+            template?: string | undefined;
+            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+            inject?: boolean | "head" | "body" | undefined;
             scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
             excludeChunks?: string[] | undefined;
             sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4729,14 +4729,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
     } | undefined;
+    template?: string | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+    inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
     excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -4749,14 +4749,14 @@ const htmlRspackPluginOptions: z.ZodObject<{
     publicPath?: string | undefined;
     hash?: boolean | undefined;
     chunks?: string[] | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
     } | undefined;
+    template?: string | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
+    inject?: boolean | "head" | "body" | undefined;
     scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
     excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
@@ -5881,6 +5881,8 @@ const loader: z.ZodRecord<z.ZodString, z.ZodAny>;
 
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
+    // @internal
+    __internal__parseMeta: Record<string, string>;
     // (undocumented)
     addBuildDependency(file: string): void;
     // (undocumented)
@@ -5890,11 +5892,11 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     addMissingDependency(missing: string): void;
     // (undocumented)
-    async(): (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
+    async(): LoaderContextCallback;
     // (undocumented)
     cacheable(cacheable?: boolean): void;
     // (undocumented)
-    callback(err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData): void;
+    callback: LoaderContextCallback;
     // (undocumented)
     clearDependencies(): void;
     // (undocumented)
@@ -5928,7 +5930,7 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     getOptions(schema?: any): OptionsType;
     // (undocumented)
-    getResolve(options: Resolve): (context: any, request: any, callback: any) => Promise<any>;
+    getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
     // (undocumented)
     hot?: boolean;
     // (undocumented)
@@ -5977,6 +5979,9 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     version: 2;
 }
+
+// @public (undocumented)
+type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
 
 // @public (undocumented)
 export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
@@ -7269,11 +7274,11 @@ export class MultiStats {
 class MultiWatching {
     constructor(watchings: Watching[], compiler: MultiCompiler);
     // (undocumented)
-    close(callback: any): void;
+    close(callback: Callback<Error, void>): void;
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: any): void;
+    invalidate(callback: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
@@ -9540,7 +9545,7 @@ export const ProgressPlugin: {
 };
 
 // @public (undocumented)
-export type ProgressPluginArgument = Partial<RawProgressPluginOptions> | undefined;
+export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, "handler">> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
 
 // @public (undocumented)
 export const ProvidePlugin: {
@@ -9820,6 +9825,9 @@ export type ResolveAlias = z.infer<typeof resolveAlias>;
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
 
 // @public (undocumented)
+type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
+
+// @public (undocumented)
 type ResolveContext = {};
 
 // @public (undocumented)
@@ -9859,7 +9867,7 @@ class Resolver {
     // (undocumented)
     binding: binding.JsResolver;
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: (err: null | ErrorWithDetail, res?: string | false) => void): void;
+    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
@@ -15733,7 +15741,7 @@ interface WatchFileSystem {
 
 // @public (undocumented)
 export class Watching {
-    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: (error?: Error, stats?: Stats) => void);
+    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: Callback<Error, Stats>);
     // (undocumented)
     blocked: boolean;
     // (undocumented)
@@ -15743,21 +15751,21 @@ export class Watching {
     // (undocumented)
     compiler: Compiler;
     // (undocumented)
-    handler: (error?: Error, stats?: Stats) => void;
+    handler: Callback<Error, Stats>;
     // (undocumented)
     invalid: boolean;
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
-    isBlocked?: () => boolean;
+    isBlocked: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
     // (undocumented)
     lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
-    onChange?: () => void;
+    onChange: () => void;
     // (undocumented)
-    onInvalid?: () => void;
+    onInvalid: () => void;
     // (undocumented)
     pausedWatcher?: Watcher;
     // (undocumented)
