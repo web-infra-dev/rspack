@@ -92,7 +92,7 @@ const companyList: Company[] = [
     name: 'Trellis',
     logo: trellisLogo,
     url: 'https://trellis.org',
-    width: 110,
+    width: 100,
   },
 ];
 
