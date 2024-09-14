@@ -9,7 +9,7 @@ class JsSource extends Source {
 
 		return new SourceMapSource(
 			source.source.toString("utf-8"),
-			"from rust",
+			"inmemory://from rust",
 			source.map ? JSON.parse(source.map.toString("utf-8")) : null
 		);
 	}

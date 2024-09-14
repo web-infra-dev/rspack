@@ -22,7 +22,7 @@ impl From<JsCompatSource> for BoxSource {
           match SourceMap::from_slice(map.as_ref()).ok() {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
-              name: "from js",
+              name: "inmemory://from js",
               source_map,
             })
             .boxed(),
