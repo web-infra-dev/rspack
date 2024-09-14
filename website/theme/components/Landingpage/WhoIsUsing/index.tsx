@@ -16,6 +16,7 @@ import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
+import trellisLogo from './assets/trellis.svg';
 
 type Company = {
   name: string;
@@ -86,6 +87,12 @@ const companyList: Company[] = [
     logo: getaroundLogo,
     url: 'https://getaround.com',
     width: 110,
+  },
+  {
+    name: 'Trellis',
+    logo: trellisLogo,
+    url: 'https://trellis.org',
+    width: 100,
   },
 ];
 
