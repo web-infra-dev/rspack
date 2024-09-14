@@ -40,7 +40,6 @@ impl Task<MakeTaskContext> for EntryTask {
         Ok(vec![])
       }
       EntryParam::Entry(dep) => {
-        let dep_id = *dep.id();
         module_graph.add_dependency(dep.clone());
         Ok(vec![Box::new(FactorizeTask {
           module_factory: context
@@ -58,8 +57,7 @@ impl Task<MakeTaskContext> for EntryTask {
           issuer: None,
           issuer_layer: None,
           original_module_context: None,
-          dependency: dep,
-          dependencies: vec![dep_id],
+          dependencies: vec![dep],
           resolve_options: None,
           options: context.compiler_options.clone(),
           current_profile: context

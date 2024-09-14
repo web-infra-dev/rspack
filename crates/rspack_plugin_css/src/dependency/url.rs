@@ -1,8 +1,8 @@
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, PublicPath, RealDependencyLocation, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
+  ModuleIdentifier, PublicPath, RealDependencyLocation, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -64,8 +64,8 @@ impl Dependency for CssUrlDependency {
     &DependencyType::CssUrl
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

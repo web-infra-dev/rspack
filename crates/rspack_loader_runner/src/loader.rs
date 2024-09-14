@@ -39,6 +39,14 @@ pub struct LoaderItem<Context> {
   r#type: String,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
+  /// Whether loader was called with [LoaderContext::finish_with].
+  ///
+  /// Indicates that the loader has finished its work,
+  /// otherwise loader runner will reset [`LoaderContext::content`], [`LoaderContext::source_map`], [`LoaderContext::additional_data`].
+  ///
+  /// This flag is used to align with webpack's behavior:
+  /// If nothing is modified in the loader, the loader will reset the content, source map, and additional data.
+  finish_called: AtomicBool,
 }
 
 impl<C> LoaderItem<C> {
@@ -62,11 +70,13 @@ impl<C> LoaderItem<C> {
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_data(&mut self, data: serde_json::Value) {
     self.data = data;
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn pitch_executed(&self) -> bool {
     self.pitch_executed.load(Ordering::Relaxed)
   }
@@ -77,13 +87,27 @@ impl<C> LoaderItem<C> {
   }
 
   #[inline]
+  #[doc(hidden)]
+  pub fn finish_called(&self) -> bool {
+    self.finish_called.load(Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
   pub fn set_pitch_executed(&self) {
     self.pitch_executed.store(true, Ordering::Relaxed)
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_normal_executed(&self) {
     self.normal_executed.store(true, Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
+  pub fn set_finish_called(&self) {
+    self.finish_called.store(true, Ordering::Relaxed)
   }
 }
 
@@ -141,9 +165,14 @@ impl<C> Identifiable for LoaderItem<C> {
 }
 
 #[async_trait]
-pub trait Loader<Context = ()>: Identifiable + Send + Sync {
-  async fn run(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
-    // noop
+pub trait Loader<Context = ()>: Identifiable + Send + Sync
+where
+  Context: Send,
+{
+  async fn run(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
+    // If loader does not implement normal stage,
+    // it should inherit the result from the previous loader.
+    loader_context.current_loader().set_finish_called();
     Ok(())
   }
   async fn pitch(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
@@ -177,6 +206,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         r#type: r#type.to_string(),
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
+        finish_called: AtomicBool::new(false),
       };
     }
     let ident = loader.identifier();
@@ -195,6 +225,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       r#type: String::default(),
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
+      finish_called: AtomicBool::new(false),
     }
   }
 }

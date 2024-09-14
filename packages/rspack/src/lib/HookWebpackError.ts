@@ -73,7 +73,7 @@ export const makeWebpackErrorCallback = <T>(
  * @returns the result
  */
 export const tryRunOrWebpackError = <T>(fn: () => T, hook: string): T => {
-	let r;
+	let r: T;
 	try {
 		r = fn();
 	} catch (err) {

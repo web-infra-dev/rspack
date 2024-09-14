@@ -14,14 +14,14 @@ type GroupOptions = {
 	targetGroupCount?: number | undefined;
 };
 
-export type GroupConfig = {
+export type GroupConfig<T, R = T> = {
 	getKeys: (arg0: any) => string[] | undefined;
-	createGroup: <T, R>(arg0: string, arg1: (T | R)[], arg2: T[]) => R;
-	getOptions?: (<T>(arg0: string, arg1: T[]) => GroupOptions) | undefined;
+	createGroup: (key: string, arg1: (T | R)[], arg2: T[]) => R;
+	getOptions?: ((key: string, arg1: T[]) => GroupOptions) | undefined;
 };
 
 type Group<T, R> = {
-	config: GroupConfig;
+	config: GroupConfig<T, R>;
 	name: string;
 	alreadyGrouped: boolean;
 	items: Set<ItemWithGroups<T, R>> | undefined;
@@ -34,7 +34,7 @@ type ItemWithGroups<T, R> = {
 
 export const smartGrouping = <T, R>(
 	items: T[],
-	groupConfigs: GroupConfig[]
+	groupConfigs: GroupConfig<T, R>[]
 ): (T | R)[] => {
 	const itemsWithGroups: Set<ItemWithGroups<T, R>> = new Set();
 	const allGroups: Map<string, Group<T, R>> = new Map();

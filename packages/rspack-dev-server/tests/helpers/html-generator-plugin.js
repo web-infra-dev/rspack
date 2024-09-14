@@ -65,7 +65,7 @@ module.exports = class HTMLGeneratorPlugin {
 					for (const asset of assets) {
 						const assetName = asset.name;
 
-						if (assetName !== "main.js") {
+						if (assetName !== "main.js" && assetName.endsWith(".js")) {
 							const assetSource = new RawSource(
 								HTMLContentForAssets(assetName)
 							);

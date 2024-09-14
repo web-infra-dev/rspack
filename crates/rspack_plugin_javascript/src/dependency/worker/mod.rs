@@ -1,8 +1,10 @@
+mod create_script_url_dependency;
+pub use create_script_url_dependency::CreateScriptUrlDependency;
 use rspack_core::{
   get_chunk_from_ukey, AsContextDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
-  ModuleDependency, ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -45,8 +47,8 @@ impl Dependency for WorkerDependency {
     &DependencyType::NewWorker
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(

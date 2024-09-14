@@ -12,7 +12,7 @@ pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub context: Context,
-  pub dependency: BoxDependency,
+  pub dependencies: Vec<BoxDependency>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
@@ -25,11 +25,14 @@ pub struct ModuleFactoryCreateData {
 
 impl ModuleFactoryCreateData {
   pub fn request(&self) -> Option<&str> {
-    self
-      .dependency
+    self.dependencies[0]
       .as_module_dependency()
       .map(|d| d.request())
-      .or_else(|| self.dependency.as_context_dependency().map(|d| d.request()))
+      .or_else(|| {
+        self.dependencies[0]
+          .as_context_dependency()
+          .map(|d| d.request())
+      })
   }
 
   pub fn add_file_dependency(&mut self, file: PathBuf) {

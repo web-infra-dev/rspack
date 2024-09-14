@@ -12,7 +12,7 @@ function createRenderRuntimeModulesFn(Template) {
 		const source = new ConcatSource();
 		for (const module of runtimeModules) {
 			const codeGenerationResults = renderContext.codeGenerationResults;
-			let runtimeSource;
+			let runtimeSource: string;
 			if (codeGenerationResults) {
 				runtimeSource = codeGenerationResults.getSource(
 					module,
@@ -72,7 +72,7 @@ export class WebpackModulePlaceholderPlugin {
 			hooks.renderModulePackage.tap(
 				"RuntimeDiffPlugin",
 				(moduleSource, module) => {
-					let cacheEntry;
+					let cacheEntry: unknown;
 					let cache = caches.get(compilation);
 					if (cache === undefined) {
 						caches.set(compilation, (cache = new WeakMap()));

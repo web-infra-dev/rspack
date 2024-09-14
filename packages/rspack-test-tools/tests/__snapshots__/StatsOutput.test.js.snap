@@ -207,6 +207,12 @@ exports[`statsOutput statsOutput/logging-loader should print correct stats for 1
 "
 `;
 
+exports[`statsOutput statsOutput/match-resource-data-url should print correct stats for 1`] = `
+"runtime modules 677 bytes 3 modules
+./index.js 150 bytes [built] [code generated]
+./a.js!=!data:javascript,var __looooooooo.. 98 bytes [built] [code generated]"
+`;
+
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
 "ERROR in × JavaScript parsing error: Expected a semicolon
    ╭─[1:8]
@@ -479,10 +485,10 @@ Rspack compiled with 1 warning"
 exports[`statsOutput statsOutput/try-require-resolve-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
-   ╭─[2:4]
+   ╭─[2:20]
  1 │ try {
  2 │     require.resolve('./missing-module')
-   ·     ───────────────────────────────────
+   ·                     ──────────────────
  3 │ } catch (e) {
  4 │ 
    ╰────
@@ -493,10 +499,10 @@ Rspack compiled with 1 warning"
 exports[`statsOutput statsOutput/try-require-resolve-weak-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
-   ╭─[2:4]
+   ╭─[2:24]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')
-   ·     ───────────────────────────────────────
+   ·                         ──────────────────
  3 │ } catch (e) {
  4 │ 
    ╰────

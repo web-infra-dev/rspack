@@ -241,8 +241,7 @@ pub(crate) struct CssModuleFactory;
 #[async_trait::async_trait]
 impl ModuleFactory for CssModuleFactory {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let css_dep = data
-      .dependency
+    let css_dep = data.dependencies[0]
       .downcast_ref::<CssDependency>()
       .expect("unreachable");
 

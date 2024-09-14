@@ -7,9 +7,10 @@ use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ErrorSpan, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Clone)]
@@ -153,8 +154,7 @@ impl ContextModuleFactory {
     data: &mut ModuleFactoryCreateData,
   ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
     let plugin_driver = &self.plugin_driver;
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
     let mut file_dependencies = Default::default();
@@ -221,7 +221,9 @@ impl ContextModuleFactory {
       specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
-      span: dependency.span(),
+      span: dependency
+        .range()
+        .map(|range| ErrorSpan::new(range.start, range.end)),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),

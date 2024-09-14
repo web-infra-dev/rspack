@@ -16,17 +16,17 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
-pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
+pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
 
-impl FromIterator<(ModuleType, ParserOptions)> for ParserOptionsByModuleType {
-  fn from_iter<I: IntoIterator<Item = (ModuleType, ParserOptions)>>(i: I) -> Self {
+impl FromIterator<(String, ParserOptions)> for ParserOptionsMap {
+  fn from_iter<I: IntoIterator<Item = (String, ParserOptions)>>(i: I) -> Self {
     Self(HashMap::from_iter(i))
   }
 }
 
-impl ParserOptionsByModuleType {
-  pub fn get<'a>(&'a self, module_type: &'a ModuleType) -> Option<&'a ParserOptions> {
-    self.0.get(module_type)
+impl ParserOptionsMap {
+  pub fn get<'a>(&'a self, key: &'a str) -> Option<&'a ParserOptions> {
+    self.0.get(key)
   }
 }
 
@@ -37,6 +37,9 @@ pub enum ParserOptions {
   CssAuto(CssAutoParserOptions),
   CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
+  JavascriptAuto(JavascriptParserOptions),
+  JavascriptEsm(JavascriptParserOptions),
+  JavascriptDynamic(JavascriptParserOptions),
   Unknown,
 }
 
@@ -57,6 +60,13 @@ impl ParserOptions {
   get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
   get_variant!(get_css_module, CssModule, CssModuleParserOptions);
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
+  get_variant!(get_javascript_auto, JavascriptAuto, JavascriptParserOptions);
+  get_variant!(get_javascript_esm, JavascriptEsm, JavascriptParserOptions);
+  get_variant!(
+    get_javascript_dynamic,
+    JavascriptDynamic,
+    JavascriptParserOptions
+  );
 }
 
 #[derive(Debug, Clone, Copy, MergeFrom)]
@@ -259,17 +269,17 @@ pub struct CssModuleParserOptions {
 }
 
 #[derive(Debug)]
-pub struct GeneratorOptionsByModuleType(HashMap<ModuleType, GeneratorOptions>);
+pub struct GeneratorOptionsMap(HashMap<String, GeneratorOptions>);
 
-impl FromIterator<(ModuleType, GeneratorOptions)> for GeneratorOptionsByModuleType {
-  fn from_iter<I: IntoIterator<Item = (ModuleType, GeneratorOptions)>>(i: I) -> Self {
+impl FromIterator<(String, GeneratorOptions)> for GeneratorOptionsMap {
+  fn from_iter<I: IntoIterator<Item = (String, GeneratorOptions)>>(i: I) -> Self {
     Self(HashMap::from_iter(i))
   }
 }
 
-impl GeneratorOptionsByModuleType {
-  pub fn get(&self, module_type: &ModuleType) -> Option<&GeneratorOptions> {
-    self.0.get(module_type)
+impl GeneratorOptionsMap {
+  pub fn get(&self, key: &str) -> Option<&GeneratorOptions> {
+    self.0.get(key)
   }
 }
 
@@ -758,7 +768,7 @@ pub enum ModuleRuleEnforce {
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,
-  pub parser: Option<ParserOptionsByModuleType>,
-  pub generator: Option<GeneratorOptionsByModuleType>,
+  pub parser: Option<ParserOptionsMap>,
+  pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
 }

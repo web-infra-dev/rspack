@@ -33,7 +33,7 @@ export async function launchJestWithArgs(additionalArgs) {
 		"--expose-gc",
 		"--max-old-space-size=8192",
 		"--experimental-vm-modules",
-		"${workspaceFolder}/node_modules/.bin/jest",
+		"${workspaceFolder}/node_modules/jest-cli/bin/jest",
 		"--runInBand",
 		"--logHeapUsage"
 	];

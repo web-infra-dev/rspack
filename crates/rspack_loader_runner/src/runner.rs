@@ -2,7 +2,7 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
@@ -62,7 +62,6 @@ async fn create_loader_context<Context: 'static>(
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-  additional_data: AdditionalData,
 ) -> Result<LoaderContext<Context>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   if let Some(resource_path) = &resource_data.resource_path
@@ -74,6 +73,7 @@ async fn create_loader_context<Context: 'static>(
   let mut loader_context = LoaderContext {
     hot: false,
     cacheable: true,
+    parse_meta: Default::default(),
     file_dependencies,
     context_dependencies: Default::default(),
     missing_dependencies: Default::default(),
@@ -81,7 +81,7 @@ async fn create_loader_context<Context: 'static>(
     content: None,
     context,
     source_map: None,
-    additional_data,
+    additional_data: None,
     state: State::Init,
     loader_index: 0,
     loader_items,
@@ -102,15 +102,13 @@ pub async fn run_loaders<Context: 'static + Send>(
   resource_data: Arc<ResourceData>,
   plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-  additional_data: AdditionalData,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .into_iter()
     .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
 
-  let mut cx =
-    create_loader_context(loaders, resource_data, plugins, context, additional_data).await?;
+  let mut cx = create_loader_context(loaders, resource_data, plugins, context).await?;
 
   loop {
     match cx.state {
@@ -173,6 +171,12 @@ pub async fn run_loaders<Context: 'static + Send>(
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
         loader.run(&mut cx).await?;
+        if !cx.current_loader().finish_called() {
+          // If nothing is returned from this loader,
+          // we set everything to [None] and move to the next loader.
+          // This mocks the behavior of webpack loader-runner.
+          cx.finish_with_empty();
+        }
       }
       State::Finished => break,
     }
@@ -190,7 +194,8 @@ pub struct LoaderResult {
   pub build_dependencies: HashSet<PathBuf>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
+  pub parse_meta: HashMap<String, String>,
 }
 
 impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
@@ -215,6 +220,7 @@ impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderRes
         content,
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,
+        parse_meta: loader_context.parse_meta,
       }
       .with_diagnostic(loader_context.diagnostics),
     )
@@ -230,7 +236,7 @@ mod test {
   use rspack_error::Result;
 
   use super::{run_loaders, Loader, LoaderContext, ResourceData};
-  use crate::{content::Content, plugin::LoaderRunnerPlugin};
+  use crate::{content::Content, plugin::LoaderRunnerPlugin, AdditionalData};
 
   struct TestContentPlugin;
 
@@ -404,15 +410,16 @@ mod test {
       encoded_content: None,
     });
 
-    run_loaders(
+    // Ignore error: Final loader didn't return a Buffer or String
+    assert!(run_loaders(
       vec![p1, p2, c1, c2],
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
-      Default::default(),
     )
     .await
-    .unwrap();
+    .err()
+    .is_some());
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
@@ -420,15 +427,16 @@ mod test {
     let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
     let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
-    run_loaders(
+    // Ignore error: Final loader didn't return a Buffer or String
+    assert!(run_loaders(
       vec![p1, p2, p3],
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
-      Default::default(),
     )
     .await
-    .unwrap();
+    .err()
+    .is_some());
     IDENTS.with(|i| {
       // should not execute p3, as p2 pitched successfully.
       assert!(!i.borrow().contains(&"pitch-normal-normal-2".to_string()));
@@ -456,8 +464,14 @@ mod test {
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
-        let data = loader_context.additional_data.get::<&str>().unwrap();
+        let data = loader_context
+          .additional_data
+          .as_ref()
+          .unwrap()
+          .get::<&str>()
+          .unwrap();
         assert_eq!(*data, "additional-data");
+        loader_context.finish_with(("".to_string(), None, None));
         Ok(())
       }
     }
@@ -473,7 +487,9 @@ mod test {
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
-        loader_context.additional_data.insert("additional-data");
+        let mut additional_data: AdditionalData = Default::default();
+        additional_data.insert("additional-data");
+        loader_context.finish_with(("".to_string(), None, Some(additional_data)));
         Ok(())
       }
     }
@@ -496,9 +512,71 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
-      Default::default(),
     )
     .await
     .unwrap();
+  }
+
+  #[tokio::test]
+  async fn should_override_data_if_finish_with_is_not_called() {
+    struct Normal;
+
+    impl Identifiable for Normal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader1".into()
+      }
+    }
+
+    #[async_trait::async_trait]
+    impl Loader<()> for Normal {
+      async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
+        assert!(loader_context.content.is_some());
+        // Does not call `LoaderContext::finish_with`
+        Ok(())
+      }
+    }
+
+    let rs = Arc::new(ResourceData {
+      scheme: OnceCell::new(),
+      resource: "/rspack/main.js?abc=123#efg".to_owned(),
+      resource_description: None,
+      resource_fragment: None,
+      resource_query: None,
+      resource_path: Default::default(),
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
+    });
+
+    struct Normal2;
+
+    impl Identifiable for Normal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader2".into()
+      }
+    }
+
+    #[async_trait::async_trait]
+    impl Loader<()> for Normal2 {
+      async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
+        let (content, source_map, additional_data) = loader_context.take_all();
+        assert!(content.is_none());
+        assert!(source_map.is_none());
+        assert!(additional_data.is_none());
+        Ok(())
+      }
+    }
+
+    // Ignore error: Final loader didn't return a Buffer or String
+    assert!(run_loaders(
+      vec![Arc::new(Normal2), Arc::new(Normal)],
+      rs,
+      Some(Arc::new(TestContentPlugin)),
+      (),
+    )
+    .await
+    .err()
+    .is_some());
   }
 }

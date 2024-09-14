@@ -136,8 +136,7 @@ impl NormalModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_module_dependency()
       .expect("should be module dependency");
     let dependency_type = *dependency.dependency_type();
@@ -216,7 +215,7 @@ impl NormalModuleFactory {
           {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => {
-              unreachable!("Invalid dependency: {:?}", &data.dependency)
+              unreachable!("Invalid dependency: {:?}", &data.dependencies[0])
             }
           }
         } else {
@@ -389,7 +388,7 @@ impl NormalModuleFactory {
           } else {
             &resource_data
           },
-          data.dependency.as_ref(),
+          data.dependencies[0].as_ref(),
           data.issuer.as_deref(),
           data.issuer_layer.as_deref(),
         )
@@ -691,25 +690,52 @@ impl NormalModuleFactory {
       .module
       .parser
       .as_ref()
-      .and_then(|p| p.get(module_type))
-      .cloned();
+      .and_then(|p| match module_type {
+        ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
+          let options = p.get(module_type.as_str());
+          let javascript_options = p.get("javascript").cloned();
+          // Merge `module.parser.["javascript/xxx"]` with `module.parser.["javascript"]` first
+          rspack_util::merge_from_optional_with(
+            javascript_options,
+            options,
+            |javascript_options, options| match (javascript_options, options) {
+              (
+                ParserOptions::Javascript(a),
+                ParserOptions::JavascriptAuto(b)
+                | ParserOptions::JavascriptDynamic(b)
+                | ParserOptions::JavascriptEsm(b),
+              ) => ParserOptions::Javascript(a.merge_from(b)),
+              _ => unreachable!(),
+            },
+          )
+        }
+        _ => p.get(module_type.as_str()).cloned(),
+      });
     let global_generator = self
       .options
       .module
       .generator
       .as_ref()
-      .and_then(|g| g.get(module_type))
-      .cloned();
+      .and_then(|g| g.get(module_type.as_str()).cloned());
     let parser = rspack_util::merge_from_optional_with(
       global_parser,
       parser.as_ref(),
-      |global, local| match (&global, local) {
-        (ParserOptions::Asset(_), ParserOptions::Asset(_))
-        | (ParserOptions::Css(_), ParserOptions::Css(_))
-        | (ParserOptions::CssAuto(_), ParserOptions::CssAuto(_))
-        | (ParserOptions::CssModule(_), ParserOptions::CssModule(_))
-        | (ParserOptions::Javascript(_), ParserOptions::Javascript(_)) => global.merge_from(local),
-        _ => global,
+      |global, local| match (global, local) {
+        (ParserOptions::Asset(a), ParserOptions::Asset(b)) => ParserOptions::Asset(a.merge_from(b)),
+        (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.merge_from(b)),
+        (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
+          ParserOptions::CssAuto(a.merge_from(b))
+        }
+        (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
+          ParserOptions::CssModule(a.merge_from(b))
+        }
+        (
+          ParserOptions::Javascript(a),
+          ParserOptions::JavascriptAuto(b)
+          | ParserOptions::JavascriptDynamic(b)
+          | ParserOptions::JavascriptEsm(b),
+        ) => ParserOptions::Javascript(a.merge_from(b)),
+        (global, _) => global,
       },
     );
     let generator = rspack_util::merge_from_optional_with(

@@ -37,6 +37,8 @@ pub enum DependencyType {
   NewUrl,
   // new Worker()
   NewWorker,
+  // create script url
+  CreateScriptUrl,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline
@@ -118,6 +120,7 @@ impl DependencyType {
       DependencyType::CjsSelfReference => "cjs self exports reference",
       DependencyType::NewUrl => "new URL()",
       DependencyType::NewWorker => "new Worker()",
+      DependencyType::CreateScriptUrl => "create script url",
       DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
       DependencyType::ImportMetaHotDecline => "import.meta.webpackHot.decline",
       DependencyType::ModuleHotAccept => "module.hot.accept",
