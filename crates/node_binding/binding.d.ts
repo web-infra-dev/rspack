@@ -457,10 +457,8 @@ export interface JsCodegenerationResults {
 }
 
 export interface JsCompatSource {
-  /** Whether the underlying value is a buffer or string */
-  isBuffer: boolean
-  source: Buffer
-  map?: Buffer
+  source: string | Buffer
+  map?: string
 }
 
 export interface JsContextModuleFactoryAfterResolveData {
