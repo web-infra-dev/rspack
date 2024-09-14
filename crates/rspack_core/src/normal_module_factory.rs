@@ -136,8 +136,7 @@ impl NormalModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_module_dependency()
       .expect("should be module dependency");
     let dependency_type = *dependency.dependency_type();
@@ -216,7 +215,7 @@ impl NormalModuleFactory {
           {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => {
-              unreachable!("Invalid dependency: {:?}", &data.dependency)
+              unreachable!("Invalid dependency: {:?}", &data.dependencies[0])
             }
           }
         } else {
@@ -389,7 +388,7 @@ impl NormalModuleFactory {
           } else {
             &resource_data
           },
-          data.dependency.as_ref(),
+          data.dependencies[0].as_ref(),
           data.issuer.as_deref(),
           data.issuer_layer.as_deref(),
         )
