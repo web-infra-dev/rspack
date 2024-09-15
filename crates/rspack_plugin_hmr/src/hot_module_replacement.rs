@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -27,8 +28,9 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     Ok(
       RawSource::from(
         include_str!("runtime/hot_module_replacement.js")
-          .replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
-          .replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE),
+          .cow_replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
+          .cow_replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE)
+          .into_owned(),
       )
       .boxed(),
     )

@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 use std::borrow::Cow;
 
+use cow_utils::CowUtils;
 use json::{
   number::Number,
   object::Object,
@@ -174,7 +175,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let json_expr = if is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
             "JSON.parse('{}')",
-            json_str.replace('\\', r"\\").replace('\'', r"\'")
+            json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
           json_str

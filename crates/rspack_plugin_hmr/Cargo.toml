@@ -14,6 +14,7 @@ rspack_hook        = { version = "0.1.0", path = "../rspack_hook" }
 rspack_util        = { version = "0.1.0", path = "../rspack_util" }
 
 async-trait = { workspace = true }
+cow-utils   = { workspace = true }
 rustc-hash  = { workspace = true }
 serde_json  = { workspace = true }
 tracing     = { workspace = true }

@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -99,8 +100,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/jsonp_chunk_loading.js")
-          .replace("$JS_MATCHER$", &js_matcher)
-          .replace(
+          .cow_replace("$JS_MATCHER$", &js_matcher)
+          .cow_replace(
             "$MATCH_FALLBACK$",
             if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
@@ -108,7 +109,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
               "else installedChunks[chunkId] = 0;\n"
             },
           )
-          .replace(
+          .cow_replace(
             "$FETCH_PRIORITY$",
             if with_fetch_priority {
               ", fetchPriority"
@@ -116,6 +117,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
               ""
             },
           )
+          .into_owned()
       };
 
       source.add(RawSource::from(format!(
@@ -142,8 +144,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       };
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
-          .replace("$JS_MATCHER$", &js_matcher)
-          .replace("$CROSS_ORIGIN$", cross_origin.as_str()),
+          .cow_replace("$JS_MATCHER$", &js_matcher)
+          .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
+          .into_owned(),
       ));
     }
 
@@ -184,22 +187,24 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_preload.js")
-          .replace("$JS_MATCHER$", &js_matcher)
-          .replace("$CROSS_ORIGIN$", cross_origin.as_str())
-          .replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
-          .replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post),
+          .cow_replace("$JS_MATCHER$", &js_matcher)
+          .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
+          .cow_replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
+          .cow_replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post)
+          .into_owned(),
       ));
     }
 
     if with_hmr {
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
-          .replace("$GLOBAL_OBJECT$", &compilation.options.output.global_object)
-          .replace(
+          .cow_replace("$GLOBAL_OBJECT$", &compilation.options.output.global_object)
+          .cow_replace(
             "$HOT_UPDATE_GLOBAL$",
             &serde_json::to_string(&compilation.options.output.hot_update_global)
               .expect("failed to serde_json::to_string(hot_update_global)"),
-          ),
+          )
+          .into_owned(),
       ));
       source.add(RawSource::from(generate_javascript_hmr_runtime("jsonp")));
     }
@@ -223,14 +228,15 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       );
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_callback.js")
-          .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-          .replace(
+          .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
+          .cow_replace(
             "$WITH_ON_CHUNK_LOAD$",
             match with_on_chunk_load {
               true => "return __webpack_require__.O(result);",
               false => "",
             },
-          ),
+          )
+          .into_owned(),
       ));
     }
 

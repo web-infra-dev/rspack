@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
@@ -268,10 +269,11 @@ fn test_get_undo_path() {
 
 pub fn generate_javascript_hmr_runtime(method: &str) -> String {
   include_str!("runtime/javascript_hot_module_replacement.js")
-    .replace("$key$", method)
-    .replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
-    .replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
-    .replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
-    .replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
-    .replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
+    .cow_replace("$key$", method)
+    .cow_replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
+    .cow_replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
+    .cow_replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
+    .cow_replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
+    .cow_replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
+    .into_owned()
 }

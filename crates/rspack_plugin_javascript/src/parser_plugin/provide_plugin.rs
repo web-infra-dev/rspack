@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
@@ -23,7 +24,10 @@ fn create_provide_dep(
 ) -> Option<ProvideDependency> {
   if let Some(requests) = value.get(name) {
     let name_identifier = if name.contains(SOURCE_DOT) {
-      format!("__webpack_provide_{}", name.replace(SOURCE_DOT, MODULE_DOT))
+      format!(
+        "__webpack_provide_{}",
+        name.cow_replace(SOURCE_DOT, MODULE_DOT)
+      )
     } else {
       name.to_string()
     };

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   basic_function, compile_boolean_matcher, impl_runtime_module,
@@ -198,14 +199,15 @@ for(i = 0; cc; i++) {{
 
       source.add(RawSource::from(
         include_str!("./css_loading.js")
-          .replace(
+          .cow_replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
           )
-          .replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
-          .replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
-          .replace("__UNIQUE_NAME__", unique_name)
-          .replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data),
+          .cow_replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
+          .cow_replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
+          .cow_replace("__UNIQUE_NAME__", unique_name)
+          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data)
+          .into_owned(),
       ));
 
       if with_loading {
@@ -216,16 +218,17 @@ for(i = 0; cc; i++) {{
         );
         source.add(RawSource::from(
           include_str!("./css_loading_with_loading.js")
-            .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
-            .replace(
+            .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
+            .cow_replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
+            .cow_replace(
               "$FETCH_PRIORITY$",
               if with_fetch_priority {
                 ", fetchPriority"
               } else {
                 ""
               },
-            ),
+            )
+            .into_owned(),
         ));
       }
 

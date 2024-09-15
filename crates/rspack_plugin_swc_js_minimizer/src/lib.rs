@@ -7,6 +7,7 @@ use std::hash::Hash;
 use std::path::Path;
 use std::sync::{mpsc, LazyLock, Mutex};
 
+use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
@@ -214,7 +215,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let banner = match &extract_comments.banner {
             OptionWrapper::Default => {
               let dir = Path::new(filename).parent().expect("should has parent");
-              let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
+              let raw = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy();
+              let relative = raw.cow_replace('\\', "/");
               Some(format!("/*! For license information please see {relative} */"))
             },
             OptionWrapper::Disabled => None,

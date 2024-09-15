@@ -1,5 +1,6 @@
 use std::{path::PathBuf, sync::LazyLock};
 
+use cow_utils::CowUtils;
 use rspack_core::{
   Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate, NoFilenameFn,
   Plugin,
@@ -155,17 +156,18 @@ async fn generate_html(
     current_ast.visit_mut_with(&mut visitor);
   }
 
-  let mut html = parser
-    .codegen(&mut current_ast, compilation)?
-    .replace("$$RSPACK_URL_AMP$$", "&");
+  let raw_html = parser.codegen(&mut current_ast, compilation)?;
+  let html = raw_html.cow_replace("$$RSPACK_URL_AMP$$", "&");
 
-  if !has_doctype {
-    html = html.replace("<!DOCTYPE html>", "");
-  }
+  let html = if has_doctype {
+    html
+  } else {
+    html.cow_replace("<!DOCTYPE html>", "")
+  };
 
   Ok((
     template_file_name.to_string(),
-    html,
+    html.into_owned(),
     template.file_dependencies,
   ))
 }
@@ -178,8 +180,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let output_file_name = FilenameTemplate::from(
     config
       .filename
-      .replace("[templatehash]", "[contenthash]")
-      .clone(),
+      .cow_replace("[templatehash]", "[contenthash]")
+      .into_owned(),
   );
 
   let (template_file_name, html) =

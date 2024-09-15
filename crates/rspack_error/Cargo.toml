@@ -9,6 +9,7 @@ version     = "0.1.0"
 
 [dependencies]
 anyhow             = { workspace = true, features = ["backtrace"] }
+cow-utils          = { workspace = true }
 derivative         = { workspace = true }
 futures            = { workspace = true }
 miette             = { version = "5", features = ["fancy"] }

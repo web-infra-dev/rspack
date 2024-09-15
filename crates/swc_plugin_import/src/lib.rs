@@ -5,6 +5,7 @@ mod visit;
 
 use std::fmt::Debug;
 
+use cow_utils::CowUtils;
 use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
 use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -261,7 +262,7 @@ pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.to_uppercase().as_ref())?;
+        out.write(param.cow_to_uppercase().as_ref())?;
         Ok(())
       },
     ),
@@ -280,7 +281,7 @@ pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.to_lowercase().as_ref())?;
+        out.write(param.cow_to_lowercase().as_ref())?;
         Ok(())
       },
     ),
