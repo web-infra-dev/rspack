@@ -1,14 +1,8 @@
-use std::sync::LazyLock;
-
 use indexmap::IndexMap;
-use regex::{Captures, Regex};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{
-  merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER,
-  CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
-};
+use crate::{merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec};
 
 pub fn get_entry_runtime(
   name: &str,
@@ -48,14 +42,26 @@ pub fn get_entry_runtime(
   }
 }
 
-static HASH_REPLACERS: LazyLock<Vec<(&LazyLock<Regex>, &str)>> = LazyLock::new(|| {
-  vec![
-    (&HASH_PLACEHOLDER, "[hash]"),
-    (&FULL_HASH_PLACEHOLDER, "[fullhash]"),
-    (&CHUNK_HASH_PLACEHOLDER, "[chunkhash]"),
-    (&CONTENT_HASH_PLACEHOLDER, "[contenthash]"),
-  ]
-});
+pub struct ExtractedHashPattern {
+  pub pattern: String,
+  pub len: Option<usize>,
+}
+
+/// Extract `[hash]` or `[hash:8]` in the template
+pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPattern> {
+  let start = pattern.find(&key[..key.len() - 1])?;
+  let end = pattern[start + 5..].find(']')?;
+  let len = if let Some(n) = pattern[start + 5..start + 5 + end].strip_prefix(':') {
+    Some(n.parse::<usize>().ok()?)
+  } else {
+    None
+  };
+  let pattern = &pattern[start..=start + 5 + end];
+  Some(ExtractedHashPattern {
+    pattern: pattern.to_string(),
+    len,
+  })
+}
 
 pub fn get_filename_without_hash_length<F: Clone>(
   filename: &Filename<F>,
@@ -65,18 +71,13 @@ pub fn get_filename_without_hash_length<F: Clone>(
     return (filename.clone(), hash_len_map);
   };
   let mut template = template.to_string();
-  for (reg, key) in HASH_REPLACERS.iter() {
-    template = reg
-      .replace_all(&template, |caps: &Captures| {
-        if let Some(hash_len) = match caps.get(2) {
-          Some(m) => m.as_str().parse().ok(),
-          None => None,
-        } {
-          hash_len_map.insert((*key).to_string(), hash_len);
-        }
-        key
-      })
-      .into_owned();
+  for key in ["[hash]", "[fullhash]", "[chunkhash]", "[contenthash]"] {
+    if let Some(p) = extract_hash_pattern(&template, key) {
+      if let Some(hash_len) = p.len {
+        hash_len_map.insert((*key).to_string(), hash_len);
+      }
+      template = template.replace(&p.pattern, key);
+    }
   }
   (Filename::from(template), hash_len_map)
 }

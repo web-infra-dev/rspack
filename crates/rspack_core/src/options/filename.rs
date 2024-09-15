@@ -6,13 +6,15 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use regex::{Captures, NoExpand, Regex};
+use cow_utils::CowUtils;
+use regex::{NoExpand, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
 use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
+use crate::extract_hash_pattern;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
 pub static FILE_PLACEHOLDER: LazyLock<Regex> =
@@ -35,14 +37,6 @@ pub static RUNTIME_PLACEHOLDER: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
 pub static URL_PLACEHOLDER: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
-pub static HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
-pub static CHUNK_HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
-pub static CONTENT_HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
-pub static FULL_HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
 
 static DATA_URI_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
@@ -177,17 +171,21 @@ impl<F> FromStr for Filename<F> {
   }
 }
 
-fn hash_len(hash: &str, caps: &Captures) -> usize {
+#[inline]
+fn hash_len(hash: &str, len: Option<usize>) -> usize {
   let hash_len = hash.len();
-  caps
-    .get(2)
-    .and_then(|m| m.as_str().parse().ok())
-    .unwrap_or(hash_len)
-    .min(hash_len)
+  len.unwrap_or(hash_len).min(hash_len)
 }
 
 pub fn has_hash_placeholder(template: &str) -> bool {
-  HASH_PLACEHOLDER.is_match(template) || FULL_HASH_PLACEHOLDER.is_match(template)
+  for key in ["[hash]", "[fullhash]"] {
+    if let Some(start) = template.find(&key[..key.len() - 1]) {
+      if template[start + 5..].find(']').is_some() {
+        return true;
+      }
+    }
+  }
+  false
 }
 
 impl<F> Filename<F> {
@@ -290,18 +288,20 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      CONTENT_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
-        let content_hash = &content_hash[..hash_len(content_hash, caps)];
+      if let Some(p) = extract_hash_pattern(t, "[contenthash]") {
+        let hash: &str = &content_hash[..hash_len(content_hash, p.len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
-          asset_info.set_content_hash(content_hash.to_owned());
+          asset_info.set_content_hash(hash.to_owned());
         }
-        content_hash
-      })
+        t.cow_replace(&p.pattern, hash)
+      } else {
+        Cow::Borrowed(t)
+      }
     });
   }
   if let Some(hash) = options.hash {
-    for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
+    for key in ["[hash]", "[fullhash]"] {
       t = t.map(|t| {
         reg.replace_all(t, |caps: &Captures| {
           let hash = &hash[..hash_len(hash, caps)];
@@ -325,15 +325,17 @@ fn render_template(
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
-        CHUNK_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
-          let hash = &**d;
-          let hash = &hash[..hash_len(hash, caps)];
+        let hash = &**d;
+        if let Some(p) = extract_hash_pattern(t, "[chunkhash]") {
+          let hash: &str = &hash[..hash_len(hash, p.len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
             asset_info.set_chunk_hash(hash.to_owned());
           }
-          hash
-        })
+          t.cow_replace(&p.pattern, hash)
+        } else {
+          Cow::Borrowed(t)
+        }
       });
     }
   }
