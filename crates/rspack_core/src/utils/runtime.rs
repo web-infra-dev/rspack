@@ -52,12 +52,10 @@ pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPat
   let key_offset = key.len() - 1;
   let start = pattern.find(&key[..key_offset])?;
   let end = pattern[start + key_offset..].find(']')?;
-  let len = if let Some(n) = pattern[start + key_offset..start + key_offset + end].strip_prefix(':')
-  {
-    Some(n.parse::<usize>().ok()?)
-  } else {
-    None
-  };
+  let len = pattern[start + key_offset..start + key_offset + end]
+    .strip_prefix(':')
+    .and_then(|n| n.parse::<usize>().ok());
+
   let pattern = &pattern[start..=start + key_offset + end];
   Some(ExtractedHashPattern {
     pattern: pattern.to_string(),
@@ -115,7 +113,9 @@ where
 fn test_replace_all_hash_pattern() {
   let result = replace_all_hash_pattern("hello-[hash].js", "[hash]", |_| "abc");
   assert_eq!(result, Some("hello-abc.js".to_string()));
-  let result = replace_all_hash_pattern("hello-[hash]-[hash:5].js", "[hash]", |_| "abcde");
+  let result = replace_all_hash_pattern("hello-[hash]-[hash:5].js", "[hash]", |n| {
+    &"abcdefgh"[..n.unwrap_or(8)]
+  });
   assert_eq!(result, Some("hello-abcdefgh-abcde.js".to_string()));
 }
 

@@ -178,8 +178,9 @@ fn hash_len(hash: &str, len: Option<usize>) -> usize {
 
 pub fn has_hash_placeholder(template: &str) -> bool {
   for key in ["[hash]", "[fullhash]"] {
-    if let Some(start) = template.find(&key[..key.len() - 1]) {
-      if template[start + 5..].find(']').is_some() {
+    let offset = key.len() - 1;
+    if let Some(start) = template.find(&key[..offset]) {
+      if template[start + offset..].find(']').is_some() {
         return true;
       }
     }
