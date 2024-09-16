@@ -3,6 +3,9 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec};
+use crate::{
+  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+};
 
 pub fn get_entry_runtime(
   name: &str,
@@ -63,6 +66,7 @@ pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPat
   })
 }
 
+/// Replace all `[hash]` or `[hash:8]` in the pattern
 pub fn replace_all_hash_pattern<'a, F, S>(
   pattern: &'a str,
   key: &'a str,
@@ -127,7 +131,12 @@ pub fn get_filename_without_hash_length<F: Clone>(
     return (filename.clone(), hash_len_map);
   };
   let mut template = template.to_string();
-  for key in ["[hash]", "[fullhash]", "[chunkhash]", "[contenthash]"] {
+  for key in [
+    HASH_PLACEHOLDER,
+    FULL_HASH_PLACEHOLDER,
+    CHUNK_HASH_PLACEHOLDER,
+    CONTENT_HASH_PLACEHOLDER,
+  ] {
     if let Some(p) = extract_hash_pattern(&template, key) {
       if let Some(hash_len) = p.len {
         hash_len_map.insert((*key).to_string(), hash_len);

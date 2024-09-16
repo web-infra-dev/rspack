@@ -37,6 +37,11 @@ pub static RUNTIME_PLACEHOLDER: LazyLock<Regex> =
 pub static URL_PLACEHOLDER: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
 
+pub static HASH_PLACEHOLDER: &str = "[hash]";
+pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
+pub static CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
+pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
+
 static DATA_URI_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
@@ -177,7 +182,7 @@ fn hash_len(hash: &str, len: Option<usize>) -> usize {
 }
 
 pub fn has_hash_placeholder(template: &str) -> bool {
-  for key in ["[hash]", "[fullhash]"] {
+  for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
     let offset = key.len() - 1;
     if let Some(start) = template.find(&key[..offset]) {
       if template[start + offset..].find(']').is_some() {
@@ -288,7 +293,7 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      replace_all_hash_pattern(t, "[contenthash]", |len| {
+      replace_all_hash_pattern(t, CONTENT_HASH_PLACEHOLDER, |len| {
         let hash: &str = &content_hash[..hash_len(content_hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
@@ -300,7 +305,7 @@ fn render_template(
     });
   }
   if let Some(hash) = options.hash {
-    for key in ["[hash]", "[fullhash]"] {
+    for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
       t = t.map(|t| {
         replace_all_hash_pattern(t, key, |len| {
           let hash = &hash[..hash_len(hash, len)];
@@ -326,7 +331,7 @@ fn render_template(
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
         let hash = &**d;
-        replace_all_hash_pattern(t, "[chunkhash]", |len| {
+        replace_all_hash_pattern(t, CHUNK_HASH_PLACEHOLDER, |len| {
           let hash: &str = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
