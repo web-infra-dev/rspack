@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use cow_utils::CowUtils;
 use regex::{NoExpand, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
@@ -14,7 +13,7 @@ use rspack_util::atom::Atom;
 use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
-use crate::extract_hash_pattern;
+use crate::replace_all_hash_pattern;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
 pub static FILE_PLACEHOLDER: LazyLock<Regex> =
@@ -288,16 +287,15 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      if let Some(p) = extract_hash_pattern(t, "[contenthash]") {
-        let hash: &str = &content_hash[..hash_len(content_hash, p.len)];
+      replace_all_hash_pattern(t, "[contenthash]", |len| {
+        let hash: &str = &content_hash[..hash_len(content_hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
           asset_info.set_content_hash(hash.to_owned());
         }
-        t.cow_replace(&p.pattern, hash)
-      } else {
-        Cow::Borrowed(t)
-      }
+        hash
+      })
+      .map_or(Cow::Borrowed(t), Cow::Owned)
     });
   }
   if let Some(hash) = options.hash {
@@ -326,16 +324,15 @@ fn render_template(
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
         let hash = &**d;
-        if let Some(p) = extract_hash_pattern(t, "[chunkhash]") {
-          let hash: &str = &hash[..hash_len(hash, p.len)];
+        replace_all_hash_pattern(t, "[chunkhash]", |len| {
+          let hash: &str = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
             asset_info.set_chunk_hash(hash.to_owned());
           }
-          t.cow_replace(&p.pattern, hash)
-        } else {
-          Cow::Borrowed(t)
-        }
+          hash
+        })
+        .map_or(Cow::Borrowed(t), Cow::Owned)
       });
     }
   }

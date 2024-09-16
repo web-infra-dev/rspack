@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -67,60 +65,58 @@ pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPat
   })
 }
 
-pub fn replace_all_hash_pattern<'a>(pattern: &'a str, key: &'a str, hash: &'a str) -> Cow<'a, str> {
-  let key_offset = key.len() - 1;
-  let key = &key[..key_offset];
+pub fn replace_all_hash_pattern<'a, F, S>(
+  pattern: &'a str,
+  key: &'a str,
+  mut hash: F,
+) -> Option<String>
+where
+  F: FnMut(Option<usize>) -> S,
+  S: AsRef<str>,
+{
+  let offset = key.len() - 1;
+  let mut iter = pattern.match_indices(&key[..offset]).peekable();
 
-  let Some(start) = pattern.find(key) else {
-    return Cow::Borrowed(pattern);
-  };
+  iter.peek()?;
 
-  let Some(end) = pattern[start + key_offset..].find(']') else {
-    return Cow::Borrowed(pattern);
-  };
-
-  let hash_len = hash.len();
+  let mut ending = 0;
   let mut result = String::with_capacity(pattern.len());
 
-  result.push_str(&pattern[..start]);
-  result.push_str(
-    &hash[..pattern[start + key_offset..start + key_offset + end]
-      .strip_prefix(':')
-      .map(|n| n.parse::<usize>().ok().unwrap_or(hash_len).min(hash_len))
-      .unwrap_or(hash_len)],
-  );
+  for (start, _) in iter {
+    if start < ending {
+      continue;
+    }
 
-  let mut offset = start + key_offset + end;
+    let start_offset = start + offset;
+    if let Some(end) = pattern[start_offset..].find(']') {
+      let end = start_offset + end;
 
-  while let Some(start) = pattern[offset..].find(key) {
-    let start = offset + start;
-    if let Some(end) = pattern[start + key_offset..].find(']') {
-      let hash_len = pattern[start + key_offset..start + key_offset + end]
-        .strip_prefix(':')
-        .map(|n| n.parse::<usize>().ok().unwrap_or(hash_len).min(hash_len))
-        .unwrap_or(hash_len);
+      let hash = hash(
+        pattern[start_offset..end]
+          .strip_prefix(':')
+          .and_then(|n| n.parse::<usize>().ok()),
+      );
 
-      result.push_str(&pattern[offset + 1..start]);
-      result.push_str(&hash[..hash_len]);
+      result.push_str(&pattern[ending..start]);
+      result.push_str(hash.as_ref());
 
-      offset = start + key_offset + end;
-    } else {
-      result.push_str(&pattern[offset + 1..]);
-      return Cow::Owned(result);
+      ending = end + 1;
     }
   }
 
-  result.push_str(&pattern[offset + 1..]);
+  if ending < pattern.len() {
+    result.push_str(&pattern[ending..]);
+  }
 
-  Cow::Owned(result)
+  Some(result)
 }
 
 #[test]
 fn test_replace_all_hash_pattern() {
-  let result = replace_all_hash_pattern("hello-[hash].js", "[hash]", "abc");
-  assert_eq!(result.as_ref(), "hello-abc.js");
-  let result = replace_all_hash_pattern("hello-[hash]-[hash:5].js", "[hash]", "abcdefgh");
-  assert_eq!(result.as_ref(), "hello-abcdefgh-abcde.js");
+  let result = replace_all_hash_pattern("hello-[hash].js", "[hash]", |_| "abc");
+  assert_eq!(result, Some("hello-abc.js".to_string()));
+  let result = replace_all_hash_pattern("hello-[hash]-[hash:5].js", "[hash]", |_| "abcde");
+  assert_eq!(result, Some("hello-abcdefgh-abcde.js".to_string()));
 }
 
 pub fn get_filename_without_hash_length<F: Clone>(
