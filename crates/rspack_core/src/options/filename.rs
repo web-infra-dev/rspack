@@ -302,14 +302,15 @@ fn render_template(
   if let Some(hash) = options.hash {
     for key in ["[hash]", "[fullhash]"] {
       t = t.map(|t| {
-        reg.replace_all(t, |caps: &Captures| {
-          let hash = &hash[..hash_len(hash, caps)];
+        replace_all_hash_pattern(t, key, |len| {
+          let hash = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
             asset_info.set_full_hash(hash.to_owned());
           }
           hash
         })
+        .map_or(Cow::Borrowed(t), Cow::Owned)
       });
     }
   }
