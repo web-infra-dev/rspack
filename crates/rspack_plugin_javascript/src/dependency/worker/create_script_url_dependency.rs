@@ -1,18 +1,18 @@
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyType, RealDependencyLocation,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, RealDependencyLocation, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
 pub struct CreateScriptUrlDependency {
   id: DependencyId,
   range: RealDependencyLocation,
-  range_path: DependencyRange,
+  range_path: RealDependencyLocation,
 }
 
 impl CreateScriptUrlDependency {
-  pub fn new(range: RealDependencyLocation, range_path: DependencyRange) -> Self {
+  pub fn new(range: RealDependencyLocation, range_path: RealDependencyLocation) -> Self {
     Self {
       id: DependencyId::new(),
       range,

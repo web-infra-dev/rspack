@@ -3,9 +3,9 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
+  HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -38,14 +38,14 @@ impl DeclarationInfo {
 pub struct HarmonyExportExpressionDependency {
   id: DependencyId,
   range: RealDependencyLocation,
-  range_stmt: DependencyRange,
+  range_stmt: RealDependencyLocation,
   declaration: Option<DeclarationId>,
 }
 
 impl HarmonyExportExpressionDependency {
   pub fn new(
     range: RealDependencyLocation,
-    range_stmt: DependencyRange,
+    range_stmt: RealDependencyLocation,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {

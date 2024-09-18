@@ -8,11 +8,10 @@ use rspack_core::RealDependencyLocation;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoProvided, ExportsType,
-  ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleIdentifier, ProvidedExports, RuntimeCondition, TemplateContext,
-  TemplateReplaceSource,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ExportInfoProvided, ExportsType, ExtendedReferencedExport,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
@@ -49,7 +48,7 @@ pub struct HarmonyImportSideEffectDependency {
   pub source_order: i32,
   pub id: DependencyId,
   pub range: RealDependencyLocation,
-  pub range_src: DependencyRange,
+  pub range_src: RealDependencyLocation,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   attributes: Option<ImportAttributes>,
@@ -62,7 +61,7 @@ impl HarmonyImportSideEffectDependency {
     request: Atom,
     source_order: i32,
     range: RealDependencyLocation,
-    range_src: DependencyRange,
+    range_src: RealDependencyLocation,
     dependency_type: DependencyType,
     export_all: bool,
     attributes: Option<ImportAttributes>,

@@ -1,6 +1,6 @@
 use rspack_core::{
   AsModuleDependency, Compilation, ContextDependency, ContextOptions, ContextOptions, Dependency,
-  Dependency, DependencyCategory, DependencyCategory, DependencyId, DependencyId, DependencyRange,
+  Dependency, DependencyCategory, DependencyCategory, DependencyId, DependencyId,
   DependencyTemplate, DependencyTemplate, DependencyType, DependencyType, ModuleGraph,
   RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateContext, TemplateReplaceSource,
   TemplateReplaceSource,
@@ -16,7 +16,7 @@ pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: RealDependencyLocation,
-  range_callee: DependencyRange,
+  range_callee: RealDependencyLocation,
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
@@ -26,7 +26,7 @@ impl ImportContextDependency {
   pub fn new(
     options: ContextOptions,
     range: RealDependencyLocation,
-    range_callee: DependencyRange,
+    range_callee: RealDependencyLocation,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);

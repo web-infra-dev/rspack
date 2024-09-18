@@ -9,7 +9,7 @@ use rspack_error::{
 };
 use rspack_util::ext::AsAny;
 
-use crate::{BoxLoader, DependencyRange};
+use crate::{BoxLoader, RealDependencyLocation};
 
 ///////////////////// Module Factory /////////////////////
 
@@ -18,7 +18,7 @@ use crate::{BoxLoader, DependencyRange};
 pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
 
 impl EmptyDependency {
-  pub fn new(span: DependencyRange) -> Self {
+  pub fn new(span: RealDependencyLocation) -> Self {
     Self(
       TraceableError::from_lazy_file(
         span.start as usize,

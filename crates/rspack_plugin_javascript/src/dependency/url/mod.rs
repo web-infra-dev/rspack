@@ -1,8 +1,8 @@
 use rspack_core::{
   get_dependency_used_by_exports_condition, module_id, AsContextDependency, Compilation,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ModuleDependency, RealDependencyLocation, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ModuleDependency, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -11,7 +11,7 @@ pub struct URLDependency {
   id: DependencyId,
   request: Atom,
   range: RealDependencyLocation,
-  range_url: DependencyRange,
+  range_url: RealDependencyLocation,
   used_by_exports: Option<UsedByExports>,
   relative: bool,
 }
@@ -20,7 +20,7 @@ impl URLDependency {
   pub fn new(
     request: Atom,
     range: RealDependencyLocation,
-    range_url: DependencyRange,
+    range_url: RealDependencyLocation,
     relative: bool,
   ) -> Self {
     Self {
