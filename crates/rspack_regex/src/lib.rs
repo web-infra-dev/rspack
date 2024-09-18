@@ -2,6 +2,7 @@
 
 use std::fmt::Debug;
 
+use cow_utils::CowUtils;
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
@@ -72,8 +73,9 @@ impl RspackRegex {
     } else {
       self.to_source_string()
     }
-    .replace('!', "%21")
-    .replace('|', "%7C")
+    .cow_replace('!', "%21")
+    .cow_replace('|', "%7C")
+    .into_owned()
   }
 }
 

@@ -5,6 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use cow_utils::CowUtils;
 use napi::{
   bindgen_prelude::{Buffer, FromNapiValue, Promise, ToNapiValue},
   Env, JsFunction, NapiRaw,
@@ -1161,7 +1162,11 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         ),
         module_identifier: module.identifier().to_string(),
         constructor_name: module.get_constructor_name(),
-        name: module.name().to_string().replace("webpack/runtime/", ""),
+        name: module
+          .name()
+          .as_str()
+          .cow_replace("webpack/runtime/", "")
+          .into_owned(),
       },
       chunk: JsChunk::from(chunk),
     };

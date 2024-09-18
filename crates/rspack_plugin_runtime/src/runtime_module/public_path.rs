@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   has_hash_placeholder, impl_runtime_module,
@@ -25,10 +26,14 @@ impl RuntimeModule for PublicPathRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
-      RawSource::from(include_str!("runtime/public_path.js").replace(
-        "__PUBLIC_PATH_PLACEHOLDER__",
-        &PublicPath::render_filename(compilation, &self.public_path),
-      ))
+      RawSource::from(
+        include_str!("runtime/public_path.js")
+          .cow_replace(
+            "__PUBLIC_PATH_PLACEHOLDER__",
+            &PublicPath::render_filename(compilation, &self.public_path),
+          )
+          .into_owned(),
+      )
       .boxed(),
     )
   }

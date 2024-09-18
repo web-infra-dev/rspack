@@ -9,6 +9,7 @@ version     = "0.1.0"
 anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+cow-utils = { workspace = true }
 dashmap = { workspace = true }
 fast-glob = "0.4.0"
 indexmap = { workspace = true }
