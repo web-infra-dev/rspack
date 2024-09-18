@@ -1,79 +1,51 @@
 import type { JsCompatSource } from "@rspack/binding";
-import { CompatSource, RawSource, Source } from "webpack-sources";
-
-import { isNil } from "./index";
+import { RawSource, Source, SourceMapSource } from "webpack-sources";
 
 class JsSource extends Source {
 	static __from_binding(source: JsCompatSource): Source {
-		if (source.isRaw) {
-			return new RawSource(
-				// @ts-expect-error: webpack-sources can accept buffer as source, see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/RawSource.js#L12
-				source.isBuffer ? source.source : source.source.toString("utf-8")
-			);
+		if (source.source instanceof Buffer) {
+			// @ts-expect-error: webpack-sources can accept buffer as source,
+			// see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/RawSource.js#L12
+			return new RawSource(source.source);
 		}
-
 		if (!source.map) {
-			return new RawSource(source.source.toString("utf-8"));
+			return new RawSource(source.source);
 		}
-
-		return new CompatSource({
-			source() {
-				return source.source.toString("utf-8");
-			},
-			buffer() {
-				return source.source;
-			},
-			map(_) {
-				if (source.map) {
-					return JSON.parse(source.map.toString("utf-8"));
-				}
-
-				return null;
-			}
-		});
+		return new SourceMapSource(
+			source.source,
+			"inmemory://from rust",
+			// @ts-expect-error: SourceMapSource can accept string as source map,
+			// see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/SourceMapSource.js#L30
+			source.map
+		);
 	}
 
-	static __to_binding(source: Source) {
-		const sourceSource = source.source();
-		const isBuffer = Buffer.isBuffer(sourceSource);
-
+	static __to_binding(source: Source): JsCompatSource {
 		if (source instanceof RawSource) {
+			// @ts-expect-error: The 'isBuffer' method exists on 'RawSource' in 'webpack-sources',
+			if (source.isBuffer()) {
+				return {
+					source: source.buffer()
+				};
+			}
 			return {
-				source: source.buffer(),
-				isRaw: true,
-				isBuffer
+				source: source.source()
 			};
 		}
 
-		const buffer =
-			source.buffer?.() ??
-			(isBuffer
-				? sourceSource
-				: sourceSource instanceof ArrayBuffer
-					? arrayBufferToBuffer(sourceSource)
-					: Buffer.from(sourceSource));
 		const map = JSON.stringify(
 			source.map?.({
 				columns: true
 			})
 		);
 
+		const code = source.source();
 		return {
-			source: buffer,
-			map: isNil(map) ? map : Buffer.from(map),
-			isRaw: false,
-			isBuffer
+			source:
+				typeof code === "string" ? code : Buffer.from(code).toString("utf-8"),
+			map
 		};
 	}
-}
-
-function arrayBufferToBuffer(ab: ArrayBuffer) {
-	const buf = Buffer.alloc(ab.byteLength);
-	const view = new Uint8Array(ab);
-	for (let i = 0; i < buf.length; ++i) {
-		buf[i] = view[i];
-	}
-	return buf;
 }
 
 export { JsSource };

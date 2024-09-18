@@ -11,7 +11,7 @@ use napi::{
   Env, JsFunction, NapiRaw,
 };
 use rspack_binding_values::{
-  CompatSource, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
+  JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
   JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
   JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
   JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
@@ -24,14 +24,13 @@ use rspack_binding_values::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, rspack_sources::SourceExt, AfterResolveData, AfterResolveResult,
-  AssetEmittedInfo, BeforeResolveData, BeforeResolveResult, BoxModule, Chunk, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  parse_resource, AfterResolveData, AfterResolveResult, AssetEmittedInfo, BeforeResolveData,
+  BeforeResolveResult, BoxModule, Chunk, ChunkUkey, CodeGenerationResults, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -1177,7 +1176,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .runtime_modules
         .get_mut(m)
         .expect("should have module");
-      module.set_custom_source(CompatSource::from(source).boxed())
+      module.set_custom_source(source.into())
     }
     Ok(())
   }
