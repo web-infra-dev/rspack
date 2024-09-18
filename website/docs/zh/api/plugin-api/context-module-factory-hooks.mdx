@@ -3,9 +3,25 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # ContextModuleFactory 钩子
 
+## `beforeResolve`
+
+`AsyncSeriesWaterfallHook<[ResolveData]>`
+
+在解析请求的目录之前调用。请求可以通过返回 `false` 来忽略。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[ResolveData]>`
+`AsyncSeriesWaterfallHook<[ResolveData]>`
 
 在请求的目录解析后调用。
 
@@ -18,3 +34,9 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
     <ResolveDataType />
   </CollapsePanel>
 </Collapse>
+
+## `alternativeRequests`
+
+`AsyncSeriesWaterfallHook<[AlternativeRequests, ContextModuleOptions]>`
+
+在创建请求之后但依据 regExp 进行过滤之前，为每个文件调用。

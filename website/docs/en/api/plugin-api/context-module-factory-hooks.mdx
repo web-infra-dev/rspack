@@ -3,9 +3,25 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # ContextModuleFactory
 
+## `beforeResolve`
+
+`AsyncSeriesWaterfallHook<[ResolveData]>`
+
+Called before resolving the requested directory. The request can be ignored by returning `false`.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[ResolveData]>`
+`AsyncSeriesWaterfallHook<[ResolveData]>`
 
 Called after the requested directory resolved.
 
@@ -18,3 +34,9 @@ Called after the requested directory resolved.
     <ResolveDataType />
   </CollapsePanel>
 </Collapse>
+
+## `alternativeRequests`
+
+`AsyncSeriesWaterfallHook<[AlternativeRequests, ContextModuleOptions]>`
+
+Called after the requested directory resolved.

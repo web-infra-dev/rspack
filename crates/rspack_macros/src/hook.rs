@@ -239,11 +239,13 @@ impl ExecKind {
         }
       }
       Self::AsyncSeriesWaterfall { .. } => {
+        let first_arg = args[0];
+        let rest_args: Punctuated<&Ident, Comma> = args.into_iter().skip(1).collect();
         quote! {
           #additional_taps
-          let mut data = #args;
+          let mut data = #first_arg;
           for tap in all_taps {
-            data = tap.run(data).await?
+            data = tap.run(data, #rest_args).await?
           }
           Ok(data)
         }

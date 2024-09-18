@@ -38,6 +38,7 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
+import type { JsContextModuleOptions } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -1556,6 +1557,10 @@ class ContextModuleFactory {
         afterResolve: liteTapable.AsyncSeriesWaterfallHook<[
         ContextModuleFactoryAfterResolveResult
         ], ContextModuleFactoryAfterResolveResult | void>;
+        alternativeRequests: liteTapable.AsyncSeriesWaterfallHook<[
+        ContextModuleFactoryAlternativeRequests,
+        JsContextModuleOptions
+        ], ContextModuleFactoryAlternativeRequests | void>;
     };
 }
 
@@ -1567,6 +1572,12 @@ type ContextModuleFactoryAfterResolveResult = false | {
     regExp?: RegExp;
     dependencies: Array<any>;
 };
+
+// @public (undocumented)
+type ContextModuleFactoryAlternativeRequests = Array<{
+    context: string;
+    request: string;
+}>;
 
 // @public (undocumented)
 type ContextModuleFactoryBeforeResolveResult = false | {
