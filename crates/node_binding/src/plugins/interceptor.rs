@@ -20,7 +20,8 @@ use rspack_binding_values::{
   JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
   JsFactorizeOutput, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
   JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, ToJsCompatSource, ToJsModule,
+  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
+  JsRuntimeRequirementInTreeResult, ToJsCompatSource, ToJsModule,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -36,12 +37,13 @@ use rspack_core::{
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
   CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
   CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationSeal, CompilationSealHook, CompilationStillValidModule,
-  CompilationStillValidModuleHook, CompilationSucceedModule, CompilationSucceedModuleHook,
-  CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted, CompilerAssetEmittedHook,
-  CompilerCompilation, CompilerCompilationHook, CompilerEmit, CompilerEmitHook, CompilerFinishMake,
-  CompilerFinishMakeHook, CompilerMake, CompilerMakeHook, CompilerShouldEmit,
-  CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
+  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
+  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
+  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
+  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
+  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
+  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerMake, CompilerMakeHook,
+  CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
   ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
   ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
@@ -321,6 +323,7 @@ pub enum RegisterJsTapKind {
   CompilationOptimizeTree,
   CompilationOptimizeChunkModules,
   CompilationAdditionalTreeRuntimeRequirements,
+  CompilationRuntimeRequirementInTree,
   CompilationRuntimeModule,
   CompilationChunkHash,
   CompilationChunkAsset,
@@ -417,6 +420,12 @@ pub struct RegisterJsTaps {
     JsAdditionalTreeRuntimeRequirementsArg,
     Option<JsAdditionalTreeRuntimeRequirementsResult>,
   >,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRuntimeRequirementInTreeArg) => JsRuntimeRequirementInTreeResult | undefined); stage: number; }>"
+  )]
+  pub register_compilation_runtime_requirement_in_tree:
+    RegisterFunction<JsRuntimeRequirementInTreeArg, Option<JsRuntimeRequirementInTreeResult>>,
+
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>"
   )]
@@ -687,6 +696,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationAdditionalTreeRuntimeRequirements,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationRuntimeRequirementInTreeTaps,
+  tap = CompilationRuntimeRequirementInTreeTap<JsRuntimeRequirementInTreeArg, Option<JsRuntimeRequirementInTreeResult>> @ CompilationRuntimeRequirementInTreeHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::CompilationRuntimeRequirementInTree,
   skip = true,
 );
 define_register!(
@@ -1132,6 +1149,32 @@ impl CompilationAdditionalTreeRuntimeRequirements
       let _ = std::mem::replace(runtime_requirements, result.as_runtime_globals());
     }
     Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTreeTap {
+  fn run(
+    &self,
+    compilation: &mut Compilation,
+    chunk_ukey: &ChunkUkey,
+    runtime_requirements: &RuntimeGlobals,
+    runtime_requirements_mut: &mut RuntimeGlobals,
+  ) -> rspack_error::Result<Option<()>> {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let arg = JsRuntimeRequirementInTreeArg {
+      chunk: JsChunk::from(chunk),
+      runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
+    };
+    let result = self.function.blocking_call_with_sync(arg)?;
+    if let Some(result) = result {
+      let _ = std::mem::replace(runtime_requirements_mut, result.as_runtime_globals());
+    }
+    Ok(None)
   }
 
   fn stage(&self) -> i32 {

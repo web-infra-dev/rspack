@@ -141,3 +141,31 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
     runtime_requirements
   }
 }
+
+#[napi(object)]
+pub struct JsRuntimeRequirementInTreeArg {
+  pub chunk: JsChunk,
+  pub runtime_requirements: JsRuntimeGlobals,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct JsRuntimeRequirementInTreeResult {
+  pub runtime_requirements: JsRuntimeGlobals,
+}
+
+impl JsRuntimeRequirementInTreeResult {
+  pub fn as_runtime_globals(&self) -> RuntimeGlobals {
+    let mut runtime_requirements = RuntimeGlobals::default();
+
+    for item in self.runtime_requirements.value.iter() {
+      let name = item.to_snake_case().to_uppercase();
+
+      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(&name) {
+        runtime_requirements.extend(*item);
+      }
+    }
+
+    runtime_requirements
+  }
+}
