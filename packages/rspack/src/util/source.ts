@@ -14,7 +14,9 @@ class JsSource extends Source {
 		return new SourceMapSource(
 			source.source,
 			"inmemory://from rust",
-			source.map ? JSON.parse(source.map) : null
+			// @ts-expect-error: SourceMapSource can accept string as source map,
+			// see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/SourceMapSource.js#L30
+			source.map
 		);
 	}
 
