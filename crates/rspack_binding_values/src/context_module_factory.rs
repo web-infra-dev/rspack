@@ -6,7 +6,7 @@ use crate::RawRegex;
 #[napi(object)]
 pub struct JsContextModuleFactoryBeforeResolveData {
   pub context: String,
-  pub request: Option<String>,
+  pub request: String,
   pub reg_exp: Option<RawRegex>,
   pub recursive: bool,
 }

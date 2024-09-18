@@ -5,6 +5,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 
 pub struct ContextReplacementPluginOptions {
@@ -37,25 +38,28 @@ impl ContextReplacementPlugin {
 
 #[plugin_hook(ContextModuleFactoryBeforeResolve for ContextReplacementPlugin)]
 async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<BeforeResolveResult> {
+  println!("cmf_before_resolve = {:?}", &result);
   if let BeforeResolveResult::Data(data) = &mut result {
-    if let Some(request) = &data.request {
-      if self.resource_reg_exp.test(request) {
-        data.request = self.new_content_resource.clone();
+    println!("request = {:?} self = {:#?}", &data.request, self);
+    if self.resource_reg_exp.test(&data.request) {
+      if let Some(new_content_resource) = &self.new_content_resource {
+        data.request = new_content_resource.clone();
       }
-      if let Some(new_content_recursive) = self.new_content_recursive {
-        data.recursive = new_content_recursive;
-      }
-      if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
-        data.reg_exp = Some(new_content_reg_exp.clone());
-      }
-      // if let Some(new_content_callback) = &self.new_content_after_resolve_callback {
-      //   // new_content_callback(&mut result).await?;
-      // } else {
-      //   // for (const d of result.dependencies) {
-      //   //   if (d.critical) d.critical = false;
-      //   // }
-      // }
     }
+    if let Some(new_content_recursive) = self.new_content_recursive {
+      data.recursive = new_content_recursive;
+    }
+    if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
+      data.reg_exp = Some(new_content_reg_exp.clone());
+    }
+    // if let Some(new_content_callback) = &self.new_content_after_resolve_callback {
+    //   // new_content_callback(&mut result).await?;
+    // } else {
+    // for (const d of result.dependencies) {
+    //   if (d.critical) d.critical = false;
+    // }
+    data.critical = false;
+    // }
   }
 
   Ok(result)
@@ -70,11 +74,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
         {
           data.resource = new_content_resource.clone().into();
         } else {
-          // result.resource = join(
-          //   /** @type {InputFileSystem} */ (compiler.inputFileSystem),
-          //   result.resource,
-          //   newContentResource
-          // );
+          data.resource = data.resource.join(Utf8PathBuf::from(new_content_resource));
         }
       }
       if let Some(new_content_recursive) = self.new_content_recursive {
@@ -86,9 +86,10 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
       // if let Some(new_content_callback) = &self.new_content_callback {
       //   // new_content_callback(&mut result).await?;
       // } else {
-      //   // for (const d of result.dependencies) {
-      //   //   if (d.critical) d.critical = false;
-      //   // }
+      // for (const d of result.dependencies) {
+      //   if (d.critical) d.critical = false;
+      // }
+      data.critical = false;
       // }
     }
   }

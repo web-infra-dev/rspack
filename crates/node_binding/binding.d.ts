@@ -476,7 +476,7 @@ export interface JsContextModuleFactoryAfterResolveData {
 
 export interface JsContextModuleFactoryBeforeResolveData {
   context: string
-  request?: string
+  request: string
   regExp?: RawRegex
   recursive: boolean
 }

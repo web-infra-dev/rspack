@@ -53,7 +53,6 @@ use rspack_core::{
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   Scheme,
 };
-use rspack_error::miette::IntoDiagnostic;
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -1505,10 +1504,7 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
     let js_result = match result {
       BeforeResolveResult::Ignored => JsContextModuleFactoryBeforeResolveResult::A(false),
       BeforeResolveResult::Data(d) => {
-        let reg_exp = match d.reg_exp {
-          Some(js_regex) => Some(js_regex.try_into().into_diagnostic()?),
-          None => None,
-        };
+        let reg_exp = d.reg_exp.map(|js_regex| js_regex.into());
         JsContextModuleFactoryBeforeResolveResult::B(JsContextModuleFactoryBeforeResolveData {
           context: d.context,
           request: d.request,
@@ -1530,8 +1526,8 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
             request: d.request,
             reg_exp,
             recursive: d.recursive,
-            // TODO
-            dependencies: vec![],
+            // TODO: fix
+            critical: true,
           };
           Ok(BeforeResolveResult::Data(Box::new(data)))
         }
@@ -1572,6 +1568,8 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
             None => None,
           },
           recursive: d.recursive,
+          // TODO: fix
+          critical: true,
         };
         Ok(AfterResolveResult::Data(Box::new(data)))
       }
