@@ -755,6 +755,21 @@ impl Module for ConcatenatedModule {
             }
           }
 
+          // Handle the name passed through by namespace_export_symbol
+          if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
+            if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+              && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+            {
+              let name =
+                Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
+              all_used_names.insert(name.clone());
+              info
+                .internal_names
+                .insert(namespace_export_symbol.clone(), name.clone());
+              top_level_declarations.insert(name.clone());
+            }
+          }
+
           // Handle namespaceObjectName for concatenated type
           let namespace_object_name =
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
