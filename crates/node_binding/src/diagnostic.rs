@@ -78,6 +78,12 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
           "Format diagnostic failed: Invalid `length` in location.",
         ));
       }
+      if !source_code.is_char_boundary(offset) || !source_code.is_char_boundary(end_byte) {
+        return Err(Error::new(
+          Status::Unknown,
+          "Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?",
+        ));
+      }
       d = d.with_label(LabeledSpan::new(location.text, offset, length));
     }
   }

@@ -42,9 +42,9 @@ pub fn try_line_column_length_to_location(
   let sc = column;
 
   let sb = rope.try_line_to_byte(sl).ok()?;
-  let char_index = rope.try_byte_to_char(sb + sc + length).ok()?;
-  let el = rope.try_char_to_line(char_index).ok()?;
-  let ec = char_index - rope.try_line_to_char(el).ok()?;
+  let end_byte = sb + sc + length;
+  let el = rope.try_byte_to_line(end_byte).ok()?;
+  let ec = end_byte - rope.try_line_to_byte(el).ok()?;
 
   Some(Location {
     sl: sl as u32,

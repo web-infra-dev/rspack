@@ -41,6 +41,26 @@ ERROR in (./with-location.js!) 1:1-4
    ·  ───
    ╰────
 
+ERROR in (./with-multi-byte-char.js!) 1:0-13
+  × ModuleError: Multi-byte character error
+   ╭────
+ 1 │ 👯‍♀️👯‍♀️👯‍♀️👯‍♀️
+   · ───
+   ╰────
+
+ERROR in (./with-multi-byte-char.js!)
+  × Module build failed:
+  ╰─▶   × Error: Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │
+
 ERROR in (./with-multiple-line.js!) 1:0-2:4
   × ModuleError: Multiple line error
    ╭─[1:0]

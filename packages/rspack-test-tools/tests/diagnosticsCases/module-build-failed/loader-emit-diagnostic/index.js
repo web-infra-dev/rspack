@@ -10,3 +10,4 @@ require("!./with-location.js!")
 
 require("!./with-multiple-line.js!")
 
+require("!./with-multi-byte-char.js!")
