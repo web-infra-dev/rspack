@@ -26,6 +26,7 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { inspect } from 'node:util';
+import type { JsAddingRuntimeModule } from '@rspack/binding';
 import { JsAfterEmitData } from '@rspack/binding';
 import { JsAfterTemplateExecutionData } from '@rspack/binding';
 import { JsAlterAssetTagGroupsData } from '@rspack/binding';
@@ -1042,6 +1043,8 @@ export class Compilation {
     __internal__setAssetSource(filename: string, source: Source): void;
     // @internal
     __internal_getInner(): binding.JsCompilation;
+    // (undocumented)
+    addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
     // (undocumented)
     buildDependencies: {
@@ -1165,7 +1168,10 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
-        runtimeModule: RuntimeModule;
+        runtimeModule: liteTapable.SyncHook<[
+        JsRuntimeModule,
+        Chunk
+        ], void>;
         seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
@@ -10021,6 +10027,7 @@ declare namespace rspackExports {
         StatsError,
         StatsModule,
         Stats,
+        RuntimeModule,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -14457,10 +14464,47 @@ export const RuntimeGlobals: {
 };
 
 // @public (undocumented)
-type RuntimeModule = liteTapable.SyncHook<[
-JsRuntimeModule,
-Chunk
-], void>;
+export class RuntimeModule {
+    constructor(name: string, stage?: RuntimeModuleStage);
+    // (undocumented)
+    static __to_binding(compilation: Compilation, module: RuntimeModule): JsAddingRuntimeModule;
+    // (undocumented)
+    depedentHash: boolean;
+    // (undocumented)
+    fullHash: boolean;
+    // (undocumented)
+    generate(compilation: Compilation): string;
+    // (undocumented)
+    identifier(): string;
+    // (undocumented)
+    get name(): string;
+    // (undocumented)
+    readableIdentifier(): string;
+    // (undocumented)
+    shouldIsolate(): boolean;
+    // (undocumented)
+    get stage(): RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_ATTACH: RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_BASIC: RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_NORMAL: RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_TRIGGER: RuntimeModuleStage;
+}
+
+// @public (undocumented)
+enum RuntimeModuleStage {
+    // (undocumented)
+    ATTACH = 10,
+    // (undocumented)
+    BASIC = 5,
+    // (undocumented)
+    NORMAL = 0,
+    // (undocumented)
+    TRIGGER = 20
+}
 
 // @public (undocumented)
 type RuntimePlugins = string[];

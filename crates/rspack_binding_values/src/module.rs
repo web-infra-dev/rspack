@@ -1,12 +1,15 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 
 use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
-  CompilerModuleContext, DependenciesBlock, Module, ModuleGraph, ModuleIdentifier, SourceType,
+  CompilerModuleContext, DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
+  RuntimeModuleStage, SourceType,
 };
-use rspack_napi::{napi::bindgen_prelude::*, Ref};
+use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, Ref};
+use rspack_plugin_runtime::RuntimeModuleFromJs;
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 use sys::napi_env;
 
@@ -463,4 +466,31 @@ pub struct JsRuntimeModule {
 pub struct JsRuntimeModuleArg {
   pub module: JsRuntimeModule,
   pub chunk: JsChunk,
+}
+
+type GenerateFn = ThreadsafeFunction<(), String>;
+
+#[napi(object, object_to_js = false)]
+pub struct JsAddingRuntimeModule {
+  pub name: String,
+  #[napi(ts_type = "() => String")]
+  pub generator: GenerateFn,
+  pub cacheable: bool,
+  pub isolate: bool,
+  pub stage: u32,
+}
+
+impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
+  fn from(value: JsAddingRuntimeModule) -> Self {
+    Self {
+      name: value.name,
+      cacheable: value.cacheable,
+      isolate: value.isolate,
+      stage: RuntimeModuleStage::from(value.stage),
+      generator: Arc::new(move || value.generator.blocking_call_with_sync(())),
+      source_map_kind: SourceMapKind::empty(),
+      custom_source: None,
+      cached_generated_code: Default::default(),
+    }
+  }
 }

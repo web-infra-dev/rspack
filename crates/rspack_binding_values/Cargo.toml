@@ -6,18 +6,19 @@ name        = "rspack_binding_values"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 [dependencies]
-cow-utils          = { workspace = true }
-futures            = { workspace = true }
-heck               = { workspace = true }
-napi               = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
-napi-derive        = { workspace = true }
-rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
-rspack_core        = { version = "0.1.0", path = "../rspack_core" }
-rspack_error       = { version = "0.1.0", path = "../rspack_error" }
-rspack_napi        = { version = "0.1.0", path = "../rspack_napi" }
-rspack_plugin_html = { version = "0.1.0", path = "../rspack_plugin_html" }
-rspack_regex       = { version = "0.1.0", path = "../rspack_regex" }
-rspack_util        = { version = "0.1.0", path = "../rspack_util" }
-rustc-hash         = { workspace = true }
-serde              = { workspace = true }
-serde_json         = { workspace = true }
+cow-utils             = { workspace = true }
+futures               = { workspace = true }
+heck                  = { workspace = true }
+napi                  = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
+napi-derive           = { workspace = true }
+rspack_collections    = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core           = { version = "0.1.0", path = "../rspack_core" }
+rspack_error          = { version = "0.1.0", path = "../rspack_error" }
+rspack_napi           = { version = "0.1.0", path = "../rspack_napi" }
+rspack_plugin_html    = { version = "0.1.0", path = "../rspack_plugin_html" }
+rspack_plugin_runtime = { version = "0.1.0", path = "../rspack_plugin_runtime" }
+rspack_regex          = { version = "0.1.0", path = "../rspack_regex" }
+rspack_util           = { version = "0.1.0", path = "../rspack_util" }
+rustc-hash            = { workspace = true }
+serde                 = { workspace = true }
+serde_json            = { workspace = true }

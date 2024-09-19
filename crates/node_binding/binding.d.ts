@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -117,6 +117,7 @@ export class JsCompilation {
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
   get entries(): JsEntries
+  addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
 }
 
 export class JsEntries {
@@ -282,7 +283,13 @@ export interface ContextInfo {
   issuer: string
 }
 
-export function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+export interface JsAddingRuntimeModule {
+  name: string
+  generator: () => String
+  cacheable: boolean
+  isolate: boolean
+  stage: number
+}
 
 export interface JsAdditionalTreeRuntimeRequirementsArg {
   chunk: JsChunk

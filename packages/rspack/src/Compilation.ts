@@ -30,6 +30,7 @@ import { type CodeGenerationResult, Module } from "./Module";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
 import { JsRspackDiagnostic, type RspackError } from "./RspackError";
+import { RuntimeModule } from "./RuntimeModule";
 import {
 	Stats,
 	type StatsAsset,
@@ -72,11 +73,6 @@ export interface LogEntry {
 	time?: number;
 	trace?: string[];
 }
-
-export type RuntimeModule = liteTapable.SyncHook<
-	[JsRuntimeModule, Chunk],
-	void
->;
 
 export interface CompilationParams {
 	normalModuleFactory: NormalModuleFactory;
@@ -220,7 +216,7 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeModule: RuntimeModule;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 	}>;
@@ -602,7 +598,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				? assetInfoUpdateOrFunction
 				: typeof assetInfoUpdateOrFunction === "function"
 					? jsAssetInfo =>
-							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
+						JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
 					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
 		);
 	}
@@ -1078,6 +1074,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#rebuildModuleCaller.push([m.identifier(), f]);
 	}
 
+	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
+		this.#inner.addRuntimeModule(
+			chunk.__internal__innerUkey(),
+			RuntimeModule.__to_binding(this, runtimeModule)
+		);
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *
@@ -1157,8 +1160,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner;
 	}
 
-	seal() {}
-	unseal() {}
+	seal() { }
+	unseal() { }
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
