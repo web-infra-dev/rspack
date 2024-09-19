@@ -237,6 +237,7 @@ mod test {
   use once_cell::sync::OnceCell;
   use rspack_collections::{Identifiable, Identifier};
   use rspack_error::Result;
+  use rspack_fs::NativeFileSystem;
 
   use super::{run_loaders, Loader, LoaderContext, ResourceData};
   use crate::{content::Content, plugin::LoaderRunnerPlugin, AdditionalData};
@@ -419,6 +420,7 @@ mod test {
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
+      Arc::new(NativeFileSystem {})
     )
     .await
     .err()
@@ -436,6 +438,7 @@ mod test {
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
+      Arc::new(NativeFileSystem {})
     )
     .await
     .err()
@@ -515,6 +518,7 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
+      Arc::new(NativeFileSystem {}),
     )
     .await
     .unwrap();
@@ -577,6 +581,7 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
+      Arc::new(NativeFileSystem {})
     )
     .await
     .err()
