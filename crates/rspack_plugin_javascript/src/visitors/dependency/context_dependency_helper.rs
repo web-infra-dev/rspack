@@ -86,17 +86,17 @@ pub fn create_context_dependency(
 
     if parser.javascript_options.wrapped_context_critical {
       let range = param.range();
-      critical = Some(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "a part of the request of a dependency is an expression".to_string(),
-          parser.source_file,
-          rspack_core::ErrorSpan::new(range.0, range.1),
-        )
-        .with_severity(Severity::Warn)
-        .boxed()
-        .into(),
-      );
+      let warn: Diagnostic = create_traceable_error(
+        "Critical dependency".into(),
+        "a part of the request of a dependency is an expression".to_string(),
+        parser.source_file,
+        rspack_core::ErrorSpan::new(range.0, range.1),
+      )
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into();
+      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      critical = Some(warn);
     }
 
     // Webpack will walk only the expression parts of the template string
@@ -163,17 +163,17 @@ pub fn create_context_dependency(
 
     if parser.javascript_options.wrapped_context_critical {
       let range = param.range();
-      critical = Some(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "a part of the request of a dependency is an expression".to_string(),
-          parser.source_file,
-          rspack_core::ErrorSpan::new(range.0, range.1),
-        )
-        .with_severity(Severity::Warn)
-        .boxed()
-        .into(),
-      );
+      let warn: Diagnostic = create_traceable_error(
+        "Critical dependency".into(),
+        "a part of the request of a dependency is an expression".to_string(),
+        parser.source_file,
+        rspack_core::ErrorSpan::new(range.0, range.1),
+      )
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into();
+      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      critical = Some(warn);
     }
 
     // Webpack will walk only the dynamic parts of evaluated expression
@@ -193,17 +193,17 @@ pub fn create_context_dependency(
   } else {
     if parser.javascript_options.expr_context_critical {
       let range = param.range();
-      critical = Some(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "the request of a dependency is an expression".to_string(),
-          parser.source_file,
-          rspack_core::ErrorSpan::new(range.0, range.1),
-        )
-        .with_severity(Severity::Warn)
-        .boxed()
-        .into(),
-      );
+      let warn: Diagnostic = create_traceable_error(
+        "Critical dependency".into(),
+        "the request of a dependency is an expression".to_string(),
+        parser.source_file,
+        rspack_core::ErrorSpan::new(range.0, range.1),
+      )
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into();
+      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      critical = Some(warn);
     }
 
     parser.walk_expression(expr);
