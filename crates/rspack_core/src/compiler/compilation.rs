@@ -1370,7 +1370,7 @@ impl Compilation {
         runtime_requirements = runtime_requirements_mut;
         runtime_requirements_mut = RuntimeGlobals::default();
         call_hook(
-          &requirements,
+          requirements,
           &runtime_requirements,
           &mut runtime_requirements_mut,
         )?;
