@@ -228,9 +228,7 @@ impl Compilation {
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
   ) -> Self {
-    let mutations = options
-      .new_incremental_enabled()
-      .then(|| Mutations::default());
+    let mutations = options.new_incremental_enabled().then(Mutations::default);
     Self {
       id: CompilationId::new(),
       hot_index: 0,

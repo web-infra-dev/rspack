@@ -43,7 +43,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut mutations = compilation
     .options
     .new_incremental_enabled()
-    .then(|| Mutations::default());
+    .then(Mutations::default);
 
   set_async_modules(compilation, sync_modules, false, &mut mutations);
   set_async_modules(compilation, async_modules, true, &mut mutations);
