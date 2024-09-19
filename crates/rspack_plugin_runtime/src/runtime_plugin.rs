@@ -181,6 +181,7 @@ fn runtime_requirements_in_module(
   &self,
   _compilation: &Compilation,
   _module: &ModuleIdentifier,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
@@ -199,6 +200,7 @@ fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {

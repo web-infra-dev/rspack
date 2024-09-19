@@ -717,6 +717,15 @@ export interface JsRuntimeModuleArg {
   chunk: JsChunk
 }
 
+export interface JsRuntimeRequirementInTreeArg {
+  chunk: JsChunk
+  runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsRuntimeRequirementInTreeResult {
+  runtimeRequirements: JsRuntimeGlobals
+}
+
 export interface JsStatsAsset {
   type: string
   name: string
@@ -1828,28 +1837,29 @@ export enum RegisterJsTapKind {
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
   CompilationAdditionalTreeRuntimeRequirements = 17,
-  CompilationRuntimeModule = 18,
-  CompilationChunkHash = 19,
-  CompilationChunkAsset = 20,
-  CompilationProcessAssets = 21,
-  CompilationAfterProcessAssets = 22,
-  CompilationSeal = 23,
-  CompilationAfterSeal = 24,
-  NormalModuleFactoryBeforeResolve = 25,
-  NormalModuleFactoryFactorize = 26,
-  NormalModuleFactoryResolve = 27,
-  NormalModuleFactoryAfterResolve = 28,
-  NormalModuleFactoryCreateModule = 29,
-  NormalModuleFactoryResolveForScheme = 30,
-  ContextModuleFactoryBeforeResolve = 31,
-  ContextModuleFactoryAfterResolve = 32,
-  JavascriptModulesChunkHash = 33,
-  HtmlPluginBeforeAssetTagGeneration = 34,
-  HtmlPluginAlterAssetTags = 35,
-  HtmlPluginAlterAssetTagGroups = 36,
-  HtmlPluginAfterTemplateExecution = 37,
-  HtmlPluginBeforeEmit = 38,
-  HtmlPluginAfterEmit = 39
+  CompilationRuntimeRequirementInTree = 18,
+  CompilationRuntimeModule = 19,
+  CompilationChunkHash = 20,
+  CompilationChunkAsset = 21,
+  CompilationProcessAssets = 22,
+  CompilationAfterProcessAssets = 23,
+  CompilationSeal = 24,
+  CompilationAfterSeal = 25,
+  NormalModuleFactoryBeforeResolve = 26,
+  NormalModuleFactoryFactorize = 27,
+  NormalModuleFactoryResolve = 28,
+  NormalModuleFactoryAfterResolve = 29,
+  NormalModuleFactoryCreateModule = 30,
+  NormalModuleFactoryResolveForScheme = 31,
+  ContextModuleFactoryBeforeResolve = 32,
+  ContextModuleFactoryAfterResolve = 33,
+  JavascriptModulesChunkHash = 34,
+  HtmlPluginBeforeAssetTagGeneration = 35,
+  HtmlPluginAlterAssetTags = 36,
+  HtmlPluginAlterAssetTagGroups = 37,
+  HtmlPluginAfterTemplateExecution = 38,
+  HtmlPluginBeforeEmit = 39,
+  HtmlPluginAfterEmit = 40
 }
 
 export interface RegisterJsTaps {
@@ -1866,6 +1876,7 @@ export interface RegisterJsTaps {
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationAdditionalTreeRuntimeRequirements: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
+  registerCompilationRuntimeRequirementInTree: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeRequirementInTreeArg) => JsRuntimeRequirementInTreeResult | undefined); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>

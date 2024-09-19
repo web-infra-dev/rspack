@@ -7,8 +7,9 @@ const config = {
 		url: "http://localhost/"
 	},
 	testMatch: [
-		"<rootDir>/tests/*.test.ts",
-		...(isWin ? [] : ["<rootDir>/tests/e2e/*.test.js"])
+		"<rootDir>/tests/*.test.ts"
+		// TODO: enable after migrating to separated repo
+		// ...(isWin ? [] : ["<rootDir>/tests/e2e/*.test.js"])
 	],
 	testPathIgnorePatterns: isWin
 		? []
