@@ -1730,21 +1730,19 @@ impl ConcatenatedModule {
         Ok(res) => Program::Module(res),
         Err(err) => {
           let span: ErrorSpan = err.span().into();
-          self
-            .diagnostics
-            .lock()
-            .expect("should have diagnostics")
-            .append(&mut map_box_diagnostics_to_module_parse_diagnostics(vec![
-              rspack_error::TraceableError::from_source_file(
-                &fm,
-                span.start as usize,
-                span.end as usize,
-                "JavaScript parsing error".to_string(),
-                err.kind().msg().to_string(),
-              )
-              .with_kind(DiagnosticKind::JavaScript),
-            ]));
-          return Ok(ModuleInfo::Concatenated(module_info));
+
+          // return empty error as we already push error to compilation.diagnostics
+          return Err(
+            rspack_error::TraceableError::from_source_file(
+              &fm,
+              span.start as usize,
+              span.end as usize,
+              "JavaScript parsing error:\n".to_string(),
+              err.kind().msg().to_string(),
+            )
+            .with_kind(DiagnosticKind::JavaScript)
+            .into(),
+          );
         }
       };
       let mut ast = Ast::new(program, cm, Some(comments));

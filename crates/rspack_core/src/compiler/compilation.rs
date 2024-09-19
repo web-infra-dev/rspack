@@ -37,11 +37,11 @@ use crate::{
   unaffected_cache::UnaffectedModulesCache,
   BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationJob,
-  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, DependencyId,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, LocalFilenameFn, Logger, Module, ModuleFactory, ModuleGraph,
-  ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
+  CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
+  CompilerOptions, DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime,
+  Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module,
+  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -870,19 +870,33 @@ impl Compilation {
       .into_par_iter()
       .map(|job| {
         let module = job.module;
-        self
-          .old_cache
-          .code_generate_occasion
-          .use_cache(job, |module, runtime| {
-            let module = module_graph
-              .module_by_identifier(&module)
-              .expect("should have module");
-            module.code_generation(self, Some(runtime), None)
-          })
-          .map(|(res, runtimes, from_cache)| (module, res, runtimes, from_cache))
+        let runtimes = job.runtimes.clone();
+        (
+          module,
+          runtimes,
+          self
+            .old_cache
+            .code_generate_occasion
+            .use_cache(job, |module, runtime| {
+              let module = module_graph
+                .module_by_identifier(&module)
+                .expect("should have module");
+              module.code_generation(self, Some(runtime), None)
+            }),
+        )
       })
-      .collect::<Result<Vec<_>>>()?;
-    for (module, codegen_res, runtimes, from_cache) in results {
+      .map(|(module, runtime, result)| match result {
+        Ok((result, runtime, from_cache)) => (module, result, runtime, from_cache, None),
+        Err(err) => (
+          module,
+          CodeGenerationResult::default(),
+          runtime,
+          false,
+          Some(err),
+        ),
+      })
+      .collect::<Vec<_>>();
+    for (module, codegen_res, runtimes, from_cache, err) in results {
       if let Some(counter) = cache_counter {
         if from_cache {
           counter.hit();
@@ -902,6 +916,10 @@ impl Compilation {
           .add(module, runtime, codegen_res_id);
       }
       self.code_generated_modules.insert(module);
+
+      if let Some(err) = err {
+        self.push_diagnostic(Diagnostic::from(err).with_module_identifier(Some(module)));
+      }
     }
     Ok(())
   }
