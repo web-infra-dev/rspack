@@ -23,9 +23,7 @@ export const ContextReplacementPlugin = create(
 			typeof newContentRecursive === "object"
 		) {
 			rawOptions.newContentResource = newContentResource;
-			// rawOptions.newContentCreateContextMap = (fs, callback) => {
-			// 	callback(null, newContentRecursive);
-			// };
+			rawOptions.newContentCreateContextMap = newContentRecursive;
 		} else if (
 			typeof newContentResource === "string" &&
 			typeof newContentRecursive === "function"

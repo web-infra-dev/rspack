@@ -7,12 +7,14 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
 pub struct ContextReplacementPluginOptions {
   pub resource_reg_exp: RspackRegex,
   pub new_content_resource: Option<String>,
   pub new_content_recursive: Option<bool>,
   pub new_content_reg_exp: Option<RspackRegex>,
+  pub new_content_create_context_map: Option<HashMap<String, String>>,
 }
 
 #[plugin]
@@ -23,6 +25,7 @@ pub struct ContextReplacementPlugin {
   new_content_resource: Option<String>,
   new_content_recursive: Option<bool>,
   new_content_reg_exp: Option<RspackRegex>,
+  new_content_create_context_map: Option<HashMap<String, String>>,
 }
 
 impl ContextReplacementPlugin {
@@ -32,15 +35,14 @@ impl ContextReplacementPlugin {
       options.new_content_resource,
       options.new_content_recursive,
       options.new_content_reg_exp,
+      options.new_content_create_context_map,
     )
   }
 }
 
 #[plugin_hook(ContextModuleFactoryBeforeResolve for ContextReplacementPlugin)]
 async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<BeforeResolveResult> {
-  println!("cmf_before_resolve = {:?}", &result);
   if let BeforeResolveResult::Data(data) = &mut result {
-    println!("request = {:?} self = {:#?}", &data.request, self);
     if self.resource_reg_exp.test(&data.request) {
       if let Some(new_content_resource) = &self.new_content_resource {
         data.request = new_content_resource.clone();
@@ -83,6 +85,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
       if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
         data.reg_exp = Some(new_content_reg_exp.clone());
       }
+      if let Some(new_content_create_context_map) = &self.new_content_create_context_map {}
       // if let Some(new_content_callback) = &self.new_content_callback {
       //   // new_content_callback(&mut result).await?;
       // } else {

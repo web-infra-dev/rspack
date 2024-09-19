@@ -2951,7 +2951,6 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "derivative",
- "futures",
  "glob",
  "napi-derive",
  "napi-h",
@@ -3411,6 +3410,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_regex",
+ "rustc-hash 1.1.0",
  "tracing",
 ]
 

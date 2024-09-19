@@ -1,18 +1,33 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  fs,
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
-use rspack_error::{error, Result};
+use regex::{Captures, Regex};
+use rspack_collections::Identifier;
+use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::define_hook;
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  resolve, BoxDependency, ContextModule, ContextModuleOptions, DependencyCategory, ErrorSpan,
+  resolve, to_path, AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions,
+  ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyLocation, DependencyType, ErrorSpan, GroupOptions,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  RawModule, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, SharedPluginDriver,
+  RawModule, RealDependencyLocation, ResolveArgs, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
+
+static WEBPACK_CHUNK_NAME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
 
 #[derive(Debug)]
 pub enum BeforeResolveResult {
@@ -278,10 +293,11 @@ impl ContextModuleFactory {
           context_options: dependency.options().clone(),
           type_prefix: dependency.type_prefix(),
         };
-        let module = Box::new(ContextModule::new(
-          options.clone(),
-          plugin_driver.resolver_factory.clone(),
-        ));
+        // let module = Box::new(ContextModule::new(
+        //   options.clone(),
+        //   Box::new(resolve_dependencies),
+        // ));
+        let module = todo!();
         (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
@@ -347,13 +363,276 @@ impl ContextModuleFactory {
           *dependency.critical_mut() = None;
         }
 
+        let resolver_factory = self.resolver_factory.clone();
+
+        // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+        // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+        #[allow(clippy::vec_box)]
+        let resolve_dependencies =
+          move |identifier: Identifier,
+                options: ContextModuleOptions|
+                -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
+            tracing::trace!("resolving context module path {}", options.resource);
+
+            let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
+              resolve_options: options.resolve_options.clone(),
+              resolve_to_context: false,
+              dependency_category: options.context_options.category,
+            });
+
+            let mut context_element_dependencies = vec![];
+            visit_dirs(
+              options.resource.as_str(),
+              &options.resource,
+              &mut context_element_dependencies,
+              &options,
+              &resolver.options(),
+            )?;
+            context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
+
+            tracing::trace!(
+              "resolving dependencies for {:?}",
+              context_element_dependencies
+            );
+
+            let mut dependencies: Vec<BoxDependency> = vec![];
+            let mut blocks = vec![];
+            if matches!(options.context_options.mode, ContextMode::LazyOnce)
+              && !context_element_dependencies.is_empty()
+            {
+              let loc = RealDependencyLocation::new(
+                options.context_options.start,
+                options.context_options.end,
+              );
+              let mut block = AsyncDependenciesBlock::new(
+                (*identifier).into(),
+                Some(DependencyLocation::Real(loc)),
+                None,
+                context_element_dependencies
+                  .into_iter()
+                  .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+                  .collect(),
+                None,
+              );
+              if let Some(group_options) = &options.context_options.group_options {
+                block.set_group_options(group_options.clone());
+              }
+              blocks.push(Box::new(block));
+            } else if matches!(options.context_options.mode, ContextMode::Lazy) {
+              let mut index = 0;
+              // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
+              for context_element_dependency in context_element_dependencies {
+                let group_options = options
+                  .context_options
+                  .group_options
+                  .as_ref()
+                  .and_then(|g| g.normal_options());
+                let name = group_options
+                  .and_then(|group_options| group_options.name.as_ref())
+                  .map(|name| {
+                    let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
+                      Cow::Owned(format!("{name}[index]"))
+                    } else {
+                      Cow::Borrowed(name)
+                    };
+                    let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
+                      .replace_all(&name, |_: &Captures| index.to_string());
+                    index += 1;
+                    let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER
+                      .replace_all(&name, |_: &Captures| {
+                        to_path(&context_element_dependency.user_request)
+                      });
+                    name.into_owned()
+                  });
+                let preload_order = group_options.and_then(|o| o.preload_order);
+                let prefetch_order = group_options.and_then(|o| o.prefetch_order);
+                let fetch_priority = group_options.and_then(|o| o.fetch_priority);
+                let mut block = AsyncDependenciesBlock::new(
+                  (*identifier).into(),
+                  None,
+                  Some(&context_element_dependency.user_request.clone()),
+                  vec![Box::new(context_element_dependency)],
+                  Some(options.context_options.request.clone()),
+                );
+                block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+                  name,
+                  preload_order,
+                  prefetch_order,
+                  fetch_priority,
+                )));
+                blocks.push(Box::new(block));
+              }
+            } else {
+              dependencies = context_element_dependencies
+                .into_iter()
+                .map(|d| Box::new(d) as BoxDependency)
+                .collect();
+            }
+
+            Ok((dependencies, blocks))
+          };
+
         let module = ContextModule::new(
+          Arc::new(resolve_dependencies),
           context_module_options.clone(),
-          self.resolver_factory.clone(),
         );
 
         Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
       }
     }
   }
+}
+
+fn visit_dirs(
+  ctx: &str,
+  dir: &Utf8Path,
+  dependencies: &mut Vec<ContextElementDependency>,
+  options: &ContextModuleOptions,
+  resolve_options: &ResolveInnerOptions,
+) -> Result<()> {
+  if !dir.is_dir() {
+    return Ok(());
+  }
+  let include = &options.context_options.include;
+  let exclude = &options.context_options.exclude;
+  for entry in fs::read_dir(dir).into_diagnostic()? {
+    let path = entry.into_diagnostic()?.path().assert_utf8();
+    let path_str = path.as_str();
+
+    if let Some(exclude) = exclude
+      && exclude.test(path_str)
+    {
+      // ignore excluded files
+      continue;
+    }
+
+    if path.is_dir() {
+      if options.context_options.recursive {
+        visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
+      }
+    } else if path.file_name().map_or(false, |name| name.starts_with('.')) {
+      // ignore hidden files
+      continue;
+    } else {
+      if let Some(include) = include
+        && !include.test(path_str)
+      {
+        // ignore not included files
+        continue;
+      }
+
+      // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
+      let relative_path = {
+        let path_str = path_str.to_owned().drain(ctx.len()..).collect::<String>();
+        let p = path_str.cow_replace('\\', "/");
+        if p.as_ref().starts_with('/') {
+          format!(".{p}")
+        } else {
+          format!("./{p}")
+        }
+      };
+
+      let requests = alternative_requests(
+        resolve_options,
+        vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+      );
+
+      let Some(reg_exp) = &options.context_options.reg_exp else {
+        return Ok(());
+      };
+
+      requests.iter().for_each(|r| {
+        if !reg_exp.test(&r.request) {
+          return;
+        }
+        dependencies.push(ContextElementDependency {
+          id: DependencyId::new(),
+          request: format!(
+            "{}{}{}{}",
+            options.addon,
+            r.request,
+            options.resource_query.clone(),
+            options.resource_fragment.clone(),
+          ),
+          user_request: r.request.to_string(),
+          category: options.context_options.category,
+          context: options.resource.clone().into(),
+          layer: options.layer.clone(),
+          options: options.context_options.clone(),
+          resource_identifier: ContextElementDependency::create_resource_identifier(
+            options.resource.as_str(),
+            &path,
+            options.context_options.attributes.as_ref(),
+          ),
+          attributes: options.context_options.attributes.clone(),
+          referenced_exports: options.context_options.referenced_exports.clone(),
+          dependency_type: DependencyType::ContextElement(options.type_prefix),
+        });
+      })
+    }
+  }
+  Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub struct AlternativeRequest {
+  pub context: String,
+  pub request: String,
+}
+
+impl AlternativeRequest {
+  pub fn new(context: String, request: String) -> Self {
+    Self { context, request }
+  }
+}
+
+fn alternative_requests(
+  resolve_options: &ResolveInnerOptions,
+  mut items: Vec<AlternativeRequest>,
+) -> Vec<AlternativeRequest> {
+  // TODO: should respect fullySpecified resolve options
+  for item in std::mem::take(&mut items) {
+    if !resolve_options.is_enforce_extension_enabled() {
+      items.push(item.clone());
+    }
+    for ext in resolve_options.extensions() {
+      if item.request.ends_with(ext) {
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item.request[..(item.request.len() - ext.len())].to_string(),
+        ));
+      }
+    }
+  }
+
+  for item in std::mem::take(&mut items) {
+    items.push(item.clone());
+    for main_file in resolve_options.main_files() {
+      if item.request.ends_with(&format!("/{main_file}")) {
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item.request[..(item.request.len() - main_file.len())].to_string(),
+        ));
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item.request[..(item.request.len() - main_file.len() - 1)].to_string(),
+        ));
+      }
+    }
+  }
+
+  for item in std::mem::take(&mut items) {
+    items.push(item.clone());
+    for module in resolve_options.modules() {
+      let dir = module.cow_replace('\\', "/");
+      if item.request.starts_with(&format!("./{}/", dir)) {
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item.request[dir.len() + 3..].to_string(),
+        ));
+      }
+    }
+  }
+
+  items
 }

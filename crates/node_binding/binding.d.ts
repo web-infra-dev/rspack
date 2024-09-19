@@ -1131,6 +1131,7 @@ export interface RawContextReplacementPluginOptions {
   newContentResource?: string
   newContentRecursive?: boolean
   newContentRegExp?: RawRegex
+  newContentCreateContextMap?: Record<string, string>
 }
 
 export interface RawCopyGlobOptions {
