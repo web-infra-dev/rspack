@@ -159,9 +159,12 @@ impl JsRuntimeRequirementInTreeResult {
     let mut runtime_requirements = RuntimeGlobals::default();
 
     for item in self.runtime_requirements.value.iter() {
-      let name = item.to_snake_case().to_uppercase();
+      let snake_name = item.to_snake_case();
 
-      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(&name) {
+      if let Some(item) = RUNTIME_GLOBAL_MAP
+        .1
+        .get(snake_name.cow_to_uppercase().as_ref())
+      {
         runtime_requirements.extend(*item);
       }
     }
