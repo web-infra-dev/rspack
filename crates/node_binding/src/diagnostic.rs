@@ -1,4 +1,4 @@
-use napi::bindgen_prelude::External;
+use napi::bindgen_prelude::*;
 use rspack_error::{
   miette::{self, LabeledSpan, MietteDiagnostic, Severity},
   Diagnostic,
@@ -32,7 +32,7 @@ pub struct JsDiagnostic {
 }
 
 #[napi(ts_return_type = "ExternalObject<'Diagnostic'>")]
-pub fn format_diagnostic(diagnostic: JsDiagnostic) -> External<Diagnostic> {
+pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic>> {
   let JsDiagnostic {
     message,
     help,
@@ -59,14 +59,26 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> External<Diagnostic> {
         location.column as usize,
         location.length as usize,
       );
-      if let Some((offset, length)) = try_line_column_length_to_offset_length(
+      let (offset, length) = try_line_column_length_to_offset_length(
         &rope,
         location.line as usize,
         location.column as usize,
         location.length as usize,
-      ) {
-        d = d.with_label(LabeledSpan::new(location.text, offset, length));
+      )
+      .ok_or_else(|| {
+        Error::new(
+          Status::Unknown,
+          "Format diagnostic failed: Invalid location. Did you pass the correct line, column and length?",
+        )
+      })?;
+      let end_byte = offset.saturating_add(length);
+      if end_byte > rope.len_bytes() {
+        return Err(Error::new(
+          Status::Unknown,
+          "Format diagnostic failed: Invalid `length` in location.",
+        ));
       }
+      d = d.with_label(LabeledSpan::new(location.text, offset, length));
     }
   }
 
@@ -74,10 +86,10 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> External<Diagnostic> {
   if let Some(source_code) = source_code {
     error = error.with_source_code(source_code);
   }
-  External::new(
+  Ok(External::new(
     Diagnostic::from(error)
       .with_file(file.map(Into::into))
       .with_loc(loc.map(|l| l.to_string()))
       .with_module_identifier(module_identifier.map(Into::into)),
-  )
+  ))
 }

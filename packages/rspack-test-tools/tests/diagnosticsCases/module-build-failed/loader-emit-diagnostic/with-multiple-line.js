@@ -38,5 +38,21 @@ module.exports = function() {
 			length: 0,
 		},
 	});
+	// Length overflow
+	this.experiments.emitDiagnostic({
+		message: "Multiple line snippet",
+		severity: "error",
+		sourceCode: `~~~~~
+~~~~~
+~~~~~
+~~~~~
+~~~~~`,
+		location: {
+			text: "unexpected '~'",
+			line: 3,
+			column: 4,
+			length: 100,
+		},
+	});
 	return ""
 }

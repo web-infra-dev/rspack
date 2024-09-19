@@ -56,6 +56,19 @@ ERROR in (./with-multiple-line.js!) 1:0-2:4
    · ╰──── unexpected '~'
    ╰────
 
+ERROR in (./with-multiple-line.js!)
+  × Module build failed:
+  ╰─▶   × Error: Format diagnostic failed: Invalid `length` in location.
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │
+
 ERROR in (./with-multiple-line.js!) 3:4
   × ModuleError: Multiple line snippet
    ╭─[3:4]
