@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::sync::Arc;
+use std::{borrow::Cow, hash::Hash};
 
 use derivative::Derivative;
 use indoc::formatdoc;
@@ -870,7 +871,7 @@ impl Module for ContextModule {
     _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let resolve_dependencies = self.resolve_dependencies.clone();
+    let resolve_dependencies = &self.resolve_dependencies;
     let (dependencies, blocks) =
       resolve_dependencies(self.identifier.clone(), self.options.clone())?;
 

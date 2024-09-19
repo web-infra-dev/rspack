@@ -1574,6 +1574,7 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
           recursive: d.recursive,
           // TODO: fix
           critical: true,
+          resolve_dependencies: todo!(),
         };
         Ok(AfterResolveResult::Data(Box::new(data)))
       }

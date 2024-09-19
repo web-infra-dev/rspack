@@ -5,8 +5,8 @@ use std::{
 };
 
 use cow_utils::CowUtils;
+use derivative::Derivative;
 use regex::{Captures, Regex};
-use rspack_collections::Identifier;
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::define_hook;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
@@ -18,8 +18,9 @@ use crate::{
   ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions, Dependency,
   DependencyCategory, DependencyId, DependencyLocation, DependencyType, ErrorSpan, GroupOptions,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  RawModule, RealDependencyLocation, ResolveArgs, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  RawModule, RealDependencyLocation, ResolveArgs, ResolveContextModuleDependencies,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 static WEBPACK_CHUNK_NAME_PLACEHOLDER: LazyLock<Regex> =
@@ -63,7 +64,8 @@ pub enum AfterResolveResult {
   Data(Box<AfterResolveData>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
 pub struct AfterResolveData {
   pub resource: Utf8PathBuf,
   pub context: String,
@@ -91,6 +93,8 @@ pub struct AfterResolveData {
   // In Webpack, the ContextModuleFactory's beforeResolve hook directly traverses dependencies in context and modifies the ContextDependency's critical field.
   // Since Rspack currently has difficulty passing the dependencies field, an additional field is used to indicate whether to ignore the collected errors.
   pub critical: bool,
+  #[derivative(Debug = "ignore")]
+  pub resolve_dependencies: ResolveContextModuleDependencies,
 }
 
 define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
@@ -132,6 +136,108 @@ impl ModuleFactory for ContextModuleFactory {
       }
     }
   }
+}
+
+fn default_resolve_dependencies(
+  resolver_factory: Arc<ResolverFactory>,
+) -> ResolveContextModuleDependencies {
+  Arc::new(move |identifier, options| {
+    tracing::trace!("resolving context module path {}", options.resource);
+
+    let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: options.resolve_options.clone(),
+      resolve_to_context: false,
+      dependency_category: options.context_options.category,
+    });
+
+    let mut context_element_dependencies = vec![];
+    visit_dirs(
+      options.resource.as_str(),
+      &options.resource,
+      &mut context_element_dependencies,
+      &options,
+      &resolver.options(),
+    )?;
+    context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
+
+    tracing::trace!(
+      "resolving dependencies for {:?}",
+      context_element_dependencies
+    );
+
+    let mut dependencies: Vec<BoxDependency> = vec![];
+    let mut blocks = vec![];
+    if matches!(options.context_options.mode, ContextMode::LazyOnce)
+      && !context_element_dependencies.is_empty()
+    {
+      let loc =
+        RealDependencyLocation::new(options.context_options.start, options.context_options.end);
+      let mut block = AsyncDependenciesBlock::new(
+        (*identifier).into(),
+        Some(DependencyLocation::Real(loc)),
+        None,
+        context_element_dependencies
+          .into_iter()
+          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .collect(),
+        None,
+      );
+      if let Some(group_options) = &options.context_options.group_options {
+        block.set_group_options(group_options.clone());
+      }
+      blocks.push(Box::new(block));
+    } else if matches!(options.context_options.mode, ContextMode::Lazy) {
+      let mut index = 0;
+      // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
+      for context_element_dependency in context_element_dependencies {
+        let group_options = options
+          .context_options
+          .group_options
+          .as_ref()
+          .and_then(|g| g.normal_options());
+        let name = group_options
+          .and_then(|group_options| group_options.name.as_ref())
+          .map(|name| {
+            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
+              Cow::Owned(format!("{name}[index]"))
+            } else {
+              Cow::Borrowed(name)
+            };
+            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
+              .replace_all(&name, |_: &Captures| index.to_string());
+            index += 1;
+            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER.replace_all(&name, |_: &Captures| {
+              to_path(&context_element_dependency.user_request)
+            });
+            name.into_owned()
+          });
+        let preload_order = group_options.and_then(|o| o.preload_order);
+        let prefetch_order = group_options.and_then(|o| o.prefetch_order);
+        let fetch_priority = group_options.and_then(|o| o.fetch_priority);
+        let mut block = AsyncDependenciesBlock::new(
+          (*identifier).into(),
+          None,
+          Some(&context_element_dependency.user_request.clone()),
+          vec![Box::new(context_element_dependency)],
+          Some(options.context_options.request.clone()),
+        );
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          name,
+          preload_order,
+          prefetch_order,
+          fetch_priority,
+        )));
+        blocks.push(Box::new(block));
+      }
+    } else {
+      dependencies = context_element_dependencies
+        .into_iter()
+        .map(|d| Box::new(d) as BoxDependency)
+        .collect();
+    }
+
+    Ok((dependencies, blocks))
+  })
 }
 
 impl ContextModuleFactory {
@@ -293,11 +399,10 @@ impl ContextModuleFactory {
           context_options: dependency.options().clone(),
           type_prefix: dependency.type_prefix(),
         };
-        // let module = Box::new(ContextModule::new(
-        //   options.clone(),
-        //   Box::new(resolve_dependencies),
-        // ));
-        let module = todo!();
+        let module = Box::new(ContextModule::new(
+          default_resolve_dependencies(self.resolver_factory.clone()),
+          options.clone(),
+        ));
         (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
@@ -340,6 +445,7 @@ impl ContextModuleFactory {
       reg_exp: context_options.reg_exp.clone(),
       recursive: context_options.recursive,
       critical: true,
+      resolve_dependencies: default_resolve_dependencies(self.resolver_factory.clone()),
     };
 
     match self
@@ -363,117 +469,8 @@ impl ContextModuleFactory {
           *dependency.critical_mut() = None;
         }
 
-        let resolver_factory = self.resolver_factory.clone();
-
-        // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
-        // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
-        #[allow(clippy::vec_box)]
-        let resolve_dependencies =
-          move |identifier: Identifier,
-                options: ContextModuleOptions|
-                -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
-            tracing::trace!("resolving context module path {}", options.resource);
-
-            let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
-              resolve_options: options.resolve_options.clone(),
-              resolve_to_context: false,
-              dependency_category: options.context_options.category,
-            });
-
-            let mut context_element_dependencies = vec![];
-            visit_dirs(
-              options.resource.as_str(),
-              &options.resource,
-              &mut context_element_dependencies,
-              &options,
-              &resolver.options(),
-            )?;
-            context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
-
-            tracing::trace!(
-              "resolving dependencies for {:?}",
-              context_element_dependencies
-            );
-
-            let mut dependencies: Vec<BoxDependency> = vec![];
-            let mut blocks = vec![];
-            if matches!(options.context_options.mode, ContextMode::LazyOnce)
-              && !context_element_dependencies.is_empty()
-            {
-              let loc = RealDependencyLocation::new(
-                options.context_options.start,
-                options.context_options.end,
-              );
-              let mut block = AsyncDependenciesBlock::new(
-                (*identifier).into(),
-                Some(DependencyLocation::Real(loc)),
-                None,
-                context_element_dependencies
-                  .into_iter()
-                  .map(|dep| Box::new(dep) as Box<dyn Dependency>)
-                  .collect(),
-                None,
-              );
-              if let Some(group_options) = &options.context_options.group_options {
-                block.set_group_options(group_options.clone());
-              }
-              blocks.push(Box::new(block));
-            } else if matches!(options.context_options.mode, ContextMode::Lazy) {
-              let mut index = 0;
-              // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
-              for context_element_dependency in context_element_dependencies {
-                let group_options = options
-                  .context_options
-                  .group_options
-                  .as_ref()
-                  .and_then(|g| g.normal_options());
-                let name = group_options
-                  .and_then(|group_options| group_options.name.as_ref())
-                  .map(|name| {
-                    let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
-                      Cow::Owned(format!("{name}[index]"))
-                    } else {
-                      Cow::Borrowed(name)
-                    };
-                    let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
-                      .replace_all(&name, |_: &Captures| index.to_string());
-                    index += 1;
-                    let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER
-                      .replace_all(&name, |_: &Captures| {
-                        to_path(&context_element_dependency.user_request)
-                      });
-                    name.into_owned()
-                  });
-                let preload_order = group_options.and_then(|o| o.preload_order);
-                let prefetch_order = group_options.and_then(|o| o.prefetch_order);
-                let fetch_priority = group_options.and_then(|o| o.fetch_priority);
-                let mut block = AsyncDependenciesBlock::new(
-                  (*identifier).into(),
-                  None,
-                  Some(&context_element_dependency.user_request.clone()),
-                  vec![Box::new(context_element_dependency)],
-                  Some(options.context_options.request.clone()),
-                );
-                block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-                  name,
-                  preload_order,
-                  prefetch_order,
-                  fetch_priority,
-                )));
-                blocks.push(Box::new(block));
-              }
-            } else {
-              dependencies = context_element_dependencies
-                .into_iter()
-                .map(|d| Box::new(d) as BoxDependency)
-                .collect();
-            }
-
-            Ok((dependencies, blocks))
-          };
-
         let module = ContextModule::new(
-          Arc::new(resolve_dependencies),
+          default_resolve_dependencies(self.resolver_factory.clone()),
           context_module_options.clone(),
         );
 

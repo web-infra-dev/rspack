@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use derivative::Derivative;
 use rspack_core::{
-  AfterResolveResult, ApplyContext, BeforeResolveResult, CompilerOptions,
-  ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve, Plugin, PluginContext,
+  AfterResolveResult, ApplyContext, BeforeResolveResult, BoxDependency, CompilerOptions,
+  ContextElementDependency, ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve,
+  Dependency, DependencyId, DependencyType, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -85,7 +88,40 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
       if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
         data.reg_exp = Some(new_content_reg_exp.clone());
       }
-      if let Some(new_content_create_context_map) = &self.new_content_create_context_map {}
+      if let Some(new_content_create_context_map) = &self.new_content_create_context_map {
+        let new_content_create_context_map = new_content_create_context_map.clone();
+        data.resolve_dependencies = Arc::new(move |_, options| {
+          let deps = new_content_create_context_map
+            .iter()
+            .map(|(key, value)| {
+              let resource_identifier = ContextElementDependency::create_resource_identifier(
+                options.resource.as_str(),
+                value.as_str().into(),
+                options.context_options.attributes.as_ref(),
+              );
+              Box::new(ContextElementDependency {
+                id: DependencyId::new(),
+                request: format!(
+                  "{}{}{}",
+                  value,
+                  options.resource_query.clone(),
+                  options.resource_fragment.clone(),
+                ),
+                user_request: key.to_string(),
+                category: options.context_options.category,
+                context: options.resource.clone().into(),
+                layer: options.layer.clone(),
+                options: options.context_options.clone(),
+                resource_identifier,
+                attributes: options.context_options.attributes.clone(),
+                referenced_exports: options.context_options.referenced_exports.clone(),
+                dependency_type: DependencyType::ContextElement(options.type_prefix),
+              }) as Box<dyn Dependency>
+            })
+            .collect::<Vec<BoxDependency>>();
+          Ok((deps, vec![]))
+        });
+      }
       // if let Some(new_content_callback) = &self.new_content_callback {
       //   // new_content_callback(&mut result).await?;
       // } else {
