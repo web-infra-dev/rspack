@@ -1951,8 +1951,7 @@ impl AssetInfo {
   pub fn merge_another_asset(&mut self, another: AssetInfo) {
     // "another" first fields
     self.minimized = another.minimized;
-    
-    
+
     self.source_filename = another.source_filename.or(self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
@@ -1966,9 +1965,11 @@ impl AssetInfo {
 
     // old first fields or truthy first fields
     self.javascript_module = another.javascript_module.or(self.javascript_module.take());
-    self.immutable =  another.immutable.or(self.immutable);
-    self.development =another.development.or(self.development);
-    self.hot_module_replacement = another.hot_module_replacement.or(self.hot_module_replacement);
+    self.immutable = another.immutable.or(self.immutable);
+    self.development = another.development.or(self.development);
+    self.hot_module_replacement = another
+      .hot_module_replacement
+      .or(self.hot_module_replacement);
     self.is_over_size_limit = another.is_over_size_limit.or(self.is_over_size_limit);
   }
 }

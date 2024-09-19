@@ -721,7 +721,9 @@ fn set_info(target: &mut AssetInfo, info: Info) {
   }
 
   if let Some(hot_module_replacement) = info.hot_module_replacement {
-    target.hot_module_replacement.replace(hot_module_replacement);
+    target
+      .hot_module_replacement
+      .replace(hot_module_replacement);
   }
 
   if let Some(related) = info.related {
