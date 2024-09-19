@@ -1,6 +1,8 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use derivative::Derivative;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
+use rspack_fs::ReadableFileSystem;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
@@ -10,13 +12,17 @@ use crate::{
   SharedPluginDriver,
 };
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
+
 pub struct BuildTask {
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
+  #[derivative(Debug = "ignore")]
+  pub fs: Arc<dyn ReadableFileSystem>,
 }
 
 #[async_trait::async_trait]
@@ -31,6 +37,7 @@ impl Task<MakeTaskContext> for BuildTask {
       plugin_driver,
       current_profile,
       mut module,
+      fs,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -53,6 +60,7 @@ impl Task<MakeTaskContext> for BuildTask {
           },
           plugin_driver: plugin_driver.clone(),
           compiler_options: &compiler_options,
+          fs: fs.clone(),
         },
         None,
       )

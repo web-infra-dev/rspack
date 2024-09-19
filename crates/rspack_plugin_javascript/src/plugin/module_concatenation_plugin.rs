@@ -642,6 +642,7 @@ impl ModuleConcatenationPlugin {
           },
           plugin_driver: compilation.plugin_driver.clone(),
           compiler_options: &compilation.options,
+          fs: compilation.input_filesystem.clone(),
         },
         Some(compilation),
       )

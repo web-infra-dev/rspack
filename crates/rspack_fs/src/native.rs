@@ -1,9 +1,12 @@
-use std::fs;
+use std::{
+  fs, io,
+  path::{Path, PathBuf},
+};
 
 use rspack_paths::Utf8Path;
+use rspack_resolver::{FileMetadata, FileSystem as ResolverFileSystem};
 
 use super::{
-  cfg_async,
   sync::{ReadableFileSystem, WritableFileSystem},
   Error, Result,
 };
@@ -24,55 +27,62 @@ impl WritableFileSystem for NativeFileSystem {
   }
 }
 
-impl ReadableFileSystem for NativeFileSystem {
-  fn read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    fs::read(file).map_err(Error::from)
+impl ReadableFileSystem for NativeFileSystem {}
+impl ResolverFileSystem for NativeFileSystem {
+  fn read_to_string(&self, path: &Path) -> io::Result<String> {
+    fs::read_to_string(path)
+  }
+
+  fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+    fs::metadata(path).map(FileMetadata::from)
+  }
+
+  fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+    fs::symlink_metadata(path).map(FileMetadata::from)
+  }
+
+  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+    dunce::canonicalize(path)
   }
 }
 
-cfg_async! {
-  use futures::future::BoxFuture;
+use futures::future::BoxFuture;
 
-  use crate::{AsyncReadableFileSystem, AsyncWritableFileSystem};
-  pub struct AsyncNativeFileSystem;
+use crate::{AsyncReadableFileSystem, AsyncWritableFileSystem};
+pub struct AsyncNativeFileSystem;
 
-  impl AsyncWritableFileSystem for AsyncNativeFileSystem {
-    fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-      let dir = dir.to_path_buf();
-      let fut = async move { tokio::fs::create_dir(dir).await.map_err(Error::from) };
-      Box::pin(fut)
-    }
-
-    fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-      let fut = async move { tokio::fs::create_dir_all(dir).await.map_err(Error::from) };
-      Box::pin(fut)
-    }
-
-    fn write<'a>(
-      &'a self,
-      file: &'a Utf8Path,
-      data: &'a [u8],
-    ) -> BoxFuture<'a, Result<()>> {
-      let fut = async move { tokio::fs::write(file, data).await.map_err(Error::from) };
-      Box::pin(fut)
-    }
-
-    fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-      let fut = async move { tokio::fs::remove_file(file).await.map_err(Error::from) };
-      Box::pin(fut)
-    }
-
-    fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-      let dir = dir.to_path_buf();
-      let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
-      Box::pin(fut)
-    }
+impl AsyncWritableFileSystem for AsyncNativeFileSystem {
+  fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+    let dir = dir.to_path_buf();
+    let fut = async move { tokio::fs::create_dir(dir).await.map_err(Error::from) };
+    Box::pin(fut)
   }
 
-  impl AsyncReadableFileSystem for AsyncNativeFileSystem {
-    fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-      let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
-      Box::pin(fut)
-    }
+  fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+    let fut = async move { tokio::fs::create_dir_all(dir).await.map_err(Error::from) };
+    Box::pin(fut)
+  }
+
+  fn write<'a>(&'a self, file: &'a Utf8Path, data: &'a [u8]) -> BoxFuture<'a, Result<()>> {
+    let fut = async move { tokio::fs::write(file, data).await.map_err(Error::from) };
+    Box::pin(fut)
+  }
+
+  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+    let fut = async move { tokio::fs::remove_file(file).await.map_err(Error::from) };
+    Box::pin(fut)
+  }
+
+  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+    let dir = dir.to_path_buf();
+    let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
+    Box::pin(fut)
+  }
+}
+
+impl AsyncReadableFileSystem for AsyncNativeFileSystem {
+  fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
+    let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
+    Box::pin(fut)
   }
 }

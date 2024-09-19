@@ -8,15 +8,12 @@ version     = "0.1.0"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-async   = ["rspack_fs/async"]
-default = ["async"]
 
 [dependencies]
 futures      = { workspace = true }
 napi         = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive  = { workspace = true }
-rspack_fs    = { version = "0.1.0", path = "../rspack_fs", default-features = false, features = ["rspack-error"] }
+rspack_fs    = { version = "0.1.0", path = "../rspack_fs" }
 rspack_napi  = { version = "0.1.0", path = "../rspack_napi" }
 rspack_paths = { version = "0.1.0", path = "../rspack_paths" }
 

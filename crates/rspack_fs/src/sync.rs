@@ -1,5 +1,8 @@
 use rspack_paths::Utf8Path;
+pub use rspack_resolver::FileMetadata;
+pub use rspack_resolver::FileSystem as ResolverFileSystem;
 
+// pubResolverFileSystem
 use super::Result;
 
 pub trait WritableFileSystem {
@@ -23,12 +26,7 @@ pub trait WritableFileSystem {
   fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 }
 
-pub trait ReadableFileSystem {
-  /// Read the entire contents of a file into a bytes vector.
-  ///
-  /// Error: This function will return an error if path does not already exist.
-  fn read(&self, file: &Utf8Path) -> Result<Vec<u8>>;
-}
+pub trait ReadableFileSystem: ResolverFileSystem + Send + Sync {}
 
 /// Readable and writable file system representation.
 pub trait FileSystem: ReadableFileSystem + WritableFileSystem {}

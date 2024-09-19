@@ -67,10 +67,11 @@ impl Rspack {
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
-      Box::new(
+      Some(Box::new(
         AsyncNodeWritableFileSystem::new(output_filesystem)
           .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
-      ),
+      )),
+      None,
       Some(resolver_factory),
       Some(loader_resolver_factory),
     );

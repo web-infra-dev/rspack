@@ -1,6 +1,7 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -25,6 +26,7 @@ impl<Context> LoaderContext<Context> {
 
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
+  fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if let Some(plugin) = &loader_context.plugin
     && let Some(processed_resource) = plugin
@@ -39,8 +41,8 @@ async fn process_resource<Context: Send>(
     if let Some(resource_path) = resource_data.resource_path.as_deref()
       && !resource_path.as_str().is_empty()
     {
-      let result = tokio::fs::read(resource_path)
-        .await
+      let result = fs
+        .read_to_string(resource_path.as_std_path())
         .map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
@@ -102,6 +104,7 @@ pub async fn run_loaders<Context: 'static + Send>(
   resource_data: Arc<ResourceData>,
   plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
+  fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .into_iter()
@@ -144,7 +147,7 @@ pub async fn run_loaders<Context: 'static + Send>(
         }
       }
       State::ProcessResource => {
-        process_resource(&mut cx).await?;
+        process_resource(&mut cx, fs.clone()).await?;
         cx.loader_index = cx.loader_items.len() as i32 - 1;
         cx.state.transition(State::Normal);
       }

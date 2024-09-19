@@ -950,9 +950,9 @@ dependencies = [
 
 [[package]]
 name = "dunce"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
+checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "dyn-clone"
@@ -3133,9 +3133,11 @@ dependencies = [
 name = "rspack_fs"
 version = "0.1.0"
 dependencies = [
+ "dunce",
  "futures",
  "rspack_error",
  "rspack_paths",
+ "rspack_resolver",
  "tokio",
 ]
 
@@ -3240,6 +3242,7 @@ dependencies = [
  "regex",
  "rspack_collections",
  "rspack_error",
+ "rspack_fs",
  "rspack_paths",
  "rspack_sources",
  "rspack_util",
@@ -3346,6 +3349,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_fs_node",
  "rspack_hash",
  "rspack_hook",
@@ -3967,9 +3971,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02e53e65a19bc1b2f784acaa4c481968778cf2f26db564beb70956822abd3293"
+checksum = "51106b568dee8123f549ed5163818d4efa74fbca567a4bb88222b4f45e8b074d"
 dependencies = [
  "cfg-if",
  "dashmap 6.0.1",

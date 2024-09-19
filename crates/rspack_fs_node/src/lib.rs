@@ -1,20 +1,13 @@
 #![allow(clippy::unwrap_in_result)]
 
-use rspack_fs::cfg_async;
-
-cfg_async! {
-  mod r#async;
-  pub use r#async::AsyncNodeWritableFileSystem;
-}
+mod r#async;
+pub use r#async::AsyncNodeWritableFileSystem;
 mod sync;
 pub use sync::NodeWritableFileSystem;
 
 mod node;
 pub use node::NodeFS;
-
-cfg_async! {
-  pub use node::ThreadsafeNodeFS;
-}
+pub use node::ThreadsafeNodeFS;
 
 #[cfg(node)]
 mod node_test {

@@ -1,6 +1,5 @@
 use napi::{bindgen_prelude::Buffer, Env, JsFunction, Ref};
 use napi_derive::napi;
-use rspack_fs::cfg_async;
 
 pub(crate) struct JsFunctionRef {
   env: Env,
@@ -55,21 +54,19 @@ pub(crate) struct NodeFSRef {
   pub(crate) mkdirp: JsFunctionRef,
 }
 
-cfg_async! {
-  use napi::Either;
-  use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use napi::Either;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
-  #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
-  pub struct ThreadsafeNodeFS {
-    #[napi(ts_type = "(name: string, content: Buffer) => Promise<void> | void")]
-    pub write_file: ThreadsafeFunction<(String, Buffer), ()>,
-    #[napi(ts_type = "(name: string) => Promise<void> | void")]
-    pub remove_file: ThreadsafeFunction<String, ()>,
-    #[napi(ts_type = "(name: string) => Promise<void> | void")]
-    pub mkdir: ThreadsafeFunction<String, ()>,
-    #[napi(ts_type = "(name: string) => Promise<string | void> | string | void")]
-    pub mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
-    #[napi(ts_type = "(name: string) => Promise<string | void> | string | void")]
-    pub remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
-  }
+#[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
+pub struct ThreadsafeNodeFS {
+  #[napi(ts_type = "(name: string, content: Buffer) => Promise<void> | void")]
+  pub write_file: ThreadsafeFunction<(String, Buffer), ()>,
+  #[napi(ts_type = "(name: string) => Promise<void> | void")]
+  pub remove_file: ThreadsafeFunction<String, ()>,
+  #[napi(ts_type = "(name: string) => Promise<void> | void")]
+  pub mkdir: ThreadsafeFunction<String, ()>,
+  #[napi(ts_type = "(name: string) => Promise<string | void> | string | void")]
+  pub mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
+  #[napi(ts_type = "(name: string) => Promise<string | void> | string | void")]
+  pub remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
 }
