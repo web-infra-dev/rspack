@@ -6,6 +6,7 @@ name        = "rspack_binding_values"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 [dependencies]
+cow-utils          = { workspace = true }
 futures            = { workspace = true }
 heck               = { workspace = true }
 napi               = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }

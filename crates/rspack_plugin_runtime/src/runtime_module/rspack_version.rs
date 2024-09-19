@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -25,8 +26,12 @@ impl RuntimeModule for RspackVersionRuntimeModule {
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
-      RawSource::from(include_str!("runtime/get_version.js").replace("$VERSION$", &self.version))
-        .boxed(),
+      RawSource::from(
+        include_str!("runtime/get_version.js")
+          .cow_replace("$VERSION$", &self.version)
+          .into_owned(),
+      )
+      .boxed(),
     )
   }
 }

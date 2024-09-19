@@ -13,7 +13,6 @@ use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
-use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
 use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
@@ -30,8 +29,8 @@ use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ModuleDTOWrapper;
 use crate::{
-  chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
-  JsStats, ToJsCompatSource,
+  chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
+  ToJsCompatSource,
 };
 use crate::{JsDiagnostic, JsRspackError};
 
@@ -68,11 +67,11 @@ impl JsCompilation {
       .update_asset(&filename, |original_source, mut original_info| {
         let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
-            Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
+            Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
-              let compat_source: CompatSource =
+              let js_compat_source: JsCompatSource =
                 new_source_fn.call1(original_source.to_js_compat_source())?;
-              compat_source.boxed()
+              js_compat_source.into()
             }
           };
           new_source
@@ -202,7 +201,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
-    let source = CompatSource::from(source).boxed();
+    let source: BoxSource = source.into();
     match self.0.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
@@ -256,11 +255,9 @@ impl JsCompilation {
 
   #[napi]
   pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
-    let compat_source: CompatSource = source.into();
-
     self.0.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
     );
   }
 

@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use derivative::Derivative;
 use napi::{bindgen_prelude::Buffer, Either};
 use napi_derive::napi;
@@ -110,7 +111,7 @@ impl From<RawCopyPattern> for CopyPattern {
       }),
       context: context.map(Into::into),
       to_type: if let Some(to_type) = to_type {
-        match to_type.to_lowercase().as_str() {
+        match to_type.cow_to_lowercase().as_ref() {
           "dir" => Some(ToType::Dir),
           "file" => Some(ToType::File),
           "template" => Some(ToType::Template),
@@ -143,7 +144,7 @@ impl From<RawCopyPattern> for CopyPattern {
           fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
             match input {
               Either::A(s) => RawSource::from(s),
-              Either::B(b) => RawSource::from(b.to_vec()),
+              Either::B(b) => RawSource::from(Vec::<u8>::from(b)),
             }
           }
 

@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
+use cow_utils::CowUtils;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
@@ -430,7 +431,9 @@ impl SourceMapDevToolPlugin {
               ConcatSource::new([
                 source.clone(),
                 RawSource::from(
-                  current_source_mapping_url_comment.replace("[url]", &source_map_url),
+                  current_source_mapping_url_comment
+                    .cow_replace("[url]", &source_map_url)
+                    .into_owned(),
                 )
                 .boxed(),
               ])
@@ -468,10 +471,14 @@ impl SourceMapDevToolPlugin {
           asset.source = Some(
             ConcatSource::new([
               source.clone(),
-              RawSource::from(current_source_mapping_url_comment.replace(
-                "[url]",
-                &format!("data:application/json;charset=utf-8;base64,{base64}"),
-              ))
+              RawSource::from(
+                current_source_mapping_url_comment
+                  .cow_replace(
+                    "[url]",
+                    &format!("data:application/json;charset=utf-8;base64,{base64}"),
+                  )
+                  .into_owned(),
+              )
               .boxed(),
             ])
             .boxed(),

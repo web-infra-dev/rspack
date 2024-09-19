@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, hash::Hash};
 
+use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_collections::UkeySet;
@@ -127,13 +128,13 @@ fn eval_devtool_plugin_render_module_content(
     let source = &origin_source.source();
     let footer = format!(
       "\n{}",
-      self.source_url_comment.replace(
+      &self.source_url_comment.cow_replace(
         "[url]",
         encode_uri(&str)
-          .replace("%2F", "/")
-          .replace("%20", "_")
-          .replace("%5E", "^")
-          .replace("%5C", "\\")
+          .cow_replace("%2F", "/")
+          .cow_replace("%20", "_")
+          .cow_replace("%5E", "^")
+          .cow_replace("%5C", "\\")
           .trim_start_matches('/')
       )
     );

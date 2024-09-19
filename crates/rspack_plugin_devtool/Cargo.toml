@@ -9,6 +9,7 @@ version     = "0.1.0"
 
 [dependencies]
 async-trait              = { workspace = true }
+cow-utils                = { workspace = true }
 dashmap                  = { workspace = true }
 derivative               = { workspace = true }
 futures                  = { workspace = true }

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::{borrow::Cow, fs, hash::Hash, sync::Arc};
 
+use cow_utils::CowUtils;
 use indoc::formatdoc;
 use itertools::Itertools;
 use regex::{Captures, Regex};
@@ -1026,12 +1027,9 @@ impl ContextModule {
 
         // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
         let relative_path = {
-          let mut path_str = path_str.to_owned();
-          let p = path_str
-            .drain(ctx.len()..)
-            .collect::<String>()
-            .replace('\\', "/");
-          if p.starts_with('/') {
+          let path_str = path_str.to_owned().drain(ctx.len()..).collect::<String>();
+          let p = path_str.cow_replace('\\', "/");
+          if p.as_ref().starts_with('/') {
             format!(".{p}")
           } else {
             format!("./{p}")

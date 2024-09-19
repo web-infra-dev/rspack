@@ -508,6 +508,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cow-utils"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "417bef24afe1460300965a25ff4a24b8b45ad011948302ec221e8a0a81eb2c79"
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2943,6 +2949,7 @@ name = "rspack_binding_options"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "derivative",
  "futures",
  "glob",
@@ -3012,6 +3019,7 @@ dependencies = [
 name = "rspack_binding_values"
 version = "0.1.0"
 dependencies = [
+ "cow-utils",
  "futures",
  "heck 0.5.0",
  "napi-derive",
@@ -3048,6 +3056,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags 2.5.0",
+ "cow-utils",
  "dashmap 5.5.3",
  "derivative",
  "dyn-clone",
@@ -3107,6 +3116,7 @@ name = "rspack_error"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cow-utils",
  "derivative",
  "futures",
  "miette 5.10.0",
@@ -3327,6 +3337,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "color-backtrace",
+ "cow-utils",
  "napi-build",
  "napi-derive",
  "napi-h",
@@ -3379,6 +3390,7 @@ name = "rspack_plugin_banner"
 version = "0.1.0"
 dependencies = [
  "async-recursion",
+ "cow-utils",
  "futures",
  "regex",
  "rspack_core",
@@ -3443,6 +3455,7 @@ name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "css-module-lexer",
  "heck 0.5.0",
  "indexmap 1.9.3",
@@ -3467,6 +3480,7 @@ name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "dashmap 5.5.3",
  "derivative",
  "futures",
@@ -3540,6 +3554,7 @@ name = "rspack_plugin_extract_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "regex",
  "rspack_collections",
  "rspack_core",
@@ -3562,6 +3577,7 @@ name = "rspack_plugin_hmr"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3577,6 +3593,7 @@ name = "rspack_plugin_html"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cow-utils",
  "dashmap 5.5.3",
  "futures",
  "itertools 0.13.0",
@@ -3621,6 +3638,7 @@ dependencies = [
  "anymap",
  "async-trait",
  "bitflags 2.5.0",
+ "cow-utils",
  "dashmap 5.5.3",
  "fast-glob",
  "indexmap 2.2.6",
@@ -3656,6 +3674,7 @@ dependencies = [
 name = "rspack_plugin_json"
 version = "0.1.0"
 dependencies = [
+ "cow-utils",
  "json",
  "ropey",
  "rspack_core",
@@ -3668,6 +3687,7 @@ name = "rspack_plugin_lazy_compilation"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3815,6 +3835,7 @@ name = "rspack_plugin_runtime"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "indexmap 2.2.6",
  "itertools 0.13.0",
  "rspack_collections",
@@ -3892,6 +3913,7 @@ dependencies = [
 name = "rspack_plugin_swc_js_minimizer"
 version = "0.1.0"
 dependencies = [
+ "cow-utils",
  "once_cell",
  "rayon",
  "regex",
@@ -3912,6 +3934,7 @@ dependencies = [
 name = "rspack_plugin_warn_sensitive_module"
 version = "0.1.0"
 dependencies = [
+ "cow-utils",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3925,6 +3948,7 @@ name = "rspack_plugin_wasm"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
  "rayon",
@@ -3961,6 +3985,7 @@ dependencies = [
 name = "rspack_regex"
 version = "0.1.0"
 dependencies = [
+ "cow-utils",
  "regex-syntax 0.8.3",
  "regress",
  "rspack_error",
@@ -5633,6 +5658,7 @@ dependencies = [
 name = "swc_plugin_import"
 version = "0.1.5"
 dependencies = [
+ "cow-utils",
  "handlebars",
  "heck 0.5.0",
  "rustc-hash 1.1.0",

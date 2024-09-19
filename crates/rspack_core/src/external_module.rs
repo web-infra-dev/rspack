@@ -287,13 +287,22 @@ impl ExternalModule {
                 )
                 .boxed(),
               );
-              format!(
-                r#"
-{} = __WEBPACK_EXTERNAL_MODULE_{}__;
-"#,
-                get_namespace_object_export(concatenation_scope, supports_const),
-                id.clone()
-              )
+
+              if let Some(concatenation_scope) = concatenation_scope {
+                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{}__", id);
+                let namespace_export_with_name =
+                  format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
+                concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                String::new()
+              } else {
+                format!(
+                  r#"
+  {} = __WEBPACK_EXTERNAL_MODULE_{}__;
+  "#,
+                  get_namespace_object_export(concatenation_scope, supports_const),
+                  id.clone()
+                )
+              }
             } else {
               format!(
                 "{} = {};",

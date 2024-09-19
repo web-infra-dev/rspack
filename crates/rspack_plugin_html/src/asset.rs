@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::Context;
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
@@ -306,7 +307,7 @@ fn url_encode_path(file_path: &str) -> String {
       .map(|p| { urlencoding::encode(p) })
       .join("/"),
     // element.outerHTML will escape '&' so need to add a placeholder here
-    query_string.replace("&", "$$RSPACK_URL_AMP$$")
+    query_string.cow_replace("&", "$$RSPACK_URL_AMP$$")
   )
 }
 

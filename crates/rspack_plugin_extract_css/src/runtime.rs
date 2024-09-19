@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cow_utils::CowUtils;
 use rspack_collections::UkeySet;
 use rspack_core::{
   impl_runtime_module, rspack_sources::RawSource, ChunkUkey, Compilation, CrossOriginLoading,
@@ -80,18 +81,18 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     for (attr_key, attr_value) in attributes {
       attr += &format!("linkTag.setAttribute({}, {});\n", attr_key, attr_value);
     }
-    let runtime = runtime.replace("__SET_ATTRIBUTES__", &attr);
+    let runtime = runtime.cow_replace("__SET_ATTRIBUTES__", &attr);
 
     let runtime = if let Some(link_type) = &self.link_type {
-      runtime.replace("__SET_LINKTYPE__", &format!("linkTag.type={};", link_type))
+      runtime.cow_replace("__SET_LINKTYPE__", &format!("linkTag.type={};", link_type))
     } else {
-      runtime.replace("__SET_LINKTYPE__", "")
+      runtime.cow_replace("__SET_LINKTYPE__", "")
     };
 
     let runtime = if let CrossOriginLoading::Enable(cross_origin_loading) =
       &compilation.options.output.cross_origin_loading
     {
-      runtime.replace(
+      runtime.cow_replace(
         "__CROSS_ORIGIN_LOADING__",
         &format!(
           "if (linkTag.href.indexOf(window.location.origin + '/') !== 0) {{
@@ -101,16 +102,16 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         ),
       )
     } else {
-      runtime.replace("__CROSS_ORIGIN_LOADING__", "")
+      runtime.cow_replace("__CROSS_ORIGIN_LOADING__", "")
     };
 
     let runtime = match &self.insert {
-      InsertType::Fn(f) => runtime.replace("__INSERT__", &format!("({f})(linkTag);")),
-      InsertType::Selector(sel) => runtime.replace(
+      InsertType::Fn(f) => runtime.cow_replace("__INSERT__", &format!("({f})(linkTag);")),
+      InsertType::Selector(sel) => runtime.cow_replace(
         "__INSERT__",
         &format!("var target = document.querySelector({sel});\ntarget.parentNode.insertBefore(linkTag, target.nextSibling);"),
       ),
-      InsertType::Default => runtime.replace(
+      InsertType::Default => runtime.cow_replace(
         "__INSERT__",
         "if (oldTag) {
   oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
@@ -123,10 +124,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let runtime = if self.loading {
       let chunks = self.get_css_chunks(compilation);
       if chunks.is_empty() {
-        runtime.replace("__WITH_LOADING__", "// no chunk loading")
+        runtime.cow_replace("__WITH_LOADING__", "// no chunk loading")
       } else {
         let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
-        let with_loading = WITH_LOADING.replace(
+        let with_loading = WITH_LOADING.cow_replace(
           "__INSTALLED_CHUNKS__",
           &chunk
             .ids
@@ -139,12 +140,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             }),
         );
 
-        let with_loading = with_loading.replace(
+        let with_loading = with_loading.cow_replace(
           "__ENSURE_CHUNK_HANDLERS__",
           &RuntimeGlobals::ENSURE_CHUNK_HANDLERS.to_string(),
         );
 
-        let with_loading = with_loading.replace(
+        let with_loading = with_loading.cow_replace(
           "__CSS_CHUNKS__",
           &format!(
             "{{\n{}\n}}",
@@ -164,24 +165,24 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           ),
         );
 
-        runtime.replace("__WITH_LOADING__", &with_loading)
+        runtime.cow_replace("__WITH_LOADING__", &with_loading)
       }
     } else {
-      runtime.replace("__WITH_LOADING__", "// no chunk loading")
+      runtime.cow_replace("__WITH_LOADING__", "// no chunk loading")
     };
 
     let runtime = if self.hmr {
-      runtime.replace(
+      runtime.cow_replace(
         "__WITH_HMT__",
-        &WITH_HMR.replace(
+        &WITH_HMR.cow_replace(
           "__HMR_DOWNLOAD__",
           &RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS.to_string(),
         ),
       )
     } else {
-      runtime.replace("__WITH_HMT__", "// no hmr")
+      runtime.cow_replace("__WITH_HMT__", "// no hmr")
     };
 
-    Ok(Arc::new(RawSource::from(runtime)))
+    Ok(Arc::new(RawSource::from(runtime.into_owned())))
   }
 }

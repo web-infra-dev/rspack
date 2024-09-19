@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -114,13 +115,15 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
 
     if with_loading || with_external_install_chunk {
       source.add(RawSource::from(
-        include_str!("runtime/readfile_chunk_loading.js").replace(
-          "$WITH_ON_CHUNK_LOADED$",
-          match with_on_chunk_load {
-            true => "__webpack_require__.O();",
-            false => "",
-          },
-        ),
+        include_str!("runtime/readfile_chunk_loading.js")
+          .cow_replace(
+            "$WITH_ON_CHUNK_LOADED$",
+            match with_on_chunk_load {
+              true => "__webpack_require__.O();",
+              false => "",
+            },
+          )
+          .into_owned(),
       ));
     }
 
@@ -129,9 +132,9 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/readfile_chunk_loading_with_loading.js")
-          .replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
-          .replace("$OUTPUT_DIR$", &root_output_dir)
-          .replace(
+          .cow_replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
+          .cow_replace("$OUTPUT_DIR$", &root_output_dir)
+          .cow_replace(
             "$MATCH_FALLBACK$",
             if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
@@ -139,6 +142,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
               "else installedChunks[chunkId] = 0;\n"
             },
           )
+          .into_owned()
       };
 
       source.add(RawSource::from(format!(
@@ -169,7 +173,8 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     if with_hmr_manifest {
       source.add(RawSource::from(
         include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.js")
-          .replace("$OUTPUT_DIR$", &root_output_dir),
+          .cow_replace("$OUTPUT_DIR$", &root_output_dir)
+          .into_owned(),
       ));
     }
 
