@@ -66,10 +66,10 @@ define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut 
 define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
-define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
-define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
@@ -1361,7 +1361,7 @@ impl Compilation {
   ) -> Result<()> {
     fn process_runtime_requirement_hook(
       requirements: &mut RuntimeGlobals,
-      mut call_hook: impl FnMut(&RuntimeGlobals, &mut RuntimeGlobals) -> Result<()>,
+      mut call_hook: impl FnMut(&RuntimeGlobals, &RuntimeGlobals, &mut RuntimeGlobals) -> Result<()>,
     ) -> Result<()> {
       let mut runtime_requirements_mut = *requirements;
       let mut runtime_requirements;
@@ -1369,7 +1369,11 @@ impl Compilation {
       loop {
         runtime_requirements = runtime_requirements_mut;
         runtime_requirements_mut = RuntimeGlobals::default();
-        call_hook(&runtime_requirements, &mut runtime_requirements_mut)?;
+        call_hook(
+          requirements,
+          &runtime_requirements,
+          &mut runtime_requirements_mut,
+        )?;
         runtime_requirements_mut =
           runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
         if runtime_requirements_mut.is_empty() {
@@ -1401,13 +1405,14 @@ impl Compilation {
                 .get_runtime_requirements(&module, Some(runtime));
               process_runtime_requirement_hook(
                 &mut runtime_requirements,
-                |runtime_requirements, runtime_requirements_mut| {
+                |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
                   plugin_driver
                     .compilation_hooks
                     .runtime_requirement_in_module
                     .call(
                       self,
                       &module,
+                      all_runtime_requirements,
                       runtime_requirements,
                       runtime_requirements_mut,
                     )?;
@@ -1475,13 +1480,14 @@ impl Compilation {
 
       process_runtime_requirement_hook(
         &mut set,
-        |runtime_requirements, runtime_requirements_mut| {
+        |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
           plugin_driver
             .compilation_hooks
             .runtime_requirement_in_tree
             .call(
               self,
               &entry_ukey,
+              all_runtime_requirements,
               runtime_requirements,
               runtime_requirements_mut,
             )?;

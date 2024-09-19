@@ -216,6 +216,10 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
+		runtimeRequirementInTree: liteTapable.SyncBailHook<
+			[Chunk, Set<string>],
+			void
+		>;
 		runtimeModule: RuntimeModule;
 		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
@@ -345,6 +349,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			buildModule: new liteTapable.SyncHook(["module"]),
 			executeModule: new liteTapable.SyncHook(["options", "context"]),
 			additionalTreeRuntimeRequirements: new liteTapable.SyncHook([
+				"chunk",
+				"runtimeRequirements"
+			]),
+			runtimeRequirementInTree: new liteTapable.SyncBailHook([
 				"chunk",
 				"runtimeRequirements"
 			]),
