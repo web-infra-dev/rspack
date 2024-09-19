@@ -106,6 +106,11 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.FullySupported,
   },
   {
+    name: 'ContextReplacementPlugin',
+    url: '/plugins/webpack/context-replacement-plugin',
+    status: SupportStatus.PartiallySupported,
+  },
+  {
     name: 'NormalModuleReplacementPlugin',
     url: '/plugins/webpack/normal-module-replacement-plugin',
     status: SupportStatus.FullySupported,

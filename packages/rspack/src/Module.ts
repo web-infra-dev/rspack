@@ -48,7 +48,6 @@ export type ContextModuleFactoryAfterResolveResult =
 			context: string;
 			request: string;
 			regExp?: RegExp;
-			dependencies: Array<any>;
 	  };
 
 export class Module {
