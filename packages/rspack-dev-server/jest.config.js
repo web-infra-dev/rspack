@@ -8,7 +8,7 @@ const config = {
 	},
 	testMatch: [
 		"<rootDir>/tests/*.test.ts"
-		// TODO: enable after migrating to seperated repo
+		// TODO: enable after migrating to separated repo
 		// ...(isWin ? [] : ["<rootDir>/tests/e2e/*.test.js"])
 	],
 	testPathIgnorePatterns: isWin
