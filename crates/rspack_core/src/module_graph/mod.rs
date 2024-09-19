@@ -985,10 +985,14 @@ impl<'a> ModuleGraph<'a> {
       .map(|mgm| mgm.is_async)
   }
 
-  pub fn set_async(&mut self, module_id: &ModuleIdentifier) {
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_id) {
-      mgm.is_async = true
+  pub fn set_async(&mut self, module_id: &ModuleIdentifier, is_async: bool) -> bool {
+    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_id)
+      && mgm.is_async != is_async
+    {
+      mgm.is_async = is_async;
+      return true;
     }
+    false
   }
 
   pub fn get_outgoing_connections(

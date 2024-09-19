@@ -1,10 +1,9 @@
-use std::collections::HashSet;
-
 use linked_hash_set::LinkedHashSet;
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Plugin,
-  PluginContext,
+  unaffected_cache::{Mutation, Mutations},
+  ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,30 +14,64 @@ pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  // fix: mut for-in
-  let mut queue = LinkedHashSet::new();
-  let mut uniques = HashSet::new();
+  let module_graph = compilation.get_module_graph();
+  let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
+    compilation
+      .unaffected_modules_cache
+      .get_affected_modules_with_module_graph()
+      .lock()
+      .expect("should lock")
+      .clone()
+  } else {
+    module_graph.modules().keys().copied().collect()
+  };
 
-  let mut modules: Vec<Identifier> = compilation
-    .get_module_graph()
-    .modules()
-    .values()
-    .filter(|m| {
-      if let Some(meta) = &m.build_meta() {
-        meta.has_top_level_await
-      } else {
-        false
-      }
-    })
-    .map(|m| m.identifier())
-    .collect();
+  let mut sync_modules = LinkedHashSet::new();
+  let mut async_modules = LinkedHashSet::new();
+  for module_identifier in modules {
+    let module = module_graph
+      .module_by_identifier(&module_identifier)
+      .expect("should have module");
+    let build_meta = module.build_meta().expect("should have build meta");
+    if build_meta.has_top_level_await {
+      async_modules.insert(module_identifier);
+    } else {
+      sync_modules.insert(module_identifier);
+    }
+  }
 
-  modules.retain(|m| queue.insert(*m));
+  let mut mutations = compilation
+    .options
+    .new_incremental_enabled()
+    .then(|| Mutations::default());
 
+  set_async_modules(compilation, sync_modules, false, &mut mutations);
+  set_async_modules(compilation, async_modules, true, &mut mutations);
+
+  if let Some(compilation_mutations) = &mut compilation.mutations
+    && let Some(mutations) = mutations
+  {
+    compilation_mutations.extend(mutations);
+  }
+
+  Ok(())
+}
+
+fn set_async_modules(
+  compilation: &mut Compilation,
+  modules: LinkedHashSet<ModuleIdentifier>,
+  is_async: bool,
+  mutations: &mut Option<Mutations>,
+) {
+  let mut uniques = IdentifierSet::from_iter(modules.iter().copied());
+  let mut queue = modules;
   let mut module_graph = compilation.get_module_graph_mut();
 
   while let Some(module) = queue.pop_front() {
-    module_graph.set_async(&module);
+    let changed = module_graph.set_async(&module, is_async);
+    if changed && let Some(mutations) = mutations {
+      mutations.add(Mutation::ModuleGraphModuleSetAsync { module });
+    }
     module_graph
       .get_incoming_connections(&module)
       .iter()
@@ -60,7 +93,6 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         }
       });
   }
-  Ok(())
 }
 
 impl Plugin for InferAsyncModulesPlugin {

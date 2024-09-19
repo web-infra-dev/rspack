@@ -153,7 +153,7 @@ pub struct BuildMeta {
 }
 
 // webpack build info
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub build_meta: BuildMeta,
