@@ -443,7 +443,7 @@ impl SourceMapDevToolPlugin {
           } else {
             asset.source = Some(source.clone());
           }
-          let mut source_map_asset_info = AssetInfo::default().with_development(true);
+          let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
           if let Some(asset) = compilation.assets().get(filename.as_ref()) {
             // set source map asset version to be the same as the target asset
             source_map_asset_info.version = asset.info.version.clone();

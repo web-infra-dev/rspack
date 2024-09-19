@@ -41,7 +41,7 @@ impl SizeLimitsPlugin {
         .await
         .expect("run SizeLimitsPlugin asset filter error")
     } else {
-      !asset.info.development
+      !asset.info.development.unwrap_or(false)
     }
   }
 

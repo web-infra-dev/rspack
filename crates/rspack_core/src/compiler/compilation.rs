@@ -1845,9 +1845,9 @@ impl CompilationAsset {
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
-  pub immutable: bool,
+  pub immutable: Option<bool>,
   /// whether the asset is minimized
-  pub minimized: bool,
+  pub minimized: Option<bool>,
   /// the value(s) of the full hash used for this asset
   pub full_hash: HashSet<String>,
   /// the value(s) of the chunk hash used for this asset
@@ -1861,9 +1861,9 @@ pub struct AssetInfo {
   /// size in bytes, only set after asset has been emitted
   // pub size: f64,
   /// when asset is only used for development and doesn't count towards user-facing assets
-  pub development: bool,
+  pub development: Option<bool>,
   /// when asset ships data for updating an existing application (HMR)
-  pub hot_module_replacement: bool,
+  pub hot_module_replacement: Option<bool>,
   /// when asset is javascript and an ESM
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
@@ -1883,17 +1883,17 @@ pub struct AssetInfo {
 }
 
 impl AssetInfo {
-  pub fn with_minimized(mut self, v: bool) -> Self {
+  pub fn with_minimized(mut self, v: Option<bool>) -> Self {
     self.minimized = v;
     self
   }
 
-  pub fn with_development(mut self, v: bool) -> Self {
+  pub fn with_development(mut self, v: Option<bool>) -> Self {
     self.development = v;
     self
   }
 
-  pub fn with_hot_module_replacement(mut self, v: bool) -> Self {
+  pub fn with_hot_module_replacement(mut self, v: Option<bool>) -> Self {
     self.hot_module_replacement = v;
     self
   }
@@ -1925,7 +1925,7 @@ impl AssetInfo {
     self.chunk_hash.insert(v);
   }
 
-  pub fn set_immutable(&mut self, v: bool) {
+  pub fn set_immutable(&mut self, v: Option<bool>) {
     self.immutable = v;
   }
 
@@ -1944,14 +1944,16 @@ impl AssetInfo {
   pub fn set_is_over_size_limit(&mut self, v: bool) {
     self.is_over_size_limit = Some(v);
   }
-
-  // https://github.com/webpack/webpack/blob/7b80b2b18db66abca6feb7b02a9089aca4bc8186/lib/asset/AssetGenerator.js#L43-L70
-  pub fn merge_another(&mut self, another: AssetInfo) {
+  // another should have high priority than self
+  // self = { immutable:true}
+  // merge_another_asset({immutable: false})
+  // self == { immutable: false}
+  // align with https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/Compilation.js#L4554
+  pub fn merge_another_asset(&mut self, another: AssetInfo) {
     // "another" first fields
     self.minimized = another.minimized;
-    if let Some(source_filename) = another.source_filename {
-      self.source_filename = Some(source_filename);
-    }
+
+    self.source_filename = another.source_filename.or(self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
 
@@ -1963,11 +1965,13 @@ impl AssetInfo {
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
     // old first fields or truthy first fields
-    self.javascript_module = self.javascript_module.or(another.javascript_module);
-    self.immutable = self.immutable || another.immutable;
-    self.development = self.development || another.development;
-    self.hot_module_replacement = self.hot_module_replacement || another.hot_module_replacement;
-    self.is_over_size_limit = self.is_over_size_limit.or(another.is_over_size_limit);
+    self.javascript_module = another.javascript_module.or(self.javascript_module.take());
+    self.immutable = another.immutable.or(self.immutable);
+    self.development = another.development.or(self.development);
+    self.hot_module_replacement = another
+      .hot_module_replacement
+      .or(self.hot_module_replacement);
+    self.is_over_size_limit = another.is_over_size_limit.or(self.is_over_size_limit);
   }
 }
 

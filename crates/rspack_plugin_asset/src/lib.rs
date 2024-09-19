@@ -438,7 +438,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                   &source_file_name,
                   template,
                 )?;
-                asset_info.merge_another(another_asset_info);
+                asset_info.merge_another_asset(another_asset_info);
                 public_path
               }
               PublicPath::Auto => public_path.render(compilation, &filename),

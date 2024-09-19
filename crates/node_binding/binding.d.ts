@@ -337,9 +337,9 @@ export interface JsAssetEmittedArgs {
 
 export interface JsAssetInfo {
   /** if the asset can be long term cached forever (contains a hash) */
-  immutable: boolean
+  immutable?: boolean
   /** whether the asset is minimized */
-  minimized: boolean
+  minimized?: boolean
   /** the value(s) of the full hash used for this asset */
   fullhash: Array<string>
   /** the value(s) of the chunk hash used for this asset */
@@ -354,9 +354,9 @@ export interface JsAssetInfo {
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
    */
-  development: boolean
+  development?: boolean
   /** when asset ships data for updating an existing application (HMR) */
-  hotModuleReplacement: boolean
+  hotModuleReplacement?: boolean
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
@@ -732,11 +732,11 @@ export interface JsStatsAsset {
 }
 
 export interface JsStatsAssetInfo {
-  minimized: boolean
-  development: boolean
-  hotModuleReplacement: boolean
+  minimized?: boolean
+  development?: boolean
+  hotModuleReplacement?: boolean
   sourceFilename?: string
-  immutable: boolean
+  immutable?: boolean
   javascriptModule?: boolean
   chunkhash: Array<string>
   contenthash: Array<string>
