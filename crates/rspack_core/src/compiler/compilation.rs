@@ -1947,6 +1947,7 @@ impl AssetInfo {
   // another should have high priority than self
   // self = { immutable:true}
   // merge_another_asset({immutable: false})
+  // self == { immutable: false}
   // align with https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/Compilation.js#L4554
   pub fn merge_another_asset(&mut self, another: AssetInfo) {
     // "another" first fields
