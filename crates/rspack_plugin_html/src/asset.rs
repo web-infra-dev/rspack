@@ -67,7 +67,7 @@ impl HtmlPluginAssets {
       .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
       .filter_map(|asset_name| {
         let asset = compilation.assets().get(&asset_name).expect("TODO:");
-        if asset.info.hot_module_replacement || asset.info.development {
+        if asset.info.hot_module_replacement.unwrap_or(false) || asset.info.development.unwrap_or(false){
           None
         } else {
           Some((asset_name.clone(), asset))

@@ -176,7 +176,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let is_matched = match_object(options, filename);
 
-      if !is_matched || original.get_info().minimized {
+      if !is_matched || original.get_info().minimized.unwrap_or(false) {
         return false
       }
 
@@ -269,7 +269,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           source
         };
         original.set_source(Some(source));
-        original.get_info_mut().minimized = true;
+        original.get_info_mut().minimized.replace(true);
       }
 
       Ok(())
@@ -289,7 +289,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         CompilationAsset {
           source: Some(comments.source),
           info: AssetInfo {
-            minimized: true,
+            minimized: Some(true),
             ..Default::default()
           },
         },

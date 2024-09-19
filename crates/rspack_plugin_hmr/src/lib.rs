@@ -264,7 +264,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           // Reset version to make hmr generated assets always emit
           entry
             .info
-            .with_hot_module_replacement(true)
+            .with_hot_module_replacement(Some(true))
             .with_version(Default::default()),
         );
         if let Some(current_chunk_ukey) = current_chunk_ukey {
@@ -327,7 +327,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           )
           .boxed(),
         ),
-        AssetInfo::default().with_hot_module_replacement(true),
+        AssetInfo::default().with_hot_module_replacement(Some(true)),
       ),
     );
   }

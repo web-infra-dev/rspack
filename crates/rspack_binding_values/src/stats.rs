@@ -409,11 +409,11 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsAssetInfo {
-  pub minimized: bool,
-  pub development: bool,
-  pub hot_module_replacement: bool,
+  pub minimized: Option<bool>,
+  pub development: Option<bool>,
+  pub hot_module_replacement: Option<bool>,
   pub source_filename: Option<String>,
-  pub immutable: bool,
+  pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
   pub chunkhash: Vec<String>,
   pub contenthash: Vec<String>,

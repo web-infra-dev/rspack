@@ -293,7 +293,7 @@ fn render_template(
       CONTENT_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
         let content_hash = &content_hash[..hash_len(content_hash, caps)];
         if let Some(asset_info) = asset_info.as_mut() {
-          asset_info.set_immutable(true);
+          asset_info.set_immutable(Some(true));
           asset_info.set_content_hash(content_hash.to_owned());
         }
         content_hash
@@ -306,7 +306,7 @@ fn render_template(
         reg.replace_all(t, |caps: &Captures| {
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
+            asset_info.set_immutable(Some(true));
             asset_info.set_full_hash(hash.to_owned());
           }
           hash
@@ -329,7 +329,7 @@ fn render_template(
           let hash = &**d;
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
+            asset_info.set_immutable(Some(true));
             asset_info.set_chunk_hash(hash.to_owned());
           }
           hash
