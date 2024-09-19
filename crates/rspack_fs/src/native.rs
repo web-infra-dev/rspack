@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_paths::Utf8Path;
-use rspack_resolver::{FileMetadata, FileSystem as ResolverFileSystem};
+use rspack_resolver::FileMetadata;
 
 use super::{
   sync::{ReadableFileSystem, WritableFileSystem},
@@ -27,10 +27,9 @@ impl WritableFileSystem for NativeFileSystem {
   }
 }
 
-impl ReadableFileSystem for NativeFileSystem {}
-impl ResolverFileSystem for NativeFileSystem {
-  fn read_to_string(&self, path: &Path) -> io::Result<String> {
-    fs::read_to_string(path)
+impl ReadableFileSystem for NativeFileSystem {
+  fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+    fs::read(path)
   }
 
   fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {

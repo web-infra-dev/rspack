@@ -1,3 +1,7 @@
+use std::io;
+use std::path::Path;
+use std::path::PathBuf;
+
 use rspack_paths::Utf8Path;
 pub use rspack_resolver::FileMetadata;
 pub use rspack_resolver::FileSystem as ResolverFileSystem;
@@ -26,7 +30,19 @@ pub trait WritableFileSystem {
   fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 }
 
-pub trait ReadableFileSystem: ResolverFileSystem + Send + Sync {}
+pub trait ReadableFileSystem: Send + Sync {
+  /// See [std::fs::read]
+  fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+
+  /// See [std::fs::metadata]
+  fn metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+
+  /// See [std::fs::symlink_metadata]
+  fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+
+  /// See [std::fs::canonicalize]
+  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+}
 
 /// Readable and writable file system representation.
 pub trait FileSystem: ReadableFileSystem + WritableFileSystem {}

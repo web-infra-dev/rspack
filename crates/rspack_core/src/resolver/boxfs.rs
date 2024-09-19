@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{io, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
 use rspack_resolver::{FileMetadata, FileSystem as ResolverFileSystem};
@@ -13,7 +13,9 @@ impl BoxFS {
 }
 impl ResolverFileSystem for BoxFS {
   fn read_to_string(&self, path: &std::path::Path) -> std::io::Result<String> {
-    self.0.read_to_string(path)
+    self.0.read(path).and_then(|x| {
+      String::from_utf8(x).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+    })
   }
 
   fn metadata(&self, path: &std::path::Path) -> std::io::Result<FileMetadata> {
