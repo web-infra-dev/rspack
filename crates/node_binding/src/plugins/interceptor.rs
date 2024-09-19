@@ -1162,19 +1162,22 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
     &self,
     compilation: &mut Compilation,
     chunk_ukey: &ChunkUkey,
-    runtime_requirements: &RuntimeGlobals,
+    all_runtime_requirements: &RuntimeGlobals,
+    _runtime_requirements: &RuntimeGlobals,
     runtime_requirements_mut: &mut RuntimeGlobals,
   ) -> rspack_error::Result<Option<()>> {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsRuntimeRequirementInTreeArg {
       chunk: JsChunk::from(chunk),
-      runtime_requirements: JsRuntimeGlobals::from(
-        runtime_requirements.union(*runtime_requirements_mut),
-      ),
+      runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
     };
     let result = self.function.blocking_call_with_sync(arg)?;
     if let Some(result) = result {
-      let _ = std::mem::replace(runtime_requirements_mut, result.as_runtime_globals());
+      runtime_requirements_mut.extend(
+        result
+          .as_runtime_globals()
+          .difference(*all_runtime_requirements),
+      );
     }
     Ok(None)
   }
