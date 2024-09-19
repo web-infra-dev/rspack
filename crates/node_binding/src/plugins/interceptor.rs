@@ -1168,7 +1168,9 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsRuntimeRequirementInTreeArg {
       chunk: JsChunk::from(chunk),
-      runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
+      runtime_requirements: JsRuntimeGlobals::from(
+        runtime_requirements.union(*runtime_requirements_mut),
+      ),
     };
     let result = self.function.blocking_call_with_sync(arg)?;
     if let Some(result) = result {
