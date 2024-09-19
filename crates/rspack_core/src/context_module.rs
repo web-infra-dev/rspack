@@ -1298,7 +1298,7 @@ fn alternative_requests(
   for item in std::mem::take(&mut items) {
     items.push(item.clone());
     for module in resolve_options.modules() {
-      let dir = module.replace('\\', "/");
+      let dir = module.cow_replace('\\', "/");
       if item.request.starts_with(&format!("./{}/", dir)) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
