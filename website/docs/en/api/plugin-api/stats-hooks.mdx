@@ -40,8 +40,8 @@ A HookMap, called after generating the specified stats item.
 
 - **Type:** `HookMap<SyncWaterfallHook<[any[], StatsFactoryContext], undefined>>`
 - **Arguments:**
-  - `any[]`：generated stats item result
-  - `StatsFactoryContext`：generating context
+  - `any[]`: generated stats item result
+  - `StatsFactoryContext`: generating context
 
 ## StatsPrinter
 
@@ -53,8 +53,8 @@ A HookMap, called
 
 - **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
 - **Arguments:**
-  - `Object`：stats item object
-  - `StatsPrinterContext`：printing context
+  - `Object`: stats item object
+  - `StatsPrinterContext`: printing context
 
 ```ts
 type StatsPrinterContext = {

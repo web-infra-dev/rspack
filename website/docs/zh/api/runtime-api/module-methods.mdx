@@ -1,7 +1,7 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta } from '@components/ApiMeta';
 
-<WebpackLicense from="https://webpack.js.org/api/module-methods/" />
+<WebpackLicense from="https://webpack.docschina.org/api/module-methods/" />
 
 # 模块方法
 
@@ -123,8 +123,6 @@ import(
 
 ##### webpackIgnore
 
-<ApiMeta addedVersion="0.5.0" />
-
 - **类型：** `boolean`
 
 设置为 true 时，禁用动态导入解析。
@@ -146,8 +144,6 @@ import(
 
 ##### webpackPrefetch
 
-<ApiMeta addedVersion="0.4.5" />
-
 - **类型：**
   - `number`: 预取优先级
   - `boolean`: `false` 表示不预取, `true` 表示预取并且优先级是 `0`
@@ -155,8 +151,6 @@ import(
 告诉浏览器将来可能需要该资源来进行某些导航跳转，详情请查看[预取/预载模块](/guide/optimization/code-splitting#预取预载模块)。
 
 ##### webpackPreload
-
-<ApiMeta addedVersion="0.4.5" />
 
 - **类型：**
   - `number`: 预载优先级
@@ -329,4 +323,8 @@ const context = require.context('../', true, /\.stories\.js$/);
 const context = require.context('./locales', true, /\.json$/, 'lazy');
 ```
 
-> 传递给 `require.context()` 的参数必须是字面量。
+:::tip
+Rspack 在编译时，会通过静态分析来解析 `require.context` 的参数，因此参数必须是[字面量](https://developer.mozilla.org/en-US/docs/Glossary/Literal)。
+
+例如，`filter` 的值不允许传入一个变量，也不允许传入 `new RegExp()` 生成的值，只能是一个正则表达式字面量。
+:::

@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 use std::borrow::Cow;
 
+use cow_utils::CowUtils;
 use json::{
   number::Number,
   object::Object,
@@ -21,6 +22,7 @@ use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray, TraceableError,
 };
+use rspack_util::itoa;
 
 use crate::json_exports_dependency::JsonExportsDependency;
 
@@ -173,7 +175,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let json_expr = if is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
             "JSON.parse('{}')",
-            json_str.replace('\\', r"\\").replace('\'', r"\'")
+            json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
           json_str
@@ -276,7 +278,7 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info.get_read_only_export_info(mg, &format!("{i}").into());
+          let export_info = exports_info.get_read_only_export_info(mg, &itoa!(i).into());
           let used = export_info.get_used(mg, runtime);
           if used == UsageState::Unused {
             return None;

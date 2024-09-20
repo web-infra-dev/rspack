@@ -17,6 +17,6 @@ jobs:
       - name: mark assignee
         uses: actions-cool/issues-helper@v3
         with:
-          actions: 'mark-assignees'
+          actions: "mark-assignees"
           token: ${{ secrets.GITHUB_TOKEN }}
           require-permission: "none"

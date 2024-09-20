@@ -98,10 +98,8 @@ fn create_import_meta_context_dependency(
     }
   };
   Some(ImportMetaContextDependency::new(
-    node.span.real_lo(),
-    node.span.real_hi(),
     context_options,
-    Some(node.span.into()),
+    node.span.into(),
     parser.in_try,
   ))
 }

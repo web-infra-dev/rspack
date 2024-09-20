@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
-  Param, SimpleAssignTarget,
+  GetterProp, Param, SetterProp, SimpleAssignTarget,
 };
 use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
 use swc_core::ecma::ast::{Class, ClassExpr, ClassMember, CondExpr, DefaultDecl};
@@ -495,11 +495,13 @@ impl<'parser> JavascriptParser<'parser> {
     if self.is_statement_level_expression(expr.span())
       && let Some(old) = self.statement_path.pop()
     {
+      let prev = self.prev_statement;
       for expr in exprs {
         self.statement_path.push(expr.span().into());
         self.walk_expression(expr);
-        self.statement_path.pop();
+        self.prev_statement = self.statement_path.pop();
       }
+      self.prev_statement = prev;
       self.statement_path.push(old);
     } else {
       self.walk_expressions(exprs);
@@ -527,6 +529,42 @@ impl<'parser> JavascriptParser<'parser> {
     self.walk_expression(&kv.value);
   }
 
+  fn walk_getter_prop(&mut self, getter: &GetterProp) {
+    self.walk_prop_name(&getter.key);
+    let was_top_level = self.top_level_scope;
+    self.top_level_scope = TopLevelScope::False;
+    self.in_function_scope(true, std::iter::empty(), |parser| {
+      if let Some(body) = &getter.body {
+        parser.detect_mode(&body.stmts);
+        let prev = parser.prev_statement;
+        parser.pre_walk_statement(Statement::Block(body));
+        parser.prev_statement = prev;
+        parser.walk_statement(Statement::Block(body));
+      }
+    });
+    self.top_level_scope = was_top_level;
+  }
+
+  fn walk_setter_prop(&mut self, setter: &SetterProp) {
+    self.walk_prop_name(&setter.key);
+    let was_top_level = self.top_level_scope;
+    self.top_level_scope = TopLevelScope::False;
+    self.in_function_scope(
+      true,
+      std::iter::once(Cow::Borrowed(setter.param.as_ref())),
+      |parser| {
+        if let Some(body) = &setter.body {
+          parser.detect_mode(&body.stmts);
+          let prev = parser.prev_statement;
+          parser.pre_walk_statement(Statement::Block(body));
+          parser.prev_statement = prev;
+          parser.walk_statement(Statement::Block(body));
+        }
+      },
+    );
+    self.top_level_scope = was_top_level;
+  }
+
   fn walk_property(&mut self, prop: &Prop) {
     match prop {
       Prop::Shorthand(ident) => {
@@ -536,24 +574,8 @@ impl<'parser> JavascriptParser<'parser> {
       }
       Prop::KeyValue(kv) => self.walk_key_value_prop(kv),
       Prop::Assign(assign) => self.walk_expression(&assign.value),
-      Prop::Getter(getter) => {
-        self.walk_prop_name(&getter.key);
-        let was_top_level = self.top_level_scope;
-        self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &getter.body {
-          self.walk_statement(Statement::Block(body));
-        }
-        self.top_level_scope = was_top_level;
-      }
-      Prop::Setter(setter) => {
-        self.walk_prop_name(&setter.key);
-        let was_top_level = self.top_level_scope;
-        self.top_level_scope = TopLevelScope::False;
-        if let Some(body) = &setter.body {
-          self.walk_statement(Statement::Block(body));
-        }
-        self.top_level_scope = was_top_level;
-      }
+      Prop::Getter(getter) => self.walk_getter_prop(getter),
+      Prop::Setter(setter) => self.walk_setter_prop(setter),
       Prop::Method(method) => {
         self.walk_prop_name(&method.key);
         let was_top_level = self.top_level_scope;
@@ -957,6 +979,10 @@ impl<'parser> JavascriptParser<'parser> {
 
           if let Some(member) = callee.as_member() {
             self.walk_expression(&member.obj);
+            if let Some(computed) = member.prop.as_computed() {
+              self.walk_expression(&computed.expr);
+            }
+          } else if let Some(member) = callee.as_super_prop() {
             if let Some(computed) = member.prop.as_computed() {
               self.walk_expression(&computed.expr);
             }

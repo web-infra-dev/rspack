@@ -1,10 +1,46 @@
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { Stability } from '@components/ApiMeta.tsx';
 
 # 性能分析
 
-## Rspack Profile
+本章节介绍 Rspack 中一些常见的性能瓶颈和性能分析方法。
 
-<ApiMeta addedVersion={'0.3.0'} />
+## 性能瓶颈
+
+尽管 Rspack 本身提供的构建性能已经足够优秀，但在 Rspack 中使用一些 JavaScript 编写的 loaders 和 plugins 时，它们可能会导致整体的构建性能劣化，尤其是在大型项目中。
+
+对于这类问题，有一部分可以通过 Rspack 内置的高性能替代方案来解决，另一部分可以通过性能分析工具来定位，从而采取针对性的优化。
+
+下面是一些常见的案例：
+
+### babel-loader
+
+[babel-loader](https://github.com/babel/babel-loader) 基于 Babel 来编译 JavaScript 和 TypeScript 代码，可以将 Babel 替换为更快的 SWC。Rspack 内置了 [builtin:swc-loader](/guide/features/builtin-swc-loader)，它是 `swc-loader` 的 Rust 版本，旨在提供更优的性能。
+
+如果你需要使用 Babel 插件实现自定义的转换逻辑，可以在配置 babel-loader 时使用 [Rule.include](/config/module#ruleinclude) 来匹配尽可能少的文件，以减少 Babel 编译的开销。
+
+### postcss-loader
+
+[postcss-loader](https://github.com/postcss/postcss-loader) 基于 PostCSS 来编译 CSS 代码，通常会配合 PostCSS 插件进行 CSS 语法降级、添加浏览器前缀等，可以将 PostCSS 替换为更快的 Lightning CSS，使用 Rspack 内置的 [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 即可。
+
+如果项目里使用了 Tailwind CSS v3 的 PostCSS 插件，则需要等待 Tailwind CSS v4 版本发布，该版本基于 Rust 和 Lightning CSS 实现，性能会有显著提升，详见 [Open-sourcing our progress on Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4-alpha)。
+
+### terser-webpack-plugin
+
+[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 即可。
+
+### css-minimizer-webpack-plugin
+
+[css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 即可。
+
+### less-loader
+
+[less-loader](https://github.com/webpack-contrib/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack-contrib/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
+
+### html-webpack-plugin
+
+[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
+
+## Rspack Profile
 
 Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析。
 

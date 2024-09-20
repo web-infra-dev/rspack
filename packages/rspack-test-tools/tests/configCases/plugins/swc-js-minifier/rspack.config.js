@@ -13,8 +13,10 @@ module.exports = {
 	plugins: [
 		new SwcJsMinimizerRspackPlugin({
 			extractComments: true,
-			format: {
-				comments: false
+			minimizerOptions: {
+				format: {
+					comments: false
+				}
 			},
 			include: ["extract.js", "no-extract.js"]
 		})

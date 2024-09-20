@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
@@ -9,9 +8,9 @@ use super::{add::AddTask, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilerOptions, Context, DependencyId, ExportInfoData, ExportsInfoData,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  ModuleProfile, Resolve,
+  BoxDependency, CompilerOptions, Context, ExportInfoData, ExportsInfoData, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleProfile,
+  Resolve,
 };
 
 #[derive(Debug)]
@@ -22,8 +21,7 @@ pub struct FactorizeTask {
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
-  pub dependency: BoxDependency,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
@@ -38,7 +36,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_start();
     }
-    let dependency = self.dependency;
+    let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context()
       && !context.is_empty()
@@ -65,7 +63,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       //      dependency: dep_id,
       original_module_identifier: self.original_module_identifier,
       factory_result: None,
-      dependencies: self.dependencies,
+      dependencies: vec![],
       current_profile: self.current_profile,
       exports_info_related: ExportsInfoRelated {
         exports_info,
@@ -84,7 +82,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       resolve_options: self.resolve_options,
       options: self.options.clone(),
       context,
-      dependency,
+      dependencies: self.dependencies,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
@@ -102,6 +100,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
         let diagnostics = create_data.diagnostics.drain(..).collect();
         Ok(vec![Box::new(
           factorize_result_task
+            .with_dependencies(create_data.dependencies)
             .with_factory_result(Some(result))
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
@@ -115,7 +114,10 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         // Wrap source code if available
         if let Some(s) = self.original_module_source {
-          e = e.with_source_code(s.source().to_string());
+          let has_source_code = e.source_code().is_some();
+          if !has_source_code {
+            e = e.with_source_code(s.source().to_string());
+          }
         }
         // Bail out if `options.bail` set to `true`,
         // which means 'Fail out on the first error instead of tolerating it.'
@@ -123,11 +125,12 @@ impl Task<MakeTaskContext> for FactorizeTask {
           return Err(e);
         }
         let mut diagnostics = Vec::with_capacity(create_data.diagnostics.len() + 1);
-        diagnostics.push(Into::<Diagnostic>::into(e).with_loc(create_data.dependency.loc()));
+        diagnostics.push(Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()));
         diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(vec![Box::new(
           factorize_result_task
+            .with_dependencies(create_data.dependencies)
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
             .with_missing_dependencies(create_data.missing_dependencies.drain())
@@ -152,7 +155,7 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
 
@@ -163,6 +166,11 @@ pub struct FactorizeResultTask {
 }
 
 impl FactorizeResultTask {
+  fn with_dependencies(mut self, dependencies: Vec<BoxDependency>) -> Self {
+    self.dependencies = dependencies;
+    self
+  }
+
   fn with_factory_result(mut self, factory_result: Option<ModuleFactoryResult>) -> Self {
     self.factory_result = factory_result;
     self
@@ -204,7 +212,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       context_dependencies,
       missing_dependencies,
       diagnostics,
-      ..
     } = *self;
     let artifact = &mut context.artifact;
     if !diagnostics.is_empty() {
@@ -213,7 +220,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       } else {
         artifact
           .make_failed_dependencies
-          .insert((dependencies[0], None));
+          .insert((*dependencies[0].id(), None));
       }
     }
 
@@ -235,17 +242,13 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
     let Some(factory_result) = factory_result else {
-      let dep = module_graph
-        .dependency_by_id(&dependencies[0])
-        .expect("dep should available");
+      let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");
       return Ok(vec![]);
     };
 
     let Some(module) = factory_result.module else {
-      let dep = module_graph
-        .dependency_by_id(&dependencies[0])
-        .expect("dep should available");
+      let dep = &dependencies[0];
       tracing::trace!("Module ignored: {dep:?}");
       return Ok(vec![]);
     };

@@ -11,7 +11,7 @@ mod eval_unary_expr;
 
 use bitflags::bitflags;
 use num_bigint::BigInt;
-use rspack_core::DependencyLocation;
+use rspack_core::RealDependencyLocation;
 use swc_core::atoms::Atom;
 use swc_core::common::Span;
 
@@ -60,7 +60,7 @@ type Regexp = (String, String); // (expr, flags)
 #[derive(Debug, Clone)]
 pub struct BasicEvaluatedExpression {
   ty: Ty,
-  range: Option<DependencyLocation>,
+  range: Option<RealDependencyLocation>,
   falsy: bool,
   truthy: bool,
   side_effects: bool,
@@ -442,7 +442,7 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn set_range(&mut self, start: u32, end: u32) {
-    self.range = Some(DependencyLocation::new(start, end, None))
+    self.range = Some(RealDependencyLocation::new(start, end))
   }
 
   pub fn set_template_string(
@@ -525,7 +525,7 @@ impl BasicEvaluatedExpression {
 
   pub fn range(&self) -> (u32, u32) {
     let range = self.range.clone().expect("range should not empty");
-    (range.start(), range.end())
+    (range.start, range.end)
   }
 
   pub fn prefix(&self) -> Option<&BasicEvaluatedExpression> {

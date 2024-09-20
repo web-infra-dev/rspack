@@ -5,8 +5,9 @@ use derivative::Derivative;
 use futures::future::join_all;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawSource, Source, SourceExt},
-  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, ModuleIdentifier, Plugin, PluginContext,
+  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -16,7 +17,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
 use rspack_util::identifier::make_paths_absolute;
-use serde_json::json;
 
 use crate::{
   module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplate, ModuleOrSource,
@@ -174,7 +174,17 @@ fn eval_source_map_devtool_plugin_render_module_content(
       let base64 = rspack_base64::encode_to_string(&map_buffer);
       let footer =
         format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
-      RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
+      let module_content =
+        simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string");
+      RawSource::from(format!(
+        "eval({});",
+        if compilation.options.output.trusted_types.is_some() {
+          format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)
+        } else {
+          module_content
+        }
+      ))
+      .boxed()
     };
     self.cache.insert(origin_source, source.clone());
     render_source.source = source;
@@ -202,6 +212,20 @@ fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
   Ok(Some("the eval-source-map devtool is used.".to_string()))
 }
 
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EvalSourceMapDevToolPlugin)]
+async fn eval_source_map_devtool_plugin_additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  _chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
+
+  Ok(())
+}
+
 #[async_trait::async_trait]
 impl Plugin for EvalSourceMapDevToolPlugin {
   fn name(&self) -> &'static str {
@@ -218,6 +242,11 @@ impl Plugin for EvalSourceMapDevToolPlugin {
       .compiler_hooks
       .compilation
       .tap(eval_source_map_devtool_plugin_compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(eval_source_map_devtool_plugin_additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }

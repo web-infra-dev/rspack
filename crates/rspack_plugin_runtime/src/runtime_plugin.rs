@@ -18,13 +18,13 @@ use crate::runtime_module::{
   chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
   BaseUriRuntimeModule, ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
   CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
-  CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
-  MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
-  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-  RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
+  EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule,
+  GetFullHashRuntimeModule, GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule,
+  GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule,
+  NonceRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
@@ -179,8 +179,9 @@ async fn js_chunk_hash(
 #[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin)]
 fn runtime_requirements_in_module(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &Compilation,
   _module: &ModuleIdentifier,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
@@ -199,6 +200,7 @@ fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
@@ -406,6 +408,9 @@ fn runtime_requirements_in_tree(
       RuntimeGlobals::CREATE_SCRIPT_URL => {
         compilation
           .add_runtime_module(chunk_ukey, CreateScriptUrlRuntimeModule::default().boxed())?;
+      }
+      RuntimeGlobals::CREATE_SCRIPT => {
+        compilation.add_runtime_module(chunk_ukey, CreateScriptRuntimeModule::default().boxed())?;
       }
       RuntimeGlobals::ON_CHUNKS_LOADED => {
         compilation

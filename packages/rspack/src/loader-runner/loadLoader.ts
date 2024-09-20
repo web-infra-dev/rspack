@@ -31,9 +31,7 @@ export default function loadLoader(
 		try {
 			if (url === undefined) url = require("node:url");
 			const loaderUrl = url!.pathToFileURL(loader.path);
-			const modulePromise = eval(
-				`import(${JSON.stringify(loaderUrl.toString())})`
-			);
+			const modulePromise = import(loaderUrl.toString());
 			modulePromise.then((module: LoaderModule) => {
 				handleResult(loader, module, callback);
 			}, callback);
@@ -53,12 +51,7 @@ export default function loadLoader(
 				(e as NodeJS.ErrnoException).code === "EMFILE"
 			) {
 				const retry = loadLoader.bind(null, loader, callback);
-				if (typeof setImmediate === "function") {
-					// node >= 0.9.0
-					return void setImmediate(retry);
-				}
-				// node < 0.9.0
-				return process.nextTick(retry);
+				return void setImmediate(retry);
 			}
 			return callback(e);
 		}

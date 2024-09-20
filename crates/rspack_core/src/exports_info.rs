@@ -1,40 +1,27 @@
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
-use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
-use std::sync::LazyLock;
 
+use either::Either;
 use itertools::Itertools;
 use rspack_collections::impl_item_ukey;
 use rspack_collections::Ukey;
-use rspack_collections::UkeyDashMap;
 use rspack_collections::UkeySet;
 use rspack_util::atom::Atom;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
-use rustc_hash::FxHasher;
 use serde::Serialize;
 
+use crate::Compilation;
+use crate::DependencyConditionFn;
 use crate::{
   property_access, ConnectionState, DependencyCondition, DependencyId, ModuleGraph,
   ModuleIdentifier, Nullable, RuntimeSpec,
 };
-
-pub trait ExportsHash {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  );
-}
-
-static EXPORTS_INFO_HASH: LazyLock<UkeyDashMap<ExportsInfo, u64>> =
-  LazyLock::new(UkeyDashMap::default);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfo(Ukey);
@@ -42,19 +29,6 @@ pub struct ExportsInfo(Ukey);
 static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 impl_item_ukey!(ExportsInfo);
-
-impl ExportsHash for ExportsInfo {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    if let Some(exports_info) = module_graph.try_get_exports_info_by_id(self) {
-      exports_info.export_info_hash(hasher, module_graph, already_visited);
-    }
-  }
-}
 
 impl ExportsInfo {
   #[allow(clippy::new_without_default)]
@@ -135,7 +109,7 @@ impl ExportsInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
-    let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_id_list {
       let export_info = mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.provided.is_none() {
@@ -187,7 +161,7 @@ impl ExportsInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_to = exports_info.redirect_to;
     let other_exports_info = exports_info.other_exports_info;
-    let exports_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let exports_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info in exports_id_list {
       if !can_mangle && export_info.can_mangle_provide(mg) != Some(false) {
         export_info.set_can_mangle_provide(mg, Some(false));
@@ -330,7 +304,7 @@ impl ExportsInfo {
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // this clone aiming to avoid use the mutable ref and immutable ref at the same time.
-    let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info in export_id_list {
       export_info.set_has_use_info(mg);
     }
@@ -352,7 +326,7 @@ impl ExportsInfo {
     let redirect = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // avoid use ref and mut ref at the same time
-    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let flag = export_info_id.set_used_without_info(mg, runtime);
       changed |= flag;
@@ -379,7 +353,7 @@ impl ExportsInfo {
   ) -> bool {
     let mut changed = false;
     let exports_info = mg.get_exports_info_mut_by_id(self);
-    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let export_info = export_info_id.as_export_info_mut(mg);
       if !matches!(export_info.provided, Some(ExportInfoProvided::True)) {
@@ -397,7 +371,7 @@ impl ExportsInfo {
   ) -> bool {
     let mut changed = false;
     let exports_info = mg.get_exports_info_by_id(self);
-    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     for export_info_id in export_info_id_list {
@@ -511,7 +485,7 @@ impl ExportsInfo {
     for export_info_id in info.exports.values() {
       let export_info = export_info_id.as_export_info(mg);
       match export_info.provided {
-        Some(ExportInfoProvided::True) | Some(ExportInfoProvided::Null) | None => {
+        Some(ExportInfoProvided::True | ExportInfoProvided::Null) | None => {
           ret.push(export_info.name.clone().unwrap_or("".into()));
         }
         _ => {}
@@ -551,7 +525,7 @@ impl ExportsInfo {
         UsageState::NoInfo => return UsedExports::Null,
         UsageState::Unknown => return UsedExports::Bool(true),
         UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          if let Some(name) = export_info_id.as_export_info(mg).name.to_owned() {
+          if let Some(name) = export_info_id.as_export_info(mg).name.clone() {
             res.push(name);
           }
         }
@@ -672,6 +646,33 @@ impl ExportsInfo {
     }
   }
 
+  pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {
+    let exports_info = self.as_exports_info(mg);
+
+    // only expand capacity when this has redirect_to
+    let mut key = UsageKey(Vec::with_capacity(exports_info.exports.len() + 2));
+
+    if let Some(redirect_to) = &exports_info.redirect_to {
+      key.add(Either::Left(Box::new(
+        redirect_to.get_usage_key(mg, runtime),
+      )));
+    } else {
+      key.add(Either::Right(
+        self.other_exports_info(mg).get_used(mg, runtime),
+      ));
+    };
+
+    key.add(Either::Right(
+      exports_info.side_effects_only_info.get_used(mg, runtime),
+    ));
+
+    for export_info in self.ordered_exports(mg) {
+      key.add(Either::Right(export_info.get_used(mg, runtime)));
+    }
+
+    key
+  }
+
   pub fn is_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     let info = self.as_exports_info(mg);
     if let Some(redirect_to) = info.redirect_to {
@@ -692,6 +693,42 @@ impl ExportsInfo {
     }
     false
   }
+
+  pub fn update_hash(
+    &self,
+    mg: &ModuleGraph,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    self.update_hash_with_visited(mg, hasher, compilation, runtime, &mut UkeySet::default());
+  }
+
+  fn update_hash_with_visited(
+    &self,
+    mg: &ModuleGraph,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+    visited: &mut UkeySet<ExportsInfo>,
+  ) {
+    visited.insert(*self);
+    let data = self.as_exports_info(mg);
+    for export_info in self.ordered_exports(mg) {
+      if export_info.has_info(mg, data.other_exports_info, runtime) {
+        export_info.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+      }
+    }
+    data
+      .side_effects_only_info
+      .update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    data
+      .other_exports_info
+      .update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    if let Some(redirect_to) = data.redirect_to {
+      redirect_to.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -701,38 +738,6 @@ pub struct ExportsInfoData {
   side_effects_only_info: ExportInfo,
   redirect_to: Option<ExportsInfo>,
   id: ExportsInfo,
-}
-
-impl ExportsHash for ExportsInfoData {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    if let Some(hash) = EXPORTS_INFO_HASH.get(&self.id) {
-      hash.dyn_hash(hasher);
-      return;
-    };
-    let mut default_hash = FxHasher::default();
-    for (name, export_info_id) in &self.exports {
-      name.dyn_hash(&mut default_hash);
-      export_info_id.export_info_hash(&mut default_hash, module_graph, already_visited);
-    }
-    self
-      .other_exports_info
-      .export_info_hash(&mut default_hash, module_graph, already_visited);
-    self
-      .side_effects_only_info
-      .export_info_hash(&mut default_hash, module_graph, already_visited);
-
-    if let Some(redirect_to) = self.redirect_to {
-      redirect_to.export_info_hash(&mut default_hash, module_graph, already_visited);
-    }
-    let hash = default_hash.finish();
-    EXPORTS_INFO_HASH.insert(self.id, hash);
-    hash.dyn_hash(hasher);
-  }
 }
 
 pub enum ProvidedExports {
@@ -801,24 +806,6 @@ pub struct ExportInfo(Ukey);
 static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 impl_item_ukey!(ExportInfo);
-
-impl ExportsHash for ExportInfo {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    if already_visited.contains(self) {
-      return;
-    }
-    already_visited.insert(*self);
-
-    if let Some(export_info) = module_graph.try_get_export_info_by_id(self) {
-      export_info.export_info_hash(hasher, module_graph, already_visited);
-    }
-  }
-}
 
 impl ExportInfo {
   fn new() -> Self {
@@ -1517,13 +1504,49 @@ impl ExportInfo {
       }
     }
   }
+
+  pub fn has_info(
+    &self,
+    mg: &ModuleGraph,
+    base_info: ExportInfo,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    let data = self.as_export_info(mg);
+    data.used_name.is_some()
+      || data.provided.is_some()
+      || data.terminal_binding
+      || (self.get_used(mg, runtime) != base_info.get_used(mg, runtime))
+  }
+
+  fn update_hash_with_visited(
+    &self,
+    mg: &ModuleGraph,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+    visited: &mut UkeySet<ExportsInfo>,
+  ) {
+    let data = self.as_export_info(mg);
+    if let Some(used_name) = &data.used_name {
+      used_name.dyn_hash(hasher);
+    } else {
+      data.name.dyn_hash(hasher);
+    }
+    self.get_used(mg, runtime).dyn_hash(hasher);
+    data.provided.dyn_hash(hasher);
+    data.terminal_binding.dyn_hash(hasher);
+    if let Some(exports_info) = data.exports_info
+      && !visited.contains(&exports_info)
+    {
+      exports_info.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoData {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   name: Option<Atom>,
-  usage_state: UsageState,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<Atom>,
   target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
@@ -1539,31 +1562,6 @@ pub struct ExportInfoData {
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
   used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
-}
-
-impl ExportsHash for ExportInfoData {
-  fn export_info_hash(
-    &self,
-    hasher: &mut dyn Hasher,
-    module_graph: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) {
-    self.name.dyn_hash(hasher);
-    self.usage_state.dyn_hash(hasher);
-    self.used_name.dyn_hash(hasher);
-    for (name, value) in &self.target {
-      name.dyn_hash(hasher);
-      value.dyn_hash(hasher);
-    }
-    self.provided.dyn_hash(hasher);
-    self.can_mangle_provide.dyn_hash(hasher);
-    self.terminal_binding.dyn_hash(hasher);
-    self.target_is_set.dyn_hash(hasher);
-    if let Some(exports_info_id) = self.exports_info {
-      exports_info_id.export_info_hash(hasher, module_graph, already_visited);
-    }
-    self.exports_info_owned.dyn_hash(hasher);
-  }
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
@@ -1592,7 +1590,7 @@ pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
   /// using dependency id to retrieve Connection
-  connection: DependencyId,
+  pub connection: DependencyId,
 }
 
 #[derive(Clone, Debug)]
@@ -1605,6 +1603,15 @@ pub enum FindTargetRetEnum {
 pub struct FindTargetRetValue {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Default)]
+pub struct UsageKey(pub(crate) Vec<Either<Box<UsageKey>, UsageState>>);
+
+impl UsageKey {
+  fn add(&mut self, value: Either<Box<UsageKey>, UsageState>) {
+    self.0.push(value);
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -1631,14 +1638,11 @@ impl ExportInfoData {
     let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
     let global_used = init_from.and_then(|init_from| init_from.global_used);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
-    let has_use_in_runtime_info = init_from
-      .map(|init_from| init_from.has_use_in_runtime_info)
-      .unwrap_or(false);
+    let has_use_in_runtime_info =
+      init_from.is_some_and(|init_from| init_from.has_use_in_runtime_info);
 
     let provided = init_from.and_then(|init_from| init_from.provided);
-    let terminal_binding = init_from
-      .map(|init_from| init_from.terminal_binding)
-      .unwrap_or(false);
+    let terminal_binding = init_from.is_some_and(|init_from| init_from.terminal_binding);
     let can_mangle_provide = init_from.and_then(|init_from| init_from.can_mangle_provide);
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
 
@@ -1674,7 +1678,6 @@ impl ExportInfoData {
       .unwrap_or_default();
     Self {
       name,
-      usage_state: UsageState::Unknown,
       used_name,
       used_in_runtime,
       target,
@@ -1792,31 +1795,46 @@ pub enum UsedByExports {
   Bool(bool),
 }
 
+#[derive(Clone)]
+pub struct UsedByExportsDependencyCondition {
+  dependency_id: DependencyId,
+  used_by_exports: HashSet<Atom>,
+}
+
+impl DependencyConditionFn for UsedByExportsDependencyCondition {
+  fn get_connection_state(
+    &self,
+    _conn: &crate::ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+  ) -> ConnectionState {
+    let module_identifier = mg
+      .get_parent_module(&self.dependency_id)
+      .expect("should have parent module");
+    let exports_info = mg.get_exports_info(module_identifier);
+    for export_name in self.used_by_exports.iter() {
+      if exports_info.get_used(mg, UsedName::Str(export_name.clone()), runtime)
+        != UsageState::Unused
+      {
+        return ConnectionState::Bool(true);
+      }
+    }
+    ConnectionState::Bool(false)
+  }
+}
+
 // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338
 pub fn get_dependency_used_by_exports_condition(
   dependency_id: DependencyId,
   used_by_exports: Option<&UsedByExports>,
 ) -> Option<DependencyCondition> {
   match used_by_exports {
-    Some(UsedByExports::Set(used_by_exports)) => {
-      let used_by_exports = Arc::new(used_by_exports.clone());
-      Some(DependencyCondition::Fn(Arc::new(
-        move |_, runtime, module_graph: &ModuleGraph| {
-          let module_identifier = module_graph
-            .get_parent_module(&dependency_id)
-            .expect("should have parent module");
-          let exports_info = module_graph.get_exports_info(module_identifier);
-          for export_name in used_by_exports.iter() {
-            if exports_info.get_used(module_graph, UsedName::Str(export_name.clone()), runtime)
-              != UsageState::Unused
-            {
-              return ConnectionState::Bool(true);
-            }
-          }
-          ConnectionState::Bool(false)
-        },
-      )))
-    }
+    Some(UsedByExports::Set(used_by_exports)) => Some(DependencyCondition::Fn(Arc::new(
+      UsedByExportsDependencyCondition {
+        dependency_id,
+        used_by_exports: used_by_exports.clone(),
+      },
+    ))),
     Some(UsedByExports::Bool(bool)) => {
       if *bool {
         None

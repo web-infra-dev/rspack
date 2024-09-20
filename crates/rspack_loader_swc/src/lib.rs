@@ -48,7 +48,7 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
-    let Some(content) = std::mem::take(&mut loader_context.content) else {
+    let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
 
@@ -64,13 +64,13 @@ impl SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = loader_context.source_map.clone() {
+      if let Some(pre_source_map) = loader_context.source_map().cloned() {
         if let Ok(source_map) = pre_source_map.to_json() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
         }
       }
-      swc_options.filename = resource_path.to_string_lossy().to_string();
-      swc_options.source_file_name = Some(resource_path.to_string_lossy().to_string());
+      swc_options.filename = resource_path.as_str().to_string();
+      swc_options.source_file_name = Some(resource_path.as_str().to_string());
 
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
         loader_context.emit_diagnostic(Diagnostic::warn(
@@ -87,30 +87,16 @@ impl SwcLoader {
     };
 
     let source = content.try_into_string()?;
-    let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
-      .map_err(AnyhowError::from)?;
-
-    let rspack_options = &*loader_context.context.options;
-    let swc_options = c.options();
-    let top_level_mark = swc_options
-      .top_level_mark
-      .expect("`top_level_mark` should be initialized");
-    let unresolved_mark = swc_options
-      .unresolved_mark
-      .expect("`unresolved_mark` should be initialized");
+    let c = SwcCompiler::new(
+      resource_path.into_std_path_buf(),
+      source.clone(),
+      swc_options,
+    )
+    .map_err(AnyhowError::from)?;
 
     let built = c
       .parse(None, |_| {
-        transformer::transform(
-          &resource_path,
-          rspack_options,
-          Some(c.comments()),
-          top_level_mark,
-          unresolved_mark,
-          c.cm().clone(),
-          &source,
-          &self.options_with_additional.rspack_experiments,
-        )
+        transformer::transform(&self.options_with_additional.rspack_experiments)
       })
       .map_err(AnyhowError::from)?;
 
@@ -147,12 +133,11 @@ impl SwcLoader {
     let ast = c.into_js_ast(program);
     let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
 
-    loader_context.content = Some(code.into());
     let map = map
       .map(|m| SourceMap::from_json(&m))
       .transpose()
       .map_err(|e| error!(e.to_string()))?;
-    loader_context.source_map = map;
+    loader_context.finish_with((code, map));
 
     Ok(())
   }

@@ -1,3 +1,4 @@
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, ModuleLayer,
@@ -52,6 +53,10 @@ impl Dependency for EntryDependency {
 
   fn get_layer(&self) -> Option<&ModuleLayer> {
     self.layer.as_ref()
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 

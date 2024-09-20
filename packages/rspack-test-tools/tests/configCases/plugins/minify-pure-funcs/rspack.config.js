@@ -8,8 +8,10 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SwcJsMinimizerRspackPlugin({
-			compress: {
-				pure_funcs: ["__logger.error", "__logger.warn"]
+			minimizerOptions: {
+				compress: {
+					pure_funcs: ["__logger.error", "__logger.warn"]
+				}
 			}
 		})
 	]

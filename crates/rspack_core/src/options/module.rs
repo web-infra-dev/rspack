@@ -1,5 +1,4 @@
 use std::{
-  borrow::{Borrow, Cow},
   fmt::{self, Debug},
   sync::Arc,
 };
@@ -17,17 +16,17 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
-pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
+pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
 
-impl FromIterator<(ModuleType, ParserOptions)> for ParserOptionsByModuleType {
-  fn from_iter<I: IntoIterator<Item = (ModuleType, ParserOptions)>>(i: I) -> Self {
+impl FromIterator<(String, ParserOptions)> for ParserOptionsMap {
+  fn from_iter<I: IntoIterator<Item = (String, ParserOptions)>>(i: I) -> Self {
     Self(HashMap::from_iter(i))
   }
 }
 
-impl ParserOptionsByModuleType {
-  pub fn get<'a>(&'a self, module_type: &'a ModuleType) -> Option<&'a ParserOptions> {
-    self.0.get(module_type)
+impl ParserOptionsMap {
+  pub fn get<'a>(&'a self, key: &'a str) -> Option<&'a ParserOptions> {
+    self.0.get(key)
   }
 }
 
@@ -38,6 +37,9 @@ pub enum ParserOptions {
   CssAuto(CssAutoParserOptions),
   CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
+  JavascriptAuto(JavascriptParserOptions),
+  JavascriptEsm(JavascriptParserOptions),
+  JavascriptDynamic(JavascriptParserOptions),
   Unknown,
 }
 
@@ -58,6 +60,13 @@ impl ParserOptions {
   get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
   get_variant!(get_css_module, CssModule, CssModuleParserOptions);
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
+  get_variant!(get_javascript_auto, JavascriptAuto, JavascriptParserOptions);
+  get_variant!(get_javascript_esm, JavascriptEsm, JavascriptParserOptions);
+  get_variant!(
+    get_javascript_dynamic,
+    JavascriptDynamic,
+    JavascriptParserOptions
+  );
 }
 
 #[derive(Debug, Clone, Copy, MergeFrom)]
@@ -260,17 +269,17 @@ pub struct CssModuleParserOptions {
 }
 
 #[derive(Debug)]
-pub struct GeneratorOptionsByModuleType(HashMap<ModuleType, GeneratorOptions>);
+pub struct GeneratorOptionsMap(HashMap<String, GeneratorOptions>);
 
-impl FromIterator<(ModuleType, GeneratorOptions)> for GeneratorOptionsByModuleType {
-  fn from_iter<I: IntoIterator<Item = (ModuleType, GeneratorOptions)>>(i: I) -> Self {
+impl FromIterator<(String, GeneratorOptions)> for GeneratorOptionsMap {
+  fn from_iter<I: IntoIterator<Item = (String, GeneratorOptions)>>(i: I) -> Self {
     Self(HashMap::from_iter(i))
   }
 }
 
-impl GeneratorOptionsByModuleType {
-  pub fn get(&self, module_type: &ModuleType) -> Option<&GeneratorOptions> {
-    self.0.get(module_type)
+impl GeneratorOptionsMap {
+  pub fn get(&self, key: &str) -> Option<&GeneratorOptions> {
+    self.0.get(key)
   }
 }
 
@@ -387,13 +396,13 @@ impl MergeFrom for AssetGeneratorDataUrl {
   }
 }
 
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Hash)]
 pub struct AssetGeneratorDataUrlOptions {
   pub encoding: Option<DataUrlEncoding>,
   pub mimetype: Option<String>,
 }
 
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Hash)]
 pub enum DataUrlEncoding {
   None,
   Base64,
@@ -542,12 +551,6 @@ impl<'s> From<&'s str> for DataRef<'s> {
   }
 }
 
-impl<'s> From<&'s Cow<'_, str>> for DataRef<'s> {
-  fn from(value: &'s Cow<'_, str>) -> Self {
-    Self::Str(value.borrow())
-  }
-}
-
 impl<'s> From<&'s serde_json::Value> for DataRef<'s> {
   fn from(value: &'s serde_json::Value) -> Self {
     Self::Value(value)
@@ -627,15 +630,17 @@ pub struct FuncUseCtx {
 #[derive(Debug, Clone)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
+  /// Loader ident or query will be appended if it exists.
   pub loader: String,
   /// Loader options
+  /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
 }
 
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Derivative, Default)]
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
@@ -659,6 +664,14 @@ pub struct ModuleRule {
   pub mimetype: Option<RuleSetCondition>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
+  pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
+  pub effect: ModuleRuleEffect,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
@@ -668,8 +681,6 @@ pub struct ModuleRule {
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
-  pub one_of: Option<Vec<ModuleRule>>,
-  pub rules: Option<Vec<ModuleRule>>,
   pub enforce: ModuleRuleEnforce,
 }
 
@@ -757,7 +768,7 @@ pub enum ModuleRuleEnforce {
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,
-  pub parser: Option<ParserOptionsByModuleType>,
-  pub generator: Option<GeneratorOptionsByModuleType>,
+  pub parser: Option<ParserOptionsMap>,
+  pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
 }

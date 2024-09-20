@@ -247,24 +247,24 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, NoExpand(&file.to_string_lossy())))
+        .map(|t| FILE_PLACEHOLDER.replace_all(t, NoExpand(file.as_str())))
         .map(|t| {
           EXT_PLACEHOLDER.replace_all(
             t,
             NoExpand(
               &file
                 .extension()
-                .map(|p| format!(".{}", p.to_string_lossy()))
+                .map(|p| format!(".{p}"))
                 .unwrap_or_default(),
             ),
           )
         });
 
-      if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, NoExpand(&base)));
+      if let Some(base) = file.file_name() {
+        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, NoExpand(base)));
       }
-      if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, NoExpand(&name)));
+      if let Some(name) = file.file_stem() {
+        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, NoExpand(name)));
       }
       t = t
         .map(|t| {
@@ -273,10 +273,9 @@ fn render_template(
             NoExpand(
               &file
                 .parent()
-                .map(|p| p.to_string_lossy())
                 // "" -> "", "folder" -> "folder/"
-                .filter(|p| !p.is_empty())
-                .map(|p| p + "/")
+                .filter(|p| !p.as_str().is_empty())
+                .map(|p| p.as_str().to_owned() + "/")
                 .unwrap_or_default(),
             ),
           )
@@ -294,7 +293,7 @@ fn render_template(
       CONTENT_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
         let content_hash = &content_hash[..hash_len(content_hash, caps)];
         if let Some(asset_info) = asset_info.as_mut() {
-          asset_info.set_immutable(true);
+          asset_info.set_immutable(Some(true));
           asset_info.set_content_hash(content_hash.to_owned());
         }
         content_hash
@@ -307,7 +306,7 @@ fn render_template(
         reg.replace_all(t, |caps: &Captures| {
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
+            asset_info.set_immutable(Some(true));
             asset_info.set_full_hash(hash.to_owned());
           }
           hash
@@ -330,7 +329,7 @@ fn render_template(
           let hash = &**d;
           let hash = &hash[..hash_len(hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
+            asset_info.set_immutable(Some(true));
             asset_info.set_chunk_hash(hash.to_owned());
           }
           hash

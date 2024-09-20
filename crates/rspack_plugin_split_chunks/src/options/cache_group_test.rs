@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use rspack_core::Module;
+use rspack_core::{Compilation, Module};
 use rspack_error::Result;
 
 pub struct CacheGroupTestFnCtx<'a> {
+  pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
 }
 

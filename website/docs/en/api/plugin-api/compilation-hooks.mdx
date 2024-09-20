@@ -1,3 +1,4 @@
+import Mermaid from '@components/Mermaid';
 import { Badge } from '@theme';
 import ModuleType from '../../types/module.mdx';
 import ChunkType from '../../types/chunk.mdx';
@@ -6,12 +7,360 @@ import SourceType from '../../types/source.mdx';
 import HashType from '../../types/hash.mdx';
 import CompilerType from '../../types/compiler.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
+import Columns from '@components/Columns';
+import { NoSSR } from 'rspress/runtime';
 
 # Compilation Hooks
 
 :::info
 The main compilation logic of Rspack runs on the Rust side. For factors such as stability, performance, and architecture, after the Rust side compilation objects are transferred to the JavaScript side when using hooks, the modifications on these objects will not be synchronized to the Rust side. Therefore, most of hooks are "read-only".
 :::
+
+## Overview
+
+<NoSSR>
+
+<Columns styles={[{}, { flex: "0.6" }]}>
+
+<Mermaid title="compilation.addEntry()">
+
+{`
+flowchart TD
+EntryPlugin("EntryPlugin") --> AddEntry("compilation.addEntry(callback)")
+AddEntry --> HookAddEntry(hooks.addEntry)
+subgraph BuildModuleGraph["Create module graph"]
+HookAddEntry --> FactorizeModule("ModuleFactory.create()")
+FactorizeModule <--> SideEffectsResolve(<a href="/config/optimization#optimizationsideeffects">Tree shaking module side effects</a>)
+FactorizeModule <--> Resolve("Resolve module path")
+
+FactorizeModule --> BuildModule("compilation.buildModule()")
+BuildModule --> HookStillValidModule{hooks.stillValidModule}
+HookStillValidModule --> |true| ProcessDependencies("Process dependencies")
+HookStillValidModule --> |false| HookBuildModule(<a href="#buildmodule">hooks.buildModule</a>)
+HookBuildModule --> ModuleBuild("module.build()")
+ModuleBuild --> RunLoaders("Run the loaders")
+RunLoaders --> ParserParse("Parse dependencies")
+ParserParse --> ModuleBuild
+ParserParse <--> InnerGraph(<a href="/config/optimization#optimizationinnergraph">Tree shaking inner graph parsing</a>)
+ParserParse <--> SideEffectsCode(<a href="/config/optimization#optimizationsideeffects">Tree shaking code side effects</a>)
+ModuleBuild --> |success| HookSucceedModule(<a href="#succeedmodule">hooks.succeedModule</a>)
+ModuleBuild --> |failed| HookFailedModule(hooks.failedModule)
+HookSucceedModule --> ProcessDependencies
+HookFailedModule --> ProcessDependencies
+ProcessDependencies --> FactorizeModule
+ProcessDependencies --> |failed| HookFailedEntry(hooks.failedEntry)
+ProcessDependencies --> |success| HookSucceedEntry(hooks.succeedEntry)
+HookFailedEntry --> Callback("callback()")
+HookSucceedEntry --> Callback
+end
+
+class AddEntry flow-start
+class Callback flow-end
+class FactorizeModule,Resolve,BuildModule,ProcessDependencies,RunLoaders,ParserParse,ModuleBuild flow-process
+class InnerGraph,SideEffectsResolve,SideEffectsCode flow-optimization
+class HookBuildModule,HookSucceedModule flow-hook
+class HookStillValidModule,HookAddEntry,HookFailedEntry,HookSucceedEntry,HookFailedModule flow-hook-non-support
+`}
+
+</Mermaid>
+
+<div>
+<Mermaid title="compilation.finish()">
+
+{`
+flowchart TD
+CompilerCompile("compiler.compile()") --> CompilationFinish("compilation.finish(callback)")
+CompilationFinish --> HookFinishModules(<a href="#finishmodules">hooks.finishModules</a>)
+HookFinishModules <--> FlagDependencyExports(<a href="/config/optimization#optimizationprovidedexports">Tree shaking flag module exports</a>)
+HookFinishModules --> Callback("callback()")
+
+class CompilationFinish flow-start
+class Callback flow-end
+class FlagDependencyExports flow-optimization
+class HookFinishModules flow-hook
+`}
+
+</Mermaid>
+
+<br />
+
+<Mermaid title="Stats">
+
+{`
+flowchart TD
+StatsToString("stats.toString()") --> CreateStatsOptions("compilation.createStatsOptions")
+CreateStatsOptions --> HookStatsPreset(<a href="#statspreset">hooks.statsPreset</a>)
+HookStatsPreset --> HookStatsNormalize(<a href="#statsnormalize">hooks.statsNormalize</a>)
+HookStatsNormalize --> CreateStatsOptions
+CreateStatsOptions --> HookStatsFactory(<a href="#statsfactory">hooks.statsFactory</a>)
+HookStatsFactory --> HookStatsPrinter(<a href="#statsprinter">hooks.statsPrinter</a>)
+HookStatsPrinter --> StatsJSON("Generate stats JSON")
+StatsJSON --> StatsOutput("Output stats string")
+
+class StatsToString flow-start
+class StatsOutput flow-end
+class CreateStatsOptions,StatsJSON flow-process
+class HookStatsFactory,HookStatsPrinter,HookStatsPreset,HookStatsNormalize flow-hook
+`}
+
+</Mermaid>
+
+</div>
+
+</Columns>
+
+<br />
+
+<Mermaid title="compilation.seal()">
+
+{`
+flowchart TD
+subgraph Start
+direction LR
+CompilerCompile("compiler.compile()") --> Seal("compilation.seal(callback)")
+Seal --> HookSeal(<a href="#seal">hooks.seal</a>)
+
+class HookSeal flow-hook
+end
+
+Start --> ChunkGraph
+
+subgraph ChunkGraph["Create chunk graph"]
+direction LR
+
+    subgraph OptimizeDependencies["Optimize module graph"]
+    direction TB
+    HooksOptimizationDependencies(hooks.optimizeDependencies) <--> FlagUsedExports(<a href="/config/optimization#optimizationusedexports">Tree shaking flag used exports</a>)
+    HooksOptimizationDependencies --> HookAfterOptimizeDependencies(hooks.afterOptimizeDependencies)
+
+    class HooksOptimizationDependencies,HookAfterOptimizeDependencies flow-hook-non-support
+    class FlagUsedExports flow-optimization
+    end
+
+    OptimizeDependencies --> GenerateChunkGraph
+
+    subgraph GenerateChunkGraph["Generate chunk graph"]
+    direction TB
+    HookBeforeChunks(hooks.beforeChunks) --> CreateEntryChunks("Create entry chunks")
+    CreateEntryChunks --> BuildChunkGraph("Build chunk graph")
+    BuildChunkGraph --> HookAfterChunks(hooks.afterChunks)
+
+    class HookBeforeChunks,HookAfterChunks flow-hook-non-support
+    class CreateEntryChunks,BuildChunkGraph flow-process
+    class FlagUsedExports flow-optimization
+    end
+
+end
+
+ChunkGraph --> Optimization
+
+subgraph Optimization["Optimize modules and chunks"]
+direction LR
+
+    subgraph OptimizeModules["Optimize modules"]
+    direction TB
+    HookOptimize(hooks.optimize) --> HookOptimizeModules(<a href="#optimizemodules">hooks.optimizeModules</a>)
+    HookOptimizeModules --> HookAfterOptimizeModules(<a href="#afteroptimizemodules">hooks.afterOptimizeModules</a>)
+
+    class HookOptimize flow-hook-non-support
+    class HookOptimizeModules,HookAfterOptimizeModules flow-hook-partial-support
+    end
+
+    OptimizeModules --> OptimizeChunks["Optimize chunks"]
+
+    subgraph OptimizeChunks
+    HookOptimizeChunks(hooks.optimizeChunks) <--> SplitChunks(<a href="/config/optimization#optimizationsplitchunks">Split chunks</a>)
+    HookOptimizeChunks --> HookAfterOptimizeChunks(hooks.afterOptimizeChunks)
+
+    class HookOptimizeChunks,HookAfterOptimizeChunks flow-hook-non-support
+    class SplitChunks flow-optimization
+    end
+
+    OptimizeChunks --> OptimizeTree
+
+    subgraph OptimizeTree["Optimize chunk groups"]
+    HookOptimizeTree(<a href="#optimizetree">hooks.optimizeTree</a>) --> HookAfterOptimizeTree(hooks.afterOptimizeTree)
+
+    class HookOptimizeTree flow-hook-partial-support
+    class HookAfterOptimizeTree flow-hook-non-support
+    end
+
+    OptimizeTree --> OptimizeChunkModules
+
+    subgraph OptimizeChunkModules["Optimize modules in chunks"]
+    HookOptimizeChunkModules(<a href="#optimizechunkmodules">hooks.optimizeChunkModules</a>) <--> ModuleConcatenation(<a href="/config/optimization#optimizationconcatenatemodules">Module concatenation</a>)
+    HookOptimizeChunkModules --> HookAfterOptimizeChunkModules(hooks.afterOptimizeChunkModules)
+    HookAfterOptimizeChunkModules --> HookShouldRecord(hooks.shouldRecord)
+
+    class HookOptimizeChunkModules flow-hook-partial-support
+    class HookShouldRecord,HookAfterOptimizeChunkModules flow-hook-non-support
+    class ModuleConcatenation flow-optimization
+    end
+
+end
+
+Optimization --> GenerateIds
+
+subgraph GenerateIds["Generate IDs of modules and chunks"]
+direction LR
+
+    subgraph CreateModuleIds["Generate IDs of modules"]
+    HookReviveModules(hooks.reviveModules) --> HookBeforeModuleIds(hooks.beforeModuleIds)
+    HookBeforeModuleIds --> HookModuleIds(hooks.moduleIds)
+    HookModuleIds --> HookOptimizeModuleIds(hooks.optimizeModuleIds)
+    HookOptimizeModuleIds --> HookAfterOptimizeModuleIds(hooks.afterOptimizeModuleIds)
+
+    class HookReviveModules,HookModuleIds,HookBeforeModuleIds,HookOptimizeModuleIds,HookAfterOptimizeModuleIds flow-hook-non-support
+    end
+
+    CreateModuleIds --> CreateChunkIds
+
+    subgraph CreateChunkIds["Generate IDs of chunks"]
+    HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
+    HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
+    HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    end
+
+    CreateChunkIds --> CreateRecords
+
+    subgraph CreateRecords["Generate records"]
+    ShouldRecord{"shouldRecord"} --> |true| HookRecordModules(hooks.recordModules)
+    ShouldRecord{"shouldRecord"} --> |false| HookOptimizeCodeGeneration(hooks.optimizeCodeGeneration)
+    HookRecordModules --> HookRecordChunks(hooks.recordChunks)
+    HookRecordChunks --> HookOptimizeCodeGeneration(hooks.optimizeCodeOptions)
+
+    class ShouldRecord,HookRecordModules,HookRecordChunks,HookOptimizeCodeGeneration flow-hook-non-support
+    class SplitChunks flow-optimization
+    end
+
+end
+
+GenerateIds --> CodeGeneration
+
+subgraph CodeGeneration["Generate code of modules"]
+direction LR
+
+    subgraph CreateModuleHashes["Generate hashes of modules"]
+    HookBeforeModuleHash(hooks.beforeModuleHash) --> GenerateModuleHashes("Create module hashes")
+    GenerateModuleHashes --> HookAfterModuleHash(hooks.afterModuleHash)
+
+    class HookBeforeModuleHash,HookAfterModuleHash flow-hook-non-support
+    class GenerateModuleHashes flow-process
+    end
+
+    CreateModuleHashes --> ModuleGeneration
+
+    subgraph ModuleGeneration["Generate code of modules"]
+    HookBeforeModuleCodeGeneration(hooks.beforeModuleCodeGeneration) --> ModuleCodeGeneration("Generate module codes")
+    ModuleCodeGeneration --> HookAfterModuleCodeGeneration(hooks.afterModuleCodeGeneration)
+
+    class HookBeforeModuleCodeGeneration,HookAfterModuleCodeGeneration flow-hook-non-support
+    class ModuleCodeGeneration flow-process
+    end
+
+    ModuleGeneration --> CollectRuntimeRequirements
+
+    subgraph CollectRuntimeRequirements["Collect runtime modules"]
+    HookBeforeRuntime(hooks.beforeRuntimeRequirements) --> HookModuleRuntime(hooks.runtimeRequirementInModule)
+    HookModuleRuntime --> HookAdditionalChunkRuntime(hooks.additionalChunkRuntimeRequirements)
+    HookAdditionalChunkRuntime --> HookChunkRuntime(hooks.runtimeRequirementInChunk)
+    HookChunkRuntime --> HookAdditionalTreeRuntime(<a href="#additionaltreeruntimerequirements">hooks.additionalTreeRuntimeRequirements</a>)
+    HookAdditionalTreeRuntime --> HookTreeRuntime(hooks.runtimeRequirementInTree)
+    HookTreeRuntime --> HookAfterRuntimeRequirements(hooks.afterRuntimeRequirements)
+    HookTreeRuntime <--> HookRuntimeModule(<a href="#runtimemodule">hooks.runtimeModule</a>)
+
+    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookTreeRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
+    class HookAdditionalTreeRuntime,HookRuntimeModule flow-hook-partial-support
+    class ModuleCodeGeneration flow-process
+    end
+
+    CollectRuntimeRequirements --> CompilationHash
+
+    subgraph CompilationHash["Generate hash of compilation"]
+    HookBeforeHash(hooks.beforeHash) --> CreateHash("Create compilation hash")
+    CreateHash --> HookChunkHash(<a href="#chunkhash">hooks.chunkHash</a>)
+    HookChunkHash --> HookFullHash(hooks.fullHash)
+    HookFullHash --> CreateHash
+    CreateHash --> HookAfterHash(hooks.afterHash)
+
+    class HookBeforeHash,HookAfterHash,HookFullHash flow-hook-non-support
+    class HookChunkHash flow-hook-partial-support
+    class CreateHash flow-process
+    end
+
+end
+
+CodeGeneration --> Assets
+
+subgraph Assets["Generate assets"]
+direction LR
+subgraph CreateModuleAssets["Generate assets of modules"]
+ShouldRecord2{"shouldRecord"} --> |true| HookRecordHash(hooks.recordHash)
+HookRecordHash --> HookBeforeModuleAssets(hooks.beforeModuleAssets)
+ShouldRecord2{"shouldRecord"} --> |false| HookBeforeModuleAssets
+HookBeforeModuleAssets --> GenerateModuleAssets("Generate module assets")
+GenerateModuleAssets <--> HookModuleAsset(hooks.moduleAsset)
+
+    class ShouldRecord2,HookRecordHash,HookBeforeModuleAssets,HookModuleAsset flow-hook-non-support
+    class GenerateModuleAssets flow-process
+    end
+
+    CreateModuleAssets --> CreateChunkAssets
+
+    subgraph CreateChunkAssets["Generate assets of chunks"]
+    HookShouldGenerateChunkAssets{hooks.shouldGenerateChunkAssets} --> |true| HookBeforeChunkAssets(hooks.beforeChunkAssets)
+    HookBeforeChunkAssets --> GenerateChunkAssets("Generate chunk assets")
+    GenerateChunkAssets --> HookRenderManifest(hooks.renderManifest)
+    HookRenderManifest --> HookChunkAsset(<a href="#chunkasset">hooks.chunkAsset</a>)
+    HookChunkAsset --> GenerateChunkAssets
+    HookShouldGenerateChunkAssets --> |false| HookProcessAssets(<a href="#processassets">hooks.processAssets</a>)
+
+    class HookBeforeChunkAssets,HookShouldGenerateChunkAssets,HookRenderManifest flow-hook-non-support
+    class HookChunkAsset flow-hook-partial-support
+    class HookProcessAssets flow-hook
+    class GenerateChunkAssets flow-process
+    end
+
+    CreateChunkAssets --> ProcessAssets
+
+    subgraph ProcessAssets["Process assets"]
+      HookProcessAssets2(<a href="#processassets">hooks.processAssets</a>) --> HookAfterProcessAssets(<a href="#afterprocessassets">hooks.afterProcessAssets</a>)
+      HookAfterProcessAssets --> |shouldRecord=true| HookRecord(hooks.record)
+
+      class HookProcessAssets2,HookAfterProcessAssets flow-hook
+      class HookRecord flow-hook-non-support
+
+    end
+
+end
+
+Assets --> End
+
+subgraph End
+direction LR
+HookNeedAdditionalSeal --> |true| HookUnseal(hooks.unseal)
+HookNeedAdditionalSeal --> |false| HookAfterSeal
+HookUnseal --> Reseal("compilation.seal()")
+HookAfterSeal(<a href="#afterseal">hooks.afterSeal</a>) --> Callback("callback()")
+
+class HookAfterSeal flow-hook
+class HookNeedAdditionalSeal,HookUnseal flow-hook-non-support
+class Reseal flow-start
+end
+
+End -. additional seal .-> Start
+
+class Seal flow-start
+class Callback flow-end
+
+`}
+
+</Mermaid>
+
+</NoSSR>
 
 ## `buildModule`
 
@@ -108,6 +457,12 @@ Called when all modules have been built without errors.
     <ModuleType />
   </CollapsePanel>
 </Collapse>
+
+## `seal`
+
+Called when the compilation stops accepting new modules and starts to optimize modules.
+
+- **Type:** `SyncHook<[]>`
 
 ## `optimizeModules`
 

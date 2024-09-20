@@ -7,3 +7,7 @@ import(/*
   webpackInclude: unknown,
   webpackExclude: "asdfasdf",
 */'./a');
+import(/* webpackPrefetch: "aaa" */'./a');
+import(
+	/*webpackPrefetch:"aaa"*/'./a'
+);

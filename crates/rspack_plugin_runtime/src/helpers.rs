@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use rspack_collections::{IdentifierLinkedMap, UkeySet};
+use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -22,13 +22,10 @@ pub fn update_hash_for_entry_startup(
       .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| {
-        match compilation
+        compilation
           .chunk_graph
           .get_module_id(module.module_identifier)
-        {
-          Some(id) => id.as_str(),
-          None => "null",
-        }
+          .unwrap_or("null")
       })
     {
       module_id.hash(hasher);
@@ -56,14 +53,14 @@ pub fn get_all_chunks(
   exclude_chunk1: &ChunkUkey,
   exclude_chunk2: Option<&ChunkUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> UkeySet<ChunkUkey> {
+) -> UkeyIndexSet<ChunkUkey> {
   fn add_chunks(
     chunk_group_by_ukey: &ChunkGroupByUkey,
-    chunks: &mut UkeySet<ChunkUkey>,
+    chunks: &mut UkeyIndexSet<ChunkUkey>,
     entrypoint_ukey: &ChunkGroupUkey,
     exclude_chunk1: &ChunkUkey,
     exclude_chunk2: Option<&ChunkUkey>,
-    visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+    visit_chunk_groups: &mut UkeyIndexSet<ChunkGroupUkey>,
   ) {
     if let Some(entrypoint) = get_chunk_group_from_ukey(entrypoint_ukey, chunk_group_by_ukey) {
       for chunk in &entrypoint.chunks {
@@ -99,8 +96,8 @@ pub fn get_all_chunks(
     }
   }
 
-  let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
-  let mut visit_chunk_groups = UkeySet::default();
+  let mut chunks = UkeyIndexSet::default();
+  let mut visit_chunk_groups = UkeyIndexSet::default();
 
   add_chunks(
     chunk_group_by_ukey,
@@ -152,13 +149,10 @@ pub fn generate_entry_startup(
       .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| {
-        match compilation
+        compilation
           .chunk_graph
           .get_module_id(module.module_identifier)
-        {
-          Some(id) => id.as_str(),
-          None => "null",
-        }
+          .unwrap_or("null")
       })
     {
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");

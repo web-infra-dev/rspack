@@ -39,6 +39,7 @@ module.exports = {
 		    "auxiliaryChunks": Array [
 		      "909",
 		    ],
+		    "cached": false,
 		    "chunkIdHints": Array [],
 		    "chunkNames": Array [],
 		    "chunks": Array [],
@@ -47,16 +48,15 @@ module.exports = {
 		    "info": Object {
 		      "chunkhash": Array [],
 		      "contenthash": Array [],
-		      "development": false,
 		      "fullhash": Array [
 		        "89a353e9c515885abd8e",
 		      ],
-		      "hotModuleReplacement": false,
 		      "immutable": true,
-		      "minimized": false,
+		      "isOverSizeLimit": false,
 		      "related": Object {},
 		      "sourceFilename": "fixtures/asset/image.png",
 		    },
+		    "isOverSizeLimit": false,
 		    "name": "89a353e9c515885abd8e.png",
 		    "related": Array [],
 		    "size": 14910,
@@ -66,6 +66,7 @@ module.exports = {
 		    "auxiliaryChunkIdHints": Array [],
 		    "auxiliaryChunkNames": Array [],
 		    "auxiliaryChunks": Array [],
+		    "cached": false,
 		    "chunkIdHints": Array [],
 		    "chunkNames": Array [
 		      "main",
@@ -78,21 +79,19 @@ module.exports = {
 		    "info": Object {
 		      "chunkhash": Array [],
 		      "contenthash": Array [],
-		      "development": false,
 		      "fullhash": Array [],
-		      "hotModuleReplacement": false,
-		      "immutable": false,
+		      "isOverSizeLimit": false,
 		      "javascriptModule": false,
-		      "minimized": false,
 		      "related": Object {
 		        "sourceMap": Array [
 		          "main.js.map",
 		        ],
 		      },
 		    },
+		    "isOverSizeLimit": false,
 		    "name": "main.js",
 		    "related": Array [],
-		    "size": 2425,
+		    "size": 2763,
 		    "type": "asset",
 		  },
 		]

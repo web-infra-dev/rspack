@@ -1,13 +1,16 @@
-use std::hash::Hash;
 use std::sync::LazyLock;
+use std::{borrow::Cow, hash::Hash};
 
+use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_collections::UkeySet;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext,
 };
+use rspack_core::{CompilationAdditionalTreeRuntimeRequirements, RuntimeGlobals};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,8 +18,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
-use rustc_hash::FxHashSet as HashSet;
-use serde_json::json;
 
 use crate::{
   module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplate, ModuleOrSource,
@@ -84,6 +85,7 @@ async fn eval_devtool_plugin_compilation(
   hooks
     .inline_in_runtime_bailout
     .tap(eval_devtool_plugin_inline_in_runtime_bailout::new(self));
+
   Ok(())
 }
 
@@ -126,19 +128,28 @@ fn eval_devtool_plugin_render_module_content(
     let source = &origin_source.source();
     let footer = format!(
       "\n{}",
-      self.source_url_comment.replace(
+      &self.source_url_comment.cow_replace(
         "[url]",
         encode_uri(&str)
-          .replace("%2F", "/")
-          .replace("%20", "_")
-          .replace("%5E", "^")
-          .replace("%5C", "\\")
+          .cow_replace("%2F", "/")
+          .cow_replace("%20", "_")
+          .cow_replace("%5E", "^")
+          .cow_replace("%5C", "\\")
           .trim_start_matches('/')
       )
     );
-    // TODO: Implement support for the trustedTypes option.
-    // This will depend on the additionalModuleRuntimeRequirements hook.
-    RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed()
+
+    let module_content =
+      simd_json::to_string(&format!("{source}{footer}")).expect("failed to parse string");
+    RawSource::from(format!(
+      "eval({});",
+      if compilation.options.output.trusted_types.is_some() {
+        format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)
+      } else {
+        module_content
+      }
+    ))
+    .boxed()
   };
 
   self.cache.insert(origin_source, source.clone());
@@ -180,40 +191,73 @@ impl Plugin for EvalDevToolModulePlugin {
       .compiler_hooks
       .compilation
       .tap(eval_devtool_plugin_compilation::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(eval_devtool_plugin_additional_tree_runtime_requirements::new(self));
     Ok(())
   }
 }
 
-// https://tc39.es/ecma262/#sec-encodeuri-uri
-fn encode_uri(uri: &str) -> String {
-  encode(uri, ";/?:@&=+$,#")
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EvalDevToolModulePlugin)]
+async fn eval_devtool_plugin_additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  _chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
+
+  Ok(())
 }
 
-static ALWAYS_UNESCAPED: LazyLock<HashSet<char>> = LazyLock::new(|| {
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!*'()"
+// https://tc39.es/ecma262/#sec-encode
+// UNESCAPED is combined by ALWAYS_UNESCAPED and ";/?:@&=+$,#"
+static UNESCAPED: LazyLock<UkeySet<u32>> = LazyLock::new(|| {
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!*'();/?:@&=+$,#"
     .chars()
+    .map(|c| c as u32)
     .collect()
 });
 
 // https://tc39.es/ecma262/#sec-encode
-fn encode(string: &str, extra_unescaped: &str) -> String {
+fn encode_uri(string: &str) -> Cow<str> {
   // Let R be the empty String.
-  let mut r = String::new();
+  let mut r = Cow::Borrowed(string);
   // Let alwaysUnescaped be the string-concatenation of the ASCII word characters and "-.!~*'()".
-  let always_unescaped = ALWAYS_UNESCAPED.clone();
-  // Let unescapedSet be the string-concatenation of alwaysUnescaped and extraUnescaped.
-  let unescaped_set: HashSet<char> = always_unescaped
-    .union(&extra_unescaped.chars().collect::<HashSet<_>>())
-    .cloned()
-    .collect();
-  for c in string.chars() {
-    if unescaped_set.contains(&c) {
-      r.push(c);
+  for (byte_idx, c) in string.char_indices() {
+    if UNESCAPED.contains(&(c as u32)) {
+      match r {
+        Cow::Borrowed(_) => {
+          continue;
+        }
+        Cow::Owned(mut inner) => {
+          inner.push(c);
+          r = Cow::Owned(inner);
+        }
+      }
     } else {
-      let mut b = [0u8; 4];
-      let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
-      for octet in octets {
-        r.push_str(&format!("%{:02X}", octet));
+      match r {
+        Cow::Borrowed(_) => {
+          let mut s = string[0..byte_idx].to_string();
+          let mut b = [0u8; 4];
+          let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
+          for octet in octets {
+            s.push_str(&format!("%{:02X}", octet));
+          }
+          r = Cow::Owned(s);
+        }
+        Cow::Owned(mut inner) => {
+          let mut b = [0u8; 4];
+          let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
+          for octet in octets {
+            inner.push_str(&format!("%{:02X}", octet));
+          }
+          r = Cow::Owned(inner);
+        }
       }
     }
   }

@@ -16,9 +16,9 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
 #[napi(object)]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
-  pub immutable: bool,
+  pub immutable: Option<bool>,
   /// whether the asset is minimized
-  pub minimized: bool,
+  pub minimized: Option<bool>,
   /// the value(s) of the full hash used for this asset
   pub fullhash: Vec<String>,
   /// the value(s) of the chunk hash used for this asset
@@ -32,9 +32,9 @@ pub struct JsAssetInfo {
   /// size in bytes, only set after asset has been emitted
   // pub size: f64,
   /// when asset is only used for development and doesn't count towards user-facing assets
-  pub development: bool,
+  pub development: Option<bool>,
   /// when asset ships data for updating an existing application (HMR)
-  pub hot_module_replacement: bool,
+  pub hot_module_replacement: Option<bool>,
   /// when asset is javascript and an ESM
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
@@ -46,6 +46,8 @@ pub struct JsAssetInfo {
   /// in the rust struct and have the Js side to reshape and align with webpack
   /// Related: packages/rspack/src/Compilation.ts
   pub extras: serde_json::Map<String, serde_json::Value>,
+  /// whether this asset is over the size limit
+  pub is_over_size_limit: Option<bool>,
 }
 
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
@@ -64,6 +66,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       javascript_module: i.javascript_module,
       css_unused_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: i.extras,
+      is_over_size_limit: i.is_over_size_limit,
     }
   }
 }
@@ -97,6 +100,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       javascript_module: info.javascript_module,
       css_unused_idents: info.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: info.extras,
+      is_over_size_limit: info.is_over_size_limit,
     }
   }
 }

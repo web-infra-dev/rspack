@@ -1,13 +1,16 @@
 // https://github.com/webpack/webpack/blob/main/lib/WarnCaseSensitiveModulesPlugin.js
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::BuildHasherDefault};
 
+use cow_utils::CowUtils;
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
-  ApplyContext, Compilation, CompilationSeal, CompilerOptions, Logger, Module, ModuleGraph, Plugin,
+  ApplyContext, Compilation, CompilationSeal, CompilerOptions, Logger, ModuleGraph, Plugin,
   PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::{FxHashMap, FxHasher};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -16,15 +19,15 @@ pub struct WarnCaseSensitiveModulesPlugin;
 impl WarnCaseSensitiveModulesPlugin {
   pub fn create_sensitive_modules_warning(
     &self,
-    modules: &Vec<&dyn Module>,
+    modules: Vec<Identifier>,
     graph: &ModuleGraph,
   ) -> String {
     let mut message =
       String::from("There are multiple modules with names that only differ in casing.\n");
 
     for m in modules {
-      if let Some(boxed_m) = graph.module_by_identifier(&m.identifier()) {
-        let mut module_msg = format!("  - {}\n", m.identifier());
+      if let Some(boxed_m) = graph.module_by_identifier(&m) {
+        let mut module_msg = format!("  - {}\n", m);
         graph
           .get_incoming_connections(&boxed_m.identifier())
           .iter()
@@ -48,8 +51,11 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("check case sensitive modules");
   let mut diagnostics: Vec<Diagnostic> = vec![];
   let module_graph = compilation.get_module_graph();
-  let mut module_without_case_map: HashMap<String, HashMap<String, &Box<dyn Module>>> =
-    HashMap::new();
+  let mut not_conflect: FxHashMap<String, Identifier> = HashMap::with_capacity_and_hasher(
+    module_graph.modules().len(),
+    BuildHasherDefault::<FxHasher>::default(),
+  );
+  let mut conflict: FxHashMap<String, IdentifierSet> = FxHashMap::default();
 
   for module in module_graph.modules().values() {
     // Ignore `data:` URLs, because it's not a real path
@@ -63,25 +69,31 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    let identifier = module.identifier().to_string();
-    let lower_identifier = identifier.to_lowercase();
-    let lower_map = module_without_case_map.entry(lower_identifier).or_default();
-    lower_map.insert(identifier, module);
+    let identifier = module.identifier();
+    let lower_identifier = identifier.cow_to_lowercase();
+    if let Some(prev_identifier) = not_conflect.remove(lower_identifier.as_ref()) {
+      conflict.insert(
+        lower_identifier.into_owned(),
+        IdentifierSet::from_iter([prev_identifier, identifier]),
+      );
+    } else if let Some(set) = conflict.get_mut(lower_identifier.as_ref()) {
+      set.insert(identifier);
+    } else {
+      not_conflect.insert(lower_identifier.into_owned(), identifier);
+    }
   }
 
   // sort by module identifier, guarantee the warning order
-  let mut case_map_vec = module_without_case_map.into_iter().collect::<Vec<_>>();
-  case_map_vec.sort_by(|a, b| a.0.cmp(&b.0));
+  let mut case_map_vec = conflict.into_iter().collect::<Vec<_>>();
+  case_map_vec.sort_unstable_by(|a, b| a.0.cmp(&b.0));
 
-  for (_, lower_map) in case_map_vec {
-    if lower_map.values().len() > 1 {
-      let mut case_modules = lower_map.values().map(|m| m.as_ref()).collect::<Vec<_>>();
-      case_modules.sort_by_key(|m| m.identifier());
-      diagnostics.push(Diagnostic::warn(
-        "Sensitive Modules Warn".to_string(),
-        self.create_sensitive_modules_warning(&case_modules, &compilation.get_module_graph()),
-      ));
-    }
+  for (_, set) in case_map_vec {
+    let mut case_modules = set.iter().copied().collect::<Vec<_>>();
+    case_modules.sort_unstable();
+    diagnostics.push(Diagnostic::warn(
+      "Sensitive Modules Warn".to_string(),
+      self.create_sensitive_modules_warning(case_modules, &compilation.get_module_graph()),
+    ));
   }
 
   compilation.extend_diagnostics(diagnostics);

@@ -87,20 +87,6 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl #impl_generics PartialEq for #name #ty_generics #where_clause {
-      fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
-      }
-    }
-
-    impl #impl_generics Eq for #name #ty_generics #where_clause {}
-
-    impl #impl_generics std::hash::Hash for #name #ty_generics #where_clause {
-      fn hash<H: std::hash::Hasher>(&self, _state: &mut H) {
-        unreachable!()
-      }
-    }
-
     impl #impl_generics ::rspack_core::DependenciesBlock for #name #ty_generics #where_clause {
       fn add_block_id(&mut self, _: ::rspack_core::AsyncDependenciesBlockIdentifier) {
         unreachable!()
@@ -176,6 +162,19 @@ pub fn impl_runtime_module(
           &compilation.options.output.hash_salt,
         );
         Ok(result)
+      }
+
+      fn update_hash(
+        &self,
+        hasher: &mut dyn std::hash::Hasher,
+        compilation: &::rspack_core::Compilation,
+        _runtime: Option<&::rspack_core::RuntimeSpec>,
+      ) -> ::rspack_error::Result<()> {
+        use rspack_util::ext::DynHash;
+        self.name().dyn_hash(hasher);
+        self.stage().dyn_hash(hasher);
+        self.get_generated_code(compilation)?.dyn_hash(hasher);
+        Ok(())
       }
     }
 

@@ -1,7 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec,
-  ExportsSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
+  ExportsOfExportsSpec, ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -50,6 +50,10 @@ impl Dependency for CssExportDependency {
       ..Default::default()
     })
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl DependencyTemplate for CssExportDependency {
@@ -64,6 +68,15 @@ impl DependencyTemplate for CssExportDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    // No DependencyTemplate::apply, no need to update hash
   }
 }
 

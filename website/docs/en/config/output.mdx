@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/output/" />
@@ -28,8 +28,6 @@ The name of the file to be output by the Asset module. This value can be overrid
 :::
 
 ## output.asyncChunks
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -638,8 +636,6 @@ An optional salt to update the hash.
 
 ## output.hotUpdateChunkFilename
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **Type:** `string`
 - **Default:** `"[id].[fullhash].hot-update.js"`
 
@@ -662,8 +658,6 @@ Typically you don't need to change `output.hotUpdateChunkFilename`.
 
 ## output.hotUpdateGlobal
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **Type:** `string`
 - **Default:** `"webpackHotUpdate" + output.uniqueName`
 
@@ -674,8 +668,6 @@ A JSONP function is used to asynchronously load hot-update chunks.
 For details see [`output.chunkLoadingGlobal`](#outputchunkloadingglobal).
 
 ## output.hotUpdateMainFilename
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 - **Type:** `string`
 - **Default:** `"[runtime].[fullhash].hot-update.json"`
@@ -1494,8 +1486,6 @@ define('MyLibrary', [], factory);
 ```
 
 ## output.module
-
-<ApiMeta stability={Stability.Experimental} />
 
 - **Type:** `boolean`
 - **Default:** `false`

@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use futures::Future;
-use rspack_core::{CompilationAsset, CompilationAssets};
+use rspack_core::CompilationAsset;
 use rspack_error::{Error, Result};
 
 use crate::MappedAsset;
@@ -15,7 +15,7 @@ impl MappedAssetsCache {
 
   pub async fn use_cache<'a, F, R>(
     &self,
-    assets: &'a CompilationAssets,
+    assets: Vec<(&'a String, &'a CompilationAsset)>,
     map_assets: F,
   ) -> Result<Vec<MappedAsset>>
   where

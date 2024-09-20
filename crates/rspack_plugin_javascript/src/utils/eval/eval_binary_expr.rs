@@ -1,4 +1,4 @@
-use rspack_core::{DependencyLocation, SpanExt};
+use rspack_core::{RealDependencyLocation, SpanExt};
 use swc_core::{
   common::Spanned,
   ecma::ast::{BinExpr, BinaryOp},
@@ -429,7 +429,27 @@ pub fn handle_const_operation(
         None
       }
     }
-    BinaryOp::BitAnd | BinaryOp::BitXor | BinaryOp::BitOr | BinaryOp::LShift | BinaryOp::RShift => {
+    BinaryOp::LShift | BinaryOp::RShift => {
+      if let Some(left_number) = left.as_int()
+        && let Some(right_number) = right.as_int()
+      {
+        // only the lower 5 bits are used when shifting, so don't do anything
+        // if the shift amount is outside [0,32)
+        if (0..32).contains(&right_number) {
+          res.set_number(match expr.op {
+            BinaryOp::LShift => left_number << right_number,
+            BinaryOp::RShift => left_number >> right_number,
+            _ => unreachable!(),
+          } as f64);
+        } else {
+          res.set_number(left_number as f64);
+        }
+        Some(res)
+      } else {
+        None
+      }
+    }
+    BinaryOp::BitAnd | BinaryOp::BitXor | BinaryOp::BitOr => {
       if let Some(left_number) = left.as_int()
         && let Some(right_number) = right.as_int()
       {
@@ -437,8 +457,6 @@ pub fn handle_const_operation(
           BinaryOp::BitAnd => left_number & right_number,
           BinaryOp::BitXor => left_number ^ right_number,
           BinaryOp::BitOr => left_number | right_number,
-          BinaryOp::LShift => left_number << right_number,
-          BinaryOp::RShift => left_number >> right_number,
           _ => unreachable!(),
         } as f64);
         Some(res)
@@ -512,17 +530,16 @@ pub fn eval_binary_expression(
 }
 
 fn join_locations(
-  start: Option<&DependencyLocation>,
-  end: Option<&DependencyLocation>,
+  start: Option<&RealDependencyLocation>,
+  end: Option<&RealDependencyLocation>,
 ) -> (u32, u32) {
   match (start, end) {
     (None, None) => unreachable!("invalid range"),
-    (None, Some(end)) => (end.start(), end.end()),
-    (Some(start), None) => (start.start(), start.end()),
-    (Some(start), Some(end)) => join_ranges(
-      Some((start.start(), start.end())),
-      Some((end.start(), end.end())),
-    ),
+    (None, Some(end)) => (end.start, end.end),
+    (Some(start), None) => (start.start, start.end),
+    (Some(start), Some(end)) => {
+      join_ranges(Some((start.start, start.end)), Some((end.start, end.end)))
+    }
   }
 }
 

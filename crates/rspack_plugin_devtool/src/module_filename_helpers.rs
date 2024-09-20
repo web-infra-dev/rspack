@@ -4,6 +4,7 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use cow_utils::CowUtils;
 use regex::{Captures, Regex};
 use rspack_core::{contextify, Compilation, OutputOptions};
 use rspack_error::Result;
@@ -79,18 +80,13 @@ impl ModuleFilenameHelpers {
         let identifier = contextify(context, module_identifier);
         let module_id = chunk_graph
           .get_module_id(*module_identifier)
-          .clone()
-          .unwrap_or("".to_string());
+          .map(|s| s.to_string())
+          .unwrap_or_default();
         let absolute_resource_path = "".to_string();
 
         let hash = get_hash(&identifier, output_options);
 
-        let resource = short_identifier
-          .clone()
-          .split('!')
-          .last()
-          .unwrap_or("")
-          .to_string();
+        let resource = short_identifier.split('!').last().unwrap_or("").to_string();
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
@@ -203,7 +199,7 @@ impl ModuleFilenameHelpers {
           .as_str();
 
         if content.len() + 2 == full_match.len() {
-          match content.to_lowercase().as_str() {
+          match content.cow_to_lowercase().as_ref() {
             "identifier" => Cow::from(&ctx.identifier),
             "short-identifier" => Cow::from(&ctx.short_identifier),
             "resource" => Cow::from(&ctx.resource),

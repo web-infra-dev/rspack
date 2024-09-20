@@ -1,5 +1,6 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
-use rspack_error::ErrorLocation;
+use rspack_core::{
+  ConstDependency, RealDependencyLocation, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
+};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
 
@@ -155,12 +156,12 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       WEBPACK_MODULE => {
+        let range: RealDependencyLocation = ident.span.into();
         parser
           .presentational_dependencies
           .push(Box::new(ModuleArgumentDependency::new(
             None,
-            ErrorLocation::new(ident.span, &parser.source_map),
-            ident.span.into(),
+            range.with_source(parser.source_map.clone()),
           )));
         Some(true)
       }
@@ -370,12 +371,12 @@ impl JavascriptParserPlugin for APIPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
+      let range: RealDependencyLocation = expr.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
           Some("id"),
-          ErrorLocation::new(expr.span(), &parser.source_map),
-          expr.span().into(),
+          range.with_source(parser.source_map.clone()),
         )));
       Some(true)
     } else {

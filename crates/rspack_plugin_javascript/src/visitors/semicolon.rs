@@ -2,6 +2,7 @@ use rustc_hash::FxHashSet;
 use swc_core::{
   common::{BytePos, Span, Spanned},
   ecma::{
+    ast::ClassMember,
     parser::token::{Token, TokenAndSpan},
     visit::{Visit, VisitWith},
   },
@@ -116,5 +117,39 @@ impl<'a> Visit for InsertedSemicolons<'a> {
     if let Some(arg) = &n.arg {
       arg.visit_children_with(self)
     }
+  }
+
+  fn visit_import_decl(&mut self, n: &swc_core::ecma::ast::ImportDecl) {
+    self.post_semi(&n.span);
+    n.visit_children_with(self)
+  }
+
+  fn visit_named_export(&mut self, n: &swc_core::ecma::ast::NamedExport) {
+    self.post_semi(&n.span);
+    n.visit_children_with(self)
+  }
+
+  fn visit_export_default_expr(&mut self, n: &swc_core::ecma::ast::ExportDefaultExpr) {
+    self.post_semi(&n.span);
+    n.visit_children_with(self)
+  }
+
+  fn visit_export_all(&mut self, n: &swc_core::ecma::ast::ExportAll) {
+    self.post_semi(&n.span);
+    n.visit_children_with(self)
+  }
+
+  fn visit_debugger_stmt(&mut self, n: &swc_core::ecma::ast::DebuggerStmt) {
+    self.post_semi(&n.span);
+    n.visit_children_with(self);
+  }
+
+  fn visit_class_member(&mut self, n: &swc_core::ecma::ast::ClassMember) {
+    match n {
+      ClassMember::ClassProp(prop) => self.post_semi(&prop.span),
+      ClassMember::PrivateProp(prop) => self.post_semi(&prop.span),
+      _ => {}
+    };
+    n.visit_children_with(self);
   }
 }

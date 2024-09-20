@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use config::Config;
 use derivative::Derivative;
+pub use lightningcss;
 use lightningcss::{
   printer::{PrinterOptions, PseudoClasses},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
@@ -13,7 +14,7 @@ use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
-mod config;
+pub mod config;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
@@ -46,9 +47,9 @@ impl LightningCssLoader {
       return Ok(());
     };
 
-    let filename = resource_path.to_string_lossy().into_owned();
+    let filename = resource_path.as_str().to_string();
 
-    let Some(content) = std::mem::take(&mut loader_context.content) else {
+    let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
 
@@ -130,8 +131,7 @@ impl LightningCssLoader {
     let enable_sourcemap = loader_context.context.module_source_map_kind.enabled();
 
     let mut source_map = loader_context
-      .source_map
-      .as_ref()
+      .source_map()
       .map(|input_source_map| -> Result<_> {
         let mut sm = parcel_sourcemap::SourceMap::new(
           input_source_map
@@ -156,7 +156,7 @@ impl LightningCssLoader {
 
     let content = stylesheet
       .to_css(PrinterOptions {
-        minify: false,
+        minify: self.config.minify.unwrap_or(false),
         source_map: if enable_sourcemap {
           Some(&mut source_map)
         } else {
@@ -179,15 +179,17 @@ impl LightningCssLoader {
       })
       .map_err(|_| rspack_error::error!("failed to generate css"))?;
 
-    loader_context.content = Some(rspack_core::Content::String(content.code));
-
     if enable_sourcemap {
       let source_map = source_map
         .to_json(None)
         .map_err(|e| rspack_error::error!(e.to_string()))?;
 
-      loader_context.source_map =
-        Some(SourceMap::from_json(&source_map).expect("should be able to generate source-map"));
+      loader_context.finish_with((
+        content.code,
+        SourceMap::from_json(&source_map).expect("should be able to generate source-map"),
+      ));
+    } else {
+      loader_context.finish_with(content.code);
     }
 
     Ok(())

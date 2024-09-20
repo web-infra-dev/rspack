@@ -79,8 +79,8 @@ export function formatCode(
 			}
 		},
 		IfStatement(path) {
-			let consequentNode;
-			let alternateNode;
+			let consequentNode: T.Statement | undefined;
+			let alternateNode: T.Statement | undefined;
 			if (options.ignoreBlockOnlyStatement) {
 				const consequent = path.get("consequent");
 				if (

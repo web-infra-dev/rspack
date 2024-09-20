@@ -1,58 +1,41 @@
-mod dependency;
+mod dependencies;
 mod entries;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::ops::DerefMut;
-use std::path::PathBuf;
 
+use dependencies::DependenciesDTO;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
-use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
+use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
+use rspack_napi::Ref;
+use sys::napi_env;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
+use crate::ModuleDTOWrapper;
 use crate::{
-  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsPathData, JsStats, ToJsCompatSource,
+  chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
+  ToJsCompatSource,
 };
 use crate::{JsDiagnostic, JsRspackError};
 
 #[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
-
-impl JsCompilation {
-  /// Convert Rust `Compilation` to `JsCompilation`.
-  ///
-  /// ## JS Interoperable
-  /// `JsCompilation` implements [napi::bindgen_prelude::ToNapiValue].
-  /// It can be send to JavaScript.
-  ///
-  /// ## Safety
-  /// Safety is guaranteed by the following contracts:
-  /// 1. `Compiler` should not be moved. For example: store it on the heap.
-  /// 2. The pointer should be valid for the entire lifetime of `JsCompilation`.
-  /// 3. Caching old `Compilation` will result the program to undefined behavior and it's likely to crash.
-  pub unsafe fn from_compilation(inner: &mut rspack_core::Compilation) -> Self {
-    Self(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        inner,
-      )
-    })
-  }
-}
 
 impl Deref for JsCompilation {
   type Target = rspack_core::Compilation;
@@ -81,14 +64,14 @@ impl JsCompilation {
   ) -> Result<()> {
     self
       .0
-      .update_asset(&filename, |original_source, original_info| {
+      .update_asset(&filename, |original_source, mut original_info| {
         let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
-            Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
+            Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
-              let compat_source: CompatSource =
+              let js_compat_source: JsCompatSource =
                 new_source_fn.call1(original_source.to_js_compat_source())?;
-              compat_source.boxed()
+              js_compat_source.into()
             }
           };
           new_source
@@ -107,8 +90,10 @@ impl JsCompilation {
             },
           )
           .transpose();
-        let new_info = new_info.into_rspack_result()?;
-        Ok((new_source, new_info.unwrap_or(original_info)))
+        if let Some(new_info) = new_info.into_rspack_result()? {
+          original_info.merge_another_asset(new_info);
+        }
+        Ok((new_source, original_info))
       })
       .map_err(|err| napi::Error::from_reason(err.to_string()))
   }
@@ -148,14 +133,15 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi]
-  pub fn get_modules(&self) -> Vec<JsModule> {
+  #[napi(getter, ts_return_type = "Array<ModuleDTO>")]
+  pub fn modules(&'static self) -> Vec<ModuleDTOWrapper> {
     self
       .0
       .get_module_graph()
       .modules()
-      .values()
-      .filter_map(|module| module.to_js_module().ok())
+      .keys()
+      .cloned()
+      .map(|module_id| ModuleDTOWrapper::new(module_id, self.0))
       .collect::<Vec<_>>()
   }
 
@@ -215,7 +201,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
-    let source = CompatSource::from(source).boxed();
+    let source: BoxSource = source.into();
     match self.0.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
@@ -269,11 +255,9 @@ impl JsCompilation {
 
   #[napi]
   pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
-    let compat_source: CompatSource = source.into();
-
     self.0.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
     );
   }
 
@@ -317,39 +301,8 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_file_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .file_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_context_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .context_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_missing_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .missing_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_build_dependencies(&self) -> Vec<String> {
-    self
-      .0
-      .build_dependencies()
-      .map(|i| i.to_string_lossy().to_string())
-      .collect()
+  pub fn dependencies(&'static self) -> DependenciesDTO {
+    DependenciesDTO::new(self.0)
   }
 
   #[napi]
@@ -455,7 +408,7 @@ impl JsCompilation {
     self
       .0
       .file_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -463,7 +416,7 @@ impl JsCompilation {
     self
       .0
       .context_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -471,7 +424,7 @@ impl JsCompilation {
     self
       .0
       .missing_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -479,7 +432,7 @@ impl JsCompilation {
     self
       .0
       .build_dependencies
-      .extend(deps.into_iter().map(PathBuf::from))
+      .extend(deps.into_iter().map(Into::into))
   }
 
   #[napi]
@@ -513,6 +466,7 @@ impl JsCompilation {
     &'static self,
     env: Env,
     request: String,
+    layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
     original_module: Option<String>,
@@ -528,6 +482,7 @@ impl JsCompilation {
       let result = module_executor
         .import_module(
           request,
+          layer,
           public_path.map(|p| p.into()),
           base_uri,
           original_module_context.map(rspack_core::Context::from),
@@ -571,6 +526,84 @@ impl JsCompilation {
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
+  }
+}
+
+#[derive(Default)]
+struct CompilationInstanceRefs(RefCell<HashMap<CompilationId, (Ref, napi_env)>>);
+
+impl Drop for CompilationInstanceRefs {
+  fn drop(&mut self) {
+    // cleanup references to be executed in cases of panic or unexpected termination
+    let mut refs = self.0.borrow_mut();
+    for (_, (mut r, env)) in refs.drain() {
+      let _ = r.unref(env);
+    }
+  }
+}
+
+thread_local! {
+  static COMPILATION_INSTANCE_REFS: CompilationInstanceRefs = Default::default();
+}
+
+// The difference between JsCompilationWrapper and JsCompilation is:
+// JsCompilationWrapper maintains a cache to ensure that the corresponding instance of the same Compilation is unique on the JS side.
+//
+// This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
+pub struct JsCompilationWrapper(pub(crate) &'static mut rspack_core::Compilation);
+
+impl JsCompilationWrapper {
+  pub fn new(compilation: &mut rspack_core::Compilation) -> Self {
+    // SAFETY:
+    // 1. `Compiler` is stored on the heap and pinned in binding crate.
+    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
+    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
+    Self(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    })
+  }
+
+  pub fn cleanup(compilation_id: CompilationId) {
+    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
+      let mut refs = ref_cell.0.borrow_mut();
+      if let Some((mut r, env)) = refs.remove(&compilation_id) {
+        let _ = r.unref(env);
+      }
+    });
+    ModuleDTOWrapper::cleanup(compilation_id);
+  }
+}
+
+impl ToNapiValue for JsCompilationWrapper {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
+      let mut env_wrapper = Env::from_raw(env);
+      let mut refs = ref_cell.0.borrow_mut();
+      let compilation_id = val.0.id();
+      let mut vacant = false;
+      let napi_value = match refs.entry(compilation_id) {
+        std::collections::hash_map::Entry::Occupied(entry) => {
+          let r = entry.get();
+          ToNapiValue::to_napi_value(env, &r.0)
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          vacant = true;
+          let instance = JsCompilation(val.0).into_instance(env_wrapper)?;
+          let napi_value = ToNapiValue::to_napi_value(env, instance)?;
+          let r = Ref::new(env, napi_value, 1)?;
+          let r = entry.insert((r, env));
+          ToNapiValue::to_napi_value(env, &r.0)
+        }
+      };
+      if vacant {
+        // cleanup references to be executed when the JS thread exits normally
+        let _ = env_wrapper
+          .add_env_cleanup_hook((), move |_| JsCompilationWrapper::cleanup(compilation_id));
+      }
+      napi_value
+    })
   }
 }
 

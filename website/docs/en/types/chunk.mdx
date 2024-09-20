@@ -2,26 +2,26 @@
 
 ```ts
 type Chunk = {
-  name?: string;
-  id?: string;
-  ids: string[];
-  idNameHints: string[];
-  filenameTemplate?: string;
-  cssFilenameTemplate?: string;
-  files: Set<string>;
-  runtime: Set<string>;
-  hash?: string;
-  contentHash: Record<string, string>;
-  renderedHash?: string;
-  chunkReason?: string;
-  auxiliaryFiles: Set<string>;
-  isOnlyInitial(): boolean;
+  auxiliaryFiles: ReadonlySet<string>;
   canBeInitial(): boolean;
+  chunkReason?: Readonly<string>;
+  contentHash: Readonly<Record<string, string>>;
+  cssFilenameTemplate?: Readonly<string>;
+  filenameTemplate?: Readonly<string>;
+  files: ReadonlySet<string>;
+  getAllAsyncChunks(): Iterable<Chunk>;
+  getAllInitialChunks(): Iterable<Chunk>;
+  getAllReferencedChunks(): Iterable<Chunk>;
+  get groupsIterable(): Iterable<ChunkGroup>;
+  hash?: Readonly<string>;
   hasRuntime(): boolean;
-  groupsIterable: Set<ChunkGroup>;
-  getAllAsyncChunks(): Set<Chunk>;
-  getAllInitialChunks(): Set<Chunk>;
-  getAllReferencedChunks(): Set<Chunk>;
+  id?: Readonly<string>;
+  idNameHints: ReadonlyArray<string>;
+  ids: ReadonlyArray<string>;
+  isOnlyInitial(): boolean;
+  name?: Readonly<string>;
+  renderedHash?: Readonly<string>;
+  runtime: ReadonlySet<string>;
 };
 ```
 

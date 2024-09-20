@@ -1,3 +1,5 @@
+import PropertyType from '@components/PropertyType';
+
 # Cache
 
 缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。
@@ -8,8 +10,13 @@ rspack 当前仅支持内存缓存（Memory Cache），持久化缓存（Persist
 
 此配置当前仅支持控制是否进行缓存。
 
-- **类型：** `boolean`
-- **默认值：** [production 模式](config/mode#production) 为 `false`，[development 模式](config/mode#development) 为 `true`
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
+  ]}
+/>
 
 ## 用法
 

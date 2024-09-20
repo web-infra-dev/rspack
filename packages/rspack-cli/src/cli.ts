@@ -8,6 +8,7 @@ import {
 	type MultiStats,
 	type RspackOptions,
 	type Stats,
+	ValidationError,
 	rspack
 } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
@@ -24,13 +25,11 @@ import type {
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import findConfig from "./utils/findConfig";
 import { type LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
 
-const defaultEntry = "src/index";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv;
@@ -43,7 +42,7 @@ export class RspackCLI {
 		rspackCommand: Command,
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
-		process.env.RSPACK_CONFIG_VALIDATE = "loose";
+		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
 		process.env.WATCHPACK_WATCHER_LIMIT =
 			process.env.WATCHPACK_WATCHER_LIMIT || "20";
 		const nodeEnv = process?.env?.NODE_ENV;
@@ -61,18 +60,27 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		return rspack(config, isWatch ? callback : undefined);
+		let compiler: MultiCompiler | Compiler | null;
+		try {
+			compiler = rspack(config, isWatch ? callback : undefined);
+		} catch (e) {
+			// Aligned with webpack-cli
+			// See: https://github.com/webpack/webpack-cli/blob/eea6adf7d34dfbfd3b5b784ece4a4664834f5a6a/packages/webpack-cli/src/webpack-cli.ts#L2394
+			if (e instanceof ValidationError) {
+				this.getLogger().error(e.message);
+				process.exit(2);
+			} else if (e instanceof Error) {
+				callback?.(e);
+				return null;
+			}
+			throw e;
+		}
+		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
 
-		let shouldUseColor;
-
-		if (useColor) {
-			shouldUseColor = useColor;
-		} else {
-			shouldUseColor = isColorSupported;
-		}
+		const shouldUseColor = useColor || isColorSupported;
 
 		return {
 			...createColors({ useColor: shouldUseColor }),
@@ -131,13 +139,6 @@ export class RspackCLI {
 				item.entry = {
 					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
 				};
-			} else if (!item.entry) {
-				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
-				const defaultEntryPath =
-					findConfig(defaultEntryBase) || `${defaultEntryBase}.js`; // default entry is js
-				item.entry = {
-					main: defaultEntryPath
-				};
 			}
 			// to set output.path
 			item.output = item.output || {};
@@ -150,10 +151,10 @@ export class RspackCLI {
 				);
 				(item.plugins ??= []).push({
 					name: "rspack-bundle-analyzer",
-					apply(compiler) {
+					apply(compiler: any) {
 						new BundleAnalyzerPlugin({
 							generateStatsFile: true
-						}).apply(compiler as any);
+						}).apply(compiler);
 					}
 				});
 			}

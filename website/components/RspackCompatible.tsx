@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useState } from 'react';
-import './CompatibleCard.scss';
 import axios from 'axios';
-import * as i18n from './i18n';
+import { useEffect, useState } from 'react';
+import './CompatibleCard.scss';
 
 interface CardMeta {
   name: string;
@@ -70,7 +69,7 @@ export const CompatibleCardList = () => {
   const prefix = 'https://github.com/web-infra-dev/rspack-compat/tree/main';
   return list.map(item => (
     <CompatibleCardItem
-      key={item.name}
+      key={item.path}
       name={`${item.name}@${item.version}`}
       url={`${prefix}/${item.path}`}
       rspackMinVersion={item.rspackVersion}

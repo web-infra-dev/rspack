@@ -1,5 +1,6 @@
 use swc_core::ecma::atoms::Atom;
 
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
@@ -51,6 +52,10 @@ impl Dependency for StaticExportsDependency {
       can_mangle: Some(self.can_mangle),
       ..Default::default()
     })
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 

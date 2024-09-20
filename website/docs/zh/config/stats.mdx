@@ -1,7 +1,7 @@
-import PropertyType from '../../../components/property-type.tsx';
-import WebpackLicense from '@components/webpack-license';
+import PropertyType from '../../../components/PropertyType.tsx';
+import WebpackLicense from '@components/WebpackLicense';
 
-<WebpackLicense from="https://webpack.js.org/configuration/stats/" />
+<WebpackLicense from="https://webpack.docschina.org/configuration/stats/" />
 
 # Stats
 
@@ -14,7 +14,7 @@ import WebpackLicense from '@components/webpack-license';
 
 :::
 
-<PropertyType.CN
+<PropertyType
   type="boolean | string | Object"
   defaultValueList={[
     {
@@ -36,179 +36,419 @@ import WebpackLicense from '@components/webpack-license';
 | `'detailed'`        | 输出除了 `chunkModules` 之外 `chunkRootModules` 的所有信息 |
 | `'summary'`         | 只输出摘要                                                 |
 
-## 详细选项（Stats Options）
-
 可以指定具体哪些打包信息进行输出，以下所有字段都是可选（optional）的。
+
+## 预设选项
+
+### stats.all
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+控制所有 stats options 是否输出。
+
+:::warning 警告
+开启 `stats.all` 会导致大量的 Rust 与 JavaScript 的数据传输，这将显著提高 Stats 生成耗时，请谨慎使用。
+:::
+
+### stats.preset
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+按照[预设值](/config/stats#预设stats-presets)进行输出，这在[扩展信息输出行为](/config/stats#扩展信息输出行为)时很有用。
+
+## 产物选项
 
 ### stats.assets
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出产物相关信息。
+是否输出产物相关信息，参考 [Asset 对象结构](/api/javascript-api/stats-json#asset-对象结构)。
+
+### stats.assetsSort
+
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+
+基于指定的字段对产物排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
+
+### stats.assetsSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
+
+展示的产物数量（超过的部分将以分组方式折叠）。
+
+### stats.relatedAssets
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示与产物相关的其他资源产物信息（如资源的 SourceMap 文件）。
+
+### stats.excludeAssets
+
+<PropertyType
+  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+隐藏匹配的资源，匹配方式支持字符串、正则、接收资源名称并返回布尔的函数，同时也支持以上类型的数组。
+
+### stats.cachedAssets
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示被缓存的资源（若为 `false` 则只展示被生成的产物）。
+
+## 产物分组选项
+
+### stats.groupAssetsByChunk
+
+<PropertyType type="boolean" />
+
+是否按照资源与 chunk 的关系分组。
+
+### stats.groupAssetsByEmitStatus
+
+<PropertyType type="boolean" />
+
+是否按照资源的状态分组（如被生成、被缓存等）。
+
+### stats.groupAssetsByExtension
+
+<PropertyType type="boolean" />
+
+是否按照资源的扩展名分组。
+
+### stats.groupAssetsByInfo
+
+<PropertyType type="boolean" />
+
+是否按照资源的信息分组（如 immutable、development、hotModuleReplacement 等）。
+
+### stats.groupAssetsByPath
+
+<PropertyType type="boolean" />
+
+是否按照资源的路径分组。
+
+## Chunk 选项
 
 ### stats.chunks
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出 Chunk 相关信息。
-
-### stats.modules
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出模块相关信息
-
-### stats.entrypoints
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出入口 Entrypoint 相关信息。
-
-### stats.chunkGroups
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出 ChunkGroup 相关信息。
-
-### stats.reasons
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出模块被引入的原因。
-
-### stats.hash
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出本次构建的 hash。
-
-### stats.errors
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出本次构建产生的错误。
-
-### stats.errorsCount
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出本次构建产生的错误的数量。
-
-### stats.warnings
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出本次构建产生的警告。
-
-### stats.warningsCount
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出本次构建产生的警告的数量。
-
-### stats.colors
-
-<PropertyType.CN
-  type="boolean"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-输出是否需要带有颜色。
-
-在支持颜色输出的环境中执行 `rspack build` 时，它被默认设置为 `true`。
-
-### stats.version
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出 Rspack 的版本号。
-
-### stats.publicPath
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出 publicPath。
-
-### stats.outputPath
-
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否输出产物路径。
+是否展示 Chunk 信息，参考 [Chunk 对象结构](/api/javascript-api/stats-json#chunk-对象结构)。
 
 ### stats.chunkModules
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出 chunk 所包含的模块信息。
+是否展示 Chunk 内包含的模块信息。
+
+### stats.chunkModulesSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '10' }]} />
+
+展示的 Chunk 内模块数量（超过的部分将以分组方式折叠）。
+
+### stats.dependentModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示 Chunk 内被其他模块所依赖的模块。
+
+### stats.chunkOrigins
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示 Chunk 的引入来源信息。
 
 ### stats.chunkRelations
 
-<PropertyType.CN
-  type="boolean"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-是否输出 chunk 的子 chunk、父 chunk、和兄弟 chunk。
+是否展示 Chunk 的父子、兄弟关联信息。
+
+### stats.chunksSort
+
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+
+基于指定的字段对 Chunk 排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
 ### stats.ids
 
-<PropertyType.CN
-  type="boolean"
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示模块 ID 和 Chunk ID。
+
+## ChunkGroup 选项
+
+### stats.chunkGroups
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示 ChunkGroup 信息，参考 [ChunkGroup 对象结构](/api/javascript-api/stats-json#entrychunkgroup-对象结构)。
+
+### stats.chunkGroupAuxiliary
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示 ChunkGroup 的辅助资源。
+
+### stats.chunkGroupChildren
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示子 ChunkGroup 相关信息（如预取 prefetched、预载 preloaded 的 ChunkGroup 信息）。
+
+### stats.chunkGroupMaxAssets
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+
+展示 ChunkGroup 的最大资源数量。
+
+### stats.entrypoints
+
+<PropertyType
+  type="boolean | 'auto'"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-是否输出模块 id、chunk id 信息。
+是否展示 Entrypoint 相关信息，参考 [Entrypoint 对象结构](/api/javascript-api/stats-json#entrychunkgroup-对象结构)。
 
-### stats.timings
+当 `stats.entrypoints` 被设置为 `'auto'` Rspack 将自动决定是否在 stats 输出中展示入口信息。
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+## 模块选项
 
-是否输出构建的时间。
+### stats.modules
 
-### stats.builtAt
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+是否展示模块信息，参考 [Module 对象结构](/api/javascript-api/stats-json#module-对象结构)。
 
-是否输出构建的开始时间点。
+### stats.moduleTrace
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示模块错误/警告时的依赖链信息。
 
 ### stats.moduleAssets
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出模块所包含的 assets 信息。
+是否展示模块包含的资源信息。
 
 ### stats.modulesSpace
 
-<PropertyType.CN type="number" defaultValueList={[{ defaultValue: '15' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-展示出的模块的数量。
+展示的模块数量（超过的部分将以分组方式折叠）。
 
-### stats.nestedModules
+### stats.modulesSort
 
-<PropertyType.CN type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
 
-是否输出模块所包含的模块信息。
+基于指定的字段对模块排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
+
+### stats.reasons
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示模块的引入来源信息。
+
+### stats.reasonsSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+
+展示的引入来源信息长度（超过的部分将以分组方式折叠）。
 
 ### stats.source
 
-<PropertyType.CN
-  type="boolean"
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示模块的源码。
+
+### stats.depth
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示模块与入口模块的距离。
+
+### stats.orphanModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示孤立模块。
+
+> 孤立模块指不被任何 Chunk 包含的模块。
+
+### stats.runtimeModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示运行时模块。
+
+> 运行时模块为 Rspack 内置模块，用于提供各种运行时能力。
+
+### stats.cachedModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示被缓存的模块。
+
+### stats.excludeModules
+
+<PropertyType
+  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-是否输出模块的源代码。
+隐藏匹配的模块，匹配方式支持字符串、正则、函数。
+
+### stats.nestedModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示嵌套在其他模块中的模块信息（如 ModuleConcatenation 合并前的模块信息）。
+
+### stats.nestedModulesSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '10' }]} />
+
+展示的被嵌套模块数量（超过的部分将以分组方式折叠）。
+
+## 模块分组选项
+
+### stats.groupModulesByAttributes
+
+<PropertyType type="boolean" />
+
+是否基于模块的属性分组（是否包含错误、是否包含警告、是否包含资源、是否必须、是否为孤立模块、是否为被依赖的模块等）。
+
+### stats.groupModulesByCacheStatus
+
+<PropertyType type="boolean" />
+
+是否基于模块的缓存状态分组（包括已缓存、已构建且可缓存）。
+
+### stats.groupModulesByExtension
+
+<PropertyType type="boolean" />
+
+是否基于模块的扩展名分组。
+
+### stats.groupModulesByPath
+
+<PropertyType type="boolean" />
+
+是否基于模块的路径分组。
+
+### stats.groupModulesByType
+
+<PropertyType type="boolean" />
+
+是否基于模块的类型分组。
+
+### stats.groupReasonsByOrigin
+
+<PropertyType type="boolean" />
+
+是否基于来源模块对引入来源信息分组。
+
+## Optimization 相关
+
+### stats.providedExports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示模块的导出。
+
+### stats.usedExports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示模块被使用的导出。
+
+### stats.optimizationBailout
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示模块优化失效的原因。
+
+## 错误/警告选项
+
+### stats.errors
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示构建过程中产生的错误。
+
+### stats.errorsCount
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示错误的总个数。
+
+### stats.errorDetails
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示错误的详情。为 `'auto'` 时，若错误仅有两个及以下则将展示错误详情。
+
+### stats.errorsSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+
+展示单个错误时的最大行数。
+
+### stats.errorStack
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示错误的堆栈信息。
+
+### stats.warnings
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示构建过程中产生的警告。
+
+### stats.warningsCount
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示警告的总个数。
+
+### stats.warningsSpace
+
+<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+
+展示的警告最大行数。
+
+## 日志选项
 
 ### stats.logging
 
-<PropertyType.CN type="'info' | 'none' | 'error' | 'warn' | 'log' | 'verbose' | boolean" />
+<PropertyType type="'info' | 'none' | 'error' | 'warn' | 'log' | 'verbose' | boolean" />
 
-是否输出 compilation.logger 的日志信息。
+是否展示 [`compilation.getLogger`](/api/javascript-api/compilation#getlogger) 所记录的日志信息。
+
+- `'none'`, `false`: 禁用日志
+- `'error'`: 仅展示错误
+- `'warn'`: 仅展示错误与告警
+- `'info'`: 展示错误，告警与信息
+- `'log'`, `true`: 展示错误，告警与信息，日志，分组，清理信息。被折叠的部分也会以折叠状态展示。
+- `'verbose'`: 输出所有日志除了调试信息和堆栈信息。被折叠的部分也会以展开状态展示。
 
 ### stats.loggingDebug
 
-<PropertyType.CN type="Array<string | RegExp | function (name) => boolean>" />
+<PropertyType type="Array<string | RegExp | function (name) => boolean>" />
 
-只输出指定部分的 compilation.logger 的日志信息。
+是否展示插件和 loader 中指定 [Logger](/api/javascript-api/logger) 的调试信息。当 `stats.logging` 为 `false` 时 `stats.loggingDebug` 会被忽略。
 
 ```js title=rspack.config.js
 module.exports = {
@@ -224,35 +464,104 @@ module.exports = {
 
 ### stats.loggingTrace
 
-<PropertyType.CN type="boolean" />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出 compilation.logger 所带有 stack trace 信息。
+是否展示堆栈信息。
+
+### stats.colors
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否在展示日志时添加颜色。
+
+在支持颜色输出的环境中执行 `rspack build` 时，它被默认设置为 `true`。
+
+## Compilation 选项
+
+### stats.hash
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示本次构建的哈希。
+
+### stats.env
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+是否展示 `--env` 参数传入的信息。
+
+### stats.builtAt
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示构建的开始时间点。
+
+### stats.version
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示 Rspack 的版本号。
+
+### stats.context
+
+<PropertyType type="string" />
+
+是否展示构建的[基础目录](/config/context)，为绝对路径，可用来缩短请求信息长度。
+
+### stats.publicPath
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示产物的[加载路径](/config/output#outputpublicpath)。
+
+### stats.outputPath
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否展示产物的[输出路径](/config/output#outputpath)。
 
 ### stats.children
 
-<PropertyType.CN type="boolean" />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否输出 childCompiler 的 stats 信息。
+是否展示 childCompiler 的 stats 信息。
 
-### stats.all
+### stats.performance
 
-<PropertyType.CN
-  type="boolean"
-  defaultValueList={[{ defaultValue: 'undefined' }]}
-/>
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-控制所有 stats options 是否输出。
+是否展示产物文件超过 [`performance.maxAssetSize`](/config/performance#performancemaxassetsize) 配置时的提示信息。
 
-### stats.preset
+### stats.timings
 
-<PropertyType.CN
-  type="boolean"
-  defaultValueList={[{ defaultValue: 'undefined' }]}
-/>
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-按照预设值进行输出。
+是否展示本次构建的耗时。
 
-## 扩展打包信息输出行为
+## 字段排序
+
+对于 `assetsSort`, `chunksSort` 和 `modulesSort` 它们有几个可用的字段用于排序：
+
+- `'id'`: 是元素（指资源，Chunk 或模块，下同）的 id
+- `'name'`: 元素的名称，在导引的时候被分配
+- `'size'`: 元素的大小，单位字节（bytes）
+- `'chunks'`: 元素来源于哪些 chunks（例如，一个 Chunk 有多个子 Chunk，子 Chunk 会被基于主 Chunk 组合到一起）
+- `'errors'`: 元素中的错误数量
+- `'warnings'`: 元素中的告警数量
+- `'failed'`: 元素是否编译失败
+- `'cacheable'`: 元素是否可被缓存
+- `'built'`: 资源是否被构建
+- `'prefetched'`: 资源是否可被预取
+- `'optional'`: 资源是否可选
+- `'identifier'`: 元素的标识符
+- `'index'`: 元素处理顺序
+- `'profile'`: 元素的处理耗时
+- `'issuer'`: 上游（issuer）的标识符
+- `'issuerId'`: 上游（issuer）的 ID
+- `'issuerName'`: 上游（issuer）的名称
+- `'issuerPath'`: 完整的上游（issuer）路径
+
+## 扩展信息输出行为
 
 如果你想使用预设的输出行为，但又想对个别字段进行自定义设置，可以在指定 `stats.preset` 或 `stats.all` 之后对字段的输出行为进行自定义。
 

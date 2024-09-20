@@ -4,6 +4,7 @@ use std::hash::Hasher;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
@@ -18,6 +19,7 @@ use rspack_error::{DiagnosticExt, RspackSeverity};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_relative;
 use rspack_util::infallible::ResultInfallibleExt;
+use rspack_util::itoa;
 use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -100,23 +102,20 @@ struct LocalIdentNameRenderOptions<'a> {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> String {
-    let mut s = local_ident_name
+    let raw = local_ident_name
       .template
       .render(self.path_data, None)
       .always_ok();
-    s = s.replace("[uniqueName]", self.unique_name);
-    s = escape_css_ident(&s);
-    s = s.replace(r"\[local\]", self.local); // [local] is escaped to \[local\]
-    s
+    let s: &str = raw.as_ref();
+
+    s.cow_replace("[uniqueName]", self.unique_name)
+      .cow_replace("[local]", self.local)
+      .into_owned()
   }
 }
 
 static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
-
-pub fn escape_css_ident(s: &str) -> String {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, "\\$1").into_owned()
-}
 
 pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
   let escaped = UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]));
@@ -129,16 +128,6 @@ pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
     escaped
   }
 }
-// const escapeCss = (str, omitOptionalUnderscore) => {
-// 	const escaped = `${str}`.replace(
-// 		// cspell:word uffff
-// 		/[^a-zA-Z0-9_\u0081-\uffff-]/g,
-// 		s => `\\${s}`
-// 	);
-// 	return !omitOptionalUnderscore && /^(?!--)[0-9_-]/.test(escaped)
-// 		? `_${escaped}`
-// 		: escaped;
-// };
 
 pub(crate) fn export_locals_convention(
   key: &str,
@@ -271,7 +260,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{key}{i}"));
+      identifier = Cow::Owned(format!("{key}{}", itoa!(i)));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -376,7 +365,7 @@ pub fn css_parsing_traceable_error(
   severity: RspackSeverity,
 ) -> TraceableError {
   TraceableError::from_arc_string(
-    source_code,
+    Some(source_code),
     start as usize,
     end as usize,
     match severity {

@@ -1,6 +1,8 @@
 import type * as binding from "@rspack/binding";
 
-import type { Compilation, NormalizedStatsOptions } from "../Compilation";
+import type { JsOriginRecord } from "@rspack/binding";
+import type { Compilation } from "../Compilation";
+import type { StatsOptions } from "../config";
 import {
 	type Comparator,
 	compareIds,
@@ -8,21 +10,88 @@ import {
 } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
-export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
-
-export type KnownStatsChunk = Omit<
-	binding.JsStatsChunk,
-	"sizes" | "origins"
-> & {
-	sizes: Record<string, number>;
-	origins: StatsChunkOrigin[];
+export type KnownStatsChunkGroup = {
+	name?: string;
+	chunks?: (string | number)[];
+	assets?: { name: string; size?: number }[];
+	filteredAssets?: number;
+	assetsSize?: number;
+	auxiliaryAssets?: { name: string; size?: number }[];
+	filteredAuxiliaryAssets?: number;
+	auxiliaryAssetsSize?: number;
+	children?: {
+		preload?: StatsChunkGroup[];
+		prefetch?: StatsChunkGroup[];
+	};
+	childAssets?: {
+		preload?: string[];
+		prefetch?: string[];
+	};
+	isOverSizeLimit?: boolean;
 };
 
-export type KnownStatsAssetInfo = Omit<binding.JsStatsAssetInfo, "related">;
+export type KnownStatsChunk = {
+	type: string;
+	rendered: boolean;
+	initial: boolean;
+	entry: boolean;
+	// recorded: boolean;
+	reason?: string;
+	size: number;
+	sizes?: Record<string, number>;
+	names?: string[];
+	idHints?: string[];
+	runtime?: string[];
+	files?: string[];
+	auxiliaryFiles?: string[];
+	hash?: string;
+	childrenByOrder?: Record<string, (string | number)[]>;
+	id?: string | number;
+	siblings?: (string | number)[];
+	parents?: (string | number)[];
+	children?: (string | number)[];
+	modules?: StatsModule[];
+	filteredModules?: number;
+	origins?: StatsChunkOrigin[];
+};
 
-export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
+export type KnownAssetInfo = {
+	immutable?: boolean;
+	minimized?: boolean;
+	fullhash?: string | string[];
+	chunkhash?: string | string[];
+	// modulehash?: string | string[];
+	contenthash?: string | string[];
+	sourceFilename?: string;
+	size?: number;
+	development?: boolean;
+	hotModuleReplacement?: boolean;
+	javascriptModule?: boolean;
+	related?: Record<string, string | string[]>;
+};
 
-export type KnownStatsAsset = Omit<binding.JsStatsAsset, "info">;
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
+
+export type StatsChunkGroup = KnownStatsChunkGroup & Record<string, any>;
+
+export type KnownStatsAsset = {
+	type: string;
+	name: string;
+	info: AssetInfo;
+	size: number;
+	emitted: boolean;
+	// comparedForEmit: boolean;
+	cached: boolean;
+	related?: StatsAsset[];
+	chunkNames?: (string | number)[];
+	chunkIdHints?: (string | number)[];
+	chunks?: (string | null | undefined)[];
+	auxiliaryChunkNames?: (string | number)[];
+	auxiliaryChunks?: (string | null | undefined)[];
+	auxiliaryChunkIdHints?: (string | number)[];
+	filteredRelated?: number;
+	isOverSizeLimit?: boolean;
+};
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
@@ -80,20 +149,32 @@ export type KnownStatsProfile = {
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
-export type StatsModuleIssuer = Omit<
-	binding.JsStatsModuleIssuer,
-	"identifier"
-> & {
+export type KnownStatsModuleIssuer = {
 	identifier?: string;
-} & Record<string, any>;
+	name?: string;
+	id?: string | number;
+	// profile?: StatsProfile;
+};
 
-export type StatsError = Omit<binding.JsStatsError, "moduleIdentifier"> & {
-	moduleIdentifier?: string;
-} & Record<string, any>;
+export type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
-export type StatsWarnings = Omit<binding.JsStatsWarning, "moduleIdentifier"> & {
+export type KnownStatsError = {
+	message: string;
+	chunkName?: string;
+	chunkEntry?: boolean;
+	chunkInitial?: boolean;
+	file?: string;
 	moduleIdentifier?: string;
-} & Record<string, any>;
+	moduleName?: string;
+	loc?: string;
+	chunkId?: string | number;
+	moduleId?: string | number;
+	moduleTrace?: StatsModuleTraceItem[];
+	details?: any;
+	stack?: string;
+};
+
+export type StatsError = KnownStatsError & Record<string, any>;
 
 export type StatsModuleTraceItem = {
 	originIdentifier?: string;
@@ -104,12 +185,22 @@ export type StatsModuleTraceItem = {
 	moduleId?: string;
 };
 
-export type StatsModuleReason = Omit<
-	binding.JsStatsModuleReason,
-	"moduleIdentifier"
-> & {
+export type KnownStatsModuleReason = {
 	moduleIdentifier?: string;
-} & Record<string, any>;
+	module?: string;
+	moduleName?: string;
+	resolvedModuleIdentifier?: string;
+	resolvedModule?: string;
+	type?: string;
+	// active: boolean;
+	// explanation?: string;
+	userRequest?: string;
+	// loc?: string;
+	moduleId?: string | null;
+	resolvedModuleId?: string | number | null;
+};
+
+export type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
 
 export type KnownStatsChunkOrigin = {
 	module: string;
@@ -144,7 +235,7 @@ export type KnownStatsCompilation = {
 	namedChunkGroups?: Record<string, StatsChunkGroup>;
 	errors?: StatsError[];
 	errorsCount?: number;
-	warnings?: StatsWarnings[];
+	warnings?: StatsError[];
 	warningsCount?: number;
 	filteredModules?: number;
 	children?: StatsCompilation[];
@@ -187,7 +278,7 @@ type ExtractorsByOption<T, O> = {
 	) => void;
 };
 
-export type PreprocessedAsset = StatsAsset & {
+export type PreprocessedAsset = binding.JsStatsAsset & {
 	type: string;
 	related: PreprocessedAsset[];
 	info: binding.JsStatsAssetInfo;
@@ -216,9 +307,9 @@ export type SimpleExtractors = {
 		StatsModuleReason
 	>;
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
-	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
+	chunkOrigin: ExtractorsByOption<JsOriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsWarnings>;
+	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
@@ -248,7 +339,7 @@ export const uniqueOrderedArray = <T, I>(
 
 export const iterateConfig = (
 	config: Record<string, Record<string, Function>>,
-	options: NormalizedStatsOptions,
+	options: StatsOptions,
 	fn: (a1: string, a2: Function) => void
 ) => {
 	for (const hookFor of Object.keys(config)) {
@@ -256,9 +347,17 @@ export const iterateConfig = (
 		for (const option of Object.keys(subConfig)) {
 			if (option !== "_") {
 				if (option.startsWith("!")) {
-					if (options[option.slice(1)]) continue;
+					if (
+						// string cannot be used as key, so use "as"
+						(options as Record<string, StatsOptions[keyof StatsOptions]>)[
+							option.slice(1)
+						]
+					)
+						continue;
 				} else {
-					const value = options[option];
+					const value = (
+						options as Record<string, StatsOptions[keyof StatsOptions]>
+					)[option];
 					if (
 						value === false ||
 						value === undefined ||
@@ -347,7 +446,7 @@ export const spaceLimited = (
 	let children: any[] | undefined = undefined;
 	let filteredChildren: number | undefined = undefined;
 	// This are the groups, which take 1+ lines each
-	const groups = [];
+	const groups: ItemChildren = [];
 	// The sizes of the groups are stored in groupSizes
 	const groupSizes = [];
 	// This are the items, which take 1 line each
@@ -386,7 +485,7 @@ export const spaceLimited = (
 		if (limit < max) {
 			// calculate how much we are over the size limit
 			// this allows to approach the limit faster
-			let oversize;
+			let oversize: number;
 			// If each group would take 1 line the total would be below the maximum
 			// collapse some groups, keep items
 			while (
@@ -405,14 +504,13 @@ export const spaceLimited = (
 				}
 				for (let i = 0; i < groups.length; i++) {
 					if (groupSizes[i] === maxGroupSize) {
-						// @ts-expect-error
 						const group = groups[i];
 						// run this algorithm recursively and limit the size of the children to
 						// current size - oversize / number of groups
 						// So it should always end up being smaller
 						const headerSize = group.filteredChildren ? 2 : 1;
 						const limited = spaceLimited(
-							group.children,
+							group.children!,
 							maxGroupSize -
 								// we should use ceil to always feet in max
 								Math.ceil(oversize / groups.length) -
@@ -486,7 +584,7 @@ export const sortByField = (
 	field: string
 ): ((a1: Object, a2: Object) => number) => {
 	if (!field) {
-		const noSort = (a: any, b: any) => 0;
+		const noSort = (_a: any, _b: any) => 0;
 		return noSort;
 	}
 
@@ -494,7 +592,6 @@ export const sortByField = (
 
 	let sortFn = compareSelect(
 		(m: Record<string, any>) => m[fieldKey],
-		// @ts-expect-error
 		compareIds
 	);
 
@@ -519,7 +616,9 @@ export const assetGroup = (children: StatsAsset[]) => {
 	};
 };
 
-export const moduleGroup = (children: KnownStatsModule[]) => {
+export const moduleGroup = (
+	children: { size: number; sizes: Record<string, number> }[]
+): { size: number; sizes: Record<string, number> } => {
 	let size = 0;
 	const sizes: Record<string, number> = {};
 	for (const module of children) {
@@ -551,3 +650,63 @@ export const mergeToObject = (
 export function resolveStatsMillisecond(s: binding.JsStatsMillisecond) {
 	return s.secs * 1000 + s.subsecMillis;
 }
+
+export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
+	let filtered = 0;
+	// Can not fit into limit
+	// print only messages
+	if (errors.length + 1 >= max) {
+		return {
+			errors: errors.map(error => {
+				if (typeof error === "string" || !error.details) return error;
+				filtered++;
+				return { ...error, details: "" };
+			}),
+			filtered
+		};
+	}
+	let fullLength = errors.length;
+	let result = errors;
+
+	let i = 0;
+	for (; i < errors.length; i++) {
+		const error = errors[i];
+		if (typeof error !== "string" && error.details) {
+			const splitted = error.details.split("\n");
+			const len = splitted.length;
+			fullLength += len;
+			if (fullLength > max) {
+				result = i > 0 ? errors.slice(0, i) : [];
+				const overLimit = fullLength - max + 1;
+				const error = errors[i++];
+				result.push({
+					...error,
+					details: error.details!.split("\n").slice(0, -overLimit).join("\n"),
+					filteredDetails: overLimit
+				});
+				filtered = errors.length - i;
+				for (; i < errors.length; i++) {
+					const error = errors[i];
+					if (typeof error === "string" || !error.details) result.push(error);
+					result.push({ ...error, details: "" });
+				}
+				break;
+			}
+			if (fullLength === max) {
+				result = errors.slice(0, ++i);
+				filtered = errors.length - i;
+				for (; i < errors.length; i++) {
+					const error = errors[i];
+					if (typeof error === "string" || !error.details) result.push(error);
+					result.push({ ...error, details: "" });
+				}
+				break;
+			}
+		}
+	}
+
+	return {
+		errors: result,
+		filtered
+	};
+};

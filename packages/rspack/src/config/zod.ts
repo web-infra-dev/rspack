@@ -1,3 +1,4 @@
+import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
@@ -29,7 +30,12 @@ export type Dependencies = z.infer<typeof dependencies>;
 //#endregion
 
 //#region Context
-const context = z.string();
+const context = z.string().refine(
+	val => nodePath.isAbsolute(val),
+	val => ({
+		message: `The provided value ${JSON.stringify(val)} must be an absolute path.`
+	})
+);
 export type Context = z.infer<typeof context>;
 //#endregion
 
@@ -190,9 +196,12 @@ export type EntryObject = z.infer<typeof entryObject>;
 const entryStatic = entryObject.or(entryUnnamed);
 export type EntryStatic = z.infer<typeof entryStatic>;
 
-const entry = entryStatic.or(
-	z.function().returns(entryStatic.or(z.promise(entryStatic)))
-);
+const entryDynamic = z
+	.function()
+	.returns(entryStatic.or(z.promise(entryStatic)));
+export type EntryDynamic = z.infer<typeof entryDynamic>;
+
+const entry = entryStatic.or(entryDynamic);
 export type Entry = z.infer<typeof entry>;
 //#endregion
 
@@ -870,6 +879,7 @@ export const externalsType = z.enum([
 	"system",
 	"promise",
 	"import",
+	"module-import",
 	"script",
 	"node-commonjs"
 ]);
@@ -1006,11 +1016,11 @@ export type DevTool = z.infer<typeof devTool>;
 const nodeOptions = z.strictObject({
 	__dirname: z
 		.boolean()
-		.or(z.enum(["warn-mock", "mock", "eval-only"]))
+		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	__filename: z
 		.boolean()
-		.or(z.enum(["warn-mock", "mock", "eval-only"]))
+		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	global: z.boolean().or(z.literal("warn")).optional()
 });
@@ -1141,7 +1151,10 @@ const statsOptions = z.strictObject({
 	errorStack: z.boolean().optional(),
 	moduleTrace: z.boolean().optional(),
 	cachedModules: z.boolean().optional(),
-	cached: z.boolean().optional()
+	cachedAssets: z.boolean().optional(),
+	cached: z.boolean().optional(),
+	errorsSpace: z.number().optional(),
+	warningsSpace: z.number().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -1156,9 +1169,27 @@ export interface RspackPluginInstance {
 }
 export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 
+// The Compiler type of webpack is not exactly the same as Rspack.
+// It is allowed to use webpack plugins in in the Rspack config,
+// so we have defined a loose type here to adapt to webpack plugins.
+export type WebpackCompiler = any;
+
+export interface WebpackPluginInstance {
+	apply: (compiler: WebpackCompiler) => void;
+	[k: string]: any;
+}
+export type WebpackPluginFunction = (
+	this: WebpackCompiler,
+	compiler: WebpackCompiler
+) => void;
+
 const plugin = z.union([
-	z.custom<RspackPluginInstance>(),
-	z.custom<RspackPluginFunction>(),
+	z.custom<
+		| RspackPluginInstance
+		| RspackPluginFunction
+		| WebpackPluginInstance
+		| WebpackPluginFunction
+	>(),
 	falsy
 ]);
 const plugins = plugin.array();
@@ -1213,11 +1244,14 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
 	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
 	minChunks: z.number().min(1).optional(),
+	usedExports: z.boolean().optional(),
 	name: optimizationSplitChunksName.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
+	maxAsyncRequests: z.number().optional(),
+	maxInitialRequests: z.number().optional(),
 	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
@@ -1246,8 +1280,6 @@ const optimizationSplitChunksOptions = z.strictObject({
 	cacheGroups: z
 		.record(z.literal(false).or(optimizationSplitChunksCacheGroup))
 		.optional(),
-	maxAsyncRequests: z.number().optional(),
-	maxInitialRequests: z.number().optional(),
 	fallbackCacheGroup: z
 		.strictObject({
 			chunks: optimizationSplitChunksChunks.optional(),
@@ -1282,7 +1314,8 @@ const optimization = z.strictObject({
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
-	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
+	nodeEnv: z.union([z.string(), z.literal(false)]).optional(),
+	emitOnErrors: z.boolean().optional()
 });
 export type Optimization = z.infer<typeof optimization>;
 //#endregion
@@ -1298,7 +1331,8 @@ const rspackFutureOptions = z.strictObject({
 				.or(z.array(z.enum(["version", "uniqueId"])))
 				.optional()
 		})
-		.optional()
+		.optional(),
+	newIncremental: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 

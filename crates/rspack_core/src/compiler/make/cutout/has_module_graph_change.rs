@@ -3,9 +3,7 @@ use rustc_hash::FxHashSet as HashSet;
 use swc_core::atoms::Atom;
 
 use super::super::MakeArtifact;
-use crate::{
-  AsyncDependenciesBlockIdentifier, DependencyId, GroupOptions, ModuleGraph, ModuleIdentifier,
-};
+use crate::{AsyncDependenciesBlockIdentifier, GroupOptions, ModuleGraph, ModuleIdentifier};
 
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 struct ModuleDeps {
@@ -62,6 +60,7 @@ impl ModuleDeps {
 #[derive(Debug, Default)]
 pub struct HasModuleGraphChange {
   disabled: bool,
+  expect_built_modules_len: usize,
   origin_module_deps: IdentifierMap<ModuleDeps>,
 }
 
@@ -78,12 +77,17 @@ impl HasModuleGraphChange {
     );
   }
 
-  pub fn analyze_force_build_deps(
-    &mut self,
-    deps: &HashSet<(DependencyId, Option<ModuleIdentifier>)>,
-  ) {
-    if deps.is_empty() {
+  pub fn analyze_artifact(&mut self, artifact: &MakeArtifact) {
+    if artifact.has_module_graph_change {
       self.disabled = true;
+      return;
+    }
+
+    self.expect_built_modules_len = artifact.built_modules.len();
+    for module_identifier in self.origin_module_deps.keys() {
+      if !artifact.built_modules.contains(module_identifier) {
+        self.expect_built_modules_len += 1;
+      }
     }
   }
 
@@ -92,23 +96,20 @@ impl HasModuleGraphChange {
     if self.disabled {
       return;
     }
-    if self.origin_module_deps.is_empty() {
-      // origin_module_deps empty means no force_build_module and no file changed
-      // this only happens when build from entry
+    if artifact.built_modules.len() != self.expect_built_modules_len {
+      // contain unexpected module built
       artifact.has_module_graph_change = true;
       return;
     }
-    // if artifact.has_module_graph_change is true, no need to recalculate
-    if !artifact.has_module_graph_change {
-      for (module_identifier, module_deps) in self.origin_module_deps {
-        if module_graph
-          .module_by_identifier(&module_identifier)
-          .is_none()
-          || ModuleDeps::from_module(module_graph, &module_identifier) != module_deps
-        {
-          artifact.has_module_graph_change = true;
-          return;
-        }
+
+    for (module_identifier, module_deps) in self.origin_module_deps {
+      if module_graph
+        .module_by_identifier(&module_identifier)
+        .is_none()
+        || ModuleDeps::from_module(module_graph, &module_identifier) != module_deps
+      {
+        artifact.has_module_graph_change = true;
+        return;
       }
     }
   }
@@ -126,10 +127,10 @@ mod t {
   use rspack_util::source_map::SourceMapKind;
 
   use crate::{
-    compiler::make::cutout::has_module_graph_change::ModuleDeps, AsContextDependency, BuildInfo,
-    BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-    Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta, Module,
-    ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
+    compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
+    BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta,
+    Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
     ModuleType, RuntimeSpec, SourceType,
   };
 
@@ -163,8 +164,12 @@ mod t {
       self
         .ids
         .iter()
-        .map(|id| id.to_string().into())
+        .map(|id| (*id).to_string().into())
         .collect_vec()
+    }
+
+    fn could_affect_referencing_module(&self) -> AffectType {
+      AffectType::True
     }
   }
 
@@ -179,6 +184,15 @@ mod t {
 
     fn dependency_id(&self) -> Option<DependencyId> {
       None
+    }
+
+    fn update_hash(
+      &self,
+      _hasher: &mut dyn std::hash::Hasher,
+      _compilation: &Compilation,
+      _runtime: Option<&RuntimeSpec>,
+    ) {
+      todo!()
     }
   }
 
@@ -286,6 +300,15 @@ mod t {
       _runtime: Option<&RuntimeSpec>,
       _concatenation_scope: Option<ConcatenationScope>,
     ) -> Result<CodeGenerationResult> {
+      todo!()
+    }
+
+    fn update_hash(
+      &self,
+      _hasher: &mut dyn std::hash::Hasher,
+      _compilation: &Compilation,
+      _runtime: Option<&RuntimeSpec>,
+    ) -> Result<()> {
       todo!()
     }
   }

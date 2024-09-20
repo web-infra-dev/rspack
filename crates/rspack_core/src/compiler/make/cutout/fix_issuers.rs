@@ -25,7 +25,7 @@ impl FixIssuers {
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let mut module_graph = artifact.get_module_graph_mut();
-    for (id, issuer) in self.origin_module_issuers.into_iter() {
+    for (id, issuer) in self.origin_module_issuers {
       if let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&id) {
         mgm.set_issuer(issuer);
       }

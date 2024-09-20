@@ -1,14 +1,17 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
+use cow_utils::CowUtils;
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
+use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ErrorSpan, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Clone)]
@@ -41,7 +44,7 @@ pub enum AfterResolveResult {
 
 #[derive(Clone)]
 pub struct AfterResolveData {
-  pub resource: String,
+  pub resource: Utf8PathBuf,
   pub context: String,
   // dependencies
   // layer
@@ -152,8 +155,7 @@ impl ContextModuleFactory {
     data: &mut ModuleFactoryCreateData,
   ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
     let plugin_driver = &self.plugin_driver;
-    let dependency = data
-      .dependency
+    let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
     let mut file_dependencies = Default::default();
@@ -163,15 +165,16 @@ impl ContextModuleFactory {
     let (loader_request, specifier) = match request.rfind('!') {
       Some(idx) => {
         let mut loaders_prefix = String::new();
-        let mut loaders_request = request[..idx + 1].to_string();
         let mut i = 0;
+
+        let loaders_request = Cow::Borrowed(&request[..idx + 1]);
         while i < loaders_request.len() && loaders_request.chars().nth(i) == Some('!') {
           loaders_prefix.push('!');
           i += 1;
         }
-        loaders_request = loaders_request[i..]
+        let loaders_request = loaders_request.as_ref()[i..]
           .trim_end_matches('!')
-          .replace("!!", "!");
+          .cow_replace("!!", "!");
 
         let loaders = if loaders_request.is_empty() {
           vec![]
@@ -210,7 +213,7 @@ impl ContextModuleFactory {
         );
         (request, resource)
       }
-      None => ("".to_string(), request),
+      None => (String::new(), request),
     };
 
     let resolve_args = ResolveArgs {
@@ -220,7 +223,9 @@ impl ContextModuleFactory {
       specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
-      span: dependency.span(),
+      span: dependency
+        .range()
+        .map(|range| ErrorSpan::new(range.start, range.end)),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),
@@ -234,7 +239,7 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let options = ContextModuleOptions {
           addon: loader_request.to_string(),
-          resource: resource.path.to_string_lossy().to_string(),
+          resource: resource.path,
           resource_query: resource.query,
           resource_fragment: resource.fragment,
           layer: data.issuer_layer.clone(),
@@ -254,7 +259,7 @@ impl ContextModuleFactory {
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{ident} (ignored)"),
+          format!("{specifier} (ignored)"),
           Default::default(),
         )
         .boxed();
@@ -281,9 +286,9 @@ impl ContextModuleFactory {
   ) -> Result<Option<ModuleFactoryResult>> {
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
-      resource: context_module_options.resource.to_owned(),
-      context: context_options.context.to_owned(),
-      request: context_options.request.to_owned(),
+      resource: context_module_options.resource.clone(),
+      context: context_options.context.clone(),
+      request: context_options.request.clone(),
       reg_exp: context_options.reg_exp.clone(),
     };
 

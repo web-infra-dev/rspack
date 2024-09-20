@@ -4,7 +4,7 @@ mod context_dependency;
 mod context_element_dependency;
 mod dependency_category;
 mod dependency_id;
-mod dependency_macro;
+mod dependency_location;
 mod dependency_template;
 mod dependency_trait;
 mod dependency_type;
@@ -24,6 +24,7 @@ pub use context_dependency::{AsContextDependency, ContextDependency};
 pub use context_element_dependency::ContextElementDependency;
 pub use dependency_category::DependencyCategory;
 pub use dependency_id::*;
+pub use dependency_location::*;
 pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
@@ -135,16 +136,19 @@ impl From<Vec<ReferencedExport>> for ExportsReferencedType {
   }
 }
 
-pub type DependencyConditionFn = Arc<
-  dyn Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
-    + Send
-    + Sync,
->;
+pub trait DependencyConditionFn: Sync + Send {
+  fn get_connection_state(
+    &self,
+    conn: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState;
+}
 
 #[derive(Clone)]
 pub enum DependencyCondition {
   False,
-  Fn(DependencyConditionFn),
+  Fn(Arc<dyn DependencyConditionFn>),
 }
 
 impl std::fmt::Debug for DependencyCondition {

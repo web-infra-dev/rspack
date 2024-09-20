@@ -45,17 +45,34 @@ We recommend using [Rsbuild](https://rsbuild.dev/) to create new projects, simpl
 
 Rspack CLI is a tool comparable to Webpack CLI, offering the basic `serve` and `build` commands.
 
+Rsbuild supports Node.js >= 16, but Rspack CLI requires Node.js version >= 18.12.0.
+
 Run the following command to create an Rspack CLI project:
 
 <PackageManagerTabs command="create rspack@latest" />
 
 Then follow the prompts in your terminal.
 
+### Quick Creation
+
+[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) provides some CLI flags. By setting these CLI flags, you can skip the interactive selection steps and create the project with one command.
+
+For example, to create a React project in the `my-project` directory with one command:
+
+```bash
+# Rspack CLI
+npx create-rspack --dir my-project --template react
+# Rsbuild
+npx create-rsbuild --dir my-project --template react
+# Using abbreviations
+npx create-rsbuild -d my-project -t react
+```
+
 ## Online examples
 
 We provide an online example based on Rsbuild. The example gives an intuitive feel for the build performance of Rspack and the development experience of Rsbuild:
 
-- [Rsbuild codesandbox example](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+- [Rsbuild CodeSandbox example](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
 ## Manual installation
 
@@ -100,7 +117,7 @@ If you need to migrate from an existing project to Rspack or Rsbuild, you can re
 There are already some Rspack-based toolchains in the community:
 
 - If you want to build a static site, you can try [Rspress](https://rspress.dev).
-- If you want to build a library or UI component, you can try [Rslib](https://rspress.dev).
+- If you want to build a library or UI component, you can try [Rslib](https://github.com/web-infra-dev/rslib).
 - If you want to analyze the build process and build artifacts, you can try [Rsdoctor](https://rsdoctor.dev).
 - If you're looking for a full-stack React framework, you can try [Modern.js](https://modernjs.dev/en/).
 - If you want a fast and production-ready setup that works in a monorepo, you can try [Nx](https://nx.dev).

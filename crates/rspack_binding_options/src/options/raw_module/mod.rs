@@ -12,11 +12,11 @@ use rspack_core::{
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
-  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions,
-  GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, OverrideStrict,
-  ParserOptions, ParserOptionsByModuleType,
+  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParserOptions,
+  ParserOptionsMap,
 };
 use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
@@ -203,14 +203,32 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
-      "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" => {
-        Self::Javascript(
-          value
-            .javascript
-            .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
-            .into(),
-        )
-      }
+      "javascript" => Self::Javascript(
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
+          .into(),
+      ),
+      "javascript/auto" => Self::JavascriptAuto(
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript/auto\"")
+          .into(),
+      ),
+      "javascript/dynamic" => Self::JavascriptDynamic(
+        value
+          .javascript
+          .expect(
+            "should have an \"javascript\" when RawParserOptions.type is \"javascript/dynamic\"",
+          )
+          .into(),
+      ),
+      "javascript/esm" => Self::JavascriptEsm(
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript/esm\"")
+          .into(),
+      ),
       "css" => Self::Css(
         value
           .css
@@ -769,13 +787,6 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       with,
-      r#use: uses.transpose()?.unwrap_or_default(),
-      r#type: module_type,
-      layer: value.layer,
-      parser: value.parser.map(|raw| raw.into()),
-      generator: value.generator.map(|raw| raw.into()),
-      resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
-      side_effects: value.side_effects,
       issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
       issuer_layer: value.issuer_layer.map(|raw| raw.try_into()).transpose()?,
       dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
@@ -783,7 +794,16 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,
       rules,
-      enforce,
+      effect: ModuleRuleEffect {
+        r#use: uses.transpose()?.unwrap_or_default(),
+        r#type: module_type,
+        layer: value.layer,
+        parser: value.parser.map(|raw| raw.into()),
+        generator: value.generator.map(|raw| raw.into()),
+        resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
+        side_effects: value.side_effects,
+        enforce,
+      },
     })
   }
 }
@@ -803,16 +823,16 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
         .parser
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
-            .collect::<std::result::Result<ParserOptionsByModuleType, rspack_error::Error>>()
+            .map(|(k, v)| Ok((k, v.into())))
+            .collect::<std::result::Result<ParserOptionsMap, rspack_error::Error>>()
         })
         .transpose()?,
       generator: value
         .generator
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
-            .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
+            .map(|(k, v)| Ok((k, v.into())))
+            .collect::<std::result::Result<GeneratorOptionsMap, rspack_error::Error>>()
         })
         .transpose()?,
       no_parse: value

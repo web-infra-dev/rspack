@@ -1,6 +1,7 @@
 use rspack_core::{
-  create_exports_object_referenced, module_namespace_promise, DependencyType, ErrorSpan,
-  ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph, ReferencedExport,
+  create_exports_object_referenced, module_namespace_promise, Compilation, DependencyType,
+  ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph, RealDependencyLocation,
+  ReferencedExport, RuntimeSpec,
 };
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -53,11 +54,9 @@ pub fn create_import_dependency_referenced_exports(
 
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
-  request: Atom,
-  span: Option<ErrorSpan>,
+  pub request: Atom,
+  pub range: RealDependencyLocation,
   referenced_exports: Option<Vec<Atom>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
@@ -65,20 +64,16 @@ pub struct ImportDependency {
 
 impl ImportDependency {
   pub fn new(
-    start: u32,
-    end: u32,
     request: Atom,
-    span: Option<ErrorSpan>,
+    range: RealDependencyLocation,
     referenced_exports: Option<Vec<Atom>>,
     attributes: Option<ImportAttributes>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
     Self {
-      start,
-      end,
       request,
-      span,
+      range,
       id: DependencyId::new(),
       referenced_exports,
       attributes,
@@ -108,8 +103,8 @@ impl Dependency for ImportDependency {
     self.attributes.as_ref()
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(
@@ -118,6 +113,10 @@ impl Dependency for ImportDependency {
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -144,8 +143,8 @@ impl DependencyTemplate for ImportDependency {
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&self.id);
     source.replace(
-      self.start,
-      self.end,
+      self.range.start,
+      self.range.end,
       module_namespace_promise(
         code_generatable_context,
         &self.id,
@@ -161,6 +160,14 @@ impl DependencyTemplate for ImportDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

@@ -9,6 +9,7 @@ export interface ModuleFederationPluginOptions
 	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
 	runtimePlugins?: RuntimePlugins;
 	implementation?: string;
+	shareStrategy?: "version-first" | "loaded-first";
 }
 export type RuntimePlugins = string[];
 
@@ -183,6 +184,9 @@ function getDefaultEntryRuntime(
 		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
 		`const __module_federation_container_name__ = ${JSON.stringify(
 			options.name ?? compiler.options.output.uniqueName
+		)}`,
+		`const __module_federation_share_strategy__ = ${JSON.stringify(
+			options.shareStrategy ?? "version-first"
 		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join(";");

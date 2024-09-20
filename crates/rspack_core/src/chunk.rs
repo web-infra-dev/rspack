@@ -9,7 +9,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  compare_chunk_group, get_chunk_group_from_ukey, sort_group_by_index, ChunkGraph,
+  compare_chunk_group, get_chunk_group_from_ukey, merge_runtime, sort_group_by_index, ChunkGraph,
   ChunkGroupOrderKey,
 };
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
@@ -117,7 +117,7 @@ impl Chunk {
         new_chunk.add_group(group.ukey);
       });
     new_chunk.id_name_hints.extend(self.id_name_hints.clone());
-    new_chunk.runtime.extend(self.runtime.clone());
+    new_chunk.runtime = merge_runtime(&new_chunk.runtime, &self.runtime);
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
@@ -532,13 +532,9 @@ impl Chunk {
         order_children
           .iter()
           .flat_map(|(_, child_chunks)| {
-            child_chunks.iter().filter_map(|chunk_ukey| {
-              compilation
-                .chunk_by_ukey
-                .expect_get(chunk_ukey)
-                .id
-                .to_owned()
-            })
+            child_chunks
+              .iter()
+              .filter_map(|chunk_ukey| compilation.chunk_by_ukey.expect_get(chunk_ukey).id.clone())
           })
           .collect_vec()
       })
@@ -562,7 +558,7 @@ impl Chunk {
     ) {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
-        chunk.id.to_owned(),
+        chunk.id.clone(),
         chunk.get_child_ids_by_order(order, compilation),
       ) {
         result
@@ -577,7 +573,7 @@ impl Chunk {
         .get_sorted_groups_iter(&compilation.chunk_group_by_ukey)
         .filter_map(|chunk_group_ukey| {
           get_chunk_group_from_ukey(chunk_group_ukey, &compilation.chunk_group_by_ukey)
-            .map(|g| g.chunks.to_owned())
+            .map(|g| g.chunks.clone())
         })
         .flatten()
       {

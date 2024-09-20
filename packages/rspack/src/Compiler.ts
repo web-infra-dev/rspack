@@ -21,6 +21,7 @@ import {
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
 import {
+	HtmlRspackPlugin,
 	JavascriptModulesPlugin,
 	JsLoaderRspackPlugin
 } from "./builtin-plugin";
@@ -61,9 +62,14 @@ import type {
 	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
-	RspackPluginInstance
+	RspackPluginInstance,
+	WatchOptions
 } from "./config";
-import type { OutputFileSystem, WatchFileSystem } from "./util/fs";
+import type {
+	InputFileSystem,
+	OutputFileSystem,
+	WatchFileSystem
+} from "./util/fs";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -134,7 +140,7 @@ class Compiler {
 	infrastructureLogger: any;
 	watching?: Watching;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	intermediateFileSystem: any;
 	outputFileSystem: OutputFileSystem | null;
 	watchFileSystem: WatchFileSystem | null;
@@ -323,8 +329,7 @@ class Compiler {
 				let normalizedChildName = childName;
 				if (typeof normalizedName === "function") {
 					if (typeof normalizedChildName === "function") {
-						// @ts-expect-error
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger(() => {
 							if (typeof normalizedName === "function") {
 								normalizedName = normalizedName();
 								if (!normalizedName) {
@@ -386,13 +391,14 @@ class Compiler {
 		handler: liteTapable.Callback<Error, Stats>
 	): Watching {
 		if (this.running) {
-			// @ts-expect-error
-			return handler(new ConcurrentCompilationError());
+			// cannot be resolved without assertion
+			// copy from webpack
+			// Type 'void' is not assignable to type 'Watching'.
+			return handler(new ConcurrentCompilationError()) as unknown as Watching;
 		}
 		this.running = true;
 		this.watchMode = true;
-		// @ts-expect-error
-		this.watching = new Watching(this, watchOptions, handler);
+		this.watching = new Watching(this, watchOptions as WatchOptions, handler);
 		return this.watching;
 	}
 
@@ -406,8 +412,7 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
-			// @ts-expect-error
-			const finalCallback = (err, stats?) => {
+			const finalCallback = (err: Error | null, stats?: Stats) => {
 				this.idle = true;
 				this.cache.beginIdle();
 				this.idle = true;
@@ -418,7 +423,7 @@ class Compiler {
 				if (callback) {
 					callback(err, stats);
 				}
-				this.hooks.afterDone.call(stats);
+				this.hooks.afterDone.call(stats!);
 			};
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {
@@ -508,9 +513,7 @@ class Compiler {
 	}
 
 	purgeInputFileSystem() {
-		if (this.inputFileSystem?.purge) {
-			this.inputFileSystem.purge();
-		}
+		this.inputFileSystem?.purge?.();
 	}
 
 	/**
@@ -580,11 +583,13 @@ class Compiler {
 			)
 		];
 
-		for (const name in this.hooks) {
-			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
-				//@ts-ignore
+		for (const hookName in this.hooks) {
+			type HookNames = keyof Compiler["hooks"];
+
+			const name = hookName as unknown as HookNames;
+
+			if (canInherentFromParent(name)) {
 				if (childCompiler.hooks[name]) {
-					//@ts-ignore
 					childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
 				}
 			}
@@ -834,6 +839,21 @@ class Compiler {
 							};
 						}
 				),
+			registerCompilationRuntimeRequirementInTree: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
+				() => this.#compilation!.hooks.runtimeRequirementInTree,
+				queried =>
+					({
+						chunk,
+						runtimeRequirements
+					}: binding.JsRuntimeRequirementInTreeArg) => {
+						const set = __from_binding_runtime_globals(runtimeRequirements);
+						queried.call(Chunk.__from_binding(chunk, this.#compilation!), set);
+						return {
+							runtimeRequirements: __to_binding_runtime_globals(set)
+						};
+					}
+			),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.#compilation!.hooks.runtimeModule,
@@ -1198,6 +1218,92 @@ class Compiler {
 					const digestResult = hash.digest(this.options.output.hashDigest);
 					return Buffer.from(digestResult);
 				}
+			),
+			registerHtmlPluginBeforeAssetTagGenerationTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.beforeAssetTagGeneration,
+					queried => async (data: binding.JsBeforeAssetTagGenerationData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTags,
+				queried => async (data: binding.JsAlterAssetTagsData) => {
+					return await queried.promise(data);
+				}
+			),
+			registerHtmlPluginAlterAssetTagGroupsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+						.alterAssetTagGroups,
+				queried => async (data: binding.JsAlterAssetTagGroupsData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterTemplateExecutionTaps:
+				this.#createHookRegisterTaps(
+					binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
+					() =>
+						HtmlRspackPlugin.getCompilationHooks(this.#compilation!)
+							.afterTemplateExecution,
+					queried => async (data: binding.JsAfterTemplateExecutionData) => {
+						return await queried.promise({
+							...data,
+							plugin: {
+								options:
+									HtmlRspackPlugin.getCompilationOptions(this.#compilation!) ||
+									{}
+							}
+						});
+					}
+				),
+			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).beforeEmit,
+				queried => async (data: binding.JsBeforeEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
+			),
+			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.HtmlPluginAfterEmit,
+				() =>
+					HtmlRspackPlugin.getCompilationHooks(this.#compilation!).afterEmit,
+				queried => async (data: binding.JsAfterEmitData) => {
+					return await queried.promise({
+						...data,
+						plugin: {
+							options:
+								HtmlRspackPlugin.getCompilationOptions(this.#compilation!) || {}
+						}
+					});
+				}
 			)
 		};
 
@@ -1224,7 +1330,7 @@ class Compiler {
 			}
 		}
 		if (this.#nonSkippableRegisters.join() !== kinds.join()) {
-			this.#getInstance((error, instance) => {
+			this.#getInstance((_error, instance) => {
 				instance!.setNonSkippableRegisters(kinds);
 				this.#nonSkippableRegisters = kinds;
 			});

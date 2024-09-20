@@ -23,7 +23,6 @@ import type { Stats as Stats_2 } from 'webpack';
 import type { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
 import type { StatsError } from '@rspack/core';
-import type { StatsWarnings } from '@rspack/core';
 import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
 import type { WebpackOptionsNormalized } from 'webpack';
 
@@ -180,6 +179,9 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
+export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], documentType: EDocumentType): void;
+
+// @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
@@ -196,6 +198,9 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 
 // @public (undocumented)
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
+
+// @public (undocumented)
+export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -452,6 +457,19 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hookOptions: IHookProcessorOptions<T>;
+}
+
+// @public (undocumented)
+export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
+    constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
+    // (undocumented)
+    afterAll(context: ITestContext): Promise<void>;
+    // (undocumented)
+    static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    // (undocumented)
+    protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
 // @public (undocumented)
@@ -732,6 +750,14 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
     compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
     options?: (context: ITestContext) => TCompilerOptions<T>;
+}
+
+// @public (undocumented)
+export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    documentType?: EDocumentType;
+    // (undocumented)
+    target: TCompilerOptions<T>["target"];
 }
 
 // @public (undocumented)
@@ -1108,7 +1134,7 @@ export function parseModules(content: string, options?: {
 };
 
 // @public (undocumented)
-export function readConfigFile<T extends ECompilerType>(files: string[]): TCompilerOptions<T>[];
+export function readConfigFile<T extends ECompilerType>(files: string[], functionApply?: (config: (TCompilerOptions<T> | ((...args: unknown[]) => TCompilerOptions<T>))[]) => TCompilerOptions<T>[]): TCompilerOptions<T>[];
 
 // @public (undocumented)
 export function replaceModuleArgument(raw: string): string;
@@ -1426,7 +1452,7 @@ export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.R
 // @public (undocumented)
 type TStatsDiagnostics = {
     errors: StatsError[];
-    warnings: StatsWarnings[];
+    warnings: StatsError[];
 };
 
 // @public (undocumented)
@@ -1470,7 +1496,11 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     compiler(context: ITestContext): Promise<void>;
     // (undocumented)
+    config(context: ITestContext): Promise<void>;
+    // (undocumented)
     protected currentTriggerFilename: string | null;
+    // (undocumented)
+    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)

@@ -37,8 +37,7 @@ export type {
 	StatsChunk,
 	StatsCompilation,
 	StatsError,
-	StatsModule,
-	StatsWarnings
+	StatsModule
 } from "./Stats";
 export { Stats } from "./Stats";
 
@@ -77,6 +76,9 @@ export const config: Config = {
 
 export type * from "./config";
 
+import { ValidationError } from "./util/validate";
+export { ValidationError };
+
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
@@ -99,6 +101,7 @@ export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
+export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
@@ -249,7 +252,6 @@ export type {
 } from "./builtin-plugin";
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
-export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";

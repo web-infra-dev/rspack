@@ -212,7 +212,8 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   pub(crate) blocks: Vec<Box<AsyncDependenciesBlock>>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
+  pub parse_meta: FxHashMap<String, String>,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
@@ -265,7 +266,8 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    additional_data: AdditionalData,
+    additional_data: Option<AdditionalData>,
+    parse_meta: FxHashMap<String, String>,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
     let errors = Vec::with_capacity(4);
@@ -398,6 +400,7 @@ impl<'parser> JavascriptParser<'parser> {
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
       additional_data,
+      parse_meta,
     }
   }
 
@@ -413,6 +416,10 @@ impl<'parser> JavascriptParser<'parser> {
     } else {
       false
     }
+  }
+
+  pub fn set_asi_position(&mut self, pos: BytePos) -> bool {
+    self.semicolons.insert(pos)
   }
 
   pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {

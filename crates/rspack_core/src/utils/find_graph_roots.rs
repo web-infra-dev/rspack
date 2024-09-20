@@ -140,7 +140,7 @@ pub fn find_graph_roots<
     node.dependencies = get_dependencies(node.item)
       .into_iter()
       .filter_map(|item| item_to_node_ukey.get(&item))
-      .cloned()
+      .copied()
       .collect::<Vec<_>>();
   });
 
@@ -153,7 +153,7 @@ pub fn find_graph_roots<
   // that is not part of the cycle
   let mut root_cycles: UkeySet<CycleUkey<NodeUkey<Item>>> = UkeySet::default();
 
-  let mut keys = db.keys().cloned().collect::<Vec<_>>();
+  let mut keys = db.keys().copied().collect::<Vec<_>>();
   keys.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
 
   // For all non-marked nodes
@@ -169,7 +169,7 @@ pub fn find_graph_roots<
       let mut stack = vec![StackEntry {
         node: select_node,
         open_edges: {
-          let mut v: Vec<_> = db.expect_get(&select_node).dependencies.to_vec();
+          let mut v: Vec<_> = db.expect_get(&select_node).dependencies.clone();
           v.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
           v
         },
@@ -201,7 +201,7 @@ pub fn find_graph_roots<
               stack.push(StackEntry {
                 node: dependency,
                 open_edges: {
-                  let mut v: Vec<_> = db.expect_get(&dependency).dependencies.to_vec();
+                  let mut v: Vec<_> = db.expect_get(&dependency).dependencies.clone();
                   v.sort_unstable();
                   v
                 },
@@ -286,7 +286,7 @@ pub fn find_graph_roots<
     let mut cycle_roots: UkeySet<NodeUkey<Item>> = Default::default();
     let nodes = &cycle_db.expect_get(&cycle).nodes;
     for node in nodes.iter() {
-      for dep in db.expect_get(node).dependencies.clone().into_iter() {
+      for dep in db.expect_get(node).dependencies.clone() {
         if nodes.contains(&dep) {
           db.expect_get_mut(&dep).incoming += 1;
           if db.expect_get(&dep).incoming < max {

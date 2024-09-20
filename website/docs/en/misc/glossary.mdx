@@ -66,6 +66,10 @@ The module graph is a graph data structure that represents relationships between
 
 A plugin is a program module that can be used to extend the functionality of Rspack by means of extensibility hooks. It can be used to customize the build process, or to integrate with other tools. Rspack provides lots of hooks which you can use to customize the build process.
 
+## scope hoisting
+
+Scope hoisting is a technique that concat modules into a single scope when possible, rather than wrapping each module in a separate function. It can make minification more effective and improve runtime performance by reduce module lookup cost.
+
 ## tree shaking
 
 Tree shaking is a technique that allows you to remove unused code from your bundle. It a form of compiler dead code elimination, with a focus on minimizing processing of dead code. Compilers like Rspack will accomplish this by analyzing the static structure of your code, and then removing the unused code.

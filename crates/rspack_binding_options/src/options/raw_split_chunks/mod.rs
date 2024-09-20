@@ -37,9 +37,10 @@ pub struct RawSplitChunksOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
+  pub used_exports: Option<bool>,
   pub automatic_name_delimiter: Option<String>,
-  pub max_async_requests: Option<u32>,
-  pub max_initial_requests: Option<u32>,
+  pub max_async_requests: Option<f64>,
+  pub max_initial_requests: Option<f64>,
   pub default_size_types: Vec<String>,
   pub min_chunks: Option<u32>,
   pub hide_path_info: Option<bool>,
@@ -89,12 +90,15 @@ pub struct RawCacheGroupOptions {
   pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub max_async_requests: Option<f64>,
+  pub max_initial_requests: Option<f64>,
   #[napi(ts_type = "string | false | Function")]
   #[derivative(Debug = "ignore")]
   pub name: Option<RawChunkOptionName>,
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
   pub enforce: Option<bool>,
+  pub used_exports: Option<bool>,
 }
 
 impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
@@ -211,15 +215,16 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),
             filename: v.filename.map(Filename::from),
-            reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
-            // TODO(hyf0): the non-enforced default value should be 30
-            // I would set align default value with Webpack when the options is exposed to users
-            max_async_requests: u32::MAX,
-            max_initial_requests: u32::MAX,
+            reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
+            max_async_requests: v.max_async_requests.unwrap_or(f64::INFINITY),
+            max_initial_requests: v.max_initial_requests.unwrap_or(f64::INFINITY),
             max_async_size,
             max_initial_size,
             r#type,
             layer,
+            used_exports: v
+              .used_exports
+              .unwrap_or_else(|| raw_opts.used_exports.unwrap_or_default()),
           }
         }),
     );

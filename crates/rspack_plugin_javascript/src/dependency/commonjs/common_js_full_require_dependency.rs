@@ -1,10 +1,11 @@
 use rspack_core::{
-  module_id, property_access, to_normal_comment, ExportsType, ExtendedReferencedExport,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
+  module_id, property_access, to_normal_comment, Compilation, ExportsType,
+  ExtendedReferencedExport, ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
+  UsedName,
 };
-use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
+use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
+use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::atoms::Atom;
 
@@ -13,8 +14,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   names: Vec<Atom>,
-  range: DependencyLocation,
-  span: Option<ErrorSpan>,
+  range: RealDependencyLocation,
   is_call: bool,
   optional: bool,
   asi_safe: bool,
@@ -24,8 +24,7 @@ impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
     names: Vec<Atom>,
-    range: DependencyLocation,
-    span: Option<ErrorSpan>,
+    range: RealDependencyLocation,
     is_call: bool,
     optional: bool,
     asi_safe: bool,
@@ -35,7 +34,6 @@ impl CommonJsFullRequireDependency {
       request,
       names,
       range,
-      span,
       is_call,
       optional,
       asi_safe,
@@ -56,8 +54,12 @@ impl Dependency for CommonJsFullRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(
@@ -81,6 +83,10 @@ impl Dependency for CommonJsFullRequireDependency {
       }
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -148,11 +154,19 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
       }
     }
 
-    source.replace(self.range.start(), self.range.end(), &require_expr, None);
+    source.replace(self.range.start, self.range.end, &require_expr, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

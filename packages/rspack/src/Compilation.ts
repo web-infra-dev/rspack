@@ -49,7 +49,9 @@ import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import MergeCaller from "./util/MergeCaller";
+import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
+import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
@@ -214,6 +216,10 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
+		runtimeRequirementInTree: liteTapable.SyncBailHook<
+			[Chunk, Set<string>],
+			void
+		>;
 		runtimeModule: RuntimeModule;
 		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
@@ -224,7 +230,7 @@ export class Compilation {
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
 
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem | null;
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
 	logging: Map<string, LogEntry[]>;
@@ -346,6 +352,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunk",
 				"runtimeRequirements"
 			]),
+			runtimeRequirementInTree: new liteTapable.SyncBailHook([
+				"chunk",
+				"runtimeRequirements"
+			]),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
@@ -402,10 +412,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunk groups.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` are supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get`, `keys`, `values` and `entries` are supported now.
 	 */
-	get namedChunkGroups(): ReadonlyMap<string, Readonly<ChunkGroup>> {
-		return {
+	get namedChunkGroups() {
+		return createReadonlyMap<ChunkGroup>({
 			keys: (): IterableIterator<string> => {
 				const names = this.#inner.getNamedChunkGroupKeys();
 				return names[Symbol.iterator]();
@@ -416,17 +426,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					return chunk && ChunkGroup.__from_binding(chunk, this.#inner);
 				}
 			}
-		} as Map<string, Readonly<ChunkGroup>>;
+		});
 	}
 
 	get modules(): ReadonlySet<Module> {
-		return memoizeValue(
-			() =>
-				new Set(
-					this.__internal__getModules().map(item =>
-						Module.__from_binding(item, this)
-					)
-				)
+		return new Set(
+			this.#inner.modules.map(module => Module.__from_binding(module, this))
 		);
 	}
 
@@ -437,10 +442,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get the named chunks.
 	 *
-	 * Note: This is a proxy for webpack internal API, only method `get` and `keys` is supported now.
+	 * Note: This is a proxy for webpack internal API, only method `get`, `keys`, `values` and `entries` are supported now.
 	 */
-	get namedChunks(): ReadonlyMap<string, Readonly<Chunk>> {
-		return {
+	get namedChunks() {
+		return createReadonlyMap<Chunk>({
 			keys: (): IterableIterator<string> => {
 				const names = this.#inner.getNamedChunkKeys();
 				return names[Symbol.iterator]();
@@ -451,7 +456,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					return chunk && Chunk.__from_binding(chunk, this.#inner);
 				}
 			}
-		} as Map<string, Readonly<Chunk>>;
+		});
 	}
 
 	get entries(): Map<string, EntryData> {
@@ -566,8 +571,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	/**
 	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
-	 *
-	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
 	 */
 	updateAsset(
 		filename: string,
@@ -996,22 +999,22 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	fileDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getFileDependencies(),
+		() => this.#inner.dependencies().fileDependencies,
 		d => this.#inner.addFileDependencies(d)
 	);
 
 	contextDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getContextDependencies(),
+		() => this.#inner.dependencies().contextDependencies,
 		d => this.#inner.addContextDependencies(d)
 	);
 
 	missingDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getMissingDependencies(),
+		() => this.#inner.dependencies().missingDependencies,
 		d => this.#inner.addMissingDependencies(d)
 	);
 
 	buildDependencies = createFakeCompilationDependencies(
-		() => this.#inner.getBuildDependencies(),
+		() => this.#inner.dependencies().buildDependencies,
 		d => this.#inner.addBuildDependencies(d)
 	);
 
@@ -1116,15 +1119,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal__hasAsset(name: string): boolean {
 		return this.#inner.hasAsset(name);
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getModules(): JsModule[] {
-		return this.#inner.getModules();
 	}
 
 	/**

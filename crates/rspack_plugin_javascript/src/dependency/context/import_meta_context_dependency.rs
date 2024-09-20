@@ -1,38 +1,31 @@
-use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
+use rspack_core::{
+  module_raw, AsModuleDependency, Compilation, ContextDependency, RealDependencyLocation,
+  RuntimeSpec,
+};
 use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan};
+use rspack_core::{DependencyTemplate, DependencyType};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 
 use super::create_resource_identifier_for_context_dependency;
 
 #[derive(Debug, Clone)]
 pub struct ImportMetaContextDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
   options: ContextOptions,
-  span: Option<ErrorSpan>,
+  range: RealDependencyLocation,
   resource_identifier: String,
   optional: bool,
 }
 
 impl ImportMetaContextDependency {
-  pub fn new(
-    start: u32,
-    end: u32,
-    options: ContextOptions,
-    span: Option<ErrorSpan>,
-    optional: bool,
-  ) -> Self {
+  pub fn new(options: ContextOptions, range: RealDependencyLocation, optional: bool) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
-      start,
-      end,
       options,
-      span,
-      id: DependencyId::new(),
+      range,
       resource_identifier,
       optional,
+      id: DependencyId::new(),
     }
   }
 }
@@ -50,8 +43,12 @@ impl Dependency for ImportMetaContextDependency {
     &DependencyType::ImportMetaContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -104,11 +101,19 @@ impl DependencyTemplate for ImportMetaContextDependency {
       &self.options.request,
       self.optional,
     );
-    source.replace(self.start, self.end, &content, None);
+    source.replace(self.range.start, self.range.end, &content, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

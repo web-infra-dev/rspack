@@ -1,13 +1,16 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/entry-context/#context" />
 
 # Context
 
-基础目录：该选项用于设置 Rspack 构建时所依赖的基础路径。
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'process.cwd()' }]}
+/>
 
-- **类型：** `string`
-- **默认值：** `process.cwd()`
+基础目录：该选项用于设置 Rspack 构建时所依赖的基础路径。
 
 `context` 是一个绝对路径，它被用作为 Rspack 配置中相对路径的基础路径，比如 [entry](config/entry) 和 [output](config/output) 等配置中包含的相对路径。
 

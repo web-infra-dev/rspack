@@ -2,7 +2,8 @@
 var __module_federation_bundler_runtime__,
 	__module_federation_runtime_plugins__,
 	__module_federation_remote_infos__,
-	__module_federation_container_name__;
+	__module_federation_container_name__,
+	__module_federation_share_strategy__;
 module.exports = function () {
 	if (
 		(__webpack_require__.initializeSharingData ||
@@ -41,7 +42,7 @@ module.exports = function () {
 			{};
 		const consumesLoadinginstalledModules = {};
 		const initializeSharingInitPromises = [];
-		const initializeSharingInitTokens = [];
+		const initializeSharingInitTokens = {};
 		const containerShareScope =
 			__webpack_require__.initializeExposesData?.shareScope;
 
@@ -83,6 +84,11 @@ module.exports = function () {
 			"name",
 			() => __module_federation_container_name__
 		);
+		early(
+			__webpack_require__.federation.initOptions,
+			"shareStrategy",
+			() => __module_federation_share_strategy__
+		);
 		early(__webpack_require__.federation.initOptions, "shared", () => {
 			const shared = {};
 			for (let [scope, stages] of Object.entries(
@@ -99,13 +105,26 @@ module.exports = function () {
 							requiredVersion,
 							strictVersion
 						} = stage;
+						const shareConfig = {};
+						const isValidValue = function (val) {
+							return typeof val !== "undefined";
+						};
+						if (isValidValue(singleton)) {
+							shareConfig.singleton = singleton;
+						}
+						if (isValidValue(requiredVersion)) {
+							shareConfig.requiredVersion = requiredVersion;
+						}
+						if (isValidValue(eager)) {
+							shareConfig.eager = eager;
+						}
+						if (isValidValue(strictVersion)) {
+							shareConfig.strictVersion = strictVersion;
+						}
 						const options = {
 							version,
 							scope: [scope],
-							eager,
-							singleton,
-							requiredVersion,
-							strictVersion,
+							shareConfig,
 							get: factory
 						};
 						if (shared[name]) {

@@ -1,16 +1,17 @@
+use std::borrow::Cow;
 use std::sync::LazyLock;
-use std::{borrow::Cow, path::Path};
 
 use regex::Regex;
+use rspack_paths::Utf8Path;
 use rspack_util::identifier::absolute_to_request;
 
 use crate::ModuleRuleUseLoader;
 
-pub fn contextify(context: impl AsRef<Path>, request: &str) -> String {
+pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let context = context.as_ref();
   request
     .split('!')
-    .map(|r| absolute_to_request(&context.to_string_lossy(), r))
+    .map(|r| absolute_to_request(context.as_str(), r))
     .collect::<Vec<Cow<str>>>()
     .join("!")
 }

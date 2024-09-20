@@ -23,10 +23,17 @@ impl<T: MergeFrom> MergeFrom for Option<T> {
   }
 }
 
-impl<T: MergeFrom> MergeFrom for Vec<T> {
-  fn merge_from(mut self, other: &Self) -> Self {
-    self.extend(other.iter().cloned());
-    self
+impl MergeFrom for Vec<String> {
+  fn merge_from(self, other: &Self) -> Self {
+    let mut res = Vec::new();
+    for item in other {
+      if item == "..." {
+        res.extend(self.clone());
+      } else {
+        res.push(item.clone());
+      }
+    }
+    res
   }
 }
 

@@ -6,6 +6,7 @@
 
 /// <reference types="node" />
 
+import type { Abortable } from 'node:events';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -16,6 +17,8 @@ import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { default as default_2 } from './util/hash';
+import type { DependenciesBlockDTO } from '@rspack/binding';
+import type { DependencyDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -23,16 +26,24 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { inspect } from 'node:util';
+import { JsAfterEmitData } from '@rspack/binding';
+import { JsAfterTemplateExecutionData } from '@rspack/binding';
+import { JsAlterAssetTagGroupsData } from '@rspack/binding';
+import { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
+import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
+import { JsBeforeEmitData } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
+import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
+import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
-import { JsModule } from '@rspack/binding';
+import type { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
@@ -41,11 +52,11 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
+import type { ModuleDTO } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
-import type { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
-import { RawLightningCssMinimizerRspackPluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
@@ -100,6 +111,12 @@ export interface Asset {
     // (undocumented)
     source: Source;
 }
+
+// @public (undocumented)
+type AssetCondition = string | RegExp;
+
+// @public (undocumented)
+type AssetConditions = AssetCondition | AssetCondition[];
 
 // @public (undocumented)
 interface AssetEmittedInfo {
@@ -223,6 +240,9 @@ const assetGeneratorOptions: z.ZodObject<z.objectUtil.extendShape<{
 
 // @public (undocumented)
 export type AssetInfo = Partial<Omit<JsAssetInfo, "extras">> & Record<string, any>;
+
+// @public (undocumented)
+type AssetInfo_2 = KnownAssetInfo & Record<string, any>;
 
 // @public (undocumented)
 export type AssetInlineGeneratorOptions = z.infer<typeof assetInlineGeneratorOptions>;
@@ -682,11 +702,11 @@ const baseRuleSetRule: z.ZodObject<{
     layer?: string | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
-    resource?: RuleSetCondition | undefined;
     loader?: string | undefined;
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
+    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -718,11 +738,11 @@ const baseRuleSetRule: z.ZodObject<{
     layer?: string | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
-    resource?: RuleSetCondition | undefined;
     loader?: string | undefined;
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
+    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -752,6 +772,17 @@ export type BaseUri = z.infer<typeof baseUri>;
 
 // @public (undocumented)
 const baseUri: z.ZodString;
+
+// @public (undocumented)
+type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
+
+// @public (undocumented)
+type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
+
+// @public (undocumented)
+type BufferEncodingOption = "buffer" | {
+    encoding: "buffer";
+};
 
 // @public (undocumented)
 class Cache_2 {
@@ -934,6 +965,8 @@ export class ChunkGroup {
     isInitial(): boolean;
     // (undocumented)
     get name(): Readonly<string | undefined>;
+    // (undocumented)
+    get origins(): ReadonlyArray<JsChunkGroupOrigin>;
 }
 
 // @public (undocumented)
@@ -997,8 +1030,6 @@ export class Compilation {
         buildInfo: Record<string, unknown>;
         buildMeta: Record<string, unknown>;
     };
-    // @internal
-    __internal__getModules(): JsModule[];
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
@@ -1128,12 +1159,16 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
+        runtimeRequirementInTree: liteTapable.SyncBailHook<[
+        Chunk,
+        Set<string>
+        ], void>;
         runtimeModule: RuntimeModule;
         seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
     // (undocumented)
-    inputFileSystem: any;
+    inputFileSystem: InputFileSystem | null;
     // (undocumented)
     logging: Map<string, LogEntry[]>;
     // (undocumented)
@@ -1289,7 +1324,7 @@ export class Compiler {
     // (undocumented)
     infrastructureLogger: any;
     // (undocumented)
-    inputFileSystem: any;
+    inputFileSystem: InputFileSystem | null;
     // (undocumented)
     intermediateFileSystem: any;
     // (undocumented)
@@ -1484,7 +1519,7 @@ class ContainerReferencePlugin extends RspackBuiltinPlugin {
     name: BuiltinPluginName;
     // (undocumented)
     _options: {
-        remoteType: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs";
+        remoteType: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs";
         remotes: [string, {
             external: string[];
             shareScope: string;
@@ -1507,7 +1542,7 @@ export type ContainerReferencePluginOptions = {
 export type Context = z.infer<typeof context>;
 
 // @public (undocumented)
-const context: z.ZodString;
+const context: z.ZodEffects<z.ZodString, string, string>;
 
 // @public (undocumented)
 type ContextInfo = {
@@ -1621,7 +1656,7 @@ export interface CssExtractRspackLoaderOptions {
     // (undocumented)
     esModule?: boolean;
     // (undocumented)
-    layer?: boolean;
+    layer?: string;
     // (undocumented)
     publicPath?: string | ((resourcePath: string, context: string) => string);
 }
@@ -1778,6 +1813,26 @@ export type Dependencies = z.infer<typeof dependencies>;
 const dependencies: z.ZodArray<z.ZodString, "many">;
 
 // @public (undocumented)
+class DependenciesBlock {
+    constructor(binding: DependenciesBlockDTO);
+    // (undocumented)
+    get blocks(): DependenciesBlock[];
+    // (undocumented)
+    get dependencies(): Dependency[];
+}
+
+// @public (undocumented)
+class Dependency {
+    constructor(binding: DependencyDTO);
+    // (undocumented)
+    get category(): string;
+    // (undocumented)
+    get request(): string | undefined;
+    // (undocumented)
+    get type(): string;
+}
+
+// @public (undocumented)
 type DependencyLocation = any;
 
 // @public (undocumented)
@@ -1875,15 +1930,15 @@ interface Drafts {
 }
 
 // @public (undocumented)
-export const DynamicEntryPlugin: {
-    new (context: string, entry: EntryDynamicNormalized): {
-        name: BuiltinPluginName;
-        _args: [context: string, entry: EntryDynamicNormalized];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+export class DynamicEntryPlugin extends RspackBuiltinPlugin {
+    constructor(context: string, entry: EntryDynamicNormalized);
+    // (undocumented)
+    affectedHooks: "make";
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin | undefined;
+}
 
 // @public (undocumented)
 interface Electron {
@@ -1957,6 +2012,9 @@ const EnableWasmLoadingPlugin: {
         apply(compiler: Compiler_2): void;
     };
 };
+
+// @public (undocumented)
+type EncodingOption = ObjectEncodingOptions | BufferEncoding | undefined | null;
 
 // @public (undocumented)
 export type Entry = z.infer<typeof entry>;
@@ -2546,6 +2604,280 @@ export interface EntryDescriptionNormalized {
 }
 
 // @public (undocumented)
+export type EntryDynamic = z.infer<typeof entryDynamic>;
+
+// @public (undocumented)
+const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    baseUri: z.ZodOptional<z.ZodString>;
+    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
+    asyncChunks: z.ZodOptional<z.ZodBoolean>;
+    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    library: z.ZodOptional<z.ZodObject<{
+        amdContainer: z.ZodOptional<z.ZodString>;
+        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            commonjs2: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }>]>>;
+        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }>]>>;
+        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
+        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
+    }, "strict", z.ZodTypeAny, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }>>;
+    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
+}, "strict", z.ZodTypeAny, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    baseUri: z.ZodOptional<z.ZodString>;
+    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
+    asyncChunks: z.ZodOptional<z.ZodBoolean>;
+    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    library: z.ZodOptional<z.ZodObject<{
+        amdContainer: z.ZodOptional<z.ZodString>;
+        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            commonjs2: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        }>]>>;
+        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+            amd: z.ZodOptional<z.ZodString>;
+            commonjs: z.ZodOptional<z.ZodString>;
+            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+        }, "strict", z.ZodTypeAny, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }, {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        }>]>>;
+        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
+        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
+    }, "strict", z.ZodTypeAny, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }, {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    }>>;
+    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
+}, "strict", z.ZodTypeAny, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}, {
+    import: string | string[];
+    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    layer?: string | null | undefined;
+    runtime?: string | false | undefined;
+    baseUri?: string | undefined;
+    chunkLoading?: string | false | undefined;
+    asyncChunks?: boolean | undefined;
+    wasmLoading?: string | false | undefined;
+    library?: {
+        type: string;
+        name?: string | string[] | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | string[] | undefined;
+        } | undefined;
+        amdContainer?: string | undefined;
+        auxiliaryComment?: string | {
+            commonjs?: string | undefined;
+            amd?: string | undefined;
+            root?: string | undefined;
+            commonjs2?: string | undefined;
+        } | undefined;
+        export?: string | string[] | undefined;
+        umdNamedDefine?: boolean | undefined;
+    } | undefined;
+    dependOn?: string | string[] | undefined;
+}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>;
+
+// @public (undocumented)
 export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
 
 // @public (undocumented)
@@ -2958,16 +3290,16 @@ const environment: z.ZodObject<{
 
 // @public (undocumented)
 export class EnvironmentPlugin {
-    constructor(...keys: string[] | [Record<string, string> | string]);
+    constructor(...keys: string[] | [Record<string, string | undefined | null> | string | string[]]);
     apply(compiler: Compiler): void;
     // (undocumented)
-    defaultValues: Record<string, string>;
+    defaultValues: Record<string, string | undefined | null>;
     // (undocumented)
     keys: string[];
 }
 
 // @public (undocumented)
-type ErrorWithDetail = Error & {
+type ErrorWithDetails = Error & {
     details?: string;
 };
 
@@ -3162,18 +3494,21 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         }>>;
+        newIncremental: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         bundlerInfo?: {
             force?: boolean | ("version" | "uniqueId")[] | undefined;
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     }, {
         bundlerInfo?: {
             force?: boolean | ("version" | "uniqueId")[] | undefined;
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     css?: boolean | undefined;
@@ -3207,6 +3542,7 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     } | undefined;
 }, {
     css?: boolean | undefined;
@@ -3240,6 +3576,7 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
+        newIncremental?: boolean | undefined;
     } | undefined;
 }>;
 
@@ -3312,7 +3649,7 @@ const externalItem: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString,
     contextInfo?: {
         issuer: string;
     } | undefined;
-}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
@@ -3411,7 +3748,7 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     contextInfo?: {
         issuer: string;
     } | undefined;
-}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
@@ -3461,7 +3798,7 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     contextInfo?: {
         issuer: string;
     } | undefined;
-}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
     context: z.ZodOptional<z.ZodString>;
     dependencyType: z.ZodOptional<z.ZodString>;
     request: z.ZodOptional<z.ZodString>;
@@ -3497,7 +3834,7 @@ export const ExternalsPlugin: {
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -3511,7 +3848,7 @@ export const ExternalsPlugin: {
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -3527,7 +3864,7 @@ export const ExternalsPlugin: {
             contextInfo?: {
                 issuer: string;
             } | undefined;
-        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
             context?: string | undefined;
             dependencyType?: string | undefined;
             request?: string | undefined;
@@ -3541,7 +3878,7 @@ export const ExternalsPlugin: {
             contextInfo?: {
                 issuer: string;
             } | undefined;
-        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
             context?: string | undefined;
             dependencyType?: string | undefined;
             request?: string | undefined;
@@ -3592,7 +3929,7 @@ const externalsPresets: z.ZodObject<{
 export type ExternalsType = z.infer<typeof externalsType>;
 
 // @public (undocumented)
-export const externalsType: z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>;
+export const externalsType: z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>;
 
 // @public (undocumented)
 type ExtractCommentsBanner = string | boolean;
@@ -3608,6 +3945,13 @@ type ExtractCommentsObject = {
 
 // @public (undocumented)
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
+
+// @public (undocumented)
+type ExtraPluginHookData = {
+    plugin: {
+        options: HtmlRspackPluginOptions;
+    };
+};
 
 // @public (undocumented)
 export type Falsy = z.infer<typeof falsy>;
@@ -4171,10 +4515,10 @@ interface GlobalPassOption {
 type GotHandler<T = any> = (result: any | null, callback: (error: Error | null) => void) => void;
 
 // @public (undocumented)
-type GroupConfig = {
+type GroupConfig<T, R = T> = {
     getKeys: (arg0: any) => string[] | undefined;
-    createGroup: <T, R>(arg0: string, arg1: (T | R)[], arg2: T[]) => R;
-    getOptions?: (<T>(arg0: string, arg1: T[]) => GroupOptions) | undefined;
+    createGroup: (key: string, arg1: (T | R)[], arg2: T[]) => R;
+    getOptions?: ((key: string, arg1: T[]) => GroupOptions) | undefined;
 };
 
 // @public
@@ -4237,7 +4581,7 @@ type Hooks = Readonly<{
     extract: HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>;
     filter: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
     filterSorted: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
-    groupResults: HookMap<SyncBailHook<[GroupConfig[], StatsFactoryContext], undefined>>;
+    groupResults: HookMap<SyncBailHook<[GroupConfig<any>[], StatsFactoryContext], undefined>>;
     filterResults: HookMap<SyncBailHook<[any, StatsFactoryContext, number, number], undefined>>;
     sort: HookMap<SyncBailHook<[
     ((arg1: any, arg2: any) => number)[],
@@ -4284,13 +4628,18 @@ export const HtmlRspackPlugin: {
     new (c?: {
         filename?: string | undefined;
         publicPath?: string | undefined;
+        hash?: boolean | undefined;
         chunks?: string[] | undefined;
+        base?: string | {
+            target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
+            href?: string | undefined;
+        } | undefined;
         template?: string | undefined;
-        templateContent?: string | undefined;
-        templateParameters?: Record<string, string> | undefined;
+        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
         inject?: boolean | "head" | "body" | undefined;
-        scriptLoading?: "module" | "blocking" | "defer" | undefined;
-        excludedChunks?: string[] | undefined;
+        scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
+        excludeChunks?: string[] | undefined;
         sri?: "sha256" | "sha384" | "sha512" | undefined;
         minify?: boolean | undefined;
         title?: string | undefined;
@@ -4301,13 +4650,18 @@ export const HtmlRspackPlugin: {
         _args: [c?: {
             filename?: string | undefined;
             publicPath?: string | undefined;
+            hash?: boolean | undefined;
             chunks?: string[] | undefined;
+            base?: string | {
+                target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
+                href?: string | undefined;
+            } | undefined;
             template?: string | undefined;
-            templateContent?: string | undefined;
-            templateParameters?: Record<string, string> | undefined;
+            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
             inject?: boolean | "head" | "body" | undefined;
-            scriptLoading?: "module" | "blocking" | "defer" | undefined;
-            excludedChunks?: string[] | undefined;
+            scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
+            excludeChunks?: string[] | undefined;
             sri?: "sha256" | "sha384" | "sha512" | undefined;
             minify?: boolean | undefined;
             title?: string | undefined;
@@ -4315,9 +4669,33 @@ export const HtmlRspackPlugin: {
             meta?: Record<string, string | Record<string, string>> | undefined;
         } | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
     };
+} & {
+    getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
+    getCompilationOptions: (compilation: Compilation) => HtmlRspackPluginOptions | void;
+    createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string | undefined) => JsHtmlPluginTag;
+};
+
+// @public (undocumented)
+type HtmlRspackPluginHooks = {
+    beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<[
+    JsBeforeAssetTagGenerationData & ExtraPluginHookData
+    ]>;
+    alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
+    alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAlterAssetTagGroupsData & ExtraPluginHookData
+    ]>;
+    afterTemplateExecution: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAfterTemplateExecutionData & ExtraPluginHookData
+    ]>;
+    beforeEmit: liteTapable.AsyncSeriesWaterfallHook<[
+    JsBeforeEmitData & ExtraPluginHookData
+    ]>;
+    afterEmit: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAfterEmitData & ExtraPluginHookData
+    ]>;
 };
 
 // @public (undocumented)
@@ -4326,29 +4704,45 @@ export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 // @public (undocumented)
 const htmlRspackPluginOptions: z.ZodObject<{
     filename: z.ZodOptional<z.ZodString>;
-    template: z.ZodOptional<z.ZodString>;
-    templateContent: z.ZodOptional<z.ZodString>;
-    templateParameters: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    template: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
+    templateContent: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodRecord<z.ZodString, z.ZodAny>], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodPromise<z.ZodString>]>>]>>;
+    templateParameters: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodString>, z.ZodBoolean]>, z.ZodFunction<z.ZodTuple<[z.ZodRecord<z.ZodString, z.ZodAny>], z.ZodUnknown>, z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodPromise<z.ZodRecord<z.ZodString, z.ZodAny>>]>>]>>;
     inject: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["head", "body"]>, z.ZodBoolean]>>;
     publicPath: z.ZodOptional<z.ZodString>;
-    scriptLoading: z.ZodOptional<z.ZodEnum<["blocking", "defer", "module"]>>;
+    base: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
+        href: z.ZodOptional<z.ZodString>;
+        target: z.ZodOptional<z.ZodEnum<["_self", "_blank", "_parent", "_top"]>>;
+    }, "strict", z.ZodTypeAny, {
+        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
+        href?: string | undefined;
+    }, {
+        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
+        href?: string | undefined;
+    }>]>>;
+    scriptLoading: z.ZodOptional<z.ZodEnum<["blocking", "defer", "module", "systemjs-module"]>>;
     chunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    excludedChunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    excludeChunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     sri: z.ZodOptional<z.ZodEnum<["sha256", "sha384", "sha512"]>>;
     minify: z.ZodOptional<z.ZodBoolean>;
     title: z.ZodOptional<z.ZodString>;
     favicon: z.ZodOptional<z.ZodString>;
     meta: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodRecord<z.ZodString, z.ZodString>]>>>;
+    hash: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     filename?: string | undefined;
     publicPath?: string | undefined;
+    hash?: boolean | undefined;
     chunks?: string[] | undefined;
+    base?: string | {
+        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
+        href?: string | undefined;
+    } | undefined;
     template?: string | undefined;
-    templateContent?: string | undefined;
-    templateParameters?: Record<string, string> | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
     inject?: boolean | "head" | "body" | undefined;
-    scriptLoading?: "module" | "blocking" | "defer" | undefined;
-    excludedChunks?: string[] | undefined;
+    scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
+    excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
     minify?: boolean | undefined;
     title?: string | undefined;
@@ -4357,19 +4751,32 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }, {
     filename?: string | undefined;
     publicPath?: string | undefined;
+    hash?: boolean | undefined;
     chunks?: string[] | undefined;
+    base?: string | {
+        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
+        href?: string | undefined;
+    } | undefined;
     template?: string | undefined;
-    templateContent?: string | undefined;
-    templateParameters?: Record<string, string> | undefined;
+    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
+    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
     inject?: boolean | "head" | "body" | undefined;
-    scriptLoading?: "module" | "blocking" | "defer" | undefined;
-    excludedChunks?: string[] | undefined;
+    scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
+    excludeChunks?: string[] | undefined;
     sri?: "sha256" | "sha384" | "sha512" | undefined;
     minify?: boolean | undefined;
     title?: string | undefined;
     favicon?: string | undefined;
     meta?: Record<string, string | Record<string, string>> | undefined;
 }>;
+
+// @public (undocumented)
+type IBigIntStats = IStatsBase<bigint> & {
+    atimeNs: bigint;
+    mtimeNs: bigint;
+    ctimeNs: bigint;
+    birthtimeNs: bigint;
+};
 
 // @public (undocumented)
 interface IDirent {
@@ -4465,58 +4872,58 @@ const infrastructureLogging: z.ZodObject<{
 }>;
 
 // @public (undocumented)
-interface IStats {
-    // (undocumented)
-    atime: Date;
-    // (undocumented)
-    atimeMs: number | bigint;
-    // (undocumented)
-    birthtime: Date;
-    // (undocumented)
-    birthtimeMs: number | bigint;
-    // (undocumented)
-    blksize: number | bigint;
-    // (undocumented)
-    blocks: number | bigint;
-    // (undocumented)
-    ctime: Date;
-    // (undocumented)
-    ctimeMs: number | bigint;
-    // (undocumented)
-    dev: number | bigint;
-    // (undocumented)
-    gid: number | bigint;
-    // (undocumented)
-    ino: number | bigint;
-    // (undocumented)
-    isBlockDevice: () => boolean;
-    // (undocumented)
-    isCharacterDevice: () => boolean;
-    // (undocumented)
-    isDirectory: () => boolean;
-    // (undocumented)
-    isFIFO: () => boolean;
-    // (undocumented)
+type InputFileSystem = {
+    readFile: ReadFile;
+    readFileSync?: ReadFileSync;
+    readlink: Readlink;
+    readlinkSync?: ReadlinkSync;
+    readdir: Readdir;
+    readdirSync?: ReaddirSync;
+    stat: Stat;
+    statSync?: StatSync;
+    lstat?: LStat;
+    lstatSync?: LStatSync;
+    realpath?: RealPath;
+    realpathSync?: RealPathSync;
+    readJson?: ReadJson;
+    readJsonSync?: ReadJsonSync;
+    purge?: Purge;
+    join?: (path1: string, path2: string) => string;
+    relative?: (from: string, to: string) => string;
+    dirname?: (path: string) => string;
+};
+
+// @public (undocumented)
+type IStats = IStatsBase<number>;
+
+// @public (undocumented)
+type IStatsBase<T> = {
     isFile: () => boolean;
-    // (undocumented)
-    isSocket: () => boolean;
-    // (undocumented)
+    isDirectory: () => boolean;
+    isBlockDevice: () => boolean;
+    isCharacterDevice: () => boolean;
     isSymbolicLink: () => boolean;
-    // (undocumented)
-    mode: number | bigint;
-    // (undocumented)
+    isFIFO: () => boolean;
+    isSocket: () => boolean;
+    dev: T;
+    ino: T;
+    mode: T;
+    nlink: T;
+    uid: T;
+    gid: T;
+    rdev: T;
+    size: T;
+    blksize: T;
+    blocks: T;
+    atimeMs: T;
+    mtimeMs: T;
+    ctimeMs: T;
+    birthtimeMs: T;
+    atime: Date;
     mtime: Date;
-    // (undocumented)
-    mtimeMs: number | bigint;
-    // (undocumented)
-    nlink: number | bigint;
-    // (undocumented)
-    rdev: number | bigint;
-    // (undocumented)
-    size: number | bigint;
-    // (undocumented)
-    uid: number | bigint;
-}
+    ctime: Date;
+    birthtime: Date;
+};
 
 // @public (undocumented)
 class ItemCacheFacade implements BaseCache {
@@ -4645,6 +5052,37 @@ interface JsFormatOptions {
 }
 
 // @public (undocumented)
+type JsonArray = JsonValue[];
+
+// @public (undocumented)
+type JsonObject = {
+    [Key in string]: JsonValue;
+} & {
+    [Key in string]?: JsonValue | undefined;
+};
+
+// @public (undocumented)
+type JsonPrimitive = string | number | boolean | null;
+
+// @public (undocumented)
+type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+
+// @public (undocumented)
+type KnownAssetInfo = {
+    immutable?: boolean;
+    minimized?: boolean;
+    fullhash?: string | string[];
+    chunkhash?: string | string[];
+    contenthash?: string | string[];
+    sourceFilename?: string;
+    size?: number;
+    development?: boolean;
+    hotModuleReplacement?: boolean;
+    javascriptModule?: boolean;
+    related?: Record<string, string | string[]>;
+};
+
+// @public (undocumented)
 interface KnownCreateStatsOptionsContext {
     // (undocumented)
     forToString?: boolean;
@@ -4763,12 +5201,74 @@ interface KnownNormalizedStatsOptions {
 }
 
 // @public (undocumented)
-type KnownStatsAsset = Omit<binding.JsStatsAsset, "info">;
+type KnownStatsAsset = {
+    type: string;
+    name: string;
+    info: AssetInfo_2;
+    size: number;
+    emitted: boolean;
+    cached: boolean;
+    related?: StatsAsset[];
+    chunkNames?: (string | number)[];
+    chunkIdHints?: (string | number)[];
+    chunks?: (string | null | undefined)[];
+    auxiliaryChunkNames?: (string | number)[];
+    auxiliaryChunks?: (string | null | undefined)[];
+    auxiliaryChunkIdHints?: (string | number)[];
+    filteredRelated?: number;
+    isOverSizeLimit?: boolean;
+};
 
 // @public (undocumented)
-type KnownStatsChunk = Omit<binding.JsStatsChunk, "sizes" | "origins"> & {
-    sizes: Record<string, number>;
-    origins: StatsChunkOrigin[];
+type KnownStatsChunk = {
+    type: string;
+    rendered: boolean;
+    initial: boolean;
+    entry: boolean;
+    reason?: string;
+    size: number;
+    sizes?: Record<string, number>;
+    names?: string[];
+    idHints?: string[];
+    runtime?: string[];
+    files?: string[];
+    auxiliaryFiles?: string[];
+    hash?: string;
+    childrenByOrder?: Record<string, (string | number)[]>;
+    id?: string | number;
+    siblings?: (string | number)[];
+    parents?: (string | number)[];
+    children?: (string | number)[];
+    modules?: StatsModule[];
+    filteredModules?: number;
+    origins?: StatsChunkOrigin[];
+};
+
+// @public (undocumented)
+type KnownStatsChunkGroup = {
+    name?: string;
+    chunks?: (string | number)[];
+    assets?: {
+        name: string;
+        size?: number;
+    }[];
+    filteredAssets?: number;
+    assetsSize?: number;
+    auxiliaryAssets?: {
+        name: string;
+        size?: number;
+    }[];
+    filteredAuxiliaryAssets?: number;
+    auxiliaryAssetsSize?: number;
+    children?: {
+        preload?: StatsChunkGroup[];
+        prefetch?: StatsChunkGroup[];
+    };
+    childAssets?: {
+        preload?: string[];
+        prefetch?: string[];
+    };
+    isOverSizeLimit?: boolean;
 };
 
 // @public (undocumented)
@@ -4799,11 +5299,28 @@ type KnownStatsCompilation = {
     namedChunkGroups?: Record<string, StatsChunkGroup>;
     errors?: StatsError[];
     errorsCount?: number;
-    warnings?: StatsWarnings[];
+    warnings?: StatsError[];
     warningsCount?: number;
     filteredModules?: number;
     children?: StatsCompilation[];
     logging?: Record<string, StatsLogging>;
+};
+
+// @public (undocumented)
+type KnownStatsError = {
+    message: string;
+    chunkName?: string;
+    chunkEntry?: boolean;
+    chunkInitial?: boolean;
+    file?: string;
+    moduleIdentifier?: string;
+    moduleName?: string;
+    loc?: string;
+    chunkId?: string | number;
+    moduleId?: string | number;
+    moduleTrace?: StatsModuleTraceItem[];
+    details?: any;
+    stack?: string;
 };
 
 // @public (undocumented)
@@ -4875,6 +5392,26 @@ type KnownStatsModule = {
     modules?: StatsModule[];
     filteredModules?: number;
     source?: string | Buffer;
+};
+
+// @public (undocumented)
+type KnownStatsModuleIssuer = {
+    identifier?: string;
+    name?: string;
+    id?: string | number;
+};
+
+// @public (undocumented)
+type KnownStatsModuleReason = {
+    moduleIdentifier?: string;
+    module?: string;
+    moduleName?: string;
+    resolvedModuleIdentifier?: string;
+    resolvedModule?: string;
+    type?: string;
+    userRequest?: string;
+    moduleId?: string | null;
+    resolvedModuleId?: string | number | null;
 };
 
 // @public (undocumented)
@@ -5282,6 +5819,7 @@ export type LightningcssFeatureOptions = {
 
 // @public (undocumented)
 export type LightningcssLoaderOptions = {
+    minify?: boolean;
     errorRecovery?: boolean;
     targets?: Targets | string[] | string;
     include?: LightningcssFeatureOptions;
@@ -5294,9 +5832,9 @@ export type LightningcssLoaderOptions = {
 
 // @public (undocumented)
 export const LightningCssMinimizerRspackPlugin: {
-    new (options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined): {
+    new (options?: LightningCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [options?: Partial<RawLightningCssMinimizerRspackPluginOptions> | undefined];
+        _args: [options?: LightningCssMinimizerRspackPluginOptions | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -5304,7 +5842,22 @@ export const LightningCssMinimizerRspackPlugin: {
 };
 
 // @public (undocumented)
-export type LightningCssMinimizerRspackPluginOptions = Partial<RawLightningCssMinimizerRspackPluginOptions>;
+export type LightningCssMinimizerRspackPluginOptions = {
+    test?: AssetConditions;
+    include?: AssetConditions;
+    exclude?: AssetConditions;
+    removeUnusedLocalIdents?: boolean;
+    minimizerOptions?: {
+        errorRecovery?: boolean;
+        targets?: string[] | string;
+        include?: LightningcssFeatureOptions;
+        exclude?: LightningcssFeatureOptions;
+        draft?: Drafts;
+        nonStandard?: NonStandard;
+        pseudoClasses?: PseudoClasses;
+        unusedSymbols?: string[];
+    };
+};
 
 // @public (undocumented)
 type LimitChunkCountOptions = {
@@ -5332,6 +5885,8 @@ const loader: z.ZodRecord<z.ZodString, z.ZodAny>;
 
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
+    // @internal
+    __internal__parseMeta: Record<string, string>;
     // (undocumented)
     addBuildDependency(file: string): void;
     // (undocumented)
@@ -5341,11 +5896,11 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     addMissingDependency(missing: string): void;
     // (undocumented)
-    async(): (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
+    async(): LoaderContextCallback;
     // (undocumented)
     cacheable(cacheable?: boolean): void;
     // (undocumented)
-    callback(err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData): void;
+    callback: LoaderContextCallback;
     // (undocumented)
     clearDependencies(): void;
     // (undocumented)
@@ -5379,11 +5934,12 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     getOptions(schema?: any): OptionsType;
     // (undocumented)
-    getResolve(options: Resolve): (context: any, request: any, callback: any) => Promise<any>;
+    getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
     // (undocumented)
     hot?: boolean;
     // (undocumented)
     importModule(request: string, options: {
+        layer?: string;
         publicPath?: PublicPath;
         baseUri?: string;
     }, callback: (err?: Error, res?: any) => void): void;
@@ -5427,6 +5983,9 @@ export interface LoaderContext<OptionsType = {}> {
     // (undocumented)
     version: 2;
 }
+
+// @public (undocumented)
+type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
 
 // @public (undocumented)
 export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
@@ -5590,6 +6149,42 @@ const LogType: Readonly<{
 type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 
 // @public (undocumented)
+type LStat = {
+    (path: PathLike, callback: StatsCallback): void;
+    (path: PathLike, options: (StatOptions & {
+        bigint?: false;
+    }) | undefined, callback: StatsCallback): void;
+    (path: PathLike, options: StatOptions & {
+        bigint: true;
+    }, callback: BigIntStatsCallback): void;
+    (path: PathLike, options: StatOptions | undefined, callback: StatsOrBigIntStatsCallback): void;
+};
+
+// @public (undocumented)
+type LStatSync = {
+    (path: PathLike, options?: undefined): IStats;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+        throwIfNoEntry: false;
+    }): IStats | undefined;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+        throwIfNoEntry: false;
+    }): IBigIntStats | undefined;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+    }): IStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+    }): IBigIntStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: boolean;
+        throwIfNoEntry?: false;
+    }): IStats | IBigIntStats;
+    (path: PathLike, options?: StatSyncOptions): IStats | IBigIntStats | undefined;
+};
+
+// @public (undocumented)
 type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public
@@ -5612,18 +6207,6 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 const matchPart: (str: string, test: Matcher) => boolean;
 
 // @public (undocumented)
-type MinifyCondition = string | RegExp;
-
-// @public (undocumented)
-type MinifyCondition_2 = string | RegExp;
-
-// @public (undocumented)
-type MinifyConditions = MinifyCondition | MinifyCondition[];
-
-// @public (undocumented)
-type MinifyConditions_2 = MinifyCondition_2 | MinifyCondition_2[];
-
-// @public (undocumented)
 export type Mode = z.infer<typeof mode>;
 
 // @public (undocumented)
@@ -5631,9 +6214,11 @@ const mode: z.ZodEnum<["development", "production", "none"]>;
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule, compilation?: Compilation);
+    constructor(module: JsModule | ModuleDTO, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule, compilation?: Compilation): Module;
+    static __from_binding(module: JsModule | ModuleDTO, compilation?: Compilation): Module;
+    // (undocumented)
+    get blocks(): DependenciesBlock[];
     buildInfo: Record<string, any>;
     buildMeta: Record<string, any>;
     // (undocumented)
@@ -5655,6 +6240,8 @@ export class Module {
     // (undocumented)
     resource?: Readonly<string>;
     // (undocumented)
+    size(type?: string): number;
+    // (undocumented)
     type: string;
     // (undocumented)
     userRequest?: Readonly<string>;
@@ -5673,6 +6260,8 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     implementation?: string;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
+    // (undocumented)
+    shareStrategy?: "version-first" | "loaded-first";
 }
 
 // @public (undocumented)
@@ -6629,8 +7218,8 @@ export class MultiCompiler {
         infrastructureLog: liteTapable.MultiHook<liteTapable.SyncBailHook<[string, string, any[]], true>>;
     };
     // (undocumented)
-    get inputFileSystem(): void;
-    set inputFileSystem(value: void);
+    get inputFileSystem(): InputFileSystem;
+    set inputFileSystem(value: InputFileSystem);
     // (undocumented)
     get intermediateFileSystem(): void;
     set intermediateFileSystem(value: void);
@@ -6689,11 +7278,11 @@ export class MultiStats {
 class MultiWatching {
     constructor(watchings: Watching[], compiler: MultiCompiler);
     // (undocumented)
-    close(callback: any): void;
+    close(callback: Callback<Error, void>): void;
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: any): void;
+    invalidate(callback: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
@@ -6717,17 +7306,17 @@ export { Node_2 as Node }
 
 // @public (undocumented)
 const node_2: z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
-    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
-    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
+    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
+    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
     global: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"warn">]>>;
 }, "strict", z.ZodTypeAny, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }>]>;
 
 // @public (undocumented)
@@ -6766,17 +7355,17 @@ export type NodeOptions = z.infer<typeof nodeOptions>;
 
 // @public (undocumented)
 const nodeOptions: z.ZodObject<{
-    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
-    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
+    __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
+    __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
     global: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"warn">]>>;
 }, "strict", z.ZodTypeAny, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }, {
     global?: boolean | "warn" | undefined;
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
 }>;
 
 // @public (undocumented)
@@ -6803,6 +7392,17 @@ type NodeTemplatePluginOptions = {
 };
 
 // @public (undocumented)
+export const NoEmitOnErrorsPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _args: [];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 interface NonStandard {
     deepSelectorCombinator?: boolean;
 }
@@ -6820,7 +7420,7 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 export class NormalModule {
     // (undocumented)
     static getCompilationHooks(compilation: Compilation): {
-        loader: liteTapable.SyncHook<[LoaderContext<{}>], void, {
+        loader: liteTapable.SyncHook<[LoaderContext<{}>, Module], void, {
             _UnsetAdditionalOptions: true;
         }>;
         readResourceForScheme: any;
@@ -6863,6 +7463,11 @@ export class NormalModuleReplacementPlugin {
 }
 
 // @public (undocumented)
+type ObjectEncodingOptions = {
+    encoding?: BufferEncoding | null;
+};
+
+// @public (undocumented)
 export type Optimization = z.infer<typeof optimization>;
 
 // @public (undocumented)
@@ -6870,27 +7475,33 @@ const optimization: z.ZodObject<{
     moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
     chunkIds: z.ZodOptional<z.ZodEnum<["natural", "named", "deterministic"]>>;
     minimize: z.ZodOptional<z.ZodBoolean>;
-    minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
+    minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction, z.ZodTypeDef, RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
     mergeDuplicateChunks: z.ZodOptional<z.ZodBoolean>;
     splitChunks: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
         chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
         defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         minChunks: z.ZodOptional<z.ZodNumber>;
+        usedExports: z.ZodOptional<z.ZodBoolean>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
         minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+        maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+        maxInitialRequests: z.ZodOptional<z.ZodNumber>;
         automaticNameDelimiter: z.ZodOptional<z.ZodString>;
         cacheGroups: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
             chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
             defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
             minChunks: z.ZodOptional<z.ZodNumber>;
+            usedExports: z.ZodOptional<z.ZodBoolean>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
             minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+            maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+            maxInitialRequests: z.ZodOptional<z.ZodNumber>;
             automaticNameDelimiter: z.ZodOptional<z.ZodString>;
             test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
             priority: z.ZodOptional<z.ZodNumber>;
@@ -6911,10 +7522,13 @@ const optimization: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }, {
             filename?: string | undefined;
@@ -6928,14 +7542,15 @@ const optimization: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }>]>>>;
-        maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
-        maxInitialRequests: z.ZodOptional<z.ZodNumber>;
         fallbackCacheGroup: z.ZodOptional<z.ZodObject<{
             chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
             minSize: z.ZodOptional<z.ZodNumber>;
@@ -6964,10 +7579,13 @@ const optimization: z.ZodObject<{
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -6981,14 +7599,15 @@ const optimization: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7003,10 +7622,13 @@ const optimization: z.ZodObject<{
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7020,14 +7642,15 @@ const optimization: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7065,21 +7688,26 @@ const optimization: z.ZodObject<{
     usedExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["global"]>, z.ZodBoolean]>>;
     mangleExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["size", "deterministic"]>, z.ZodBoolean]>>;
     nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
+    emitOnErrors: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     moduleIds?: "named" | "natural" | "deterministic" | undefined;
     chunkIds?: "named" | "natural" | "deterministic" | undefined;
     minimize?: boolean | undefined;
-    minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
+    minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
     mergeDuplicateChunks?: boolean | undefined;
+    usedExports?: boolean | "global" | undefined;
     splitChunks?: false | {
         name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7093,14 +7721,15 @@ const optimization: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7123,24 +7752,28 @@ const optimization: z.ZodObject<{
     providedExports?: boolean | undefined;
     concatenateModules?: boolean | undefined;
     innerGraph?: boolean | undefined;
-    usedExports?: boolean | "global" | undefined;
-    mangleExports?: boolean | "deterministic" | "size" | undefined;
+    mangleExports?: boolean | "size" | "deterministic" | undefined;
     nodeEnv?: string | false | undefined;
+    emitOnErrors?: boolean | undefined;
 }, {
     moduleIds?: "named" | "natural" | "deterministic" | undefined;
     chunkIds?: "named" | "natural" | "deterministic" | undefined;
     minimize?: boolean | undefined;
-    minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
+    minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
     mergeDuplicateChunks?: boolean | undefined;
+    usedExports?: boolean | "global" | undefined;
     splitChunks?: false | {
         name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
@@ -7154,14 +7787,15 @@ const optimization: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
         }> | undefined;
-        maxAsyncRequests?: number | undefined;
-        maxInitialRequests?: number | undefined;
         fallbackCacheGroup?: {
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             minSize?: number | undefined;
@@ -7184,9 +7818,9 @@ const optimization: z.ZodObject<{
     providedExports?: boolean | undefined;
     concatenateModules?: boolean | undefined;
     innerGraph?: boolean | undefined;
-    usedExports?: boolean | "global" | undefined;
-    mangleExports?: boolean | "deterministic" | "size" | undefined;
+    mangleExports?: boolean | "size" | "deterministic" | undefined;
     nodeEnv?: string | false | undefined;
+    emitOnErrors?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -7226,11 +7860,14 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
     chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
     defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     minChunks: z.ZodOptional<z.ZodNumber>;
+    usedExports: z.ZodOptional<z.ZodBoolean>;
     name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
     minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+    maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+    maxInitialRequests: z.ZodOptional<z.ZodNumber>;
     automaticNameDelimiter: z.ZodOptional<z.ZodString>;
     test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
     priority: z.ZodOptional<z.ZodNumber>;
@@ -7251,10 +7888,13 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
     chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
     defaultSizeTypes?: string[] | undefined;
     minChunks?: number | undefined;
+    usedExports?: boolean | undefined;
     minSize?: number | Record<string, number> | undefined;
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
 }, {
     filename?: string | undefined;
@@ -7268,10 +7908,13 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
     chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
     defaultSizeTypes?: string[] | undefined;
     minChunks?: number | undefined;
+    usedExports?: boolean | undefined;
     minSize?: number | Record<string, number> | undefined;
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
 }>;
 
@@ -7289,21 +7932,27 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
     defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     minChunks: z.ZodOptional<z.ZodNumber>;
+    usedExports: z.ZodOptional<z.ZodBoolean>;
     name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
     minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
     maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+    maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+    maxInitialRequests: z.ZodOptional<z.ZodNumber>;
     automaticNameDelimiter: z.ZodOptional<z.ZodString>;
     cacheGroups: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
         chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
         defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         minChunks: z.ZodOptional<z.ZodNumber>;
+        usedExports: z.ZodOptional<z.ZodBoolean>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
         minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
         maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+        maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+        maxInitialRequests: z.ZodOptional<z.ZodNumber>;
         automaticNameDelimiter: z.ZodOptional<z.ZodString>;
         test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
         priority: z.ZodOptional<z.ZodNumber>;
@@ -7324,10 +7973,13 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }, {
         filename?: string | undefined;
@@ -7341,14 +7993,15 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }>]>>>;
-    maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
-    maxInitialRequests: z.ZodOptional<z.ZodNumber>;
     fallbackCacheGroup: z.ZodOptional<z.ZodObject<{
         chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
         minSize: z.ZodOptional<z.ZodNumber>;
@@ -7377,10 +8030,13 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
     defaultSizeTypes?: string[] | undefined;
     minChunks?: number | undefined;
+    usedExports?: boolean | undefined;
     minSize?: number | Record<string, number> | undefined;
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
     cacheGroups?: Record<string, false | {
         filename?: string | undefined;
@@ -7394,14 +8050,15 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }> | undefined;
-    maxAsyncRequests?: number | undefined;
-    maxInitialRequests?: number | undefined;
     fallbackCacheGroup?: {
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         minSize?: number | undefined;
@@ -7416,10 +8073,13 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
     defaultSizeTypes?: string[] | undefined;
     minChunks?: number | undefined;
+    usedExports?: boolean | undefined;
     minSize?: number | Record<string, number> | undefined;
     maxSize?: number | Record<string, number> | undefined;
     maxAsyncSize?: number | Record<string, number> | undefined;
     maxInitialSize?: number | Record<string, number> | undefined;
+    maxAsyncRequests?: number | undefined;
+    maxInitialRequests?: number | undefined;
     automaticNameDelimiter?: string | undefined;
     cacheGroups?: Record<string, false | {
         filename?: string | undefined;
@@ -7433,14 +8093,15 @@ const optimizationSplitChunksOptions: z.ZodObject<{
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         defaultSizeTypes?: string[] | undefined;
         minChunks?: number | undefined;
+        usedExports?: boolean | undefined;
         minSize?: number | Record<string, number> | undefined;
         maxSize?: number | Record<string, number> | undefined;
         maxAsyncSize?: number | Record<string, number> | undefined;
         maxInitialSize?: number | Record<string, number> | undefined;
+        maxAsyncRequests?: number | undefined;
+        maxInitialRequests?: number | undefined;
         automaticNameDelimiter?: string | undefined;
     }> | undefined;
-    maxAsyncRequests?: number | undefined;
-    maxInitialRequests?: number | undefined;
     fallbackCacheGroup?: {
         chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
         minSize?: number | undefined;
@@ -8811,6 +9472,12 @@ export type Pathinfo = z.infer<typeof pathinfo>;
 const pathinfo: z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>;
 
 // @public (undocumented)
+type PathLike = string | Buffer | URL;
+
+// @public (undocumented)
+type PathOrFileDescriptor = PathLike | number;
+
+// @public (undocumented)
 type Performance_2 = z.infer<typeof performance_2>;
 export { Performance_2 as Performance }
 
@@ -8856,7 +9523,7 @@ type PluginImportOptions = PluginImportConfig[] | undefined;
 export type Plugins = z.infer<typeof plugins>;
 
 // @public (undocumented)
-const plugins: z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">;
+const plugins: z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction, z.ZodTypeDef, RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">;
 
 // @public (undocumented)
 type PrintedElement = {
@@ -8882,7 +9549,7 @@ export const ProgressPlugin: {
 };
 
 // @public (undocumented)
-export type ProgressPluginArgument = Partial<RawProgressPluginOptions> | undefined;
+export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, "handler">> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
 
 // @public (undocumented)
 export const ProvidePlugin: {
@@ -8971,6 +9638,9 @@ export type PublicPath = z.infer<typeof publicPath>;
 const publicPath: z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>;
 
 // @public (undocumented)
+type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
 type RawReactOptions = {
     runtime?: "automatic" | "classic";
     importSource?: string;
@@ -8996,6 +9666,133 @@ type RawSourceMap = {
 
 // @public (undocumented)
 type ReactOptions = RawReactOptions | undefined;
+
+// @public (undocumented)
+type Readdir = {
+    (path: PathLike, options: {
+        encoding: BufferEncoding | null;
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | BufferEncoding | null | undefined, callback: ReaddirStringCallback): void;
+    (path: PathLike, options: {
+        encoding: "buffer";
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | "buffer", callback: ReaddirBufferCallback): void;
+    (path: PathLike, callback: ReaddirStringCallback): void;
+    (path: PathLike, options: (ObjectEncodingOptions & {
+        withFileTypes: true;
+        recursive?: boolean;
+    }) | BufferEncoding | null | undefined, callback: ReaddirStringOrBufferCallback): void;
+    (path: PathLike, options: ObjectEncodingOptions & {
+        withFileTypes: true;
+        recursive?: boolean;
+    }, callback: ReaddirDirentCallback): void;
+};
+
+// @public (undocumented)
+type ReaddirBufferCallback = (err: NodeJS.ErrnoException | null, files?: Buffer[]) => void;
+
+// @public (undocumented)
+type ReaddirDirentCallback = (err: NodeJS.ErrnoException | null, files?: IDirent[]) => void;
+
+// @public (undocumented)
+type ReaddirStringCallback = (err: NodeJS.ErrnoException | null, files?: string[]) => void;
+
+// @public (undocumented)
+type ReaddirStringOrBufferCallback = (err: NodeJS.ErrnoException | null, files?: string[] | Buffer[]) => void;
+
+// @public (undocumented)
+type ReaddirSync = {
+    (path: PathLike, options: {
+        encoding: BufferEncoding | null;
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | BufferEncoding | null): string[];
+    (path: PathLike, options: {
+        encoding: "buffer";
+        withFileTypes?: false;
+        recursive?: boolean;
+    } | "buffer"): Buffer[];
+    (path: PathLike, options: (ObjectEncodingOptions & {
+        withFileTypes?: false;
+        recursive?: boolean;
+    }) | BufferEncoding | null): string[] | Buffer[];
+    (path: PathLike, options: ObjectEncodingOptions & {
+        withFileTypes: true;
+        recursive?: boolean;
+    }): IDirent[];
+};
+
+// @public (undocumented)
+type ReadFile = {
+    (path: PathOrFileDescriptor, options: ({
+        encoding: null | undefined;
+        flag?: string;
+    } & Abortable) | null | undefined, callback: BufferCallback): void;
+    (path: PathOrFileDescriptor, options: ({
+        encoding: BufferEncoding;
+        flag?: string;
+    } & Abortable) | BufferEncoding, callback: StringCallback): void;
+    (path: PathOrFileDescriptor, options: (ObjectEncodingOptions & {
+        flag?: string;
+    } & Abortable) | BufferEncoding | null | undefined, callback: StringOrBufferCallback): void;
+    (path: PathOrFileDescriptor, callback: BufferCallback): void;
+};
+
+// @public (undocumented)
+type ReadFileSync = {
+    (path: PathOrFileDescriptor, options: {
+        encoding: null | undefined;
+        flag?: string;
+    } | null): Buffer;
+    (path: PathOrFileDescriptor, options: {
+        encoding: BufferEncoding;
+        flag?: string;
+    } | BufferEncoding): string;
+    (path: PathOrFileDescriptor, options: (ObjectEncodingOptions & {
+        flag?: string;
+    }) | BufferEncoding | null): string | Buffer;
+};
+
+// @public (undocumented)
+type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
+
+// @public (undocumented)
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
+
+// @public (undocumented)
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
+
+// @public (undocumented)
+type Readlink = {
+    (path: PathLike, options: EncodingOption, callback: StringCallback): void;
+    (path: PathLike, options: BufferEncodingOption, callback: BufferCallback): void;
+    (path: PathLike, options: EncodingOption, callback: StringOrBufferCallback): void;
+    (path: PathLike, callback: StringCallback): void;
+};
+
+// @public (undocumented)
+type ReadlinkSync = {
+    (path: PathLike, options: EncodingOption): string;
+    (path: PathLike, options: BufferEncodingOption): Buffer;
+    (path: PathLike, options: EncodingOption): string | Buffer;
+};
+
+// @public (undocumented)
+type RealPath = {
+    (path: PathLike, options: EncodingOption, callback: StringCallback): void;
+    (path: PathLike, options: BufferEncodingOption, callback: BufferCallback): void;
+    (path: PathLike, options: EncodingOption, callback: StringOrBufferCallback): void;
+    (path: PathLike, callback: StringCallback): void;
+};
+
+// @public (undocumented)
+type RealPathSync = {
+    (path: PathLike, options?: EncodingOption): string;
+    (path: PathLike, options: BufferEncodingOption): Buffer;
+    (path: PathLike, options?: EncodingOption): string | Buffer;
+};
 
 // @public (undocumented)
 type RecursiveArrayOrRecord<T> = {
@@ -9030,6 +9827,9 @@ export type ResolveAlias = z.infer<typeof resolveAlias>;
 
 // @public (undocumented)
 const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
+
+// @public (undocumented)
+type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
 
 // @public (undocumented)
 type ResolveContext = {};
@@ -9071,7 +9871,7 @@ class Resolver {
     // (undocumented)
     binding: binding.JsResolver;
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: (err: null | ErrorWithDetail, res?: string | false) => void): void;
+    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
@@ -9188,7 +9988,6 @@ declare namespace rspackExports {
         StatsCompilation,
         StatsError,
         StatsModule,
-        StatsWarnings,
         Stats,
         ModuleFilenameHelpers,
         Template,
@@ -9196,6 +9995,7 @@ declare namespace rspackExports {
         Watching,
         sources,
         config,
+        ValidationError,
         util,
         EntryOptionPlugin,
         OutputFileSystem,
@@ -9214,6 +10014,7 @@ declare namespace rspackExports {
         DynamicEntryPlugin,
         ExternalsPlugin,
         HotModuleReplacementPlugin,
+        NoEmitOnErrorsPlugin,
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
@@ -9267,7 +10068,6 @@ declare namespace rspackExports {
         CssExtractRspackPluginOptions,
         HtmlRspackPlugin,
         SwcJsMinimizerRspackPlugin,
-        SwcCssMinimizerRspackPlugin,
         LightningCssMinimizerRspackPlugin,
         CopyRspackPlugin,
         SourceMapDevToolPlugin,
@@ -9339,6 +10139,7 @@ declare namespace rspackExports {
         EntryUnnamed,
         EntryObject,
         EntryStatic,
+        EntryDynamic,
         Entry,
         Path,
         Pathinfo,
@@ -9442,6 +10243,9 @@ declare namespace rspackExports {
         StatsValue,
         RspackPluginInstance,
         RspackPluginFunction,
+        WebpackCompiler,
+        WebpackPluginInstance,
+        WebpackPluginFunction,
         Plugins,
         OptimizationRuntimeChunk,
         OptimizationSplitChunksNameFunction,
@@ -9482,18 +10286,21 @@ const rspackFutureOptions: z.ZodObject<{
         version?: string | undefined;
         bundler?: string | undefined;
     }>>;
+    newIncremental: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     bundlerInfo?: {
         force?: boolean | ("version" | "uniqueId")[] | undefined;
         version?: string | undefined;
         bundler?: string | undefined;
     } | undefined;
+    newIncremental?: boolean | undefined;
 }, {
     bundlerInfo?: {
         force?: boolean | ("version" | "uniqueId")[] | undefined;
         version?: string | undefined;
         bundler?: string | undefined;
     } | undefined;
+    newIncremental?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -10416,18 +11223,21 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             }>>;
+            newIncremental: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             bundlerInfo?: {
                 force?: boolean | ("version" | "uniqueId")[] | undefined;
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         }, {
             bundlerInfo?: {
                 force?: boolean | ("version" | "uniqueId")[] | undefined;
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
         css?: boolean | undefined;
@@ -10461,6 +11271,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     }, {
         css?: boolean | undefined;
@@ -10494,6 +11305,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     }>>;
     externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
@@ -10521,7 +11333,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -10571,7 +11383,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -10597,7 +11409,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>]>>;
-    externalsType: z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "script", "node-commonjs"]>>;
+    externalsType: z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>;
     externalsPresets: z.ZodOptional<z.ZodObject<{
         node: z.ZodOptional<z.ZodBoolean>;
         web: z.ZodOptional<z.ZodBoolean>;
@@ -10649,20 +11461,20 @@ export const rspackOptions: z.ZodObject<{
         stream?: NodeJS.WritableStream | undefined;
     }>>;
     cache: z.ZodOptional<z.ZodBoolean>;
-    context: z.ZodOptional<z.ZodString>;
+    context: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
     devtool: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["eval", "cheap-source-map", "cheap-module-source-map", "source-map", "inline-cheap-source-map", "inline-cheap-module-source-map", "inline-source-map", "inline-nosources-cheap-source-map", "inline-nosources-cheap-module-source-map", "inline-nosources-source-map", "nosources-cheap-source-map", "nosources-cheap-module-source-map", "nosources-source-map", "hidden-nosources-cheap-source-map", "hidden-nosources-cheap-module-source-map", "hidden-nosources-source-map", "hidden-cheap-source-map", "hidden-cheap-module-source-map", "hidden-source-map", "eval-cheap-source-map", "eval-cheap-module-source-map", "eval-source-map", "eval-nosources-cheap-source-map", "eval-nosources-cheap-module-source-map", "eval-nosources-source-map"]>]>>;
     node: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
-        __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
-        __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only"]>]>>;
+        __dirname: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
+        __filename: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["warn-mock", "mock", "eval-only", "node-module"]>]>>;
         global: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"warn">]>>;
     }, "strict", z.ZodTypeAny, {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     }, {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     }>]>>;
     loader: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
     ignoreWarnings: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Error, z.ZodTypeDef, Error>, z.ZodType<Compilation, z.ZodTypeDef, Compilation>], z.ZodUnknown>, z.ZodBoolean>]>, "many">>;
@@ -10759,20 +11571,20 @@ export const rspackOptions: z.ZodObject<{
         errorStack: z.ZodOptional<z.ZodBoolean>;
         moduleTrace: z.ZodOptional<z.ZodBoolean>;
         cachedModules: z.ZodOptional<z.ZodBoolean>;
+        cachedAssets: z.ZodOptional<z.ZodBoolean>;
         cached: z.ZodOptional<z.ZodBoolean>;
+        errorsSpace: z.ZodOptional<z.ZodNumber>;
+        warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
-        providedExports?: boolean | undefined;
         usedExports?: boolean | undefined;
-        children?: boolean | undefined;
-        runtime?: boolean | undefined;
-        modules?: boolean | undefined;
-        moduleTrace?: boolean | undefined;
+        providedExports?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
+        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -10795,6 +11607,7 @@ export const rspackOptions: z.ZodObject<{
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
+        children?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
         groupModulesByType?: boolean | undefined;
         groupModulesByCacheStatus?: boolean | undefined;
@@ -10827,26 +11640,28 @@ export const rspackOptions: z.ZodObject<{
         chunkGroupMaxAssets?: number | undefined;
         dependentModules?: boolean | undefined;
         chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
         depth?: boolean | undefined;
         reasonsSpace?: number | undefined;
         groupReasonsByOrigin?: boolean | undefined;
         errorDetails?: boolean | undefined;
         errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     }, {
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
-        providedExports?: boolean | undefined;
         usedExports?: boolean | undefined;
-        children?: boolean | undefined;
-        runtime?: boolean | undefined;
-        modules?: boolean | undefined;
-        moduleTrace?: boolean | undefined;
+        providedExports?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
+        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -10869,6 +11684,7 @@ export const rspackOptions: z.ZodObject<{
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
+        children?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
         groupModulesByType?: boolean | undefined;
         groupModulesByCacheStatus?: boolean | undefined;
@@ -10901,40 +11717,51 @@ export const rspackOptions: z.ZodObject<{
         chunkGroupMaxAssets?: number | undefined;
         dependentModules?: boolean | undefined;
         chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
         depth?: boolean | undefined;
         reasonsSpace?: number | undefined;
         groupReasonsByOrigin?: boolean | undefined;
         errorDetails?: boolean | undefined;
         errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     }>]>>;
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
         moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
         chunkIds: z.ZodOptional<z.ZodEnum<["natural", "named", "deterministic"]>>;
         minimize: z.ZodOptional<z.ZodBoolean>;
-        minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
+        minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction, z.ZodTypeDef, RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
         mergeDuplicateChunks: z.ZodOptional<z.ZodBoolean>;
         splitChunks: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
             chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
             defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
             minChunks: z.ZodOptional<z.ZodNumber>;
+            usedExports: z.ZodOptional<z.ZodBoolean>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
             minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+            maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+            maxInitialRequests: z.ZodOptional<z.ZodNumber>;
             automaticNameDelimiter: z.ZodOptional<z.ZodString>;
             cacheGroups: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodLiteral<false>, z.ZodObject<{
                 chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
                 defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
                 minChunks: z.ZodOptional<z.ZodNumber>;
+                usedExports: z.ZodOptional<z.ZodBoolean>;
                 name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
                 minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxInitialSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
+                maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
+                maxInitialRequests: z.ZodOptional<z.ZodNumber>;
                 automaticNameDelimiter: z.ZodOptional<z.ZodString>;
                 test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
                 priority: z.ZodOptional<z.ZodNumber>;
@@ -10955,10 +11782,13 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }, {
                 filename?: string | undefined;
@@ -10972,14 +11802,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }>]>>>;
-            maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
-            maxInitialRequests: z.ZodOptional<z.ZodNumber>;
             fallbackCacheGroup: z.ZodOptional<z.ZodObject<{
                 chunks: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodEnum<["initial", "async", "all"]>, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Chunk, z.ZodTypeDef, Chunk>], z.ZodUnknown>, z.ZodBoolean>]>>;
                 minSize: z.ZodOptional<z.ZodNumber>;
@@ -11008,10 +11839,13 @@ export const rspackOptions: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11025,14 +11859,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11047,10 +11882,13 @@ export const rspackOptions: z.ZodObject<{
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11064,14 +11902,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11109,21 +11948,26 @@ export const rspackOptions: z.ZodObject<{
         usedExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["global"]>, z.ZodBoolean]>>;
         mangleExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["size", "deterministic"]>, z.ZodBoolean]>>;
         nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
+        emitOnErrors: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
-        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
+        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
+        usedExports?: boolean | "global" | undefined;
         splitChunks?: false | {
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11137,14 +11981,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11167,24 +12012,28 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        usedExports?: boolean | "global" | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
+        emitOnErrors?: boolean | undefined;
     }, {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
-        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
+        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
+        usedExports?: boolean | "global" | undefined;
         splitChunks?: false | {
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -11198,14 +12047,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -11228,13 +12078,13 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        usedExports?: boolean | "global" | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
+        emitOnErrors?: boolean | undefined;
     }>>;
     resolve: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
     resolveLoader: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
-    plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance, z.ZodTypeDef, RspackPluginInstance>, z.ZodType<RspackPluginFunction, z.ZodTypeDef, RspackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
+    plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction, z.ZodTypeDef, RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<DevServer, z.ZodTypeDef, DevServer>>;
     module: z.ZodOptional<z.ZodObject<{
         defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<RuleSetRule, z.ZodTypeDef, RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
@@ -12257,6 +13107,12 @@ export const rspackOptions: z.ZodObject<{
     dependencies?: string[] | undefined;
     name?: string | undefined;
     context?: string | undefined;
+    performance?: false | {
+        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+        hints?: false | "error" | "warning" | undefined;
+        maxAssetSize?: number | undefined;
+        maxEntrypointSize?: number | undefined;
+    } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -12342,16 +13198,10 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         dependOn?: string | string[] | undefined;
     }>>) | undefined;
-    performance?: false | {
-        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
-        hints?: false | "error" | "warning" | undefined;
-        maxAssetSize?: number | undefined;
-        maxEntrypointSize?: number | undefined;
-    } | undefined;
     node?: false | {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     } | undefined;
     profile?: boolean | undefined;
     cache?: boolean | undefined;
@@ -12454,7 +13304,7 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
     } | undefined;
     target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`)[] | undefined;
-    mode?: "development" | "none" | "production" | undefined;
+    mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         css?: boolean | undefined;
         lazyCompilation?: boolean | {
@@ -12487,6 +13337,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
@@ -12496,7 +13347,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -12510,7 +13361,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -12518,7 +13369,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined;
+    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -12552,14 +13403,11 @@ export const rspackOptions: z.ZodObject<{
         hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
-        providedExports?: boolean | undefined;
         usedExports?: boolean | undefined;
-        children?: boolean | undefined;
-        runtime?: boolean | undefined;
-        modules?: boolean | undefined;
-        moduleTrace?: boolean | undefined;
+        providedExports?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
+        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -12582,6 +13430,7 @@ export const rspackOptions: z.ZodObject<{
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
+        children?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
         groupModulesByType?: boolean | undefined;
         groupModulesByCacheStatus?: boolean | undefined;
@@ -12614,30 +13463,39 @@ export const rspackOptions: z.ZodObject<{
         chunkGroupMaxAssets?: number | undefined;
         dependentModules?: boolean | undefined;
         chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
         depth?: boolean | undefined;
         reasonsSpace?: number | undefined;
         groupReasonsByOrigin?: boolean | undefined;
         errorDetails?: boolean | undefined;
         errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
-        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
+        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
+        usedExports?: boolean | "global" | undefined;
         splitChunks?: false | {
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -12651,14 +13509,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -12681,12 +13540,12 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        usedExports?: boolean | "global" | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
+        emitOnErrors?: boolean | undefined;
     } | undefined;
     resolveLoader?: ResolveOptions | undefined;
-    plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
+    plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }, {
@@ -12822,6 +13681,12 @@ export const rspackOptions: z.ZodObject<{
     dependencies?: string[] | undefined;
     name?: string | undefined;
     context?: string | undefined;
+    performance?: false | {
+        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
+        hints?: false | "error" | "warning" | undefined;
+        maxAssetSize?: number | undefined;
+        maxEntrypointSize?: number | undefined;
+    } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -12907,16 +13772,10 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         dependOn?: string | string[] | undefined;
     }>>) | undefined;
-    performance?: false | {
-        assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
-        hints?: false | "error" | "warning" | undefined;
-        maxAssetSize?: number | undefined;
-        maxEntrypointSize?: number | undefined;
-    } | undefined;
     node?: false | {
         global?: boolean | "warn" | undefined;
-        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
-        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | undefined;
+        __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
+        __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     } | undefined;
     profile?: boolean | undefined;
     cache?: boolean | undefined;
@@ -13019,7 +13878,7 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
     } | undefined;
     target?: false | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}` | ("es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | "web" | "webworker" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`)[] | undefined;
-    mode?: "development" | "none" | "production" | undefined;
+    mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         css?: boolean | undefined;
         lazyCompilation?: boolean | {
@@ -13052,6 +13911,7 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
+            newIncremental?: boolean | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
@@ -13061,7 +13921,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13075,7 +13935,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13083,7 +13943,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "script" | "node-commonjs" | undefined;
+    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -13117,14 +13977,11 @@ export const rspackOptions: z.ZodObject<{
         hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
-        providedExports?: boolean | undefined;
         usedExports?: boolean | undefined;
-        children?: boolean | undefined;
-        runtime?: boolean | undefined;
-        modules?: boolean | undefined;
-        moduleTrace?: boolean | undefined;
+        providedExports?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
+        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -13147,6 +14004,7 @@ export const rspackOptions: z.ZodObject<{
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
         runtimeModules?: boolean | undefined;
+        children?: boolean | undefined;
         optimizationBailout?: boolean | undefined;
         groupModulesByType?: boolean | undefined;
         groupModulesByCacheStatus?: boolean | undefined;
@@ -13179,30 +14037,39 @@ export const rspackOptions: z.ZodObject<{
         chunkGroupMaxAssets?: number | undefined;
         dependentModules?: boolean | undefined;
         chunkOrigins?: boolean | undefined;
+        runtime?: boolean | undefined;
         depth?: boolean | undefined;
         reasonsSpace?: number | undefined;
         groupReasonsByOrigin?: boolean | undefined;
         errorDetails?: boolean | undefined;
         errorStack?: boolean | undefined;
+        moduleTrace?: boolean | undefined;
         cachedModules?: boolean | undefined;
+        cachedAssets?: boolean | undefined;
         cached?: boolean | undefined;
+        errorsSpace?: number | undefined;
+        warningsSpace?: number | undefined;
     } | undefined;
     snapshot?: {} | undefined;
     optimization?: {
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
         minimize?: boolean | undefined;
-        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | null | undefined)[] | undefined;
+        minimizer?: (false | "" | 0 | RspackPluginInstance | "..." | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
+        usedExports?: boolean | "global" | undefined;
         splitChunks?: false | {
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
             chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
             defaultSizeTypes?: string[] | undefined;
             minChunks?: number | undefined;
+            usedExports?: boolean | undefined;
             minSize?: number | Record<string, number> | undefined;
             maxSize?: number | Record<string, number> | undefined;
             maxAsyncSize?: number | Record<string, number> | undefined;
             maxInitialSize?: number | Record<string, number> | undefined;
+            maxAsyncRequests?: number | undefined;
+            maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
@@ -13216,14 +14083,15 @@ export const rspackOptions: z.ZodObject<{
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 minChunks?: number | undefined;
+                usedExports?: boolean | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
+                maxAsyncRequests?: number | undefined;
+                maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }> | undefined;
-            maxAsyncRequests?: number | undefined;
-            maxInitialRequests?: number | undefined;
             fallbackCacheGroup?: {
                 chunks?: RegExp | "async" | "initial" | "all" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 minSize?: number | undefined;
@@ -13246,12 +14114,12 @@ export const rspackOptions: z.ZodObject<{
         providedExports?: boolean | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
-        usedExports?: boolean | "global" | undefined;
-        mangleExports?: boolean | "deterministic" | "size" | undefined;
+        mangleExports?: boolean | "size" | "deterministic" | undefined;
         nodeEnv?: string | false | undefined;
+        emitOnErrors?: boolean | undefined;
     } | undefined;
     resolveLoader?: ResolveOptions | undefined;
-    plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | null | undefined)[] | undefined;
+    plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }>;
@@ -13734,6 +14602,23 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
+type Stat = {
+    (path: PathLike, callback: StatsCallback): void;
+    (path: PathLike, options: (StatOptions & {
+        bigint?: false;
+    }) | undefined, callback: StatsCallback): void;
+    (path: PathLike, options: StatOptions & {
+        bigint: true;
+    }, callback: BigIntStatsCallback): void;
+    (path: PathLike, options: StatOptions | undefined, callback: StatsOrBigIntStatsCallback): void;
+};
+
+// @public (undocumented)
+type StatOptions = {
+    bigint?: boolean;
+};
+
+// @public (undocumented)
 export class Stats {
     constructor(compilation: Compilation);
     // (undocumented)
@@ -13758,10 +14643,13 @@ export class Stats {
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 // @public (undocumented)
+type StatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats) => void;
+
+// @public (undocumented)
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
 // @public (undocumented)
-type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
+type StatsChunkGroup = KnownStatsChunkGroup & Record<string, any>;
 
 // @public (undocumented)
 type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
@@ -13770,9 +14658,7 @@ type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 
 // @public (undocumented)
-export type StatsError = Omit<binding.JsStatsError, "moduleIdentifier"> & {
-    moduleIdentifier?: string;
-} & Record<string, any>;
+export type StatsError = KnownStatsError & Record<string, any>;
 
 // @public (undocumented)
 class StatsFactory {
@@ -13804,14 +14690,20 @@ type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
 // @public (undocumented)
-type StatsModuleIssuer = Omit<binding.JsStatsModuleIssuer, "identifier"> & {
-    identifier?: string;
-} & Record<string, any>;
+type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
 // @public (undocumented)
-type StatsModuleReason = Omit<binding.JsStatsModuleReason, "moduleIdentifier"> & {
+type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
+
+// @public (undocumented)
+type StatsModuleTraceItem = {
+    originIdentifier?: string;
+    originName?: string;
     moduleIdentifier?: string;
-} & Record<string, any>;
+    moduleName?: string;
+    originId?: string;
+    moduleId?: string;
+};
 
 // @public (undocumented)
 export type StatsOptions = z.infer<typeof statsOptions>;
@@ -13890,20 +14782,20 @@ const statsOptions: z.ZodObject<{
     errorStack: z.ZodOptional<z.ZodBoolean>;
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
     cachedModules: z.ZodOptional<z.ZodBoolean>;
+    cachedAssets: z.ZodOptional<z.ZodBoolean>;
     cached: z.ZodOptional<z.ZodBoolean>;
+    errorsSpace: z.ZodOptional<z.ZodNumber>;
+    warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
-    providedExports?: boolean | undefined;
     usedExports?: boolean | undefined;
-    children?: boolean | undefined;
-    runtime?: boolean | undefined;
-    modules?: boolean | undefined;
-    moduleTrace?: boolean | undefined;
+    providedExports?: boolean | undefined;
     preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
     assets?: boolean | undefined;
+    modules?: boolean | undefined;
     entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
@@ -13926,6 +14818,7 @@ const statsOptions: z.ZodObject<{
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
+    children?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
     groupModulesByType?: boolean | undefined;
     groupModulesByCacheStatus?: boolean | undefined;
@@ -13958,26 +14851,28 @@ const statsOptions: z.ZodObject<{
     chunkGroupMaxAssets?: number | undefined;
     dependentModules?: boolean | undefined;
     chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
     depth?: boolean | undefined;
     reasonsSpace?: number | undefined;
     groupReasonsByOrigin?: boolean | undefined;
     errorDetails?: boolean | undefined;
     errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
-    providedExports?: boolean | undefined;
     usedExports?: boolean | undefined;
-    children?: boolean | undefined;
-    runtime?: boolean | undefined;
-    modules?: boolean | undefined;
-    moduleTrace?: boolean | undefined;
+    providedExports?: boolean | undefined;
     preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
     assets?: boolean | undefined;
+    modules?: boolean | undefined;
     entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
@@ -14000,6 +14895,7 @@ const statsOptions: z.ZodObject<{
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
+    children?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
     groupModulesByType?: boolean | undefined;
     groupModulesByCacheStatus?: boolean | undefined;
@@ -14032,14 +14928,22 @@ const statsOptions: z.ZodObject<{
     chunkGroupMaxAssets?: number | undefined;
     dependentModules?: boolean | undefined;
     chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
     depth?: boolean | undefined;
     reasonsSpace?: number | undefined;
     groupReasonsByOrigin?: boolean | undefined;
     errorDetails?: boolean | undefined;
     errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }>;
+
+// @public (undocumented)
+type StatsOrBigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats | IBigIntStats) => void;
 
 // @public (undocumented)
 class StatsPrinter {
@@ -14145,20 +15049,20 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorStack: z.ZodOptional<z.ZodBoolean>;
     moduleTrace: z.ZodOptional<z.ZodBoolean>;
     cachedModules: z.ZodOptional<z.ZodBoolean>;
+    cachedAssets: z.ZodOptional<z.ZodBoolean>;
     cached: z.ZodOptional<z.ZodBoolean>;
+    errorsSpace: z.ZodOptional<z.ZodNumber>;
+    warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
-    providedExports?: boolean | undefined;
     usedExports?: boolean | undefined;
-    children?: boolean | undefined;
-    runtime?: boolean | undefined;
-    modules?: boolean | undefined;
-    moduleTrace?: boolean | undefined;
+    providedExports?: boolean | undefined;
     preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
     assets?: boolean | undefined;
+    modules?: boolean | undefined;
     entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
@@ -14181,6 +15085,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
+    children?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
     groupModulesByType?: boolean | undefined;
     groupModulesByCacheStatus?: boolean | undefined;
@@ -14213,26 +15118,28 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     chunkGroupMaxAssets?: number | undefined;
     dependentModules?: boolean | undefined;
     chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
     depth?: boolean | undefined;
     reasonsSpace?: number | undefined;
     groupReasonsByOrigin?: boolean | undefined;
     errorDetails?: boolean | undefined;
     errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }, {
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
-    providedExports?: boolean | undefined;
     usedExports?: boolean | undefined;
-    children?: boolean | undefined;
-    runtime?: boolean | undefined;
-    modules?: boolean | undefined;
-    moduleTrace?: boolean | undefined;
+    providedExports?: boolean | undefined;
     preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
     assets?: boolean | undefined;
+    modules?: boolean | undefined;
     entrypoints?: boolean | "auto" | undefined;
     chunkGroups?: boolean | undefined;
     warnings?: boolean | undefined;
@@ -14255,6 +15162,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
     runtimeModules?: boolean | undefined;
+    children?: boolean | undefined;
     optimizationBailout?: boolean | undefined;
     groupModulesByType?: boolean | undefined;
     groupModulesByCacheStatus?: boolean | undefined;
@@ -14287,19 +15195,49 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     chunkGroupMaxAssets?: number | undefined;
     dependentModules?: boolean | undefined;
     chunkOrigins?: boolean | undefined;
+    runtime?: boolean | undefined;
     depth?: boolean | undefined;
     reasonsSpace?: number | undefined;
     groupReasonsByOrigin?: boolean | undefined;
     errorDetails?: boolean | undefined;
     errorStack?: boolean | undefined;
+    moduleTrace?: boolean | undefined;
     cachedModules?: boolean | undefined;
+    cachedAssets?: boolean | undefined;
     cached?: boolean | undefined;
+    errorsSpace?: number | undefined;
+    warningsSpace?: number | undefined;
 }>]>;
 
 // @public (undocumented)
-export type StatsWarnings = Omit<binding.JsStatsWarning, "moduleIdentifier"> & {
-    moduleIdentifier?: string;
-} & Record<string, any>;
+type StatSync = {
+    (path: PathLike, options?: undefined): IStats;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+        throwIfNoEntry: false;
+    }): IStats | undefined;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+        throwIfNoEntry: false;
+    }): IBigIntStats | undefined;
+    (path: PathLike, options?: StatSyncOptions & {
+        bigint?: false;
+    }): IStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: true;
+    }): IBigIntStats;
+    (path: PathLike, options: StatSyncOptions & {
+        bigint: boolean;
+        throwIfNoEntry?: false;
+    }): IStats | IBigIntStats;
+    (path: PathLike, options?: StatSyncOptions): IStats | IBigIntStats | undefined;
+};
+
+// @public (undocumented)
+type StatSyncOptions = {
+    bigint?: boolean;
+    throwIfNoEntry?: boolean;
+};
 
 // @public (undocumented)
 export type StrictModuleErrorHandling = z.infer<typeof strictModuleErrorHandling>;
@@ -14314,22 +15252,10 @@ export type StrictModuleExceptionHandling = z.infer<typeof strictModuleException
 const strictModuleExceptionHandling: z.ZodBoolean;
 
 // @public (undocumented)
-export const SwcCssMinimizerRspackPlugin: {
-    new (options?: SwcCssMinimizerRspackPluginOptions | undefined): {
-        name: BuiltinPluginName;
-        _args: [options?: SwcCssMinimizerRspackPluginOptions | undefined];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void;
 
 // @public (undocumented)
-type SwcCssMinimizerRspackPluginOptions = {
-    test?: MinifyConditions_2;
-    exclude?: MinifyConditions_2;
-    include?: MinifyConditions_2;
-};
+type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
@@ -14344,14 +15270,17 @@ export const SwcJsMinimizerRspackPlugin: {
 
 // @public (undocumented)
 export type SwcJsMinimizerRspackPluginOptions = {
+    test?: AssetConditions;
+    exclude?: AssetConditions;
+    include?: AssetConditions;
     extractComments?: ExtractCommentsOptions | undefined;
-    compress?: TerserCompressOptions | boolean;
-    mangle?: TerserMangleOptions | boolean;
-    format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
-    module?: boolean;
-    test?: MinifyConditions;
-    exclude?: MinifyConditions;
-    include?: MinifyConditions;
+    minimizerOptions?: {
+        minify?: boolean;
+        compress?: TerserCompressOptions | boolean;
+        mangle?: TerserMangleOptions | boolean;
+        format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+        module?: boolean;
+    };
 };
 
 // @public (undocumented)
@@ -14727,6 +15656,11 @@ export const util: {
 };
 
 // @public (undocumented)
+export class ValidationError extends Error {
+    constructor(message: string);
+}
+
+// @public (undocumented)
 export const version: string;
 
 // @public (undocumented)
@@ -14811,7 +15745,7 @@ interface WatchFileSystem {
 
 // @public (undocumented)
 export class Watching {
-    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: (error?: Error, stats?: Stats) => void);
+    constructor(compiler: Compiler, watchOptions: WatchOptions, handler: Callback<Error, Stats>);
     // (undocumented)
     blocked: boolean;
     // (undocumented)
@@ -14821,21 +15755,21 @@ export class Watching {
     // (undocumented)
     compiler: Compiler;
     // (undocumented)
-    handler: (error?: Error, stats?: Stats) => void;
+    handler: Callback<Error, Stats>;
     // (undocumented)
     invalid: boolean;
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
-    isBlocked?: () => boolean;
+    isBlocked: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
     // (undocumented)
     lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
-    onChange?: () => void;
+    onChange: () => void;
     // (undocumented)
-    onInvalid?: () => void;
+    onInvalid: () => void;
     // (undocumented)
     pausedWatcher?: Watcher;
     // (undocumented)
@@ -14989,6 +15923,9 @@ export type WebassemblyModuleFilename = z.infer<typeof webassemblyModuleFilename
 const webassemblyModuleFilename: z.ZodString;
 
 // @public (undocumented)
+export type WebpackCompiler = any;
+
+// @public (undocumented)
 export const WebpackError: ErrorConstructor;
 
 // @public (undocumented)
@@ -15007,6 +15944,17 @@ class WebpackError_2 extends Error {
     loc?: DependencyLocation;
     // (undocumented)
     module?: Module;
+}
+
+// @public (undocumented)
+export type WebpackPluginFunction = (this: WebpackCompiler, compiler: WebpackCompiler) => void;
+
+// @public (undocumented)
+export interface WebpackPluginInstance {
+    // (undocumented)
+    [k: string]: any;
+    // (undocumented)
+    apply: (compiler: WebpackCompiler) => void;
 }
 
 // @public (undocumented)

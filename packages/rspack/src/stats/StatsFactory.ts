@@ -45,7 +45,7 @@ type Hooks = Readonly<{
 		SyncBailHook<[any, StatsFactoryContext, number, number], undefined>
 	>;
 	groupResults: HookMap<
-		SyncBailHook<[GroupConfig[], StatsFactoryContext], undefined>
+		SyncBailHook<[GroupConfig<any>[], StatsFactoryContext], undefined>
 	>;
 	filterResults: HookMap<
 		SyncBailHook<[any, StatsFactoryContext, number, number], undefined>
@@ -121,10 +121,10 @@ export class StatsFactory {
 			),
 			groupResults: new HookMap(
 				() =>
-					new SyncBailHook<[GroupConfig[], StatsFactoryContext], undefined>([
-						"groupConfigs",
-						"context"
-					])
+					new SyncBailHook<
+						[GroupConfig<any>[], StatsFactoryContext],
+						undefined
+					>(["groupConfigs", "context"])
 			),
 			sortResults: new HookMap(
 				() =>
@@ -171,12 +171,13 @@ export class StatsFactory {
 		});
 
 		const hooks = this.hooks;
-		this._caches = Object.keys(hooks).reduce((prev, curr) => {
-			return {
-				...prev,
-				[curr]: new Map()
-			};
-		}, {} as Cache);
+		const caches = {} as Cache;
+
+		for (const key of Object.keys(hooks)) {
+			caches[key as keyof Cache] = new Map();
+		}
+
+		this._caches = caches;
 		this._inCreate = false;
 	}
 
@@ -350,7 +351,7 @@ export class StatsFactory {
 			}
 
 			// group result items
-			const groupConfigs: GroupConfig[] = [];
+			const groupConfigs: GroupConfig<any>[] = [];
 			this._forEachLevel(
 				this.hooks.groupResults,
 				this._caches.groupResults,

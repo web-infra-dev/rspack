@@ -16,20 +16,9 @@ use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
-pub struct SyntheticDependencyLocation {
-  pub name: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum OriginLocation {
-  Real(DependencyLocation),
-  Synthetic(SyntheticDependencyLocation),
-}
-
-#[derive(Debug, Clone)]
 pub struct OriginRecord {
   pub module_id: Option<ModuleIdentifier>,
-  pub loc: Option<OriginLocation>,
+  pub loc: Option<DependencyLocation>,
   pub request: Option<String>,
 }
 
@@ -59,6 +48,7 @@ pub struct ChunkGroup {
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
   origins: Vec<OriginRecord>,
+  pub(crate) is_over_size_limit: Option<bool>,
 }
 
 impl ChunkGroup {
@@ -78,6 +68,7 @@ impl ChunkGroup {
       entry_point_chunk: None,
       index: None,
       origins: vec![],
+      is_over_size_limit: None,
     }
   }
 
@@ -311,7 +302,7 @@ impl ChunkGroup {
   pub fn add_origin(
     &mut self,
     module_id: Option<ModuleIdentifier>,
-    loc: Option<OriginLocation>,
+    loc: Option<DependencyLocation>,
     request: Option<String>,
   ) {
     self.origins.push(OriginRecord {
@@ -365,6 +356,10 @@ impl ChunkGroup {
     }
 
     children_by_orders
+  }
+
+  pub fn set_is_over_size_limit(&mut self, v: bool) {
+    self.is_over_size_limit = Some(v);
   }
 }
 

@@ -28,7 +28,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
-    dependencies.into_iter().for_each(|dependency_id| {
+    for dependency_id in dependencies {
       let dependency = module_graph
         .dependency_by_id(&dependency_id)
         .expect("should have dependency");
@@ -57,9 +57,9 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         sorted_dependencies
           .entry(resource_identifier)
           .or_insert(vec![])
-          .push(dependency_id);
+          .push(dependency.clone());
       }
-    });
+    }
 
     let module = module_graph
       .module_by_identifier(&original_module_identifier)
@@ -71,10 +71,6 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         .compiler_options
         .profile
         .then(Box::<ModuleProfile>::default);
-      let dependency = module_graph
-        .dependency_by_id(&dependencies[0])
-        .expect("should have dependency")
-        .clone();
       let original_module_source = module_graph
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
@@ -85,6 +81,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
             None
           }
         });
+      let dependency = &dependencies[0];
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
       let module_factory = context
@@ -107,7 +104,6 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
           .as_normal_module()
           .and_then(|module| module.name_for_condition()),
         issuer_layer: module.get_layer().cloned(),
-        dependency,
         dependencies,
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),

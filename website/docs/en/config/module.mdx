@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
 # Module
 
@@ -134,35 +138,48 @@ Parser options for `javascript` modules.
 
 #### module.parser.javascript.dynamicImportMode
 
-- **Type:** `'lazy' | 'eager'`
-- **Default:** `'lazy'`
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
 
-Specifies global mode for dynamic import.
+Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
 
 #### module.parser.javascript.dynamicImportPrefetch
 
-<ApiMeta addedVersion="0.4.5" />
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **Type:** `boolean | number`
-- **Default:** `false`
-
-Specifies global prefetch for dynamic import.
+Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
 
 #### module.parser.javascript.dynamicImportPreload
 
-<ApiMeta addedVersion="0.4.5" />
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **Type:** `boolean | number`
-- **Default:** `false`
+Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
 
-Specifies global preload for dynamic import.
+#### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
 
 #### module.parser.javascript.url
 
-<ApiMeta addedVersion="0.4.4" />
-
-- **Type:** `true | false | 'relative'`
-- **Default:** `true`
+<PropertyType
+  type="true | false | 'relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable parsing of `new URL()` syntax.
 
@@ -178,28 +195,36 @@ When use 'relative', Rspack would generate relative URLs for `new URL()` syntax,
 
 #### module.parser.javascript.exprContextCritical
 
-<ApiMeta addedVersion="0.6.3" />
-
-- **Type:** `boolean | undefined`
-- **Default:** `true`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable warnings for full dynamic dependencies (`import(variable)`).
 
 #### module.parser.javascript.wrappedContextCritical
 
-<ApiMeta addedVersion="0.6.3" />
-
-- **Type:** `boolean | undefined`
-- **Default:** `false`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable or disable evaluating `import.meta`.
+
 #### module.parser.javascript.exportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **Type:** `"error" | "warn" | "auto" | false`
-- **Default:** `"auto"`
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
 
 Warn or error for using non-existent exports and conflicting re-exports.
 
@@ -210,26 +235,13 @@ Warn or error for using non-existent exports and conflicting re-exports.
 
 #### module.parser.javascript.importExportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **Type:** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
 
-#### module.parser.javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enable or disable evaluating `import.meta`.
-
 #### module.parser.javascript.reexportExportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **Type:** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
 
@@ -237,7 +249,7 @@ Warn or error for conflicting re-exports, defaulting to the configuration of `mo
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-- **Type:** `string[] | boolean`
+<PropertyType type="string[] | boolean" />
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
 
@@ -266,7 +278,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
-- **Type:** `'strict' | 'non-strict'`
+<PropertyType type="'strict' | 'non-strict'" />
 
 Override the module to strict or non-strict.
 
@@ -274,19 +286,13 @@ This may affect the behavior of the module (some behaviors differ between strict
 
 ### module.parser["javascript/auto"]
 
-<ApiMeta addedVersion="0.6.3" />
-
 Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
 ### module.parser["javascript/dynamic"]
 
-<ApiMeta addedVersion="0.6.3" />
-
 Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
 ### module.parser["javascript/esm"]
-
-<ApiMeta addedVersion="0.6.3" />
 
 Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
@@ -299,8 +305,6 @@ This configuration will only take effect when `experiments.css = true`.
 :::
 
 #### module.parser["css/auto"].namedExports
-
-<ApiMeta addedVersion="0.6.0" />
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -339,8 +343,6 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.parser.css.namedExports
 
-<ApiMeta addedVersion="0.6.0" />
-
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
 
 ### module.parser["css/module"]
@@ -352,8 +354,6 @@ This configuration will only take effect when `experiments.css = true`.
 :::
 
 #### module.parser["css/module"].namedExports
-
-<ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
 
@@ -473,7 +473,7 @@ A mimetype for data URI. Resolves from module resource extension by default. Onl
 
 #### module.generator.asset.filename
 
-- **Type:** `string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
 - **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
@@ -585,16 +585,12 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.generator["css/auto"].exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
-
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **Default:** `'as-is'`
 
 Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
 
 #### module.generator["css/auto"].exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
@@ -605,16 +601,12 @@ If `false`, generate stylesheets and embed them in the template.
 
 #### module.generator["css/auto"].localIdentName
 
-<ApiMeta addedVersion="0.6.0" />
-
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]`
 
 Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
 
 #### module.generator["css/auto"].esModule
-
-<ApiMeta addedVersion="0.7.0" />
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -663,21 +655,11 @@ Generator options for `css` modules.
 This configuration will only take effect when `experiments.css = true`.
 :::
 
-#### module.generator.css.exportsConvention
-
-<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
-
-Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
-
 #### module.generator.css.exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
 #### module.generator.css.esModule
-
-<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
@@ -691,25 +673,17 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.generator["css/module"].exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
-
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 
 #### module.generator["css/module"].exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
 #### module.generator["css/module"].localIdentName
 
-<ApiMeta addedVersion="0.6.0" />
-
 Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
 
 #### module.generator["css/module"].esModule
-
-<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
@@ -1005,7 +979,6 @@ Used to mark the type of the matching module, which affects how the module is ha
 - `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ESM, no plans for AMD module support at this time.
 - `'javascript/esm'`：JavaScript modules, treated as ES Module.
 - `'javascript/dynamic'`：JavaScript modules, treated as Script.
-- `'typescript'`: TypeScript module (🚧 deprecated, checkout [experiments.rspackFuture.disableTransformByDefault](/config/experiments#experimentsrspackfuturedisabletransformbydefault) for more details)
 - `'css'`: CSS module
 - `'css/module'`: CSS Modules module
 - `'css/auto'`: CSS Modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module

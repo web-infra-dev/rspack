@@ -121,10 +121,7 @@ export class TestContext implements ITestContext {
 		if (name) {
 			return this.errors.get(name) || [];
 		}
-		return Array.from(this.errors.values()).reduce(
-			(res, arr) => [...res, ...arr],
-			[]
-		);
+		return Array.prototype.concat(...this.errors.values());
 	}
 	clearError(name?: string) {
 		if (name) {

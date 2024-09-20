@@ -1,25 +1,22 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ModuleDependency, RealDependencyLocation, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssImportDependency {
   id: DependencyId,
   request: String,
-  span: Option<ErrorSpan>,
-  start: u32,
-  end: u32,
+  range: RealDependencyLocation,
 }
 
 impl CssImportDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
+  pub fn new(request: String, range: RealDependencyLocation) -> Self {
     Self {
       id: DependencyId::new(),
       request,
-      span,
-      start,
-      end,
+      range,
     }
   }
 }
@@ -37,8 +34,12 @@ impl Dependency for CssImportDependency {
     &DependencyType::CssImport
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -62,11 +63,19 @@ impl DependencyTemplate for CssImportDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(self.start, self.end, "", None);
+    source.replace(self.range.start, self.range.end, "", None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

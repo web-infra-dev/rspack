@@ -11,13 +11,11 @@ mod raw_mf;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
-mod raw_swc_css_minimizer;
 mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
-use raw_swc_css_minimizer::RawSwcCssMinimizerRspackPluginOptions;
 use rspack_binding_values::entry::JsEntryPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
@@ -58,6 +56,7 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
+use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
@@ -68,7 +67,6 @@ use rspack_plugin_runtime::{
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
-use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
@@ -93,10 +91,9 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
-  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions,
-  RawExternalItemWrapper, RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions,
-  RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawDynamicEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -163,6 +160,7 @@ pub enum BuiltinPluginName {
   APIPlugin,
   RuntimeChunkPlugin,
   SizeLimitsPlugin,
+  NoEmitOnErrorsPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -170,7 +168,6 @@ pub enum BuiltinPluginName {
   CopyRspackPlugin,
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
-  SwcCssMinimizerRspackPlugin,
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
@@ -189,7 +186,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, _env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -449,13 +446,6 @@ impl BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
-      BuiltinPluginName::SwcCssMinimizerRspackPlugin => {
-        let plugin = SwcCssMinimizerRspackPlugin::new(
-          downcast_into::<RawSwcCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
-        )
-        .boxed();
-        plugins.push(plugin);
-      }
       BuiltinPluginName::LightningCssMinimizerRspackPlugin => plugins.push(
         LightningCssMinimizerRspackPlugin::new(
           downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
@@ -488,8 +478,6 @@ impl BuiltinPlugin {
         )
       }
       BuiltinPluginName::CssExtractRspackPlugin => {
-        let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();
-        plugins.push(additional_data_plugin);
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
           downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
         )
@@ -512,6 +500,9 @@ impl BuiltinPlugin {
             options.imports,
           ),
         ) as Box<dyn Plugin>)
+      }
+      BuiltinPluginName::NoEmitOnErrorsPlugin => {
+        plugins.push(NoEmitOnErrorsPlugin::default().boxed());
       }
     }
     Ok(())

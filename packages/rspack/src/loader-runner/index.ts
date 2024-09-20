@@ -33,6 +33,7 @@ import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
 	type LoaderContext,
+	type LoaderContextCallback,
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
@@ -105,7 +106,9 @@ function createLoaderObject(
 				obj.ident = ident;
 			}
 
-			obj.type = value.type;
+			// CHANGE: `rspack_core` returns empty string for `undefined` type.
+			// Comply to webpack test case: tests/webpack-test/cases/loaders/cjs-loader-type/index.js
+			obj.type = value.type === "" ? undefined : value.type;
 			if (obj.options === null) obj.query = "";
 			else if (obj.options === undefined) obj.query = "";
 			else if (typeof obj.options === "string") obj.query = `?${obj.options}`;
@@ -234,22 +237,21 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 	fn: Function,
 	context: LoaderContext,
 	args: any[],
-	callback: (err: Error | null, args: any[]) => void
+	callback: (err: Error | null | undefined, args: any[]) => void
 ) {
 	let isSync = true;
 	let isDone = false;
 	let isError = false; // internal error
 	let reportedError = false;
-	// @ts-expect-error loader-runner leverages `arguments` to achieve the same functionality.
 	context.async = function async() {
 		if (isDone) {
-			if (reportedError) return; // ignore
+			if (reportedError) return undefined as any; // ignore
 			throw new Error("async(): The callback was already called.");
 		}
 		isSync = false;
 		return innerCallback;
 	};
-	const innerCallback = (context.callback = (err, ...args) => {
+	const innerCallback: LoaderContextCallback = (err, ...args) => {
 		if (isDone) {
 			if (reportedError) return; // ignore
 			throw new Error("callback(): The callback was already called.");
@@ -257,13 +259,14 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		isDone = true;
 		isSync = false;
 		try {
-			// @ts-expect-error
 			callback(err, args);
 		} catch (e) {
 			isError = true;
 			throw e;
 		}
-	});
+	};
+	context.callback = innerCallback;
+
 	try {
 		const result = (function LOADER_EXECUTION() {
 			return fn.apply(context, args);
@@ -271,8 +274,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		if (isSync) {
 			isDone = true;
 			if (result === undefined) {
-				// @ts-expect-error
-				callback();
+				callback(null, []);
 				return;
 			}
 			if (
@@ -304,8 +306,7 @@ const runSyncOrAsync = promisify(function runSyncOrAsync(
 		}
 		isDone = true;
 		reportedError = true;
-		// @ts-expect-error
-		callback(e);
+		callback(e as Error, []);
 	}
 });
 
@@ -410,6 +411,7 @@ export async function runLoaders(
 					._lastCompilation!.__internal_getInner()
 					.importModule(
 						request,
+						options.layer,
 						options.publicPath,
 						options.baseUri,
 						context._module.moduleIdentifier,
@@ -443,6 +445,7 @@ export async function runLoaders(
 			._lastCompilation!.__internal_getInner()
 			.importModule(
 				request,
+				options.layer,
 				options.publicPath,
 				options.baseUri,
 				context._module.moduleIdentifier,
@@ -581,26 +584,27 @@ export async function runLoaders(
 	loaderContext.resolve = function resolve(context, request, callback) {
 		resolver.resolve({}, context, request, getResolveContext(), callback);
 	};
-	// @ts-expect-error TODO
+
 	loaderContext.getResolve = function getResolve(options) {
 		const child = options ? resolver.withOptions(options as any) : resolver;
 		return (context, request, callback) => {
 			if (callback) {
 				child.resolve({}, context, request, getResolveContext(), callback);
-			} else {
-				return new Promise((resolve, reject) => {
-					child.resolve(
-						{},
-						context,
-						request,
-						getResolveContext(),
-						(err, result) => {
-							if (err) reject(err);
-							else resolve(result);
-						}
-					);
-				});
+				return;
 			}
+			// TODO: (type) our native resolver return value is "string | false" but webpack type is "string"
+			return new Promise<string | false | undefined>((resolve, reject) => {
+				child.resolve(
+					{},
+					context,
+					request,
+					getResolveContext(),
+					(err, result) => {
+						if (err) reject(err);
+						else resolve(result);
+					}
+				);
+			});
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {
@@ -614,12 +618,10 @@ export async function runLoaders(
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
-		const hasStack = !!error.stack;
 		error.name = "ModuleError";
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		!hasStack && Error.captureStackTrace(error);
 		error = concatErrorMsgAndStack(error);
 		(error as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({
@@ -632,12 +634,10 @@ export async function runLoaders(
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
-		const hasStack = !!warning.stack;
 		warning.name = "ModuleWarning";
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		hasStack && Error.captureStackTrace(warning);
 		warning = concatErrorMsgAndStack(warning);
 		(warning as RspackError).moduleIdentifier = this._module.identifier();
 		compiler._lastCompilation!.__internal__pushDiagnostic({
@@ -651,7 +651,7 @@ export async function runLoaders(
 		sourceMap?,
 		assetInfo?
 	) {
-		let source: Source;
+		let source: Source | undefined = undefined;
 		if (sourceMap) {
 			if (
 				typeof sourceMap === "string" &&
@@ -679,13 +679,10 @@ export async function runLoaders(
 				content
 			);
 		}
-		// @ts-expect-error
-		compiler._lastCompilation.__internal__emit_asset_from_loader(
+		compiler._lastCompilation!.__internal__emit_asset_from_loader(
 			name,
-			// @ts-expect-error
-			source,
-			// @ts-expect-error
-			assetInfo,
+			source!,
+			assetInfo!,
 			context._moduleIdentifier
 		);
 	};
@@ -752,7 +749,10 @@ export async function runLoaders(
 	let compilation: Compilation | undefined = compiler._lastCompilation;
 	let step = 0;
 	while (compilation) {
-		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
+		NormalModule.getCompilationHooks(compilation).loader.call(
+			loaderContext,
+			loaderContext._module
+		);
 		compilation = compilation.compiler.parentCompilation;
 		step++;
 		if (step > 1000) {
@@ -780,6 +780,10 @@ export async function runLoaders(
 		enumerable: true,
 		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
 		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
+	});
+	Object.defineProperty(loaderContext, "__internal__parseMeta", {
+		enumerable: true,
+		get: () => context.__internal__parseMeta
 	});
 
 	switch (loaderState) {

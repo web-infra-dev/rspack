@@ -8,13 +8,13 @@ use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::ext::AsAny;
 use rspack_util::source_map::SourceMapKind;
+use rustc_hash::FxHashMap;
 use swc_core::common::Span;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
-  Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  Compilation, CompilerOptions, DependencyTemplate, Module, ModuleDependency, ModuleIdentifier,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -33,7 +33,8 @@ pub struct ParseContext<'a> {
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
+  pub parse_meta: FxHashMap<String, String>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
 }
@@ -77,7 +78,6 @@ pub struct ParseResult {
 #[derive(Debug)]
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
@@ -106,6 +106,16 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>>;
+
+  fn update_hash(
+    &self,
+    _module: &NormalModule,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    Ok(())
+  }
 }
 
 impl dyn ParserAndGenerator + '_ {

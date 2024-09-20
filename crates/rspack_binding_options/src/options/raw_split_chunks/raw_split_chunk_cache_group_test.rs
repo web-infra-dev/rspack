@@ -1,28 +1,35 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::Either3;
+use napi::bindgen_prelude::{Either3, FromNapiValue};
 use napi_derive::napi;
-use rspack_binding_values::{JsModule, ToJsModule};
+use rspack_binding_values::ModuleDTOWrapper;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
 use tokio::runtime::Handle;
 
 pub(super) type RawCacheGroupTest =
-  Either3<String, JsRegExp, ThreadsafeFunction<RawCacheGroupTestCtx, Option<bool>>>;
+  Either3<String, JsRegExp, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
 
-#[napi(object)]
-pub struct RawCacheGroupTestCtx {
-  pub module: JsModule,
+#[napi(object, object_from_js = false)]
+pub struct JsCacheGroupTestCtx {
+  #[napi(ts_type = "ModuleDTO")]
+  pub module: ModuleDTOWrapper,
 }
 
-impl<'a> From<CacheGroupTestFnCtx<'a>> for RawCacheGroupTestCtx {
+impl FromNapiValue for JsCacheGroupTestCtx {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    unreachable!()
+  }
+}
+
+impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   fn from(value: CacheGroupTestFnCtx<'a>) -> Self {
-    RawCacheGroupTestCtx {
-      module: value
-        .module
-        .to_js_module()
-        .expect("should convert js module success"),
+    JsCacheGroupTestCtx {
+      module: ModuleDTOWrapper::new(value.module.identifier(), value.compilation),
     }
   }
 }

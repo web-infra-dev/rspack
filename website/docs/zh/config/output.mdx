@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
@@ -28,8 +28,6 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 :::
 
 ## output.asyncChunks
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -632,8 +630,6 @@ module.exports = {
 
 ## output.hotUpdateChunkFilename
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **类型：** `string`
 - **默认值：** `"[id].[fullhash].hot-update.js"`
 
@@ -654,8 +650,6 @@ module.exports = {
 
 ## output.hotUpdateGlobal
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **类型：** `string`
 - **默认值：** `"webpackHotUpdate" + output.uniqueName`
 
@@ -666,8 +660,6 @@ JSONP 函数用于异步加载热更新块。
 具体可以参阅 [output.chunkLoadingGlobal](#outputchunkLoadingGlobal)。
 
 ## output.hotUpdateMainFilename
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 - **类型：** `string`
 - **默认值：** `"[runtime].[fullhash].hot-update.json"`
@@ -1486,8 +1478,6 @@ define('MyLibrary', [], factory);
 ```
 
 ## output.module
-
-<ApiMeta stability={Stability.Experimental} />
 
 - **类型：** `boolean`
 - **默认值：** `false`

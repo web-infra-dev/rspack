@@ -7,11 +7,13 @@
 #![feature(option_get_or_insert_default)]
 
 use std::{fmt, sync::Arc};
+mod cgm_hash_results;
+mod cgm_runtime_requirement_results;
 mod dependencies_block;
 pub mod diagnostics;
-mod update_hash;
+mod unaffected_cache;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
 };
 mod fake_namespace_object;
 mod template;
