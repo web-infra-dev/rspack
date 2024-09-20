@@ -1,10 +1,9 @@
+use std::fs::Metadata;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
 use rspack_paths::Utf8Path;
-pub use rspack_resolver::FileMetadata;
-pub use rspack_resolver::FileSystem as ResolverFileSystem;
 
 // pubResolverFileSystem
 use super::Result;
@@ -35,10 +34,10 @@ pub trait ReadableFileSystem: Send + Sync {
   fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
 
   /// See [std::fs::metadata]
-  fn metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+  fn metadata(&self, path: &Path) -> io::Result<Metadata>;
 
   /// See [std::fs::symlink_metadata]
-  fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+  fn symlink_metadata(&self, path: &Path) -> io::Result<Metadata>;
 
   /// See [std::fs::canonicalize]
   fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;

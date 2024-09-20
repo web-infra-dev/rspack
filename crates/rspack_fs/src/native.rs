@@ -1,10 +1,10 @@
 use std::{
-  fs, io,
+  fs::{self, Metadata},
+  io,
   path::{Path, PathBuf},
 };
 
 use rspack_paths::Utf8Path;
-use rspack_resolver::FileMetadata;
 
 use super::{
   sync::{ReadableFileSystem, WritableFileSystem},
@@ -32,12 +32,12 @@ impl ReadableFileSystem for NativeFileSystem {
     fs::read(path)
   }
 
-  fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    fs::metadata(path).map(FileMetadata::from)
+  fn metadata(&self, path: &Path) -> io::Result<Metadata> {
+    fs::metadata(path)
   }
 
-  fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    fs::symlink_metadata(path).map(FileMetadata::from)
+  fn symlink_metadata(&self, path: &Path) -> io::Result<Metadata> {
+    fs::symlink_metadata(path)
   }
 
   fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {

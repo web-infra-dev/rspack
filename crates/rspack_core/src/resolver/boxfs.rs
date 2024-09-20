@@ -19,11 +19,11 @@ impl ResolverFileSystem for BoxFS {
   }
 
   fn metadata(&self, path: &std::path::Path) -> std::io::Result<FileMetadata> {
-    self.0.metadata(path)
+    self.0.metadata(path).map(FileMetadata::from)
   }
 
   fn symlink_metadata(&self, path: &std::path::Path) -> std::io::Result<FileMetadata> {
-    self.0.symlink_metadata(path)
+    self.0.symlink_metadata(path).map(FileMetadata::from)
   }
 
   fn canonicalize(&self, path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
