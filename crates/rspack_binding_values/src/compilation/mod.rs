@@ -32,7 +32,7 @@ use crate::{
   chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
   ToJsCompatSource,
 };
-use crate::{JsDiagnostic, JsRspackError};
+use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
@@ -306,7 +306,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn push_diagnostic(&mut self, diagnostic: JsDiagnostic) {
+  pub fn push_diagnostic(&mut self, diagnostic: JsRspackDiagnostic) {
     self.0.push_diagnostic(diagnostic.into());
   }
 
@@ -315,12 +315,17 @@ impl JsCompilation {
     &mut self,
     start: u32,
     end: u32,
-    replace_with: Vec<crate::JsDiagnostic>,
+    replace_with: Vec<crate::JsRspackDiagnostic>,
   ) {
     let diagnostics = replace_with.into_iter().map(Into::into).collect();
     self
       .0
       .splice_diagnostic(start as usize, end as usize, diagnostics);
+  }
+
+  #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
+  pub fn push_native_diagnostic(&mut self, diagnostic: External<Diagnostic>) {
+    self.0.push_diagnostic(diagnostic.clone());
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]

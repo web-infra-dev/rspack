@@ -14,6 +14,7 @@ default = []
 plugin  = ["rspack_binding_options/plugin"]
 
 [dependencies]
+ropey                    = { workspace = true }
 rspack_allocator         = { version = "0.1.0", path = "../rspack_allocator" }
 rspack_binding_options   = { version = "0.1.0", path = "../rspack_binding_options" }
 rspack_binding_values    = { version = "0.1.0", path = "../rspack_binding_values" }
@@ -27,6 +28,7 @@ rspack_napi              = { version = "0.1.0", path = "../rspack_napi" }
 rspack_paths             = { version = "0.1.0", path = "../rspack_paths" }
 rspack_plugin_html       = { version = "0.1.0", path = "../rspack_plugin_html" }
 rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascript" }
+rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 
 rspack_tracing = { version = "0.1.0", path = "../rspack_tracing" }
 tokio          = { workspace = true, features = ["rt", "rt-multi-thread"] }
