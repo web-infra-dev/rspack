@@ -16,7 +16,7 @@ use rspack_binding_values::{
   JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
   JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
   JsChunk, JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
-  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveData,
+  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
   JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
   JsFactorizeOutput, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
   JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
@@ -24,13 +24,13 @@ use rspack_binding_values::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveData, BeforeResolveResult,
-  BoxModule, Chunk, ChunkUkey, CodeGenerationResults, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
-  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
-  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, Chunk,
+  ChunkUkey, CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
+  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -1507,34 +1507,14 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
   async fn run(&self, result: BeforeResolveResult) -> rspack_error::Result<BeforeResolveResult> {
     let js_result = match result {
       BeforeResolveResult::Ignored => JsContextModuleFactoryBeforeResolveResult::A(false),
-      BeforeResolveResult::Data(d) => {
-        let reg_exp = d.reg_exp.map(|js_regex| js_regex.into());
-        JsContextModuleFactoryBeforeResolveResult::B(JsContextModuleFactoryBeforeResolveData {
-          context: d.context,
-          request: d.request,
-          reg_exp,
-          recursive: d.recursive,
-        })
-      }
+      BeforeResolveResult::Data(data) => JsContextModuleFactoryBeforeResolveResult::B(
+        JsContextModuleFactoryBeforeResolveDataWrapper::new(data),
+      ),
     };
     match self.function.call_with_promise(js_result).await {
       Ok(js_result) => match js_result {
         napi::bindgen_prelude::Either::A(_) => Ok(BeforeResolveResult::Ignored),
-        napi::bindgen_prelude::Either::B(d) => {
-          let reg_exp = match d.reg_exp {
-            Some(js_regex) => Some(js_regex.try_into()?),
-            None => None,
-          };
-          let data = BeforeResolveData {
-            context: d.context,
-            request: d.request,
-            reg_exp,
-            recursive: d.recursive,
-            // TODO: fix
-            critical: true,
-          };
-          Ok(BeforeResolveResult::Data(Box::new(data)))
-        }
+        napi::bindgen_prelude::Either::B(js_data) => Ok(BeforeResolveResult::Data(js_data.take())),
       },
       Err(err) => Err(err),
     }

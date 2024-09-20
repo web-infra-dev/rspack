@@ -6,6 +6,7 @@ use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::define_hook;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
+use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
@@ -22,14 +23,14 @@ pub enum BeforeResolveResult {
   Data(Box<BeforeResolveData>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BeforeResolveData {
   // context_info
   // resolve_options
   pub context: String,
   pub request: String,
   // assertions
-  // dependencies
+  pub dependencies: Vec<BoxDependency>,
   // dependency_type
   // file_dependencies
   // missing_dependencies
@@ -38,10 +39,6 @@ pub struct BeforeResolveData {
   // cacheable
   pub recursive: bool,
   pub reg_exp: Option<RspackRegex>,
-  // FIX: This field is used by ContextReplacementPlugin to ignore errors collected during the build phase of Context modules.
-  // In Webpack, the ContextModuleFactory's beforeResolve hook directly traverses dependencies in context and modifies the ContextDependency's critical field.
-  // Since Rspack currently has difficulty passing the dependencies field, an additional field is used to indicate whether to ignore the collected errors.
-  pub critical: bool,
 }
 
 #[derive(Clone)]
@@ -55,7 +52,7 @@ pub enum AfterResolveResult {
 pub struct AfterResolveData {
   pub resource: Utf8PathBuf,
   pub context: String,
-  // dependencies
+  pub dependencies: Vec<BoxDependency>,
   // layer
   // resolve_options
   // file_dependencies: HashSet<String>,
@@ -74,11 +71,6 @@ pub struct AfterResolveData {
   // type_prefix: String,
   // category: String,
   // referenced_exports
-
-  // FIX: This field is used by ContextReplacementPlugin to ignore errors collected during the build phase of Context modules.
-  // In Webpack, the ContextModuleFactory's beforeResolve hook directly traverses dependencies in context and modifies the ContextDependency's critical field.
-  // Since Rspack currently has difficulty passing the dependencies field, an additional field is used to indicate whether to ignore the collected errors.
-  pub critical: bool,
   #[derivative(Debug = "ignore")]
   pub resolve_dependencies: ResolveContextModuleDependencies,
 }
@@ -110,12 +102,8 @@ impl ModuleFactory for ContextModuleFactory {
       BeforeResolveResult::Data(before_resolve_result) => {
         let (factorize_result, context_module_options) =
           self.resolve(data, before_resolve_result).await?;
-
         if let Some(context_module_options) = context_module_options {
-          if let Some(factorize_result) = self
-            .after_resolve(context_module_options, &mut data.dependencies)
-            .await?
-          {
+          if let Some(factorize_result) = self.after_resolve(data, context_module_options).await? {
             return Ok(factorize_result);
           }
         }
@@ -180,7 +168,7 @@ impl ContextModuleFactory {
       request: dependency.request().to_string(),
       recursive: dependency_options.recursive,
       reg_exp: dependency_options.reg_exp.clone(),
-      critical: true,
+      dependencies: data.dependencies.clone(),
     };
 
     match self
@@ -191,10 +179,9 @@ impl ContextModuleFactory {
       .await?
     {
       BeforeResolveResult::Ignored => Ok(BeforeResolveResult::Ignored),
-      BeforeResolveResult::Data(result) => {
-        if !result.critical {
-          *dependency.critical_mut() = None;
-        }
+      BeforeResolveResult::Data(mut result) => {
+        // The dependencies can be modified  in the before resolve hook
+        data.dependencies = result.dependencies.take();
         Ok(BeforeResolveResult::Data(result))
       }
     }
@@ -347,17 +334,17 @@ impl ContextModuleFactory {
 
   async fn after_resolve(
     &self,
+    data: &mut ModuleFactoryCreateData,
     mut context_module_options: ContextModuleOptions,
-    dependencies: &mut [BoxDependency],
   ) -> Result<Option<ModuleFactoryResult>> {
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
       resource: context_module_options.resource.clone(),
       context: context_options.context.clone(),
+      dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
       reg_exp: context_options.reg_exp.clone(),
       recursive: context_options.recursive,
-      critical: true,
       resolve_dependencies: self.resolve_dependencies.clone(),
     };
 
@@ -369,21 +356,19 @@ impl ContextModuleFactory {
       .await?
     {
       AfterResolveResult::Ignored => Ok(Some(ModuleFactoryResult::default())),
-      AfterResolveResult::Data(result) => {
-        context_module_options.resource = result.resource;
-        context_module_options.context_options.context = result.context;
-        context_module_options.context_options.reg_exp = result.reg_exp;
-        context_module_options.context_options.recursive = result.recursive;
+      AfterResolveResult::Data(mut after_resolve_data) => {
+        // The dependencies can be modified  in the after resolve hook
+        data.dependencies = after_resolve_data.dependencies.take();
 
-        let dependency = dependencies[0]
-          .as_context_dependency_mut()
-          .expect("should be context dependency");
-        if !result.critical {
-          *dependency.critical_mut() = None;
-        }
+        context_module_options.resource = after_resolve_data.resource;
+        context_module_options.context_options.context = after_resolve_data.context;
+        context_module_options.context_options.reg_exp = after_resolve_data.reg_exp;
+        context_module_options.context_options.recursive = after_resolve_data.recursive;
 
-        let module =
-          ContextModule::new(result.resolve_dependencies, context_module_options.clone());
+        let module = ContextModule::new(
+          after_resolve_data.resolve_dependencies,
+          context_module_options.clone(),
+        );
 
         Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
       }

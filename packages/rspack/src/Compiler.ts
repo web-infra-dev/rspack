@@ -30,7 +30,11 @@ import { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
-import { CodeGenerationResult, Module } from "./Module";
+import {
+	CodeGenerationResult,
+	ContextModuleFactoryAfterResolveData,
+	Module
+} from "./Module";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
@@ -53,10 +57,7 @@ import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
 import type { CompilationParams } from "./Compilation";
 import type { FileSystemInfoEntry } from "./FileSystemInfo";
-import type {
-	ContextModuleFactoryAfterResolveResult,
-	ResolveData
-} from "./Module";
+import type { ResolveData } from "./Module";
 import type { NormalModuleCreateData } from "./NormalModuleFactory";
 import type {
 	EntryNormalized,
@@ -1158,35 +1159,13 @@ class Compiler {
 								| binding.JsContextModuleFactoryAfterResolveData
 						) => {
 							const data = bindingData
-								? ({
-										resource: bindingData.resource,
-										regExp: bindingData.regExp
-											? new RegExp(
-													bindingData.regExp.source,
-													bindingData.regExp.flags
-												)
-											: undefined,
-										request: bindingData.request,
-										context: bindingData.context,
-										recursive: bindingData.recursive,
-										// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
-										dependencies: []
-									} satisfies ContextModuleFactoryAfterResolveResult)
+								? ContextModuleFactoryAfterResolveData.__from_binding(
+										bindingData
+									)
 								: false;
 							const ret = await queried.promise(data);
 							const result = ret
-								? ({
-										resource: ret.resource,
-										context: ret.context,
-										request: ret.request,
-										regExp: ret.regExp
-											? {
-													source: ret.regExp.source,
-													flags: ret.regExp.flags
-												}
-											: undefined,
-										recursive: ret.recursive
-									} satisfies binding.JsContextModuleFactoryAfterResolveData)
+								? ContextModuleFactoryAfterResolveData.__to_binding(ret)
 								: false;
 							return result;
 						}
