@@ -42,6 +42,5 @@
     "tokio",
     "ukey",
     "Ukey"
-  ],
-  "rust-analyzer.checkOnSave": true
+  ]
 }
