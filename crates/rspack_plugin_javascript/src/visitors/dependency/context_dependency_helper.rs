@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::parse_resource;
-use rspack_error::Severity;
+use rspack_error::{Diagnostic, DiagnosticExt, Severity};
 use rspack_util::json_stringify;
 use swc_core::ecma::ast::Expr;
 
@@ -19,6 +19,8 @@ pub fn create_context_dependency(
   expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
+  let mut critical = None;
+
   if param.is_template_string() {
     let quasis = param.quasis();
     let Some(prefix) = quasis.first() else {
@@ -84,15 +86,17 @@ pub fn create_context_dependency(
 
     if parser.javascript_options.wrapped_context_critical {
       let range = param.range();
-      parser.warning_diagnostics.push(Box::new(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "a part of the request of a dependency is an expression".to_string(),
-          parser.source_file,
-          rspack_core::ErrorSpan::new(range.0, range.1),
-        )
-        .with_severity(Severity::Warn),
-      ));
+      let warn: Diagnostic = create_traceable_error(
+        "Critical dependency".into(),
+        "a part of the request of a dependency is an expression".to_string(),
+        parser.source_file,
+        rspack_core::ErrorSpan::new(range.0, range.1),
+      )
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into();
+      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      critical = Some(warn);
     }
 
     // Webpack will walk only the expression parts of the template string
@@ -107,6 +111,7 @@ pub fn create_context_dependency(
       query,
       fragment,
       replaces,
+      critical,
     }
   } else if param.is_wrapped()
     && let prefix_is_string = param
@@ -158,15 +163,17 @@ pub fn create_context_dependency(
 
     if parser.javascript_options.wrapped_context_critical {
       let range = param.range();
-      parser.warning_diagnostics.push(Box::new(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "a part of the request of a dependency is an expression".to_string(),
-          parser.source_file,
-          rspack_core::ErrorSpan::new(range.0, range.1),
-        )
-        .with_severity(Severity::Warn),
-      ));
+      let warn: Diagnostic = create_traceable_error(
+        "Critical dependency".into(),
+        "a part of the request of a dependency is an expression".to_string(),
+        parser.source_file,
+        rspack_core::ErrorSpan::new(range.0, range.1),
+      )
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into();
+      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      critical = Some(warn);
     }
 
     // Webpack will walk only the dynamic parts of evaluated expression
@@ -181,19 +188,22 @@ pub fn create_context_dependency(
       query,
       fragment,
       replaces,
+      critical,
     }
   } else {
     if parser.javascript_options.expr_context_critical {
       let range = param.range();
-      parser.warning_diagnostics.push(Box::new(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "the request of a dependency is an expression".to_string(),
-          parser.source_file,
-          rspack_core::ErrorSpan::new(range.0, range.1),
-        )
-        .with_severity(Severity::Warn),
-      ));
+      let warn: Diagnostic = create_traceable_error(
+        "Critical dependency".into(),
+        "the request of a dependency is an expression".to_string(),
+        parser.source_file,
+        rspack_core::ErrorSpan::new(range.0, range.1),
+      )
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into();
+      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      critical = Some(warn);
     }
 
     parser.walk_expression(expr);
@@ -204,6 +214,7 @@ pub fn create_context_dependency(
       query: String::new(),
       fragment: String::new(),
       replaces: Vec::new(),
+      critical,
     }
   }
 }
@@ -214,6 +225,7 @@ pub struct ContextModuleScanResult {
   pub query: String,
   pub fragment: String,
   pub replaces: Vec<(String, u32, u32)>,
+  pub critical: Option<Diagnostic>,
 }
 
 pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {

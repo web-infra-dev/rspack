@@ -2971,6 +2971,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
+ "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
@@ -3027,6 +3028,7 @@ dependencies = [
  "rspack_error",
  "rspack_napi",
  "rspack_plugin_html",
+ "rspack_plugin_runtime",
  "rspack_regex",
  "rspack_util",
  "rustc-hash 1.1.0",
@@ -3340,6 +3342,7 @@ dependencies = [
  "napi-derive",
  "napi-h",
  "once_cell",
+ "ropey",
  "rspack_allocator",
  "rspack_binding_options",
  "rspack_binding_values",
@@ -3354,6 +3357,7 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_tracing",
+ "rspack_util",
  "tokio",
  "tracing",
 ]
@@ -3396,6 +3400,20 @@ dependencies = [
  "rspack_hook",
  "rspack_regex",
  "rspack_util",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_context_replacement"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_regex",
+ "rustc-hash 1.1.0",
  "tracing",
 ]
 
@@ -3809,6 +3827,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "cow-utils",
+ "derivative",
  "indexmap 2.2.6",
  "itertools 0.13.0",
  "rspack_collections",
@@ -4018,6 +4037,7 @@ dependencies = [
  "indexmap 2.2.6",
  "itoa",
  "regex",
+ "ropey",
  "rspack_regex",
  "rustc-hash 1.1.0",
  "serde",

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, DependencyLocation, DynamicImportMode, GroupOptions, ImportAttributes,
-  RealDependencyLocation,
+  AsyncDependenciesBlock, ContextDependency, DependencyLocation, DynamicImportMode, GroupOptions,
+  ImportAttributes, RealDependencyLocation,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -147,41 +147,42 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         query,
         fragment,
         replaces,
+        critical,
       } = create_context_dependency(&param, &dyn_imported.expr, parser);
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
-      parser
-        .dependencies
-        .push(Box::new(ImportContextDependency::new(
-          ContextOptions {
-            mode: mode.into(),
-            recursive: true,
-            reg_exp,
-            include,
-            exclude,
-            category: DependencyCategory::Esm,
-            request: format!("{}{}{}", context.clone(), query, fragment),
-            context,
-            namespace_object: if parser.build_meta.strict_harmony_module {
-              ContextNameSpaceObject::Strict
-            } else {
-              ContextNameSpaceObject::Bool(true)
-            },
-            group_options: Some(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-              chunk_name,
-              chunk_preload,
-              chunk_prefetch,
-              fetch_priority,
-            ))),
-            replaces,
-            start: node.span().real_lo(),
-            end: node.span().real_hi(),
-            referenced_exports: exports,
-            attributes,
+      let mut dep = ImportContextDependency::new(
+        ContextOptions {
+          mode: mode.into(),
+          recursive: true,
+          reg_exp,
+          include,
+          exclude,
+          category: DependencyCategory::Esm,
+          request: format!("{}{}{}", context.clone(), query, fragment),
+          context,
+          namespace_object: if parser.build_meta.strict_harmony_module {
+            ContextNameSpaceObject::Strict
+          } else {
+            ContextNameSpaceObject::Bool(true)
           },
-          node.span().into(),
-          (import_call.span.real_lo(), import_call.span.real_hi()),
-          parser.in_try,
-        )));
+          group_options: Some(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+            chunk_name,
+            chunk_preload,
+            chunk_prefetch,
+            fetch_priority,
+          ))),
+          replaces,
+          start: node.span().real_lo(),
+          end: node.span().real_hi(),
+          referenced_exports: exports,
+          attributes,
+        },
+        node.span().into(),
+        (import_call.span.real_lo(), import_call.span.real_hi()),
+        parser.in_try,
+      );
+      *dep.critical_mut() = critical;
+      parser.dependencies.push(Box::new(dep));
       Some(true)
     }
   }

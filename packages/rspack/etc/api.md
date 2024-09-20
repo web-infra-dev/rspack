@@ -26,6 +26,7 @@ import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { inspect } from 'node:util';
+import type { JsAddingRuntimeModule } from '@rspack/binding';
 import { JsAfterEmitData } from '@rspack/binding';
 import { JsAfterTemplateExecutionData } from '@rspack/binding';
 import { JsAlterAssetTagGroupsData } from '@rspack/binding';
@@ -38,6 +39,7 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
+import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -896,6 +898,12 @@ export class Chunk {
     // (undocumented)
     getAllReferencedChunks(): Iterable<Chunk>;
     // (undocumented)
+    getChunkMaps(realHash: boolean): {
+        hash: Record<string | number, string>;
+        contentHash: Record<string | number, Record<string, string>>;
+        name: Record<string | number, string>;
+    };
+    // (undocumented)
     get groupsIterable(): Iterable<ChunkGroup>;
     // (undocumented)
     hash?: Readonly<string>;
@@ -1033,13 +1041,17 @@ export class Compilation {
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
-    __internal__pushDiagnostic(diagnostic: binding.JsDiagnostic): void;
+    __internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">): void;
     // @internal
-    __internal__pushNativeDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
+    __internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
+    // @internal
+    __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // @internal
     __internal_getInner(): binding.JsCompilation;
+    // (undocumented)
+    addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
     // (undocumented)
     buildDependencies: {
@@ -1163,7 +1175,7 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
-        runtimeModule: RuntimeModule;
+        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
@@ -1564,18 +1576,49 @@ class ContextModuleFactory {
 }
 
 // @public (undocumented)
-type ContextModuleFactoryAfterResolveResult = false | {
-    resource: string;
-    context: string;
-    request: string;
-    regExp?: RegExp;
-    dependencies: Array<any>;
-};
+class ContextModuleFactoryAfterResolveData {
+    constructor(data: JsContextModuleFactoryAfterResolveData);
+    // (undocumented)
+    static __from_binding(binding: JsContextModuleFactoryAfterResolveData): ContextModuleFactoryAfterResolveData;
+    // (undocumented)
+    static __to_binding(data: ContextModuleFactoryAfterResolveData): JsContextModuleFactoryAfterResolveData;
+    // (undocumented)
+    get context(): string;
+    set context(val: string);
+    // (undocumented)
+    get dependencies(): Dependency[];
+    // (undocumented)
+    get recursive(): boolean;
+    set recursive(val: boolean);
+    // (undocumented)
+    get regExp(): RegExp | undefined;
+    set regExp(val: RegExp | undefined);
+    // (undocumented)
+    get request(): string;
+    set request(val: string);
+    // (undocumented)
+    get resource(): string;
+    set resource(val: string);
+}
+
+// @public (undocumented)
+type ContextModuleFactoryAfterResolveResult = false | ContextModuleFactoryAfterResolveData;
 
 // @public (undocumented)
 type ContextModuleFactoryBeforeResolveResult = false | {
     context: string;
     request?: string;
+};
+
+// @public (undocumented)
+export const ContextReplacementPlugin: {
+    new (resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any): {
+        name: BuiltinPluginName;
+        _args: [resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
 };
 
 // @public (undocumented)
@@ -1862,6 +1905,29 @@ export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
 // @public (undocumented)
 const devtoolNamespace: z.ZodString;
+
+// @public (undocumented)
+interface Diagnostic {
+    // (undocumented)
+    file?: string;
+    // (undocumented)
+    help?: string;
+    location?: DiagnosticLocation;
+    // (undocumented)
+    message: string;
+    // (undocumented)
+    severity: "error" | "warning";
+    // (undocumented)
+    sourceCode?: string;
+}
+
+// @public (undocumented)
+interface DiagnosticLocation {
+    column: number;
+    length: number;
+    line: number;
+    text?: string;
+}
 
 // @public (undocumented)
 class DirectoryWatcher extends EventEmitter {
@@ -5921,6 +5987,7 @@ export interface LoaderContext<OptionsType = {}> {
     emitFile(name: string, content: string | Buffer, sourceMap?: string, assetInfo?: JsAssetInfo): void;
     // (undocumented)
     emitWarning(warning: Error): void;
+    experiments: LoaderExperiments;
     // (undocumented)
     fs: any;
     // (undocumented)
@@ -5995,6 +6062,12 @@ export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDe
 
 // @public (undocumented)
 export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer>;
+
+// @public (undocumented)
+interface LoaderExperiments {
+    // (undocumented)
+    emitDiagnostic(diagnostic: Diagnostic): void;
+}
 
 // @public (undocumented)
 class LoaderObject {
@@ -9989,6 +10062,7 @@ declare namespace rspackExports {
         StatsError,
         StatsModule,
         Stats,
+        RuntimeModule,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -10074,6 +10148,7 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
+        ContextReplacementPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
         SwcLoaderJscConfig,
@@ -11576,6 +11651,7 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace: z.ZodOptional<z.ZodNumber>;
         warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -11602,7 +11678,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -11653,6 +11728,7 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace?: number | undefined;
         warningsSpace?: number | undefined;
     }, {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -11679,7 +11755,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -13399,6 +13474,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -13425,7 +13501,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -13973,6 +14048,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -13999,7 +14075,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -14425,10 +14500,55 @@ export const RuntimeGlobals: {
 };
 
 // @public (undocumented)
-type RuntimeModule = liteTapable.SyncHook<[
-JsRuntimeModule,
-Chunk
-], void>;
+export class RuntimeModule {
+    constructor(name: string, stage?: RuntimeModuleStage);
+    // (undocumented)
+    static __to_binding(compilation: Compilation, module: RuntimeModule): JsAddingRuntimeModule;
+    // (undocumented)
+    attach(compilation: Compilation, chunk: Chunk, chunkGraph: ChunkGraph): void;
+    // (undocumented)
+    protected chunk: Chunk | null;
+    // (undocumented)
+    protected chunkGraph: ChunkGraph | null;
+    // (undocumented)
+    protected compilation: Compilation | null;
+    // (undocumented)
+    dependentHash: boolean;
+    // (undocumented)
+    fullHash: boolean;
+    // (undocumented)
+    generate(compilation: Compilation): string;
+    // (undocumented)
+    identifier(): string;
+    // (undocumented)
+    get name(): string;
+    // (undocumented)
+    readableIdentifier(): string;
+    // (undocumented)
+    shouldIsolate(): boolean;
+    // (undocumented)
+    get stage(): RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_ATTACH: RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_BASIC: RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_NORMAL: RuntimeModuleStage;
+    // (undocumented)
+    static STAGE_TRIGGER: RuntimeModuleStage;
+}
+
+// @public (undocumented)
+enum RuntimeModuleStage {
+    // (undocumented)
+    ATTACH = 10,
+    // (undocumented)
+    BASIC = 5,
+    // (undocumented)
+    NORMAL = 0,
+    // (undocumented)
+    TRIGGER = 20
+}
 
 // @public (undocumented)
 type RuntimePlugins = string[];
@@ -14787,6 +14907,7 @@ const statsOptions: z.ZodObject<{
     errorsSpace: z.ZodOptional<z.ZodNumber>;
     warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -14813,7 +14934,6 @@ const statsOptions: z.ZodObject<{
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
@@ -14864,6 +14984,7 @@ const statsOptions: z.ZodObject<{
     errorsSpace?: number | undefined;
     warningsSpace?: number | undefined;
 }, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -14890,7 +15011,6 @@ const statsOptions: z.ZodObject<{
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
@@ -15054,6 +15174,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorsSpace: z.ZodOptional<z.ZodNumber>;
     warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -15080,7 +15201,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
@@ -15131,6 +15251,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorsSpace?: number | undefined;
     warningsSpace?: number | undefined;
 }, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -15157,7 +15278,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
