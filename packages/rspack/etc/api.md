@@ -39,6 +39,7 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
+import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -1575,18 +1576,49 @@ class ContextModuleFactory {
 }
 
 // @public (undocumented)
-type ContextModuleFactoryAfterResolveResult = false | {
-    resource: string;
-    context: string;
-    request: string;
-    regExp?: RegExp;
-    dependencies: Array<any>;
-};
+class ContextModuleFactoryAfterResolveData {
+    constructor(data: JsContextModuleFactoryAfterResolveData);
+    // (undocumented)
+    static __from_binding(binding: JsContextModuleFactoryAfterResolveData): ContextModuleFactoryAfterResolveData;
+    // (undocumented)
+    static __to_binding(data: ContextModuleFactoryAfterResolveData): JsContextModuleFactoryAfterResolveData;
+    // (undocumented)
+    get context(): string;
+    set context(val: string);
+    // (undocumented)
+    get dependencies(): Dependency[];
+    // (undocumented)
+    get recursive(): boolean;
+    set recursive(val: boolean);
+    // (undocumented)
+    get regExp(): RegExp | undefined;
+    set regExp(val: RegExp | undefined);
+    // (undocumented)
+    get request(): string;
+    set request(val: string);
+    // (undocumented)
+    get resource(): string;
+    set resource(val: string);
+}
+
+// @public (undocumented)
+type ContextModuleFactoryAfterResolveResult = false | ContextModuleFactoryAfterResolveData;
 
 // @public (undocumented)
 type ContextModuleFactoryBeforeResolveResult = false | {
     context: string;
     request?: string;
+};
+
+// @public (undocumented)
+export const ContextReplacementPlugin: {
+    new (resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any): {
+        name: BuiltinPluginName;
+        _args: [resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
 };
 
 // @public (undocumented)
@@ -10116,6 +10148,7 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
+        ContextReplacementPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
         SwcLoaderJscConfig,
@@ -11618,6 +11651,7 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace: z.ZodOptional<z.ZodNumber>;
         warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -11644,7 +11678,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -11695,6 +11728,7 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace?: number | undefined;
         warningsSpace?: number | undefined;
     }, {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -11721,7 +11755,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -13441,6 +13474,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -13467,7 +13501,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -14015,6 +14048,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         hash?: boolean | undefined;
         all?: boolean | undefined;
@@ -14041,7 +14075,6 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
-        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -14866,6 +14899,7 @@ const statsOptions: z.ZodObject<{
     errorsSpace: z.ZodOptional<z.ZodNumber>;
     warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -14892,7 +14926,6 @@ const statsOptions: z.ZodObject<{
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
@@ -14943,6 +14976,7 @@ const statsOptions: z.ZodObject<{
     errorsSpace?: number | undefined;
     warningsSpace?: number | undefined;
 }, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -14969,7 +15003,6 @@ const statsOptions: z.ZodObject<{
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
@@ -15133,6 +15166,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorsSpace: z.ZodOptional<z.ZodNumber>;
     warningsSpace: z.ZodOptional<z.ZodNumber>;
 }, "strict", z.ZodTypeAny, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -15159,7 +15193,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;
@@ -15210,6 +15243,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errorsSpace?: number | undefined;
     warningsSpace?: number | undefined;
 }, {
+    source?: boolean | undefined;
     publicPath?: boolean | undefined;
     hash?: boolean | undefined;
     all?: boolean | undefined;
@@ -15236,7 +15270,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     builtAt?: boolean | undefined;
     moduleAssets?: boolean | undefined;
     nestedModules?: boolean | undefined;
-    source?: boolean | undefined;
     logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
     loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     loggingTrace?: boolean | undefined;

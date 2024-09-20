@@ -3,6 +3,7 @@ use rspack_core::{
   ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use rspack_error::Diagnostic;
 
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
@@ -13,6 +14,7 @@ pub struct RequireResolveContextDependency {
   range: RealDependencyLocation,
   resource_identifier: String,
   optional: bool,
+  critical: Option<Diagnostic>,
 }
 
 impl RequireResolveContextDependency {
@@ -24,6 +26,7 @@ impl RequireResolveContextDependency {
       range,
       resource_identifier,
       optional,
+      critical: None,
     }
   }
 }
@@ -77,6 +80,14 @@ impl ContextDependency for RequireResolveContextDependency {
 
   fn type_prefix(&self) -> ContextTypePrefix {
     ContextTypePrefix::Normal
+  }
+
+  fn critical(&self) -> &Option<Diagnostic> {
+    &self.critical
+  }
+
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
+    &mut self.critical
   }
 }
 

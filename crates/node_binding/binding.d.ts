@@ -120,6 +120,30 @@ export class JsCompilation {
   addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
 }
 
+export class JsContextModuleFactoryAfterResolveData {
+  get resource(): string
+  set resource(resource: string)
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
+}
+
+export class JsContextModuleFactoryBeforeResolveData {
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
+}
+
 export class JsEntries {
   clear(): void
   get size(): number
@@ -266,6 +290,7 @@ export enum BuiltinPluginName {
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  ContextReplacementPlugin = 'ContextReplacementPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -471,18 +496,6 @@ export interface JsCodegenerationResults {
 export interface JsCompatSource {
   source: string | Buffer
   map?: string
-}
-
-export interface JsContextModuleFactoryAfterResolveData {
-  resource: string
-  context: string
-  request: string
-  regExp?: RawRegex
-}
-
-export interface JsContextModuleFactoryBeforeResolveData {
-  context: string
-  request?: string
 }
 
 export interface JsCreateData {
@@ -1161,6 +1174,14 @@ export interface RawContainerReferencePluginOptions {
   remotes: Array<RawRemoteOptions>
   shareScope?: string
   enhanced: boolean
+}
+
+export interface RawContextReplacementPluginOptions {
+  resourceRegExp: RawRegex
+  newContentResource?: string
+  newContentRecursive?: boolean
+  newContentRegExp?: RawRegex
+  newContentCreateContextMap?: Record<string, string>
 }
 
 export interface RawCopyGlobOptions {

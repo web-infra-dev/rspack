@@ -22,5 +22,6 @@
   "normal-module-replacement-plugin",
   "javascript-modules-plugin",
   "internal-plugins",
-  "no-emit-on-errors-plugin"
+  "no-emit-on-errors-plugin",
+  "context-replacement-plugin"
 ]

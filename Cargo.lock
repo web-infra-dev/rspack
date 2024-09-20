@@ -2971,6 +2971,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
+ "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
@@ -3399,6 +3400,20 @@ dependencies = [
  "rspack_hook",
  "rspack_regex",
  "rspack_util",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_context_replacement"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_regex",
+ "rustc-hash 1.1.0",
  "tracing",
 ]
 

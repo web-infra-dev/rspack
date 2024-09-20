@@ -38,7 +38,7 @@ pub enum ModuleFilenameTemplate {
   Fn(ModuleFilenameTemplateFn),
 }
 
-type AppendFn = Box<dyn for<'a> Fn(PathData) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+type AppendFn = Box<dyn Fn(PathData) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub enum Append {
   String(String),

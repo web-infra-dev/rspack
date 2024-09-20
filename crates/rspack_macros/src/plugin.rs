@@ -2,7 +2,7 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{
   parse::{Parse, ParseStream, Parser},
-  Result, Token,
+  Pat, PatIdent, Result, Token,
 };
 
 pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
@@ -155,9 +155,19 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     vis,
     ..
   } = input;
+
   let real_sig = sig.clone();
+
+  for arg in sig.inputs.iter_mut().skip(1) {
+    if let syn::FnArg::Typed(syn::PatType { pat, .. }) = arg {
+      if let Pat::Ident(PatIdent { mutability, .. }) = &mut **pat {
+        *mutability = None;
+      }
+    }
+  }
+
   let mut rest_args = Vec::new();
-  for arg in real_sig.inputs.iter().skip(1) {
+  for arg in sig.inputs.iter().skip(1) {
     if let syn::FnArg::Typed(syn::PatType { pat, .. }) = arg {
       rest_args.push(pat)
     } else {
