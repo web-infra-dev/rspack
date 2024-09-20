@@ -1,9 +1,7 @@
 use rspack_core::{
-  AsModuleDependency, Compilation, ContextDependency, ContextOptions, ContextOptions, Dependency,
-  Dependency, DependencyCategory, DependencyCategory, DependencyId, DependencyId,
-  DependencyTemplate, DependencyTemplate, DependencyType, DependencyType, ModuleGraph,
-  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateContext, TemplateReplaceSource,
-  TemplateReplaceSource,
+  AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleGraph,
+  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
