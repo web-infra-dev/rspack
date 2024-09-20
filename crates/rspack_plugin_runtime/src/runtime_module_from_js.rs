@@ -28,7 +28,7 @@ impl RuntimeModule for RuntimeModuleFromJs {
   }
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    let res = (&self.generator)()?;
+    let res = (self.generator)()?;
     Ok(RawSource::from(res).boxed())
   }
 

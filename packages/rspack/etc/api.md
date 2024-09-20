@@ -1168,10 +1168,7 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
-        runtimeModule: liteTapable.SyncHook<[
-        JsRuntimeModule,
-        Chunk
-        ], void>;
+        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     }>;
@@ -14469,7 +14466,7 @@ export class RuntimeModule {
     // (undocumented)
     static __to_binding(compilation: Compilation, module: RuntimeModule): JsAddingRuntimeModule;
     // (undocumented)
-    depedentHash: boolean;
+    dependentHash: boolean;
     // (undocumented)
     fullHash: boolean;
     // (undocumented)

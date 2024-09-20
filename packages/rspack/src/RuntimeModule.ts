@@ -22,7 +22,7 @@ export class RuntimeModule {
 			name: module.name,
 			stage: module.stage,
 			generator: () => module.generate(compilation),
-			cacheable: module.fullHash || module.depedentHash,
+			cacheable: module.fullHash || module.dependentHash,
 			isolate: module.shouldIsolate()
 		};
 	}
@@ -30,7 +30,7 @@ export class RuntimeModule {
 	private _name: string;
 	private _stage: RuntimeModuleStage;
 	public fullHash = false;
-	public depedentHash = false;
+	public dependentHash = false;
 	constructor(name: string, stage = RuntimeModuleStage.NORMAL) {
 		this._name = name;
 		this._stage = stage;
