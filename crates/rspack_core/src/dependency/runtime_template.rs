@@ -472,14 +472,12 @@ pub fn module_namespace_promise(
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-      if matches!(
-        compilation.get_module_graph().is_async(
-          compilation
-            .get_module_graph()
-            .module_identifier_by_dependency_id(dep_id)
-            .expect("should have module")
-        ),
-        Some(true)
+      if ModuleGraph::is_async(
+        compilation,
+        compilation
+          .get_module_graph()
+          .module_identifier_by_dependency_id(dep_id)
+          .expect("should have module"),
       ) {
         if let Some(header) = header {
           appending = format!(

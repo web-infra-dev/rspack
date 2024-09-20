@@ -1,5 +1,5 @@
 use rspack_core::{
-  AsDependency, Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage,
+  AsDependency, Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph,
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   UsageState,
 };
@@ -54,7 +54,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       )));
     }
 
-    if matches!(module_graph.is_async(&module.identifier()), Some(true)) {
+    if ModuleGraph::is_async(compilation, &module.identifier()) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(Box::new(NormalInitFragment::new(

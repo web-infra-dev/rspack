@@ -169,7 +169,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   }
 
   let is_async_module =
-    matches!(ref_module, Some(ref_module) if module_graph.is_async(ref_module) == Some(true));
+    matches!(ref_module, Some(ref_module) if ModuleGraph::is_async(compilation, ref_module));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,

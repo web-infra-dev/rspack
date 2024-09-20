@@ -469,11 +469,11 @@ impl HarmonyExportImportedSpecifierDependency {
 
   fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
     let TemplateContext {
-      compilation,
       module,
       runtime_requirements,
       ..
     } = ctxt;
+    let compilation = ctxt.compilation;
     let mut fragments = vec![];
     let mg = &compilation.get_module_graph();
     let module_identifier = module.identifier();
@@ -624,7 +624,6 @@ impl HarmonyExportImportedSpecifierDependency {
             } else {
               RuntimeCondition::Boolean(true)
             };
-            let is_async = mg.is_async(&module_identifier).unwrap_or_default();
             let stmt = self.get_conditional_reexport_statement(
               ctxt,
               name,
@@ -632,6 +631,7 @@ impl HarmonyExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::Vec(ids),
             );
+            let is_async = ModuleGraph::is_async(compilation, &module_identifier);
             fragments.push(Box::new(ConditionalInitFragment::new(
               stmt,
               if is_async {
@@ -691,7 +691,7 @@ impl HarmonyExportImportedSpecifierDependency {
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
-        let is_async = mg.is_async(&module.identifier()).unwrap_or_default();
+        let is_async = ModuleGraph::is_async(compilation, &module.identifier());
         fragments.push(
           NormalInitFragment::new(
             format!(

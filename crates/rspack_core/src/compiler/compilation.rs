@@ -34,14 +34,14 @@ use crate::{
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier,
-  unaffected_cache::UnaffectedModulesCache,
+  unaffected_cache::{Mutation, Mutations, UnaffectedModulesCache},
   BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationJob,
   CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
   CompilerOptions, DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime,
-  Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module,
-  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
+  Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory,
+  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -164,6 +164,7 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
+  pub async_modules: IdentifierSet,
   pub code_generation_results: CodeGenerationResults,
   pub cgm_hash_results: CgmHashResults,
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
@@ -173,6 +174,7 @@ pub struct Compilation {
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
+  pub mutations: Option<Mutations>,
 
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
@@ -227,6 +229,7 @@ impl Compilation {
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
   ) -> Self {
+    let mutations = options.new_incremental_enabled().then(Mutations::default);
     Self {
       id: CompilationId::new(),
       hot_index: 0,
@@ -254,6 +257,7 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
 
+      async_modules: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),
@@ -262,6 +266,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       old_cache,
       unaffected_modules_cache,
+      mutations,
       code_splitting_cache: Default::default(),
       hash: None,
       used_chunk_ids: Default::default(),
@@ -757,57 +762,30 @@ impl Compilation {
       .collect::<Vec<_>>()))
   }
 
-  #[instrument(name = "compilation:code_generation", skip(self))]
-  fn code_generation(&mut self) -> Result<()> {
+  #[instrument(name = "compilation:code_generation", skip_all)]
+  fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
       CacheOptions::Disabled => None,
       _ => Some(logger.cache("module code generation cache")),
     };
 
-    fn run_iteration(
-      compilation: &mut Compilation,
-      cache_counter: &mut Option<CacheCount>,
-      filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
-    ) -> Result<()> {
-      let module_graph = compilation.get_module_graph();
-      let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
-        let affected_modules = compilation
-          .unaffected_modules_cache
-          .get_affected_modules_with_chunk_graph()
-          .lock()
-          .expect("should lock")
-          .clone();
-        affected_modules
-          .into_iter()
-          .map(|module_identifier| {
-            let module = module_graph
-              .module_by_identifier(&module_identifier)
-              .expect("should have module");
-            (module_identifier, module)
-          })
-          .filter(filter_op)
-          .map(|(id, _)| id)
-          .collect()
+    let module_graph = self.get_module_graph();
+    let mut no_codegen_dependencies_modules = IdentifierSet::default();
+    let mut has_codegen_dependencies_modules = IdentifierSet::default();
+    for module_identifier in modules {
+      let module = module_graph
+        .module_by_identifier(&module_identifier)
+        .expect("should have module");
+      if module.get_code_generation_dependencies().is_none() {
+        no_codegen_dependencies_modules.insert(module_identifier);
       } else {
-        compilation
-          .get_module_graph()
-          .modules()
-          .into_iter()
-          .filter(filter_op)
-          .map(|(id, _)| id)
-          .collect()
-      };
-      compilation.code_generation_modules(cache_counter, modules)
+        has_codegen_dependencies_modules.insert(module_identifier);
+      }
     }
 
-    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
-      module.get_code_generation_dependencies().is_none()
-    })?;
-
-    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
-      module.get_code_generation_dependencies().is_some()
-    })?;
+    self.code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)?;
+    self.code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)?;
 
     if let Some(counter) = codegen_cache_counter {
       logger.cache_end(counter);
@@ -1216,16 +1194,25 @@ impl Compilation {
         .compute_affected_modules_with_chunk_graph(self);
     }
 
-    self.create_module_hashes(if self.options.new_incremental_enabled() {
-      self
+    let modules = if self.options.new_incremental_enabled()
+      && let Some(mutations) = &self.mutations
+    {
+      let mut modules = self
         .unaffected_modules_cache
         .get_affected_modules_with_chunk_graph()
         .lock()
         .expect("should lock")
-        .clone()
+        .clone();
+      modules.extend(mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleGraphModuleSetAsync { module } => Some(module),
+        _ => None,
+      }));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
-    })?;
+    };
+
+    self.create_module_hashes(modules.clone())?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1235,22 +1222,13 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("code generation");
-    self.code_generation()?;
+    self.code_generation(modules.clone())?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(
-        if self.options.new_incremental_enabled() {
-          self
-            .unaffected_modules_cache
-            .get_affected_modules_with_chunk_graph()
-            .lock()
-            .expect("should lock")
-            .clone()
-        } else {
-          self.get_module_graph().modules().keys().copied().collect()
-        },
+        modules,
         self
           .chunk_by_ukey
           .keys()
