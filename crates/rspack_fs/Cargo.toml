@@ -6,8 +6,7 @@ name        = "rspack_fs"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 [dependencies]
-dunce           = { version = "1.0.5" }
-rspack_resolver = { workspace = true }
+dunce = { version = "1.0.5" }
 [dependencies.rspack_error]
 path    = "../rspack_error"
 version = "0.1.0"

@@ -3137,7 +3137,6 @@ dependencies = [
  "futures",
  "rspack_error",
  "rspack_paths",
- "rspack_resolver",
  "tokio",
 ]
 
