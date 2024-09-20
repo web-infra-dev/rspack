@@ -17,6 +17,7 @@ regex         = { workspace = true }
 rspack_base64 = { version = "0.1.0", path = "../rspack_base64" }
 rspack_core   = { version = "0.1.0", path = "../rspack_core" }
 rspack_error  = { version = "0.1.0", path = "../rspack_error" }
+rspack_fs     = { version = "0.1.0", path = "../rspack_fs" }
 rspack_hook   = { version = "0.1.0", path = "../rspack_hook" }
 rspack_paths  = { version = "0.1.0", path = "../rspack_paths" }
 serde         = { workspace = true }

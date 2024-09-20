@@ -128,7 +128,7 @@ impl HttpCache {
 
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
-    if status == reqwest::StatusCode::NOT_MODIFIED.as_u16() {
+    if status == 304 {
       if let Some(cached) = cached_result {
         let new_valid_until = valid_until.max(cached.meta.valid_until);
         return Ok(FetchResultType::Content(ContentFetchResult {
