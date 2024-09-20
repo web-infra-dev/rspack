@@ -92,11 +92,13 @@ pub struct ContextModuleFactoryHooks {
   pub after_resolve: ContextModuleFactoryAfterResolveHook,
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct ContextModuleFactory {
-  resolver_factory: Arc<ResolverFactory>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
+  #[derivative(Debug = "ignore")]
+  resolve_dependencies: ResolveContextModuleDependencies,
 }
 
 #[async_trait::async_trait]
@@ -124,47 +126,43 @@ impl ModuleFactory for ContextModuleFactory {
   }
 }
 
-fn default_resolve_dependencies(
-  resolver_factory: Arc<ResolverFactory>,
-) -> ResolveContextModuleDependencies {
-  Arc::new(move |options| {
-    tracing::trace!("resolving context module path {}", options.resource);
-
-    let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: options.resolve_options.clone(),
-      resolve_to_context: false,
-      dependency_category: options.context_options.category,
-    });
-
-    let mut context_element_dependencies = vec![];
-    visit_dirs(
-      options.resource.as_str(),
-      &options.resource,
-      &mut context_element_dependencies,
-      &options,
-      &resolver.options(),
-    )?;
-    context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
-
-    tracing::trace!(
-      "resolving dependencies for {:?}",
-      context_element_dependencies
-    );
-
-    Ok(context_element_dependencies)
-  })
-}
-
 impl ContextModuleFactory {
   pub fn new(
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
   ) -> Self {
+    let resolve_dependencies: ResolveContextModuleDependencies = Arc::new(move |options| {
+      tracing::trace!("resolving context module path {}", options.resource);
+
+      let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
+        resolve_options: options.resolve_options.clone(),
+        resolve_to_context: false,
+        dependency_category: options.context_options.category,
+      });
+
+      let mut context_element_dependencies = vec![];
+      visit_dirs(
+        options.resource.as_str(),
+        &options.resource,
+        &mut context_element_dependencies,
+        &options,
+        &resolver.options(),
+      )?;
+      context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
+
+      tracing::trace!(
+        "resolving dependencies for {:?}",
+        context_element_dependencies
+      );
+
+      Ok(context_element_dependencies)
+    });
+
     Self {
-      resolver_factory,
       loader_resolver_factory,
       plugin_driver,
+      resolve_dependencies,
     }
   }
 
@@ -315,7 +313,7 @@ impl ContextModuleFactory {
           type_prefix: dependency.type_prefix(),
         };
         let module = Box::new(ContextModule::new(
-          default_resolve_dependencies(self.resolver_factory.clone()),
+          self.resolve_dependencies.clone(),
           options.clone(),
         ));
         (module, Some(options))
@@ -360,7 +358,7 @@ impl ContextModuleFactory {
       reg_exp: context_options.reg_exp.clone(),
       recursive: context_options.recursive,
       critical: true,
-      resolve_dependencies: default_resolve_dependencies(self.resolver_factory.clone()),
+      resolve_dependencies: self.resolve_dependencies.clone(),
     };
 
     match self
