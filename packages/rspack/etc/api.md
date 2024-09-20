@@ -14505,6 +14505,14 @@ export class RuntimeModule {
     // (undocumented)
     static __to_binding(compilation: Compilation, module: RuntimeModule): JsAddingRuntimeModule;
     // (undocumented)
+    attach(compilation: Compilation, chunk: Chunk, chunkGraph: ChunkGraph): void;
+    // (undocumented)
+    protected chunk: Chunk | null;
+    // (undocumented)
+    protected chunkGraph: ChunkGraph | null;
+    // (undocumented)
+    protected compilation: Compilation | null;
+    // (undocumented)
     dependentHash: boolean;
     // (undocumented)
     fullHash: boolean;

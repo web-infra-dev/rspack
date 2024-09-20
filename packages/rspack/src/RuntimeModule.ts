@@ -1,4 +1,6 @@
 import type { JsAddingRuntimeModule } from "@rspack/binding";
+import type { Chunk } from "./Chunk";
+import type { ChunkGraph } from "./ChunkGraph";
 import type { Compilation } from "./Compilation";
 
 export enum RuntimeModuleStage {
@@ -31,9 +33,18 @@ export class RuntimeModule {
 	private _stage: RuntimeModuleStage;
 	public fullHash = false;
 	public dependentHash = false;
+	protected chunk: Chunk | null = null;
+	protected compilation: Compilation | null = null;
+	protected chunkGraph: ChunkGraph | null = null;
 	constructor(name: string, stage = RuntimeModuleStage.NORMAL) {
 		this._name = name;
 		this._stage = stage;
+	}
+
+	attach(compilation: Compilation, chunk: Chunk, chunkGraph: ChunkGraph) {
+		this.compilation = compilation;
+		this.chunk = chunk;
+		this.chunkGraph = chunkGraph;
 	}
 
 	get name(): string {
