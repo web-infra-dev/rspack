@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use derivative::Derivative;
 use rspack_core::{
-  AfterResolveResult, ApplyContext, BeforeResolveResult, BoxDependency, CompilerOptions,
-  ContextElementDependency, ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve,
-  Dependency, DependencyId, DependencyType, Plugin, PluginContext,
+  AfterResolveResult, ApplyContext, BeforeResolveResult, CompilerOptions, ContextElementDependency,
+  ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve, DependencyId,
+  DependencyType, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -90,7 +90,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
       }
       if let Some(new_content_create_context_map) = &self.new_content_create_context_map {
         let new_content_create_context_map = new_content_create_context_map.clone();
-        data.resolve_dependencies = Arc::new(move |_, options| {
+        data.resolve_dependencies = Arc::new(move |options| {
           let deps = new_content_create_context_map
             .iter()
             .map(|(key, value)| {
@@ -99,7 +99,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
                 value.as_str().into(),
                 options.context_options.attributes.as_ref(),
               );
-              Box::new(ContextElementDependency {
+              ContextElementDependency {
                 id: DependencyId::new(),
                 request: format!(
                   "{}{}{}",
@@ -116,10 +116,10 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
                 attributes: options.context_options.attributes.clone(),
                 referenced_exports: options.context_options.referenced_exports.clone(),
                 dependency_type: DependencyType::ContextElement(options.type_prefix),
-              }) as Box<dyn Dependency>
+              }
             })
-            .collect::<Vec<BoxDependency>>();
-          Ok((deps, vec![]))
+            .collect::<Vec<_>>();
+          Ok(deps)
         });
       }
       // if let Some(new_content_callback) = &self.new_content_callback {

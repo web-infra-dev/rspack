@@ -118,6 +118,19 @@ export class JsCompilation {
   get entries(): JsEntries
 }
 
+export class JsContextModuleFactoryAfterResolveData {
+  get resource(): string
+  set resource(resource: string)
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
+}
+
 export class JsEntries {
   clear(): void
   get size(): number
@@ -460,14 +473,6 @@ export interface JsCodegenerationResults {
 export interface JsCompatSource {
   source: string | Buffer
   map?: string
-}
-
-export interface JsContextModuleFactoryAfterResolveData {
-  resource: string
-  context: string
-  request: string
-  regExp?: RawRegex
-  recursive: boolean
 }
 
 export interface JsContextModuleFactoryBeforeResolveData {

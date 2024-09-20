@@ -63,7 +63,10 @@ impl JsContextModuleFactoryAfterResolveData {
   #[napi(setter)]
   pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RawRegex, ()>) {
     self.0.reg_exp = match raw_reg_exp {
-      Either::A(raw_reg_exp) => Some(raw_reg_exp.try_into().unwrap()),
+      Either::A(raw_reg_exp) => match raw_reg_exp.try_into() {
+        Ok(reg_exp) => Some(reg_exp),
+        Err(_) => None,
+      },
       Either::B(_) => None,
     };
   }

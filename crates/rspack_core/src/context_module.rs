@@ -1,10 +1,11 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::{borrow::Cow, hash::Hash};
 
 use derivative::Derivative;
 use indoc::formatdoc;
 use itertools::Itertools;
+use regex::{Captures, Regex};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
@@ -19,13 +20,22 @@ use swc_core::atoms::Atom;
 
 use crate::{
   block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
-  module_update_hash, returning_function, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
-  DependenciesBlock, DependencyCategory, DependencyId, DynamicImportMode, ExportsType, FactoryMeta,
-  FakeNamespaceObjectMode, GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer,
-  ModuleType, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  module_update_hash, returning_function, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
+  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
+  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, RealDependencyLocation,
+  Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
+
+static WEBPACK_CHUNK_NAME_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ContextMode {
@@ -141,14 +151,8 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
-pub type ResolveContextModuleDependencies = Arc<
-  dyn Fn(
-      Identifier,
-      ContextModuleOptions,
-    ) -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)>
-    + Send
-    + Sync,
->;
+pub type ResolveContextModuleDependencies =
+  Arc<dyn Fn(ContextModuleOptions) -> Result<Vec<ContextElementDependency>> + Send + Sync>;
 
 #[impl_source_map_config]
 #[derive(Derivative)]
@@ -872,7 +876,81 @@ impl Module for ContextModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolve_dependencies = &self.resolve_dependencies;
-    let (dependencies, blocks) = resolve_dependencies(self.identifier, self.options.clone())?;
+    let context_element_dependencies = resolve_dependencies(self.options.clone())?;
+
+    let mut dependencies: Vec<BoxDependency> = vec![];
+    let mut blocks = vec![];
+    if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
+      && !context_element_dependencies.is_empty()
+    {
+      let loc = RealDependencyLocation::new(
+        self.options.context_options.start,
+        self.options.context_options.end,
+      );
+      let mut block = AsyncDependenciesBlock::new(
+        (*self.identifier).into(),
+        Some(DependencyLocation::Real(loc)),
+        None,
+        context_element_dependencies
+          .into_iter()
+          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .collect(),
+        None,
+      );
+      if let Some(group_options) = &self.options.context_options.group_options {
+        block.set_group_options(group_options.clone());
+      }
+      blocks.push(Box::new(block));
+    } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
+      let mut index = 0;
+      // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
+      for context_element_dependency in context_element_dependencies {
+        let group_options = self
+          .options
+          .context_options
+          .group_options
+          .as_ref()
+          .and_then(|g| g.normal_options());
+        let name = group_options
+          .and_then(|group_options| group_options.name.as_ref())
+          .map(|name| {
+            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
+              Cow::Owned(format!("{name}[index]"))
+            } else {
+              Cow::Borrowed(name)
+            };
+            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
+              .replace_all(&name, |_: &Captures| index.to_string());
+            index += 1;
+            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER.replace_all(&name, |_: &Captures| {
+              to_path(&context_element_dependency.user_request)
+            });
+            name.into_owned()
+          });
+        let preload_order = group_options.and_then(|o| o.preload_order);
+        let prefetch_order = group_options.and_then(|o| o.prefetch_order);
+        let fetch_priority = group_options.and_then(|o| o.fetch_priority);
+        let mut block = AsyncDependenciesBlock::new(
+          (*self.identifier).into(),
+          None,
+          Some(&context_element_dependency.user_request.clone()),
+          vec![Box::new(context_element_dependency)],
+          Some(self.options.context_options.request.clone()),
+        );
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          name,
+          preload_order,
+          prefetch_order,
+          fetch_priority,
+        )));
+        blocks.push(Box::new(block));
+      }
+    } else {
+      dependencies = context_element_dependencies
+        .into_iter()
+        .map(|d| Box::new(d) as BoxDependency)
+        .collect();
+    }
 
     let mut context_dependencies: HashSet<PathBuf> = Default::default();
     context_dependencies.insert(self.options.resource.clone().into_std_path_buf());
