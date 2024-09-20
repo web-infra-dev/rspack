@@ -22,7 +22,7 @@ export class RuntimeModule {
 			name: module.name,
 			stage: module.stage,
 			generator: () => module.generate(compilation),
-			cacheable: module.fullHash || module.dependentHash,
+			cacheable: !(module.fullHash || module.dependentHash),
 			isolate: module.shouldIsolate()
 		};
 	}
