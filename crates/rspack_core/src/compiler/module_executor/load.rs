@@ -37,8 +37,7 @@ impl Task<MakeTaskContext> for LoadTask {
       result_sender,
     } = *self;
 
-    let compilation = context.transform_to_temp_compilation();
-    let mg = compilation.get_module_graph();
+    let mg = MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     let module = mg
       .get_module_by_dependency_id(&entry_dep_id)
