@@ -14,6 +14,7 @@ import CompilerType from '../../types/compiler.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/api/compilation-object/" />
 
@@ -409,6 +410,67 @@ compiler.hooks.make.tap('MyPlugin', compilation => {
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+### addRuntimeModule
+
+<ApiMeta addedVersion="1.0.6" />
+
+添加一个自定义的运行时模块。
+
+```ts
+addRuntimeModule(
+  c: Chunk, // 运行时模块所在的 Chunk
+  m: RuntimeModule, // 运行时模块的实例
+): void;
+```
+
+以下代码添加一个运行时模块，该模块定义 `__webpack_require__.mock`，并添加到 `"main"` Chunk 中：
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeModule } = compiler.webpack;
+
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom', RuntimeModule.STAGE_NORMAL);
+          }
+
+          generate(compilation) {
+            return `
+            __webpack_require__.mock = function() {
+              // ...
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree.tap(
+            'CustomPlugin',
+            (chunk, set) => {
+              if (chunk.name === 'main') {
+                compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+              }
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+实现运行时模块可覆盖如下方法/属性来控制其行为：
+
+- 在构造器中传入 `name` 和 `stage` 参数来指定模块名称和插入的阶段
+- 覆盖 `generate()` 方法以控制模块生成的代码
+- 覆盖 `shouldIsolate()` 方法以控制模块是否包裹在 IIFE 当中
+- 覆盖 `attach()` 方法以修改在模块被添加时的行为
+- 修改其 `fullHash` 或 `dependentHash` 属性以控制模块是否可被缓存
 
 ### rebuildModule
 
