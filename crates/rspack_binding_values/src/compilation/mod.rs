@@ -14,17 +14,20 @@ use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::ChunkUkey;
 use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::Ref;
+use rspack_plugin_runtime::RuntimeModuleFromJs;
 use sys::napi_env;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
+use crate::JsAddingRuntimeModule;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ModuleDTOWrapper;
@@ -531,6 +534,21 @@ impl JsCompilation {
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
+  }
+
+  #[napi]
+  pub fn add_runtime_module(
+    &'static mut self,
+    chunk_ukey: u32,
+    runtime_module: JsAddingRuntimeModule,
+  ) -> napi::Result<()> {
+    self
+      .0
+      .add_runtime_module(
+        &ChunkUkey::from(chunk_ukey),
+        Box::new(RuntimeModuleFromJs::from(runtime_module)),
+      )
+      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
 }
 

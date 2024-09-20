@@ -41,12 +41,30 @@ pub trait CustomSourceRuntimeModule {
 
 pub type BoxRuntimeModule = Box<dyn RuntimeModule>;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RuntimeModuleStage {
   Normal,  // Runtime modules without any dependencies to other runtime modules
   Basic,   // Runtime modules with simple dependencies on other runtime modules
   Attach,  // Runtime modules which attach to handlers of other runtime modules
   Trigger, // Runtime modules which trigger actions on bootstrap
+}
+
+impl Default for RuntimeModuleStage {
+  fn default() -> Self {
+    Self::Normal
+  }
+}
+
+impl From<u32> for RuntimeModuleStage {
+  fn from(stage: u32) -> Self {
+    match stage {
+      0 => RuntimeModuleStage::Normal,
+      5 => RuntimeModuleStage::Basic,
+      10 => RuntimeModuleStage::Attach,
+      20 => RuntimeModuleStage::Trigger,
+      _ => RuntimeModuleStage::Normal,
+    }
+  }
 }
 
 pub trait RuntimeModuleExt {
