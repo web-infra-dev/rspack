@@ -480,6 +480,38 @@ export async function runLoaders(
 				}
 			);
 	};
+	loaderContext.loadModule = function loadModule(request, callback) {
+		return compiler
+			._lastCompilation!.__internal_getInner()
+			.loadModule(request, loaderContext.context, (err, res) => {
+				if (err) {
+					callback(err, undefined);
+				} else {
+					for (const dep of res.buildDependencies) {
+						this.addBuildDependency(dep);
+					}
+					for (const dep of res.contextDependencies) {
+						this.addContextDependency(dep);
+					}
+					for (const dep of res.missingDependencies) {
+						this.addMissingDependency(dep);
+					}
+					for (const dep of res.fileDependencies) {
+						this.addDependency(dep);
+					}
+					if (res.cacheable === false) {
+						this.cacheable(false);
+					}
+
+					callback(
+						null,
+						res.source,
+						JsSourceMap.__from_binding(res.map)
+						// Module.__from_binding(res.module, compiler._lastCompilation!)
+					);
+				}
+			});
+	};
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
 		get: () => {

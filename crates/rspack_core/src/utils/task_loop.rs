@@ -1,6 +1,7 @@
 use std::{
   any::Any,
   collections::VecDeque,
+  fmt::Debug,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -31,7 +32,7 @@ pub enum TaskType {
 ///
 /// See test for more example
 #[async_trait::async_trait]
-pub trait Task<Ctx>: Send + Any + AsAny {
+pub trait Task<Ctx>: Send + Any + AsAny + Debug {
   /// Return the task type
   ///
   /// Return `TaskType::Sync` will run `self::sync_run`

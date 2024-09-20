@@ -528,6 +528,60 @@ impl JsCompilation {
     })
   }
 
+  #[napi]
+  pub fn load_module(
+    &'static self,
+    env: Env,
+    request: String,
+    original_module_context: Option<String>,
+    callback: JsFunction,
+  ) -> Result<()> {
+    callbackify(env, callback, async {
+      let module_executor = self
+        .0
+        .module_executor
+        .as_ref()
+        .expect("should have module executor");
+      let res = module_executor
+        .load_module(
+          request,
+          original_module_context.map(rspack_core::Context::from),
+        )
+        .await;
+      let map = res
+        .map
+        .map(|map| map.to_json())
+        .transpose()
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?
+        .map(|v| v.into_bytes().into());
+      let js_result = JsLoadModuleResult {
+        file_dependencies: res
+          .file_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        context_dependencies: res
+          .context_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        build_dependencies: res
+          .build_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        missing_dependencies: res
+          .missing_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        source: res.source,
+        map,
+      };
+      Ok(js_result)
+    })
+  }
+
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
@@ -621,6 +675,16 @@ pub struct JsExecuteModuleResult {
   pub cacheable: bool,
   pub assets: Vec<String>,
   pub id: u32,
+}
+
+#[napi]
+pub struct JsLoadModuleResult {
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub source: Option<String>,
+  pub map: Option<Buffer>,
 }
 
 #[napi(object)]

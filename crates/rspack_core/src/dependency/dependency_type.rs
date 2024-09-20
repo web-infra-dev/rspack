@@ -95,6 +95,7 @@ pub enum DependencyType {
   /// Webpack is included
   WebpackIsIncluded,
   LoaderImport,
+  Loader,
   LazyImport,
   ModuleDecorator,
   Custom(&'static str),
@@ -144,6 +145,7 @@ impl DependencyType {
       DependencyType::WasmExportImported => "wasm export imported",
       DependencyType::StaticExports => "static exports",
       DependencyType::LoaderImport => "loader import",
+      DependencyType::Loader => "loader",
       DependencyType::Custom(ty) => ty,
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode

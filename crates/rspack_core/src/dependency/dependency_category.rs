@@ -15,6 +15,7 @@ pub enum DependencyCategory {
   Wasm,
   Worker,
   LoaderImport,
+  Loader,
 }
 
 impl From<&str> for DependencyCategory {
@@ -49,6 +50,7 @@ impl DependencyCategory {
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
       DependencyCategory::LoaderImport => "loader import",
+      DependencyCategory::Loader => "loader",
     }
   }
 }

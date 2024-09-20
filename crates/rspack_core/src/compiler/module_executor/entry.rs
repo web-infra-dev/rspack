@@ -4,13 +4,13 @@ use super::ctrl::Event;
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Dependency, DependencyId, LoaderImportDependency, ModuleProfile,
+  Dependency, DependencyId, ModuleProfile,
 };
 
 #[derive(Debug)]
 pub enum EntryParam {
   DependencyId(DependencyId, UnboundedSender<Event>),
-  Entry(Box<LoaderImportDependency>),
+  Entry(Box<dyn Dependency>),
 }
 
 #[derive(Debug)]

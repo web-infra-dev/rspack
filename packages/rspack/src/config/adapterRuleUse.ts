@@ -178,6 +178,15 @@ export interface LoaderContext<OptionsType = {}> {
 		options: { layer?: string; publicPath?: PublicPath; baseUri?: string },
 		callback: (err?: Error, res?: any) => void
 	): void;
+	loadModule(
+		request: string,
+		callback: (
+			err: Error | null,
+			source?: string | Buffer,
+			sourceMap?: object | null,
+			module?: Module
+		) => void
+	): void;
 	fs: any;
 	/**
 	 * This is an experimental API and maybe subject to change.
