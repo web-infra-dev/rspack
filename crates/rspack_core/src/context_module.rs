@@ -872,8 +872,7 @@ impl Module for ContextModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolve_dependencies = &self.resolve_dependencies;
-    let (dependencies, blocks) =
-      resolve_dependencies(self.identifier.clone(), self.options.clone())?;
+    let (dependencies, blocks) = resolve_dependencies(self.identifier, self.options.clone())?;
 
     let mut context_dependencies: HashSet<PathBuf> = Default::default();
     context_dependencies.insert(self.options.resource.clone().into_std_path_buf());
