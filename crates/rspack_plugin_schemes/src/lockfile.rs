@@ -6,8 +6,10 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use derivative::Derivative;
 use rspack_fs::AsyncFileSystem;
+use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LockfileEntry {
   pub resolved: String,
@@ -119,8 +121,10 @@ impl LockfileAsync for Lockfile {
     path: P,
     filesystem: &F,
   ) -> io::Result<Lockfile> {
+    let utf8_path = Utf8Path::from_path(path.as_ref())
+      .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
     let content = filesystem
-      .read(path.as_ref())
+      .read(utf8_path)
       .await
       .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
     let content_str =
@@ -133,11 +137,13 @@ impl LockfileAsync for Lockfile {
     path: P,
     filesystem: &F,
   ) -> io::Result<()> {
+    let utf8_path = Utf8Path::from_path(path.as_ref())
+      .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
     let content = self
       .to_json_string()
       .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     filesystem
-      .write(path.as_ref(), content.as_bytes())
+      .write(utf8_path, content.as_bytes())
       .await
       .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     Ok(())
@@ -190,18 +196,22 @@ impl LockfileCache {
 
     if let Some(lockfile_path) = &self.lockfile_path {
       if let Some(parent) = lockfile_path.parent() {
+        let utf8_parent = Utf8Path::from_path(parent)
+          .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
         self
           .filesystem
-          .create_dir_all(parent)
+          .create_dir_all(utf8_parent)
           .await
           .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
       }
       let content = lockfile
         .to_json_string()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+      let utf8_lockfile_path = Utf8Path::from_path(lockfile_path)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
       self
         .filesystem
-        .write(lockfile_path, content.as_bytes())
+        .write(utf8_lockfile_path, content.as_bytes())
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     }
