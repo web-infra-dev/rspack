@@ -1,9 +1,8 @@
 const { RuntimeModule, RuntimeGlobals } = require("@rspack/core");
 
 class MockRuntimeModule extends RuntimeModule {
-  constructor(chunk) {
+  constructor() {
     super("mock");
-    this.chunk = chunk;
   }
 
   generate(compilation) {

@@ -1075,6 +1075,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
+		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
 			chunk.__internal__innerUkey(),
 			RuntimeModule.__to_binding(this, runtimeModule)
