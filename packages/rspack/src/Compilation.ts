@@ -598,7 +598,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				? assetInfoUpdateOrFunction
 				: typeof assetInfoUpdateOrFunction === "function"
 					? jsAssetInfo =>
-						JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
+							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
 					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
 		);
 	}
@@ -1160,8 +1160,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner;
 	}
 
-	seal() { }
-	unseal() { }
+	seal() {}
+	unseal() {}
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;

@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-  | string
-  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+	| string
+	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -282,6 +282,8 @@ export function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
 }
+
+export function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {
   name: string
