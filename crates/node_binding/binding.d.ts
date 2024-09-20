@@ -1429,6 +1429,10 @@ export interface RawJavascriptParserOptions {
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: boolean
+  requireAsExpression?: boolean
+  requireDynamic?: boolean
+  requireResolve?: boolean
+  importDynamic?: boolean
 }
 
 export interface RawLazyCompilationOption {

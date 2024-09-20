@@ -91,6 +91,10 @@ pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
   fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
+    if matches!(parser.javascript_options.require_resolve, Some(false)) {
+      return;
+    }
+
     if call_expr.args.len() != 1 {
       return;
     }
@@ -268,6 +272,10 @@ impl CommonJsImportsParserPlugin {
       }
     }
 
+    if matches!(parser.javascript_options.require_dynamic, Some(false)) && !param.is_string() {
+      return Some(true);
+    }
+
     // FIXME: should support `LocalModuleDependency`
     if self
       .process_require_item(parser, call_expr.span, &param)
@@ -290,6 +298,10 @@ impl CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser,
     ident: &Ident,
   ) -> Option<bool> {
+    if matches!(parser.javascript_options.require_as_expression, Some(false)) {
+      return Some(true);
+    }
+
     let start = ident.span().real_lo();
     let end = ident.span().real_hi();
     let mut dep = CommonJsRequireContextDependency::new(

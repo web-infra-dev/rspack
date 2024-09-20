@@ -146,6 +146,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser.blocks.push(Box::new(block));
       Some(true)
     } else {
+      if matches!(parser.javascript_options.import_dynamic, Some(false)) {
+        return Some(true);
+      }
+
       let ContextModuleScanResult {
         context,
         reg,
