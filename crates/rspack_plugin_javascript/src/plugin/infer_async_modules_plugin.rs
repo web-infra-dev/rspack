@@ -3,7 +3,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   unaffected_cache::{Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType,
-  ModuleIdentifier, Plugin, PluginContext,
+  ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -45,8 +45,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .new_incremental_enabled()
     .then(Mutations::default);
 
-  set_async_modules(compilation, sync_modules, false, &mut mutations);
-  set_async_modules(compilation, async_modules, true, &mut mutations);
+  set_sync_modules(compilation, sync_modules, &mut mutations);
+  set_async_modules(compilation, async_modules, &mut mutations);
 
   if let Some(compilation_mutations) = &mut compilation.mutations
     && let Some(mutations) = mutations
@@ -57,41 +57,88 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+fn set_sync_modules(
+  compilation: &mut Compilation,
+  modules: LinkedHashSet<ModuleIdentifier>,
+  mutations: &mut Option<Mutations>,
+) {
+  let mut queue = modules;
+
+  while let Some(module) = queue.pop_front() {
+    let module_graph = compilation.get_module_graph();
+    if module_graph
+      .get_outgoing_connections(&module)
+      .iter()
+      .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
+      .any(|module| ModuleGraph::is_async(compilation, module))
+    {
+      // We can't safely reset is_async to false if there are any outgoing module is async
+      continue;
+    }
+    // The module is_async will also decide its parent module is_async, so if the module is_async
+    // is not changed, this means its parent module will be not affected, so we stop the infer at here.
+    // This also applies to set_async_modules
+    if ModuleGraph::set_async(compilation, module, false) {
+      if let Some(mutations) = mutations {
+        mutations.add(Mutation::ModuleGraphModuleSetAsync { module });
+      }
+      let module_graph = compilation.get_module_graph();
+      module_graph
+        .get_incoming_connections(&module)
+        .iter()
+        .filter(|con| {
+          module_graph
+            .dependency_by_id(&con.dependency_id)
+            .map(|dep| {
+              matches!(
+                dep.dependency_type(),
+                DependencyType::EsmImport | DependencyType::EsmExport
+              )
+            })
+            .unwrap_or_default()
+        })
+        .for_each(|con| {
+          if let Some(id) = &con.original_module_identifier {
+            queue.insert(*id);
+          }
+        });
+    }
+  }
+}
+
 fn set_async_modules(
   compilation: &mut Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
-  is_async: bool,
   mutations: &mut Option<Mutations>,
 ) {
-  let mut uniques = IdentifierSet::from_iter(modules.iter().copied());
   let mut queue = modules;
-  let mut module_graph = compilation.get_module_graph_mut();
 
   while let Some(module) = queue.pop_front() {
-    let changed = module_graph.set_async(&module, is_async);
-    if changed && let Some(mutations) = mutations {
-      mutations.add(Mutation::ModuleGraphModuleSetAsync { module });
-    }
-    module_graph
-      .get_incoming_connections(&module)
-      .iter()
-      .filter(|con| {
-        if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
-          matches!(
-            dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExport
-          )
-        } else {
-          false
-        }
-      })
-      .for_each(|con| {
-        if let Some(id) = &con.original_module_identifier {
-          if uniques.insert(*id) {
+    if ModuleGraph::set_async(compilation, module, true) {
+      if let Some(mutations) = mutations {
+        mutations.add(Mutation::ModuleGraphModuleSetAsync { module });
+      }
+      let module_graph = compilation.get_module_graph();
+      module_graph
+        .get_incoming_connections(&module)
+        .iter()
+        .filter(|con| {
+          module_graph
+            .dependency_by_id(&con.dependency_id)
+            .map(|dep| {
+              matches!(
+                dep.dependency_type(),
+                DependencyType::EsmImport | DependencyType::EsmExport
+              )
+            })
+            .unwrap_or_default()
+        })
+        .for_each(|con| {
+          if let Some(id) = &con.original_module_identifier {
             queue.insert(*id);
           }
-        }
-      });
+        });
+    }
   }
 }
 

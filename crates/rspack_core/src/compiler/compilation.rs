@@ -164,6 +164,7 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
+  pub async_modules: IdentifierSet,
   pub code_generation_results: CodeGenerationResults,
   pub cgm_hash_results: CgmHashResults,
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
@@ -256,6 +257,7 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
 
+      async_modules: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),

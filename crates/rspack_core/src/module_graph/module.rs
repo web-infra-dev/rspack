@@ -23,7 +23,6 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<u32>,
   pub exports: ExportsInfo,
   pub profile: Option<Box<ModuleProfile>>,
-  pub is_async: bool,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
 }
@@ -41,7 +40,6 @@ impl ModuleGraphModule {
       post_order_index: None,
       exports: exports_info,
       profile: None,
-      is_async: false,
       depth: None,
       optimization_bailout: vec![],
     }

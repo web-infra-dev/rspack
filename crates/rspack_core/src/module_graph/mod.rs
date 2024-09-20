@@ -7,8 +7,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Dependency, ExportProvided,
-  ProvidedExports, RuntimeSpec, UsedExports,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, Dependency,
+  ExportProvided, ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -370,11 +370,12 @@ impl<'a> ModuleGraph<'a> {
 
   /// Make sure both source and target module are exists in module graph
   pub fn clone_module_attributes(
-    &mut self,
+    compilation: &mut Compilation,
     source_module: &ModuleIdentifier,
     target_module: &ModuleIdentifier,
   ) {
-    let old_mgm = self
+    let mut module_graph = compilation.get_module_graph_mut();
+    let old_mgm = module_graph
       .module_graph_module_by_identifier(source_module)
       .expect("should have mgm");
 
@@ -384,16 +385,17 @@ impl<'a> ModuleGraph<'a> {
       old_mgm.pre_order_index,
       old_mgm.depth,
       old_mgm.exports,
-      old_mgm.is_async,
     );
-    let new_mgm = self
+    let new_mgm = module_graph
       .module_graph_module_by_identifier_mut(target_module)
       .expect("should have mgm");
     new_mgm.post_order_index = assign_tuple.0;
     new_mgm.pre_order_index = assign_tuple.1;
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
-    new_mgm.is_async = assign_tuple.4;
+
+    let is_async = ModuleGraph::is_async(compilation, source_module);
+    ModuleGraph::set_async(compilation, *target_module, is_async);
   }
 
   pub fn move_module_connections(
@@ -979,20 +981,24 @@ impl<'a> ModuleGraph<'a> {
     has_connections
   }
 
-  pub fn is_async(&self, module_id: &ModuleIdentifier) -> Option<bool> {
-    self
-      .module_graph_module_by_identifier(module_id)
-      .map(|mgm| mgm.is_async)
+  pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
+    compilation.async_modules.contains(module_id)
   }
 
-  pub fn set_async(&mut self, module_id: &ModuleIdentifier, is_async: bool) -> bool {
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_id)
-      && mgm.is_async != is_async
-    {
-      mgm.is_async = is_async;
-      return true;
+  pub fn set_async(
+    compilation: &mut Compilation,
+    module_id: ModuleIdentifier,
+    is_async: bool,
+  ) -> bool {
+    let original = Self::is_async(compilation, &module_id);
+    if original == is_async {
+      return false;
     }
-    false
+    if original {
+      compilation.async_modules.remove(&module_id)
+    } else {
+      compilation.async_modules.insert(module_id)
+    }
   }
 
   pub fn get_outgoing_connections(

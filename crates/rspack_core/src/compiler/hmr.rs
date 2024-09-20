@@ -98,6 +98,7 @@ impl Compiler {
       }
 
       if self.options.new_incremental_enabled() {
+        new_compilation.async_modules = std::mem::take(&mut self.compilation.async_modules);
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
