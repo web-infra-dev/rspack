@@ -897,6 +897,12 @@ export class Chunk {
     // (undocumented)
     getAllReferencedChunks(): Iterable<Chunk>;
     // (undocumented)
+    getChunkMaps(realHash: boolean): {
+        hash: Record<string | number, string>;
+        contentHash: Record<string | number, Record<string, string>>;
+        name: Record<string | number, string>;
+    };
+    // (undocumented)
     get groupsIterable(): Iterable<ChunkGroup>;
     // (undocumented)
     hash?: Readonly<string>;

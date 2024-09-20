@@ -96,6 +96,39 @@ export class Chunk {
 		return new Set(chunk_groups);
 	}
 
+	getChunkMaps(realHash: boolean) {
+		const chunkHashMap: Record<string | number, string> = {};
+		const chunkContentHashMap: Record<
+			string | number,
+			Record<string, string>
+		> = {};
+		const chunkNameMap: Record<string | number, string> = {};
+
+		for (const chunk of this.getAllAsyncChunks()) {
+			const id = chunk.id;
+			if (!id) continue;
+			const chunkHash = realHash ? chunk.hash : chunk.renderedHash;
+			if (chunkHash) {
+				chunkHashMap[id] = chunkHash;
+			}
+			for (const key of Object.keys(chunk.contentHash)) {
+				if (!chunkContentHashMap[key]) {
+					chunkContentHashMap[key] = {};
+				}
+				chunkContentHashMap[key][id] = chunk.contentHash[key];
+			}
+			if (chunk.name) {
+				chunkNameMap[id] = chunk.name;
+			}
+		}
+
+		return {
+			hash: chunkHashMap,
+			contentHash: chunkContentHashMap,
+			name: chunkNameMap
+		};
+	}
+
 	getAllAsyncChunks(): Iterable<Chunk> {
 		return new Set(
 			__chunk_inner_get_all_async_chunks(
