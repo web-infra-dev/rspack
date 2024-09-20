@@ -29,7 +29,7 @@ import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
-import { JsDiagnostic, type RspackError } from "./RspackError";
+import { JsRspackDiagnostic, type RspackError } from "./RspackError";
 import {
 	Stats,
 	type StatsAsset,
@@ -687,7 +687,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * @internal
 	 */
-	__internal__pushDiagnostic(diagnostic: binding.JsDiagnostic) {
+	__internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic) {
 		this.#inner.pushDiagnostic(diagnostic);
 	}
 
@@ -696,9 +696,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * @internal
 	 */
-	__internal__pushNativeDiagnostics(
-		diagnostics: ExternalObject<"Diagnostic[]">
-	) {
+	__internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">) {
+		this.#inner.pushNativeDiagnostic(diagnostic);
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">) {
 		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
@@ -717,7 +724,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					for (let i = 0; i < errs.length; i++) {
 						const error = errs[i];
 						inner.pushDiagnostic(
-							JsDiagnostic.__to_binding(error, JsRspackSeverity.Error)
+							JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error)
 						);
 					}
 					return Reflect.apply(target, thisArg, errs);
@@ -748,7 +755,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					errs: ErrorType[]
 				) {
 					const errList = errs.map(error => {
-						return JsDiagnostic.__to_binding(error, JsRspackSeverity.Error);
+						return JsRspackDiagnostic.__to_binding(
+							error,
+							JsRspackSeverity.Error
+						);
 					});
 					inner.spliceDiagnostic(0, 0, errList);
 					return Reflect.apply(target, thisArg, errs);
@@ -762,7 +772,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
 				) {
 					const errList = errors.map(error => {
-						return JsDiagnostic.__to_binding(error, JsRspackSeverity.Error);
+						return JsRspackDiagnostic.__to_binding(
+							error,
+							JsRspackSeverity.Error
+						);
 					});
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
 					return Reflect.apply(target, thisArg, [
@@ -801,7 +814,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						thisArg,
 						processWarningsHook.call(warns as any).map(warn => {
 							inner.pushDiagnostic(
-								JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+								JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
 							);
 							return warn;
 						})
@@ -837,7 +850,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						0,
 						0,
 						warnings.map(warn => {
-							return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
+							return JsRspackDiagnostic.__to_binding(
+								warn,
+								JsRspackSeverity.Warn
+							);
 						})
 					);
 					return Reflect.apply(target, thisArg, warnings);
@@ -852,7 +868,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				) {
 					warns = processWarningsHook.call(warns as any);
 					const warnList = warns.map(warn => {
-						return JsDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
+						return JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
 					});
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
 					return Reflect.apply(target, thisArg, [

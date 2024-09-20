@@ -3343,6 +3343,7 @@ dependencies = [
  "napi-derive",
  "napi-h",
  "once_cell",
+ "ropey",
  "rspack_allocator",
  "rspack_binding_options",
  "rspack_binding_values",
@@ -3358,6 +3359,7 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_tracing",
+ "rspack_util",
  "tokio",
  "tracing",
 ]
@@ -4022,6 +4024,7 @@ dependencies = [
  "indexmap 2.2.6",
  "itoa",
  "regex",
+ "ropey",
  "rspack_regex",
  "rustc-hash 1.1.0",
  "serde",

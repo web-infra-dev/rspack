@@ -16,10 +16,12 @@ use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
+mod diagnostic;
 mod panic;
 mod plugins;
 mod resolver_factory;
 
+pub use diagnostic::*;
 use plugins::*;
 use resolver_factory::*;
 use rspack_binding_options::*;
