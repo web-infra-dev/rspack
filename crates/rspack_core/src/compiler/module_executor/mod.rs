@@ -6,6 +6,7 @@ mod overwrite;
 
 use dashmap::DashMap;
 use dashmap::{mapref::entry::Entry, DashSet};
+use entry::EntryTask;
 pub use execute::ExecuteModuleId;
 pub use execute::ExecutedRuntimeModule;
 use load::{LoadModuleResult, LoadTask};
@@ -198,15 +199,15 @@ impl ModuleExecutor {
 
     let (tx, rx) = oneshot::channel();
     sender
-      .send(Event::ExecuteModule(
-        param,
-        ExecuteTask {
+      .send(Event::EnterModule(
+        Box::new(EntryTask { param }),
+        Box::new(ExecuteTask {
           entry_dep_id: dep_id,
           layer,
           public_path,
           base_uri,
           result_sender: tx,
-        },
+        }),
       ))
       .expect("should success");
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
@@ -273,12 +274,12 @@ impl ModuleExecutor {
 
     let (tx, rx) = oneshot::channel();
     sender
-      .send(Event::LoadModule(
-        param,
-        LoadTask {
+      .send(Event::EnterModule(
+        Box::new(EntryTask { param }),
+        Box::new(LoadTask {
           entry_dep_id: dep_id,
           result_sender: tx,
-        },
+        }),
       ))
       .expect("should success");
     rx.await.expect("should receiver success")

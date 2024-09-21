@@ -4,11 +4,7 @@ use rspack_collections::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
-use super::{
-  entry::{EntryParam, EntryTask},
-  execute::ExecuteTask,
-  load::LoadTask,
-};
+use super::entry::{EntryParam, EntryTask};
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -58,27 +54,14 @@ pub enum Event {
   ),
   // current_module_identifier and sub dependency count
   FinishModule(ModuleIdentifier, usize),
-  ExecuteModule(EntryParam, ExecuteTask),
-  LoadModule(EntryParam, LoadTask),
+  EnterModule(Box<EntryTask>, Box<dyn Task<MakeTaskContext>>),
   Stop(),
-}
-
-#[derive(Debug)]
-pub enum LoaderTaskKind {
-  ExecuteTask,
-  LoadTask,
-}
-
-#[derive(Debug)]
-pub struct LoaderTask {
-  kind: LoaderTaskKind,
-  task: Box<dyn Task<MakeTaskContext>>,
 }
 
 #[derive(Debug)]
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
-  loader_task_map: HashMap<DependencyId, LoaderTask>,
+  loader_task_map: HashMap<DependencyId, Box<dyn Task<MakeTaskContext>>>,
   running_module_map: IdentifierMap<UnfinishCounter>,
 }
 
@@ -123,7 +106,7 @@ impl Task<MakeTaskContext> for CtrlTask {
               .loader_task_map
               .remove(&dep_id)
               .expect("should have loader task");
-            return Ok(vec![loader_task.task, self]);
+            return Ok(vec![loader_task, self]);
           };
 
           let value = self
@@ -151,33 +134,13 @@ impl Task<MakeTaskContext> for CtrlTask {
             })]);
           }
         }
-        Event::ExecuteModule(param, execute_task) => {
-          let dep_id = match &param {
+        Event::EnterModule(entry_task, loader_task) => {
+          let dep_id = match &entry_task.param {
             EntryParam::DependencyId(id, _) => *id,
             EntryParam::Entry(dep) => *dep.id(),
           };
-          self.loader_task_map.insert(
-            dep_id,
-            LoaderTask {
-              kind: LoaderTaskKind::ExecuteTask,
-              task: Box::new(execute_task),
-            },
-          );
-          return Ok(vec![Box::new(EntryTask { param }), self]);
-        }
-        Event::LoadModule(param, load_task) => {
-          let dep_id = match &param {
-            EntryParam::DependencyId(id, _) => *id,
-            EntryParam::Entry(dep) => *dep.id(),
-          };
-          self.loader_task_map.insert(
-            dep_id,
-            LoaderTask {
-              kind: LoaderTaskKind::LoadTask,
-              task: Box::new(load_task),
-            },
-          );
-          return Ok(vec![Box::new(EntryTask { param }), self]);
+          self.loader_task_map.insert(dep_id, loader_task);
+          return Ok(vec![entry_task, self]);
         }
         Event::Stop() => {
           return Ok(vec![]);
@@ -247,7 +210,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
               .loader_task_map
               .remove(&dep_id)
               .expect("should have execute task");
-            res.push(loader_task.task);
+            res.push(loader_task);
             continue;
           };
 
@@ -270,33 +233,13 @@ impl Task<MakeTaskContext> for FinishModuleTask {
             queue.push_back(mid);
           }
         }
-        Event::ExecuteModule(param, execute_task) => {
-          let dep_id = match &param {
+        Event::EnterModule(entry_task, loader_task) => {
+          let dep_id = match &entry_task.param {
             EntryParam::DependencyId(id, _) => *id,
             EntryParam::Entry(dep) => *dep.id(),
           };
-          ctrl_task.loader_task_map.insert(
-            dep_id,
-            LoaderTask {
-              kind: LoaderTaskKind::ExecuteTask,
-              task: Box::new(execute_task),
-            },
-          );
-          res.push(Box::new(EntryTask { param }));
-        }
-        Event::LoadModule(param, load_task) => {
-          let dep_id = match &param {
-            EntryParam::DependencyId(id, _) => *id,
-            EntryParam::Entry(dep) => *dep.id(),
-          };
-          ctrl_task.loader_task_map.insert(
-            dep_id,
-            LoaderTask {
-              kind: LoaderTaskKind::LoadTask,
-              task: Box::new(load_task),
-            },
-          );
-          res.push(Box::new(EntryTask { param }));
+          ctrl_task.loader_task_map.insert(dep_id, loader_task);
+          res.push(entry_task);
         }
         Event::Stop() => {
           return Ok(vec![]);
@@ -328,7 +271,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
             .loader_task_map
             .remove(&connection.dependency_id)
             .expect("should have loader task");
-          res.push(loader_task.task);
+          res.push(loader_task);
         }
       }
 
