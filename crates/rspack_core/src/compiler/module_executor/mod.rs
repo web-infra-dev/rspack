@@ -281,8 +281,6 @@ impl ModuleExecutor {
         },
       ))
       .expect("should success");
-    let load_result = rx.await.expect("should receiver success");
-
-    load_result
+    rx.await.expect("should receiver success")
   }
 }
