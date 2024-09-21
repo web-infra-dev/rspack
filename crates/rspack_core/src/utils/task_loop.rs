@@ -149,6 +149,7 @@ mod test {
     async_return_error: bool,
   }
 
+  #[derive(Debug)]
   struct SyncTask;
   impl Task<Context> for SyncTask {
     fn get_task_type(&self) -> TaskType {
@@ -171,6 +172,7 @@ mod test {
     }
   }
 
+  #[derive(Debug)]
   struct AsyncTask {
     async_return_error: bool,
   }
