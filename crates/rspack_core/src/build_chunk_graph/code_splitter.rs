@@ -1,4 +1,4 @@
-use std::collections::HashMap as RawHashMap;
+use std::collections::HashSet as RawHashSet;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
@@ -17,7 +17,6 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
 use super::incremental::ChunkCreateData;
-use crate::build_chunk_graph::incremental::ChunkReCreation;
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   add_connection_states, assign_depths, get_entry_runtime, merge_runtime,
@@ -57,7 +56,8 @@ pub struct ChunkGroupInfo {
   // A derived attribute, therefore utilizing interior mutability to manage updates
   resulting_available_modules: Option<BigUint>,
 
-  pub outgoing_blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  pub outgoing_blocks:
+    RawHashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
 
   pub debug_id: String,
 }
@@ -256,9 +256,9 @@ pub(crate) struct CodeSplitter {
   pub(crate) block_chunk_groups: HashMap<DependenciesBlockIdentifier, CgiUkey>,
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
-  block_modules_runtime_map: BlockModulesRuntimeMap,
-  ordinal_by_module: IdentifierMap<u64>,
-  pub mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
+  pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) ordinal_by_module: IdentifierMap<u64>,
+  pub(crate) mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -267,13 +267,18 @@ pub(crate) struct CodeSplitter {
   stat_merged_available_module_sets: u32,
   stat_chunk_group_info_updated: u32,
   stat_child_chunk_groups_reconnected: u32,
-  stat_chunk_group_created: u32,
+  pub(crate) stat_chunk_group_created: u32,
 
   // incremental stat
   pub(crate) stat_invalidated_chunk_group: u32,
+  pub(crate) stat_invalidated_caches: u32,
   pub(crate) stat_use_cache: u32,
 
-  pub(crate) chunk_caches: HashMap<(CgiUkey, DependenciesBlockIdentifier), ChunkCreateData>,
+  // represents the edge of how chunk is created
+  pub(crate) edges: HashMap<AsyncDependenciesBlockIdentifier, ModuleIdentifier>,
+
+  // created from edges
+  pub(crate) chunk_caches: HashMap<AsyncDependenciesBlockIdentifier, ChunkCreateData>,
 }
 
 fn add_chunk_in_group(
@@ -336,85 +341,6 @@ impl CodeSplitter {
         &module_id
       )
     })
-  }
-
-  #[instrument(skip_all)]
-  pub fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
-    self.stat_invalidated_chunk_group = 0;
-    self.stat_use_cache = 0;
-    self.stat_chunk_group_created = 0;
-
-    let modules = if compilation.options.new_incremental_enabled() {
-      let affected_lock = compilation
-        .unaffected_modules_cache
-        .get_affected_modules_with_module_graph()
-        .lock()
-        .expect("should get lock");
-
-      let affected = affected_lock.clone();
-      drop(affected_lock);
-      affected
-    } else {
-      compilation
-        .get_module_graph()
-        .modules()
-        .keys()
-        .copied()
-        .collect()
-    };
-
-    // This optimization is from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
-    // Thanks!
-    let module_graph = compilation.get_module_graph();
-    let ordinal_by_module = &mut self.ordinal_by_module;
-    for m in module_graph.modules().keys() {
-      if !ordinal_by_module.contains_key(m) {
-        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
-      }
-    }
-
-    let mut mask_by_chunk = UkeyMap::default();
-    for chunk in compilation.chunk_by_ukey.keys() {
-      let mut mask = BigUint::from(0u32);
-      for module in compilation
-        .chunk_graph
-        .get_chunk_modules(chunk, &module_graph)
-      {
-        let module_id = module.identifier();
-        let module_ordinal = self.get_module_ordinal(module_id);
-        mask.set_bit(module_ordinal, true);
-      }
-      mask_by_chunk.insert(*chunk, mask);
-    }
-
-    let mut edges = vec![];
-    for m in modules {
-      for module_map in self.block_modules_runtime_map.values_mut() {
-        module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
-      }
-      edges.extend(self.invalidate_from_module(m, compilation)?);
-    }
-
-    for edge in &edges {
-      if let ChunkReCreation::Normal(normal) = &edge {
-        self.chunk_caches.remove(&(
-          normal.cgi,
-          DependenciesBlockIdentifier::AsyncDependenciesBlock(normal.block),
-        ));
-      }
-    }
-
-    dbg!(edges.len());
-    dbg!(edges
-      .iter()
-      .find(|edge| matches!(edge, ChunkReCreation::Entry(_)))
-      .is_some());
-
-    for edge in edges {
-      edge.rebuild(self, compilation)?;
-    }
-
-    Ok(())
   }
 
   pub fn prepare_entry_input(
@@ -951,6 +877,10 @@ Remove the 'runtime' option from the entrypoint."
       self.stat_chunk_group_created,
     ));
     logger.log(format!(
+      "{} chunk cache invalidated",
+      self.stat_invalidated_caches,
+    ));
+    logger.log(format!(
       "{} chunk group invalidated",
       self.stat_invalidated_chunk_group,
     ));
@@ -1232,37 +1162,9 @@ Remove the 'runtime' option from the entrypoint."
 
     let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
     let runtime = chunk_group_info.runtime.clone();
-    let chunk_group = chunk_group_info.chunk_group;
     let min_available_modules = chunk_group_info.min_available_modules.clone();
-    let parents_len = compilation
-      .chunk_group_by_ukey
-      .expect_get(&chunk_group_info.chunk_group)
-      .parents
-      .len();
 
     let block_modules = self.get_block_modules(item.block, Some(&runtime), compilation);
-
-    let mut is_target = false;
-    if let Some((module, _, _)) = block_modules.get(0) &&
-      module
-      .contains("/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/Icon18AccessStatisticsBlueColor/index.js")
-    {
-      let find = block_modules
-        .iter()
-        .find(|(m, _, _)| m.contains("@dp/icon-aeolus/react-icon/IconBytehouseCdw/index.js"));
-
-      dbg!(find.is_some());
-
-      if let Some((m, connection_state, _)) = find {
-        is_target = true;
-        dbg!(connection_state);
-        let ordinal = self.get_module_ordinal(*m);
-        let in_parent = min_available_modules.bit(ordinal);
-        dbg!(in_parent);
-
-        dbg!(parents_len);
-      }
-    }
 
     for (module, active_state, connections) in block_modules.into_iter().rev() {
       if compilation
@@ -1327,27 +1229,6 @@ Remove the 'runtime' option from the entrypoint."
         compilation,
       );
     }
-
-    if is_target {
-      let chunk_group_info = self
-        .chunk_group_infos
-        .get_mut(&item.chunk_group_info)
-        .unwrap();
-      dbg!(&chunk_group_info.debug_id);
-      chunk_group_info.is_target = true;
-      let chunk_group = compilation.chunk_group_by_ukey.expect_get(&chunk_group);
-
-      // let filename = format!("chunks-{}.txt", chunk_group.parents.len());
-      // std::fs::write(
-      //   &filename,
-      //   chunk_group
-      //     .origins()
-      //     .into_iter()
-      //     .map(|rec| rec.module_id.unwrap_or_default().to_string())
-      //     .collect::<Vec<_>>()
-      //     .join("\n"),
-      // );
-    }
   }
 
   pub(crate) fn make_chunk_group(
@@ -1358,12 +1239,24 @@ Remove the 'runtime' option from the entrypoint."
     item_chunk_ukey: ChunkUkey,
     compilation: &mut Compilation,
   ) {
+    if module_id.contains("/Users/bytedance/oncall/aeolus_fe/apps/abi/src/app-vite.tsx") && block_id.0.contains("act-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhengzaiyunhangXian/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhexiantu/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhexiantuBai/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhexianzhuzhuangtu/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhexianzhuzhuangtuBai/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhibiaobobao/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhibiaoka1/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhibiaokaBai1/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhifangtu/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhifangtuBai/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhilianmoren1/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhishimoxing/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhixingcuowuColor/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhongzhi/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhuangshixian/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhuangshixianBai/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhuanyisuoyouzhe/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhuanyisuoyouzheBlue/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhuzhuangtu/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZhuzhuangtuBai/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZidingyishenpiliu/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZiduan/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZiduan1/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZiduanmingcheng/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon/IconZiduanshezhiNormal/index.jscontext/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0_react@16.14.0/node_modules/@dp/icon-aeolus/react-icon|/Users/bytedance/oncall/aeolus_fe/node_modules/.pnpm/@dp+icon-aeolus@0.0.253_react-dom@16.14.0") {
+      panic!();
+    }
+
+    if let Some(old) = self.edges.get(&block_id)
+      && old != &module_id
+    {
+      dbg!(old, module_id);
+      panic!();
+    }
+    self.edges.insert(block_id, module_id);
+
     let Some(item_chunk_group_info) = self.chunk_group_infos.get_mut(&item_chunk_group_info_ukey)
     else {
       return;
     };
 
-    item_chunk_group_info.outgoing_blocks.push(block_id);
+    item_chunk_group_info.outgoing_blocks.insert(block_id);
 
     let item_chunk_group_info = self
       .chunk_group_infos
@@ -1378,7 +1271,7 @@ Remove the 'runtime' option from the entrypoint."
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
 
-    let mut add_origin: Option<(ChunkGroupUkey, Option<DependencyLocation>, Option<String>)> = None;
+    let mut add_origin = None;
 
     let cgi = if let Some(cgi) = cgi {
       let cgi = self.chunk_group_infos.expect_get(cgi);
@@ -1598,24 +1491,6 @@ Remove the 'runtime' option from the entrypoint."
         .entry(item_chunk_group_info_ukey)
         .or_default();
       let c = compilation.chunk_group_by_ukey.expect_get(&c);
-
-      let info = self.chunk_group_infos.get(&cgi).unwrap();
-      let parent = self
-        .chunk_group_infos
-        .get(&item_chunk_group_info_ukey)
-        .unwrap();
-
-      // if info.debug_id.contains("@dp/icon-aeolus/react-icon|lazy-once|/^\\.\\/.*\\/index\\.js$/|groupOptions: {}|namespace object@@@4836453507819510251") {
-      //   let filename = format!("chunk-parents-{}.txt", compilation.id().0);
-
-      //   let mut content = if let Ok(buf) = std::fs::read(&filename) {
-      //     String::from_utf8(buf).unwrap()
-      //   } else {
-      //     Default::default()
-      //   };
-      //   content += &format!("{}\n", &parent.debug_id);
-      //   std::fs::write(&filename, content);
-      // }
 
       connect_list.insert((
         cgi,
@@ -1999,10 +1874,10 @@ Remove the 'runtime' option from the entrypoint."
           cgi.initialized = true;
 
           // check if we can use cache to initialize it
-          // if !initialized && self.recover_from_cache(info_ukey, compilation) {
-          //   self.stat_use_cache += 1;
-          //   continue;
-          // }
+          if !initialized && self.recover_from_cache(info_ukey, compilation) {
+            self.stat_use_cache += 1;
+            continue;
+          }
 
           self
             .queue_delayed

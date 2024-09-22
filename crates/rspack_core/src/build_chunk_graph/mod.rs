@@ -7,11 +7,10 @@ use std::{
 };
 
 use code_splitter::CodeSplitter;
-use itertools::Itertools;
 use serde::Serialize;
 use tracing::instrument;
 
-use crate::{Compilation, CompilationId, ModuleIdentifier};
+use crate::Compilation;
 
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
@@ -49,6 +48,41 @@ pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::
   compilation.code_splitting_cache.code_splitter = splitter;
 
   // debug
+  {
+    dbg!(compilation.chunk_by_ukey.len());
+    dbg!(compilation.chunk_group_by_ukey.len());
+
+    let mut res = vec![];
+    for chunk_group in compilation.chunk_group_by_ukey.values() {
+      let mut origins = chunk_group
+        .origins()
+        .into_iter()
+        .map(|orig| orig.module_id.unwrap_or_default().to_string())
+        .collect::<Vec<_>>();
+      origins.sort();
+      let mut modules = compilation
+        .chunk_graph
+        .get_chunk_module_identifiers(&chunk_group.chunks[0])
+        .into_iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>();
+      modules.sort();
+
+      origins.push("|||".into());
+
+      origins.extend(modules);
+
+      res.push(origins.join("@@@"))
+    }
+    res.sort();
+    let mut hasher = rustc_hash::FxHasher::default();
+    res.hash(&mut hasher);
+    let hash = hasher.finish();
+    dbg!(hash);
+
+    let filename = format!("chunks-{}", hash);
+    std::fs::write(filename, res.join("\n")).unwrap();
+  }
   // {
   //   let chunk_graph = &compilation.chunk_graph;
   //   let mut modules: Vec<String> = vec![];

@@ -1,6 +1,9 @@
+use std::{collections::HashSet, hash::BuildHasherDefault};
+
 use num_bigint::BigUint;
-use rspack_collections::{IdentifierIndexSet, UkeySet};
+use rspack_collections::{IdentifierHasher, IdentifierIndexSet, UkeyMap, UkeySet};
 use rspack_error::Result;
+use rustc_hash::FxHasher;
 use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
@@ -174,37 +177,33 @@ impl CodeSplitter {
       self.runtime_chunks.remove(&runtime_chunk);
     }
 
-    // remove data related to cgi
-    // if let Some(blocks) = self.blocks_by_cgi.get(&cgi_ukey) {
-    //   for block in blocks {
-    //     self.block_chunk_groups.remove(block);
-    //   }
-    // }
-
     let mut edges = vec![];
-    for (parent, blocks) in &chunk_group_info.parents {
-      for block in blocks {
-        self
-          .block_chunk_groups
-          .remove(&DependenciesBlockIdentifier::AsyncDependenciesBlock(*block));
+    for (parent, _) in &chunk_group_info.parents {
+      let Some(parent_cg) = self
+        .chunk_group_infos
+        .get(parent)
+        .and_then(|cgi| compilation.chunk_group_by_ukey.get(&cgi.chunk_group))
+      else {
+        continue;
+      };
 
-        let Some(cache) = self.chunk_caches.get(&(
-          *parent,
-          DependenciesBlockIdentifier::AsyncDependenciesBlock(*block),
-        )) else {
+      let Some(blocks) = self.blocks_by_cgi.get(&chunk_group_info.ukey) else {
+        continue;
+      };
+
+      for block in blocks {
+        self.block_chunk_groups.remove(block);
+
+        let Some(block) = block.as_async() else {
           continue;
         };
 
-        let Some(parent_cg) = self
-          .chunk_group_infos
-          .get(parent)
-          .and_then(|cgi| compilation.chunk_group_by_ukey.get(&cgi.chunk_group))
-        else {
+        let Some(cache) = self.chunk_caches.get(&block) else {
           continue;
         };
 
         edges.push(ChunkReCreation::Normal(NormalChunkRecreation {
-          block: *block,
+          block,
           module: cache.module,
           cgi: *parent,
           chunk: parent_cg.chunks[0],
@@ -246,6 +245,49 @@ impl CodeSplitter {
     Ok(Some(edges))
   }
 
+  fn collect_dirty_caches(
+    &self,
+    compilation: &Compilation,
+    modules: impl Iterator<Item = ModuleIdentifier>,
+  ) -> HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
+    let chunk_graph: &crate::ChunkGraph = &compilation.chunk_graph;
+    let mut chunk_groups: std::collections::HashSet<
+      ChunkGroupUkey,
+      BuildHasherDefault<rspack_collections::UkeyHasher>,
+    > = UkeySet::default();
+    let mut removed: HashSet<
+      AsyncDependenciesBlockIdentifier,
+      BuildHasherDefault<IdentifierHasher>,
+    > = Default::default();
+    for m in modules {
+      let Some(cgm) = chunk_graph.chunk_graph_module_by_module_identifier.get(&m) else {
+        continue;
+      };
+
+      for chunk_ukey in &cgm.chunks {
+        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        chunk_groups.extend(chunk.groups.clone());
+      }
+    }
+    for group in chunk_groups {
+      let cgi = self
+        .chunk_group_info_map
+        .get(&group)
+        .expect("should have chunk group");
+      let Some(blocks) = self.blocks_by_cgi.get(cgi).cloned() else {
+        continue;
+      };
+
+      for block in blocks {
+        if let DependenciesBlockIdentifier::AsyncDependenciesBlock(async_block) = block {
+          removed.insert(async_block);
+        }
+      }
+    }
+
+    removed
+  }
+
   #[instrument(skip_all)]
   pub(crate) fn remove_orphan(&mut self, compilation: &mut Compilation) -> Result<()> {
     let mut removed = vec![];
@@ -268,12 +310,13 @@ impl CodeSplitter {
   }
 
   pub fn recover_from_cache(&mut self, cgi_ukey: CgiUkey, compilation: &mut Compilation) -> bool {
+    if std::env::var("CACHE").is_err() {
+      return false;
+    }
+
     let Some(cgi) = self.chunk_group_infos.get(&cgi_ukey) else {
       return false;
     };
-    if cgi.parents.len() != 1 {
-      return false;
-    }
     let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) else {
       return false;
     };
@@ -281,16 +324,19 @@ impl CodeSplitter {
     let cg = compilation.chunk_group_by_ukey.expect_get(&cgi.chunk_group);
     let chunk = cg.chunks[0];
 
-    let Some(cache) = self
-      .chunk_caches
-      .get(&(
-        *cgi.parents.iter().next().expect("should have one parent").0,
-        *blocks.iter().next().expect("should have one block"),
-      ))
-      .cloned()
+    let Some(cache) = &blocks
+      .iter()
+      .next()
+      .expect("should have one block")
+      .as_async()
+      .and_then(|block_id| self.chunk_caches.get(&block_id).cloned())
     else {
       return false;
     };
+
+    if !cache.can_rebuild {
+      return false;
+    }
 
     let module_graph = compilation.get_module_graph();
     let DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id) =
@@ -303,72 +349,168 @@ impl CodeSplitter {
       .block_by_id(block_id)
       .expect("should have block");
 
-    if !self.hit_cache(
-      &cache,
-      &cgi.runtime,
-      cgi.min_available_modules.clone(),
-      block.get_group_options(),
-    ) {
+    if !cgi.min_available_modules_init
+      || !self.hit_cache(
+        &cache,
+        &cgi.runtime,
+        cgi.min_available_modules.clone(),
+        block.get_group_options(),
+      )
+    {
       return false;
     }
+
+    let cache_result = cache
+      .cache_result
+      .as_ref()
+      .expect("should have cache result");
 
     // update cache available modules
     self.outdated_chunk_group_info.insert(cgi_ukey);
 
     let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
-    cgi.skipped_items = cache.skipped_modules.clone();
+    cgi.skipped_items = cache_result.skipped_modules.clone();
 
     let chunk_graph = &mut compilation.chunk_graph;
-    for module in cache.modules {
-      let ordinal = self.get_module_ordinal(module);
-      chunk_graph.connect_chunk_and_module(chunk, module);
+    for module in &cache_result.modules {
+      let ordinal = self.get_module_ordinal(*module);
+      chunk_graph.connect_chunk_and_module(chunk, *module);
       let mask = self.mask_by_chunk.entry(chunk).or_default();
       mask.set_bit(ordinal, true);
 
       // TODO: correct preorder index
     }
 
-    for block in cache.outgoings {
-      self.make_chunk_group(block, cache.module, cgi_ukey, chunk, compilation);
+    for block in &cache_result.outgoings {
+      self.make_chunk_group(
+        *block,
+        *self.edges.get(block).expect("should have module for block"),
+        cgi_ukey,
+        chunk,
+        compilation,
+      );
     }
 
     true
   }
 
+  #[instrument(skip_all)]
+  pub fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
+    self.stat_invalidated_chunk_group = 0;
+    self.stat_invalidated_caches = 0;
+    self.stat_use_cache = 0;
+    self.stat_chunk_group_created = 0;
+
+    let modules = if compilation.options.incremental().enabled() {
+      let affected_lock = compilation
+        .unaffected_modules_cache
+        .get_affected_modules_with_module_graph()
+        .lock()
+        .expect("should get lock");
+
+      let affected = affected_lock.clone();
+      drop(affected_lock);
+      affected
+    } else {
+      compilation
+        .get_module_graph()
+        .modules()
+        .keys()
+        .copied()
+        .collect()
+    };
+
+    dbg!(modules.len());
+    // This optimization is from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
+    // Thanks!
+    let module_graph = compilation.get_module_graph();
+    let ordinal_by_module = &mut self.ordinal_by_module;
+    for m in module_graph.modules().keys() {
+      if !ordinal_by_module.contains_key(m) {
+        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
+      }
+    }
+
+    let mut mask_by_chunk = UkeyMap::default();
+    for chunk in compilation.chunk_by_ukey.keys() {
+      let mut mask = BigUint::from(0u32);
+      for module in compilation
+        .chunk_graph
+        .get_chunk_modules(chunk, &module_graph)
+      {
+        let module_id = module.identifier();
+        let module_ordinal = self.get_module_ordinal(module_id);
+        mask.set_bit(module_ordinal, true);
+      }
+      mask_by_chunk.insert(*chunk, mask);
+    }
+
+    let mut edges = vec![];
+
+    let dirty_blocks = self.collect_dirty_caches(&compilation, modules.iter().cloned());
+
+    for m in modules {
+      for module_map in self.block_modules_runtime_map.values_mut() {
+        module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
+      }
+
+      let more_edges = self.invalidate_from_module(m, compilation)?;
+      edges.extend(more_edges);
+    }
+
+    self.stat_invalidated_caches = dirty_blocks.len() as u32;
+    for block in dirty_blocks {
+      self.chunk_caches.remove(&block);
+    }
+
+    dbg!(edges.len());
+    dbg!(edges
+      .iter()
+      .find(|edge| matches!(edge, ChunkReCreation::Entry(_)))
+      .is_some());
+
+    for edge in edges {
+      edge.rebuild(self, compilation)?;
+    }
+
+    Ok(())
+  }
+
   pub fn update_cache(&mut self, compilation: &Compilation) {
     let chunk_graph = &compilation.chunk_graph;
+
+    self.chunk_caches.clear();
 
     for cgi in self.chunk_group_infos.values() {
       let cg = compilation.chunk_group_by_ukey.expect_get(&cgi.chunk_group);
       let chunk = cg.chunks[0];
+      let module_graph = compilation.get_module_graph();
 
       let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) else {
         continue;
       };
 
-      let module_graph = compilation.get_module_graph();
-      for parent in &cg.parents {
-        let parent_cgi = self
-          .chunk_group_info_map
-          .get(parent)
-          .expect("should have cgi");
-        for block_id in blocks {
-          let Some(async_block_id) = block_id.as_async() else {
-            continue;
-          };
-          let block_options = module_graph.block_by_id_expect(&async_block_id);
+      for block_id in blocks {
+        let DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id) = block_id else {
+          continue;
+        };
+        let block_options = module_graph.block_by_id_expect(&block_id);
+        let module = *self
+          .edges
+          .get(block_id)
+          .expect("should have module for block_id");
 
-          self.chunk_caches.insert(
-            (
-              *parent_cgi,
-              DependenciesBlockIdentifier::AsyncDependenciesBlock(async_block_id),
-            ),
-            ChunkCreateData {
-              available_modules: cgi.min_available_modules.clone(),
-              options: block_options.get_group_options().cloned(),
-              runtime: cgi.runtime.clone(),
-              can_rebuild: cg.parents.len() == 1,
-              module: block_id.get_root_block(compilation),
+        let can_rebuild = cg.parents.len() == 1;
+
+        self.chunk_caches.insert(
+          *block_id,
+          ChunkCreateData {
+            available_modules: cgi.min_available_modules.clone(),
+            options: block_options.get_group_options().cloned(),
+            runtime: cgi.runtime.clone(),
+            can_rebuild,
+            module,
+            cache_result: can_rebuild.then(|| CacheResult {
               modules: chunk_graph
                 .get_chunk_modules(&chunk, &module_graph)
                 .into_iter()
@@ -376,9 +518,9 @@ impl CodeSplitter {
                 .collect(),
               skipped_modules: cgi.skipped_items.clone(),
               outgoings: cgi.outgoing_blocks.clone(),
-            },
-          );
-        }
+            }),
+          },
+        );
       }
     }
   }
@@ -411,7 +553,16 @@ impl CodeSplitter {
     // diff: 0110
     let diff = &cache.available_modules ^ new_available_modules;
 
-    for m in cache.modules.iter().chain(cache.skipped_modules.iter()) {
+    let cache_result = cache
+      .cache_result
+      .as_ref()
+      .expect("should have cache result");
+
+    for m in cache_result
+      .modules
+      .iter()
+      .chain(cache_result.skipped_modules.iter())
+    {
       let m = self.get_module_ordinal(*m);
       if diff.bit(m) {
         return true;
@@ -423,18 +574,31 @@ impl CodeSplitter {
 }
 
 #[derive(Debug, Clone)]
+struct CacheResult {
+  pub modules: Vec<ModuleIdentifier>,
+  pub skipped_modules: IdentifierIndexSet,
+  pub outgoings: std::collections::HashSet<
+    AsyncDependenciesBlockIdentifier,
+    BuildHasherDefault<IdentifierHasher>,
+  >,
+}
+
+pub struct ChunkCreateEdge {
+  pub module: ModuleIdentifier,
+  pub block: AsyncDependenciesBlockIdentifier,
+}
+
+#[derive(Debug, Clone)]
 pub struct ChunkCreateData {
   // input
   available_modules: BigUint,
   options: Option<GroupOptions>,
   runtime: RuntimeSpec,
+  pub module: ModuleIdentifier,
 
   // safe to rebuild from cache, currently only if chunk has unique single parent can be safe to rebuild from cache
   can_rebuild: bool,
 
   // result
-  module: ModuleIdentifier,
-  modules: Vec<ModuleIdentifier>,
-  skipped_modules: IdentifierIndexSet,
-  outgoings: Vec<AsyncDependenciesBlockIdentifier>,
+  cache_result: Option<CacheResult>,
 }
