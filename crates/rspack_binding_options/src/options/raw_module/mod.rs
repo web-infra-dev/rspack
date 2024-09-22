@@ -258,32 +258,38 @@ impl From<RawParserOptions> for ParserOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
-  pub dynamic_import_mode: String,
-  pub dynamic_import_preload: String,
-  pub dynamic_import_prefetch: String,
+  pub dynamic_import_mode: Option<String>,
+  pub dynamic_import_preload: Option<String>,
+  pub dynamic_import_prefetch: Option<String>,
   pub dynamic_import_fetch_priority: Option<String>,
-  pub url: String,
-  pub expr_context_critical: bool,
-  pub wrapped_context_critical: bool,
+  pub url: Option<String>,
+  pub expr_context_critical: Option<bool>,
+  pub wrapped_context_critical: Option<bool>,
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub strict_export_presence: bool,
-  pub worker: Vec<String>,
+  pub strict_export_presence: Option<bool>,
+  pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
-  pub import_meta: bool,
+  pub import_meta: Option<bool>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
   fn from(value: RawJavascriptParserOptions) -> Self {
     Self {
-      dynamic_import_mode: DynamicImportMode::from(value.dynamic_import_mode.as_str()),
-      dynamic_import_preload: JavascriptParserOrder::from(value.dynamic_import_preload.as_str()),
-      dynamic_import_prefetch: JavascriptParserOrder::from(value.dynamic_import_prefetch.as_str()),
+      dynamic_import_mode: value
+        .dynamic_import_mode
+        .map(|v| DynamicImportMode::from(v.as_str())),
+      dynamic_import_preload: value
+        .dynamic_import_preload
+        .map(|v| JavascriptParserOrder::from(v.as_str())),
+      dynamic_import_prefetch: value
+        .dynamic_import_prefetch
+        .map(|v| JavascriptParserOrder::from(v.as_str())),
       dynamic_import_fetch_priority: value
         .dynamic_import_fetch_priority
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
-      url: JavascriptParserUrl::from(value.url.as_str()),
+      url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
       expr_context_critical: value.expr_context_critical,
       wrapped_context_critical: value.wrapped_context_critical,
       exports_presence: value
