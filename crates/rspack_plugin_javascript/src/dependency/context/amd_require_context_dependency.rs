@@ -56,10 +56,6 @@ impl Dependency for AMDRequireContextDependency {
     &DependencyType::AmdRequireContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
-  }
-
   fn could_affect_referencing_module(&self) -> AffectType {
     AffectType::True
   }
@@ -92,6 +88,14 @@ impl ContextDependency for AMDRequireContextDependency {
 
   fn type_prefix(&self) -> ContextTypePrefix {
     ContextTypePrefix::Normal
+  }
+
+  fn critical(&self) -> &Option<rspack_error::Diagnostic> {
+    todo!()
+  }
+
+  fn critical_mut(&mut self) -> &mut Option<rspack_error::Diagnostic> {
+    todo!()
   }
 }
 
