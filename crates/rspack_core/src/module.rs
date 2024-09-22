@@ -1,12 +1,14 @@
 use std::fmt::Display;
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
@@ -28,6 +30,7 @@ pub struct BuildContext<'a> {
   pub runner_context: RunnerContext,
   pub plugin_driver: SharedPluginDriver,
   pub compiler_options: &'a CompilerOptions,
+  pub fs: Arc<dyn ReadableFileSystem>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

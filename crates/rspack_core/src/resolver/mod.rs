@@ -1,3 +1,4 @@
+mod boxfs;
 mod factory;
 mod resolver_impl;
 use std::borrow::Borrow;

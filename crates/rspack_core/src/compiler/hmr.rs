@@ -73,6 +73,7 @@ impl Compiler {
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
+        self.input_filesystem.clone(),
       );
 
       if let Some(state) = self.options.get_incremental_rebuild_make_state() {
