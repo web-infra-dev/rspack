@@ -18,7 +18,6 @@ import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { default as default_2 } from './util/hash';
 import type { DependenciesBlockDTO } from '@rspack/binding';
-import type { DependencyDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -39,8 +38,11 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
+import { JsCompiledDependency } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
+import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
+import { JsDependency } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -1577,7 +1579,8 @@ class ContextModuleFactory {
 
 // @public (undocumented)
 class ContextModuleFactoryAfterResolveData {
-    constructor(data: JsContextModuleFactoryAfterResolveData);
+    // (undocumented)
+    static __drop(data: ContextModuleFactoryAfterResolveData): void;
     // (undocumented)
     static __from_binding(binding: JsContextModuleFactoryAfterResolveData): ContextModuleFactoryAfterResolveData;
     // (undocumented)
@@ -1605,10 +1608,29 @@ class ContextModuleFactoryAfterResolveData {
 type ContextModuleFactoryAfterResolveResult = false | ContextModuleFactoryAfterResolveData;
 
 // @public (undocumented)
-type ContextModuleFactoryBeforeResolveResult = false | {
-    context: string;
-    request?: string;
-};
+class ContextModuleFactoryBeforeResolveData {
+    // (undocumented)
+    static __drop(data: ContextModuleFactoryBeforeResolveData): void;
+    // (undocumented)
+    static __from_binding(binding: JsContextModuleFactoryBeforeResolveData): ContextModuleFactoryBeforeResolveData;
+    // (undocumented)
+    static __to_binding(data: ContextModuleFactoryBeforeResolveData): JsContextModuleFactoryBeforeResolveData;
+    // (undocumented)
+    get context(): string;
+    set context(val: string);
+    // (undocumented)
+    get recursive(): boolean;
+    set recursive(val: boolean);
+    // (undocumented)
+    get regExp(): RegExp | undefined;
+    set regExp(val: RegExp | undefined);
+    // (undocumented)
+    get request(): string;
+    set request(val: string);
+}
+
+// @public (undocumented)
+type ContextModuleFactoryBeforeResolveResult = false | ContextModuleFactoryBeforeResolveData;
 
 // @public (undocumented)
 export const ContextReplacementPlugin: {
@@ -1866,9 +1888,15 @@ class DependenciesBlock {
 
 // @public (undocumented)
 class Dependency {
-    constructor(binding: DependencyDTO);
+    // (undocumented)
+    static __drop(dependency: Dependency): void;
+    // (undocumented)
+    static __from_binding(binding: JsDependency | JsCompiledDependency): Dependency;
     // (undocumented)
     get category(): string;
+    // (undocumented)
+    get critital(): boolean | undefined;
+    set critital(critital: boolean | undefined);
     // (undocumented)
     get request(): string | undefined;
     // (undocumented)

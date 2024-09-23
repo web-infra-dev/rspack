@@ -126,7 +126,6 @@ export class ContextModuleFactoryAfterResolveData {
 	#inner: JsContextModuleFactoryAfterResolveData;
 	#resolvedDependencies?: Dependency[];
 	#dropped = false;
-	#dropWarningMessage?: string;
 
 	static __from_binding(binding: JsContextModuleFactoryAfterResolveData) {
 		return new ContextModuleFactoryAfterResolveData(binding);
@@ -141,17 +140,16 @@ export class ContextModuleFactoryAfterResolveData {
 	static __drop(data: ContextModuleFactoryAfterResolveData) {
 		data.#dropped = true;
 		if (data.#resolvedDependencies) {
-			data.#resolvedDependencies.forEach(dependency =>
-				Dependency.__drop(dependency)
-			);
+			for (const dependency of data.#resolvedDependencies) {
+				Dependency.__drop(dependency);
+			}
 		}
 	}
 
 	private ensureValidLifecycle() {
 		if (this.#dropped) {
 			throw new Error(
-				this.#dropWarningMessage ??
-					"The ContextModuleFactoryAfterResolveData has exceeded its lifecycle and has been dropped by Rust."
+				"The ContextModuleFactoryAfterResolveData has exceeded its lifecycle and has been dropped by Rust."
 			);
 		}
 	}

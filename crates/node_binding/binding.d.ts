@@ -150,7 +150,7 @@ export class JsDependency {
   get category(): string
   get request(): string | undefined
   get critical(): boolean | undefined
-  set critical(val: boolean)
+  set critical(val?: boolean | undefined | null)
 }
 
 export class JsEntries {

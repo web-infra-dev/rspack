@@ -1,4 +1,4 @@
-import { JsDependency, JsCompiledDependency } from "@rspack/binding";
+import { type JsCompiledDependency, JsDependency } from "@rspack/binding";
 
 export class Dependency {
 	#binding: JsDependency | JsCompiledDependency;

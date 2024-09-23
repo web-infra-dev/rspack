@@ -113,15 +113,17 @@ impl JsDependency {
   }
 
   #[napi(setter)]
-  pub fn set_critical(&mut self, val: bool) {
-    match self.0.as_context_dependency_mut() {
-      Some(dep) => {
-        let critical = dep.critical_mut();
-        if !val {
-          *critical = None;
+  pub fn set_critical(&mut self, val: Option<bool>) {
+    if let Some(val) = val {
+      match self.0.as_context_dependency_mut() {
+        Some(dep) => {
+          let critical = dep.critical_mut();
+          if !val {
+            *critical = None;
+          }
         }
+        None => (),
       }
-      None => (),
     }
   }
 }
