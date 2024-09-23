@@ -12,7 +12,7 @@ _default:
 setup:
   # Install Rust-related tools
   cargo install cargo-binstall
-  cargo binstall taplo-cli cargo-release cargo-insta cargo-deny -y
+  cargo binstall taplo-cli cargo-release cargo-insta cargo-deny tokio-console -y
   
   # Setup Node.js environment
   corepack enable
