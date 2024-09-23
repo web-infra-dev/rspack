@@ -8,11 +8,11 @@ use rspack_core::{
 pub struct CreateScriptUrlDependency {
   id: DependencyId,
   range: RealDependencyLocation,
-  range_path: (u32, u32),
+  range_path: RealDependencyLocation,
 }
 
 impl CreateScriptUrlDependency {
-  pub fn new(range: RealDependencyLocation, range_path: (u32, u32)) -> Self {
+  pub fn new(range: RealDependencyLocation, range_path: RealDependencyLocation) -> Self {
     Self {
       id: DependencyId::new(),
       range,
@@ -54,11 +54,11 @@ impl DependencyTemplate for CreateScriptUrlDependency {
       .insert(RuntimeGlobals::CREATE_SCRIPT_URL);
 
     source.insert(
-      self.range_path.0,
+      self.range_path.start,
       format!("{}(", RuntimeGlobals::CREATE_SCRIPT_URL).as_str(),
       None,
     );
-    source.insert(self.range_path.1, ")", None);
+    source.insert(self.range_path.end, ")", None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

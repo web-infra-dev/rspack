@@ -178,7 +178,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           attributes,
         },
         node.span().into(),
-        (import_call.span.real_lo(), import_call.span.real_hi()),
+        import_call.span.into(),
         parser.in_try,
       );
       *dep.critical_mut() = critical;

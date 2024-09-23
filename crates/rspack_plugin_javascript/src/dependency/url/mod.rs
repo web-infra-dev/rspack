@@ -11,7 +11,7 @@ pub struct URLDependency {
   id: DependencyId,
   request: Atom,
   range: RealDependencyLocation,
-  range_url: (u32, u32),
+  range_url: RealDependencyLocation,
   used_by_exports: Option<UsedByExports>,
   relative: bool,
 }
@@ -20,7 +20,7 @@ impl URLDependency {
   pub fn new(
     request: Atom,
     range: RealDependencyLocation,
-    range_url: (u32, u32),
+    range_url: RealDependencyLocation,
     relative: bool,
   ) -> Self {
     Self {
@@ -105,8 +105,8 @@ impl DependencyTemplate for URLDependency {
     } else {
       runtime_requirements.insert(RuntimeGlobals::BASE_URI);
       source.replace(
-        self.range_url.0,
-        self.range_url.1,
+        self.range_url.start,
+        self.range_url.end,
         format!(
           "/* asset import */{}({}), {}",
           RuntimeGlobals::REQUIRE,
