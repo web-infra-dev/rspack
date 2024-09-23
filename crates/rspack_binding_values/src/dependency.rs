@@ -21,7 +21,7 @@ impl JsCompiledDependency {
     }
   }
 
-  fn dependency<'a>(&self) -> &dyn Dependency {
+  fn dependency(&self) -> &dyn Dependency {
     self
       .module_graph
       .dependency_by_id(&self.dependency_id)
@@ -29,11 +29,11 @@ impl JsCompiledDependency {
       .as_ref()
   }
 
-  fn module_dependency<'a>(&self) -> Option<&dyn ModuleDependency> {
+  fn module_dependency(&self) -> Option<&dyn ModuleDependency> {
     self.dependency().as_module_dependency()
   }
 
-  fn context_dependency<'a>(&self) -> Option<&dyn ContextDependency> {
+  fn context_dependency(&self) -> Option<&dyn ContextDependency> {
     self.dependency().as_context_dependency()
   }
 }
@@ -59,10 +59,10 @@ impl JsCompiledDependency {
   }
 
   #[napi(getter)]
-  pub fn critical(&self) -> napi::Either<bool, ()> {
+  pub fn critical(&self) -> bool {
     match self.context_dependency() {
-      Some(dep) => napi::Either::A(dep.critical().is_some()),
-      None => napi::Either::B(()),
+      Some(dep) => dep.critical().is_some(),
+      None => false,
     }
   }
 }
@@ -105,24 +105,19 @@ impl JsDependency {
   }
 
   #[napi(getter)]
-  pub fn critical(&self) -> napi::Either<bool, ()> {
+  pub fn critical(&self) -> bool {
     match self.0.as_context_dependency() {
-      Some(dep) => napi::Either::A(dep.critical().is_some()),
-      None => napi::Either::B(()),
+      Some(dep) => dep.critical().is_some(),
+      None => false,
     }
   }
 
   #[napi(setter)]
-  pub fn set_critical(&mut self, val: Option<bool>) {
-    if let Some(val) = val {
-      match self.0.as_context_dependency_mut() {
-        Some(dep) => {
-          let critical = dep.critical_mut();
-          if !val {
-            *critical = None;
-          }
-        }
-        None => (),
+  pub fn set_critical(&mut self, val: bool) {
+    if let Some(dep) = self.0.as_context_dependency_mut() {
+      let critical = dep.critical_mut();
+      if !val {
+        *critical = None;
       }
     }
   }

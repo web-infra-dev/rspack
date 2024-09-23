@@ -180,7 +180,7 @@ impl JsContextModuleFactoryAfterResolveData {
       .0
       .dependencies
       .iter_mut()
-      .map(|dep| JsDependency::new(dep))
+      .map(JsDependency::new)
       .collect::<Vec<_>>()
   }
 }

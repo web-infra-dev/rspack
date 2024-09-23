@@ -41,12 +41,12 @@ export class Dependency {
 		return this.#binding.request;
 	}
 
-	get critital(): boolean | undefined {
+	get critital(): boolean {
 		this.ensureValidLifecycle();
 		return this.#binding.critical;
 	}
 
-	set critital(critital: boolean | undefined) {
+	set critital(critital: boolean) {
 		this.ensureValidLifecycle();
 		if (
 			typeof critital === "boolean" &&

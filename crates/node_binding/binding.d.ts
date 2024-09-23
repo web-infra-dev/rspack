@@ -117,7 +117,7 @@ export class JsCompiledDependency {
   get type(): string
   get category(): string
   get request(): string | undefined
-  get critical(): boolean | undefined
+  get critical(): boolean
 }
 
 export class JsContextModuleFactoryAfterResolveData {
@@ -149,8 +149,8 @@ export class JsDependency {
   get type(): string
   get category(): string
   get request(): string | undefined
-  get critical(): boolean | undefined
-  set critical(val?: boolean | undefined | null)
+  get critical(): boolean
+  set critical(val: boolean)
 }
 
 export class JsEntries {
