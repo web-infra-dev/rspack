@@ -7,6 +7,7 @@ import { memo } from 'react';
 import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
 import abbLogo from './assets/abb.svg';
+import alibabaLogo from './assets/alibaba.svg';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
@@ -16,6 +17,7 @@ import intuitLogo from './assets/intuit.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
+import tiktokLogo from './assets/tiktok.svg';
 import trellisLogo from './assets/trellis.svg';
 
 type Company = {
@@ -27,13 +29,6 @@ type Company = {
 };
 
 const companyList: Company[] = [
-  {
-    name: 'bit.dev',
-    logo: bitDevLogo,
-    text: 'bit.dev',
-    url: 'https://bit.dev/',
-    width: 40,
-  },
   {
     name: 'Microsoft',
     logo: microsoftLogo,
@@ -51,6 +46,25 @@ const companyList: Company[] = [
     logo: bytedanceLogo,
     url: 'https://www.bytedance.com',
     width: 180,
+  },
+  {
+    name: 'TikTok',
+    logo: tiktokLogo,
+    url: 'https://www.tiktok.com',
+    width: 180,
+  },
+  {
+    name: 'Alibaba',
+    logo: alibabaLogo,
+    url: 'https://www.alibaba.com',
+    width: 170,
+  },
+  {
+    name: 'bit.dev',
+    logo: bitDevLogo,
+    text: 'bit.dev',
+    url: 'https://bit.dev/',
+    width: 40,
   },
   {
     name: 'Intuit',
@@ -86,7 +100,7 @@ const companyList: Company[] = [
     name: 'Getaround',
     logo: getaroundLogo,
     url: 'https://getaround.com',
-    width: 110,
+    width: 130,
   },
   {
     name: 'Trellis',
