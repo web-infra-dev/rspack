@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;
 
-use crate::{dependency::DependencyDTO, entry::JsEntryOptions, library::JsLibraryOptions};
+use crate::{dependency::JsCompiledDependency, entry::JsEntryOptions, library::JsLibraryOptions};
 
 #[napi]
 pub struct EntryOptionsDTO(EntryOptions);
@@ -152,8 +152,8 @@ impl EntryOptionsDTO {
 
 #[napi(object, object_to_js = false)]
 pub struct JsEntryData {
-  pub dependencies: Vec<ClassInstance<DependencyDTO>>,
-  pub include_dependencies: Vec<ClassInstance<DependencyDTO>>,
+  pub dependencies: Vec<ClassInstance<JsCompiledDependency>>,
+  pub include_dependencies: Vec<ClassInstance<JsCompiledDependency>>,
   pub options: JsEntryOptions,
 }
 
@@ -184,36 +184,36 @@ pub struct EntryDataDTO {
 #[napi]
 impl EntryDataDTO {
   #[napi(getter)]
-  pub fn dependencies(&'static self, env: Env) -> Result<Vec<ClassInstance<DependencyDTO>>> {
+  pub fn dependencies(&'static self, env: Env) -> Result<Vec<ClassInstance<JsCompiledDependency>>> {
     self
       .entry_data
       .dependencies
       .clone()
       .into_iter()
       .map(|id| {
-        let js_dep = DependencyDTO::new(id, self.compilation);
+        let js_dep = JsCompiledDependency::new(id, self.compilation);
         let instance = js_dep.into_instance(env)?;
         Ok(instance)
       })
-      .collect::<Result<Vec<ClassInstance<DependencyDTO>>>>()
+      .collect::<Result<Vec<ClassInstance<JsCompiledDependency>>>>()
   }
 
   #[napi(getter)]
   pub fn include_dependencies(
     &'static self,
     env: Env,
-  ) -> Result<Vec<ClassInstance<DependencyDTO>>> {
+  ) -> Result<Vec<ClassInstance<JsCompiledDependency>>> {
     self
       .entry_data
       .include_dependencies
       .clone()
       .into_iter()
       .map(|id| {
-        let js_dep = DependencyDTO::new(id, self.compilation);
+        let js_dep = JsCompiledDependency::new(id, self.compilation);
         let instance = js_dep.into_instance(env)?;
         Ok(instance)
       })
-      .collect::<Result<Vec<ClassInstance<DependencyDTO>>>>()
+      .collect::<Result<Vec<ClassInstance<JsCompiledDependency>>>>()
   }
 
   #[napi(getter)]

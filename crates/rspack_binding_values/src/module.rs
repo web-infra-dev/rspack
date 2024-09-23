@@ -14,7 +14,7 @@ use rustc_hash::FxHashMap as HashMap;
 use sys::napi_env;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{DependencyDTO, JsChunk, JsCodegenerationResults};
+use crate::{JsChunk, JsCodegenerationResults, JsCompiledDependency};
 
 #[derive(Default)]
 #[napi(object)]
@@ -52,14 +52,14 @@ impl DependenciesBlockDTO {
 #[napi]
 impl DependenciesBlockDTO {
   #[napi(getter)]
-  pub fn dependencies(&self) -> Vec<DependencyDTO> {
+  pub fn dependencies(&self) -> Vec<JsCompiledDependency> {
     let module_graph = self.compilation.get_module_graph();
     let block = self.block(&module_graph);
     block
       .get_dependencies()
       .iter()
       .cloned()
-      .map(|dep_id| DependencyDTO::new(dep_id, self.compilation))
+      .map(|dep_id| JsCompiledDependency::new(dep_id, self.compilation))
       .collect::<Vec<_>>()
   }
 

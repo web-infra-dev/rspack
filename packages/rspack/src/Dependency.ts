@@ -1,9 +1,15 @@
-import type { DependencyDTO } from "@rspack/binding";
+import { JsDependency, JsCompiledDependency } from "@rspack/binding";
 
 export class Dependency {
-	#binding: DependencyDTO;
+	#binding: JsDependency | JsCompiledDependency;
 
-	constructor(binding: DependencyDTO) {
+	static __from_binding(
+		binding: JsDependency | JsCompiledDependency
+	): Dependency {
+		return new Dependency(binding);
+	}
+
+	private constructor(binding: JsDependency | JsCompiledDependency) {
 		this.#binding = binding;
 	}
 
@@ -17,5 +23,18 @@ export class Dependency {
 
 	get request(): string | undefined {
 		return this.#binding.request;
+	}
+
+	get critital(): boolean | undefined {
+		return this.#binding.critical;
+	}
+
+	set critital(critital: boolean | undefined) {
+		if (
+			typeof critital === "boolean" &&
+			this.#binding instanceof JsDependency
+		) {
+			this.#binding.critical = critital;
+		}
 	}
 }

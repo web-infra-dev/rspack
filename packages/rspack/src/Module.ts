@@ -10,7 +10,7 @@ import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
-import type { Dependency } from "./Dependency";
+import { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -110,8 +110,7 @@ export class ContextModuleFactoryAfterResolveData {
 	}
 
 	get dependencies(): Dependency[] {
-		// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
-		return [];
+		return this.#inner.dependencies.map(dep => Dependency.__from_binding(dep));
 	}
 }
 
