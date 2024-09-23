@@ -19,6 +19,15 @@ Object {
     "asyncWebAssembly": false,
     "css": undefined,
     "futureDefaults": false,
+    "incremental": Object {
+      "emitAssets": true,
+      "inferAsyncModules": false,
+      "make": true,
+      "moduleCodegen": false,
+      "moduleHashes": false,
+      "moduleRuntimeRequirements": false,
+      "providedExports": false,
+    },
     "layers": false,
     "lazyCompilation": false,
     "rspackFuture": Object {
@@ -27,7 +36,6 @@ Object {
         "force": true,
         "version": "$version$",
       },
-      "newIncremental": false,
     },
     "topLevelAwait": true,
   },

@@ -15,6 +15,7 @@ import {
 	type RawCssParserOptions,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
+	type RawIncremental,
 	type RawJavascriptParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
@@ -56,6 +57,7 @@ import type {
 	CssGeneratorOptions,
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
+	Incremental,
 	JavascriptParserOptions,
 	LibraryName,
 	LibraryOptions,
@@ -879,22 +881,43 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, layers, rspackFuture } = experiments;
-	assert(!isNil(topLevelAwait) && !isNil(rspackFuture) && !isNil(layers));
+	const { topLevelAwait, layers, incremental, rspackFuture } = experiments;
+	assert(
+		!isNil(topLevelAwait) &&
+			!isNil(rspackFuture) &&
+			!isNil(layers) &&
+			!isNil(incremental)
+	);
 
 	return {
 		layers,
 		topLevelAwait,
+		incremental: getRawIncremental(incremental),
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
+	};
+}
+
+function getRawIncremental(
+	incremental: false | Incremental
+): RawIncremental | undefined {
+	if (incremental === false) {
+		return undefined;
+	}
+	return {
+		make: incremental.make!,
+		emitAssets: incremental.emitAssets!,
+		inferAsyncModules: incremental.inferAsyncModules!,
+		providedExports: incremental.providedExports!,
+		moduleHashes: incremental.moduleHashes!,
+		moduleCodegen: incremental.moduleCodegen!,
+		moduleRuntimeRequirements: incremental.moduleRuntimeRequirements!
 	};
 }
 
 function getRawRspackFutureOptions(
 	future: RspackFutureOptions
 ): RawRspackFuture {
-	return {
-		newIncremental: future.newIncremental!
-	};
+	return {};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {

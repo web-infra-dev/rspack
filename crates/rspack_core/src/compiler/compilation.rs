@@ -234,7 +234,7 @@ impl Compilation {
     removed_files: HashSet<PathBuf>,
     input_filesystem: Arc<dyn ReadableFileSystem>,
   ) -> Self {
-    let mutations = options.new_incremental_enabled().then(Mutations::default);
+    let mutations = options.incremental().enabled().then(Mutations::default);
     Self {
       id: CompilationId::new(),
       hot_index: 0,
@@ -1068,7 +1068,8 @@ impl Compilation {
       )],
     )?;
 
-    if self.options.new_incremental_enabled() {
+    let incremental = self.options.incremental();
+    if incremental.infer_async_modules_enabled() || incremental.provided_exports_enabled() {
       self
         .unaffected_modules_cache
         .compute_affected_modules_with_module_graph(self);
@@ -1137,10 +1138,6 @@ impl Compilation {
     ) {}
     logger.time_end(start);
 
-    // if self.options.is_new_tree_shaking() {
-    //   // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
-    //   // debug_all_exports_info!(&self.module_graph, filter);
-    // }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -1194,31 +1191,52 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    if self.options.new_incremental_enabled() {
+    let incremental = self.options.incremental();
+    let module_hashes_modules;
+    let module_codegen_modules;
+    let module_runtime_requirements_modules;
+    let all_modules: Option<IdentifierSet> = if incremental.module_hashes_enabled()
+      && incremental.module_codegen_enabled()
+      && incremental.module_runtime_requirements_enabled()
+    {
+      None
+    } else {
+      Some(self.get_module_graph().modules().keys().copied().collect())
+    };
+    if (incremental.module_hashes_enabled()
+      || incremental.module_codegen_enabled()
+      || incremental.module_runtime_requirements_enabled())
+      && let Some(mutations) = &self.mutations
+    {
       self
         .unaffected_modules_cache
         .compute_affected_modules_with_chunk_graph(self);
-    }
-
-    let modules = if self.options.new_incremental_enabled()
-      && let Some(mutations) = &self.mutations
-    {
-      let mut modules = self
+      let mut affected_modules: IdentifierSet = self
         .unaffected_modules_cache
         .get_affected_modules_with_chunk_graph()
         .lock()
         .expect("should lock")
         .clone();
-      modules.extend(mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleGraphModuleSetAsync { module } => Some(module),
+      affected_modules.extend(mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleSetAsync { module } => Some(module),
         _ => None,
       }));
-      modules
+      let create_task_modules = |enabled: bool| {
+        enabled
+          .then(|| affected_modules.clone())
+          .unwrap_or_else(|| all_modules.clone().expect("failed"))
+      };
+      module_hashes_modules = create_task_modules(incremental.module_hashes_enabled());
+      module_codegen_modules = create_task_modules(incremental.module_codegen_enabled());
+      module_runtime_requirements_modules =
+        create_task_modules(incremental.module_runtime_requirements_enabled());
     } else {
-      self.get_module_graph().modules().keys().copied().collect()
+      module_hashes_modules = all_modules.clone().expect("failed");
+      module_codegen_modules = all_modules.clone().expect("failed");
+      module_runtime_requirements_modules = all_modules.clone().expect("failed");
     };
 
-    self.create_module_hashes(modules.clone())?;
+    self.create_module_hashes(module_hashes_modules)?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1228,13 +1246,13 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("code generation");
-    self.code_generation(modules.clone())?;
+    self.code_generation(module_codegen_modules)?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(
-        modules,
+        module_runtime_requirements_modules,
         self
           .chunk_by_ukey
           .keys()
