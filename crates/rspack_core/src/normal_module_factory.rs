@@ -16,7 +16,7 @@ use crate::{
   DependencyCategory, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
   ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ParserAndGenerator, ParserOptions, RawModule, RealDependencyLocation, Resolve, ResolveArgs,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
   ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
@@ -231,7 +231,9 @@ impl NormalModuleFactory {
 
         if first_char.is_none() {
           let span = dependency.source_span().unwrap_or_default();
-          return Err(EmptyDependency::new(span).into());
+          return Err(
+            EmptyDependency::new(RealDependencyLocation::new(span.start, span.end)).into(),
+          );
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
