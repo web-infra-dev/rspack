@@ -1,7 +1,6 @@
-const path = require("path");
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	entry: "./index.js",
 	optimization: {
 		concatenateModules: true,
 		minimize: false
