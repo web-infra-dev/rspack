@@ -71,6 +71,7 @@ jscexperimentalplugins
 JSCPU
 jscpuprofile
 kaffi
+Kyrylo
 lightningcss
 lingyucoder
 linux
