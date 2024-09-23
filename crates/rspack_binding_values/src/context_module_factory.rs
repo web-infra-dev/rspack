@@ -175,12 +175,12 @@ impl JsContextModuleFactoryAfterResolveData {
   }
 
   #[napi(getter)]
-  pub fn dependencies(&self) -> Vec<JsDependency> {
+  pub fn dependencies(&mut self) -> Vec<JsDependency> {
     self
       .0
       .dependencies
-      .iter()
-      .map(|dep| JsDependency::new(dep.clone()))
+      .iter_mut()
+      .map(|dep| JsDependency::new(dep))
       .collect::<Vec<_>>()
   }
 }

@@ -4,6 +4,8 @@ use rspack_core::{
   ModuleGraph,
 };
 
+// JsCompiledDependency allows JS-side access to a Dependency instance that has already
+// been processed and stored in the Compilation.
 #[napi]
 pub struct JsCompiledDependency {
   pub(crate) dependency_id: DependencyId,
@@ -65,11 +67,19 @@ impl JsCompiledDependency {
   }
 }
 
+// JsDependency represents a Dependency instance that is currently being processed.
+// It is in the make stage and has not yet been added to the Compilation.
 #[napi]
-pub struct JsDependency(BoxDependency);
+pub struct JsDependency(&'static mut BoxDependency);
 
 impl JsDependency {
-  pub(crate) fn new(dependency: BoxDependency) -> Self {
+  pub(crate) fn new(dependency: &mut BoxDependency) -> Self {
+    // SAFETY:
+    // The lifetime of the &mut BoxDependency reference is extended to 'static.
+    // This is safe because the JS side will guarantee that the JsDependency instance's
+    // lifetime is properly managed and restricted.
+    let dependency =
+      unsafe { std::mem::transmute::<&mut BoxDependency, &'static mut BoxDependency>(dependency) };
     Self(dependency)
   }
 }

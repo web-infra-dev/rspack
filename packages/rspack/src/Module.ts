@@ -1,6 +1,7 @@
 import type {
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
+	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
 	JsFactoryMeta,
 	JsModule,
@@ -36,45 +37,48 @@ export type ResolveData = {
 	createData?: CreateData;
 };
 
-export type ContextModuleFactoryBeforeResolveResult =
-	| false
-	| {
-			context: string;
-			request?: string;
-	  };
+export class ContextModuleFactoryBeforeResolveData {
+	#inner: JsContextModuleFactoryBeforeResolveData;
+	#dropped = false;
 
-export class ContextModuleFactoryAfterResolveData {
-	#inner: JsContextModuleFactoryAfterResolveData;
-
-	static __from_binding(binding: JsContextModuleFactoryAfterResolveData) {
-		return new ContextModuleFactoryAfterResolveData(binding);
+	static __from_binding(binding: JsContextModuleFactoryBeforeResolveData) {
+		return new ContextModuleFactoryBeforeResolveData(binding);
 	}
 
-	static __to_binding(data: ContextModuleFactoryAfterResolveData) {
+	static __to_binding(
+		data: ContextModuleFactoryBeforeResolveData
+	): JsContextModuleFactoryBeforeResolveData {
 		return data.#inner;
 	}
 
-	constructor(data: JsContextModuleFactoryAfterResolveData) {
-		this.#inner = data;
+	static __drop(data: ContextModuleFactoryBeforeResolveData) {
+		data.#dropped = true;
 	}
 
-	get resource(): string {
-		return this.#inner.resource;
+	private constructor(binding: JsContextModuleFactoryBeforeResolveData) {
+		this.#inner = binding;
 	}
 
-	set resource(val: string) {
-		this.#inner.resource = val;
+	private ensureValidLifecycle() {
+		if (this.#dropped) {
+			throw new Error(
+				"The ContextModuleFactoryBeforeResolveData has exceeded its lifecycle and has been dropped by Rust."
+			);
+		}
 	}
 
 	get context(): string {
+		this.ensureValidLifecycle();
 		return this.#inner.context;
 	}
 
 	set context(val: string) {
+		this.ensureValidLifecycle();
 		this.#inner.context = val;
 	}
 
 	get request(): string {
+		this.ensureValidLifecycle();
 		return this.#inner.request;
 	}
 
@@ -83,6 +87,7 @@ export class ContextModuleFactoryAfterResolveData {
 	}
 
 	get regExp(): RegExp | undefined {
+		this.ensureValidLifecycle();
 		if (!this.#inner.regExp) {
 			return undefined;
 		}
@@ -91,6 +96,7 @@ export class ContextModuleFactoryAfterResolveData {
 	}
 
 	set regExp(val: RegExp | undefined) {
+		this.ensureValidLifecycle();
 		if (!val) {
 			this.#inner.regExp = undefined;
 			return;
@@ -102,15 +108,126 @@ export class ContextModuleFactoryAfterResolveData {
 	}
 
 	get recursive(): boolean {
+		this.ensureValidLifecycle();
 		return this.#inner.recursive;
 	}
 
 	set recursive(val: boolean) {
+		this.ensureValidLifecycle();
+		this.#inner.recursive = val;
+	}
+}
+
+export type ContextModuleFactoryBeforeResolveResult =
+	| false
+	| ContextModuleFactoryBeforeResolveData;
+
+export class ContextModuleFactoryAfterResolveData {
+	#inner: JsContextModuleFactoryAfterResolveData;
+	#resolvedDependencies?: Dependency[];
+	#dropped = false;
+	#dropWarningMessage?: string;
+
+	static __from_binding(binding: JsContextModuleFactoryAfterResolveData) {
+		return new ContextModuleFactoryAfterResolveData(binding);
+	}
+
+	static __to_binding(
+		data: ContextModuleFactoryAfterResolveData
+	): JsContextModuleFactoryAfterResolveData {
+		return data.#inner;
+	}
+
+	static __drop(data: ContextModuleFactoryAfterResolveData) {
+		data.#dropped = true;
+		if (data.#resolvedDependencies) {
+			data.#resolvedDependencies.forEach(dependency =>
+				Dependency.__drop(dependency)
+			);
+		}
+	}
+
+	private ensureValidLifecycle() {
+		if (this.#dropped) {
+			throw new Error(
+				this.#dropWarningMessage ??
+					"The ContextModuleFactoryAfterResolveData has exceeded its lifecycle and has been dropped by Rust."
+			);
+		}
+	}
+
+	private constructor(data: JsContextModuleFactoryAfterResolveData) {
+		this.#inner = data;
+	}
+
+	get resource(): string {
+		this.ensureValidLifecycle();
+		return this.#inner.resource;
+	}
+
+	set resource(val: string) {
+		this.ensureValidLifecycle();
+		this.#inner.resource = val;
+	}
+
+	get context(): string {
+		this.ensureValidLifecycle();
+		return this.#inner.context;
+	}
+
+	set context(val: string) {
+		this.ensureValidLifecycle();
+		this.#inner.context = val;
+	}
+
+	get request(): string {
+		this.ensureValidLifecycle();
+		return this.#inner.request;
+	}
+
+	set request(val: string) {
+		this.#inner.request = val;
+	}
+
+	get regExp(): RegExp | undefined {
+		this.ensureValidLifecycle();
+		if (!this.#inner.regExp) {
+			return undefined;
+		}
+		const { source, flags } = this.#inner.regExp;
+		return new RegExp(source, flags);
+	}
+
+	set regExp(val: RegExp | undefined) {
+		this.ensureValidLifecycle();
+		if (!val) {
+			this.#inner.regExp = undefined;
+			return;
+		}
+		this.#inner.regExp = {
+			source: val.source,
+			flags: val.flags
+		};
+	}
+
+	get recursive(): boolean {
+		this.ensureValidLifecycle();
+		return this.#inner.recursive;
+	}
+
+	set recursive(val: boolean) {
+		this.ensureValidLifecycle();
 		this.#inner.recursive = val;
 	}
 
 	get dependencies(): Dependency[] {
-		return this.#inner.dependencies.map(dep => Dependency.__from_binding(dep));
+		this.ensureValidLifecycle();
+		if (!this.#resolvedDependencies) {
+			this.#resolvedDependencies = this.#inner.dependencies.map(dep =>
+				Dependency.__from_binding(dep)
+			);
+		}
+		return this.#resolvedDependencies;
 	}
 }
 

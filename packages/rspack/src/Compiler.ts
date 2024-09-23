@@ -33,6 +33,7 @@ import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import {
 	CodeGenerationResult,
 	ContextModuleFactoryAfterResolveData,
+	ContextModuleFactoryBeforeResolveData,
 	Module
 } from "./Module";
 import { NormalModuleFactory } from "./NormalModuleFactory";
@@ -1159,7 +1160,18 @@ class Compiler {
 								| false
 								| binding.JsContextModuleFactoryBeforeResolveData
 						) => {
-							return queried.promise(bindingData);
+							const data = bindingData
+								? ContextModuleFactoryBeforeResolveData.__from_binding(
+										bindingData
+									)
+								: false;
+							const result = await queried.promise(data);
+							if (data) {
+								ContextModuleFactoryBeforeResolveData.__drop(data);
+							}
+							return result
+								? ContextModuleFactoryBeforeResolveData.__to_binding(result)
+								: false;
 						}
 				),
 			registerContextModuleFactoryAfterResolveTaps:
@@ -1178,11 +1190,13 @@ class Compiler {
 										bindingData
 									)
 								: false;
-							const ret = await queried.promise(data);
-							const result = ret
-								? ContextModuleFactoryAfterResolveData.__to_binding(ret)
+							const result = await queried.promise(data);
+							if (data) {
+								ContextModuleFactoryAfterResolveData.__drop(data);
+							}
+							return result
+								? ContextModuleFactoryAfterResolveData.__to_binding(result)
 								: false;
-							return result;
 						}
 				),
 			registerJavascriptModulesChunkHashTaps: this.#createHookRegisterTaps(
