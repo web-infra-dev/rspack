@@ -72,14 +72,21 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let target = Target::new(&value.target)?;
     let cache = value.cache.into();
     let experiments = Experiments {
-      incremental: if matches!(cache, CacheOptions::Disabled) {
-        // TODO: cache should not affect incremental, it affects incremental make for now
-        Incremental::Disabled
-      } else {
-        match value.experiments.incremental {
-          Some(value) => value.into(),
-          None => Incremental::Disabled,
-        }
+      incremental: match value.experiments.incremental {
+        Some(value) => Incremental::Enabled {
+          make: if matches!(cache, CacheOptions::Disabled) {
+            false
+          } else {
+            value.make
+          },
+          emit_assets: value.emit_assets,
+          infer_async_modules: value.infer_async_modules,
+          provided_exports: value.provided_exports,
+          module_hashes: value.module_hashes,
+          module_codegen: value.module_codegen,
+          module_runtime_requirements: value.module_runtime_requirements,
+        },
+        None => Incremental::Disabled,
       },
       layers: value.experiments.layers,
       top_level_await: value.experiments.top_level_await,
