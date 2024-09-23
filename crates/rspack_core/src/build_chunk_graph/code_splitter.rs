@@ -20,7 +20,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
   DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
+  ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyName,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -424,9 +424,9 @@ impl<'me> CodeSplitter<'me> {
       ));
 
       for request in requests {
-        let loc = Some(DependencyLocation::Synthetic(
-          SyntheticDependencyLocation::new(&name),
-        ));
+        let loc = Some(DependencyLocation::Synthetic(SyntheticDependencyName::new(
+          &name,
+        )));
         entrypoint.add_origin(None, loc, request);
       }
 

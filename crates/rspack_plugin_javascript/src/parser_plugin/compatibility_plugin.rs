@@ -1,6 +1,4 @@
-use rspack_core::{
-  ConstDependency, ContextDependency, RealDependencyLocation, RuntimeGlobals, SpanExt,
-};
+use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals, SpanExt};
 use rspack_util::itoa;
 use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
@@ -16,7 +14,7 @@ const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identif
 struct NestedRequireData {
   name: String,
   update: bool,
-  loc: RealDependencyLocation,
+  loc: DependencyRange,
 }
 
 pub struct CompatibilityPlugin;
@@ -68,7 +66,7 @@ impl CompatibilityPlugin {
       Some(NestedRequireData {
         name: rename,
         update: false,
-        loc: RealDependencyLocation::new(start, end).with_source(parser.source_map.clone()),
+        loc: DependencyRange::new(start, end).with_source(parser.source_map.clone()),
       }),
     );
   }
