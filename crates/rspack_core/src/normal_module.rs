@@ -26,7 +26,7 @@ use rspack_util::{
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
-use tokio::sync::oneshot;
+use tokio::{sync::oneshot, task::block_in_place};
 
 use crate::{
   add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
@@ -487,27 +487,25 @@ impl Module for NormalModule {
     build_info.missing_dependencies = loader_result.missing_dependencies;
     build_info.build_dependencies = loader_result.build_dependencies;
     let (send, receive) = oneshot::channel();
-    rayon::scope(|s| {
-      s.spawn(|_| {
-        let x = self.parser_and_generator.parse(ParseContext {
-          source: original_source.clone(),
-          module_context: &self.context,
-          module_identifier: self.identifier(),
-          module_parser_options: self.parser_options.as_ref(),
-          module_type: &self.module_type,
-          module_layer: self.layer.as_ref(),
-          module_user_request: &self.user_request,
-          module_source_map_kind: *self.get_source_map_kind(),
-          loaders: &self.loaders,
-          resource_data: &self.resource_data,
-          compiler_options: build_context.compiler_options,
-          additional_data: loader_result.additional_data,
-          build_info: &mut build_info,
-          build_meta: &mut build_meta,
-          parse_meta: loader_result.parse_meta,
-        });
-        let _ = send.send(x);
+    block_in_place(|| {
+      let x = self.parser_and_generator.parse(ParseContext {
+        source: original_source.clone(),
+        module_context: &self.context,
+        module_identifier: self.identifier(),
+        module_parser_options: self.parser_options.as_ref(),
+        module_type: &self.module_type,
+        module_layer: self.layer.as_ref(),
+        module_user_request: &self.user_request,
+        module_source_map_kind: *self.get_source_map_kind(),
+        loaders: &self.loaders,
+        resource_data: &self.resource_data,
+        compiler_options: build_context.compiler_options,
+        additional_data: loader_result.additional_data,
+        build_info: &mut build_info,
+        build_meta: &mut build_meta,
+        parse_meta: loader_result.parse_meta,
       });
+      let _ = send.send(x);
     });
     let result = receive
       .await
