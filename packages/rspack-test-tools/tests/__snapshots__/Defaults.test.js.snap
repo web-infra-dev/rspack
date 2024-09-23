@@ -161,12 +161,8 @@ Object {
         "dynamicImportMode": "lazy",
         "dynamicImportPrefetch": false,
         "dynamicImportPreload": false,
-        "exportsPresence": undefined,
         "exprContextCritical": true,
-        "importExportsPresence": undefined,
         "importMeta": true,
-        "overrideStrict": undefined,
-        "reexportExportsPresence": undefined,
         "strictExportPresence": false,
         "url": true,
         "worker": Array [

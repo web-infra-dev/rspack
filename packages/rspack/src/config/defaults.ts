@@ -242,12 +242,8 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "url", true);
 	D(parserOptions, "exprContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
-	D(parserOptions, "exportsPresence", undefined);
-	D(parserOptions, "importExportsPresence", undefined);
-	D(parserOptions, "reexportExportsPresence", undefined);
 	D(parserOptions, "strictExportPresence", false);
 	D(parserOptions, "worker", ["..."]);
-	D(parserOptions, "overrideStrict", undefined);
 	D(parserOptions, "importMeta", true);
 };
 

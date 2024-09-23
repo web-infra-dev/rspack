@@ -221,20 +221,20 @@ impl From<&str> for OverrideStrict {
 
 #[derive(Debug, Clone, MergeFrom)]
 pub struct JavascriptParserOptions {
-  pub dynamic_import_mode: DynamicImportMode,
-  pub dynamic_import_preload: JavascriptParserOrder,
-  pub dynamic_import_prefetch: JavascriptParserOrder,
+  pub dynamic_import_mode: Option<DynamicImportMode>,
+  pub dynamic_import_preload: Option<JavascriptParserOrder>,
+  pub dynamic_import_prefetch: Option<JavascriptParserOrder>,
   pub dynamic_import_fetch_priority: Option<DynamicImportFetchPriority>,
-  pub url: JavascriptParserUrl,
-  pub expr_context_critical: bool,
-  pub wrapped_context_critical: bool,
+  pub url: Option<JavascriptParserUrl>,
+  pub expr_context_critical: Option<bool>,
+  pub wrapped_context_critical: Option<bool>,
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
-  pub strict_export_presence: bool,
-  pub worker: Vec<String>,
+  pub strict_export_presence: Option<bool>,
+  pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
-  pub import_meta: bool,
+  pub import_meta: Option<bool>,
 }
 
 #[derive(Debug, Clone, MergeFrom)]

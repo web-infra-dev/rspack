@@ -1403,20 +1403,20 @@ export interface RawInfo {
 }
 
 export interface RawJavascriptParserOptions {
-  dynamicImportMode: string
-  dynamicImportPreload: string
-  dynamicImportPrefetch: string
+  dynamicImportMode?: string
+  dynamicImportPreload?: string
+  dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
-  url: string
-  exprContextCritical: boolean
-  wrappedContextCritical: boolean
+  url?: string
+  exprContextCritical?: boolean
+  wrappedContextCritical?: boolean
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence: boolean
-  worker: Array<string>
+  strictExportPresence?: boolean
+  worker?: Array<string>
   overrideStrict?: string
-  importMeta: boolean
+  importMeta?: boolean
 }
 
 export interface RawLazyCompilationOption {

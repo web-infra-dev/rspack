@@ -84,7 +84,7 @@ pub fn create_context_dependency(
       }
     }
 
-    if parser.javascript_options.wrapped_context_critical {
+    if let Some(true) = parser.javascript_options.wrapped_context_critical {
       let range = param.range();
       let warn: Diagnostic = create_traceable_error(
         "Critical dependency".into(),
@@ -161,7 +161,7 @@ pub fn create_context_dependency(
       replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
     }
 
-    if parser.javascript_options.wrapped_context_critical {
+    if let Some(true) = parser.javascript_options.wrapped_context_critical {
       let range = param.range();
       let warn: Diagnostic = create_traceable_error(
         "Critical dependency".into(),
@@ -191,7 +191,7 @@ pub fn create_context_dependency(
       critical,
     }
   } else {
-    if parser.javascript_options.expr_context_critical {
+    if let Some(true) = parser.javascript_options.expr_context_critical {
       let range = param.range();
       let warn: Diagnostic = create_traceable_error(
         "Critical dependency".into(),
