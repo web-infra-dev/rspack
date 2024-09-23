@@ -77,10 +77,11 @@ impl Task<MakeTaskContext> for ExecuteTask {
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mg = compilation.get_module_graph_mut();
-    let entry_module_identifier = mg
-      .get_module_by_dependency_id(&entry_dep_id)
-      .expect("should have module")
-      .identifier();
+    let Some(entry_module_identifier) = mg.get_module_by_dependency_id(&entry_dep_id) else {
+      return Err(rspack_error::error!("entry module not found"));
+    };
+
+    let entry_module_identifier = entry_module_identifier.identifier();
     let mut queue = vec![entry_module_identifier];
     let mut modules = IdentifierSet::default();
 

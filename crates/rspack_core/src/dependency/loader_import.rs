@@ -1,21 +1,23 @@
 use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  DependencyType, ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct LoaderImportDependency {
   id: DependencyId,
-  context: Context,
+  pub context: Context,
+  pub original_module: Option<ModuleIdentifier>,
   request: String,
 }
 
 impl LoaderImportDependency {
-  pub fn new(request: String, context: Context) -> Self {
+  pub fn new(request: String, context: Context, original_module: Option<ModuleIdentifier>) -> Self {
     Self {
       request,
       context,
+      original_module,
       id: DependencyId::new(),
     }
   }

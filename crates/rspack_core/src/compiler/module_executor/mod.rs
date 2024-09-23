@@ -182,6 +182,7 @@ impl ModuleExecutor {
         let dep = LoaderImportDependency::new(
           request.clone(),
           original_module_context.unwrap_or(Context::from("")),
+          original_module_identifier,
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
