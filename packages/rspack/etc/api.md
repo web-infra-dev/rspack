@@ -1895,8 +1895,8 @@ class Dependency {
     // (undocumented)
     get category(): string;
     // (undocumented)
-    get critital(): boolean | undefined;
-    set critital(critital: boolean | undefined);
+    get critital(): boolean;
+    set critital(critital: boolean);
     // (undocumented)
     get request(): string | undefined;
     // (undocumented)
