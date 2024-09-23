@@ -20,7 +20,7 @@ export class ExternalObject<T> {
   }
 }
 export class DependenciesBlockDto {
-  get dependencies(): Array<JsCompiledDependency>
+  get dependencies(): Array<JsDependency>
   get blocks(): Array<DependenciesBlockDto>
 }
 export type DependenciesBlockDTO = DependenciesBlockDto
@@ -42,8 +42,8 @@ export class DependenciesDto {
 export type DependenciesDTO = DependenciesDto
 
 export class EntryDataDto {
-  get dependencies(): Array<JsCompiledDependency>
-  get includeDependencies(): Array<JsCompiledDependency>
+  get dependencies(): Array<JsDependency>
+  get includeDependencies(): Array<JsDependency>
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -113,13 +113,6 @@ export class JsCompilation {
   addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
 }
 
-export class JsCompiledDependency {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-  get critical(): boolean
-}
-
 export class JsContextModuleFactoryAfterResolveData {
   get resource(): string
   set resource(resource: string)
@@ -131,7 +124,7 @@ export class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RawRegex | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): Array<JsDependency>
+  get dependencies(): Array<JsDependencyMut>
 }
 
 export class JsContextModuleFactoryBeforeResolveData {
@@ -146,6 +139,13 @@ export class JsContextModuleFactoryBeforeResolveData {
 }
 
 export class JsDependency {
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+}
+
+export class JsDependencyMut {
   get type(): string
   get category(): string
   get request(): string | undefined
@@ -534,8 +534,8 @@ export interface JsDiagnosticLocation {
 }
 
 export interface JsEntryData {
-  dependencies: Array<JsCompiledDependency>
-  includeDependencies: Array<JsCompiledDependency>
+  dependencies: Array<JsDependency>
+  includeDependencies: Array<JsDependency>
   options: JsEntryOptions
 }
 

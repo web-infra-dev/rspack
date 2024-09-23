@@ -1,12 +1,10 @@
-import { type JsCompiledDependency, JsDependency } from "@rspack/binding";
+import { type JsDependency, JsDependencyMut } from "@rspack/binding";
 
 export class Dependency {
-	#binding: JsDependency | JsCompiledDependency;
+	#binding: JsDependencyMut | JsDependency;
 	#dropped = false;
 
-	static __from_binding(
-		binding: JsDependency | JsCompiledDependency
-	): Dependency {
+	static __from_binding(binding: JsDependencyMut | JsDependency): Dependency {
 		return new Dependency(binding);
 	}
 
@@ -22,7 +20,7 @@ export class Dependency {
 		}
 	}
 
-	private constructor(binding: JsDependency | JsCompiledDependency) {
+	private constructor(binding: JsDependencyMut | JsDependency) {
 		this.#binding = binding;
 	}
 
@@ -50,7 +48,7 @@ export class Dependency {
 		this.ensureValidLifecycle();
 		if (
 			typeof critital === "boolean" &&
-			this.#binding instanceof JsDependency
+			this.#binding instanceof JsDependencyMut
 		) {
 			this.#binding.critical = critital;
 		}

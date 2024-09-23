@@ -38,11 +38,11 @@ import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
-import { JsCompiledDependency } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import { JsDependency } from '@rspack/binding';
+import { JsDependencyMut } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -1891,7 +1891,7 @@ class Dependency {
     // (undocumented)
     static __drop(dependency: Dependency): void;
     // (undocumented)
-    static __from_binding(binding: JsDependency | JsCompiledDependency): Dependency;
+    static __from_binding(binding: JsDependencyMut | JsDependency): Dependency;
     // (undocumented)
     get category(): string;
     // (undocumented)

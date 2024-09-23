@@ -4,7 +4,7 @@ use napi::bindgen_prelude::{
 use napi_derive::napi;
 use rspack_core::{AfterResolveData, BeforeResolveData};
 
-use crate::{JsDependency, RawRegex};
+use crate::{JsDependencyMut, RawRegex};
 
 #[napi]
 pub struct JsContextModuleFactoryBeforeResolveData(Box<BeforeResolveData>);
@@ -175,12 +175,12 @@ impl JsContextModuleFactoryAfterResolveData {
   }
 
   #[napi(getter)]
-  pub fn dependencies(&mut self) -> Vec<JsDependency> {
+  pub fn dependencies(&mut self) -> Vec<JsDependencyMut> {
     self
       .0
       .dependencies
       .iter_mut()
-      .map(JsDependency::new)
+      .map(JsDependencyMut::new)
       .collect::<Vec<_>>()
   }
 }
