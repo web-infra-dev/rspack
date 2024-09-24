@@ -153,10 +153,11 @@ const { merge } = require('webpack-merge');
 const base = {};
 
 const dev = {
-  plugins: [new DevelopmentSpecifiedPlugin()]
+  plugins: [new DevelopmentSpecifiedPlugin()],
 };
 
-module.exports = process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
+module.exports =
+  process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
 ```
 
 For more information of `merge`, please refer to [webpack-merge documentation](https://npmjs.com/package/webpack-merge).
