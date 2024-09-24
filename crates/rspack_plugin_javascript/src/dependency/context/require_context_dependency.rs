@@ -1,10 +1,9 @@
 use rspack_core::{
-  module_raw, AsModuleDependency, Compilation, ContextDependency, RealDependencyLocation,
-  RuntimeSpec,
+  module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleGraph,
+  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType};
-use rspack_core::{TemplateContext, TemplateReplaceSource};
+use rspack_error::Diagnostic;
 
 use super::create_resource_identifier_for_context_dependency;
 
@@ -15,6 +14,7 @@ pub struct RequireContextDependency {
   range: RealDependencyLocation,
   resource_identifier: String,
   optional: bool,
+  critical: Option<Diagnostic>,
 }
 
 impl RequireContextDependency {
@@ -26,6 +26,7 @@ impl RequireContextDependency {
       id: DependencyId::new(),
       resource_identifier,
       optional,
+      critical: None,
     }
   }
 }
@@ -49,6 +50,13 @@ impl Dependency for RequireContextDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
+  }
+
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    if let Some(critical) = self.critical() {
+      return Some(vec![critical.clone()]);
+    }
+    None
   }
 }
 
@@ -79,6 +87,14 @@ impl ContextDependency for RequireContextDependency {
 
   fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
     rspack_core::ContextTypePrefix::Normal
+  }
+
+  fn critical(&self) -> &Option<Diagnostic> {
+    &self.critical
+  }
+
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
+    &mut self.critical
   }
 }
 

@@ -51,6 +51,7 @@ import type {
 	Iife,
 	ImportFunctionName,
 	ImportMetaName,
+	Incremental,
 	InfrastructureLogging,
 	Layer,
 	LazyCompilationOptions,
@@ -309,6 +310,9 @@ export const getNormalizedRspackOptions = (
 			lazyCompilation: optionalNestedConfig(
 				experiments.lazyCompilation,
 				options => (options === true ? {} : options)
+			),
+			incremental: optionalNestedConfig(experiments.incremental, options =>
+				options === true ? {} : options
 			)
 		})),
 		watch: config.watch,
@@ -520,6 +524,7 @@ export interface ExperimentsNormalized {
 	topLevelAwait?: boolean;
 	css?: boolean;
 	layers?: boolean;
+	incremental?: false | Incremental;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 }

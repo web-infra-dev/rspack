@@ -15,6 +15,7 @@ import {
 	type RawCssParserOptions,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
+	type RawIncremental,
 	type RawJavascriptParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
@@ -56,6 +57,7 @@ import type {
 	CssGeneratorOptions,
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
+	Incremental,
 	JavascriptParserOptions,
 	LibraryName,
 	LibraryOptions,
@@ -655,19 +657,14 @@ function getRawJavascriptParserOptions(
 	parser: JavascriptParserOptions
 ): RawJavascriptParserOptions {
 	return {
-		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
-		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
-		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
-		dynamicImportFetchPriority: parser.dynamicImportFetchPriority?.toString(),
-		importMeta: parser.importMeta ?? true,
-		url:
-			parser.url === false
-				? "false"
-				: parser.url === "relative"
-					? parser.url
-					: "true",
-		exprContextCritical: parser.exprContextCritical ?? true,
-		wrappedContextCritical: parser.wrappedContextCritical ?? false,
+		dynamicImportMode: parser.dynamicImportMode,
+		dynamicImportPreload: parser.dynamicImportPreload?.toString(),
+		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
+		dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
+		importMeta: parser.importMeta,
+		url: parser.url?.toString(),
+		exprContextCritical: parser.exprContextCritical,
+		wrappedContextCritical: parser.wrappedContextCritical,
 		exportsPresence:
 			parser.exportsPresence === false ? "false" : parser.exportsPresence,
 		importExportsPresence:
@@ -678,13 +675,13 @@ function getRawJavascriptParserOptions(
 			parser.reexportExportsPresence === false
 				? "false"
 				: parser.reexportExportsPresence,
-		strictExportPresence: parser.strictExportPresence ?? false,
+		strictExportPresence: parser.strictExportPresence,
 		worker:
 			typeof parser.worker === "boolean"
 				? parser.worker
 					? ["..."]
 					: []
-				: parser.worker ?? ["..."],
+				: parser.worker,
 		overrideStrict: parser.overrideStrict
 	};
 }
@@ -879,22 +876,43 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, layers, rspackFuture } = experiments;
-	assert(!isNil(topLevelAwait) && !isNil(rspackFuture) && !isNil(layers));
+	const { topLevelAwait, layers, incremental, rspackFuture } = experiments;
+	assert(
+		!isNil(topLevelAwait) &&
+			!isNil(rspackFuture) &&
+			!isNil(layers) &&
+			!isNil(incremental)
+	);
 
 	return {
 		layers,
 		topLevelAwait,
+		incremental: getRawIncremental(incremental),
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
+	};
+}
+
+function getRawIncremental(
+	incremental: false | Incremental
+): RawIncremental | undefined {
+	if (incremental === false) {
+		return undefined;
+	}
+	return {
+		make: incremental.make!,
+		emitAssets: incremental.emitAssets!,
+		inferAsyncModules: incremental.inferAsyncModules!,
+		providedExports: incremental.providedExports!,
+		moduleHashes: incremental.moduleHashes!,
+		moduleCodegen: incremental.moduleCodegen!,
+		moduleRuntimeRequirements: incremental.moduleRuntimeRequirements!
 	};
 }
 
 function getRawRspackFutureOptions(
 	future: RspackFutureOptions
 ): RawRspackFuture {
-	return {
-		newIncremental: future.newIncremental!
-	};
+	return {};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {

@@ -201,12 +201,20 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
+	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
+	D(experiments, "incremental", {});
+	if (typeof experiments.incremental === "object") {
+		D(experiments.incremental, "make", true);
+		D(experiments.incremental, "emitAssets", true);
+		D(experiments.incremental, "inferAsyncModules", false);
+		D(experiments.incremental, "providedExports", false);
+		D(experiments.incremental, "moduleHashes", false);
+		D(experiments.incremental, "moduleCodegen", false);
+		D(experiments.incremental, "moduleRuntimeRequirements", false);
+	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
-	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newIncremental", false);
-	}
 };
 
 const applybundlerInfoDefaults = (
@@ -242,12 +250,8 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "url", true);
 	D(parserOptions, "exprContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
-	D(parserOptions, "exportsPresence", undefined);
-	D(parserOptions, "importExportsPresence", undefined);
-	D(parserOptions, "reexportExportsPresence", undefined);
 	D(parserOptions, "strictExportPresence", false);
 	D(parserOptions, "worker", ["..."]);
-	D(parserOptions, "overrideStrict", undefined);
 	D(parserOptions, "importMeta", true);
 };
 

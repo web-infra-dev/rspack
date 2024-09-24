@@ -14,17 +14,20 @@ use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::ChunkUkey;
 use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::Ref;
+use rspack_plugin_runtime::RuntimeModuleFromJs;
 use sys::napi_env;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
+use crate::JsAddingRuntimeModule;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ModuleDTOWrapper;
@@ -32,7 +35,7 @@ use crate::{
   chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
   ToJsCompatSource,
 };
-use crate::{JsDiagnostic, JsRspackError};
+use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
@@ -306,7 +309,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn push_diagnostic(&mut self, diagnostic: JsDiagnostic) {
+  pub fn push_diagnostic(&mut self, diagnostic: JsRspackDiagnostic) {
     self.0.push_diagnostic(diagnostic.into());
   }
 
@@ -315,12 +318,17 @@ impl JsCompilation {
     &mut self,
     start: u32,
     end: u32,
-    replace_with: Vec<crate::JsDiagnostic>,
+    replace_with: Vec<crate::JsRspackDiagnostic>,
   ) {
     let diagnostics = replace_with.into_iter().map(Into::into).collect();
     self
       .0
       .splice_diagnostic(start as usize, end as usize, diagnostics);
+  }
+
+  #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
+  pub fn push_native_diagnostic(&mut self, diagnostic: External<Diagnostic>) {
+    self.0.push_diagnostic(diagnostic.clone());
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
@@ -526,6 +534,21 @@ impl JsCompilation {
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
+  }
+
+  #[napi]
+  pub fn add_runtime_module(
+    &'static mut self,
+    chunk_ukey: u32,
+    runtime_module: JsAddingRuntimeModule,
+  ) -> napi::Result<()> {
+    self
+      .0
+      .add_runtime_module(
+        &ChunkUkey::from(chunk_ukey),
+        Box::new(RuntimeModuleFromJs::from(runtime_module)),
+      )
+      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
 }
 

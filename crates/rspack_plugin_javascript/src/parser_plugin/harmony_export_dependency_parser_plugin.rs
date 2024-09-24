@@ -155,10 +155,11 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   ) -> Option<bool> {
     let expr_span = expr.span();
     let statement_span = statement.span();
+
+    let range: RealDependencyLocation = expr_span.into();
     let dep: HarmonyExportExpressionDependency = HarmonyExportExpressionDependency::new(
-      RealDependencyLocation::new(expr_span.real_lo(), expr_span.real_hi())
-        .with_source(parser.source_map.clone()),
-      RealDependencyLocation::new(statement_span.real_lo(), statement_span.real_hi()),
+      range.with_source(parser.source_map.clone()),
+      statement_span.into(),
       match expr {
         ExportDefaultExpression::FnDecl(f) => {
           let start = f.span().real_lo();

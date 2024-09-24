@@ -8,7 +8,7 @@ use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
-  Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
+  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
   StaticExportsSpec, UsedName,
 };
@@ -173,7 +173,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", itoa!(dep_modules.len()));
                 let val = (import_var.clone(), mgm.id(chunk_graph));
 
-                if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {
+                if ModuleGraph::is_async(compilation, &mgm.module_identifier) {
                   promises.push(import_var);
                 }
                 dep_modules.insert(mgm.module_identifier, val);

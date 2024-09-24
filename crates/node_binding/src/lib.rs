@@ -16,10 +16,12 @@ use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
+mod diagnostic;
 mod panic;
 mod plugins;
 mod resolver_factory;
 
+pub use diagnostic::*;
 use plugins::*;
 use resolver_factory::*;
 use rspack_binding_options::*;
@@ -67,10 +69,11 @@ impl Rspack {
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
-      Box::new(
+      Some(Box::new(
         AsyncNodeWritableFileSystem::new(output_filesystem)
           .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
-      ),
+      )),
+      None,
       Some(resolver_factory),
       Some(loader_resolver_factory),
     );

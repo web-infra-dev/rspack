@@ -1,14 +1,14 @@
 use napi_derive::napi;
-use rspack_error::{Diagnostic, Result, RspackSeverity};
+use rspack_error::{miette, Diagnostic, Result, RspackSeverity};
 
 #[napi(object)]
-pub struct JsDiagnostic {
+pub struct JsRspackDiagnostic {
   pub severity: JsRspackSeverity,
   pub error: JsRspackError,
 }
 
-impl From<JsDiagnostic> for Diagnostic {
-  fn from(value: JsDiagnostic) -> Self {
+impl From<JsRspackDiagnostic> for Diagnostic {
+  fn from(value: JsRspackDiagnostic) -> Self {
     value.error.into_diagnostic(value.severity.into())
   }
 }
@@ -24,6 +24,15 @@ impl From<JsRspackSeverity> for RspackSeverity {
     match value {
       JsRspackSeverity::Error => RspackSeverity::Error,
       JsRspackSeverity::Warn => RspackSeverity::Warn,
+    }
+  }
+}
+
+impl From<JsRspackSeverity> for miette::Severity {
+  fn from(value: JsRspackSeverity) -> Self {
+    match value {
+      JsRspackSeverity::Error => miette::Severity::Error,
+      JsRspackSeverity::Warn => miette::Severity::Warning,
     }
   }
 }

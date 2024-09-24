@@ -82,8 +82,14 @@ const watchCreator = new BasicCaseCreator({
 						compilerType: ECompilerType.Rspack,
 						configFiles: ["rspack.config.js", "webpack.config.js"],
 						experiments: {
-							rspackFuture: {
-								newIncremental: true
+							incremental: {
+								make: true,
+								emitAssets: true,
+								inferAsyncModules: true,
+								providedExports: true,
+								moduleHashes: true,
+								moduleCodegen: true,
+								moduleRuntimeRequirements: true
 							}
 						}
 					})

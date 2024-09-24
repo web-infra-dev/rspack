@@ -1,0 +1,58 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/plugins/context-replacement-plugin/" />
+
+# ContextReplacementPlugin
+
+`context` 是指带有表达式的 `require` 或动态 `import()`，例如 `require('./locale/' + name + '.json')`
+遇到这种表达式时，Rspack 会推断出目录（`'./locale/'`）和一个正则表达式（`/^.*.json$/`）。
+由于在编译时无法确定 `name`，Rspack 会将每个文件都作为模块打包。
+
+`ContextReplacementPlugin` 允许你覆盖这些推断的信息。该插件可以通过多种方式进行配置：
+
+## 选项
+
+- **类型：**
+
+```ts
+new rspack.ContextReplacementPlugin(
+  resourceRegExp: RegExp,
+  newContentResource?: string,
+  newContentRecursive?: boolean,
+  newContentRegExp?: RegExp
+)
+```
+
+如果目录匹配 `resourceRegExp`，插件会用 `newContentResource`、`newContentRecursive` 或 `newContextRegExp` 分别替换默认资源、递归标志或生成的正则表达式。
+如果 `newContentResource` 是相对路径，则相对于前一个资源进行解析。
+
+## 示例
+
+### 基本使用
+
+```js
+new rspack.ContextReplacementPlugin(/moment[/\\]locale$/, /de|fr|hu/);
+```
+
+这个示例限制了 `moment/locale` 目录下的文件，仅打包匹配 `/de|fr|hu/` 的文件。因此，仅包含这些语言模块（在[这里](https://github.com/moment/moment/issues/2373)了解更多信息）。
+
+### 其他选项
+
+关于 `newContentResource` 和 `newContentCreateContextMap` 参数：
+
+```ts
+new rspack.ContextReplacementPlugin(
+  resourceRegExp: RegExp,
+  newContentResource: string,
+  newContentCreateContextMap: object // 映射运行时请求（userRequest）到编译时请求（request）
+);
+```
+
+这两个参数可以一起使用，以更有针对性地重定向请求。`newContentCreateContextMap` 允许你以对象的形式映射运行时请求到编译时请求：
+
+```js
+new rspack.ContextReplacementPlugin(/selector/, './folder', {
+  './request': './request',
+  './other-request': './new-request',
+});
+```

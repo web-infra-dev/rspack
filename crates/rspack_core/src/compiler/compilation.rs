@@ -7,6 +7,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use derivative::Derivative;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -14,6 +15,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet,
 };
 use rspack_error::{error, Diagnostic, Result, Severity};
+use rspack_fs::ReadableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -34,14 +36,14 @@ use crate::{
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier,
-  unaffected_cache::UnaffectedModulesCache,
+  unaffected_cache::{Mutation, Mutations, UnaffectedModulesCache},
   BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationJob,
   CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
   CompilerOptions, DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime,
-  Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, Module,
-  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
+  Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory,
+  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -129,8 +131,8 @@ impl Default for CompilationId {
 type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
-
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Compilation {
   /// get_compilation_hooks(compilation.id)
   id: CompilationId,
@@ -164,6 +166,7 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
+  pub async_modules: IdentifierSet,
   pub code_generation_results: CodeGenerationResults,
   pub cgm_hash_results: CgmHashResults,
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
@@ -173,6 +176,7 @@ pub struct Compilation {
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
+  pub mutations: Option<Mutations>,
 
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
@@ -191,6 +195,8 @@ pub struct Compilation {
   pub modified_files: HashSet<PathBuf>,
   pub removed_files: HashSet<PathBuf>,
   make_artifact: MakeArtifact,
+  #[derivative(Debug = "ignore")]
+  pub input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
 impl Compilation {
@@ -226,7 +232,9 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
   ) -> Self {
+    let mutations = options.incremental().enabled().then(Mutations::default);
     Self {
       id: CompilationId::new(),
       hot_index: 0,
@@ -254,6 +262,7 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
 
+      async_modules: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),
@@ -262,6 +271,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       old_cache,
       unaffected_modules_cache,
+      mutations,
       code_splitting_cache: Default::default(),
       hash: None,
       used_chunk_ids: Default::default(),
@@ -280,6 +290,7 @@ impl Compilation {
       make_artifact: Default::default(),
       modified_files,
       removed_files,
+      input_filesystem,
     }
   }
 
@@ -757,57 +768,30 @@ impl Compilation {
       .collect::<Vec<_>>()))
   }
 
-  #[instrument(name = "compilation:code_generation", skip(self))]
-  fn code_generation(&mut self) -> Result<()> {
+  #[instrument(name = "compilation:code_generation", skip_all)]
+  fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
       CacheOptions::Disabled => None,
       _ => Some(logger.cache("module code generation cache")),
     };
 
-    fn run_iteration(
-      compilation: &mut Compilation,
-      cache_counter: &mut Option<CacheCount>,
-      filter_op: impl Fn(&(ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
-    ) -> Result<()> {
-      let module_graph = compilation.get_module_graph();
-      let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
-        let affected_modules = compilation
-          .unaffected_modules_cache
-          .get_affected_modules_with_chunk_graph()
-          .lock()
-          .expect("should lock")
-          .clone();
-        affected_modules
-          .into_iter()
-          .map(|module_identifier| {
-            let module = module_graph
-              .module_by_identifier(&module_identifier)
-              .expect("should have module");
-            (module_identifier, module)
-          })
-          .filter(filter_op)
-          .map(|(id, _)| id)
-          .collect()
+    let module_graph = self.get_module_graph();
+    let mut no_codegen_dependencies_modules = IdentifierSet::default();
+    let mut has_codegen_dependencies_modules = IdentifierSet::default();
+    for module_identifier in modules {
+      let module = module_graph
+        .module_by_identifier(&module_identifier)
+        .expect("should have module");
+      if module.get_code_generation_dependencies().is_none() {
+        no_codegen_dependencies_modules.insert(module_identifier);
       } else {
-        compilation
-          .get_module_graph()
-          .modules()
-          .into_iter()
-          .filter(filter_op)
-          .map(|(id, _)| id)
-          .collect()
-      };
-      compilation.code_generation_modules(cache_counter, modules)
+        has_codegen_dependencies_modules.insert(module_identifier);
+      }
     }
 
-    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
-      module.get_code_generation_dependencies().is_none()
-    })?;
-
-    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
-      module.get_code_generation_dependencies().is_some()
-    })?;
+    self.code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)?;
+    self.code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)?;
 
     if let Some(counter) = codegen_cache_counter {
       logger.cache_end(counter);
@@ -1084,7 +1068,8 @@ impl Compilation {
       )],
     )?;
 
-    if self.options.new_incremental_enabled() {
+    let incremental = self.options.incremental();
+    if incremental.infer_async_modules_enabled() || incremental.provided_exports_enabled() {
       self
         .unaffected_modules_cache
         .compute_affected_modules_with_module_graph(self);
@@ -1153,10 +1138,6 @@ impl Compilation {
     ) {}
     logger.time_end(start);
 
-    // if self.options.is_new_tree_shaking() {
-    //   // let filter = |item: &str| ["config-provider"].iter().any(|pat| item.contains(pat));
-    //   // debug_all_exports_info!(&self.module_graph, filter);
-    // }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -1210,22 +1191,52 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    if self.options.new_incremental_enabled() {
+    let incremental = self.options.incremental();
+    let module_hashes_modules;
+    let module_codegen_modules;
+    let module_runtime_requirements_modules;
+    let all_modules: Option<IdentifierSet> = if incremental.module_hashes_enabled()
+      && incremental.module_codegen_enabled()
+      && incremental.module_runtime_requirements_enabled()
+    {
+      None
+    } else {
+      Some(self.get_module_graph().modules().keys().copied().collect())
+    };
+    if (incremental.module_hashes_enabled()
+      || incremental.module_codegen_enabled()
+      || incremental.module_runtime_requirements_enabled())
+      && let Some(mutations) = &self.mutations
+    {
       self
         .unaffected_modules_cache
         .compute_affected_modules_with_chunk_graph(self);
-    }
-
-    self.create_module_hashes(if self.options.new_incremental_enabled() {
-      self
+      let mut affected_modules: IdentifierSet = self
         .unaffected_modules_cache
         .get_affected_modules_with_chunk_graph()
         .lock()
         .expect("should lock")
-        .clone()
+        .clone();
+      affected_modules.extend(mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleSetAsync { module } => Some(module),
+        _ => None,
+      }));
+      let create_task_modules = |enabled: bool| {
+        enabled
+          .then(|| affected_modules.clone())
+          .unwrap_or_else(|| all_modules.clone().expect("failed"))
+      };
+      module_hashes_modules = create_task_modules(incremental.module_hashes_enabled());
+      module_codegen_modules = create_task_modules(incremental.module_codegen_enabled());
+      module_runtime_requirements_modules =
+        create_task_modules(incremental.module_runtime_requirements_enabled());
     } else {
-      self.get_module_graph().modules().keys().copied().collect()
-    })?;
+      module_hashes_modules = all_modules.clone().expect("failed");
+      module_codegen_modules = all_modules.clone().expect("failed");
+      module_runtime_requirements_modules = all_modules.clone().expect("failed");
+    };
+
+    self.create_module_hashes(module_hashes_modules)?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1235,22 +1246,13 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("code generation");
-    self.code_generation()?;
+    self.code_generation(module_codegen_modules)?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(
-        if self.options.new_incremental_enabled() {
-          self
-            .unaffected_modules_cache
-            .get_affected_modules_with_chunk_graph()
-            .lock()
-            .expect("should lock")
-            .clone()
-        } else {
-          self.get_module_graph().modules().keys().copied().collect()
-        },
+        module_runtime_requirements_modules,
         self
           .chunk_by_ukey
           .keys()

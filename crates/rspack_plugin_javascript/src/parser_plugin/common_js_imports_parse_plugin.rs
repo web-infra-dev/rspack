@@ -1,8 +1,9 @@
 use rspack_core::{
-  ConstDependency, ContextMode, DependencyCategory, RealDependencyLocation, SpanExt,
+  ConstDependency, ContextDependency, ContextMode, DependencyCategory, RealDependencyLocation,
+  SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
-use rspack_error::Severity;
+use rspack_error::{DiagnosticExt, Severity};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Ident, MemberExpr, UnaryExpr};
 
@@ -46,7 +47,10 @@ fn create_commonjs_require_context_dependency(
     referenced_exports: None,
     attributes: None,
   };
-  CommonJsRequireContextDependency::new(options, span.into(), (start, end), parser.in_try)
+  let mut dep =
+    CommonJsRequireContextDependency::new(options, span.into(), (start, end).into(), parser.in_try);
+  *dep.critical_mut() = result.critical;
+  dep
 }
 
 fn create_require_resolve_context_dependency(
@@ -196,8 +200,8 @@ impl CommonJsImportsParserPlugin {
       let range_expr: RealDependencyLocation = param.range().into();
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
-        Some(span.into()),
         range_expr.with_source(parser.source_map.clone()),
+        Some(span.into()),
         parser.in_try,
       );
       parser.dependencies.push(Box::new(dep));
@@ -288,7 +292,7 @@ impl CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     let start = ident.span().real_lo();
     let end = ident.span().real_hi();
-    let dep = CommonJsRequireContextDependency::new(
+    let mut dep = CommonJsRequireContextDependency::new(
       ContextOptions {
         mode: ContextMode::Sync,
         recursive: true,
@@ -307,10 +311,10 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
       },
       ident.span().into(),
-      (start, end),
+      (start, end).into(),
       parser.in_try,
     );
-    parser.warning_diagnostics.push(Box::new(
+    *dep.critical_mut() = Some(
       create_traceable_error(
         "Critical dependency".into(),
         "require function is used in a way in which dependencies cannot be statically extracted"
@@ -318,8 +322,10 @@ impl CommonJsImportsParserPlugin {
         parser.source_file,
         ident.span().into(),
       )
-      .with_severity(Severity::Warn),
-    ));
+      .with_severity(Severity::Warn)
+      .boxed()
+      .into(),
+    );
     parser.dependencies.push(Box::new(dep));
     Some(true)
   }

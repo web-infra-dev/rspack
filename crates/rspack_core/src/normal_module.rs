@@ -228,7 +228,6 @@ impl NormalModule {
       build_info: None,
       build_meta: None,
       parsed: false,
-
       source_map_kind: SourceMapKind::empty(),
       last_successful_build_meta: BuildMeta::default(),
     }
@@ -415,6 +414,7 @@ impl Module for NormalModule {
       self.resource_data.clone(),
       Some(plugin.clone()),
       build_context.runner_context,
+      build_context.fs.clone(),
     )
     .await;
     let (mut loader_result, ds) = match loader_result {

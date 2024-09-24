@@ -1,5 +1,6 @@
 import type {
 	JsCodegenerationResult,
+	JsContextModuleFactoryAfterResolveData,
 	JsCreateData,
 	JsFactoryMeta,
 	JsModule,
@@ -9,6 +10,7 @@ import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
+import type { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -41,15 +43,81 @@ export type ContextModuleFactoryBeforeResolveResult =
 			request?: string;
 	  };
 
+export class ContextModuleFactoryAfterResolveData {
+	#inner: JsContextModuleFactoryAfterResolveData;
+
+	static __from_binding(binding: JsContextModuleFactoryAfterResolveData) {
+		return new ContextModuleFactoryAfterResolveData(binding);
+	}
+
+	static __to_binding(data: ContextModuleFactoryAfterResolveData) {
+		return data.#inner;
+	}
+
+	constructor(data: JsContextModuleFactoryAfterResolveData) {
+		this.#inner = data;
+	}
+
+	get resource(): string {
+		return this.#inner.resource;
+	}
+
+	set resource(val: string) {
+		this.#inner.resource = val;
+	}
+
+	get context(): string {
+		return this.#inner.context;
+	}
+
+	set context(val: string) {
+		this.#inner.context = val;
+	}
+
+	get request(): string {
+		return this.#inner.request;
+	}
+
+	set request(val: string) {
+		this.#inner.request = val;
+	}
+
+	get regExp(): RegExp | undefined {
+		if (!this.#inner.regExp) {
+			return undefined;
+		}
+		const { source, flags } = this.#inner.regExp;
+		return new RegExp(source, flags);
+	}
+
+	set regExp(val: RegExp | undefined) {
+		if (!val) {
+			this.#inner.regExp = undefined;
+			return;
+		}
+		this.#inner.regExp = {
+			source: val.source,
+			flags: val.flags
+		};
+	}
+
+	get recursive(): boolean {
+		return this.#inner.recursive;
+	}
+
+	set recursive(val: boolean) {
+		this.#inner.recursive = val;
+	}
+
+	get dependencies(): Dependency[] {
+		// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
+		return [];
+	}
+}
+
 export type ContextModuleFactoryAfterResolveResult =
 	| false
-	| {
-			resource: string;
-			context: string;
-			request: string;
-			regExp?: RegExp;
-			dependencies: Array<any>;
-	  };
+	| ContextModuleFactoryAfterResolveData;
 
 export class Module {
 	#inner: JsModule | ModuleDTO;

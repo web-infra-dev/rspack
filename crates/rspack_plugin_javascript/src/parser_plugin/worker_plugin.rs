@@ -93,7 +93,7 @@ fn add_dependencies(
     parsed_path.value,
     output_options.worker_public_path.clone(),
     span.into(),
-    parsed_path.range,
+    parsed_path.range.into(),
   ));
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
@@ -124,7 +124,7 @@ fn add_dependencies(
       .dependencies
       .push(Box::new(CreateScriptUrlDependency::new(
         span.into(),
-        parsed_path.range,
+        parsed_path.range.into(),
       )));
   }
 

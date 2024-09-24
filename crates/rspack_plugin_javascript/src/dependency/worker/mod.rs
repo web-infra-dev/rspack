@@ -14,7 +14,7 @@ pub struct WorkerDependency {
   request: String,
   public_path: String,
   range: RealDependencyLocation,
-  range_path: (u32, u32),
+  range_path: RealDependencyLocation,
 }
 
 impl WorkerDependency {
@@ -22,7 +22,7 @@ impl WorkerDependency {
     request: String,
     public_path: String,
     range: RealDependencyLocation,
-    range_path: (u32, u32),
+    range_path: RealDependencyLocation,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -113,8 +113,8 @@ impl DependencyTemplate for WorkerDependency {
     runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
 
     source.replace(
-      self.range_path.0,
-      self.range_path.1,
+      self.range_path.start,
+      self.range_path.end,
       format!(
         "/* worker import */{} + {}({}), {}",
         worker_import_base_url,

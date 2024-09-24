@@ -99,8 +99,9 @@ export class JsCompilation {
   get chunkGroups(): Array<JsChunkGroup>
   get hash(): string | null
   dependencies(): DependenciesDto
-  pushDiagnostic(diagnostic: JsDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
+  pushDiagnostic(diagnostic: JsRspackDiagnostic): void
+  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
+  pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
@@ -116,6 +117,31 @@ export class JsCompilation {
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
   get entries(): JsEntries
+  addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
+}
+
+export class JsContextModuleFactoryAfterResolveData {
+  get resource(): string
+  set resource(resource: string)
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
+}
+
+export class JsContextModuleFactoryBeforeResolveData {
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
 }
 
 export class JsEntries {
@@ -264,6 +290,7 @@ export enum BuiltinPluginName {
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  ContextReplacementPlugin = 'ContextReplacementPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -279,6 +306,16 @@ export function cleanupGlobalTrace(): void
 
 export interface ContextInfo {
   issuer: string
+}
+
+export function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export interface JsAddingRuntimeModule {
+  name: string
+  generator: () => String
+  cacheable: boolean
+  isolate: boolean
+  stage: number
 }
 
 export interface JsAdditionalTreeRuntimeRequirementsArg {
@@ -461,18 +498,6 @@ export interface JsCompatSource {
   map?: string
 }
 
-export interface JsContextModuleFactoryAfterResolveData {
-  resource: string
-  context: string
-  request: string
-  regExp?: RawRegex
-}
-
-export interface JsContextModuleFactoryBeforeResolveData {
-  context: string
-  request?: string
-}
-
 export interface JsCreateData {
   request: string
   userRequest: string
@@ -480,8 +505,23 @@ export interface JsCreateData {
 }
 
 export interface JsDiagnostic {
-  severity: JsRspackSeverity
-  error: JsRspackError
+  message: string
+  help?: string
+  sourceCode?: string
+  location?: JsDiagnosticLocation
+  file?: string
+  severity: "error" | "warning"
+  moduleIdentifier?: string
+}
+
+export interface JsDiagnosticLocation {
+  text?: string
+  /** 1-based */
+  line: number
+  /** 0-based in bytes */
+  column: number
+  /** Length in bytes */
+  length: number
 }
 
 export interface JsEntryData {
@@ -684,6 +724,11 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRspackDiagnostic {
+  severity: JsRspackSeverity
+  error: JsRspackError
 }
 
 export interface JsRspackError {
@@ -1131,6 +1176,14 @@ export interface RawContainerReferencePluginOptions {
   enhanced: boolean
 }
 
+export interface RawContextReplacementPluginOptions {
+  resourceRegExp: RawRegex
+  newContentResource?: string
+  newContentRecursive?: boolean
+  newContentRegExp?: RawRegex
+  newContentCreateContextMap?: Record<string, string>
+}
+
 export interface RawCopyGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
@@ -1230,6 +1283,7 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
+  incremental?: RawIncremental
   rspackFuture: RawRspackFuture
 }
 
@@ -1338,6 +1392,16 @@ export interface RawIgnorePluginOptions {
   checkResource?: (resource: string, context: string) => boolean
 }
 
+export interface RawIncremental {
+  make: boolean
+  emitAssets: boolean
+  inferAsyncModules: boolean
+  providedExports: boolean
+  moduleHashes: boolean
+  moduleCodegen: boolean
+  moduleRuntimeRequirements: boolean
+}
+
 export interface RawInfo {
   immutable?: boolean
   minimized?: boolean
@@ -1350,20 +1414,20 @@ export interface RawInfo {
 }
 
 export interface RawJavascriptParserOptions {
-  dynamicImportMode: string
-  dynamicImportPreload: string
-  dynamicImportPrefetch: string
+  dynamicImportMode?: string
+  dynamicImportPreload?: string
+  dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
-  url: string
-  exprContextCritical: boolean
-  wrappedContextCritical: boolean
+  url?: string
+  exprContextCritical?: boolean
+  wrappedContextCritical?: boolean
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence: boolean
-  worker: Array<string>
+  strictExportPresence?: boolean
+  worker?: Array<string>
   overrideStrict?: string
-  importMeta: boolean
+  importMeta?: boolean
 }
 
 export interface RawLazyCompilationOption {
@@ -1695,7 +1759,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newIncremental: boolean
+
 }
 
 export interface RawRuleSetCondition {

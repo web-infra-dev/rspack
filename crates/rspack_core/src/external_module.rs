@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::iter;
+use std::{borrow::Cow, iter};
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};

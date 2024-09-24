@@ -62,6 +62,8 @@ fn generate_common_layers(
     layers.push(
       tracing_subscriber::filter::Targets::new()
         .with_targets(vec![
+          ("tokio", default_level),
+          ("runtime", default_level),
           ("rspack_core", default_level),
           ("rspack", default_level),
           ("rspack_node", default_level),
@@ -89,7 +91,7 @@ pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Op
   if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
-
+    let console_layer = console_subscriber::ConsoleLayer::builder().spawn();
     let trace_writer = TraceWriter::from(output);
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
       .include_args(true)
@@ -101,6 +103,7 @@ pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Op
     tracing_subscriber::registry()
       .with(layers)
       .with(chrome_layer.with_filter(FilterEvent {}))
+      .with(console_layer)
       .init();
     Some(guard)
   } else {

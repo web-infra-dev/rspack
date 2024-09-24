@@ -84,12 +84,15 @@ orphan modules 141 bytes [orphan] 4 modules
 Rspack x.x.x compiled successfully in X s"
 `;
 
-exports[`statsOutput statsOutput/css-concat-error should print correct stats for 1`] = `
-"assets by status 49 bytes [cached] 1 asset
-
-ERROR in × Module not found: Can't resolve './src' in 'Xdir/css-concat-error'
-
-Rspack x.x.x compiled with 1 error in X s"
+exports[`statsOutput statsOutput/css-concat should print correct stats for 1`] = `
+"asset main.js 7.81 KiB [emitted] (name: main)
+asset main.css 51 bytes [emitted] (name: main)
+Entrypoint main 7.86 KiB = main.js 7.81 KiB main.css 51 bytes
+runtime modules 6.47 KiB 6 modules
+cacheable modules 20 bytes (javascript) 23 bytes (css)
+  ./index.js 20 bytes [built] [code generated]
+  ./foo.css 23 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
