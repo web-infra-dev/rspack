@@ -1,11 +1,13 @@
 use std::{fmt::Display, sync::Arc};
 
-use rspack_core::EsVersion;
 use rspack_error::{miette::Severity, TraceableError};
 use serde_json::json;
 use swc_core::{
   common::{FileName, Spanned},
-  ecma::parser::{parse_file_as_expr, EsSyntax, Syntax},
+  ecma::{
+    ast::EsVersion,
+    parser::{parse_file_as_expr, EsSyntax, Syntax},
+  },
 };
 
 use super::BasicEvaluatedExpression;

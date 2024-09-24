@@ -102,7 +102,8 @@ impl Compiler {
         input_filesystem.clone(),
       ))
     });
-    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
+    let options = Arc::new(options);
+    let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let unaffected_modules_cache = Arc::new(UnaffectedModulesCache::default());
     let module_executor = ModuleExecutor::default();

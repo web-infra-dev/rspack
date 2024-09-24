@@ -11,7 +11,6 @@ mod harmony_detection_parser_plugin;
 mod harmony_export_dependency_parser_plugin;
 mod harmony_import_dependency_parser_plugin;
 mod harmony_top_level_this_plugin;
-mod hot_module_replacement_plugin;
 mod import_meta_context_dependency_parser_plugin;
 mod import_meta_plugin;
 mod import_parser_plugin;
@@ -28,6 +27,7 @@ mod webpack_included_plugin;
 mod worker_plugin;
 
 pub mod define_plugin;
+pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
 
 pub(crate) use self::api_plugin::APIPlugin;
@@ -42,7 +42,6 @@ pub(crate) use self::harmony_detection_parser_plugin::HarmonyDetectionParserPlug
 pub(crate) use self::harmony_export_dependency_parser_plugin::HarmonyExportDependencyParserPlugin;
 pub(crate) use self::harmony_import_dependency_parser_plugin::HarmonyImportDependencyParserPlugin;
 pub(crate) use self::harmony_top_level_this_plugin::HarmonyTopLevelThisParserPlugin;
-pub(crate) use self::hot_module_replacement_plugin::hot_module_replacement;
 pub(crate) use self::import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin;
 pub(crate) use self::import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin};
 pub(crate) use self::import_parser_plugin::ImportParserPlugin;

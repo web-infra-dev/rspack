@@ -4,7 +4,7 @@ use rspack_core::{
   TemplateReplaceSource,
 };
 
-use crate::dependency::get_import_emitted_runtime;
+use crate::dependency::import_emitted_runtime;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyAcceptDependency {
@@ -52,7 +52,7 @@ impl DependencyTemplate for HarmonyAcceptDependency {
       let runtime_condition =
         match dependency.and_then(|dep| module_graph.get_module_by_dependency_id(dep.id())) {
           Some(ref_module) => {
-            get_import_emitted_runtime(&module.identifier(), &ref_module.identifier())
+            import_emitted_runtime::get_runtime(&module.identifier(), &ref_module.identifier())
           }
           None => RuntimeCondition::Boolean(false),
         };

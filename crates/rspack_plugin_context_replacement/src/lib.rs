@@ -142,11 +142,7 @@ impl Plugin for ContextReplacementPlugin {
     "rspack.ContextReplacementPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .context_module_factory_hooks

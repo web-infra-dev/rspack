@@ -22,7 +22,6 @@
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack-dev-server/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},
@@ -65,8 +64,6 @@
 			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack-dev-server/client",
-			"packages/rspack-dev-server/tests",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},

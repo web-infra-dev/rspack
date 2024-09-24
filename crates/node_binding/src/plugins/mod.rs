@@ -84,7 +84,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> rspack_error::Result<()> {
     ctx
       .context

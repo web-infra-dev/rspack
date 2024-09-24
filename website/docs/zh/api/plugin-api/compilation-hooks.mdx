@@ -9,6 +9,7 @@ import CompilerType from '../../types/compiler.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from 'rspress/runtime';
+import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation 钩子
 
@@ -269,12 +270,12 @@ direction LR
     HookModuleRuntime --> HookAdditionalChunkRuntime(hooks.additionalChunkRuntimeRequirements)
     HookAdditionalChunkRuntime --> HookChunkRuntime(hooks.runtimeRequirementInChunk)
     HookChunkRuntime --> HookAdditionalTreeRuntime(<a href="#additionaltreeruntimerequirements">hooks.additionalTreeRuntimeRequirements</a>)
-    HookAdditionalTreeRuntime --> HookTreeRuntime(hooks.runtimeRequirementInTree)
+    HookAdditionalTreeRuntime --> HookTreeRuntime(<a href="#runtimerequirementintree">hooks.runtimeRequirementInTree</a>)
     HookTreeRuntime --> HookAfterRuntimeRequirements(hooks.afterRuntimeRequirements)
     HookTreeRuntime <--> HookRuntimeModule(<a href="#runtimemodule">hooks.runtimeModule</a>)
 
-    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookTreeRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
-    class HookAdditionalTreeRuntime,HookRuntimeModule flow-hook-partial-support
+    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
+    class HookAdditionalTreeRuntime,HookRuntimeModule,HookTreeRuntime flow-hook-partial-support
     class ModuleCodeGeneration flow-process
     end
 
@@ -555,29 +556,99 @@ type ExecuteModuleContext = {
 
 ## `additionalTreeRuntimeRequirements`
 
-<Badge text="只读" type="info" />
-
 在树运行时依赖计算完成后调用。
 
 - **类型：** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
 - **参数：**
   - `Chunk`：Chunk 实例
-  - `Set<RuntimeGlobals>`：运行时依赖
+  - `Set<RuntimeGlobals>`：运行时依赖集合
 
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="RuntimeGlobals.ts"
-    key="RuntimeGlobals"
-  >
-    ```ts enum RuntimeGlobals {}
-    ```
-  </CollapsePanel>
-</Collapse>
+可通过修改运行时依赖集合以添加额外的内置运行时模块：
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap(
+            'CustomPlugin',
+            (_, set) => {
+              // 添加访问 compilation 哈希值的运行时模块
+              set.add(RuntimeGlobals.getFullHash);
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// 将打印 compilation 的哈希值
+console.log(__webpack_require__.h);
+```
+
+## `runtimeRequirementInTree`
+
+<ApiMeta addedVersion="1.0.6" />
+
+在根据运行时依赖以添加运行时模块时调用。
+
+- **类型：** `SyncBailHook<[Chunk, Set<RuntimeGlobals>]>`
+- **参数：**
+  - `Chunk`：Chunk 实例
+  - `Set<RuntimeGlobals>`：运行时依赖集合
+
+可通过修改运行时依赖集合以添加额外的内置运行时模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义运行时模块：
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals, RuntimeModule } = compiler.webpack;
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom');
+          }
+
+          generate(compilation) {
+            return `
+            __webpack_require__.mock = function(file) {
+              return ${RuntimeGlobals.publicPath} + "/subpath/" + file;
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree.tap(
+            'CustomPlugin',
+            (chunk, set) => {
+              // 添加访问 publicPath 的运行时模块
+              set.add(RuntimeGlobals.publicPath);
+              // 添加自定义运行时模块
+              compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// 将打印 "/subpath/index.js"
+console.log(__webpack_require__.mock('index.js'));
+```
 
 ## `runtimeModule`
-
-<Badge text="只读" type="info" />
 
 在运行时模块被添加后调用。
 
@@ -585,6 +656,39 @@ type ExecuteModuleContext = {
 - **参数：**
   - `RuntimeModule`：运行时模块
   - `Chunk`：Chunk 实例
+
+可通过 `source` 字段修改该运行时模块生成的代码。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.compilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeModule.tap(
+            'CustomPlugin',
+            (module, chunk) => {
+              if (module.name === 'public_path' && chunk.name === 'main') {
+                const originSource = module.source.source.toString('utf-8');
+                module.source.source = Buffer.from(
+                  `${RuntimeGlobals.publicPath} = "/override/public/path";\n`,
+                  'utf-8',
+                );
+              }
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// 将打印 "/override/public/path"
+console.log(__webpack_require__.p);
+```
 
 <Collapse>
   <CollapsePanel
