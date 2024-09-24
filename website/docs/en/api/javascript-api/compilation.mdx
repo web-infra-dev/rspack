@@ -464,7 +464,7 @@ module.exports = {
 };
 ```
 
-The following methods/properties can be overridden to control the behavior of the runtime module:
+When implementing a custom runtime module class, the following methods/properties can be overridden to control the behavior of the runtime module:
 
 - Pass the `name` and `stage` parameters in the constructor to specify the module name and the insertion stage.
 - Override the `generate()` method to control the generated code of the module.
