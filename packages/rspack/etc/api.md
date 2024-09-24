@@ -3545,6 +3545,31 @@ const experiments_2: z.ZodObject<{
     topLevelAwait: z.ZodOptional<z.ZodBoolean>;
     css: z.ZodOptional<z.ZodBoolean>;
     layers: z.ZodOptional<z.ZodBoolean>;
+    incremental: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
+        make: z.ZodOptional<z.ZodBoolean>;
+        emitAssets: z.ZodOptional<z.ZodBoolean>;
+        inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
+        providedExports: z.ZodOptional<z.ZodBoolean>;
+        moduleHashes: z.ZodOptional<z.ZodBoolean>;
+        moduleCodegen: z.ZodOptional<z.ZodBoolean>;
+        moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+    }, "strict", z.ZodTypeAny, {
+        make?: boolean | undefined;
+        providedExports?: boolean | undefined;
+        emitAssets?: boolean | undefined;
+        inferAsyncModules?: boolean | undefined;
+        moduleHashes?: boolean | undefined;
+        moduleCodegen?: boolean | undefined;
+        moduleRuntimeRequirements?: boolean | undefined;
+    }, {
+        make?: boolean | undefined;
+        providedExports?: boolean | undefined;
+        emitAssets?: boolean | undefined;
+        inferAsyncModules?: boolean | undefined;
+        moduleHashes?: boolean | undefined;
+        moduleCodegen?: boolean | undefined;
+        moduleRuntimeRequirements?: boolean | undefined;
+    }>]>>;
     futureDefaults: z.ZodOptional<z.ZodBoolean>;
     rspackFuture: z.ZodOptional<z.ZodObject<{
         bundlerInfo: z.ZodOptional<z.ZodObject<{
@@ -3560,21 +3585,18 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         }>>;
-        newIncremental: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         bundlerInfo?: {
             force?: boolean | ("version" | "uniqueId")[] | undefined;
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
-        newIncremental?: boolean | undefined;
     }, {
         bundlerInfo?: {
             force?: boolean | ("version" | "uniqueId")[] | undefined;
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
-        newIncremental?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     css?: boolean | undefined;
@@ -3601,6 +3623,15 @@ const experiments_2: z.ZodObject<{
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
     layers?: boolean | undefined;
+    incremental?: boolean | {
+        make?: boolean | undefined;
+        providedExports?: boolean | undefined;
+        emitAssets?: boolean | undefined;
+        inferAsyncModules?: boolean | undefined;
+        moduleHashes?: boolean | undefined;
+        moduleCodegen?: boolean | undefined;
+        moduleRuntimeRequirements?: boolean | undefined;
+    } | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
         bundlerInfo?: {
@@ -3608,7 +3639,6 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
-        newIncremental?: boolean | undefined;
     } | undefined;
 }, {
     css?: boolean | undefined;
@@ -3635,6 +3665,15 @@ const experiments_2: z.ZodObject<{
     outputModule?: boolean | undefined;
     topLevelAwait?: boolean | undefined;
     layers?: boolean | undefined;
+    incremental?: boolean | {
+        make?: boolean | undefined;
+        providedExports?: boolean | undefined;
+        emitAssets?: boolean | undefined;
+        inferAsyncModules?: boolean | undefined;
+        moduleHashes?: boolean | undefined;
+        moduleCodegen?: boolean | undefined;
+        moduleRuntimeRequirements?: boolean | undefined;
+    } | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
         bundlerInfo?: {
@@ -3642,7 +3681,6 @@ const experiments_2: z.ZodObject<{
             version?: string | undefined;
             bundler?: string | undefined;
         } | undefined;
-        newIncremental?: boolean | undefined;
     } | undefined;
 }>;
 
@@ -3654,6 +3692,8 @@ export interface ExperimentsNormalized {
     css?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
+    // (undocumented)
+    incremental?: false | Incremental;
     // (undocumented)
     layers?: boolean;
     // (undocumented)
@@ -4909,6 +4949,36 @@ export type ImportMetaName = z.infer<typeof importMetaName>;
 
 // @public (undocumented)
 const importMetaName: z.ZodString;
+
+// @public (undocumented)
+export type Incremental = z.infer<typeof incremental>;
+
+// @public (undocumented)
+const incremental: z.ZodObject<{
+    make: z.ZodOptional<z.ZodBoolean>;
+    emitAssets: z.ZodOptional<z.ZodBoolean>;
+    inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
+    providedExports: z.ZodOptional<z.ZodBoolean>;
+    moduleHashes: z.ZodOptional<z.ZodBoolean>;
+    moduleCodegen: z.ZodOptional<z.ZodBoolean>;
+    moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+}, "strict", z.ZodTypeAny, {
+    make?: boolean | undefined;
+    providedExports?: boolean | undefined;
+    emitAssets?: boolean | undefined;
+    inferAsyncModules?: boolean | undefined;
+    moduleHashes?: boolean | undefined;
+    moduleCodegen?: boolean | undefined;
+    moduleRuntimeRequirements?: boolean | undefined;
+}, {
+    make?: boolean | undefined;
+    providedExports?: boolean | undefined;
+    emitAssets?: boolean | undefined;
+    inferAsyncModules?: boolean | undefined;
+    moduleHashes?: boolean | undefined;
+    moduleCodegen?: boolean | undefined;
+    moduleRuntimeRequirements?: boolean | undefined;
+}>;
 
 // @public (undocumented)
 export type InfrastructureLogging = z.infer<typeof infrastructureLogging>;
@@ -10329,6 +10399,7 @@ declare namespace rspackExports {
         Optimization,
         RspackFutureOptions,
         LazyCompilationOptions,
+        Incremental,
         Experiments,
         Watch,
         WatchOptions,
@@ -10361,21 +10432,18 @@ const rspackFutureOptions: z.ZodObject<{
         version?: string | undefined;
         bundler?: string | undefined;
     }>>;
-    newIncremental: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     bundlerInfo?: {
         force?: boolean | ("version" | "uniqueId")[] | undefined;
         version?: string | undefined;
         bundler?: string | undefined;
     } | undefined;
-    newIncremental?: boolean | undefined;
 }, {
     bundlerInfo?: {
         force?: boolean | ("version" | "uniqueId")[] | undefined;
         version?: string | undefined;
         bundler?: string | undefined;
     } | undefined;
-    newIncremental?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -11283,6 +11351,31 @@ export const rspackOptions: z.ZodObject<{
         topLevelAwait: z.ZodOptional<z.ZodBoolean>;
         css: z.ZodOptional<z.ZodBoolean>;
         layers: z.ZodOptional<z.ZodBoolean>;
+        incremental: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
+            make: z.ZodOptional<z.ZodBoolean>;
+            emitAssets: z.ZodOptional<z.ZodBoolean>;
+            inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
+            providedExports: z.ZodOptional<z.ZodBoolean>;
+            moduleHashes: z.ZodOptional<z.ZodBoolean>;
+            moduleCodegen: z.ZodOptional<z.ZodBoolean>;
+            moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+        }, "strict", z.ZodTypeAny, {
+            make?: boolean | undefined;
+            providedExports?: boolean | undefined;
+            emitAssets?: boolean | undefined;
+            inferAsyncModules?: boolean | undefined;
+            moduleHashes?: boolean | undefined;
+            moduleCodegen?: boolean | undefined;
+            moduleRuntimeRequirements?: boolean | undefined;
+        }, {
+            make?: boolean | undefined;
+            providedExports?: boolean | undefined;
+            emitAssets?: boolean | undefined;
+            inferAsyncModules?: boolean | undefined;
+            moduleHashes?: boolean | undefined;
+            moduleCodegen?: boolean | undefined;
+            moduleRuntimeRequirements?: boolean | undefined;
+        }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
             bundlerInfo: z.ZodOptional<z.ZodObject<{
@@ -11298,21 +11391,18 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             }>>;
-            newIncremental: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             bundlerInfo?: {
                 force?: boolean | ("version" | "uniqueId")[] | undefined;
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
-            newIncremental?: boolean | undefined;
         }, {
             bundlerInfo?: {
                 force?: boolean | ("version" | "uniqueId")[] | undefined;
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
-            newIncremental?: boolean | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
         css?: boolean | undefined;
@@ -11339,6 +11429,15 @@ export const rspackOptions: z.ZodObject<{
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
+        incremental?: boolean | {
+            make?: boolean | undefined;
+            providedExports?: boolean | undefined;
+            emitAssets?: boolean | undefined;
+            inferAsyncModules?: boolean | undefined;
+            moduleHashes?: boolean | undefined;
+            moduleCodegen?: boolean | undefined;
+            moduleRuntimeRequirements?: boolean | undefined;
+        } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -11346,7 +11445,6 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
-            newIncremental?: boolean | undefined;
         } | undefined;
     }, {
         css?: boolean | undefined;
@@ -11373,6 +11471,15 @@ export const rspackOptions: z.ZodObject<{
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
+        incremental?: boolean | {
+            make?: boolean | undefined;
+            providedExports?: boolean | undefined;
+            emitAssets?: boolean | undefined;
+            inferAsyncModules?: boolean | undefined;
+            moduleHashes?: boolean | undefined;
+            moduleCodegen?: boolean | undefined;
+            moduleRuntimeRequirements?: boolean | undefined;
+        } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -11380,7 +11487,6 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
-            newIncremental?: boolean | undefined;
         } | undefined;
     }>>;
     externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
@@ -13405,6 +13511,15 @@ export const rspackOptions: z.ZodObject<{
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
+        incremental?: boolean | {
+            make?: boolean | undefined;
+            providedExports?: boolean | undefined;
+            emitAssets?: boolean | undefined;
+            inferAsyncModules?: boolean | undefined;
+            moduleHashes?: boolean | undefined;
+            moduleCodegen?: boolean | undefined;
+            moduleRuntimeRequirements?: boolean | undefined;
+        } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -13412,7 +13527,6 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
-            newIncremental?: boolean | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
@@ -13979,6 +14093,15 @@ export const rspackOptions: z.ZodObject<{
         outputModule?: boolean | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
+        incremental?: boolean | {
+            make?: boolean | undefined;
+            providedExports?: boolean | undefined;
+            emitAssets?: boolean | undefined;
+            inferAsyncModules?: boolean | undefined;
+            moduleHashes?: boolean | undefined;
+            moduleCodegen?: boolean | undefined;
+            moduleRuntimeRequirements?: boolean | undefined;
+        } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -13986,7 +14109,6 @@ export const rspackOptions: z.ZodObject<{
                 version?: string | undefined;
                 bundler?: string | undefined;
             } | undefined;
-            newIncremental?: boolean | undefined;
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {

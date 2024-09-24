@@ -27,7 +27,7 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  let is_incremental_rebuild = compilation.options.is_incremental_rebuild_make_enabled();
+  let is_incremental_rebuild = compilation.options.incremental().make_enabled();
   if !is_incremental_rebuild {
     task(compilation).await?;
     return Ok(());

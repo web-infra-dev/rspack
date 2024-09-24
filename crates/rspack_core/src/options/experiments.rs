@@ -1,36 +1,59 @@
-use once_cell::sync::OnceCell;
-
-#[derive(Debug, Default)]
-pub struct IncrementalRebuild {
-  pub make: Option<IncrementalRebuildMakeState>,
-  pub emit_asset: bool,
-}
-
-#[derive(Debug, Default)]
-pub struct IncrementalRebuildMakeState {
-  first: OnceCell<()>,
-}
-
-impl IncrementalRebuildMakeState {
-  pub fn is_first(&self) -> bool {
-    self.first.get().is_none()
-  }
-
-  pub fn set_is_not_first(&self) {
-    self.first.get_or_init(|| ());
-  }
+#[derive(Debug)]
+pub struct Experiments {
+  pub layers: bool,
+  pub incremental: Incremental,
+  pub top_level_await: bool,
+  pub rspack_future: RspackFuture,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]
-#[derive(Debug, Default)]
-pub struct RspackFuture {
-  pub new_incremental: bool,
+#[derive(Debug)]
+pub struct RspackFuture {}
+
+#[derive(Debug)]
+pub enum Incremental {
+  Disabled,
+  Enabled {
+    make: bool,
+    emit_assets: bool,
+    infer_async_modules: bool,
+    provided_exports: bool,
+    module_hashes: bool,
+    module_codegen: bool,
+    module_runtime_requirements: bool,
+  },
 }
 
-#[derive(Debug, Default)]
-pub struct Experiments {
-  pub layers: bool,
-  pub incremental_rebuild: IncrementalRebuild,
-  pub top_level_await: bool,
-  pub rspack_future: RspackFuture,
+impl Incremental {
+  pub fn enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { .. })
+  }
+
+  pub fn make_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { make, .. } if *make)
+  }
+
+  pub fn emit_assets_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { emit_assets, .. } if *emit_assets)
+  }
+
+  pub fn infer_async_modules_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { infer_async_modules, .. } if *infer_async_modules)
+  }
+
+  pub fn provided_exports_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { provided_exports, .. } if *provided_exports)
+  }
+
+  pub fn module_hashes_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { module_hashes, .. } if *module_hashes)
+  }
+
+  pub fn module_codegen_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { module_codegen, .. } if *module_codegen)
+  }
+
+  pub fn module_runtime_requirements_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { module_runtime_requirements, .. } if *module_runtime_requirements)
+  }
 }

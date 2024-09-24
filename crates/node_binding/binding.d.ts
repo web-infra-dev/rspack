@@ -1283,6 +1283,7 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
+  incremental?: RawIncremental
   rspackFuture: RawRspackFuture
 }
 
@@ -1389,6 +1390,16 @@ export interface RawIgnorePluginOptions {
   resourceRegExp?: RegExp
   contextRegExp?: RegExp
   checkResource?: (resource: string, context: string) => boolean
+}
+
+export interface RawIncremental {
+  make: boolean
+  emitAssets: boolean
+  inferAsyncModules: boolean
+  providedExports: boolean
+  moduleHashes: boolean
+  moduleCodegen: boolean
+  moduleRuntimeRequirements: boolean
 }
 
 export interface RawInfo {
@@ -1748,7 +1759,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newIncremental: boolean
+
 }
 
 export interface RawRuleSetCondition {

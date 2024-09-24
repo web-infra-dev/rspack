@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, References, Target,
+  CacheOptions, CompilerOptions, Context, Experiments, Incremental, ModuleOptions, OutputOptions,
+  References, Target,
 };
 
 mod raw_builtins;
@@ -72,13 +72,21 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let target = Target::new(&value.target)?;
     let cache = value.cache.into();
     let experiments = Experiments {
-      incremental_rebuild: IncrementalRebuild {
-        make: if matches!(cache, CacheOptions::Disabled) {
-          None
-        } else {
-          Some(IncrementalRebuildMakeState::default())
+      incremental: match value.experiments.incremental {
+        Some(value) => Incremental::Enabled {
+          make: if matches!(cache, CacheOptions::Disabled) {
+            false
+          } else {
+            value.make
+          },
+          emit_assets: value.emit_assets,
+          infer_async_modules: value.infer_async_modules,
+          provided_exports: value.provided_exports,
+          module_hashes: value.module_hashes,
+          module_codegen: value.module_codegen,
+          module_runtime_requirements: value.module_runtime_requirements,
         },
-        emit_asset: true,
+        None => Incremental::Disabled,
       },
       layers: value.experiments.layers,
       top_level_await: value.experiments.top_level_await,

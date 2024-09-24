@@ -7,7 +7,7 @@ pub struct Mutations {
 
 #[derive(Debug)]
 pub enum Mutation {
-  ModuleGraphModuleSetAsync { module: ModuleIdentifier },
+  ModuleSetAsync { module: ModuleIdentifier },
   PlaceholderForExtendable,
 }
 
