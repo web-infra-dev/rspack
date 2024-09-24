@@ -603,7 +603,7 @@ console.log(__webpack_require__.h);
   - `Chunk`：Chunk 实例
   - `Set<RuntimeGlobals>`：运行时依赖集合
 
-可通过修改运行时依赖集合以添加额外的内置运行时模块，也可通过 `compilation.addRuntimeModule` 添加自定义运行时模块：
+可通过修改运行时依赖集合以添加额外的内置运行时模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义运行时模块：
 
 ```js title="rspack.config.js"
 module.exports = {
