@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -14,8 +14,10 @@ use rspack_hook::plugin_hook;
 use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
-use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
+use rspack_loader_swc::{SwcLoader, SWC_LOADER_IDENTIFIER};
 use rspack_paths::Utf8Path;
+use rustc_hash::FxHashMap;
+use tokio::sync::RwLock;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -39,15 +41,33 @@ pub fn serde_error_to_miette(
   let span = LabeledSpan::at_offset(offset.offset(), e.to_string());
   miette!(labels = vec![span], "{msg}").with_source_code(content.clone())
 }
-pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
+
+static SWC_LOADER_CACHE: LazyLock<RwLock<FxHashMap<String, Arc<SwcLoader>>>> =
+  LazyLock::new(|| RwLock::new(FxHashMap::default()));
+
+pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
   let options: Arc<str> = options.unwrap_or("{}").into();
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(
+    if let Some(loader) = SWC_LOADER_CACHE.read().await.get(options.as_ref()) {
+      return Ok(loader.clone());
+    }
+
+    let loader = Arc::new(
       rspack_loader_swc::SwcLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
-        serde_error_to_miette(e, options, "failed to parse builtin:swc-loader options")
+        serde_error_to_miette(
+          e,
+          options.clone(),
+          "failed to parse builtin:swc-loader options",
+        )
       })?)
       .with_identifier(builtin.into()),
-    ));
+    );
+
+    SWC_LOADER_CACHE
+      .write()
+      .await
+      .insert(options.to_string(), loader.clone());
+    return Ok(loader);
   }
 
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
@@ -115,7 +135,9 @@ pub(crate) async fn resolve_loader(
 
   // FIXME: not belong to napi
   if loader_request.starts_with(BUILTIN_LOADER_PREFIX) {
-    return get_builtin_loader(loader_request, loader_options).map(Some);
+    return get_builtin_loader(loader_request, loader_options)
+      .await
+      .map(Some);
   }
 
   let resolve_result = resolver
