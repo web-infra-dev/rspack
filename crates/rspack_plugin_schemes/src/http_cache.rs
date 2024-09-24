@@ -227,10 +227,10 @@ impl HttpCache {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let is_valid = entry.valid_until > current_time;
 
-        if is_valid && self.filesystem.read(&cache_path).await.is_ok() {
+        if is_valid && self.filesystem.read(cache_path).await.is_ok() {
           let cached_content = self
             .filesystem
-            .read(&cache_path)
+            .read(cache_path)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to read cached content: {:?}", e))?;
 
@@ -255,7 +255,7 @@ impl HttpCache {
   async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
       let cache_location_path =
-        Utf8Path::from_path(&cache_location).expect("Invalid cache location path");
+        Utf8Path::from_path(cache_location).expect("Invalid cache location path");
       self
         .filesystem
         .create_dir_all(cache_location_path)
