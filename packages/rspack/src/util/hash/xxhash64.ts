@@ -25,5 +25,5 @@ export default () => {
 		//#endregion
 	}
 
-	return create.bind(null, xxhash64, [], 32, 16);
+	return create.bind(null, xxhash64, [], 32, 16)();
 };
