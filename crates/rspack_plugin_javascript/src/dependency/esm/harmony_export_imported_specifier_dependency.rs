@@ -8,8 +8,8 @@ use rspack_core::{
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec,
-  ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RealDependencyLocation, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
@@ -469,11 +469,11 @@ impl HarmonyExportImportedSpecifierDependency {
 
   fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
     let TemplateContext {
-      compilation,
       module,
       runtime_requirements,
       ..
     } = ctxt;
+    let compilation = ctxt.compilation;
     let mut fragments = vec![];
     let mg = &compilation.get_module_graph();
     let module_identifier = module.identifier();
@@ -624,7 +624,6 @@ impl HarmonyExportImportedSpecifierDependency {
             } else {
               RuntimeCondition::Boolean(true)
             };
-            let is_async = mg.is_async(&module_identifier).unwrap_or_default();
             let stmt = self.get_conditional_reexport_statement(
               ctxt,
               name,
@@ -632,6 +631,7 @@ impl HarmonyExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::Vec(ids),
             );
+            let is_async = ModuleGraph::is_async(compilation, &module_identifier);
             fragments.push(Box::new(ConditionalInitFragment::new(
               stmt,
               if is_async {
@@ -691,7 +691,7 @@ impl HarmonyExportImportedSpecifierDependency {
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
-        let is_async = mg.is_async(&module.identifier()).unwrap_or_default();
+        let is_async = ModuleGraph::is_async(compilation, &module.identifier());
         fragments.push(
           NormalInitFragment::new(
             format!(
@@ -844,7 +844,7 @@ impl HarmonyExportImportedSpecifierDependency {
     options
       .reexport_exports_presence
       .or(options.exports_presence)
-      .unwrap_or(if options.strict_export_presence {
+      .unwrap_or(if let Some(true) = options.strict_export_presence {
         ExportPresenceMode::Error
       } else {
         ExportPresenceMode::Auto
@@ -866,7 +866,7 @@ impl HarmonyExportImportedSpecifierDependency {
       let parent_module_identifier = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module for dependency");
-      let mut diagnostic = if let Some(span) = self.span()
+      let mut diagnostic = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
         && let Some(source) = parent_module.original_source().map(|s| s.source())
       {
@@ -1054,8 +1054,8 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     Some(self.range.to_string())
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range.start, self.range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {

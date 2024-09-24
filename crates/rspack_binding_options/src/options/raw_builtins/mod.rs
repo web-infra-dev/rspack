@@ -26,6 +26,7 @@ use rspack_ids::{
 use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
 use rspack_plugin_devtool::{
@@ -91,10 +92,10 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  plugins::{CssExtractRspackAdditionalDataPlugin, JsLoaderRspackPlugin},
-  JsLoaderRunner, RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions,
-  RawExternalItemWrapper, RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions,
-  RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawContextReplacementPluginOptions,
+  RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
+  RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -162,6 +163,7 @@ pub enum BuiltinPluginName {
   RuntimeChunkPlugin,
   SizeLimitsPlugin,
   NoEmitOnErrorsPlugin,
+  ContextReplacementPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -187,7 +189,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, _env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -479,8 +481,6 @@ impl BuiltinPlugin {
         )
       }
       BuiltinPluginName::CssExtractRspackPlugin => {
-        let additional_data_plugin = CssExtractRspackAdditionalDataPlugin::new(env)?.boxed();
-        plugins.push(additional_data_plugin);
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
           downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
         )
@@ -506,6 +506,11 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::NoEmitOnErrorsPlugin => {
         plugins.push(NoEmitOnErrorsPlugin::default().boxed());
+      }
+      BuiltinPluginName::ContextReplacementPlugin => {
+        let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)?;
+        let options = raw_options.try_into()?;
+        plugins.push(ContextReplacementPlugin::new(options).boxed());
       }
     }
     Ok(())

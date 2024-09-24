@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::Context;
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
@@ -66,7 +67,9 @@ impl HtmlPluginAssets {
       .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
       .filter_map(|asset_name| {
         let asset = compilation.assets().get(&asset_name).expect("TODO:");
-        if asset.info.hot_module_replacement || asset.info.development {
+        if asset.info.hot_module_replacement.unwrap_or(false)
+          || asset.info.development.unwrap_or(false)
+        {
           None
         } else {
           Some((asset_name.clone(), asset))
@@ -306,7 +309,7 @@ fn url_encode_path(file_path: &str) -> String {
       .map(|p| { urlencoding::encode(p) })
       .join("/"),
     // element.outerHTML will escape '&' so need to add a placeholder here
-    query_string.replace("&", "$$RSPACK_URL_AMP$$")
+    query_string.cow_replace("&", "$$RSPACK_URL_AMP$$")
   )
 }
 

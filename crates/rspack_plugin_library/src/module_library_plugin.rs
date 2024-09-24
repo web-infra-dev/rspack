@@ -3,7 +3,8 @@ use std::hash::Hash;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   property_access, to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, LibraryOptions, ModuleIdentifier, Plugin, PluginContext,
+  CompilerCompilation, CompilerOptions, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
+  PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -64,12 +65,11 @@ fn render_startup(
     return Ok(());
   };
   let mut source = ConcatSource::default();
+  let is_async = ModuleGraph::is_async(compilation, module);
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
   let mut exports = vec![];
-  if let Some(is_async) = module_graph.is_async(module)
-    && is_async
-  {
+  if is_async {
     source.add(RawSource::from(
       "__webpack_exports__ = await __webpack_exports__;\n",
     ));
@@ -117,11 +117,7 @@ impl Plugin for ModuleLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

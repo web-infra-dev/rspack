@@ -30,7 +30,11 @@ import { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import { ThreadsafeWritableNodeFS } from "./FileSystem";
-import { CodeGenerationResult, Module } from "./Module";
+import {
+	CodeGenerationResult,
+	ContextModuleFactoryAfterResolveData,
+	Module
+} from "./Module";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
@@ -53,16 +57,14 @@ import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
 import type { CompilationParams } from "./Compilation";
 import type { FileSystemInfoEntry } from "./FileSystemInfo";
-import type {
-	ContextModuleFactoryAfterResolveResult,
-	ResolveData
-} from "./Module";
+import type { ResolveData } from "./Module";
 import type { NormalModuleCreateData } from "./NormalModuleFactory";
 import type {
 	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
-	RspackPluginInstance
+	RspackPluginInstance,
+	WatchOptions
 } from "./config";
 import type {
 	InputFileSystem,
@@ -328,8 +330,7 @@ class Compiler {
 				let normalizedChildName = childName;
 				if (typeof normalizedName === "function") {
 					if (typeof normalizedChildName === "function") {
-						// @ts-expect-error
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger(() => {
 							if (typeof normalizedName === "function") {
 								normalizedName = normalizedName();
 								if (!normalizedName) {
@@ -391,13 +392,14 @@ class Compiler {
 		handler: liteTapable.Callback<Error, Stats>
 	): Watching {
 		if (this.running) {
-			// @ts-expect-error
-			return handler(new ConcurrentCompilationError());
+			// cannot be resolved without assertion
+			// copy from webpack
+			// Type 'void' is not assignable to type 'Watching'.
+			return handler(new ConcurrentCompilationError()) as unknown as Watching;
 		}
 		this.running = true;
 		this.watchMode = true;
-		// @ts-expect-error
-		this.watching = new Watching(this, watchOptions, handler);
+		this.watching = new Watching(this, watchOptions as WatchOptions, handler);
 		return this.watching;
 	}
 
@@ -411,8 +413,7 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
-			// @ts-expect-error
-			const finalCallback = (err, stats?) => {
+			const finalCallback = (err: Error | null, stats?: Stats) => {
 				this.idle = true;
 				this.cache.beginIdle();
 				this.idle = true;
@@ -423,7 +424,7 @@ class Compiler {
 				if (callback) {
 					callback(err, stats);
 				}
-				this.hooks.afterDone.call(stats);
+				this.hooks.afterDone.call(stats!);
 			};
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {
@@ -583,11 +584,13 @@ class Compiler {
 			)
 		];
 
-		for (const name in this.hooks) {
-			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
-				//@ts-ignore
+		for (const hookName in this.hooks) {
+			type HookNames = keyof Compiler["hooks"];
+
+			const name = hookName as unknown as HookNames;
+
+			if (canInherentFromParent(name)) {
 				if (childCompiler.hooks[name]) {
-					//@ts-ignore
 					childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
 				}
 			}
@@ -837,6 +840,21 @@ class Compiler {
 							};
 						}
 				),
+			registerCompilationRuntimeRequirementInTree: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
+				() => this.#compilation!.hooks.runtimeRequirementInTree,
+				queried =>
+					({
+						chunk,
+						runtimeRequirements
+					}: binding.JsRuntimeRequirementInTreeArg) => {
+						const set = __from_binding_runtime_globals(runtimeRequirements);
+						queried.call(Chunk.__from_binding(chunk, this.#compilation!), set);
+						return {
+							runtimeRequirements: __to_binding_runtime_globals(set)
+						};
+					}
+			),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.#compilation!.hooks.runtimeModule,
@@ -1156,33 +1174,13 @@ class Compiler {
 								| binding.JsContextModuleFactoryAfterResolveData
 						) => {
 							const data = bindingData
-								? ({
-										resource: bindingData.resource,
-										regExp: bindingData.regExp
-											? new RegExp(
-													bindingData.regExp.source,
-													bindingData.regExp.flags
-												)
-											: undefined,
-										request: bindingData.request,
-										context: bindingData.context,
-										// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
-										dependencies: []
-									} satisfies ContextModuleFactoryAfterResolveResult)
+								? ContextModuleFactoryAfterResolveData.__from_binding(
+										bindingData
+									)
 								: false;
 							const ret = await queried.promise(data);
 							const result = ret
-								? ({
-										resource: ret.resource,
-										context: ret.context,
-										request: ret.request,
-										regExp: ret.regExp
-											? {
-													source: ret.regExp.source,
-													flags: ret.regExp.flags
-												}
-											: undefined
-									} satisfies binding.JsContextModuleFactoryAfterResolveData)
+								? ContextModuleFactoryAfterResolveData.__to_binding(ret)
 								: false;
 							return result;
 						}
@@ -1313,7 +1311,7 @@ class Compiler {
 			}
 		}
 		if (this.#nonSkippableRegisters.join() !== kinds.join()) {
-			this.#getInstance((error, instance) => {
+			this.#getInstance((_error, instance) => {
 				instance!.setNonSkippableRegisters(kinds);
 				this.#nonSkippableRegisters = kinds;
 			});

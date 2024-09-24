@@ -40,6 +40,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_optimize_chunk_modules_taps: RegisterCompilationOptimizeChunkModulesTaps,
   register_compilation_additional_tree_runtime_requirements:
     RegisterCompilationAdditionalTreeRuntimeRequirementsTaps,
+  register_compilation_runtime_requirement_in_tree: RegisterCompilationRuntimeRequirementInTreeTaps,
   register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps,
   register_compilation_chunk_hash_taps: RegisterCompilationChunkHashTaps,
   register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps,
@@ -83,7 +84,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> rspack_error::Result<()> {
     ctx
       .context
@@ -185,6 +186,15 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .intercept(
         self
           .register_compilation_additional_tree_runtime_requirements
+          .clone(),
+      );
+    ctx
+      .context
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .intercept(
+        self
+          .register_compilation_runtime_requirement_in_tree
           .clone(),
       );
     ctx
@@ -431,6 +441,11 @@ impl JsHooksAdapterPlugin {
         register_compilation_additional_tree_runtime_requirements:
           RegisterCompilationAdditionalTreeRuntimeRequirementsTaps::new(
             register_js_taps.register_compilation_additional_tree_runtime_requirements,
+            non_skippable_registers.clone(),
+          ),
+        register_compilation_runtime_requirement_in_tree:
+          RegisterCompilationRuntimeRequirementInTreeTaps::new(
+            register_js_taps.register_compilation_runtime_requirement_in_tree,
             non_skippable_registers.clone(),
           ),
         register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(

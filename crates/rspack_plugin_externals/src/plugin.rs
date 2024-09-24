@@ -133,8 +133,7 @@ impl ExternalsPlugin {
 
 #[plugin_hook(NormalModuleFactoryFactorize for ExternalsPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
-  let dependency = data
-    .dependency
+  let dependency = data.dependencies[0]
     .as_module_dependency()
     .expect("should be module dependency");
   let context = &data.context;
@@ -199,11 +198,7 @@ impl Plugin for ExternalsPlugin {
     "rspack.ExternalsPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .normal_module_factory_hooks

@@ -7,6 +7,7 @@ use std::hash::Hash;
 use std::path::Path;
 use std::sync::{mpsc, LazyLock, Mutex};
 
+use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
@@ -175,7 +176,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let is_matched = match_object(options, filename);
 
-      if !is_matched || original.get_info().minimized {
+      if !is_matched || original.get_info().minimized.unwrap_or(false) {
         return false
       }
 
@@ -214,7 +215,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let banner = match &extract_comments.banner {
             OptionWrapper::Default => {
               let dir = Path::new(filename).parent().expect("should has parent");
-              let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
+              let raw = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy();
+              let relative = raw.cow_replace('\\', "/");
               Some(format!("/*! For license information please see {relative} */"))
             },
             OptionWrapper::Disabled => None,
@@ -267,7 +269,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           source
         };
         original.set_source(Some(source));
-        original.get_info_mut().minimized = true;
+        original.get_info_mut().minimized.replace(true);
       }
 
       Ok(())
@@ -287,7 +289,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         CompilationAsset {
           source: Some(comments.source),
           info: AssetInfo {
-            minimized: true,
+            minimized: Some(true),
             ..Default::default()
           },
         },
@@ -305,7 +307,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

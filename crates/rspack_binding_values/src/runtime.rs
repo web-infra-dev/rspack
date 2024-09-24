@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use cow_utils::CowUtils;
 use heck::{ToLowerCamelCase, ToSnakeCase};
 use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
@@ -129,9 +130,41 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
     let mut runtime_requirements = RuntimeGlobals::default();
 
     for item in self.runtime_requirements.value.iter() {
-      let name = item.to_snake_case().to_uppercase();
+      let snake_case = item.to_snake_case();
+      let name = snake_case.cow_to_uppercase();
 
-      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(&name) {
+      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(name.as_ref()) {
+        runtime_requirements.extend(*item);
+      }
+    }
+
+    runtime_requirements
+  }
+}
+
+#[napi(object)]
+pub struct JsRuntimeRequirementInTreeArg {
+  pub chunk: JsChunk,
+  pub runtime_requirements: JsRuntimeGlobals,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct JsRuntimeRequirementInTreeResult {
+  pub runtime_requirements: JsRuntimeGlobals,
+}
+
+impl JsRuntimeRequirementInTreeResult {
+  pub fn as_runtime_globals(&self) -> RuntimeGlobals {
+    let mut runtime_requirements = RuntimeGlobals::default();
+
+    for item in self.runtime_requirements.value.iter() {
+      let snake_name = item.to_snake_case();
+
+      if let Some(item) = RUNTIME_GLOBAL_MAP
+        .1
+        .get(snake_name.cow_to_uppercase().as_ref())
+      {
         runtime_requirements.extend(*item);
       }
     }

@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
+  rspack_sources::{RawSource, Source},
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
 use rspack_napi::{
@@ -15,7 +16,6 @@ use rspack_napi::{
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::ToJsCompatSource;
 use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
@@ -409,11 +409,11 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsAssetInfo {
-  pub minimized: bool,
-  pub development: bool,
-  pub hot_module_replacement: bool,
+  pub minimized: Option<bool>,
+  pub development: Option<bool>,
+  pub hot_module_replacement: Option<bool>,
   pub source_filename: Option<String>,
-  pub immutable: bool,
+  pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
   pub chunkhash: Vec<String>,
   pub contenthash: Vec<String>,
@@ -601,20 +601,14 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
   type Error = napi::Error;
 
   fn try_from(stats: StatsModule) -> std::result::Result<Self, Self::Error> {
-    let source = stats
-      .source
-      .map(|source| {
-        source.to_js_compat_source().map(|js_compat_source| {
-          if js_compat_source.is_raw && js_compat_source.is_buffer {
-            JsStatsModuleSource::B(js_compat_source.source)
-          } else {
-            let s = String::from_utf8_lossy(js_compat_source.source.as_ref()).to_string();
-            JsStatsModuleSource::A(s)
-          }
-        })
-      })
-      .transpose()
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let source = stats.source.map(|source| {
+      if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>() {
+        if raw_source.is_buffer() {
+          return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
+        }
+      }
+      JsStatsModuleSource::A(source.source().to_string())
+    });
 
     let mut sizes = stats
       .sizes

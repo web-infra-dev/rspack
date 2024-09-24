@@ -642,6 +642,7 @@ impl ModuleConcatenationPlugin {
           },
           plugin_driver: compilation.plugin_driver.clone(),
           compiler_options: &compilation.options,
+          fs: compilation.input_filesystem.clone(),
         },
         Some(compilation),
       )
@@ -654,9 +655,10 @@ impl ModuleConcatenationPlugin {
       .exports;
     let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
     module_graph.add_module_graph_module(module_graph_module);
-    module_graph.clone_module_attributes(&root_module_id, &new_module.id());
+    ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
     // integrate
 
+    let mut module_graph = compilation.get_module_graph_mut();
     for m in modules_set {
       if m == &root_module_id {
         continue;
@@ -752,12 +754,7 @@ impl ModuleConcatenationPlugin {
 
         let m = module_graph.module_by_identifier(&module_id);
 
-        // If the result is `None`, that means we have some differences with webpack,
-        // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
-        if module_graph
-          .is_async(&module_id)
-          .expect("should have async result")
-        {
+        if ModuleGraph::is_async(compilation, &module_id) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -1043,11 +1040,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 }
 
 impl Plugin for ModuleConcatenationPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks

@@ -4,6 +4,7 @@ use std::fmt::{self, Debug};
 use std::sync::LazyLock;
 
 use async_recursion::async_recursion;
+use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
@@ -125,7 +126,7 @@ fn wrap_comment(str: &str) -> String {
   }
 
   let result = str
-    .replace("*/", "* /")
+    .cow_replace("*/", "* /")
     .split('\n')
     .collect::<Vec<_>>()
     .join("\n * ");
@@ -250,7 +251,7 @@ impl Plugin for BannerPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

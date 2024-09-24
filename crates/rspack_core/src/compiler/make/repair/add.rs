@@ -4,7 +4,7 @@ use super::{build::BuildTask, MakeTaskContext};
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
-  DependencyId, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
 };
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
@@ -77,6 +77,7 @@ impl Task<MakeTaskContext> for AddTask {
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
+      fs: context.fs.clone(),
     })])
   }
 }
@@ -84,11 +85,16 @@ impl Task<MakeTaskContext> for AddTask {
 fn set_resolved_module(
   module_graph: &mut ModuleGraph,
   original_module_identifier: Option<ModuleIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies: Vec<BoxDependency>,
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
   for dependency in dependencies {
-    module_graph.set_resolved_module(original_module_identifier, dependency, module_identifier)?;
+    module_graph.set_resolved_module(
+      original_module_identifier,
+      *dependency.id(),
+      module_identifier,
+    )?;
+    module_graph.add_dependency(dependency);
   }
   Ok(())
 }

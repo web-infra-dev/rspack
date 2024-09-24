@@ -65,8 +65,7 @@ async fn compilation(
 
 #[plugin_hook(NormalModuleFactoryFactorize for ContainerReferencePlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
-  let dependency = data
-    .dependency
+  let dependency = data.dependencies[0]
     .as_module_dependency()
     .expect("should be module dependency");
   let request = dependency.request();
@@ -114,6 +113,7 @@ fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
@@ -137,11 +137,7 @@ impl Plugin for ContainerReferencePlugin {
     "rspack.ContainerReferencePlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

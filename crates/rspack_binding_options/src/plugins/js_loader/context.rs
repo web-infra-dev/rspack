@@ -1,4 +1,4 @@
-use std::{cell::RefCell, io::Read};
+use std::cell::RefCell;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;

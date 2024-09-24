@@ -110,5 +110,6 @@ describeByWalk(v("watch (webpack-test)"), (name, src, dist) => {
 		/caching-inner-source/,
 		/production/,
 		/warnings-contribute-to-hash/,
+		/issue-8766/,
 	]
 });

@@ -12,11 +12,11 @@ use rspack_core::{
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
-  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions,
-  GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
-  OverrideStrict, ParserOptions, ParserOptionsByModuleType,
+  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParserOptions,
+  ParserOptionsMap,
 };
 use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
@@ -203,14 +203,32 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
-      "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" => {
-        Self::Javascript(
-          value
-            .javascript
-            .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
-            .into(),
-        )
-      }
+      "javascript" => Self::Javascript(
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
+          .into(),
+      ),
+      "javascript/auto" => Self::JavascriptAuto(
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript/auto\"")
+          .into(),
+      ),
+      "javascript/dynamic" => Self::JavascriptDynamic(
+        value
+          .javascript
+          .expect(
+            "should have an \"javascript\" when RawParserOptions.type is \"javascript/dynamic\"",
+          )
+          .into(),
+      ),
+      "javascript/esm" => Self::JavascriptEsm(
+        value
+          .javascript
+          .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript/esm\"")
+          .into(),
+      ),
       "css" => Self::Css(
         value
           .css
@@ -240,32 +258,38 @@ impl From<RawParserOptions> for ParserOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
-  pub dynamic_import_mode: String,
-  pub dynamic_import_preload: String,
-  pub dynamic_import_prefetch: String,
+  pub dynamic_import_mode: Option<String>,
+  pub dynamic_import_preload: Option<String>,
+  pub dynamic_import_prefetch: Option<String>,
   pub dynamic_import_fetch_priority: Option<String>,
-  pub url: String,
-  pub expr_context_critical: bool,
-  pub wrapped_context_critical: bool,
+  pub url: Option<String>,
+  pub expr_context_critical: Option<bool>,
+  pub wrapped_context_critical: Option<bool>,
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub strict_export_presence: bool,
-  pub worker: Vec<String>,
+  pub strict_export_presence: Option<bool>,
+  pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
-  pub import_meta: bool,
+  pub import_meta: Option<bool>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
   fn from(value: RawJavascriptParserOptions) -> Self {
     Self {
-      dynamic_import_mode: DynamicImportMode::from(value.dynamic_import_mode.as_str()),
-      dynamic_import_preload: JavascriptParserOrder::from(value.dynamic_import_preload.as_str()),
-      dynamic_import_prefetch: JavascriptParserOrder::from(value.dynamic_import_prefetch.as_str()),
+      dynamic_import_mode: value
+        .dynamic_import_mode
+        .map(|v| DynamicImportMode::from(v.as_str())),
+      dynamic_import_preload: value
+        .dynamic_import_preload
+        .map(|v| JavascriptParserOrder::from(v.as_str())),
+      dynamic_import_prefetch: value
+        .dynamic_import_prefetch
+        .map(|v| JavascriptParserOrder::from(v.as_str())),
       dynamic_import_fetch_priority: value
         .dynamic_import_fetch_priority
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
-      url: JavascriptParserUrl::from(value.url.as_str()),
+      url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
       expr_context_critical: value.expr_context_critical,
       wrapped_context_critical: value.wrapped_context_critical,
       exports_presence: value
@@ -805,16 +829,16 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
         .parser
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
-            .collect::<std::result::Result<ParserOptionsByModuleType, rspack_error::Error>>()
+            .map(|(k, v)| Ok((k, v.into())))
+            .collect::<std::result::Result<ParserOptionsMap, rspack_error::Error>>()
         })
         .transpose()?,
       generator: value
         .generator
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
-            .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
+            .map(|(k, v)| Ok((k, v.into())))
+            .collect::<std::result::Result<GeneratorOptionsMap, rspack_error::Error>>()
         })
         .transpose()?,
       no_parse: value

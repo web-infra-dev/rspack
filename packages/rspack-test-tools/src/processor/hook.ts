@@ -108,7 +108,7 @@ export class HookCasesContext extends TestContext {
 			context._addSnapshot(args, "input", group);
 			const output = cb.apply(this, args);
 			if (output && typeof output.then === "function") {
-				let resolve;
+				let resolve: ((value: void | PromiseLike<void>) => void) | undefined;
 				context.promises.push(new Promise(r => (resolve = r)));
 				return output
 					.then((o: unknown) => {

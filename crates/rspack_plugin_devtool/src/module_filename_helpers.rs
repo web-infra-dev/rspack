@@ -4,6 +4,7 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use cow_utils::CowUtils;
 use regex::{Captures, Regex};
 use rspack_core::{contextify, Compilation, OutputOptions};
 use rspack_error::Result;
@@ -198,7 +199,7 @@ impl ModuleFilenameHelpers {
           .as_str();
 
         if content.len() + 2 == full_match.len() {
-          match content.to_lowercase().as_str() {
+          match content.cow_to_lowercase().as_ref() {
             "identifier" => Cow::from(&ctx.identifier),
             "short-identifier" => Cow::from(&ctx.short_identifier),
             "resource" => Cow::from(&ctx.resource),

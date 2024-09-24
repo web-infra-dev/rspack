@@ -656,23 +656,13 @@ async fn nmf_module(
 
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
 fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let mut modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
-    compilation
-      .unaffected_modules_cache
-      .get_affected_modules_with_module_graph()
-      .lock()
-      .expect("should lock")
-      .iter()
-      .copied()
-      .collect()
-  } else {
-    compilation
-      .get_module_graph()
-      .modules()
-      .keys()
-      .copied()
-      .collect()
-  };
+  // TODO: use affected module optimization
+  let mut modules: IdentifierSet = compilation
+    .get_module_graph()
+    .modules()
+    .keys()
+    .copied()
+    .collect();
   let mut new_connections = Default::default();
   for module in modules.clone() {
     optimize_incoming_connections(module, &mut modules, &mut new_connections, compilation);
@@ -688,7 +678,7 @@ impl Plugin for SideEffectsFlagPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

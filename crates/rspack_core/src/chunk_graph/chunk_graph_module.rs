@@ -10,8 +10,8 @@ use tracing::instrument;
 
 use crate::{
   get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
@@ -219,7 +219,7 @@ impl ChunkGraph {
     let cgm = self.get_chunk_graph_module(module_identifier);
     cgm.id.as_ref().dyn_hash(&mut hasher);
     module.source_types().dyn_hash(&mut hasher);
-    mg.is_async(&module_identifier).dyn_hash(&mut hasher);
+    ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
     mg.get_exports_info(&module_identifier)
       .update_hash(&mg, &mut hasher, compilation, runtime);
     hasher.finish()

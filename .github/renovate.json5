@@ -122,7 +122,6 @@
         "typescript",
         "pnpm"
       ],
-      "rangeStrategy": "bump",
       // bump major in a separate PR
       "matchUpdateTypes": ["patch", "minor"]
     },
@@ -134,7 +133,6 @@
       "matchDepTypes": [
         "dependencies"
       ],
-      "rangeStrategy": "bump",
       // bump major in a separate PR
       "matchUpdateTypes": ["patch", "minor"]
     },

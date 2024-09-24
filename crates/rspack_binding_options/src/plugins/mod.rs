@@ -1,4 +1,5 @@
-mod css_extract_additional_data;
+mod context_replacement;
 mod js_loader;
-pub(super) use css_extract_additional_data::CssExtractRspackAdditionalDataPlugin;
+
+pub use context_replacement::*;
 pub(super) use js_loader::{JsLoaderRspackPlugin, JsLoaderRunner};

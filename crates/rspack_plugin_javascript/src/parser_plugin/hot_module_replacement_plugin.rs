@@ -1,16 +1,12 @@
-pub mod hot_module_replacement {
-  pub use super::ImportMetaHotReplacementParserPlugin;
-  pub use super::ModuleHotReplacementParserPlugin;
-}
-
 use rspack_core::{BoxDependency, RealDependencyLocation, SpanExt};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
 
 use crate::dependency::{
-  HarmonyAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
-  ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
+  import_emitted_runtime, HarmonyAcceptDependency, ImportMetaHotAcceptDependency,
+  ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
+  ModuleHotDeclineDependency,
 };
 use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
@@ -108,7 +104,17 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-pub struct ModuleHotReplacementParserPlugin;
+pub struct ModuleHotReplacementParserPlugin {
+  _private: (),
+}
+
+impl ModuleHotReplacementParserPlugin {
+  #[allow(clippy::new_without_default)]
+  pub fn new() -> Self {
+    import_emitted_runtime::init_map();
+    Self { _private: () }
+  }
+}
 
 impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   fn evaluate_identifier(
@@ -165,7 +171,17 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   }
 }
 
-pub struct ImportMetaHotReplacementParserPlugin;
+pub struct ImportMetaHotReplacementParserPlugin {
+  _private: (),
+}
+
+impl ImportMetaHotReplacementParserPlugin {
+  #[allow(clippy::new_without_default)]
+  pub fn new() -> Self {
+    import_emitted_runtime::init_map();
+    Self { _private: () }
+  }
+}
 
 impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   fn evaluate_identifier(

@@ -1,6 +1,6 @@
 use rspack_core::{
-  LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding, RunnerContext,
-  BUILTIN_LOADER_PREFIX,
+  AdditionalData, LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding,
+  RunnerContext, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::Result;
 use rspack_hook::plugin_hook;

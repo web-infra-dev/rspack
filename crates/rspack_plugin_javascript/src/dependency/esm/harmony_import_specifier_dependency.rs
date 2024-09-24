@@ -102,7 +102,7 @@ impl HarmonyImportSpecifierDependency {
     options
       .import_exports_presence
       .or(options.exports_presence)
-      .unwrap_or(if options.strict_export_presence {
+      .unwrap_or(if let Some(true) = options.strict_export_presence {
         ExportPresenceMode::Error
       } else {
         ExportPresenceMode::Auto
@@ -228,11 +228,8 @@ impl Dependency for HarmonyImportSpecifierDependency {
     Some(self.range.to_string())
   }
 
-  fn span(&self) -> Option<rspack_core::ErrorSpan> {
-    Some(rspack_core::ErrorSpan::new(
-      self.range.start,
-      self.range.end,
-    ))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
   }
 
   fn source_order(&self) -> Option<i32> {

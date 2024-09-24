@@ -13,27 +13,29 @@ use rspack_collections::IdentifierSet;
 use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
-use rspack_core::rspack_sources::SourceExt;
 use rspack_core::AssetInfo;
+use rspack_core::ChunkUkey;
 use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::Ref;
+use rspack_plugin_runtime::RuntimeModuleFromJs;
 use sys::napi_env;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
+use crate::JsAddingRuntimeModule;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ModuleDTOWrapper;
 use crate::{
-  chunk::JsChunk, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData,
-  JsStats, ToJsCompatSource,
+  chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
+  ToJsCompatSource,
 };
-use crate::{JsDiagnostic, JsRspackError};
+use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
 pub struct JsCompilation(pub(crate) &'static mut rspack_core::Compilation);
@@ -68,11 +70,11 @@ impl JsCompilation {
       .update_asset(&filename, |original_source, mut original_info| {
         let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
-            Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
+            Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
-              let compat_source: CompatSource =
+              let js_compat_source: JsCompatSource =
                 new_source_fn.call1(original_source.to_js_compat_source())?;
-              compat_source.boxed()
+              js_compat_source.into()
             }
           };
           new_source
@@ -92,7 +94,7 @@ impl JsCompilation {
           )
           .transpose();
         if let Some(new_info) = new_info.into_rspack_result()? {
-          original_info.merge_another(new_info);
+          original_info.merge_another_asset(new_info);
         }
         Ok((new_source, original_info))
       })
@@ -202,7 +204,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
-    let source = CompatSource::from(source).boxed();
+    let source: BoxSource = source.into();
     match self.0.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
@@ -256,11 +258,9 @@ impl JsCompilation {
 
   #[napi]
   pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
-    let compat_source: CompatSource = source.into();
-
     self.0.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
     );
   }
 
@@ -309,7 +309,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn push_diagnostic(&mut self, diagnostic: JsDiagnostic) {
+  pub fn push_diagnostic(&mut self, diagnostic: JsRspackDiagnostic) {
     self.0.push_diagnostic(diagnostic.into());
   }
 
@@ -318,12 +318,17 @@ impl JsCompilation {
     &mut self,
     start: u32,
     end: u32,
-    replace_with: Vec<crate::JsDiagnostic>,
+    replace_with: Vec<crate::JsRspackDiagnostic>,
   ) {
     let diagnostics = replace_with.into_iter().map(Into::into).collect();
     self
       .0
       .splice_diagnostic(start as usize, end as usize, diagnostics);
+  }
+
+  #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
+  pub fn push_native_diagnostic(&mut self, diagnostic: External<Diagnostic>) {
+    self.0.push_diagnostic(diagnostic.clone());
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
@@ -529,6 +534,21 @@ impl JsCompilation {
   #[napi(getter)]
   pub fn entries(&'static mut self) -> JsEntries {
     JsEntries::new(self.0)
+  }
+
+  #[napi]
+  pub fn add_runtime_module(
+    &'static mut self,
+    chunk_ukey: u32,
+    runtime_module: JsAddingRuntimeModule,
+  ) -> napi::Result<()> {
+    self
+      .0
+      .add_runtime_module(
+        &ChunkUkey::from(chunk_ukey),
+        Box::new(RuntimeModuleFromJs::from(runtime_module)),
+      )
+      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
 }
 

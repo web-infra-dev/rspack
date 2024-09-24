@@ -2,11 +2,13 @@ mod compilation;
 mod hmr;
 mod make;
 mod module_executor;
-
 use std::sync::Arc;
 
+use derivative::Derivative;
 use rspack_error::Result;
-use rspack_fs::AsyncWritableFileSystem;
+use rspack_fs::{
+  AsyncNativeFileSystem, AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem,
+};
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -49,13 +51,14 @@ pub struct CompilerHooks {
   pub asset_emitted: CompilerAssetEmittedHook,
 }
 
-#[derive(Debug)]
-pub struct Compiler<T>
-where
-  T: AsyncWritableFileSystem + Send + Sync,
-{
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct Compiler {
   pub options: Arc<CompilerOptions>,
-  pub output_filesystem: T,
+  #[derivative(Debug = "ignore")]
+  pub output_filesystem: Box<dyn AsyncWritableFileSystem + Send + Sync>,
+  #[derivative(Debug = "ignore")]
+  pub input_filesystem: Arc<dyn ReadableFileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -67,15 +70,14 @@ where
   unaffected_modules_cache: Arc<UnaffectedModulesCache>,
 }
 
-impl<T> Compiler<T>
-where
-  T: AsyncWritableFileSystem + Send + Sync,
-{
+impl Compiler {
   #[instrument(skip_all)]
   pub fn new(
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
-    output_filesystem: T,
+    output_filesystem: Option<Box<dyn AsyncWritableFileSystem + Send + Sync>>,
+    // only supports passing input_filesystem in rust api, no support for js api
+    input_filesystem: Option<Arc<dyn ReadableFileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
@@ -86,14 +88,27 @@ where
         debug_info.with_context(options.context.to_string());
       }
     }
-    let resolver_factory =
-      resolver_factory.unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve.clone())));
-    let loader_resolver_factory = loader_resolver_factory
-      .unwrap_or_else(|| Arc::new(ResolverFactory::new(options.resolve_loader.clone())));
-    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
+    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+
+    let resolver_factory = resolver_factory.unwrap_or_else(|| {
+      Arc::new(ResolverFactory::new(
+        options.resolve.clone(),
+        input_filesystem.clone(),
+      ))
+    });
+    let loader_resolver_factory = loader_resolver_factory.unwrap_or_else(|| {
+      Arc::new(ResolverFactory::new(
+        options.resolve_loader.clone(),
+        input_filesystem.clone(),
+      ))
+    });
+    let options = Arc::new(options);
+    let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let unaffected_modules_cache = Arc::new(UnaffectedModulesCache::default());
     let module_executor = ModuleExecutor::default();
+    let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(AsyncNativeFileSystem {}));
+
     Self {
       options: options.clone(),
       compilation: Compilation::new(
@@ -107,6 +122,7 @@ where
         Some(module_executor),
         Default::default(),
         Default::default(),
+        input_filesystem.clone(),
       ),
       output_filesystem,
       plugin_driver,
@@ -115,6 +131,7 @@ where
       old_cache,
       emitted_asset_versions: Default::default(),
       unaffected_modules_cache,
+      input_filesystem,
     }
   }
 
@@ -144,6 +161,7 @@ where
         Some(module_executor),
         Default::default(),
         Default::default(),
+        self.input_filesystem.clone(),
       ),
     );
 
@@ -282,7 +300,7 @@ where
       .iter()
       .filter_map(|(filename, asset)| {
         // collect version info to new_emitted_asset_versions
-        if self.options.is_incremental_rebuild_emit_asset_enabled() {
+        if self.options.incremental().emit_assets_enabled() {
           new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
         }
 

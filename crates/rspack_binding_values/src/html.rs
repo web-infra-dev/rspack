@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use cow_utils::CowUtils;
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_html::{
@@ -54,13 +55,13 @@ impl From<JsHtmlPluginTag> for HtmlPluginTag {
         .filter_map(|(key, value)| {
           value.as_ref().and_then(|v| match v {
             Either::A(x) => Some(HtmlPluginAttribute {
-              attr_name: key.to_ascii_lowercase(),
-              attr_value: Some(x.to_ascii_lowercase()),
+              attr_name: key.cow_to_ascii_lowercase().into_owned(),
+              attr_value: Some(x.cow_to_ascii_lowercase().into_owned()),
             }),
             Either::B(x) => {
               if *x {
                 Some(HtmlPluginAttribute {
-                  attr_name: key.to_ascii_lowercase(),
+                  attr_name: key.cow_to_ascii_lowercase().into_owned(),
                   attr_value: None,
                 })
               } else {

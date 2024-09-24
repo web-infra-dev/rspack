@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
+use cow_utils::CowUtils;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
@@ -37,7 +38,7 @@ pub enum ModuleFilenameTemplate {
   Fn(ModuleFilenameTemplateFn),
 }
 
-type AppendFn = Box<dyn for<'a> Fn(PathData) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+type AppendFn = Box<dyn Fn(PathData) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub enum Append {
   String(String),
@@ -342,18 +343,9 @@ impl SourceMapDevToolPlugin {
 
     mapped_sources
       .into_par_iter()
-      .map(|(filename, asset, source_map)| {
-        let code_buffer = {
-          let mut buffer = Vec::with_capacity(asset.size());
-          asset.to_writer(&mut buffer).into_diagnostic()?;
-          buffer
-        };
-        let source_map_buffer = match source_map {
-          Some(map) => {
-            let mut buffer = Vec::new();
-            map.to_writer(&mut buffer).into_diagnostic()?;
-            Some(buffer)
-          }
+      .map(|(filename, source, source_map)| {
+        let source_map_json = match source_map {
+          Some(map) => Some(map.to_json().into_diagnostic()?),
           None => None,
         };
 
@@ -367,10 +359,7 @@ impl SourceMapDevToolPlugin {
             )
           })
           .clone();
-        // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
-        let raw_source = RawSource::from(code_buffer).boxed();
-        let Some(source_map_buffer) = source_map_buffer else {
-          asset.source = Some(raw_source);
+        let Some(source_map_json) = source_map_json else {
           return Ok(MappedAsset {
             asset: (filename, asset),
             source_map: None,
@@ -440,9 +429,11 @@ impl SourceMapDevToolPlugin {
             };
             asset.source = Some(
               ConcatSource::new([
-                raw_source,
+                source.clone(),
                 RawSource::from(
-                  current_source_mapping_url_comment.replace("[url]", &source_map_url),
+                  current_source_mapping_url_comment
+                    .cow_replace("[url]", &source_map_url)
+                    .into_owned(),
                 )
                 .boxed(),
               ])
@@ -450,15 +441,15 @@ impl SourceMapDevToolPlugin {
             );
             asset.info.related.source_map = Some(source_map_filename.clone());
           } else {
-            asset.source = Some(raw_source);
+            asset.source = Some(source.clone());
           }
-          let mut source_map_asset_info = AssetInfo::default().with_development(true);
+          let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
           if let Some(asset) = compilation.assets().get(filename.as_ref()) {
             // set source map asset version to be the same as the target asset
             source_map_asset_info.version = asset.info.version.clone();
           }
           let source_map_asset = CompilationAsset::new(
-            Some(RawSource::from(source_map_buffer).boxed()),
+            Some(RawSource::from(source_map_json).boxed()),
             source_map_asset_info,
           );
           Ok(MappedAsset {
@@ -476,14 +467,18 @@ impl SourceMapDevToolPlugin {
               ))
             }
           };
-          let base64 = rspack_base64::encode_to_string(&source_map_buffer);
+          let base64 = rspack_base64::encode_to_string(source_map_json.as_bytes());
           asset.source = Some(
             ConcatSource::new([
-              raw_source,
-              RawSource::from(current_source_mapping_url_comment.replace(
-                "[url]",
-                &format!("data:application/json;charset=utf-8;base64,{base64}"),
-              ))
+              source.clone(),
+              RawSource::from(
+                current_source_mapping_url_comment
+                  .cow_replace(
+                    "[url]",
+                    &format!("data:application/json;charset=utf-8;base64,{base64}"),
+                  )
+                  .into_owned(),
+              )
               .boxed(),
             ])
             .boxed(),
@@ -518,9 +513,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let start = logger.time("collect source maps");
+  let raw_assets = compilation
+    .assets()
+    .iter()
+    .filter(|(_filename, asset)| asset.info.related.source_map.is_none())
+    .collect::<Vec<_>>();
   let mapped_asstes = self
     .mapped_assets_cache
-    .use_cache(compilation.assets(), |assets| {
+    .use_cache(raw_assets, |assets| {
       self.map_assets(compilation, &file_to_chunk, assets)
     })
     .await?;
@@ -563,7 +563,7 @@ impl Plugin for SourceMapDevToolPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

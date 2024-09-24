@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -26,7 +26,7 @@
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "pnpm run lint-ci:js --write",
-    "lint-ci:js": "biome check --diagnostic-level=warn",
+    "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.0",
+    "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "^7.43.1",
     "@microsoft/api-extractor-model": "^7.28.14",
     "@rspack/cli": "workspace:*",
@@ -85,5 +86,15 @@
     "patchedDependencies": {
       "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch"
     }
+  },
+  "lint-staged": {
+    "*.rs": "rustfmt --edition 2021",
+    "*.{ts,tsx,js}": "pnpm run format:js",
+    "*.toml": "npx @taplo/cli format",
+    "*.{ts,tsx,js,cts,cjs,mts,mjs}": [
+      "pnpm run lint:js",
+      "node ./x ae ci"
+    ],
+    "package.json": "pnpm run check-dependency-version"
   }
 }

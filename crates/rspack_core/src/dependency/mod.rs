@@ -5,7 +5,6 @@ mod context_element_dependency;
 mod dependency_category;
 mod dependency_id;
 mod dependency_location;
-mod dependency_macro;
 mod dependency_template;
 mod dependency_trait;
 mod dependency_type;

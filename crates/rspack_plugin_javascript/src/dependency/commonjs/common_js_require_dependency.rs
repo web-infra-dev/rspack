@@ -1,7 +1,7 @@
 use rspack_core::{module_id, Compilation, RealDependencyLocation, RuntimeSpec};
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
+use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 
 #[derive(Debug, Clone)]
@@ -9,15 +9,15 @@ pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  range: Option<RealDependencyLocation>,
-  range_expr: RealDependencyLocation,
+  range: RealDependencyLocation,
+  range_expr: Option<RealDependencyLocation>,
 }
 
 impl CommonJsRequireDependency {
   pub fn new(
     request: String,
-    range: Option<RealDependencyLocation>,
-    range_expr: RealDependencyLocation,
+    range: RealDependencyLocation,
+    range_expr: Option<RealDependencyLocation>,
     optional: bool,
   ) -> Self {
     Self {
@@ -36,7 +36,7 @@ impl Dependency for CommonJsRequireDependency {
   }
 
   fn loc(&self) -> Option<String> {
-    self.range.clone().map(|range| range.to_string())
+    Some(self.range.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -47,11 +47,8 @@ impl Dependency for CommonJsRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self
-      .range
-      .clone()
-      .map(|range| ErrorSpan::new(range.start, range.end))
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    self.range_expr.as_ref()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -84,8 +81,8 @@ impl DependencyTemplate for CommonJsRequireDependency {
     code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
-      self.range_expr.start,
-      self.range_expr.end - 1,
+      self.range.start,
+      self.range.end - 1,
       module_id(
         code_generatable_context.compilation,
         &self.id,

@@ -31,10 +31,10 @@ pub struct PluginDriver {
 
 impl PluginDriver {
   pub fn new(
-    mut options: CompilerOptions,
+    options: Arc<CompilerOptions>,
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
-  ) -> (Arc<Self>, Arc<CompilerOptions>) {
+  ) -> Arc<Self> {
     let mut compiler_hooks = Default::default();
     let mut compilation_hooks = Default::default();
     let mut normal_module_factory_hooks = Default::default();
@@ -53,31 +53,23 @@ impl PluginDriver {
     };
     for plugin in &plugins {
       plugin
-        .apply(
-          PluginContext::with_context(&mut apply_context),
-          &mut options,
-        )
+        .apply(PluginContext::with_context(&mut apply_context), &options)
         .expect("TODO:");
     }
 
-    let options = Arc::new(options);
-
-    (
-      Arc::new(Self {
-        options: options.clone(),
-        plugins,
-        resolver_factory,
-        registered_parser_and_generator_builder,
-        diagnostics: Arc::new(Mutex::new(vec![])),
-        compiler_hooks,
-        compilation_hooks,
-        normal_module_factory_hooks,
-        context_module_factory_hooks,
-        normal_module_hooks,
-        concatenated_module_hooks,
-      }),
-      options,
-    )
+    Arc::new(Self {
+      options: options.clone(),
+      plugins,
+      resolver_factory,
+      registered_parser_and_generator_builder,
+      diagnostics: Arc::new(Mutex::new(vec![])),
+      compiler_hooks,
+      compilation_hooks,
+      normal_module_factory_hooks,
+      context_module_factory_hooks,
+      normal_module_hooks,
+      concatenated_module_hooks,
+    })
   }
 
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {

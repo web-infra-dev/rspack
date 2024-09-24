@@ -4,6 +4,7 @@ use std::hash::Hasher;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
@@ -101,13 +102,15 @@ struct LocalIdentNameRenderOptions<'a> {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> String {
-    let mut s = local_ident_name
+    let raw = local_ident_name
       .template
       .render(self.path_data, None)
       .always_ok();
-    s = s.replace("[uniqueName]", self.unique_name);
-    s = s.replace("[local]", self.local);
-    s
+    let s: &str = raw.as_ref();
+
+    s.cow_replace("[uniqueName]", self.unique_name)
+      .cow_replace("[local]", self.local)
+      .into_owned()
   }
 }
 

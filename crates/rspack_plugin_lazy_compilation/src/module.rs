@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cow_utils::CowUtils;
 use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
@@ -138,8 +139,8 @@ impl Module for LazyCompilationProxyModule {
   ) -> Result<BuildResult> {
     let client_dep = CommonJsRequireDependency::new(
       self.client.clone(),
-      None,
       RealDependencyLocation::new(0, 0),
+      None,
       false,
     );
     let mut dependencies = vec![];
@@ -260,7 +261,7 @@ impl Module for LazyCompilationProxyModule {
           .get_module_id(*module)
           .as_ref()
           .expect("should have module id")
-          .replace('"', r#"\""#),
+          .cow_replace('"', r#"\""#),
         keep_active,
       ))
     } else {

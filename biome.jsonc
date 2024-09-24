@@ -22,7 +22,6 @@
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack-dev-server/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},
@@ -52,9 +51,7 @@
 				"noFallthroughSwitchClause": "off",
 				"noConfusingVoidType": "off",
 				"noPrototypeBuiltins": "off",
-				"noImplicitAnyLet": "off",
 				"noAssignInExpressions": "off",
-				"noArrayIndexKey": "off",
 				"noControlCharactersInRegex": "off",
 				"noExplicitAny": "off"
 			}
@@ -67,7 +64,6 @@
 			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack-dev-server/client",
 			"packages/rspack/src/container/default.runtime.js"
 		]
 	},

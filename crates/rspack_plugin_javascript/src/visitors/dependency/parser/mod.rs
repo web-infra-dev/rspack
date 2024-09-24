@@ -212,7 +212,8 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   pub(crate) blocks: Vec<Box<AsyncDependenciesBlock>>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
+  pub parse_meta: FxHashMap<String, String>,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
@@ -265,7 +266,8 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    additional_data: AdditionalData,
+    additional_data: Option<AdditionalData>,
+    parse_meta: FxHashMap<String, String>,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
     let errors = Vec::with_capacity(4);
@@ -293,7 +295,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      if javascript_options.import_meta {
+      if let Some(true) = javascript_options.import_meta {
         plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
@@ -312,25 +314,6 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
 
-    if compiler_options.dev_server.hot {
-      if module_type.is_js_auto() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
-        ));
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
-        ));
-      } else if module_type.is_js_dynamic() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
-        ));
-      } else if module_type.is_js_esm() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
-        ));
-      }
-    }
-
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
@@ -339,13 +322,16 @@ impl<'parser> JavascriptParser<'parser> {
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
       let parse_url = javascript_options.url;
-      if !matches!(parse_url, JavascriptParserUrl::Disable) {
+      if !matches!(parse_url, Some(JavascriptParserUrl::Disable)) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
-          relative: matches!(parse_url, JavascriptParserUrl::Relative),
+          relative: matches!(parse_url, Some(JavascriptParserUrl::Relative)),
         }));
       }
       plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        &javascript_options.worker,
+        javascript_options
+          .worker
+          .as_ref()
+          .expect("should have worker"),
       )));
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
@@ -398,6 +384,7 @@ impl<'parser> JavascriptParser<'parser> {
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
       additional_data,
+      parse_meta,
     }
   }
 

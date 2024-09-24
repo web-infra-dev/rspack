@@ -1,5 +1,11 @@
+use std::fs::Metadata;
+use std::io;
+use std::path::Path;
+use std::path::PathBuf;
+
 use rspack_paths::Utf8Path;
 
+// pubResolverFileSystem
 use super::Result;
 
 pub trait WritableFileSystem {
@@ -23,11 +29,18 @@ pub trait WritableFileSystem {
   fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 }
 
-pub trait ReadableFileSystem {
-  /// Read the entire contents of a file into a bytes vector.
-  ///
-  /// Error: This function will return an error if path does not already exist.
-  fn read(&self, file: &Utf8Path) -> Result<Vec<u8>>;
+pub trait ReadableFileSystem: Send + Sync {
+  /// See [std::fs::read]
+  fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+
+  /// See [std::fs::metadata]
+  fn metadata(&self, path: &Path) -> io::Result<Metadata>;
+
+  /// See [std::fs::symlink_metadata]
+  fn symlink_metadata(&self, path: &Path) -> io::Result<Metadata>;
+
+  /// See [std::fs::canonicalize]
+  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
 }
 
 /// Readable and writable file system representation.

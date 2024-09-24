@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::iter;
+use std::{borrow::Cow, iter};
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
@@ -71,10 +70,17 @@ impl ExternalRequestValue {
   }
 }
 
-fn get_namespace_object_export(concatenation_scope: Option<&mut ConcatenationScope>) -> Cow<str> {
+fn get_namespace_object_export(
+  concatenation_scope: Option<&mut ConcatenationScope>,
+  supports_const: bool,
+) -> Cow<str> {
   if let Some(concatenation_scope) = concatenation_scope {
     concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-    format!("var {NAMESPACE_OBJECT_EXPORT}").into()
+    format!(
+      "{} {NAMESPACE_OBJECT_EXPORT}",
+      if supports_const { "const" } else { "var" }
+    )
+    .into()
   } else {
     "module.exports".into()
   }
@@ -188,21 +194,22 @@ impl ExternalModule {
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let mut runtime_requirements: RuntimeGlobals = Default::default();
+    let supports_const = compilation.options.output.environment.supports_const();
 
     let source = match self.external_type.as_str() {
       "this" if let Some(request) = request => format!(
         "{} = (function() {{ return {}; }}());",
-        get_namespace_object_export(concatenation_scope),
+        get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_global_variable_external(request, external_type)
       ),
       "window" | "self" if let Some(request) = request => format!(
         "{} = {};",
-        get_namespace_object_export(concatenation_scope),
+        get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_global_variable_external(request, external_type)
       ),
       "global" if let Some(request) = request => format!(
         "{} = {};",
-        get_namespace_object_export(concatenation_scope),
+        get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
       "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static"
@@ -210,7 +217,7 @@ impl ExternalModule {
       {
         format!(
           "{} = {};",
-          get_namespace_object_export(concatenation_scope),
+          get_namespace_object_export(concatenation_scope, supports_const),
           get_source_for_commonjs(request)
         )
       }
@@ -229,14 +236,14 @@ impl ExternalModule {
           );
           format!(
             "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({});",
-            get_namespace_object_export(concatenation_scope),
+            get_namespace_object_export(concatenation_scope, supports_const),
             compilation.options.output.import_meta_name,
             json_stringify(request.primary())
           )
         } else {
           format!(
             "{} = {};",
-            get_namespace_object_export(concatenation_scope),
+            get_namespace_object_export(concatenation_scope, supports_const),
             get_source_for_commonjs(request)
           )
         }
@@ -249,7 +256,7 @@ impl ExternalModule {
           .unwrap_or_default();
         format!(
           "{} = __WEBPACK_EXTERNAL_MODULE_{}__;",
-          get_namespace_object_export(concatenation_scope),
+          get_namespace_object_export(concatenation_scope, supports_const),
           to_identifier(id)
         )
       }
@@ -258,7 +265,7 @@ impl ExternalModule {
           "import" => {
             format!(
               "{} = {};",
-              get_namespace_object_export(concatenation_scope),
+              get_namespace_object_export(concatenation_scope, supports_const),
               get_source_for_import(request, compilation)
             )
           }
@@ -279,17 +286,26 @@ impl ExternalModule {
                 )
                 .boxed(),
               );
-              format!(
-                r#"
-{} = __WEBPACK_EXTERNAL_MODULE_{}__;
-"#,
-                get_namespace_object_export(concatenation_scope),
-                id.clone()
-              )
+
+              if let Some(concatenation_scope) = concatenation_scope {
+                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{}__", id);
+                let namespace_export_with_name =
+                  format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
+                concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                String::new()
+              } else {
+                format!(
+                  r#"
+  {} = __WEBPACK_EXTERNAL_MODULE_{}__;
+  "#,
+                  get_namespace_object_export(concatenation_scope, supports_const),
+                  id.clone()
+                )
+              }
             } else {
               format!(
                 "{} = {};",
-                get_namespace_object_export(concatenation_scope),
+                get_namespace_object_export(concatenation_scope, supports_const),
                 get_source_for_import(request, compilation)
               )
             }
@@ -302,7 +318,7 @@ impl ExternalModule {
       }
       "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
         "{} = {};",
-        get_namespace_object_export(concatenation_scope),
+        get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_default_case(false, request)
       ),
       "script" if let Some(request) = request => {
@@ -325,7 +341,7 @@ if(typeof {global} !== "undefined") return resolve();
 }}, {global_str});
 }}).then(function() {{ return {global}; }});
 "#,
-          export = get_namespace_object_export(concatenation_scope),
+          export = get_namespace_object_export(concatenation_scope, supports_const),
           global = url_and_global.global,
           global_str =
             serde_json::to_string(url_and_global.global).map_err(|e| error!(e.to_string()))?,

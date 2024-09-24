@@ -99,8 +99,9 @@ export class JsCompilation {
   get chunkGroups(): Array<JsChunkGroup>
   get hash(): string | null
   dependencies(): DependenciesDto
-  pushDiagnostic(diagnostic: JsDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsDiagnostic>): void
+  pushDiagnostic(diagnostic: JsRspackDiagnostic): void
+  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
+  pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
@@ -116,6 +117,31 @@ export class JsCompilation {
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
   get entries(): JsEntries
+  addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
+}
+
+export class JsContextModuleFactoryAfterResolveData {
+  get resource(): string
+  set resource(resource: string)
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
+}
+
+export class JsContextModuleFactoryBeforeResolveData {
+  get context(): string
+  set context(context: string)
+  get request(): string
+  set request(request: string)
+  get regExp(): RawRegex | undefined
+  set regExp(rawRegExp: RawRegex | undefined)
+  get recursive(): boolean
+  set recursive(recursive: boolean)
 }
 
 export class JsEntries {
@@ -290,6 +316,7 @@ export enum BuiltinPluginName {
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  ContextReplacementPlugin = 'ContextReplacementPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -305,6 +332,16 @@ export function cleanupGlobalTrace(): void
 
 export interface ContextInfo {
   issuer: string
+}
+
+export function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export interface JsAddingRuntimeModule {
+  name: string
+  generator: () => String
+  cacheable: boolean
+  isolate: boolean
+  stage: number
 }
 
 export interface JsAdditionalTreeRuntimeRequirementsArg {
@@ -363,9 +400,9 @@ export interface JsAssetEmittedArgs {
 
 export interface JsAssetInfo {
   /** if the asset can be long term cached forever (contains a hash) */
-  immutable: boolean
+  immutable?: boolean
   /** whether the asset is minimized */
-  minimized: boolean
+  minimized?: boolean
   /** the value(s) of the full hash used for this asset */
   fullhash: Array<string>
   /** the value(s) of the chunk hash used for this asset */
@@ -380,9 +417,9 @@ export interface JsAssetInfo {
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
    */
-  development: boolean
+  development?: boolean
   /** when asset ships data for updating an existing application (HMR) */
-  hotModuleReplacement: boolean
+  hotModuleReplacement?: boolean
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
@@ -483,24 +520,8 @@ export interface JsCodegenerationResults {
 }
 
 export interface JsCompatSource {
-  /** Whether the underlying data structure is a `RawSource` */
-  isRaw: boolean
-  /** Whether the underlying value is a buffer or string */
-  isBuffer: boolean
-  source: Buffer
-  map?: Buffer
-}
-
-export interface JsContextModuleFactoryAfterResolveData {
-  resource: string
-  context: string
-  request: string
-  regExp?: RawRegex
-}
-
-export interface JsContextModuleFactoryBeforeResolveData {
-  context: string
-  request?: string
+  source: string | Buffer
+  map?: string
 }
 
 export interface JsCreateData {
@@ -510,8 +531,23 @@ export interface JsCreateData {
 }
 
 export interface JsDiagnostic {
-  severity: JsRspackSeverity
-  error: JsRspackError
+  message: string
+  help?: string
+  sourceCode?: string
+  location?: JsDiagnosticLocation
+  file?: string
+  severity: "error" | "warning"
+  moduleIdentifier?: string
+}
+
+export interface JsDiagnosticLocation {
+  text?: string
+  /** 1-based */
+  line: number
+  /** 0-based in bytes */
+  column: number
+  /** Length in bytes */
+  length: number
 }
 
 export interface JsEntryData {
@@ -695,6 +731,11 @@ export interface JsResourceData {
   fragment?: string
 }
 
+export interface JsRspackDiagnostic {
+  severity: JsRspackSeverity
+  error: JsRspackError
+}
+
 export interface JsRspackError {
   name: string
   message: string
@@ -726,6 +767,15 @@ export interface JsRuntimeModuleArg {
   chunk: JsChunk
 }
 
+export interface JsRuntimeRequirementInTreeArg {
+  chunk: JsChunk
+  runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsRuntimeRequirementInTreeResult {
+  runtimeRequirements: JsRuntimeGlobals
+}
+
 export interface JsStatsAsset {
   type: string
   name: string
@@ -741,11 +791,11 @@ export interface JsStatsAsset {
 }
 
 export interface JsStatsAssetInfo {
-  minimized: boolean
-  development: boolean
-  hotModuleReplacement: boolean
+  minimized?: boolean
+  development?: boolean
+  hotModuleReplacement?: boolean
   sourceFilename?: string
-  immutable: boolean
+  immutable?: boolean
   javascriptModule?: boolean
   chunkhash: Array<string>
   contenthash: Array<string>
@@ -1131,6 +1181,14 @@ export interface RawContainerReferencePluginOptions {
   enhanced: boolean
 }
 
+export interface RawContextReplacementPluginOptions {
+  resourceRegExp: RawRegex
+  newContentResource?: string
+  newContentRecursive?: boolean
+  newContentRegExp?: RawRegex
+  newContentCreateContextMap?: Record<string, string>
+}
+
 export interface RawCopyGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
@@ -1230,6 +1288,7 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
+  incremental?: RawIncremental
   rspackFuture: RawRspackFuture
 }
 
@@ -1338,6 +1397,16 @@ export interface RawIgnorePluginOptions {
   checkResource?: (resource: string, context: string) => boolean
 }
 
+export interface RawIncremental {
+  make: boolean
+  emitAssets: boolean
+  inferAsyncModules: boolean
+  providedExports: boolean
+  moduleHashes: boolean
+  moduleCodegen: boolean
+  moduleRuntimeRequirements: boolean
+}
+
 export interface RawInfo {
   immutable?: boolean
   minimized?: boolean
@@ -1350,20 +1419,20 @@ export interface RawInfo {
 }
 
 export interface RawJavascriptParserOptions {
-  dynamicImportMode: string
-  dynamicImportPreload: string
-  dynamicImportPrefetch: string
+  dynamicImportMode?: string
+  dynamicImportPreload?: string
+  dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
-  url: string
-  exprContextCritical: boolean
-  wrappedContextCritical: boolean
+  url?: string
+  exprContextCritical?: boolean
+  wrappedContextCritical?: boolean
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence: boolean
-  worker: Array<string>
+  strictExportPresence?: boolean
+  worker?: Array<string>
   overrideStrict?: string
-  importMeta: boolean
+  importMeta?: boolean
 }
 
 export interface RawLazyCompilationOption {
@@ -1604,11 +1673,12 @@ export interface RawPathData {
 }
 
 export interface RawProgressPluginOptions {
-  prefix: string
-  profile: boolean
-  template: string
+  prefix?: string
+  profile?: boolean
+  template?: string
   tick?: string | Array<string>
-  progressChars: string
+  progressChars?: string
+  handler?: (percent: number, msg: string, items: string[]) => void
 }
 
 export interface RawProvideOptions {
@@ -1694,7 +1764,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newIncremental: boolean
+
 }
 
 export interface RawRuleSetCondition {
@@ -1836,28 +1906,29 @@ export enum RegisterJsTapKind {
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
   CompilationAdditionalTreeRuntimeRequirements = 17,
-  CompilationRuntimeModule = 18,
-  CompilationChunkHash = 19,
-  CompilationChunkAsset = 20,
-  CompilationProcessAssets = 21,
-  CompilationAfterProcessAssets = 22,
-  CompilationSeal = 23,
-  CompilationAfterSeal = 24,
-  NormalModuleFactoryBeforeResolve = 25,
-  NormalModuleFactoryFactorize = 26,
-  NormalModuleFactoryResolve = 27,
-  NormalModuleFactoryAfterResolve = 28,
-  NormalModuleFactoryCreateModule = 29,
-  NormalModuleFactoryResolveForScheme = 30,
-  ContextModuleFactoryBeforeResolve = 31,
-  ContextModuleFactoryAfterResolve = 32,
-  JavascriptModulesChunkHash = 33,
-  HtmlPluginBeforeAssetTagGeneration = 34,
-  HtmlPluginAlterAssetTags = 35,
-  HtmlPluginAlterAssetTagGroups = 36,
-  HtmlPluginAfterTemplateExecution = 37,
-  HtmlPluginBeforeEmit = 38,
-  HtmlPluginAfterEmit = 39
+  CompilationRuntimeRequirementInTree = 18,
+  CompilationRuntimeModule = 19,
+  CompilationChunkHash = 20,
+  CompilationChunkAsset = 21,
+  CompilationProcessAssets = 22,
+  CompilationAfterProcessAssets = 23,
+  CompilationSeal = 24,
+  CompilationAfterSeal = 25,
+  NormalModuleFactoryBeforeResolve = 26,
+  NormalModuleFactoryFactorize = 27,
+  NormalModuleFactoryResolve = 28,
+  NormalModuleFactoryAfterResolve = 29,
+  NormalModuleFactoryCreateModule = 30,
+  NormalModuleFactoryResolveForScheme = 31,
+  ContextModuleFactoryBeforeResolve = 32,
+  ContextModuleFactoryAfterResolve = 33,
+  JavascriptModulesChunkHash = 34,
+  HtmlPluginBeforeAssetTagGeneration = 35,
+  HtmlPluginAlterAssetTags = 36,
+  HtmlPluginAlterAssetTagGroups = 37,
+  HtmlPluginAfterTemplateExecution = 38,
+  HtmlPluginBeforeEmit = 39,
+  HtmlPluginAfterEmit = 40
 }
 
 export interface RegisterJsTaps {
@@ -1874,6 +1945,7 @@ export interface RegisterJsTaps {
   registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationAdditionalTreeRuntimeRequirements: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
+  registerCompilationRuntimeRequirementInTree: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeRequirementInTreeArg) => JsRuntimeRequirementInTreeResult | undefined); stage: number; }>
   registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>

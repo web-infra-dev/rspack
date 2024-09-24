@@ -73,7 +73,6 @@ pnpm-lock.yaml
 /packages/rspack
 /packages/rspack-cli
 /packages/rspack-dev-middleware
-/packages/rspack-dev-server
 /packages/rspack-plugin-html
 /packages/rspack-plugin-minify
 /packages/rspack-plugin-node-polyfill

@@ -1134,7 +1134,7 @@ export function parseModules(content: string, options?: {
 };
 
 // @public (undocumented)
-export function readConfigFile<T extends ECompilerType>(files: string[]): TCompilerOptions<T>[];
+export function readConfigFile<T extends ECompilerType>(files: string[], functionApply?: (config: (TCompilerOptions<T> | ((...args: unknown[]) => TCompilerOptions<T>))[]) => TCompilerOptions<T>[]): TCompilerOptions<T>[];
 
 // @public (undocumented)
 export function replaceModuleArgument(raw: string): string;
@@ -1496,7 +1496,11 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     compiler(context: ITestContext): Promise<void>;
     // (undocumented)
+    config(context: ITestContext): Promise<void>;
+    // (undocumented)
     protected currentTriggerFilename: string | null;
+    // (undocumented)
+    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)

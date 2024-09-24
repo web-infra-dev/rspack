@@ -83,10 +83,7 @@ module.exports = {
 		      "info": Object {
 		        "chunkhash": Array [],
 		        "contenthash": Array [],
-		        "development": false,
 		        "fullhash": Array [],
-		        "hotModuleReplacement": false,
-		        "immutable": false,
 		        "isOverSizeLimit": false,
 		        "javascriptModule": false,
 		        "minimized": true,
@@ -117,10 +114,7 @@ module.exports = {
 		          "info": Object {
 		            "chunkhash": Array [],
 		            "contenthash": Array [],
-		            "development": false,
 		            "fullhash": Array [],
-		            "hotModuleReplacement": false,
-		            "immutable": false,
 		            "javascriptModule": false,
 		            "minimized": true,
 		            "related": Object {},

@@ -755,6 +755,21 @@ impl Module for ConcatenatedModule {
             }
           }
 
+          // Handle the name passed through by namespace_export_symbol
+          if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
+            if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+              && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+            {
+              let name =
+                Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
+              all_used_names.insert(name.clone());
+              info
+                .internal_names
+                .insert(namespace_export_symbol.clone(), name.clone());
+              top_level_declarations.insert(name.clone());
+            }
+          }
+
           // Handle namespaceObjectName for concatenated type
           let namespace_object_name =
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
@@ -1607,7 +1622,7 @@ impl ConcatenatedModule {
           source_order: dep
             .source_order()
             .expect("source order should not be empty"),
-          range_start: dep.span().map(|span| span.start),
+          range_start: dep.range().map(|range| range.start),
         })
       })
       .collect::<Vec<_>>();
@@ -1715,21 +1730,19 @@ impl ConcatenatedModule {
         Ok(res) => Program::Module(res),
         Err(err) => {
           let span: ErrorSpan = err.span().into();
-          self
-            .diagnostics
-            .lock()
-            .expect("should have diagnostics")
-            .append(&mut map_box_diagnostics_to_module_parse_diagnostics(vec![
-              rspack_error::TraceableError::from_source_file(
-                &fm,
-                span.start as usize,
-                span.end as usize,
-                "JavaScript parsing error".to_string(),
-                err.kind().msg().to_string(),
-              )
-              .with_kind(DiagnosticKind::JavaScript),
-            ]));
-          return Ok(ModuleInfo::Concatenated(module_info));
+
+          // return empty error as we already push error to compilation.diagnostics
+          return Err(
+            rspack_error::TraceableError::from_source_file(
+              &fm,
+              span.start as usize,
+              span.end as usize,
+              "JavaScript parsing error:\n".to_string(),
+              err.kind().msg().to_string(),
+            )
+            .with_kind(DiagnosticKind::JavaScript)
+            .into(),
+          );
         }
       };
       let mut ast = Ast::new(program, cm, Some(comments));

@@ -244,6 +244,7 @@ function checkConfigsDocumentationCoverage() {
 			"module.generator",
 
 			"experiments.rspackFuture",
+			"experiments.incremental",
 
 			"output.library.amd",
 			"output.library.commonjs",

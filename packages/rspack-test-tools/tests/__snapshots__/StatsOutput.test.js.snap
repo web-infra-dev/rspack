@@ -84,12 +84,15 @@ orphan modules 141 bytes [orphan] 4 modules
 Rspack x.x.x compiled successfully in X s"
 `;
 
-exports[`statsOutput statsOutput/css-concat-error should print correct stats for 1`] = `
-"assets by status 49 bytes [cached] 1 asset
-
-ERROR in × Module not found: Can't resolve './src' in 'Xdir/css-concat-error'
-
-Rspack x.x.x compiled with 1 error in X s"
+exports[`statsOutput statsOutput/css-concat should print correct stats for 1`] = `
+"asset main.js 7.81 KiB [emitted] (name: main)
+asset main.css 51 bytes [emitted] (name: main)
+Entrypoint main 7.86 KiB = main.js 7.81 KiB main.css 51 bytes
+runtime modules 6.47 KiB 6 modules
+cacheable modules 20 bytes (javascript) 23 bytes (css)
+  ./index.js 20 bytes [built] [code generated]
+  ./foo.css 23 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
@@ -205,6 +208,12 @@ exports[`statsOutput statsOutput/logging-loader should print correct stats for 1
       log something
     -------
 "
+`;
+
+exports[`statsOutput statsOutput/match-resource-data-url should print correct stats for 1`] = `
+"runtime modules 677 bytes 3 modules
+./index.js 150 bytes [built] [code generated]
+./a.js!=!data:javascript,var __looooooooo.. 98 bytes [built] [code generated]"
 `;
 
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
@@ -479,10 +488,10 @@ Rspack compiled with 1 warning"
 exports[`statsOutput statsOutput/try-require-resolve-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-module'
-   ╭─[2:4]
+   ╭─[2:20]
  1 │ try {
  2 │     require.resolve('./missing-module')
-   ·     ───────────────────────────────────
+   ·                     ──────────────────
  3 │ } catch (e) {
  4 │ 
    ╰────
@@ -493,10 +502,10 @@ Rspack compiled with 1 warning"
 exports[`statsOutput statsOutput/try-require-resolve-weak-module should print correct stats for 1`] = `
 "WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in 'Xdir/try-require-resolve-weak-module'
-   ╭─[2:4]
+   ╭─[2:24]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')
-   ·     ───────────────────────────────────────
+   ·                         ──────────────────
  3 │ } catch (e) {
  4 │ 
    ╰────

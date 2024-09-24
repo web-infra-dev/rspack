@@ -1,8 +1,11 @@
+mod mutations;
+
 use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   sync::Mutex,
 };
 
+pub use mutations::{Mutation, Mutations};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierDashMap, IdentifierHasher, IdentifierMap, IdentifierSet};
 use rspack_util::fx_hash::FxIndexSet;

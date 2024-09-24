@@ -92,7 +92,21 @@ export class MultiTaskProcessor<T extends ECompilerType>
 			this._multiOptions.configFiles
 		)
 			? readConfigFile(
-					this._multiOptions.configFiles!.map(i => context.getSource(i))
+					this._multiOptions.configFiles!.map(i => context.getSource(i)),
+					configs => {
+						return configs.flatMap(c => {
+							if (typeof c === "function") {
+								const options = {
+									testPath: context.getDist(),
+									env: undefined
+								};
+
+								return c(options.env, options) as TCompilerOptions<T>;
+							}
+
+							return c as TCompilerOptions<T>;
+						});
+					}
 				)
 			: [{}];
 

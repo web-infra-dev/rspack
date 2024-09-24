@@ -332,8 +332,7 @@ async fn this_compilation(
 
 #[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
-  let dep = data
-    .dependency
+  let dep = data.dependencies[0]
     .as_module_dependency()
     .expect("should be module dependency");
   if matches!(
@@ -386,7 +385,7 @@ async fn create_module(
   create_data: &mut NormalModuleCreateData,
 ) -> Result<Option<BoxModule>> {
   if matches!(
-    data.dependency.dependency_type(),
+    data.dependencies[0].dependency_type(),
     DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
   ) {
     return Ok(None);
@@ -430,11 +429,7 @@ impl Plugin for ConsumeSharedPlugin {
     "rspack.ConsumeSharedPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

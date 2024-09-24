@@ -50,24 +50,59 @@ export interface AdditionalData {
 	[index: string]: any;
 }
 
+export type LoaderContextCallback = (
+	err?: Error | null,
+	content?: string | Buffer,
+	sourceMap?: string | SourceMap,
+	additionalData?: AdditionalData
+) => void;
+
+export type ErrorWithDetails = Error & { details?: string };
+
+// aligned with https://github.com/webpack/webpack/blob/64e8e33151c3fabd3f1917851193e458a526e803/declarations/LoaderContext.d.ts#L19
+export type ResolveCallback = (
+	err: null | ErrorWithDetails,
+	res?: string | false,
+	req?: ResolveRequest
+) => void;
+
+export interface DiagnosticLocation {
+	/** Text for highlighting the location */
+	text?: string;
+	/** 1-based line */
+	line: number;
+	/** 0-based column in bytes */
+	column: number;
+	/** Length in bytes */
+	length: number;
+}
+
+export interface Diagnostic {
+	message: string;
+	help?: string;
+	sourceCode?: string;
+	/**
+	 * Location to the source code.
+	 *
+	 * If `sourceCode` is not provided, location will be omitted.
+	 */
+	location?: DiagnosticLocation;
+	file?: string;
+	severity: "error" | "warning";
+}
+
+interface LoaderExperiments {
+	emitDiagnostic(diagnostic: Diagnostic): void;
+}
+
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
 	resourcePath: string;
 	resourceQuery: string;
 	resourceFragment: string;
-	async(): (
-		err?: Error | null,
-		content?: string | Buffer,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	) => void;
-	callback(
-		err?: Error | null,
-		content?: string | Buffer,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	): void;
+	async(): LoaderContextCallback;
+	callback: LoaderContextCallback;
 	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
@@ -114,7 +149,12 @@ export interface LoaderContext<OptionsType = {}> {
 	): void;
 	getResolve(
 		options: Resolve
-	): (context: any, request: any, callback: any) => Promise<any>;
+	):
+		| ((context: string, request: string, callback: ResolveCallback) => void)
+		| ((
+				context: string,
+				request: string
+		  ) => Promise<string | false | undefined>);
 	getLogger(name: string): Logger;
 	emitError(error: Error): void;
 	emitWarning(warning: Error): void;
@@ -139,6 +179,11 @@ export interface LoaderContext<OptionsType = {}> {
 		callback: (err?: Error, res?: any) => void
 	): void;
 	fs: any;
+	/**
+	 * This is an experimental API and maybe subject to change.
+	 * @experimental
+	 */
+	experiments: LoaderExperiments;
 	utils: {
 		absolutify: (context: string, request: string) => string;
 		contextify: (context: string, request: string) => string;
@@ -149,6 +194,14 @@ export interface LoaderContext<OptionsType = {}> {
 	_compiler: Compiler;
 	_compilation: Compilation;
 	_module: Module;
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * Store some data from loader, and consume it from parser, it may be removed in the future
+	 *
+	 * @internal
+	 */
+	__internal__parseMeta: Record<string, string>;
 }
 
 export type LoaderDefinitionFunction<
@@ -253,16 +306,16 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		let o;
+		let o: string | undefined;
 		let isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
-			o = getBuiltinLoaderOptions(use.loader, use.options, options);
+			const temp = getBuiltinLoaderOptions(use.loader, use.options, options);
 			// keep json with indent so miette can show pretty error
-			o = isNil(o)
+			o = isNil(temp)
 				? undefined
-				: typeof o === "string"
-					? o
-					: JSON.stringify(o, null, 2);
+				: typeof temp === "string"
+					? temp
+					: JSON.stringify(temp, null, 2);
 			isBuiltin = true;
 		}
 

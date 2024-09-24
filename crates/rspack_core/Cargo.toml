@@ -10,6 +10,7 @@ anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
 derivative = { workspace = true }
 dyn-clone = "1.0.17"
@@ -30,7 +31,7 @@ regex = { workspace = true }
 rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_error = { version = "0.1.0", path = "../rspack_error" }
-rspack_fs = { version = "0.1.0", path = "../rspack_fs", features = ["async", "rspack-error"] }
+rspack_fs = { version = "0.1.0", path = "../rspack_fs" }
 rspack_futures = { version = "0.1.0", path = "../rspack_futures" }
 rspack_hash = { version = "0.1.0", path = "../rspack_hash" }
 rspack_hook = { version = "0.1.0", path = "../rspack_hook" }
@@ -38,7 +39,7 @@ rspack_loader_runner = { version = "0.1.0", path = "../rspack_loader_runner" }
 rspack_macros = { version = "0.1.0", path = "../rspack_macros" }
 rspack_paths = { version = "0.1.0", path = "../rspack_paths" }
 rspack_regex = { version = "0.1.0", path = "../rspack_regex" }
-rspack_resolver = { version = "0.3.1", features = ["package_json_raw_json_api"] }
+rspack_resolver = { workspace = true }
 rspack_sources = { workspace = true }
 rspack_util = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash = { workspace = true }

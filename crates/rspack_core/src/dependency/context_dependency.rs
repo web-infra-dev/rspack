@@ -1,3 +1,5 @@
+use rspack_error::Diagnostic;
+
 use crate::{ContextOptions, ContextTypePrefix, Dependency};
 
 pub trait ContextDependency: Dependency {
@@ -12,6 +14,9 @@ pub trait ContextDependency: Dependency {
   }
 
   fn type_prefix(&self) -> ContextTypePrefix;
+
+  fn critical(&self) -> &Option<Diagnostic>;
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic>;
 }
 
 pub trait AsContextDependency {

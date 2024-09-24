@@ -121,10 +121,10 @@ export const applyRspackOptionsDefaults = (
 		targetProperties
 	});
 
-	// @ts-expect-error
 	F(options, "externalsType", () => {
 		return options.output.library
-			? options.output.library.type
+			? // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
+				(options.output.library.type as any)
 			: options.output.module
 				? "module-import"
 				: "var";
@@ -201,12 +201,20 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
+	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
+	D(experiments, "incremental", {});
+	if (typeof experiments.incremental === "object") {
+		D(experiments.incremental, "make", true);
+		D(experiments.incremental, "emitAssets", true);
+		D(experiments.incremental, "inferAsyncModules", false);
+		D(experiments.incremental, "providedExports", false);
+		D(experiments.incremental, "moduleHashes", false);
+		D(experiments.incremental, "moduleCodegen", false);
+		D(experiments.incremental, "moduleRuntimeRequirements", false);
+	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
-	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newIncremental", false);
-	}
 };
 
 const applybundlerInfoDefaults = (
@@ -234,46 +242,17 @@ const applySnapshotDefaults = (
 ) => {};
 
 const applyJavascriptParserOptionsDefaults = (
-	parserOptions: JavascriptParserOptions,
-	fallback?: JavascriptParserOptions
+	parserOptions: JavascriptParserOptions
 ) => {
-	D(parserOptions, "dynamicImportMode", fallback?.dynamicImportMode ?? "lazy");
-	D(
-		parserOptions,
-		"dynamicImportPrefetch",
-		fallback?.dynamicImportPrefetch ?? false
-	);
-	D(
-		parserOptions,
-		"dynamicImportPreload",
-		fallback?.dynamicImportPreload ?? false
-	);
-	D(parserOptions, "url", fallback?.url ?? true);
-	D(
-		parserOptions,
-		"exprContextCritical",
-		fallback?.exprContextCritical ?? true
-	);
-	D(
-		parserOptions,
-		"wrappedContextCritical",
-		fallback?.wrappedContextCritical ?? false
-	);
-	D(parserOptions, "exportsPresence", fallback?.exportsPresence);
-	D(parserOptions, "importExportsPresence", fallback?.importExportsPresence);
-	D(
-		parserOptions,
-		"reexportExportsPresence",
-		fallback?.reexportExportsPresence
-	);
-	D(
-		parserOptions,
-		"strictExportPresence",
-		fallback?.strictExportPresence ?? false
-	);
-	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
-	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
-	D(parserOptions, "importMeta", fallback?.importMeta ?? true);
+	D(parserOptions, "dynamicImportMode", "lazy");
+	D(parserOptions, "dynamicImportPrefetch", false);
+	D(parserOptions, "dynamicImportPreload", false);
+	D(parserOptions, "url", true);
+	D(parserOptions, "exprContextCritical", true);
+	D(parserOptions, "wrappedContextCritical", false);
+	D(parserOptions, "strictExportPresence", false);
+	D(parserOptions, "worker", ["..."]);
+	D(parserOptions, "importMeta", true);
 };
 
 const applyModuleDefaults = (
@@ -302,27 +281,6 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript);
-
-	F(module.parser, "javascript/auto", () => ({}));
-	assertNotNill(module.parser["javascript/auto"]);
-	applyJavascriptParserOptionsDefaults(
-		module.parser["javascript/auto"],
-		module.parser.javascript
-	);
-
-	F(module.parser, "javascript/dynamic", () => ({}));
-	assertNotNill(module.parser["javascript/dynamic"]);
-	applyJavascriptParserOptionsDefaults(
-		module.parser["javascript/dynamic"],
-		module.parser.javascript
-	);
-
-	F(module.parser, "javascript/esm", () => ({}));
-	assertNotNill(module.parser["javascript/esm"]);
-	applyJavascriptParserOptionsDefaults(
-		module.parser["javascript/esm"],
-		module.parser.javascript
-	);
 
 	if (css) {
 		F(module.parser, "css", () => ({}));
@@ -1133,8 +1091,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
-					// @ts-expect-error
-					obj[prop] = newArray;
+					obj[prop] = newArray as any;
 				}
 				const items = factory();
 				if (items !== undefined) {

@@ -9,6 +9,7 @@ version     = "0.1.0"
 anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+cow-utils = { workspace = true }
 dashmap = { workspace = true }
 fast-glob = "0.4.0"
 indexmap = { workspace = true }
@@ -19,7 +20,7 @@ num-bigint = { version = "0.4.4" }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-ropey = "1.6.1"
+ropey = { workspace = true }
 rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core = { version = "0.1.0", path = "../rspack_core" }

@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
+use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::ChunkGraph;
@@ -334,7 +335,7 @@ impl PluginCssExtract {
       let starts_with_at_import = STARTS_WITH_AT_IMPORT_REGEX.is_match(&content);
 
       let header = self.options.pathinfo.then(|| {
-        let req_str = readable_identifier.replace("*/", "*_/");
+        let req_str = readable_identifier.cow_replace("*/", "*_/");
         let req_str_star = "*".repeat(req_str.len());
         RawSource::from(format!(
           "/*!****{req_str_star}****!*\\\n  !*** {req_str} ***!\n  \\****{req_str_star}****/\n"
@@ -447,6 +448,7 @@ fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
@@ -671,11 +673,7 @@ fn nmf_parser(
 
 #[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

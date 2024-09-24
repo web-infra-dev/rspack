@@ -72,15 +72,18 @@ export function Table(props: TableProps) {
         </ModernTableRow>
       </thead>
       <tbody>
-        {compiledValue.map((item: any, index: number) => (
-          <ModernTableRow key={index}>
-            {header.map(headerItem => (
-              <ModernTableData key={headerItem.key}>
-                {item[headerItem.key]}
-              </ModernTableData>
-            ))}
-          </ModernTableRow>
-        ))}
+        {compiledValue.map((item: any, index: number) => {
+          const key = `row-${index}`;
+          return (
+            <ModernTableRow key={key}>
+              {header.map(headerItem => (
+                <ModernTableData key={headerItem.key}>
+                  {item[headerItem.key]}
+                </ModernTableData>
+              ))}
+            </ModernTableRow>
+          );
+        })}
       </tbody>
     </ModernTable>
   );

@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
-use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
@@ -12,10 +11,7 @@ use crate::{
   fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
-impl<T> Compiler<T>
-where
-  T: AsyncWritableFileSystem + Send + Sync,
-{
+impl Compiler {
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,
@@ -77,16 +73,13 @@ where
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
+        self.input_filesystem.clone(),
       );
-
-      if let Some(state) = self.options.get_incremental_rebuild_make_state() {
-        state.set_is_not_first();
-      }
 
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
-      let is_incremental_rebuild_make = self.options.is_incremental_rebuild_make_enabled();
-      if is_incremental_rebuild_make {
+      let incremental = self.options.incremental();
+      if incremental.make_enabled() {
         // copy field from old compilation
         // make stage used
         self
@@ -100,11 +93,17 @@ where
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-
-      if self.options.new_incremental_enabled() {
+      if incremental.infer_async_modules_enabled() {
+        new_compilation.async_modules = std::mem::take(&mut self.compilation.async_modules);
+      }
+      if incremental.module_hashes_enabled() {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
+      }
+      if incremental.module_codegen_enabled() {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
+      }
+      if incremental.module_runtime_requirements_enabled() {
         new_compilation.cgm_runtime_requirements_results =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
       }

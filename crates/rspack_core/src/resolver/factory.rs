@@ -1,6 +1,7 @@
 use std::{hash::BuildHasherDefault, sync::Arc};
 
 use dashmap::DashMap;
+use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
@@ -23,21 +24,15 @@ pub struct ResolverFactory {
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
 }
 
-impl Default for ResolverFactory {
-  fn default() -> Self {
-    Self::new(Resolve::default())
-  }
-}
-
 impl ResolverFactory {
   pub fn clear_cache(&self) {
     self.resolver.clear_cache();
   }
 
-  pub fn new(options: Resolve) -> Self {
+  pub fn new(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self {
       base_options: options.clone(),
-      resolver: Resolver::new(options),
+      resolver: Resolver::new(options, fs),
       resolvers: Default::default(),
     }
   }

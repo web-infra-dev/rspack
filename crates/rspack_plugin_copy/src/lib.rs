@@ -656,7 +656,7 @@ impl Plugin for CopyRspackPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context
@@ -701,11 +701,11 @@ fn escape_glob_chars(s: &str) -> String {
 
 fn set_info(target: &mut AssetInfo, info: Info) {
   if let Some(minimized) = info.minimized {
-    target.minimized = minimized;
+    target.minimized.replace(minimized);
   }
 
   if let Some(immutable) = info.immutable {
-    target.immutable = immutable;
+    target.immutable.replace(immutable);
   }
 
   if let Some(chunk_hash) = info.chunk_hash {
@@ -717,11 +717,13 @@ fn set_info(target: &mut AssetInfo, info: Info) {
   }
 
   if let Some(development) = info.development {
-    target.development = development;
+    target.development.replace(development);
   }
 
   if let Some(hot_module_replacement) = info.hot_module_replacement {
-    target.hot_module_replacement = hot_module_replacement;
+    target
+      .hot_module_replacement
+      .replace(hot_module_replacement);
   }
 
   if let Some(related) = info.related {

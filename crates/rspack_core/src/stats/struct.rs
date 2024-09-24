@@ -110,11 +110,11 @@ pub struct StatsAssetsByChunkName {
 
 #[derive(Debug)]
 pub struct StatsAssetInfo {
-  pub minimized: bool,
-  pub development: bool,
-  pub hot_module_replacement: bool,
+  pub minimized: Option<bool>,
+  pub development: Option<bool>,
+  pub hot_module_replacement: Option<bool>,
   pub source_filename: Option<String>,
-  pub immutable: bool,
+  pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
   pub chunk_hash: Vec<String>,
   pub content_hash: Vec<String>,
