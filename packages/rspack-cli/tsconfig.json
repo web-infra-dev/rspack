@@ -11,5 +11,8 @@
     {
       "path": "../rspack"
     }
-  ]
+  ],
+  "ts-node": {
+    "transpileOnly": true
+  }
 }
