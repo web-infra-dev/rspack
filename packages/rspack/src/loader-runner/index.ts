@@ -555,7 +555,7 @@ export async function runLoaders(
 	loaderContext.version = 2;
 	loaderContext.sourceMap = compiler.options.devtool
 		? isUseSourceMap(compiler.options.devtool)
-		: false;
+		: context._module.useSourceMap ?? false;
 	loaderContext.mode = compiler.options.mode;
 	Object.assign(loaderContext, compiler.options.loader);
 
