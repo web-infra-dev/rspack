@@ -10,9 +10,6 @@
   "references": [
     {
       "path": "../rspack"
-    },
-    {
-      "path": "../rspack-dev-server"
     }
   ]
 }
