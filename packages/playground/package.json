@@ -17,7 +17,7 @@
     "@playwright/test": "1.35.0",
     "core-js": "3.36.1",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "1.0.6",
+    "@rspack/dev-server": "1.0.5",
     "@rspack/plugin-react-refresh": "1.0.0",
     "@swc/helpers": "0.5.8",
     "@types/fs-extra": "11.0.4",
