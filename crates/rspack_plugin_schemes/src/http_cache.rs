@@ -1,10 +1,11 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::Result;
 use async_trait::async_trait;
+use cow_utils::CowUtils;
 use rspack_base64::encode_to_string;
 use rspack_fs::AsyncFileSystem;
 use rspack_paths::Utf8Path;
@@ -219,8 +220,8 @@ impl HttpCache {
     if let Some(cache_location) = &self.cache_location {
       let lockfile = self.lockfile_cache.get_lockfile().await?;
       let lockfile = lockfile.lock().await;
-      let cache_path_buf = cache_location.join(resource.replace('/', "_"));
-      let cache_path = Utf8Path::from_path(&cache_path_buf).unwrap();
+      let cache_path_buf = cache_location.join(Path::new(&*resource.cow_replace('/', "_")));
+      let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
 
       if let Some(entry) = lockfile.get_entry(resource) {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
@@ -253,17 +254,18 @@ impl HttpCache {
 
   async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
-      let cache_location_path = Utf8Path::from_path(&cache_location).unwrap();
+      let cache_location_path =
+        Utf8Path::from_path(&cache_location).expect("Invalid cache location path");
       self
         .filesystem
         .create_dir_all(cache_location_path)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create cache directory: {:?}", e))?;
-      let cache_path_buf = cache_location.join(resource.replace('/', "_"));
-      let cache_path = Utf8Path::from_path(&cache_path_buf).unwrap();
+      let cache_path_buf = cache_location.join(Path::new(&*resource.cow_replace('/', "_")));
+      let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
       self
         .filesystem
-        .write(&cache_path, content)
+        .write(cache_path, content)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to write to cache: {:?}", e))?;
     }
@@ -291,7 +293,7 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
         .filter_map(|part| {
           let mut parts = part.splitn(2, '=');
           Some((
-            parts.next()?.trim().to_lowercase(),
+            parts.next()?.trim().cow_to_lowercase(),
             parts.next().map(|v| v.trim().to_string()),
           ))
         })
