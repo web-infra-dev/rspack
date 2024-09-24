@@ -161,6 +161,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
+  pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -224,6 +225,7 @@ impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
     plugin_driver: SharedPluginDriver,
+    buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
@@ -257,6 +259,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging: Default::default(),
       plugin_driver,
+      buildtime_plugin_driver,
       resolver_factory,
       loader_resolver_factory,
       named_chunks: Default::default(),

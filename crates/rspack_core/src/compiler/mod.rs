@@ -119,6 +119,7 @@ impl Compiler {
       compilation: Compilation::new(
         options,
         plugin_driver.clone(),
+        buildtime_plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
@@ -159,6 +160,7 @@ impl Compiler {
       Compilation::new(
         self.options.clone(),
         self.plugin_driver.clone(),
+        self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,

@@ -55,11 +55,11 @@ impl Task<MakeTaskContext> for EntryTask {
               )
             })
             .clone(),
-          original_module_identifier: dep.original_module,
+          original_module_identifier: None,
           original_module_source: None,
           issuer: None,
           issuer_layer: None,
-          original_module_context: Some(Box::new(dep.context.clone())),
+          original_module_context: None,
           dependencies: vec![dep],
           resolve_options: None,
           options: context.compiler_options.clone(),

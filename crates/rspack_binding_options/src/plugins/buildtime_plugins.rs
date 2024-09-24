@@ -1,15 +1,11 @@
-use rspack_core::{BoxPlugin, ChunkLoading, ChunkLoadingType, PluginExt};
-use rspack_plugin_javascript::JsPlugin;
-use rspack_plugin_runtime::{
-  CommonJsChunkLoadingPlugin, RuntimePlugin, StartupChunkDependenciesPlugin,
-};
+use rspack_core::{BoxPlugin, PluginExt};
+use rspack_plugin_javascript::{api_plugin::APIPlugin, JsPlugin};
+use rspack_plugin_runtime::RuntimePlugin;
 
 pub fn buildtime_plugins() -> Vec<BoxPlugin> {
   vec![
-    RuntimePlugin::default().boxed(),
     JsPlugin::default().boxed(),
-    // StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Require), false)
-    //   .boxed(),
-    // CommonJsChunkLoadingPlugin::new(false).boxed(),
+    RuntimePlugin::default().boxed(),
+    APIPlugin::default().boxed(),
   ]
 }

@@ -73,15 +73,16 @@ impl Task<MakeTaskContext> for ExecuteTask {
     } = *self;
 
     let mut compilation = context.transform_to_temp_compilation();
+    let main_compilation_plugin_driver = compilation.plugin_driver.clone();
+    compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mg = compilation.get_module_graph_mut();
-    let Some(entry_module_identifier) = mg.get_module_by_dependency_id(&entry_dep_id) else {
-      return Err(rspack_error::error!("entry module not found"));
-    };
-
-    let entry_module_identifier = entry_module_identifier.identifier();
+    let entry_module_identifier = mg
+      .get_module_by_dependency_id(&entry_dep_id)
+      .expect("should have module")
+      .identifier();
     let mut queue = vec![entry_module_identifier];
     let mut modules = IdentifierSet::default();
 
@@ -113,7 +114,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         name: Some("build time".into()),
         runtime: Some("runtime".into()),
         chunk_loading: Some(crate::ChunkLoading::Disable),
-        async_chunks: None,
+        async_chunks: Some(false),
         public_path,
         base_uri,
         filename: None,
@@ -214,8 +215,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     }
 
     let codegen_results = compilation.code_generation_results.clone();
-    let exports = compilation
-      .plugin_driver
+    let exports = main_compilation_plugin_driver
       .compilation_hooks
       .execute_module
       .call(
