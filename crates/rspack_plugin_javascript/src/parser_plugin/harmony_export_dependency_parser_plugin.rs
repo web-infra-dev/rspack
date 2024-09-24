@@ -1,6 +1,4 @@
-use rspack_core::{
-  BoxDependency, ConstDependency, DependencyType, RealDependencyLocation, SpanExt,
-};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 
@@ -24,7 +22,7 @@ pub struct HarmonyExportDependencyParserPlugin;
 
 impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
-    let range: RealDependencyLocation = statement.span().into();
+    let range: DependencyRange = statement.span().into();
     let dep = HarmonyExportHeaderDependency::new(
       range.with_source(parser.source_map.clone()),
       statement.declaration_span().map(|span| span.into()),
@@ -41,7 +39,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_harmony_import_order += 1;
     let span = statement.span();
-    let range: RealDependencyLocation = span.into();
+    let range: DependencyRange = span.into();
     let clean_dep = ConstDependency::new(span.real_lo(), span.real_hi(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
     let side_effect_dep = HarmonyImportSideEffectDependency::new(
@@ -75,7 +73,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
       .insert(export_name.clone());
     let dep = if let Some(settings) = parser.get_tag_data(local_id, HARMONY_SPECIFIER_TAG) {
       let settings = HarmonySpecifierData::downcast(settings);
-      let range: RealDependencyLocation = statement.span().into();
+      let range: DependencyRange = statement.span().into();
       Box::new(HarmonyExportImportedSpecifierDependency::new(
         settings.source,
         settings.source_order,
@@ -90,7 +88,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         settings.attributes,
       )) as BoxDependency
     } else {
-      let range: RealDependencyLocation = statement.span().into();
+      let range: DependencyRange = statement.span().into();
       Box::new(HarmonyExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
@@ -122,7 +120,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let range: RealDependencyLocation = statement.span().into();
+    let range: DependencyRange = statement.span().into();
     let dep = HarmonyExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_harmony_import_order,
@@ -156,7 +154,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     let expr_span = expr.span();
     let statement_span = statement.span();
 
-    let range: RealDependencyLocation = expr_span.into();
+    let range: DependencyRange = expr_span.into();
     let dep: HarmonyExportExpressionDependency = HarmonyExportExpressionDependency::new(
       range.with_source(parser.source_map.clone()),
       statement_span.into(),
@@ -169,7 +167,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
             f.function.body.span().real_lo()
           };
           Some(DeclarationId::Func(DeclarationInfo::new(
-            RealDependencyLocation::new(start, end),
+            DependencyRange::new(start, end),
             format!(
               "{}function{} ",
               if f.function.is_async { "async " } else { "" },

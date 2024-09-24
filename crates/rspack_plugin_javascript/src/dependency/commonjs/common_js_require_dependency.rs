@@ -1,4 +1,4 @@
-use rspack_core::{module_id, Compilation, RealDependencyLocation, RuntimeSpec};
+use rspack_core::{module_id, Compilation, DependencyRange, RuntimeSpec};
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ModuleDependency};
@@ -9,15 +9,15 @@ pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  range: RealDependencyLocation,
-  range_expr: Option<RealDependencyLocation>,
+  range: DependencyRange,
+  range_expr: Option<DependencyRange>,
 }
 
 impl CommonJsRequireDependency {
   pub fn new(
     request: String,
-    range: RealDependencyLocation,
-    range_expr: Option<RealDependencyLocation>,
+    range: DependencyRange,
+    range_expr: Option<DependencyRange>,
     optional: bool,
   ) -> Self {
     Self {
@@ -47,7 +47,7 @@ impl Dependency for CommonJsRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     self.range_expr.as_ref()
   }
 

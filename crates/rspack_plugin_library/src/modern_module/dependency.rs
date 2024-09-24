@@ -1,7 +1,7 @@
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{
-  Compilation, DependencyType, ExternalRequest, ExternalType, ImportAttributes,
-  RealDependencyLocation, RuntimeSpec,
+  Compilation, DependencyRange, DependencyType, ExternalRequest, ExternalType, ImportAttributes,
+  RuntimeSpec,
 };
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
@@ -14,7 +14,7 @@ pub struct ModernModuleImportDependency {
   request: Atom,
   target_request: ExternalRequest,
   external_type: ExternalType,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
 }
@@ -24,7 +24,7 @@ impl ModernModuleImportDependency {
     request: Atom,
     target_request: ExternalRequest,
     external_type: ExternalType,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     attributes: Option<ImportAttributes>,
   ) -> Self {
     let resource_identifier =
@@ -62,7 +62,7 @@ impl Dependency for ModernModuleImportDependency {
     self.attributes.as_ref()
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

@@ -1,16 +1,16 @@
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
 pub struct RequireResolveHeaderDependency {
   id: DependencyId,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl RequireResolveHeaderDependency {
-  pub fn new(range: RealDependencyLocation) -> Self {
+  pub fn new(range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       range,

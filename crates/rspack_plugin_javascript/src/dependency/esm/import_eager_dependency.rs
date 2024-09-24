@@ -1,7 +1,7 @@
 use rspack_core::{
   module_namespace_promise, AsContextDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ImportAttributes, ModuleDependency,
-  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ImportAttributes,
+  ModuleDependency, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -14,7 +14,7 @@ use super::{
 pub struct ImportEagerDependency {
   id: DependencyId,
   request: Atom,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   referenced_exports: Option<Vec<Atom>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
@@ -23,7 +23,7 @@ pub struct ImportEagerDependency {
 impl ImportEagerDependency {
   pub fn new(
     request: Atom,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     referenced_exports: Option<Vec<Atom>>,
     attributes: Option<ImportAttributes>,
   ) -> Self {
@@ -61,7 +61,7 @@ impl Dependency for ImportEagerDependency {
     self.attributes.as_ref()
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

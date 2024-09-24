@@ -1,7 +1,7 @@
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
-  ModuleIdentifier, PublicPath, RealDependencyLocation, RuntimeSpec, TemplateContext,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -11,12 +11,12 @@ use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
 pub struct CssUrlDependency {
   id: DependencyId,
   request: String,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   replace_function: bool,
 }
 
 impl CssUrlDependency {
-  pub fn new(request: String, range: RealDependencyLocation, replace_function: bool) -> Self {
+  pub fn new(request: String, range: DependencyRange, replace_function: bool) -> Self {
     Self {
       request,
       range,
@@ -64,7 +64,7 @@ impl Dependency for CssUrlDependency {
     &DependencyType::CssUrl
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

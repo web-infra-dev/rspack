@@ -1,6 +1,6 @@
 use rspack_core::{
   import_statement, runtime_condition_expression, AsDependency, Compilation, DependencyId,
-  DependencyTemplate, RealDependencyLocation, RuntimeCondition, RuntimeSpec, TemplateContext,
+  DependencyRange, DependencyTemplate, RuntimeCondition, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -8,14 +8,14 @@ use crate::dependency::get_import_emitted_runtime;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyAcceptDependency {
-  range: RealDependencyLocation,
+  range: DependencyRange,
   has_callback: bool,
   dependency_ids: Vec<DependencyId>,
 }
 
 impl HarmonyAcceptDependency {
   pub fn new(
-    range: RealDependencyLocation,
+    range: DependencyRange,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
   ) -> Self {

@@ -3,7 +3,7 @@ pub mod hot_module_replacement {
   pub use super::ModuleHotReplacementParserPlugin;
 }
 
-use rspack_core::{BoxDependency, RealDependencyLocation, SpanExt};
+use rspack_core::{BoxDependency, DependencyRange, SpanExt};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
@@ -16,7 +16,7 @@ use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
 use crate::visitors::{expr_name, JavascriptParser};
 
-type CreateDependency = fn(Atom, RealDependencyLocation) -> BoxDependency;
+type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
 
 fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Vec<BoxDependency> {
   let mut dependencies: Vec<BoxDependency> = vec![];
@@ -44,7 +44,7 @@ fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Ve
 
 impl<'parser> JavascriptParser<'parser> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
-    let range: RealDependencyLocation = span.into();
+    let range: DependencyRange = span.into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
@@ -59,7 +59,7 @@ impl<'parser> JavascriptParser<'parser> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    let range: RealDependencyLocation = call_expr.callee.span().into();
+    let range: DependencyRange = call_expr.callee.span().into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
@@ -72,9 +72,9 @@ impl<'parser> JavascriptParser<'parser> {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
       let callback_arg = call_expr.args.get(1);
       let range = if let Some(callback) = callback_arg {
-        Into::<RealDependencyLocation>::into(callback.span())
+        Into::<DependencyRange>::into(callback.span())
       } else {
-        RealDependencyLocation::new(call_expr.span().real_hi() - 1, 0)
+        DependencyRange::new(call_expr.span().real_hi() - 1, 0)
       };
       self
         .presentational_dependencies
@@ -94,7 +94,7 @@ impl<'parser> JavascriptParser<'parser> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    let range: RealDependencyLocation = call_expr.callee.span().into();
+    let range: DependencyRange = call_expr.callee.span().into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies

@@ -1,17 +1,17 @@
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency, RealDependencyLocation,
+  DependencyRange, DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl CssComposeDependency {
-  pub fn new(request: String, range: RealDependencyLocation) -> Self {
+  pub fn new(request: String, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -33,7 +33,7 @@ impl Dependency for CssComposeDependency {
     &DependencyType::CssCompose
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

@@ -8,8 +8,8 @@ use swc_core::ecma::atoms::Atom;
 
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
+use super::DependencyRange;
 use super::ExportsSpec;
-use super::RealDependencyLocation;
 use super::{DependencyCategory, DependencyId, DependencyType};
 use crate::create_exports_object_referenced;
 use crate::AsContextDependency;
@@ -78,7 +78,7 @@ pub trait Dependency:
     None
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     None
   }
 

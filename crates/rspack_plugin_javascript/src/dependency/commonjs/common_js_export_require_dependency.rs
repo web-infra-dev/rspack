@@ -1,11 +1,11 @@
 use itertools::Itertools;
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportInfoProvided,
-  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable,
-  RealDependencyLocation, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -18,7 +18,7 @@ pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   base: ExportsBase,
   names: Vec<Atom>,
   ids: Vec<Atom>,
@@ -29,7 +29,7 @@ impl CommonJsExportRequireDependency {
   pub fn new(
     request: String,
     optional: bool,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     base: ExportsBase,
     names: Vec<Atom>,
     result_used: bool,
