@@ -29,6 +29,9 @@ pub struct FactorizeTask {
 
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeTask {
+  fn name(&self) -> &'static str {
+    "factorize_task"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
@@ -198,6 +201,9 @@ impl FactorizeResultTask {
 }
 
 impl Task<MakeTaskContext> for FactorizeResultTask {
+  fn name(&self) -> &'static str {
+    "factorize_result"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
