@@ -109,11 +109,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
     "rspack.WarnCaseSensitiveModulesPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx.context.compilation_hooks.seal.tap(seal::new(self));
     Ok(())
   }

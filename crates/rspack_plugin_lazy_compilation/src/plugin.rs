@@ -180,11 +180,7 @@ async fn normal_module_factory_module(
 impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
   for LazyCompilationPlugin<T, F>
 {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

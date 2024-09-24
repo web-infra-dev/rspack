@@ -1,16 +1,13 @@
 use super::Incremental;
 use crate::{
-  CacheOptions, Context, DevServerOptions, Experiments, Mode, ModuleOptions, NodeOption,
-  Optimization, OutputOptions, Resolve, SnapshotOptions, StatsOptions, Target,
+  CacheOptions, Context, Experiments, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
+  Resolve, SnapshotOptions, StatsOptions,
 };
 
 #[derive(Debug)]
 pub struct CompilerOptions {
   pub context: Context,
-  pub dev_server: DevServerOptions,
   pub output: OutputOptions,
-  // TODO(swc-loader): target should not exist on compiler options
-  pub target: Target,
   pub mode: Mode,
   pub resolve: Resolve,
   pub resolve_loader: Resolve,

@@ -66,11 +66,7 @@ async fn add_entry(&self, compilation: &mut Compilation, entry_name: Option<&str
 }
 
 impl rspack_core::Plugin for RuntimeChunkPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks
