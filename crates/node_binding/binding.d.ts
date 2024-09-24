@@ -173,8 +173,7 @@ export class JsLoaderContext {
   get loaderIndex(): number
   set loaderIndex(val: number)
   get loaderState(): JsLoaderState
-  get __internal__parseMeta(): Record<string, string>
-  set __internal__parseMeta(val: Record<string, string>)
+  __internal__addParseMeta(key: string, val: string): void
   addDependency(file: string): void
   addContextDependency(file: string): void
   addMissingDependency(file: string): void

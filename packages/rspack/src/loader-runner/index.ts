@@ -374,6 +374,8 @@ function createLoaderContext(
 	loaderContext.resourcePath = resourcePath!;
 	loaderContext.resourceQuery = resourceQuery!;
 	loaderContext.resourceFragment = resourceFragment!;
+	loaderContext.__internal__addParseMeta =
+		context.__internal__addParseMeta.bind(context);
 	loaderContext.dependency = loaderContext.addDependency =
 		context.addDependency.bind(context);
 	loaderContext.addContextDependency =
@@ -781,10 +783,6 @@ function createLoaderContext(
 		enumerable: true,
 		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
 		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
-	});
-	Object.defineProperty(loaderContext, "__internal__parseMeta", {
-		enumerable: true,
-		get: () => context.__internal__parseMeta
 	});
 
 	LOADER_CONTEXT_WEAK_MAP.set(context, loaderContext);

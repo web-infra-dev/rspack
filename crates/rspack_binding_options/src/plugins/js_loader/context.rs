@@ -202,14 +202,9 @@ impl JsLoaderContext {
     self.0.state().into()
   }
 
-  #[napi(getter, js_name = "__internal__parseMeta")]
-  pub fn parse_meta(&self) -> HashMap<&String, &String> {
-    self.0.parse_meta.iter().collect()
-  }
-
-  #[napi(setter, js_name = "__internal__parseMeta")]
-  pub fn set_parse_meta(&mut self, val: HashMap<String, String>) {
-    self.0.parse_meta = val;
+  #[napi(js_name = "__internal__addParseMeta")]
+  pub fn add_parse_meta(&mut self, key: String, val: String) {
+    self.0.parse_meta.insert(key, val);
   }
 
   #[napi]
