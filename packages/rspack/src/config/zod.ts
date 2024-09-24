@@ -1331,8 +1331,7 @@ const rspackFutureOptions = z.strictObject({
 				.or(z.array(z.enum(["version", "uniqueId"])))
 				.optional()
 		})
-		.optional(),
-	newIncremental: z.boolean().optional()
+		.optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
@@ -1362,8 +1361,18 @@ const lazyCompilationOptions = z.object({
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
 		.optional()
 });
-
 export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
+
+const incremental = z.strictObject({
+	make: z.boolean().optional(),
+	emitAssets: z.boolean().optional(),
+	inferAsyncModules: z.boolean().optional(),
+	providedExports: z.boolean().optional(),
+	moduleHashes: z.boolean().optional(),
+	moduleCodegen: z.boolean().optional(),
+	moduleRuntimeRequirements: z.boolean().optional()
+});
+export type Incremental = z.infer<typeof incremental>;
 
 const experiments = z.strictObject({
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
@@ -1372,6 +1381,7 @@ const experiments = z.strictObject({
 	topLevelAwait: z.boolean().optional(),
 	css: z.boolean().optional(),
 	layers: z.boolean().optional(),
+	incremental: z.boolean().or(incremental).optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
 });

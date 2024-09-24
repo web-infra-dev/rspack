@@ -299,7 +299,7 @@ impl Compiler {
       .iter()
       .filter_map(|(filename, asset)| {
         // collect version info to new_emitted_asset_versions
-        if self.options.is_incremental_rebuild_emit_asset_enabled() {
+        if self.options.incremental().emit_assets_enabled() {
           new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
         }
 

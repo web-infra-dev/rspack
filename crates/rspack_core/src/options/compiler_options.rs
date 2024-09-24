@@ -1,7 +1,7 @@
+use super::Incremental;
 use crate::{
-  CacheOptions, Context, DevServerOptions, Experiments, IncrementalRebuildMakeState, Mode,
-  ModuleOptions, NodeOption, Optimization, OutputOptions, Resolve, SnapshotOptions, StatsOptions,
-  Target,
+  CacheOptions, Context, DevServerOptions, Experiments, Mode, ModuleOptions, NodeOption,
+  Optimization, OutputOptions, Resolve, SnapshotOptions, StatsOptions, Target,
 };
 
 #[derive(Debug)]
@@ -29,19 +29,7 @@ pub struct CompilerOptions {
 pub type References = serde_json::Map<String, serde_json::Value>;
 
 impl CompilerOptions {
-  pub fn is_incremental_rebuild_make_enabled(&self) -> bool {
-    self.experiments.incremental_rebuild.make.is_some()
-  }
-
-  pub fn get_incremental_rebuild_make_state(&self) -> Option<&IncrementalRebuildMakeState> {
-    self.experiments.incremental_rebuild.make.as_ref()
-  }
-
-  pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
-    self.experiments.incremental_rebuild.emit_asset
-  }
-
-  pub fn new_incremental_enabled(&self) -> bool {
-    self.experiments.rspack_future.new_incremental
+  pub fn incremental(&self) -> &Incremental {
+    &self.experiments.incremental
   }
 }
