@@ -3855,6 +3855,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash 1.1.0",
  "serde_json",

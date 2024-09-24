@@ -66,11 +66,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[async_trait]
 impl Plugin for DynamicEntryPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

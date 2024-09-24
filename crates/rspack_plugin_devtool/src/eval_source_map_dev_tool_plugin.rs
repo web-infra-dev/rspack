@@ -232,11 +232,7 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

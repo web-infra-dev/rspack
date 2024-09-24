@@ -525,11 +525,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
               left,
               right,
             )?
-          } else if generate_context.compilation.options.dev_server.hot {
-            format!(
-              "module.hot.accept();\n{}{}module.exports = {{}}{};\n",
-              ns_obj, left, right
-            )
           } else {
             format!("{}{}module.exports = {{}}{};\n", ns_obj, left, right)
           }
