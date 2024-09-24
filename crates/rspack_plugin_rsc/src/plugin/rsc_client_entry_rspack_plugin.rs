@@ -121,11 +121,16 @@ impl RSCClientEntryRspackPlugin {
       .and_then(|m| Some(m.resource_resolved_data()));
     let module_type = module.module_type();
     if let Some(data) = data {
-      let resource_path_str = data
-        .resource_path
-        .as_ref()
-        .and_then(|f| Some(f.as_str()))
-        .expect("TODO:");
+      let resource_path_str = data.resource_path.as_ref().and_then(|f| Some(f.as_str()));
+      let resource_path_str = if let Some(r) = resource_path_str {
+        r
+      } else {
+        ""
+      };
+      // Skip module without resource_path
+      if resource_path_str.eq("") {
+        return;
+      }
       let resource_query = &data.resource_query;
       let resource_query_str = if let Some(query) = resource_query.as_ref() {
         query
@@ -195,11 +200,16 @@ impl RSCClientEntryRspackPlugin {
       .as_normal_module()
       .and_then(|m| Some(m.resource_resolved_data()));
     if let Some(data) = data {
-      let resource_path_str = data
-        .resource_path
-        .as_ref()
-        .and_then(|f| Some(f.as_str()))
-        .expect("TODO:");
+      let resource_path_str = data.resource_path.as_ref().and_then(|f| Some(f.as_str()));
+      let resource_path_str = if let Some(r) = resource_path_str {
+        r
+      } else {
+        ""
+      };
+      // Skip module without resource_path
+      if resource_path_str.eq("") {
+        return;
+      }
       let resource_query = &data.resource_query;
       let resource_query_str = if let Some(query) = resource_query.as_ref() {
         query
