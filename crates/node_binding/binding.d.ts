@@ -156,6 +156,8 @@ export class JsEntries {
 }
 
 export class JsLoaderContext {
+  get additionalData(): any
+  set additionalData(val: any)
   get resourceData(): JsResourceData
   get _moduleIdentifier(): string
   get _module(): JsModule
@@ -171,6 +173,8 @@ export class JsLoaderContext {
   get loaderIndex(): number
   set loaderIndex(val: number)
   get loaderState(): JsLoaderState
+  get __internal__parseMeta(): Record<string, string>
+  set __internal__parseMeta(val: Record<string, string>)
   addDependency(file: string): void
   addContextDependency(file: string): void
   addMissingDependency(file: string): void

@@ -1,6 +1,6 @@
 use rspack_core::{
-  AdditionalData, LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding,
-  RunnerContext, BUILTIN_LOADER_PREFIX,
+  LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding, RunnerContext,
+  BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::Result;
 use rspack_hook::plugin_hook;
@@ -34,6 +34,6 @@ pub(crate) async fn loader_yield(
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
   let js_loader_context = JsLoaderContextWrapper::new(loader_context);
-  let _ = self.runner.call_with_promise(js_loader_context).await?;
+  self.runner.call_with_promise(js_loader_context).await?;
   Ok(())
 }

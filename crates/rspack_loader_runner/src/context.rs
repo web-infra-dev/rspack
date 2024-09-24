@@ -63,9 +63,9 @@ pub struct LoaderContext<Context: 'static> {
   pub context: Context,
   pub parse_meta: FxHashMap<String, String>,
 
-  pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap>,
-  pub(crate) additional_data: Option<AdditionalData>,
+  pub content: Option<Content>,
+  pub source_map: Option<SourceMap>,
+  pub additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
   pub file_dependencies: HashSet<PathBuf>,

@@ -767,9 +767,7 @@ function createLoaderContext(
 	Object.defineProperty(loaderContext, "loaderIndex", {
 		enumerable: true,
 		get: () => context.loaderIndex,
-		set: loaderIndex => {
-			context.loaderIndex = loaderIndex;
-		}
+		set: loaderIndex => (context.loaderIndex = loaderIndex)
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
@@ -829,10 +827,10 @@ export async function runLoaders(
 				const hasArg = args.some(value => value !== undefined);
 
 				if (hasArg) {
-					const [content, sourceMap] = args;
+					const [content, sourceMap, additionalData] = args;
 					context.content = isNil(content) ? null : toBuffer(content);
 					context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
-					// context.additionalData = additionalData;
+					context.additionalData = additionalData;
 					break;
 				}
 			}
@@ -842,8 +840,7 @@ export async function runLoaders(
 		case JsLoaderState.Normal: {
 			let content = context.content;
 			let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
-			// let additionalData = context.additionalData;
-			let additionalData = {};
+			let additionalData = context.additionalData;
 
 			while (loaderContext.loaderIndex >= 0) {
 				const currentLoaderObject =
@@ -867,7 +864,7 @@ export async function runLoaders(
 
 			context.content = isNil(content) ? null : toBuffer(content);
 			context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
-			// context.additionalData = additionalData;
+			context.additionalData = additionalData;
 
 			break;
 		}

@@ -3,9 +3,9 @@ use std::cell::RefCell;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, JsResourceData, ToJsModule};
-use rspack_core::{LoaderContext, LoaderContextId, RunnerContext};
+use rspack_core::{AdditionalData, LoaderContext, LoaderContextId, RunnerContext};
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
-use rspack_napi::Ref;
+use rspack_napi::{threadsafe_js_value_ref::ThreadsafeJsValueRef, Ref};
 use rustc_hash::FxHashMap as HashMap;
 
 #[napi(object)]
@@ -57,6 +57,27 @@ pub struct JsLoaderContext(pub(crate) &'static mut LoaderContext<RunnerContext>)
 
 #[napi]
 impl JsLoaderContext {
+  #[napi(getter, ts_return_type = "any")]
+  pub fn additional_data(&self) -> Option<ThreadsafeJsValueRef<Unknown>> {
+    self
+      .0
+      .additional_data
+      .as_ref()
+      .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
+      .cloned()
+  }
+
+  #[napi(setter, ts_args_type = "val: any")]
+  pub fn set_additional_data(&mut self, val: Option<ThreadsafeJsValueRef<Unknown>>) {
+    self.0.additional_data = if let Some(val) = val {
+      let mut additional = AdditionalData::default();
+      additional.insert(val);
+      Some(additional)
+    } else {
+      None
+    }
+  }
+
   #[napi(getter)]
   pub fn resource_data(&self) -> JsResourceData {
     self.0.resource_data.as_ref().into()
@@ -159,6 +180,8 @@ impl JsLoaderContext {
           to.set_pitch_executed()
         }
         to.set_data(from.data);
+        // JS loader should always be considered as finished
+        to.set_finish_called();
         to
       })
       .collect();
@@ -177,6 +200,16 @@ impl JsLoaderContext {
   #[napi(getter)]
   pub fn loader_state(&self) -> JsLoaderState {
     self.0.state().into()
+  }
+
+  #[napi(getter, js_name = "__internal__parseMeta")]
+  pub fn parse_meta(&self) -> HashMap<&String, &String> {
+    self.0.parse_meta.iter().collect()
+  }
+
+  #[napi(setter, js_name = "__internal__parseMeta")]
+  pub fn set_parse_meta(&mut self, val: HashMap<String, String>) {
+    self.0.parse_meta = val;
   }
 
   #[napi]
