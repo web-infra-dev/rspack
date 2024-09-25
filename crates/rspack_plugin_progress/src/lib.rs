@@ -247,8 +247,13 @@ impl ProgressPlugin {
 
   fn progress_bar_handler(&self, percent: f64, msg: String, state_items: Vec<String>) {
     if let Some(progress_bar) = &self.progress_bar {
-      progress_bar.set_message(msg + " " + state_items.join(" ").as_str());
-      progress_bar.set_position((percent * 100.0) as u64);
+      let msg = msg + " " + state_items.join(" ").as_str();
+      if percent == 1.0 {
+        progress_bar.finish_with_message(msg);
+      } else {
+        progress_bar.set_message(msg);
+        progress_bar.set_position((percent * 100.0) as u64);
+      }
     }
   }
 
