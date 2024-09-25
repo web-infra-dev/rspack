@@ -10,7 +10,7 @@
 
 import create from "./wasm-hash";
 
-let createXxhash64: () => WebAssembly.Module;
+let createXxhash64: () => ReturnType<typeof create>;
 
 export default () => {
 	if (!createXxhash64) {

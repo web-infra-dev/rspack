@@ -10,7 +10,7 @@
 
 import create from "./wasm-hash";
 
-let createMd4: () => WebAssembly.Module;
+let createMd4: () => ReturnType<typeof create>;
 
 export default () => {
 	if (!createMd4) {
