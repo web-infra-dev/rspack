@@ -37,7 +37,8 @@ pub trait Task<Ctx>: Send + Any + AsAny {
   /// Return `TaskType::Sync` will run `self::sync_run`
   /// Return `TaskType::Async` will run `self::async_run`
   fn get_task_type(&self) -> TaskType;
-
+  /// get task name for monitor
+  fn name(&self) -> &'static str;
   /// Sync task process
   ///
   /// The context is shared with all tasks
@@ -85,12 +86,16 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
           let tx = tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
-          tokio::spawn(async move {
-            let r = task.async_run().await;
-            if !is_expected_shutdown.load(Ordering::Relaxed) {
-              tx.send(r).expect("failed to send error message");
-            }
-          });
+          // safe expect here since spawn always return Ok
+          tokio::task::Builder::new()
+            .name(task.name())
+            .spawn(async move {
+              let r = task.async_run().await;
+              if !is_expected_shutdown.load(Ordering::Relaxed) {
+                tx.send(r).expect("failed to send error message");
+              }
+            })
+            .expect("spawn task failed");
         }
         TaskType::Sync => {
           // merge sync task result directly
@@ -150,6 +155,9 @@ mod test {
 
   struct SyncTask;
   impl Task<Context> for SyncTask {
+    fn name(&self) -> &'static str {
+      "sync_task"
+    }
     fn get_task_type(&self) -> TaskType {
       TaskType::Sync
     }
@@ -175,6 +183,9 @@ mod test {
   }
   #[async_trait::async_trait]
   impl Task<Context> for AsyncTask {
+    fn name(&self) -> &'static str {
+      "async_task"
+    }
     fn get_task_type(&self) -> TaskType {
       TaskType::Async
     }

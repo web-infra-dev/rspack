@@ -9,7 +9,6 @@
  */
 
 import path from "node:path";
-import browserslist from "browserslist";
 import type {
 	ApiTargetProperties,
 	EcmaTargetProperties,
@@ -43,6 +42,8 @@ const parse = (
 		return { configPath, env };
 	}
 
+	const browserslist = require("browserslist");
+
 	const config = browserslist.findConfig(context);
 
 	if (config && Object.keys(config).includes(input)) {
@@ -61,6 +62,7 @@ export const load = (
 	input: string | null | undefined,
 	context: string
 ): string[] | undefined => {
+	const browserslist = require("browserslist");
 	const { configPath, env, query } = parse(input, context);
 
 	// if a query is specified, then use it, else
