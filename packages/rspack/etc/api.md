@@ -1061,6 +1061,8 @@ export class Compilation {
         addAll: (deps: Iterable<string>) => void;
     };
     // (undocumented)
+    get builtModules(): ReadonlySet<Module>;
+    // (undocumented)
     children: Compilation[];
     // (undocumented)
     childrenCounters: Record<string, number>;

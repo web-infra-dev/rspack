@@ -148,6 +148,16 @@ impl JsCompilation {
       .collect::<Vec<_>>()
   }
 
+  #[napi(getter, ts_return_type = "Array<ModuleDTO>")]
+  pub fn built_modules(&'static self) -> Vec<ModuleDTOWrapper> {
+    self
+      .0
+      .built_modules
+      .iter()
+      .map(|module_id| ModuleDTOWrapper::new(module_id.clone(), self.0))
+      .collect::<Vec<_>>()
+  }
+
   #[napi]
   pub fn get_optimization_bailout(&self) -> Vec<JsStatsOptimizationBailout> {
     self
