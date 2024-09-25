@@ -154,7 +154,7 @@ impl JsCompilation {
       .0
       .built_modules
       .iter()
-      .map(|module_id| ModuleDTOWrapper::new(module_id.clone(), self.0))
+      .map(|module_id| ModuleDTOWrapper::new(*module_id, self.0))
       .collect::<Vec<_>>()
   }
 
