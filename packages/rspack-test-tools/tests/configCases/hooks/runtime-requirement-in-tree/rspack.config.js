@@ -1,28 +1,32 @@
 const { RuntimeGlobals } = require("@rspack/core");
 
-let called = 0;
-
 class Plugin {
+	/**
+	 * @param {import('@rspack/core').Compiler} compiler
+	 */
   apply(compiler) {
     compiler.hooks.thisCompilation.tap("TestFakePlugin", compilation => {
-      compilation.hooks.runtimeRequirementInTree.tap("TestFakePlugin", (chunk, set) => {
+			compilation.hooks.additionalTreeRuntimeRequirements.tap("TestFakePlugin", (_, set) => {
+				set.add(RuntimeGlobals.chunkName)
+				set.add(RuntimeGlobals.ensureChunk)
+				set.add(RuntimeGlobals.ensureChunkHandlers)
+			})
+
+			compilation.hooks.runtimeRequirementInTree.for(
+				RuntimeGlobals.chunkName
+			).tap("TestFakePlugin", (chunk, set) => {
         expect(chunk.name).toBe("main");
-        if (called === 0) {
-          expect(set.has(RuntimeGlobals.chunkName)).toBeFalsy();
-          set.add(RuntimeGlobals.chunkName);
-          set.add(RuntimeGlobals.ensureChunk);
-          set.add(RuntimeGlobals.ensureChunkHandlers);
-        } else if (called === 1) {
-          expect(set.has(RuntimeGlobals.chunkName)).toBeTruthy();
-          expect(set.has(RuntimeGlobals.ensureChunk)).toBeTruthy();
-          expect(set.has(RuntimeGlobals.ensureChunkHandlers)).toBeTruthy();
-          expect(set.has(RuntimeGlobals.hasOwnProperty)).toBeFalsy();
-        } else if (called === 2) {
-          expect(set.has(RuntimeGlobals.hasOwnProperty)).toBeTruthy();
-        } else {
-          throw new Error("should not call more than 3 times");
-        }
-        called++;
+				expect(set.has(RuntimeGlobals.chunkName)).toBeTruthy();
+				expect(set.has(RuntimeGlobals.ensureChunk)).toBeTruthy();
+				expect(set.has(RuntimeGlobals.ensureChunkHandlers)).toBeTruthy();
+				expect(set.has(RuntimeGlobals.hasOwnProperty)).toBeFalsy();
+			})
+
+			compilation.hooks.runtimeRequirementInTree.for(
+				RuntimeGlobals.hasOwnProperty
+			).tap("TestFakePlugin", (chunk, set) => {
+        expect(chunk.name).toBe("main");
+				expect(set.has(RuntimeGlobals.hasOwnProperty)).toBeTruthy();
       });
     });
   }

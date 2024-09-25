@@ -1171,10 +1171,7 @@ export class Compilation {
         Chunk,
         Set<string>
         ], void>;
-        runtimeRequirementInTree: liteTapable.SyncBailHook<[
-        Chunk,
-        Set<string>
-        ], void>;
+        runtimeRequirementInTree: liteTapable.HookMap<liteTapable.SyncBailHook<[Chunk, Set<string>], void>>;
         runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
         seal: liteTapable.SyncHook<[], void>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;

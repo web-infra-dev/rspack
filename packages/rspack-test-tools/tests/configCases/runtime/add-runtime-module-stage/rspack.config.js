@@ -34,11 +34,14 @@ module.exports = {
     providedExports: false
   },
   plugins: [
+		/**
+		 * @param {import('@rspack/core').Compiler} compiler
+		 */
     compiler => {
       compiler.hooks.thisCompilation.tap(
         "MockRuntimePlugin",
         (compilation) => {
-          compilation.hooks.runtimeRequirementInTree.tap("MockRuntimePlugin", (chunk, set) => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap("MockRuntimePlugin", (chunk, set) => {
             set.add(RuntimeGlobals.publicPath);
             set.add(RuntimeGlobals.getChunkScriptFilename);
             compilation.addRuntimeModule(

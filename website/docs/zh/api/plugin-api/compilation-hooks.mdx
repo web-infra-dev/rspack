@@ -598,7 +598,7 @@ console.log(__webpack_require__.h);
 
 在根据运行时依赖以添加运行时模块时调用。
 
-- **类型：** `SyncBailHook<[Chunk, Set<RuntimeGlobals>]>`
+- **类型：** `HookMap<SyncBailHook<[Chunk, Set<RuntimeGlobals>]>>`
 - **参数：**
   - `Chunk`：Chunk 实例
   - `Set<RuntimeGlobals>`：运行时依赖集合
@@ -627,15 +627,14 @@ module.exports = {
         }
 
         compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
-          compilation.hooks.runtimeRequirementInTree.tap(
-            'CustomPlugin',
-            (chunk, set) => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
               // 添加访问 publicPath 的运行时模块
               set.add(RuntimeGlobals.publicPath);
               // 添加自定义运行时模块
               compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
-            },
-          );
+            });
         });
       },
     },
