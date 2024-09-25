@@ -5,7 +5,14 @@ on:
   workflow_call:
 
 jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+    with:
+      force-use-github-runner: true
+
   build:
+    needs: [get-runner-labels]
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -33,6 +40,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       profile: "release-prod"
+      test: false
 
   publish:
     if: github.repository == 'web-infra-dev/rspack'
@@ -43,14 +51,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: ./.github/actions/setup-node
-
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           path: artifacts
 
@@ -64,4 +69,4 @@ jobs:
         run: ls -R npm
 
       - name: Release
-        run: pnpx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/rspack-cli'
+        run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack'
