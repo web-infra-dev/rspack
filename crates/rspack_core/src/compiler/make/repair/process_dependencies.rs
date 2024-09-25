@@ -15,6 +15,9 @@ pub struct ProcessDependenciesTask {
 }
 
 impl Task<MakeTaskContext> for ProcessDependenciesTask {
+  fn name(&self) -> &'static str {
+    "process_dependencies_task"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
