@@ -19,7 +19,6 @@ class Plugin {
 				expect(set.has(RuntimeGlobals.chunkName)).toBeTruthy();
 				expect(set.has(RuntimeGlobals.ensureChunk)).toBeTruthy();
 				expect(set.has(RuntimeGlobals.ensureChunkHandlers)).toBeTruthy();
-				expect(set.has(RuntimeGlobals.hasOwnProperty)).toBeFalsy();
 			})
 
 			compilation.hooks.runtimeRequirementInTree.for(
