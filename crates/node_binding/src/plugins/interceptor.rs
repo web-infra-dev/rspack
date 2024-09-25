@@ -907,8 +907,8 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
     self.function.call_with_sync(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -923,8 +923,8 @@ impl CompilerCompilation for CompilerCompilationTap {
     self.function.call_with_sync(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -935,8 +935,8 @@ impl CompilerMake for CompilerMakeTap {
     self.function.call_with_promise(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -947,8 +947,8 @@ impl CompilerFinishMake for CompilerFinishMakeTap {
     self.function.call_with_promise(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -959,8 +959,8 @@ impl CompilerShouldEmit for CompilerShouldEmitTap {
     self.function.call_with_sync(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -970,8 +970,8 @@ impl CompilerEmit for CompilerEmitTap {
     self.function.call_with_promise(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -981,8 +981,8 @@ impl CompilerAfterEmit for CompilerAfterEmitTap {
     self.function.call_with_promise(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1004,8 +1004,8 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
       .await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1018,8 +1018,8 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
       .await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1032,8 +1032,8 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
       .await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1046,8 +1046,8 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
       .await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1068,8 +1068,8 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
     })
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1080,8 +1080,8 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     self.function.call_with_promise(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1091,8 +1091,8 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
     self.function.call_with_sync(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1102,8 +1102,8 @@ impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
     self.function.call_with_sync(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1113,8 +1113,8 @@ impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
     self.function.call_with_promise(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1124,8 +1124,8 @@ impl CompilationOptimizeChunkModules for CompilationOptimizeChunkModulesTap {
     self.function.call_with_promise(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1151,8 +1151,8 @@ impl CompilationAdditionalTreeRuntimeRequirements
     Ok(())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1182,8 +1182,8 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
     Ok(None)
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1229,8 +1229,8 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     Ok(())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1248,8 +1248,8 @@ impl CompilationChunkHash for CompilationChunkHashTap {
     Ok(())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1265,8 +1265,8 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
       .await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1277,8 +1277,8 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
     self.function.call_with_promise(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1289,8 +1289,8 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
     self.function.call_with_sync(compilation).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1300,8 +1300,8 @@ impl CompilationSeal for CompilationSealTap {
     self.function.call_with_sync(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1311,8 +1311,8 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
     self.function.call_with_promise(()).await
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1344,8 +1344,8 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
     }
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1381,8 +1381,8 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
     }
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1418,8 +1418,8 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
     }
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1445,8 +1445,8 @@ impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForScheme
     Ok(bail)
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1520,8 +1520,8 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
     }
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1545,8 +1545,8 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
     Ok(None)
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1568,8 +1568,8 @@ impl ContextModuleFactoryBeforeResolve for ContextModuleFactoryBeforeResolveTap 
     }
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1588,8 +1588,8 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
     }
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1607,8 +1607,8 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
     Ok(())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1625,8 +1625,8 @@ impl HtmlPluginBeforeAssetTagGeneration for HtmlPluginBeforeAssetTagGenerationTa
     Ok(result.into())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1640,8 +1640,8 @@ impl HtmlPluginAlterAssetTags for HtmlPluginAlterAssetTagsTap {
     Ok(result.into())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1658,8 +1658,8 @@ impl HtmlPluginAlterAssetTagGroups for HtmlPluginAlterAssetTagGroupsTap {
     Ok(result.into())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1676,8 +1676,8 @@ impl HtmlPluginAfterTemplateExecution for HtmlPluginAfterTemplateExecutionTap {
     Ok(result.into())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1691,8 +1691,8 @@ impl HtmlPluginBeforeEmit for HtmlPluginBeforeEmitTap {
     Ok(result.into())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
 
@@ -1706,7 +1706,7 @@ impl HtmlPluginAfterEmit for HtmlPluginAfterEmitTap {
     Ok(result.into())
   }
 
-  fn stage(&self) -> i32 {
-    self.stage as i32
+  fn stage(&self) -> f64 {
+    self.stage
   }
 }
