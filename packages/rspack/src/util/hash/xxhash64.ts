@@ -8,9 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import create from "./wasm-hash";
+import create, { type WasmHash } from "./wasm-hash";
 
 let xxhash64: WebAssembly.Module;
+const instancesPool: WasmHash[] = [];
 
 export default () => {
 	if (!xxhash64) {
@@ -25,5 +26,5 @@ export default () => {
 		//#endregion
 	}
 
-	return create.bind(null, xxhash64, [], 32, 16)();
+	return create.bind(null, xxhash64, instancesPool, 32, 16)();
 };
