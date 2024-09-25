@@ -285,6 +285,9 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
+    plugins.push(Box::new(
+      parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
+    ));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
