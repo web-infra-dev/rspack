@@ -340,16 +340,10 @@ function getCurrentLoader(
 	return null;
 }
 
-const LOADER_CONTEXT_WEAK_MAP = new WeakMap<JsLoaderContext, LoaderContext>();
-
 function createLoaderContext(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): LoaderContext {
-	if (LOADER_CONTEXT_WEAK_MAP.has(context)) {
-		return LOADER_CONTEXT_WEAK_MAP.get(context)!;
-	}
-
 	const { resource } = context.resourceData;
 	const splittedResource = resource && parsePathQueryFragment(resource);
 	const resourcePath = splittedResource ? splittedResource.path : undefined;
@@ -360,16 +354,15 @@ function createLoaderContext(
 	const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
 	/// Construct `loaderContext`
-	const loaderContext = {
-		get hot() {
-			return context.hot;
-		}
-	} as LoaderContext;
+	const loaderContext = {} as LoaderContext;
 
 	loaderContext.loaders = context.loaderItems.map((item: any) => {
 		return LoaderObject.__from_binding(item, compiler);
 	});
-
+	Object.defineProperty(loaderContext, "hot", {
+		enumerable: true,
+		get: () => context.hot
+	});
 	loaderContext.context = contextDirectory;
 	loaderContext.resourcePath = resourcePath!;
 	loaderContext.resourceQuery = resourceQuery!;
@@ -766,10 +759,11 @@ function createLoaderContext(
 	}
 
 	/// Sync with `context`
-	Object.defineProperty(loaderContext, "loaderIndex", {
+	loaderContext.loaderIndex = context.loaderIndex;
+	Object.defineProperty(loaderContext, "data", {
 		enumerable: true,
-		get: () => context.loaderIndex,
-		set: loaderIndex => (context.loaderIndex = loaderIndex)
+		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
+		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
@@ -779,13 +773,6 @@ function createLoaderContext(
 			}
 		}
 	});
-	Object.defineProperty(loaderContext, "data", {
-		enumerable: true,
-		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
-		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
-	});
-
-	LOADER_CONTEXT_WEAK_MAP.set(context, loaderContext);
 
 	return loaderContext;
 }
@@ -795,7 +782,6 @@ export async function runLoaders(
 	context: JsLoaderContext
 ): Promise<void> {
 	const loaderState = context.loaderState;
-
 	const loaderContext = createLoaderContext(compiler, context);
 
 	switch (loaderState) {
@@ -874,6 +860,7 @@ export async function runLoaders(
 	context.loaderItems = loaderContext.loaders.map(item =>
 		LoaderObject.__to_binding(item)
 	);
+	context.loaderIndex = loaderContext.loaderIndex;
 }
 
 function utf8BufferToString(buf: Buffer) {
