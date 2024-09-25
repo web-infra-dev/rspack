@@ -4019,6 +4019,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cow-utils",
  "dashmap 5.5.3",
+ "either",
  "fast-glob",
  "indexmap 2.2.6",
  "indoc",
