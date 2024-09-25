@@ -9,7 +9,6 @@ use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
   SourceMapDevToolPluginOptions, TestFn,
 };
-use tokio::runtime::Handle;
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
 
@@ -95,8 +94,10 @@ fn normalize_raw_module_filename_template(
 }
 
 fn normalize_raw_test(raw: ThreadsafeFunction<String, bool>) -> TestFn {
-  let handle = Handle::current();
-  Box::new(move |ctx| handle.block_on(raw.call(ctx)))
+  Box::new(move |ctx| {
+    let raw = raw.clone();
+    Box::pin(async move { raw.call(ctx).await })
+  })
 }
 
 #[napi(object, object_to_js = false)]
