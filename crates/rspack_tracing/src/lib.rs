@@ -62,8 +62,6 @@ fn generate_common_layers(
     layers.push(
       tracing_subscriber::filter::Targets::new()
         .with_targets(vec![
-          ("tokio", default_level),
-          ("runtime", default_level),
           ("rspack_core", default_level),
           ("rspack", default_level),
           ("rspack_node", default_level),
@@ -86,7 +84,12 @@ fn generate_common_layers(
   }
   layers
 }
-
+// register layer for tokio_console, and tokio_console use network to send trace info so no need to pass result by string back
+pub fn enable_tracing_by_env_with_tokio_console() {
+  if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
+    console_subscriber::init();
+  }
+}
 pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Option<FlushGuard> {
   if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
     use tracing_chrome::ChromeLayerBuilder;
