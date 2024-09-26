@@ -15,6 +15,8 @@ use anyhow::{anyhow, bail, Context, Error};
 use base64::prelude::*;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
+use rspack_error::miette::MietteDiagnostic;
+use rspack_error::DiagnosticExt;
 use rspack_util::itoa;
 use rspack_util::swc::minify_file_comments;
 use serde_json::error::Category;
@@ -353,7 +355,38 @@ impl SwcCompiler {
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
         try_with_handler(self.cm.clone(), Default::default(), |handler| {
-          HANDLER.set(handler, || Ok(program.apply(&mut pass)))
+          HANDLER.set(handler, || {
+            // Fold module
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+              program.apply(&mut pass)
+            })) {
+              Ok(v) => Ok(v),
+              Err(err) => {
+                macro_rules! swc_error {
+                  ($tt:tt) => {{
+                    let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
+
+                    MietteDiagnostic::new(format!("Builtin swc-loader error: {}
+
+Help:
+    The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
+
+    The `swc_core` version of the current `rspack_core` is {swc_core_version}. Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
+    Versions of `swc_core` are more likely to be located in the `Cargo.toml` file in the root directory of these plugin repositories.
+
+    Check out this guide as a reference for selecting the versions of SWC Wasm plugins: https://swc.rs/docs/plugin/selecting-swc-core", $tt))
+                    .boxed()
+                    .into()
+                  }}
+                }
+                if let Some(err) = err.downcast_ref::<String>() {
+                  Err(swc_error!(err))
+                } else {
+                  Err(swc_error!("unknown error"))
+                }
+              }
+            }
+          })
         })
       })
     });
