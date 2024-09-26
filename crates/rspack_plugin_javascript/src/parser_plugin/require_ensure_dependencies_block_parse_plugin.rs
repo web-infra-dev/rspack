@@ -87,6 +87,19 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
         return None;
       }
     }
+    if let Some(success_expr) = &success_expr {
+      match success_expr.func {
+        Either::Left(func) => {
+          if let Some(body) = &func.function.body {
+            parser.walk_statement(Statement::Block(body));
+          }
+        }
+        Either::Right(arrow) => match &*arrow.body {
+          BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
+          BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+        },
+      }
+    }
 
     let mut block = AsyncDependenciesBlock::new(
       *parser.module_identifier,
