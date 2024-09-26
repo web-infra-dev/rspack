@@ -1,0 +1,42 @@
+.bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  position: relative;
+  background-image: linear-gradient(
+    279deg,
+    hsl(32.71, 100%, 50%) 35.21%,
+    hsl(6.91, 94.76%, 67%) 63.34%
+  );
+  height: 36px;
+}
+
+.link {
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    opacity: 0.9;
+  }
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.close {
+  right: 1.5rem;
+  font-size: 28px;
+  padding: 5px;
+  position: absolute;
+  cursor: pointer;
+  border-radius: 4px;
+  box-sizing: border-box;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}
