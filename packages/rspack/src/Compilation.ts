@@ -431,6 +431,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
+	get builtModules(): ReadonlySet<Module> {
+		return new Set(
+			this.#inner.builtModules.map(module =>
+				Module.__from_binding(module, this)
+			)
+		);
+	}
+
 	get chunks(): ReadonlySet<Chunk> {
 		return memoizeValue(() => new Set(this.__internal__getChunks()));
 	}
