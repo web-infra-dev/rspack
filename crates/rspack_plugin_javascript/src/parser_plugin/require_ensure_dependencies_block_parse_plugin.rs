@@ -28,8 +28,8 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
       return None;
     }
 
-    let dependencies_arg = &expr.args.get(0)?.expr;
-    let dependencies_expr = parser.evaluate_expression(&dependencies_arg);
+    let dependencies_arg = &expr.args.first()?.expr;
+    let dependencies_expr = parser.evaluate_expression(dependencies_arg);
     let dependencies_items = if dependencies_expr.is_array() {
       Cow::Borrowed(dependencies_expr.items())
     } else {
@@ -46,7 +46,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     let chunk_name = match expr
       .args
       .get(3)
-      .or(error_expr.as_ref().and_then(|_| None)) // !errorExpression
+      .or(error_expr.as_ref().and(None)) // !errorExpression
       .or(expr.args.get(2))
     {
       Some(arg) => {
@@ -116,7 +116,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     parser.blocks.push(Box::new(block));
 
     if success_expr.is_none() {
-      parser.walk_expression(&success_arg);
+      parser.walk_expression(success_arg);
     }
     match error_expr {
       Some(error_expr) => match error_expr.func {
@@ -142,7 +142,8 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
 struct FunctionExpression<'a> {
   func: Either<&'a FnExpr, &'a ArrowExpr>,
   expressions: Option<&'a Expr>,
-  need_this: Option<bool>,
+  // Used by AMD
+  _need_this: Option<bool>,
 }
 
 trait GetFunctionExpression {
@@ -156,15 +157,15 @@ impl GetFunctionExpression for Expr {
       Expr::Fn(fn_expr) => Some(FunctionExpression {
         func: Either::Left(fn_expr),
         expressions: None,
-        need_this: Some(false),
+        _need_this: Some(false),
       }),
       Expr::Arrow(arrow_expr) => Some(FunctionExpression {
         func: Either::Right(arrow_expr),
         expressions: None,
-        need_this: Some(false),
+        _need_this: Some(false),
       }),
       Expr::Call(call_expr) if call_expr.args.len() == 1 => {
-        let first_arg = &call_expr.args.get(0).unwrap().expr;
+        let first_arg = &call_expr.args.first().expect("should exist").expr;
         let callee = &call_expr.callee;
 
         if let Some(callee_member_expr) = callee
@@ -177,7 +178,7 @@ impl GetFunctionExpression for Expr {
           return Some(FunctionExpression {
             func: Either::Left(fn_expr),
             expressions: Some(first_arg),
-            need_this: None,
+            _need_this: None,
           });
         }
 
@@ -196,7 +197,7 @@ impl GetFunctionExpression for Expr {
           return Some(FunctionExpression {
             func: Either::Left(fn_expr),
             expressions: None,
-            need_this: Some(true),
+            _need_this: Some(true),
           });
         }
 
