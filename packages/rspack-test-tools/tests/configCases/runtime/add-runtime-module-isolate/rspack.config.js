@@ -48,7 +48,7 @@ module.exports = {
       compiler.hooks.thisCompilation.tap(
         "MockRuntimePlugin",
         (compilation) => {
-          compilation.hooks.runtimeRequirementInTree.tap("MockRuntimePlugin", (chunk, set) => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap("MockRuntimePlugin", (chunk, set) => {
             compilation.addRuntimeModule(
               chunk,
               new NonIsolateRuntimeModule()

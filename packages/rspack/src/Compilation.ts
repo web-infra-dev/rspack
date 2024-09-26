@@ -212,9 +212,8 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeRequirementInTree: liteTapable.SyncBailHook<
-			[Chunk, Set<string>],
-			void
+		runtimeRequirementInTree: liteTapable.HookMap<
+			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		seal: liteTapable.SyncHook<[], void>;
@@ -348,10 +347,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunk",
 				"runtimeRequirements"
 			]),
-			runtimeRequirementInTree: new liteTapable.SyncBailHook([
-				"chunk",
-				"runtimeRequirements"
-			]),
+			runtimeRequirementInTree: new liteTapable.HookMap(
+				() => new liteTapable.SyncBailHook(["chunk", "runtimeRequirements"])
+			),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])

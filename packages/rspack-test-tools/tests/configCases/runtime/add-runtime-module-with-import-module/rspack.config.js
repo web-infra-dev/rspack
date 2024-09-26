@@ -48,14 +48,16 @@ module.exports = {
       compiler.hooks.thisCompilation.tap(
         "MockRuntimePlugin",
         (compilation) => {
-          compilation.hooks.runtimeRequirementInTree.tap("MockRuntimePlugin", (chunk, set) => {
-            set.add(RuntimeGlobals.publicPath);
-            set.add(RuntimeGlobals.getChunkScriptFilename);
-            compilation.addRuntimeModule(
-              chunk,
-              new MockRuntimeModule(chunk)
-            );
-          })
+          compilation.hooks.runtimeRequirementInTree
+						.for(RuntimeGlobals.ensureChunkHandlers)
+						.tap("MockRuntimePlugin", (chunk, set) => {
+							set.add(RuntimeGlobals.publicPath);
+							set.add(RuntimeGlobals.getChunkScriptFilename);
+							compilation.addRuntimeModule(
+								chunk,
+								new MockRuntimeModule(chunk)
+							);
+						})
         }
       );
     }

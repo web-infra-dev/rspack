@@ -449,14 +449,13 @@ module.exports = {
         }
 
         compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
-          compilation.hooks.runtimeRequirementInTree.tap(
-            'CustomPlugin',
-            (chunk, set) => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
               if (chunk.name === 'main') {
                 compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
               }
-            },
-          );
+            });
         });
       },
     },
