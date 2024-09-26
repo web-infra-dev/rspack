@@ -5,7 +5,7 @@ class IsolateRuntimeModule extends RuntimeModule {
     super("mock-isolate");
   }
 
-  generate(compilation) {
+  generate() {
     return `
       __webpack_require__.mock = function() {
         return someGlobalValue;
@@ -23,7 +23,7 @@ class NonIsolateRuntimeModule extends RuntimeModule {
     return false;
   }
 
-  generate(compilation) {
+  generate() {
     return `
       var someGlobalValue = "isolated";
     `;

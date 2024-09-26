@@ -5,7 +5,7 @@ class MockRuntimeModule extends RuntimeModule {
     super("mock");
   }
 
-  generate(compilation) {
+  generate() {
     const chunkIdToName = this.chunk.getChunkMaps(false).name;
     const chunkNameToId = Object.fromEntries(
       Object.entries(chunkIdToName).map(([chunkId, chunkName]) => [
