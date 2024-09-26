@@ -391,6 +391,12 @@ jobs:
 
   pkg-preview:
     name: Pkg Preview
-    # needs:
-    #   - cargo-deny
+    needs:
+      - test-linux
+      - test-windows
+      - cargo-deny
+      - lint
+      - rust_check
+      - rust_test
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/preview-commit.yml
