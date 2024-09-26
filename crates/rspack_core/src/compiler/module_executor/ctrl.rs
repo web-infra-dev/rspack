@@ -80,9 +80,6 @@ impl CtrlTask {
 
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for CtrlTask {
-  fn name(&self) -> &'static str {
-    "control_task"
-  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
@@ -165,9 +162,6 @@ struct FinishModuleTask {
 }
 
 impl Task<MakeTaskContext> for FinishModuleTask {
-  fn name(&self) -> &'static str {
-    "finish_module_task"
-  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
