@@ -1,12 +1,12 @@
 "use strict";
 (self['webpackChunk'] = self['webpackChunk'] || []).push([["entry1"], {
-"./styleA.css?17f2": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./styleA.css?f3f1": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
 
 }),
-"./styleB.css?ac84": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./styleB.css?cc3f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -14,14 +14,14 @@ __webpack_require__.r(__webpack_exports__);
 }),
 "./entryA.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleA.css?17f2");
+/* harmony import */var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleA.css?f3f1");
 
 
 
 }),
 "./entryB.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css?ac84");
+/* harmony import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css?cc3f");
 
 
 
