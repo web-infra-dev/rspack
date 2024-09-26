@@ -6,6 +6,6 @@ module.exports = function(config) {
 };
 
 */
-module.exports = () => {return true}
+module.exports = () => {return "flagIncludedChunks"}
 
 							
