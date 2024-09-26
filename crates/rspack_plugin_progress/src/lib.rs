@@ -255,7 +255,7 @@ impl ProgressPlugin {
   fn sealing_hooks_report(&self, name: &str, index: i32) -> Result<()> {
     let number_of_sealing_hooks = 38;
     self.handler(
-      0.7 + 0.25 * (index / number_of_sealing_hooks) as f64,
+      0.7 + 0.25 * (index as f64 / number_of_sealing_hooks as f64),
       "sealing".to_string(),
       vec![name.to_string()],
       None,
@@ -308,7 +308,7 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  self.handler(0.01, String::from("make"), vec![], None)?;
+  self.handler(0.1, String::from("make"), vec![], None)?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
   Ok(())
