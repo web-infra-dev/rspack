@@ -128,18 +128,7 @@ exports[`statsOutput statsOutput/legacy-ie-css-warning should print correct stat
 exports[`statsOutput statsOutput/let-keyword-as-variable-name-error should print correct stats for 1`] = `
 "ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
-         ╭────
-       1 │ let let = let;
-         ·           ───
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parsing error: \`let\` cannot be used as an identifier in strict mode
+  ╰─▶   × JavaScript parsing error: Unexpected token \`let\`. Expected let is reserved in const, let, class declaration
          ╭────
        1 │ let let = let;
          ·     ───
@@ -148,7 +137,7 @@ ERROR in ./index.js
   help: 
         You may need an appropriate loader to handle this file type.
 
-Rspack compiled with 2 errors"
+Rspack compiled with 1 error"
 `;
 
 exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct stats for 1`] = `
