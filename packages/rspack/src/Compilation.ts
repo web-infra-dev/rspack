@@ -697,10 +697,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			}
 		];
 		proxyMethod.forEach(item => {
-			const proxyedMethod = new Proxy(errors[item.method as any], {
+			const proxiedMethod = new Proxy(errors[item.method as any], {
 				apply: item.handler as any
 			});
-			errors[item.method as any] = proxyedMethod;
+			errors[item.method as any] = proxiedMethod;
 		});
 		return errors;
 	}
@@ -791,10 +791,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			}
 		];
 		proxyMethod.forEach(item => {
-			const proxyedMethod = new Proxy(warnings[item.method as any], {
+			const proxiedMethod = new Proxy(warnings[item.method as any], {
 				apply: item.handler as any
 			});
-			warnings[item.method as any] = proxyedMethod;
+			warnings[item.method as any] = proxiedMethod;
 		});
 		return warnings;
 	}
