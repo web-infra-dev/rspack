@@ -27,9 +27,6 @@ pub struct BuildTask {
 
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildTask {
-  fn name(&self) -> &'static str {
-    "build_task"
-  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
@@ -109,9 +106,6 @@ struct BuildResultTask {
 }
 
 impl Task<MakeTaskContext> for BuildResultTask {
-  fn name(&self) -> &'static str {
-    "build_result"
-  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }

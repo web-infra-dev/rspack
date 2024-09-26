@@ -19,9 +19,6 @@ pub struct EntryTask {
 }
 
 impl Task<MakeTaskContext> for EntryTask {
-  fn name(&self) -> &'static str {
-    "entry_task"
-  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }

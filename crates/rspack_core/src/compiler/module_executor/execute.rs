@@ -56,9 +56,6 @@ pub struct ExecuteTask {
 }
 
 impl Task<MakeTaskContext> for ExecuteTask {
-  fn name(&self) -> &'static str {
-    "execute_task"
-  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
