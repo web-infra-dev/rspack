@@ -235,6 +235,59 @@ delete require.cache[require.resolve('dependency')];
 require('dependency') !== d1;
 ```
 
+### require.ensure
+
+:::tip
+`require.ensure()` 基本已经被 `import()` 取代.
+:::
+
+将给定 `dependencies` 单独打包，并异步加载。当使用 CommonJS 语法的时候，这是唯一动态加载依赖的方式。同时，这个 API 也可以用于运行时，只有在满足某些条件时才会加载依赖。
+
+:::warning
+该特性内部依赖于 [Promise](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise)。 如果你在旧的浏览器上使用 `require.ensure`， 最好加入 polyfill [es6-promise](https://github.com/stefanpenner/es6-promise) 或 [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)。
+:::
+
+- **Type:**
+
+```ts
+function requireEnsure(
+  /**
+   * callback 执行需要的模块列表
+   */
+  dependencies: String[],
+  /**
+   * 当 dependencies 中的模块都加载完毕时，这个函数就会被执行。
+   * require 函数将作为第一个参数传入该函数。
+   * 在这个函数中也可以进一步使用 require() 来加载模块。
+   */
+  callback: function(require),
+  /**
+   * 当加载依赖失败的时候执行的函数
+   */
+  errorCallback?: function(error),
+  /**
+   * 指定由 require.ensure() 生成的 chunk 名称。
+   * 通过指定相同的 chunkName 来合并多个 require.ensure() 调用的代码，从而只生成一个 bundle，
+   * 从而减少浏览器加载的次数。
+   */
+  chunkName?: String
+): Context;
+```
+
+- **Example:**
+
+```ts
+var a = require('normal-dep');
+
+if (module.hot) {
+  require.ensure(['b'], function (require) {
+    var c = require('c');
+
+    // Do something special...
+  });
+}
+```
+
 ## Data URI 模块
 
 Rspack 支持使用 `import` 和 `require` 语法导入 Data URI 模块。
