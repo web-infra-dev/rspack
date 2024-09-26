@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ModuleDependency, RealDependencyLocation,
+  AffectType, AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency, RealDependencyLocation,
 };
 use rspack_util::atom::Atom;
 
@@ -26,7 +26,7 @@ impl Dependency for RequireEnsureItemDependency {
     &self.id
   }
 
-  fn category(&self) -> &rspack_core::DependencyCategory {
+  fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
 
@@ -34,38 +34,21 @@ impl Dependency for RequireEnsureItemDependency {
     &DependencyType::RequireEnsureItem
   }
 
-  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    todo!()
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 
 impl ModuleDependency for RequireEnsureItemDependency {
   fn request(&self) -> &str {
-    todo!()
+    &self.request
   }
 }
 
-impl DependencyTemplate for RequireEnsureItemDependency {
-  fn apply(
-    &self,
-    source: &mut rspack_core::TemplateReplaceSource,
-    code_generatable_context: &mut rspack_core::TemplateContext,
-  ) {
-    todo!()
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &rspack_core::Compilation,
-    _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) {
-    todo!()
-  }
-}
+impl AsDependencyTemplate for RequireEnsureItemDependency {}
 
 impl AsContextDependency for RequireEnsureItemDependency {}
