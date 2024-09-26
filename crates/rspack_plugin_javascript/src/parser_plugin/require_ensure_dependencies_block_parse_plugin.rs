@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use swc_core::{
   common::Spanned,
-  ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Expr, FnExpr, MemberProp, Stmt},
+  ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr},
 };
 
 use super::JavascriptParserPlugin;

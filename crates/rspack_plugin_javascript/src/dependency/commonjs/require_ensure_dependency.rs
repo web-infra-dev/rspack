@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ModuleDependency, RealDependencyLocation,
+  block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, RealDependencyLocation,
+  RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
@@ -31,7 +32,7 @@ impl Dependency for RequireEnsureDependency {
     &self.id
   }
 
-  fn category(&self) -> &rspack_core::DependencyCategory {
+  fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
 
@@ -39,16 +40,16 @@ impl Dependency for RequireEnsureDependency {
     &DependencyType::RequireEnsure
   }
 
-  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    todo!()
+  fn range(&self) -> Option<&RealDependencyLocation> {
+    Some(&self.range)
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::False
   }
 }
 
-impl ModuleDependency for RequireEnsureDependency {
-  fn request(&self) -> &str {
-    todo!()
-  }
-}
+impl AsModuleDependency for RequireEnsureDependency {}
 
 impl DependencyTemplate for RequireEnsureDependency {
   fn apply(
@@ -56,7 +57,40 @@ impl DependencyTemplate for RequireEnsureDependency {
     source: &mut rspack_core::TemplateReplaceSource,
     code_generatable_context: &mut rspack_core::TemplateContext,
   ) {
-    todo!()
+    let module_graph = code_generatable_context.compilation.get_module_graph();
+    let block = module_graph.get_parent_block(&self.id);
+    let promise = block_promise(
+      block,
+      code_generatable_context.runtime_requirements,
+      code_generatable_context.compilation,
+      self.dependency_type().as_str(),
+    );
+    source.replace(
+      self.range.start,
+      self.content_range.start,
+      &format!("{}.then((", promise),
+      None,
+    );
+    if let Some(error_handler_range) = &self.error_handler_range {
+      source.replace(
+        self.content_range.end,
+        error_handler_range.start,
+        &format!(").bind(null, {})['catch'](", RuntimeGlobals::REQUIRE),
+        None,
+      );
+      source.replace(error_handler_range.end, self.range.end, ")", None);
+    } else {
+      source.replace(
+        self.content_range.end,
+        self.range.end,
+        &format!(
+          ").bind(null, {}))['catch']({})",
+          RuntimeGlobals::REQUIRE,
+          RuntimeGlobals::UNCAUGHT_ERROR_HANDLER
+        ),
+        None,
+      );
+    }
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
@@ -69,7 +103,6 @@ impl DependencyTemplate for RequireEnsureDependency {
     _compilation: &rspack_core::Compilation,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) {
-    todo!()
   }
 }
 
