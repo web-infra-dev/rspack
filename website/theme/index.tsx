@@ -30,11 +30,7 @@ const ReleaseV1Announcement = () => {
 const Layout = () => (
   <Theme.Layout
     beforeNavTitle={<RsfamilyNavIcon />}
-    beforeNav={
-      <NoSSR>
-        <ReleaseV1Announcement />
-      </NoSSR>
-    }
+    beforeNav={<ReleaseV1Announcement />}
   />
 );
 
