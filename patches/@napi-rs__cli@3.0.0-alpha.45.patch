@@ -1,0 +1,13 @@
+diff --git a/dist/api/build.js b/dist/api/build.js
+index a9c86f2fa91ec42ff6869651eb39ec7da8a155ac..02a901e18e527f2836b26d51ca32eaceab017a51 100644
+--- a/dist/api/build.js
++++ b/dist/api/build.js
+@@ -306,7 +306,7 @@ class Builder {
+             rustflags += ' -C link-arg=-s';
+         }
+         if (rustflags.length) {
+-            this.envs.RUSTFLAGS = rustflags;
++            // this.envs.RUSTFLAGS = rustflags;
+         }
+         // END RUSTFLAGS
+         // LINKER

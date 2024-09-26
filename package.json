@@ -84,7 +84,8 @@
   "packageManager": "pnpm@9.11.0",
   "pnpm": {
     "patchedDependencies": {
-      "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch"
+      "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch",
+      "@napi-rs/cli@3.0.0-alpha.45": "patches/@napi-rs__cli@3.0.0-alpha.45.patch"
     }
   },
   "lint-staged": {

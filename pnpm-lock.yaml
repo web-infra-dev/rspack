@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
+  '@napi-rs/cli@3.0.0-alpha.45':
+    hash: b46kyckqzibeioldsq63qggjhq
+    path: patches/@napi-rs__cli@3.0.0-alpha.45.patch
   graceful-fs@4.2.10:
     hash: ivtm2a2cfr5pomcfbedhmr5v2q
     path: patches/graceful-fs@4.2.10.patch
@@ -112,7 +115,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: 3.0.0-alpha.45
-        version: 3.0.0-alpha.45
+        version: 3.0.0-alpha.45(patch_hash=b46kyckqzibeioldsq63qggjhq)
       typescript:
         specifier: 5.0.2
         version: 5.0.2
@@ -11224,7 +11227,7 @@ snapshots:
 
   '@napi-rs/cli@2.18.0': {}
 
-  '@napi-rs/cli@3.0.0-alpha.45':
+  '@napi-rs/cli@3.0.0-alpha.45(patch_hash=b46kyckqzibeioldsq63qggjhq)':
     dependencies:
       '@napi-rs/cross-toolchain': 0.0.14
       '@octokit/rest': 20.1.0
