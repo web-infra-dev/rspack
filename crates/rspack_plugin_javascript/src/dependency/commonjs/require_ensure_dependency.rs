@@ -75,7 +75,7 @@ impl DependencyTemplate for RequireEnsureDependency {
       source.replace(
         self.content_range.end,
         error_handler_range.start,
-        &format!(").bind(null, {})['catch'](", RuntimeGlobals::REQUIRE),
+        &format!(").bind(null, {}))['catch'](", RuntimeGlobals::REQUIRE),
         None,
       );
       source.replace(error_handler_range.end, self.range.end, ")", None);
