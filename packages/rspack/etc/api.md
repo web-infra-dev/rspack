@@ -14638,7 +14638,7 @@ export class RuntimeModule {
     // (undocumented)
     fullHash: boolean;
     // (undocumented)
-    generate(compilation: Compilation): string;
+    generate(): string;
     // (undocumented)
     identifier(): string;
     // (undocumented)
