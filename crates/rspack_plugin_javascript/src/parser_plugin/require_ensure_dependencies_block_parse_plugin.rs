@@ -77,6 +77,10 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
         None
       },
     ))];
+    /* TODO:
+     * 1. Webpack calls `parser.in_scope`.
+     * 2. Webpack sets `parser.state.current = depBlock`, but rspack doesn't support nested block yet.
+     */
     for item in dependencies_items.iter() {
       if let Some(item) = item.as_string() {
         deps.push(Box::new(RequireEnsureItemDependency::new(
