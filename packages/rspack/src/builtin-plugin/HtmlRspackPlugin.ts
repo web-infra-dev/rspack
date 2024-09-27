@@ -83,6 +83,7 @@ export type HtmlRspackPluginOptions = {
 	/** The publicPath used for script and link tags. */
 	publicPath?: string;
 
+	/** Inject a [base](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag */
 	base?:
 		| string
 		| { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" };
