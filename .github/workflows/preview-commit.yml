@@ -23,7 +23,7 @@ jobs:
         with:
           predicate-quantifier: "every"
           filters: |
-            cli_changed:
+            changed:
               - "packages/rspack-cli/**"
 
   build:
