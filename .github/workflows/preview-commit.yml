@@ -13,17 +13,19 @@ jobs:
 
   check-changed:
     runs-on: ubuntu-latest
-    name: Check rspack-cli Changed
+    name: Check Changed
     outputs:
-      cli_changed: ${{ steps.cli_filter.outputs.changed == 'true' }}
+      changed: ${{ steps.filter.outputs.changed == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
-        id: cli_filter
+        id: filter
         with:
           predicate-quantifier: "every"
           filters: |
             changed:
+              - "crates"
+              - "packages/rspack/**"
               - "packages/rspack-cli/**"
 
   build:
@@ -85,9 +87,5 @@ jobs:
         run: ls -R npm
 
       - name: Release
-        if: needs.check-changed.outputs.cli_changed == 'true'
+        if: needs.check-changed.outputs.changed == 'true'
         run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/rspack-cli'
-
-      - name: Release
-        if: needs.check-changed.outputs.cli_changed != 'true'
-        run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack'
