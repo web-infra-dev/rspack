@@ -18,7 +18,8 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey, Compilation,
-  LogType, ModuleGraph, ModuleIdentifier, ProvidedExports, SourceType, UsedExports,
+  ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports, SourceType,
+  UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -202,6 +203,23 @@ impl Stats<'_> {
       .map(|(identifier, module)| self.get_runtime_module(identifier, module, options))
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
+
+    if let Some(executed_runtime_modules) = self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|me| &me.executed_runtime_modules)
+    {
+      let runtime_modules: Vec<StatsModule> = executed_runtime_modules
+        .iter()
+        .par_bridge()
+        .map(|item| {
+          let (id, module) = item.pair();
+          self.get_executed_runtime_module(id, module, options)
+        })
+        .collect::<Result<_>>()?;
+      modules.extend(runtime_modules);
+    }
 
     sort_modules(&mut modules);
     Ok(f(modules))
@@ -952,6 +970,101 @@ impl Stats<'_> {
 
     if options.source {
       stats.source = module.original_source();
+    }
+
+    Ok(stats)
+  }
+
+  fn get_executed_runtime_module(
+    &self,
+    identifier: &ModuleIdentifier,
+    module: &ExecutedRuntimeModule,
+    options: &ExtendedStatsOptions,
+  ) -> Result<StatsModule> {
+    let built = false;
+    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+
+    let mut stats = StatsModule {
+      r#type: "module",
+      module_type: module.module_type,
+      layer: None,
+      size: module.size,
+      sizes: vec![StatsSourceTypeSize {
+        source_type: SourceType::Custom("runtime".into()),
+        size: module.size,
+      }],
+      built,
+      code_generated,
+      build_time_executed: true,
+      cached: !built && !code_generated,
+      identifier: None,
+      name: None,
+      name_for_condition: None,
+      id: None,
+      chunks: None,
+      dependent: None,
+      issuer: None,
+      issuer_name: None,
+      issuer_id: None,
+      issuer_path: None,
+      reasons: None,
+      assets: None,
+      modules: None,
+      source: None,
+      profile: None,
+      orphan: None,
+      provided_exports: None,
+      used_exports: None,
+      optimization_bailout: None,
+      depth: None,
+      pre_order_index: None,
+      post_order_index: None,
+      cacheable: None,
+      optional: None,
+      failed: None,
+      errors: None,
+      warnings: None,
+    };
+
+    // module$visible
+    if stats.built || stats.code_generated || options.cached_modules {
+      stats.identifier = Some(module.identifier);
+      stats.name = Some(module.name.clone().into());
+      stats.name_for_condition = module.name_for_condition.as_ref().map(|n| n.to_string());
+      stats.cacheable = Some(module.cacheable);
+      stats.optional = Some(false);
+      stats.orphan = Some(true);
+      stats.issuer = None;
+      stats.issuer_name = None;
+      stats.issuer_path = None;
+      stats.failed = Some(false);
+      stats.errors = Some(0);
+      stats.warnings = Some(0);
+    }
+
+    if options.ids {
+      stats.id = Some("");
+      stats.chunks = Some(vec![]);
+    }
+
+    if options.reasons {
+      stats.reasons = Some(vec![]);
+    }
+
+    if options.module_assets {
+      stats.assets = Some(vec![]);
+    }
+
+    if options.used_exports {
+      stats.used_exports = Some(StatsUsedExports::Null)
+    }
+
+    if options.provided_exports {
+      stats.provided_exports = Some(vec![]);
+    }
+
+    if options.optimization_bailout {
+      stats.optimization_bailout = Some(Default::default());
     }
 
     Ok(stats)

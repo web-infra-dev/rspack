@@ -8,6 +8,7 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};
 
+use crate::CompilationAssets;
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -47,7 +48,12 @@ pub struct ExecuteTask {
   pub layer: Option<String>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub result_sender: Sender<Result<ExecuteModuleResult>>,
+  pub result_sender: Sender<(
+    Result<ExecuteModuleResult>,
+    CompilationAssets,
+    IdentifierSet,
+    Vec<ExecutedRuntimeModule>,
+  )>,
 }
 
 impl Task<MakeTaskContext> for ExecuteTask {
@@ -305,7 +311,12 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .collect_vec();
     context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send(execute_result)
+      .send((
+        execute_result,
+        assets,
+        code_generated_modules,
+        executed_runtime_modules,
+      ))
       .expect("should send result success");
     Ok(vec![])
   }

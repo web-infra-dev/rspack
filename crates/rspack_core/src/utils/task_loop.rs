@@ -140,7 +140,6 @@ pub fn run_task_loop<Ctx: 'static>(
       .as_mut()
       .map(|receiver| receiver.try_recv())
     {
-      dbg!(&task);
       queue.push_back(task);
     }
   })

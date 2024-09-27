@@ -1086,6 +1086,13 @@ impl Compilation {
     let diagnostics = self.make_artifact.take_diagnostics();
     self.extend_diagnostics(diagnostics);
 
+    // sync assets to compilation from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await;
+      self.module_executor = Some(module_executor);
+    }
+
     // take built_modules
     self
       .built_modules

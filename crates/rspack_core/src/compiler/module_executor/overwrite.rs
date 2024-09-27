@@ -50,7 +50,6 @@ impl Task<MakeTaskContext> for OverwriteTask {
 
     // process dependencies
     if is_process_dependencies {
-      dbg!(res.len());
       event_sender
         .send(Event::FinishModule(res.len()))
         .expect("should success");
