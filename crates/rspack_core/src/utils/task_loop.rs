@@ -1,12 +1,14 @@
 use std::{
   any::Any,
   collections::VecDeque,
+  fmt::Debug,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
   },
 };
 
+use futures::FutureExt;
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
 use tokio::{
@@ -31,7 +33,7 @@ pub enum TaskType {
 ///
 /// See test for more example
 #[async_trait::async_trait]
-pub trait Task<Ctx>: Send + Any + AsAny {
+pub trait Task<Ctx>: Send + Any + AsAny + Debug {
   /// Return the task type
   ///
   /// Return `TaskType::Sync` will run `self::sync_run`
@@ -98,8 +100,19 @@ pub fn run_task_loop<Ctx: 'static>(
 
     let data = if queue.is_empty() && active_task_count != 0 {
       Handle::current().block_on(async {
-        let res = rx.recv().await.expect("should recv success");
-        Ok(res)
+        if let Some(module_executor_task_receiver) = module_executor_task_receiver.as_mut() {
+          let mut res = Box::pin(rx.recv().fuse());
+          let mut module_executor_task = Box::pin(module_executor_task_receiver.recv().fuse());
+          futures::select! {
+            r = res => Ok(r.expect("should recv success")),
+            r = module_executor_task => {
+              queue.push_back(r.expect("should recv success"));
+              Err(TryRecvError::Empty)
+            },
+          }
+        } else {
+          Ok(rx.recv().await.expect("should rcv success"))
+        }
       })
     } else {
       rx.try_recv()
@@ -127,6 +140,7 @@ pub fn run_task_loop<Ctx: 'static>(
       .as_mut()
       .map(|receiver| receiver.try_recv())
     {
+      dbg!(&task);
       queue.push_back(task);
     }
   })

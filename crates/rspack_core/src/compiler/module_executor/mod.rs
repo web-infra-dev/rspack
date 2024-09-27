@@ -16,7 +16,6 @@ use tokio::sync::{
 };
 
 use self::{
-  ctrl::Event,
   entry::EntryParam,
   execute::{ExecuteModuleResult, ExecuteTask},
 };
@@ -47,43 +46,61 @@ impl ModuleExecutor {
     original_module_context: Option<Context>,
     original_module_identifier: Option<Identifier>,
   ) -> Result<ExecuteModuleResult> {
-    // let sender = self
-    //   .event_sender
-    //   .as_ref()
-    //   .expect("should have event sender");
-    // let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
-    //   Entry::Vacant(v) => {
-    //     let dep = LoaderImportDependency::new(
-    //       request.clone(),
-    //       original_module_context.unwrap_or(Context::from("")),
-    //     );
-    //     let dep_id = *dep.id();
-    //     v.insert(dep_id);
-    //     (EntryParam::Entry(Box::new(dep)), dep_id)
-    //   }
-    //   Entry::Occupied(v) => {
-    //     let dep_id = *v.get();
-    //     (EntryParam::DependencyId(dep_id, sender.clone()), dep_id)
-    //   }
-    // };
+    let sender = self
+      .event_sender
+      .as_ref()
+      .expect("should have event sender");
 
-    // let (tx, rx) = oneshot::channel();
-    // sender
-    //   .send(Event::ExecuteModule(
-    //     param,
-    //     ExecuteTask {
-    //       entry_dep_id: dep_id,
-    //       layer,
-    //       public_path,
-    //       base_uri,
-    //       result_sender: tx,
-    //     },
-    //   ))
-    //   .expect("should success");
-    // let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
-    //   rx.await.expect("should receiver success");
+    let (tx, mut rx) = unbounded_channel();
+    let (is_created, param, dep_id) = match self.request_dep_map.entry(request.clone()) {
+      Entry::Vacant(v) => {
+        let dep = LoaderImportDependency::new(
+          request.clone(),
+          original_module_context.unwrap_or(Context::from("")),
+        );
+        let dep_id = *dep.id();
+        v.insert(dep_id);
+        (false, EntryParam::Entry(Box::new(dep)), dep_id)
+      }
+      Entry::Occupied(v) => {
+        let dep_id = *v.get();
+        (true, EntryParam::DependencyId(dep_id), dep_id)
+      }
+    };
+    sender
+      .send(Box::new(entry::EntryTask {
+        param,
+        event_sender: tx,
+      }))
+      .expect("should success");
 
-    // execute_result
-    todo!()
+    if !is_created {
+      let mut finish_counter = 1;
+      while finish_counter != 0 {
+        let event = rx.recv().await.expect("should success");
+        match event {
+          ctrl::Event::FinishDeps => {
+            finish_counter -= 1;
+          }
+          ctrl::Event::FinishModule(size) => {
+            finish_counter += size;
+            finish_counter -= 1;
+          }
+        }
+      }
+    }
+
+    let (tx, rx) = oneshot::channel();
+    sender
+      .send(Box::new(ExecuteTask {
+        entry_dep_id: dep_id,
+        layer,
+        public_path,
+        base_uri,
+        result_sender: tx,
+      }))
+      .expect("should success");
+    let execute_result = rx.await.expect("should receiver success");
+    execute_result
   }
 }

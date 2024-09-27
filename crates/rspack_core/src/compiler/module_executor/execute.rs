@@ -12,8 +12,8 @@ use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
-  Entrypoint, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, CompilationAsset, DependencyId, EntryOptions, Entrypoint, ModuleType,
+  PublicPath, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -47,12 +47,7 @@ pub struct ExecuteTask {
   pub layer: Option<String>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub result_sender: Sender<(
-    Result<ExecuteModuleResult>,
-    CompilationAssets,
-    IdentifierSet,
-    Vec<ExecutedRuntimeModule>,
-  )>,
+  pub result_sender: Sender<Result<ExecuteModuleResult>>,
 }
 
 impl Task<MakeTaskContext> for ExecuteTask {
@@ -310,12 +305,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .collect_vec();
     context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send((
-        execute_result,
-        assets,
-        code_generated_modules,
-        executed_runtime_modules,
-      ))
+      .send(execute_result)
       .expect("should send result success");
     Ok(vec![])
   }

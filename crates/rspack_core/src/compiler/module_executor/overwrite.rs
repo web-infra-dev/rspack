@@ -9,6 +9,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
+#[derive(Debug)]
 pub struct OverwriteTask {
   pub origin_task: Box<dyn Task<MakeTaskContext>>,
   pub event_sender: UnboundedSender<Event>,
@@ -25,60 +26,67 @@ impl Task<MakeTaskContext> for OverwriteTask {
       origin_task,
       event_sender,
     } = *self;
-    // process dependencies
-    if let Some(process_dependencies_task) = origin_task
+
+    let is_process_dependencies = origin_task
       .as_any()
       .downcast_ref::<ProcessDependenciesTask>()
-    {
-      let original_module_identifier = process_dependencies_task.original_module_identifier;
-      let res = origin_task.sync_run(context)?;
+      .is_some();
+    let is_factorize_result = origin_task
+      .as_any()
+      .downcast_ref::<FactorizeResultTask>()
+      .is_some();
+    let is_add_task = origin_task.as_any().downcast_ref::<AddTask>().is_some();
+
+    let res: Vec<_> = origin_task
+      .sync_run(context)?
+      .into_iter()
+      .map(|task| {
+        Box::new(OverwriteTask {
+          origin_task: task,
+          event_sender: event_sender.clone(),
+        }) as Box<dyn Task<MakeTaskContext>>
+      })
+      .collect();
+
+    // process dependencies
+    if is_process_dependencies {
+      dbg!(res.len());
       event_sender
-        .send(Event::FinishModule(original_module_identifier, res.len()))
+        .send(Event::FinishModule(res.len()))
         .expect("should success");
-      return Ok(res);
     }
 
     // factorize result task
-    if let Some(factorize_result_task) = origin_task.as_any().downcast_ref::<FactorizeResultTask>()
-    {
-      let dep_id = *factorize_result_task.dependencies[0].id();
-      let original_module_identifier = factorize_result_task.original_module_identifier;
-      let res = origin_task.sync_run(context)?;
-      if res.is_empty() {
-        event_sender
-          .send(Event::FinishDeps(original_module_identifier, dep_id, None))
-          .expect("should success");
-      }
-      return Ok(res);
+    if is_factorize_result && res.is_empty() {
+      event_sender
+        .send(Event::FinishDeps)
+        .expect("should success");
     }
+
     // add task
-    if let Some(add_task) = origin_task.as_any().downcast_ref::<AddTask>() {
-      let dep_id = *add_task.dependencies[0].id();
-      let original_module_identifier = add_task.original_module_identifier;
-      let target_module_identifier = add_task.module.identifier();
-
-      let res = origin_task.sync_run(context)?;
-      if res.is_empty() {
-        event_sender
-          .send(Event::FinishDeps(
-            original_module_identifier,
-            dep_id,
-            Some(target_module_identifier),
-          ))
-          .expect("should success");
-      } else {
-        event_sender
-          .send(Event::StartBuild(target_module_identifier))
-          .expect("should success");
-      }
-      return Ok(res);
+    if is_add_task && res.is_empty() {
+      event_sender
+        .send(Event::FinishDeps)
+        .expect("should success");
     }
 
-    // other task
-    origin_task.sync_run(context)
+    Ok(res)
   }
 
   async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
-    self.origin_task.async_run().await
+    Ok(
+      self
+        .origin_task
+        .async_run()
+        .await?
+        .into_iter()
+        .map(|task| {
+          Box::new(OverwriteTask {
+            origin_task: task,
+            event_sender: self.event_sender.clone(),
+          }) as Box<dyn Task<MakeTaskContext>>
+        })
+        .collect(),
+    )
   }
 }
