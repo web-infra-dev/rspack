@@ -395,44 +395,20 @@ export type Bail = z.infer<typeof bail>;
 const bail: z.ZodBoolean;
 
 // @public (undocumented)
+type BannerContent = string | BannerFunction;
+
+// @public (undocumented)
+type BannerFunction = (args: {
+    hash: string;
+    chunk: JsChunk;
+    filename: string;
+}) => string;
+
+// @public (undocumented)
 export const BannerPlugin: {
-    new (args: string | ((args_0: {
-        filename: string;
-        hash: string;
-        chunk: JsChunk;
-    }, ...args_1: unknown[]) => string) | {
-        banner: string | ((args_0: {
-            filename: string;
-            hash: string;
-            chunk: JsChunk;
-        }, ...args_1: unknown[]) => string);
-        entryOnly?: boolean | undefined;
-        exclude?: string | RegExp | (string | RegExp)[] | undefined;
-        include?: string | RegExp | (string | RegExp)[] | undefined;
-        raw?: boolean | undefined;
-        footer?: boolean | undefined;
-        stage?: number | undefined;
-        test?: string | RegExp | (string | RegExp)[] | undefined;
-    }): {
+    new (args: BannerPluginArgument): {
         name: BuiltinPluginName;
-        _args: [args: string | ((args_0: {
-            filename: string;
-            hash: string;
-            chunk: JsChunk;
-        }, ...args_1: unknown[]) => string) | {
-            banner: string | ((args_0: {
-                filename: string;
-                hash: string;
-                chunk: JsChunk;
-            }, ...args_1: unknown[]) => string);
-            entryOnly?: boolean | undefined;
-            exclude?: string | RegExp | (string | RegExp)[] | undefined;
-            include?: string | RegExp | (string | RegExp)[] | undefined;
-            raw?: boolean | undefined;
-            footer?: boolean | undefined;
-            stage?: number | undefined;
-            test?: string | RegExp | (string | RegExp)[] | undefined;
-        }];
+        _args: [args: BannerPluginArgument];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -440,69 +416,19 @@ export const BannerPlugin: {
 };
 
 // @public (undocumented)
-export type BannerPluginArgument = z.infer<typeof bannerPluginArgument>;
+export type BannerPluginArgument = BannerContent | BannerPluginOptions;
 
 // @public (undocumented)
-const bannerPluginArgument: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    hash: z.ZodString;
-    chunk: z.ZodType<JsChunk, z.ZodTypeDef, JsChunk>;
-    filename: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    filename: string;
-    hash: string;
-    chunk: JsChunk;
-}, {
-    filename: string;
-    hash: string;
-    chunk: JsChunk;
-}>], z.ZodUnknown>, z.ZodString>]>, z.ZodObject<{
-    banner: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-        hash: z.ZodString;
-        chunk: z.ZodType<JsChunk, z.ZodTypeDef, JsChunk>;
-        filename: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        filename: string;
-        hash: string;
-        chunk: JsChunk;
-    }, {
-        filename: string;
-        hash: string;
-        chunk: JsChunk;
-    }>], z.ZodUnknown>, z.ZodString>]>;
-    entryOnly: z.ZodOptional<z.ZodBoolean>;
-    exclude: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
-    include: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
-    raw: z.ZodOptional<z.ZodBoolean>;
-    footer: z.ZodOptional<z.ZodBoolean>;
-    stage: z.ZodOptional<z.ZodNumber>;
-    test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">]>>;
-}, "strict", z.ZodTypeAny, {
-    banner: string | ((args_0: {
-        filename: string;
-        hash: string;
-        chunk: JsChunk;
-    }, ...args_1: unknown[]) => string);
-    entryOnly?: boolean | undefined;
-    exclude?: string | RegExp | (string | RegExp)[] | undefined;
-    include?: string | RegExp | (string | RegExp)[] | undefined;
-    raw?: boolean | undefined;
-    footer?: boolean | undefined;
-    stage?: number | undefined;
-    test?: string | RegExp | (string | RegExp)[] | undefined;
-}, {
-    banner: string | ((args_0: {
-        filename: string;
-        hash: string;
-        chunk: JsChunk;
-    }, ...args_1: unknown[]) => string);
-    entryOnly?: boolean | undefined;
-    exclude?: string | RegExp | (string | RegExp)[] | undefined;
-    include?: string | RegExp | (string | RegExp)[] | undefined;
-    raw?: boolean | undefined;
-    footer?: boolean | undefined;
-    stage?: number | undefined;
-    test?: string | RegExp | (string | RegExp)[] | undefined;
-}>]>;
+type BannerPluginOptions = {
+    banner: BannerContent;
+    entryOnly?: boolean;
+    exclude?: Rules;
+    include?: Rules;
+    raw?: boolean;
+    footer?: boolean;
+    stage?: number;
+    test?: Rules;
+};
 
 // @public (undocumented)
 abstract class BaseCache {
@@ -698,13 +624,13 @@ const baseRuleSetRule: z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
-    exclude?: RuleSetCondition | undefined;
-    include?: RuleSetCondition | undefined;
-    test?: RuleSetCondition | undefined;
     layer?: string | undefined;
+    test?: RuleSetCondition | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
     loader?: string | undefined;
+    exclude?: RuleSetCondition | undefined;
+    include?: RuleSetCondition | undefined;
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
@@ -734,13 +660,13 @@ const baseRuleSetRule: z.ZodObject<{
 }, {
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
-    exclude?: RuleSetCondition | undefined;
-    include?: RuleSetCondition | undefined;
-    test?: RuleSetCondition | undefined;
     layer?: string | undefined;
+    test?: RuleSetCondition | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
     loader?: string | undefined;
+    exclude?: RuleSetCondition | undefined;
+    include?: RuleSetCondition | undefined;
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
@@ -4733,8 +4659,8 @@ export const HtmlRspackPlugin: {
     new (c?: {
         filename?: string | undefined;
         publicPath?: string | undefined;
-        hash?: boolean | undefined;
         chunks?: string[] | undefined;
+        hash?: boolean | undefined;
         base?: string | {
             target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
             href?: string | undefined;
@@ -4755,8 +4681,8 @@ export const HtmlRspackPlugin: {
         _args: [c?: {
             filename?: string | undefined;
             publicPath?: string | undefined;
-            hash?: boolean | undefined;
             chunks?: string[] | undefined;
+            hash?: boolean | undefined;
             base?: string | {
                 target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
                 href?: string | undefined;
@@ -4836,8 +4762,8 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     filename?: string | undefined;
     publicPath?: string | undefined;
-    hash?: boolean | undefined;
     chunks?: string[] | undefined;
+    hash?: boolean | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
@@ -4856,8 +4782,8 @@ const htmlRspackPluginOptions: z.ZodObject<{
 }, {
     filename?: string | undefined;
     publicPath?: string | undefined;
-    hash?: boolean | undefined;
     chunks?: string[] | undefined;
+    hash?: boolean | undefined;
     base?: string | {
         target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
         href?: string | undefined;
@@ -7655,9 +7581,9 @@ const optimization: z.ZodObject<{
         }, "strict", z.ZodTypeAny, {
             filename?: string | undefined;
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+            priority?: number | undefined;
             type?: string | RegExp | undefined;
             test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-            priority?: number | undefined;
             enforce?: boolean | undefined;
             reuseExistingChunk?: boolean | undefined;
             idHint?: string | undefined;
@@ -7675,9 +7601,9 @@ const optimization: z.ZodObject<{
         }, {
             filename?: string | undefined;
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+            priority?: number | undefined;
             type?: string | RegExp | undefined;
             test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-            priority?: number | undefined;
             enforce?: boolean | undefined;
             reuseExistingChunk?: boolean | undefined;
             idHint?: string | undefined;
@@ -7732,9 +7658,9 @@ const optimization: z.ZodObject<{
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+            priority?: number | undefined;
             type?: string | RegExp | undefined;
             test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-            priority?: number | undefined;
             enforce?: boolean | undefined;
             reuseExistingChunk?: boolean | undefined;
             idHint?: string | undefined;
@@ -7775,9 +7701,9 @@ const optimization: z.ZodObject<{
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+            priority?: number | undefined;
             type?: string | RegExp | undefined;
             test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-            priority?: number | undefined;
             enforce?: boolean | undefined;
             reuseExistingChunk?: boolean | undefined;
             idHint?: string | undefined;
@@ -7854,9 +7780,9 @@ const optimization: z.ZodObject<{
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+            priority?: number | undefined;
             type?: string | RegExp | undefined;
             test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-            priority?: number | undefined;
             enforce?: boolean | undefined;
             reuseExistingChunk?: boolean | undefined;
             idHint?: string | undefined;
@@ -7920,9 +7846,9 @@ const optimization: z.ZodObject<{
         cacheGroups?: Record<string, false | {
             filename?: string | undefined;
             name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+            priority?: number | undefined;
             type?: string | RegExp | undefined;
             test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-            priority?: number | undefined;
             enforce?: boolean | undefined;
             reuseExistingChunk?: boolean | undefined;
             idHint?: string | undefined;
@@ -8021,9 +7947,9 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     filename?: string | undefined;
     name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+    priority?: number | undefined;
     type?: string | RegExp | undefined;
     test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-    priority?: number | undefined;
     enforce?: boolean | undefined;
     reuseExistingChunk?: boolean | undefined;
     idHint?: string | undefined;
@@ -8041,9 +7967,9 @@ const optimizationSplitChunksCacheGroup: z.ZodObject<{
 }, {
     filename?: string | undefined;
     name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+    priority?: number | undefined;
     type?: string | RegExp | undefined;
     test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-    priority?: number | undefined;
     enforce?: boolean | undefined;
     reuseExistingChunk?: boolean | undefined;
     idHint?: string | undefined;
@@ -8106,9 +8032,9 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         filename?: string | undefined;
         name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+        priority?: number | undefined;
         type?: string | RegExp | undefined;
         test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-        priority?: number | undefined;
         enforce?: boolean | undefined;
         reuseExistingChunk?: boolean | undefined;
         idHint?: string | undefined;
@@ -8126,9 +8052,9 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     }, {
         filename?: string | undefined;
         name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+        priority?: number | undefined;
         type?: string | RegExp | undefined;
         test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-        priority?: number | undefined;
         enforce?: boolean | undefined;
         reuseExistingChunk?: boolean | undefined;
         idHint?: string | undefined;
@@ -8183,9 +8109,9 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     cacheGroups?: Record<string, false | {
         filename?: string | undefined;
         name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+        priority?: number | undefined;
         type?: string | RegExp | undefined;
         test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-        priority?: number | undefined;
         enforce?: boolean | undefined;
         reuseExistingChunk?: boolean | undefined;
         idHint?: string | undefined;
@@ -8226,9 +8152,9 @@ const optimizationSplitChunksOptions: z.ZodObject<{
     cacheGroups?: Record<string, false | {
         filename?: string | undefined;
         name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+        priority?: number | undefined;
         type?: string | RegExp | undefined;
         test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-        priority?: number | undefined;
         enforce?: boolean | undefined;
         reuseExistingChunk?: boolean | undefined;
         idHint?: string | undefined;
@@ -11758,7 +11684,6 @@ export const rspackOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
         usedExports?: boolean | undefined;
@@ -11773,6 +11698,7 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         version?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
@@ -11835,7 +11761,6 @@ export const rspackOptions: z.ZodObject<{
     }, {
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
         usedExports?: boolean | undefined;
@@ -11850,6 +11775,7 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         version?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
@@ -11953,9 +11879,9 @@ export const rspackOptions: z.ZodObject<{
             }, "strict", z.ZodTypeAny, {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -11973,9 +11899,9 @@ export const rspackOptions: z.ZodObject<{
             }, {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -12030,9 +11956,9 @@ export const rspackOptions: z.ZodObject<{
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -12073,9 +11999,9 @@ export const rspackOptions: z.ZodObject<{
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -12152,9 +12078,9 @@ export const rspackOptions: z.ZodObject<{
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -12218,9 +12144,9 @@ export const rspackOptions: z.ZodObject<{
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -13589,7 +13515,6 @@ export const rspackOptions: z.ZodObject<{
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
         usedExports?: boolean | undefined;
@@ -13604,6 +13529,7 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         version?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
@@ -13688,9 +13614,9 @@ export const rspackOptions: z.ZodObject<{
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -14171,7 +14097,6 @@ export const rspackOptions: z.ZodObject<{
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         chunks?: boolean | undefined;
         usedExports?: boolean | undefined;
@@ -14186,6 +14111,7 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         version?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
@@ -14270,9 +14196,9 @@ export const rspackOptions: z.ZodObject<{
             cacheGroups?: Record<string, false | {
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
+                priority?: number | undefined;
                 type?: string | RegExp | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
-                priority?: number | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -14406,11 +14332,17 @@ export interface RspackPluginInstance {
 // @public (undocumented)
 export const rspackVersion: string;
 
-// @public
-type Rule = RegExp | string;
+// @public (undocumented)
+type Rule = string | RegExp;
 
 // @public
+type Rule_2 = RegExp | string;
+
+// @public (undocumented)
 type Rules = Rule[] | Rule;
+
+// @public
+type Rules_2 = Rule_2[] | Rule_2;
 
 // @public (undocumented)
 class RuleSetCompiler {
@@ -14816,11 +14748,11 @@ export const SourceMapDevToolPlugin: {
 // @public (undocumented)
 export interface SourceMapDevToolPluginOptions extends Omit<RawSourceMapDevToolPluginOptions, "test" | "include" | "exclude"> {
     // (undocumented)
-    exclude?: Rules;
+    exclude?: Rules_2;
     // (undocumented)
-    include?: Rules;
+    include?: Rules_2;
     // (undocumented)
-    test?: Rules;
+    test?: Rules_2;
 }
 
 // @public (undocumented)
@@ -15030,7 +14962,6 @@ const statsOptions: z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     source?: boolean | undefined;
     publicPath?: boolean | undefined;
-    hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
     usedExports?: boolean | undefined;
@@ -15045,6 +14976,7 @@ const statsOptions: z.ZodObject<{
     errors?: boolean | undefined;
     errorsCount?: boolean | undefined;
     colors?: boolean | undefined;
+    hash?: boolean | undefined;
     version?: boolean | undefined;
     reasons?: boolean | undefined;
     outputPath?: boolean | undefined;
@@ -15107,7 +15039,6 @@ const statsOptions: z.ZodObject<{
 }, {
     source?: boolean | undefined;
     publicPath?: boolean | undefined;
-    hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
     usedExports?: boolean | undefined;
@@ -15122,6 +15053,7 @@ const statsOptions: z.ZodObject<{
     errors?: boolean | undefined;
     errorsCount?: boolean | undefined;
     colors?: boolean | undefined;
+    hash?: boolean | undefined;
     version?: boolean | undefined;
     reasons?: boolean | undefined;
     outputPath?: boolean | undefined;
@@ -15297,7 +15229,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
 }, "strict", z.ZodTypeAny, {
     source?: boolean | undefined;
     publicPath?: boolean | undefined;
-    hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
     usedExports?: boolean | undefined;
@@ -15312,6 +15243,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errors?: boolean | undefined;
     errorsCount?: boolean | undefined;
     colors?: boolean | undefined;
+    hash?: boolean | undefined;
     version?: boolean | undefined;
     reasons?: boolean | undefined;
     outputPath?: boolean | undefined;
@@ -15374,7 +15306,6 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
 }, {
     source?: boolean | undefined;
     publicPath?: boolean | undefined;
-    hash?: boolean | undefined;
     all?: boolean | undefined;
     chunks?: boolean | undefined;
     usedExports?: boolean | undefined;
@@ -15389,6 +15320,7 @@ const statsValue: z.ZodUnion<[z.ZodUnion<[z.ZodBoolean, z.ZodEnum<["normal", "no
     errors?: boolean | undefined;
     errorsCount?: boolean | undefined;
     colors?: boolean | undefined;
+    hash?: boolean | undefined;
     version?: boolean | undefined;
     reasons?: boolean | undefined;
     outputPath?: boolean | undefined;
