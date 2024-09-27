@@ -37,7 +37,10 @@ export type BannerPluginOptions = {
 	/** If true, banner will be placed at the end of the output. */
 	footer?: boolean;
 
-	/** The stage of the compilation in which the banner should be injected. */
+/**
+ * The stage of the compilation in which the banner should be injected.
+ * @default PROCESS_ASSETS_STAGE_ADDITIONS (-100)
+ */
 	stage?: number;
 
 	/** Include all modules that pass test assertion. */
