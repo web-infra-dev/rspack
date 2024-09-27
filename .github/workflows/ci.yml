@@ -398,5 +398,5 @@ jobs:
       - lint
       - rust_check
       - rust_test
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ (success() || cancelled()) && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/preview-commit.yml

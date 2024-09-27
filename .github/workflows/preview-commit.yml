@@ -11,6 +11,21 @@ jobs:
     with:
       force-use-github-runner: true
 
+  check-changed:
+    runs-on: ubuntu-latest
+    name: Check rspack-cli Changed
+    outputs:
+      cli_changed: ${{ steps.cli_filter.outputs.changed == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: cli_filter
+        with:
+          predicate-quantifier: "every"
+          filters: |
+            cli_changed:
+              - "packages/rspack-cli/**"
+
   build:
     needs: [get-runner-labels]
     strategy:
@@ -48,6 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
+      - check-changed
     steps:
       - uses: actions/checkout@v4
 
@@ -69,4 +85,9 @@ jobs:
         run: ls -R npm
 
       - name: Release
+        if: needs.check-changed.outputs.cli_changed == 'true'
+        run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/rspack-cli'
+
+      - name: Release
+        if: needs.check-changed.outputs.cli_changed != 'true'
         run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack'
