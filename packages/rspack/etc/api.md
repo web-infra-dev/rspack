@@ -4656,49 +4656,9 @@ const hotUpdateMainFilename: z.ZodString;
 
 // @public (undocumented)
 export const HtmlRspackPlugin: {
-    new (c?: {
-        filename?: string | undefined;
-        publicPath?: string | undefined;
-        chunks?: string[] | undefined;
-        hash?: boolean | undefined;
-        base?: string | {
-            target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
-            href?: string | undefined;
-        } | undefined;
-        template?: string | undefined;
-        templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-        templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-        inject?: boolean | "head" | "body" | undefined;
-        scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
-        excludeChunks?: string[] | undefined;
-        sri?: "sha256" | "sha384" | "sha512" | undefined;
-        minify?: boolean | undefined;
-        title?: string | undefined;
-        favicon?: string | undefined;
-        meta?: Record<string, string | Record<string, string>> | undefined;
-    } | undefined): {
+    new (c?: HtmlRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
-        _args: [c?: {
-            filename?: string | undefined;
-            publicPath?: string | undefined;
-            chunks?: string[] | undefined;
-            hash?: boolean | undefined;
-            base?: string | {
-                target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
-                href?: string | undefined;
-            } | undefined;
-            template?: string | undefined;
-            templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-            templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-            inject?: boolean | "head" | "body" | undefined;
-            scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
-            excludeChunks?: string[] | undefined;
-            sri?: "sha256" | "sha384" | "sha512" | undefined;
-            minify?: boolean | undefined;
-            title?: string | undefined;
-            favicon?: string | undefined;
-            meta?: Record<string, string | Record<string, string>> | undefined;
-        } | undefined];
+        _args: [c?: HtmlRspackPluginOptions | undefined];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
@@ -4730,76 +4690,27 @@ type HtmlRspackPluginHooks = {
 };
 
 // @public (undocumented)
-export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
-
-// @public (undocumented)
-const htmlRspackPluginOptions: z.ZodObject<{
-    filename: z.ZodOptional<z.ZodString>;
-    template: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
-    templateContent: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodRecord<z.ZodString, z.ZodAny>], z.ZodUnknown>, z.ZodUnion<[z.ZodString, z.ZodPromise<z.ZodString>]>>]>>;
-    templateParameters: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodString>, z.ZodBoolean]>, z.ZodFunction<z.ZodTuple<[z.ZodRecord<z.ZodString, z.ZodAny>], z.ZodUnknown>, z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodPromise<z.ZodRecord<z.ZodString, z.ZodAny>>]>>]>>;
-    inject: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["head", "body"]>, z.ZodBoolean]>>;
-    publicPath: z.ZodOptional<z.ZodString>;
-    base: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-        href: z.ZodOptional<z.ZodString>;
-        target: z.ZodOptional<z.ZodEnum<["_self", "_blank", "_parent", "_top"]>>;
-    }, "strict", z.ZodTypeAny, {
-        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
-        href?: string | undefined;
-    }, {
-        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
-        href?: string | undefined;
-    }>]>>;
-    scriptLoading: z.ZodOptional<z.ZodEnum<["blocking", "defer", "module", "systemjs-module"]>>;
-    chunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    excludeChunks: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    sri: z.ZodOptional<z.ZodEnum<["sha256", "sha384", "sha512"]>>;
-    minify: z.ZodOptional<z.ZodBoolean>;
-    title: z.ZodOptional<z.ZodString>;
-    favicon: z.ZodOptional<z.ZodString>;
-    meta: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodRecord<z.ZodString, z.ZodString>]>>>;
-    hash: z.ZodOptional<z.ZodBoolean>;
-}, "strict", z.ZodTypeAny, {
-    filename?: string | undefined;
-    publicPath?: string | undefined;
-    chunks?: string[] | undefined;
-    hash?: boolean | undefined;
+export type HtmlRspackPluginOptions = {
+    title?: string;
+    filename?: string;
+    template?: string;
+    templateContent?: string | TemplateRenderFunction;
+    templateParameters?: Record<string, string> | boolean | TemplateParamFunction;
+    inject?: boolean | "head" | "body";
+    publicPath?: string;
     base?: string | {
-        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
-        href?: string | undefined;
-    } | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
-    scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
-    excludeChunks?: string[] | undefined;
-    sri?: "sha256" | "sha384" | "sha512" | undefined;
-    minify?: boolean | undefined;
-    title?: string | undefined;
-    favicon?: string | undefined;
-    meta?: Record<string, string | Record<string, string>> | undefined;
-}, {
-    filename?: string | undefined;
-    publicPath?: string | undefined;
-    chunks?: string[] | undefined;
-    hash?: boolean | undefined;
-    base?: string | {
-        target?: "_self" | "_blank" | "_parent" | "_top" | undefined;
-        href?: string | undefined;
-    } | undefined;
-    template?: string | undefined;
-    templateContent?: string | ((args_0: Record<string, any>, ...args_1: unknown[]) => string | Promise<string>) | undefined;
-    templateParameters?: boolean | Record<string, string> | ((args_0: Record<string, any>, ...args_1: unknown[]) => Record<string, any> | Promise<Record<string, any>>) | undefined;
-    inject?: boolean | "head" | "body" | undefined;
-    scriptLoading?: "module" | "blocking" | "defer" | "systemjs-module" | undefined;
-    excludeChunks?: string[] | undefined;
-    sri?: "sha256" | "sha384" | "sha512" | undefined;
-    minify?: boolean | undefined;
-    title?: string | undefined;
-    favicon?: string | undefined;
-    meta?: Record<string, string | Record<string, string>> | undefined;
-}>;
+        href?: string;
+        target?: "_self" | "_blank" | "_parent" | "_top";
+    };
+    scriptLoading?: "blocking" | "defer" | "module" | "systemjs-module";
+    chunks?: string[];
+    excludeChunks?: string[];
+    sri?: "sha256" | "sha384" | "sha512";
+    minify?: boolean;
+    favicon?: string;
+    meta?: Record<string, string | Record<string, string>>;
+    hash?: boolean;
+};
 
 // @public (undocumented)
 type IBigIntStats = IStatsBase<bigint> & {
@@ -15631,6 +15542,12 @@ export class Template {
     // (undocumented)
     static toPath(str: string): string;
 }
+
+// @public (undocumented)
+type TemplateParamFunction = (params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
+
+// @public (undocumented)
+type TemplateRenderFunction = (params: Record<string, any>) => string | Promise<string>;
 
 // @public (undocumented)
 interface TerserCompressOptions {
