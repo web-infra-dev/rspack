@@ -98,7 +98,7 @@ pub enum MakeParam {
 }
 
 pub fn make_module_graph(
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   mut artifact: MakeArtifact,
 ) -> Result<MakeArtifact> {
   let mut params = Vec::with_capacity(6);
@@ -140,7 +140,7 @@ pub fn make_module_graph(
 }
 
 pub fn update_module_graph(
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {

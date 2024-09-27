@@ -739,14 +739,6 @@ impl Compilation {
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self) -> Result<()> {
     self.make_artifact.reset_dependencies_incremental_info();
-    //        self.module_executor.
-    // run module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_make(self).await;
-      self.module_executor = Some(module_executor);
-    }
-
     let artifact = std::mem::take(&mut self.make_artifact);
     self.make_artifact = make_module_graph(self, artifact)?;
     Ok(())
@@ -1093,13 +1085,6 @@ impl Compilation {
     // take make diagnostics
     let diagnostics = self.make_artifact.take_diagnostics();
     self.extend_diagnostics(diagnostics);
-
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await;
-      self.module_executor = Some(module_executor);
-    }
 
     // take built_modules
     self

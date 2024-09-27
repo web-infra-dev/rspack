@@ -11,7 +11,7 @@ use rspack_error::Result;
 use rspack_util::ext::AsAny;
 use tokio::{
   runtime::Handle,
-  sync::mpsc::{self, error::TryRecvError},
+  sync::mpsc::{self, error::TryRecvError, UnboundedReceiver},
 };
 
 /// Result returned by task
@@ -55,15 +55,7 @@ pub trait Task<Ctx>: Send + Any + AsAny {
 pub fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
-) -> Result<()> {
-  run_task_loop_with_event(ctx, init_tasks, |_, task| task)
-}
-
-/// Run task loop with event
-pub fn run_task_loop_with_event<Ctx: 'static>(
-  ctx: &mut Ctx,
-  init_tasks: Vec<Box<dyn Task<Ctx>>>,
-  before_task_run: impl Fn(&mut Ctx, Box<dyn Task<Ctx>>) -> Box<dyn Task<Ctx>>,
+  mut module_executor_task_receiver: Option<UnboundedReceiver<Box<dyn Task<Ctx>>>>,
 ) -> Result<()> {
   // create channel to receive async task result
   let (tx, mut rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
@@ -79,7 +71,6 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
     }
 
     if let Some(task) = task {
-      let task = before_task_run(ctx, task);
       match task.get_task_type() {
         TaskType::Async => {
           let tx = tx.clone();
@@ -130,6 +121,13 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
       _ => {
         panic!("unexpected recv error")
       }
+    }
+
+    while let Some(Ok(task)) = module_executor_task_receiver
+      .as_mut()
+      .map(|receiver| receiver.try_recv())
+    {
+      queue.push_back(task);
     }
   })
 }
@@ -201,6 +199,7 @@ mod test {
       vec![Box::new(AsyncTask {
         async_return_error: false,
       })],
+      None,
     );
     assert!(res.is_ok(), "task loop should be run success");
     assert_eq!(context.call_sync_task_count, 7);
@@ -216,6 +215,7 @@ mod test {
       vec![Box::new(AsyncTask {
         async_return_error: false,
       })],
+      None,
     );
     assert!(
       format!("{:?}", res).contains("throw sync error"),
@@ -234,6 +234,7 @@ mod test {
       vec![Box::new(AsyncTask {
         async_return_error: false,
       })],
+      None,
     );
     assert!(
       format!("{:?}", res).contains("throw async error"),
