@@ -14,6 +14,8 @@ import { Compilation } from ".";
 import { ChunkGroup } from "./ChunkGroup";
 import { compareChunkGroupsByIndex } from "./util/comparators";
 
+console.log(11, "test");
+
 export class Chunk {
 	#inner: JsChunk;
 	#innerCompilation: JsCompilation;
