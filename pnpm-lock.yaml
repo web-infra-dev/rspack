@@ -878,8 +878,8 @@ importers:
         specifier: 14.2.1
         version: 14.2.1
       style-loader:
-        specifier: ^3.3.3
-        version: 3.3.4(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^4.0.0
+        version: 4.0.0(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0)))
       swc-loader:
         specifier: ^0.2.3
         version: 0.2.6(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0)))
@@ -974,8 +974,8 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
       style-loader:
-        specifier: ^3.3.3
-        version: 3.3.4(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4))
+        specifier: ^4.0.0
+        version: 4.0.0(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4))
       toml:
         specifier: ^3.0.0
         version: 3.0.0
@@ -8661,12 +8661,6 @@ packages:
   strip-outer@1.0.1:
     resolution: {integrity: sha512-k55yxKHwaXnpYGsOzg4Vl8+tDrWylxDEpknGjhTiZB8dFRU5rTo9CAzeycivxV3s+zlTKwrs6WxMxR95n26kwg==}
     engines: {node: '>=0.10.0'}
-
-  style-loader@3.3.4:
-    resolution: {integrity: sha512-0WqXzrsMTyb8yjZJHDqwmnwRJvhALK9LfRtRc6B4UTWe8AijYLZYZ9thuJTZc2VfQWINADW/j+LiJnfy2RoC1w==}
-    engines: {node: '>= 12.13.0'}
-    peerDependencies:
-      webpack: ^5.0.0
 
   style-loader@4.0.0:
     resolution: {integrity: sha512-1V4WqhhZZgjVAVJyt7TdDPZoPBPNHbekX4fWnCJL1yQukhCeZhJySUL+gL9y6sNdN95uEOS83Y55SqHcP7MzLA==}
@@ -19093,17 +19087,17 @@ snapshots:
     dependencies:
       escape-string-regexp: 1.0.5
 
-  style-loader@3.3.4(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4)):
-    dependencies:
-      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4)
-
-  style-loader@3.3.4(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0))):
-    dependencies:
-      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0))
-
   style-loader@4.0.0(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0))):
     dependencies:
       webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0))
+
+  style-loader@4.0.0(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4)):
+    dependencies:
+      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4)
+
+  style-loader@4.0.0(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0))):
+    dependencies:
+      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.8))(webpack-cli@5.1.4(webpack@5.94.0))
 
   sucrase@3.35.0:
     dependencies:
