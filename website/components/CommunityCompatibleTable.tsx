@@ -237,13 +237,13 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'webpackbar',
       url: 'https://www.npmjs.com/package/webpackbar',
       status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+      description: i18n[lang]['progress-plugin-desc'],
     },
     {
       name: 'progress-bar-webpack-plugin',
       url: 'https://www.npmjs.com/package/progress-bar-webpack-plugin',
       status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+      description: i18n[lang]['progress-plugin-desc'],
     },
     {
       name: 'image-minimizer-webpack-plugin',
