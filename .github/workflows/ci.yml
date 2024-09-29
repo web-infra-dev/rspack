@@ -388,3 +388,15 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+  pkg-preview:
+    name: Pkg Preview
+    needs:
+      - test-linux
+      - test-windows
+      - cargo-deny
+      - lint
+      - rust_check
+      - rust_test
+    if: ${{ (success() || cancelled()) && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/preview-commit.yml
