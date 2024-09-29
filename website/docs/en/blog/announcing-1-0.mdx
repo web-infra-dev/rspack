@@ -207,7 +207,7 @@ Rspack provides some experimental features that can be used via the [experiments
 
 #### SWC related features
 
-Rspack is built on SWC, which is currently in the pre-1.0 phase. To keep up with the fixes and improvements in SWC, we regularly update the SWC version. This may include some breaking changes in SWC or break some versions of the SWC Wasm plugins. In such cases, we will release a minor version of Rspack and add a note to the changelog.
+Rspack is built on SWC, which is currently in the pre-1.0 phase. To keep up with the fixes and improvements in SWC, we regularly update the SWC version. This may include some breaking changes in SWC or break some versions of the SWC Wasm plugins. In such cases, we will release a minor version of Rspack and add a note to the changelog, if upgrade SWC doesn't contains breaking change we may upgrade SWC in patch or minor version.
 
 #### Types
 
@@ -215,3 +215,7 @@ In minor releases, the types exported by Rspack may change for the following rea
 
 - TypeScript itself does not follow semver. It may introduce some breaking changes in minor releases that require Rspack to adjust its types.
 - Rspack may use some features introduced in higher versions of TypeScript, which could affect projects using lower versions of TypeScript.
+
+#### Fix Bug for Webpack Compatibility
+
+If previous versions incorrectly implemented Webpack's API, we may fix it and align the behavior with Webpack's API in non-major version.
