@@ -3,6 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
+use tracing::instrument;
 
 use super::{add::AddTask, MakeTaskContext};
 use crate::{
@@ -29,6 +30,9 @@ pub struct FactorizeTask {
 
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeTask {
+  fn name(&self) -> &'static str {
+    "factorize_task"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
@@ -198,9 +202,13 @@ impl FactorizeResultTask {
 }
 
 impl Task<MakeTaskContext> for FactorizeResultTask {
+  fn name(&self) -> &'static str {
+    "factorize_result"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
+  #[instrument("factorize_result_task_run")]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {
       original_module_identifier,

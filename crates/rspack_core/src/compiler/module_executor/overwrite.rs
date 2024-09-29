@@ -16,6 +16,9 @@ pub struct OverwriteTask {
 
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for OverwriteTask {
+  fn name(&self) -> &'static str {
+    "overwrite_task"
+  }
   fn get_task_type(&self) -> TaskType {
     self.origin_task.get_task_type()
   }

@@ -1,4 +1,5 @@
 use rspack_error::Result;
+use tracing::instrument;
 
 use super::{build::BuildTask, MakeTaskContext};
 use crate::{
@@ -17,9 +18,13 @@ pub struct AddTask {
 }
 
 impl Task<MakeTaskContext> for AddTask {
+  fn name(&self) -> &'static str {
+    "add_task"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
+  #[instrument("add_task_run")]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;

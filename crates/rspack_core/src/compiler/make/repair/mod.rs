@@ -2,9 +2,9 @@ pub mod add;
 pub mod build;
 pub mod factorize;
 pub mod process_dependencies;
-
 use std::sync::Arc;
 
+use derivative::Derivative;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -18,11 +18,13 @@ use crate::{
   BuildDependency, Compilation, CompilerOptions, DependencyType, Module, ModuleFactory,
   ModuleProfile, NormalModuleSource, ResolverFactory, SharedPluginDriver,
 };
-
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct MakeTaskContext {
   // compilation info
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
+  #[derivative(Debug = "ignore")]
   pub fs: Arc<dyn ReadableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,

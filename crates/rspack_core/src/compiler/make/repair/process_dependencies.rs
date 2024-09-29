@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashMap as HashMap;
+use tracing::instrument;
 
 use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
@@ -15,10 +16,13 @@ pub struct ProcessDependenciesTask {
 }
 
 impl Task<MakeTaskContext> for ProcessDependenciesTask {
+  fn name(&self) -> &'static str {
+    "process_dependencies_task"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-
+  #[instrument("process_dependencies_task_run")]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       original_module_identifier,

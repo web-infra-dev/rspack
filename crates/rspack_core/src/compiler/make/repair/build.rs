@@ -3,6 +3,7 @@ use std::{collections::VecDeque, sync::Arc};
 use derivative::Derivative;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
+use tracing::instrument;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
@@ -27,6 +28,9 @@ pub struct BuildTask {
 
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildTask {
+  fn name(&self) -> &'static str {
+    "build_task"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
@@ -106,9 +110,13 @@ struct BuildResultTask {
 }
 
 impl Task<MakeTaskContext> for BuildResultTask {
+  fn name(&self) -> &'static str {
+    "build_result"
+  }
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
+  #[instrument("build_result_task_run")]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,

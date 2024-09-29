@@ -37,7 +37,8 @@ pub trait Task<Ctx>: Send + Any + AsAny {
   /// Return `TaskType::Sync` will run `self::sync_run`
   /// Return `TaskType::Async` will run `self::async_run`
   fn get_task_type(&self) -> TaskType;
-
+  /// get task name for monitor
+  fn name(&self) -> &'static str;
   /// Sync task process
   ///
   /// The context is shared with all tasks
@@ -94,6 +95,8 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
         }
         TaskType::Sync => {
           // merge sync task result directly
+          let span = tracing::info_span!("sync_run", name = task.name());
+          let _enter = span.enter();
           match task.sync_run(ctx) {
             Ok(r) => queue.extend(r),
             Err(e) => {
@@ -150,6 +153,9 @@ mod test {
 
   struct SyncTask;
   impl Task<Context> for SyncTask {
+    fn name(&self) -> &'static str {
+      "sync_task"
+    }
     fn get_task_type(&self) -> TaskType {
       TaskType::Sync
     }
@@ -175,6 +181,9 @@ mod test {
   }
   #[async_trait::async_trait]
   impl Task<Context> for AsyncTask {
+    fn name(&self) -> &'static str {
+      "async_task"
+    }
     fn get_task_type(&self) -> TaskType {
       TaskType::Async
     }
