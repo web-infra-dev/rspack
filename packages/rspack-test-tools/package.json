@@ -112,7 +112,7 @@
     "sass-embedded": "^1.77.8",
     "sass-loader": "^16.0.0",
     "source-map-loader": "^5.0.0",
-    "style-loader": "^3.3.3",
+    "style-loader": "^4.0.0",
     "terser": "5.27.2",
     "typescript": "5.0.2",
     "wast-loader": "^1.12.1"
