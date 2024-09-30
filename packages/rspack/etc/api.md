@@ -459,87 +459,6 @@ interface BaseModuleConfig {
 }
 
 // @public (undocumented)
-const baseResolveOptions: z.ZodObject<{
-    alias: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>>;
-    conditionNames: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    extensions: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    fallback: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>>;
-    mainFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    mainFiles: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    modules: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    preferRelative: z.ZodOptional<z.ZodBoolean>;
-    preferAbsolute: z.ZodOptional<z.ZodBoolean>;
-    symlinks: z.ZodOptional<z.ZodBoolean>;
-    enforceExtension: z.ZodOptional<z.ZodBoolean>;
-    importsFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    descriptionFiles: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    tsConfig: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-        configFile: z.ZodString;
-        references: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodLiteral<"auto">]>>;
-    }, "strict", z.ZodTypeAny, {
-        configFile: string;
-        references?: string[] | "auto" | undefined;
-    }, {
-        configFile: string;
-        references?: string[] | "auto" | undefined;
-    }>]>>;
-    fullySpecified: z.ZodOptional<z.ZodBoolean>;
-    exportsFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    extensionAlias: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>>;
-    aliasFields: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    restrictions: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    roots: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-}, "strict", z.ZodTypeAny, {
-    modules?: string[] | undefined;
-    alias?: Record<string, string | false | (string | false)[]> | undefined;
-    conditionNames?: string[] | undefined;
-    extensions?: string[] | undefined;
-    fallback?: Record<string, string | false | (string | false)[]> | undefined;
-    mainFields?: string[] | undefined;
-    mainFiles?: string[] | undefined;
-    preferRelative?: boolean | undefined;
-    preferAbsolute?: boolean | undefined;
-    symlinks?: boolean | undefined;
-    enforceExtension?: boolean | undefined;
-    importsFields?: string[] | undefined;
-    descriptionFiles?: string[] | undefined;
-    tsConfig?: string | {
-        configFile: string;
-        references?: string[] | "auto" | undefined;
-    } | undefined;
-    fullySpecified?: boolean | undefined;
-    exportsFields?: string[] | undefined;
-    extensionAlias?: Record<string, string | string[]> | undefined;
-    aliasFields?: string[] | undefined;
-    restrictions?: string[] | undefined;
-    roots?: string[] | undefined;
-}, {
-    modules?: string[] | undefined;
-    alias?: Record<string, string | false | (string | false)[]> | undefined;
-    conditionNames?: string[] | undefined;
-    extensions?: string[] | undefined;
-    fallback?: Record<string, string | false | (string | false)[]> | undefined;
-    mainFields?: string[] | undefined;
-    mainFiles?: string[] | undefined;
-    preferRelative?: boolean | undefined;
-    preferAbsolute?: boolean | undefined;
-    symlinks?: boolean | undefined;
-    enforceExtension?: boolean | undefined;
-    importsFields?: string[] | undefined;
-    descriptionFiles?: string[] | undefined;
-    tsConfig?: string | {
-        configFile: string;
-        references?: string[] | "auto" | undefined;
-    } | undefined;
-    fullySpecified?: boolean | undefined;
-    exportsFields?: string[] | undefined;
-    extensionAlias?: Record<string, string | string[]> | undefined;
-    aliasFields?: string[] | undefined;
-    restrictions?: string[] | undefined;
-    roots?: string[] | undefined;
-}>;
-
-// @public (undocumented)
 interface BaseResolveRequest {
     	// (undocumented)
     descriptionFileData?: object;
@@ -618,7 +537,7 @@ const baseRuleSetRule: z.ZodObject<{
     }>]>, "many">>]>>;
     parser: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
     generator: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-    resolve: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
+    resolve: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
     sideEffects: z.ZodOptional<z.ZodBoolean>;
     enforce: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"pre">, z.ZodLiteral<"post">]>>;
 }, "strict", z.ZodTypeAny, {
@@ -656,7 +575,7 @@ const baseRuleSetRule: z.ZodObject<{
     })[]) | undefined;
     parser?: Record<string, any> | undefined;
     generator?: Record<string, any> | undefined;
-    resolve?: ResolveOptions | undefined;
+    resolve?: t.ResolveOptions | undefined;
 }, {
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
@@ -692,7 +611,7 @@ const baseRuleSetRule: z.ZodObject<{
     })[]) | undefined;
     parser?: Record<string, any> | undefined;
     generator?: Record<string, any> | undefined;
-    resolve?: ResolveOptions | undefined;
+    resolve?: t.ResolveOptions | undefined;
 }>;
 
 // @public (undocumented)
@@ -9798,14 +9717,13 @@ export type RemotesObject = {
     [k: string]: RemotesConfig | RemotesItem | RemotesItems;
 };
 
-// @public (undocumented)
-export type Resolve = z.infer<typeof resolveOptions>;
+// @public
+export type Resolve = ResolveOptions;
 
-// @public (undocumented)
-export type ResolveAlias = z.infer<typeof resolveAlias>;
-
-// @public (undocumented)
-const resolveAlias: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>, z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, "many">]>>;
+// @public
+export type ResolveAlias = {
+    [x: string]: string | false | (string | false)[];
+};
 
 // @public (undocumented)
 type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
@@ -9824,13 +9742,30 @@ type ResolveData = {
     createData?: CreateData;
 };
 
-// @public (undocumented)
-export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
+// @public
+export type ResolveOptions = {
+    alias?: ResolveAlias;
+    conditionNames?: string[];
+    extensions?: string[];
+    fallback?: ResolveAlias;
+    mainFields?: string[];
+    mainFiles?: string[];
+    modules?: string[];
+    preferRelative?: boolean;
+    preferAbsolute?: boolean;
+    symlinks?: boolean;
+    enforceExtension?: boolean;
+    importsFields?: string[];
+    descriptionFiles?: string[];
+    tsConfig?: ResolveTsConfig;
+    fullySpecified?: boolean;
+    exportsFields?: string[];
+    extensionAlias?: Record<string, string | string[]>;
+    aliasFields?: string[];
+    restrictions?: string[];
+    roots?: string[];
     byDependency?: Record<string, ResolveOptions>;
 };
-
-// @public (undocumented)
-const resolveOptions: z.ZodType<ResolveOptions>;
 
 // @public (undocumented)
 type ResolveOptionsWithDependencyType = Resolve & {
@@ -9869,20 +9804,11 @@ class ResolverFactory {
     get(type: string, resolveOptions?: ResolveOptionsWithDependencyType): Resolver;
 }
 
-// @public (undocumented)
-export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
-
-// @public (undocumented)
-const resolveTsConfig: z.ZodUnion<[z.ZodString, z.ZodObject<{
-    configFile: z.ZodString;
-    references: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodLiteral<"auto">]>>;
-}, "strict", z.ZodTypeAny, {
+// @public
+export type ResolveTsConfig = string | {
     configFile: string;
     references?: string[] | "auto" | undefined;
-}, {
-    configFile: string;
-    references?: string[] | "auto" | undefined;
-}>]>;
+};
 
 // @public (undocumented)
 type ResourceData = {
@@ -10159,10 +10085,6 @@ declare namespace rspackExports {
         DevtoolFallbackModuleFilenameTemplate,
         Environment,
         Output,
-        ResolveAlias,
-        ResolveTsConfig,
-        ResolveOptions,
-        Resolve,
         RuleSetCondition,
         RuleSetConditions,
         RuleSetLogicalConditions,
@@ -10246,7 +10168,11 @@ declare namespace rspackExports {
         Performance_2 as Performance,
         rspackOptions,
         RspackOptions,
-        Configuration
+        Configuration,
+        ResolveAlias,
+        ResolveTsConfig,
+        ResolveOptions,
+        Resolve
     }
 }
 
@@ -12099,8 +12025,8 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     }>>;
-    resolve: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
-    resolveLoader: z.ZodOptional<z.ZodType<ResolveOptions, z.ZodTypeDef, ResolveOptions>>;
+    resolve: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
+    resolveLoader: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction, z.ZodTypeDef, RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<DevServer, z.ZodTypeDef, DevServer>>;
     module: z.ZodOptional<z.ZodObject<{
@@ -13223,7 +13149,7 @@ export const rspackOptions: z.ZodObject<{
     profile?: boolean | undefined;
     cache?: boolean | undefined;
     loader?: Record<string, any> | undefined;
-    resolve?: ResolveOptions | undefined;
+    resolve?: t.ResolveOptions | undefined;
     output?: {
         module?: boolean | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -13569,7 +13495,7 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     } | undefined;
-    resolveLoader?: ResolveOptions | undefined;
+    resolveLoader?: t.ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
@@ -13805,7 +13731,7 @@ export const rspackOptions: z.ZodObject<{
     profile?: boolean | undefined;
     cache?: boolean | undefined;
     loader?: Record<string, any> | undefined;
-    resolve?: ResolveOptions | undefined;
+    resolve?: t.ResolveOptions | undefined;
     output?: {
         module?: boolean | undefined;
         filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
@@ -14151,7 +14077,7 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     } | undefined;
-    resolveLoader?: ResolveOptions | undefined;
+    resolveLoader?: t.ResolveOptions | undefined;
     plugins?: (false | "" | 0 | RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | null | undefined)[] | undefined;
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
@@ -15485,6 +15411,15 @@ interface SystemjsConfig {
     allowTopLevelThis?: boolean;
     // (undocumented)
     type: "systemjs";
+}
+
+declare namespace t {
+    export {
+        ResolveAlias,
+        ResolveTsConfig,
+        ResolveOptions,
+        Resolve
+    }
 }
 
 // @public (undocumented)
