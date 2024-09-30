@@ -136,7 +136,9 @@ export type ResolveOptions = {
 
 /** Used to configure the Rspack module resolution */
 export type Resolve = ResolveOptions;
-//#region ExternalTypes
+//#endregion
+
+//#region ExternalsType
 /**
  * Specify the default type of externals.
  * `amd`, `umd`, `system` and `jsonp` externals depend on the `output.libraryTarget` being set to the same value e.g. you can only consume amd externals within an amd library.
@@ -165,10 +167,9 @@ export type ExternalsType =
 	| "module-import"
 	| "script"
 	| "node-commonjs";
-//#endreigon
+//#endregion
 
 //#region Externals
-
 /**
  * The dependency used for the external.
  */

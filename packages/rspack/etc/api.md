@@ -9926,6 +9926,10 @@ declare namespace rspackExports {
         rspackOptions,
         RspackOptions,
         Configuration,
+        ResolveAlias,
+        ResolveTsConfig,
+        ResolveOptions,
+        Resolve,
         ExternalsType,
         ExternalItemValue,
         ExternalItemObjectUnknown,
@@ -15177,7 +15181,13 @@ declare namespace t {
         ResolveAlias,
         ResolveTsConfig,
         ResolveOptions,
-        Resolve
+        Resolve,
+        ExternalsType,
+        ExternalItemValue,
+        ExternalItemObjectUnknown,
+        ExternalItemFunctionData,
+        ExternalItem,
+        Externals
     }
 }
 

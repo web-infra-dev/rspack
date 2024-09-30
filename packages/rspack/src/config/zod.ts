@@ -879,7 +879,7 @@ export const externalsType = z.enum([
 	"module-import",
 	"script",
 	"node-commonjs"
-]) satisfies z.ZodType<ExternalsType>;
+]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
 //#region Externals
@@ -889,11 +889,11 @@ const externalItemValue = z
 	.or(z.string().array().min(1))
 	.or(
 		z.record(z.string().or(z.string().array()))
-	) satisfies z.ZodType<ExternalItemValue>;
+	) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
 	externalItemValue
-) satisfies z.ZodType<ExternalItemObjectUnknown>;
+) satisfies z.ZodType<t.ExternalItemObjectUnknown>;
 
 const externalItemFunctionData = z.strictObject({
 	context: z.string().optional(),
@@ -904,7 +904,7 @@ const externalItemFunctionData = z.strictObject({
 			issuer: z.string()
 		})
 		.optional()
-}) satisfies z.ZodType<ExternalItemFunctionData>;
+}) satisfies z.ZodType<t.ExternalItemFunctionData>;
 
 const externalItem = z
 	.string()
@@ -930,11 +930,11 @@ const externalItem = z
 			.function()
 			.args(externalItemFunctionData)
 			.returns(z.promise(externalItemValue))
-	) satisfies z.ZodType<ExternalItem>;
+	) satisfies z.ZodType<t.ExternalItem>;
 
 const externals = externalItem
 	.array()
-	.or(externalItem) satisfies z.ZodType<Externals>;
+	.or(externalItem) satisfies z.ZodType<t.Externals>;
 //#endregion
 
 //#region ExternalsPresets
