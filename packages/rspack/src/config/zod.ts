@@ -7,6 +7,9 @@ import type { Compilation, Compiler } from "..";
 import { Chunk } from "../Chunk";
 import type { PathData } from "../Compilation";
 import { Module } from "../Module";
+import type * as t from "./types";
+
+export type * from "./types";
 
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
@@ -410,8 +413,7 @@ const resolveAlias = z.record(
 		.literal(false)
 		.or(z.string())
 		.or(z.array(z.string().or(z.literal(false))))
-);
-export type ResolveAlias = z.infer<typeof resolveAlias>;
+) satisfies z.ZodType<t.ResolveAlias>;
 
 const resolveTsConfigFile = z.string();
 const resolveTsConfig = resolveTsConfigFile.or(
@@ -419,8 +421,7 @@ const resolveTsConfig = resolveTsConfigFile.or(
 		configFile: resolveTsConfigFile,
 		references: z.array(z.string()).or(z.literal("auto")).optional()
 	})
-);
-export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
+) satisfies z.ZodType<t.ResolveTsConfig>;
 
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
@@ -443,16 +444,12 @@ const baseResolveOptions = z.strictObject({
 	aliasFields: z.array(z.string()).optional(),
 	restrictions: z.array(z.string()).optional(),
 	roots: z.array(z.string()).optional()
-});
+}) satisfies z.ZodType<t.ResolveOptions>;
 
-export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
-	byDependency?: Record<string, ResolveOptions>;
-};
-const resolveOptions: z.ZodType<ResolveOptions> = baseResolveOptions.extend({
+const resolveOptions: z.ZodType<t.ResolveOptions> = baseResolveOptions.extend({
 	byDependency: z.lazy(() => z.record(resolveOptions)).optional()
 });
 
-export type Resolve = z.infer<typeof resolveOptions>;
 //#endregion
 
 //#region Module
