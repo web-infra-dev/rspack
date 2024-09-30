@@ -1,3 +1,224 @@
+import type { JsAssetInfo } from "@rspack/binding";
+import type { PathData } from "../Compilation";
+
+export type FilenameTemplate = string;
+
+export type Filename =
+	| FilenameTemplate
+	| ((pathData: PathData, assetInfo?: JsAssetInfo) => string);
+
+//#region Name
+/** Name of the configuration. Used when loading multiple configurations. */
+export type Name = string;
+//#endregion
+
+//#region Dependencies
+/** A list of name defining all sibling configurations it depends on. Dependent configurations need to be compiled first. */
+export type Dependencies = Name[];
+//#endregion
+
+//#region Context
+/**
+ * The context configuration is used to set the base directory for Rspack builds.
+ * @default process.cwd()
+ * */
+export type Context = string;
+//#endregion
+
+//#region Mode
+/**
+ * The mode configuration is used to set the build mode of Rspack to enable the default optimization strategy.
+ * @default 'production'
+ * */
+export type Mode = "development" | "production" | "none";
+//#endregion
+
+//#region Falsy
+export type Falsy = false | "" | 0 | null | undefined;
+//#endregion
+
+//#region Entry
+/** The publicPath of the resource referenced by this entry. */
+export type PublicPath = "auto" | Filename;
+
+/** The baseURI of the resource referenced by this entry. */
+export type BaseUri = string;
+
+/** How this entry load other chunks. */
+export type ChunkLoadingType =
+	| string
+	| "jsonp"
+	| "import-scripts"
+	| "require"
+	| "async-node"
+	| "import";
+
+/** How this entry load other chunks. */
+export type ChunkLoading = false | ChunkLoadingType;
+
+/** Whether to create a load-on-demand asynchronous chunk for entry. */
+export type AsyncChunks = boolean;
+
+/** Option to set the method of loading WebAssembly Modules. */
+export type WasmLoadingType =
+	| string
+	| "fetch-streaming"
+	| "fetch"
+	| "async-node";
+
+/** Option to set the method of loading WebAssembly Modules. */
+export type WasmLoading = false | WasmLoadingType;
+
+export type ScriptType = false | "text/javascript" | "module";
+
+export type LibraryCustomUmdObject = {
+	amd?: string;
+	commonjs?: string;
+	root?: string | string[];
+};
+
+/** Specify a name for the library. */
+export type LibraryName = string | string[] | LibraryCustomUmdObject;
+
+export type LibraryCustomUmdCommentObject = {
+	amd?: string;
+	commonjs?: string;
+	commonjs2?: string;
+	root?: string;
+};
+
+/** Use a container(defined in global space) for calling define/require functions in an AMD module. */
+export type AmdContainer = string;
+
+/** Add a comment in the UMD wrapper. */
+export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
+
+/** Specify which export should be exposed as a library. */
+export type LibraryExport = string | string[];
+
+/** Configure how the library will be exposed. */
+export type LibraryType =
+	| string
+	| "var"
+	| "module"
+	| "assign"
+	| "assign-properties"
+	| "this"
+	| "window"
+	| "self"
+	| "global"
+	| "commonjs"
+	| "commonjs2"
+	| "commonjs-module"
+	| "commonjs-static"
+	| "amd"
+	| "amd-require"
+	| "umd"
+	| "umd2"
+	| "jsonp"
+	| "system";
+
+/** When using output.library.type: "umd", setting output.library.umdNamedDefine to true will name the AMD module of the UMD build. */
+export type UmdNamedDefine = boolean;
+
+/** Options for library.  */
+export type LibraryOptions = {
+	/** Use a container(defined in global space) for calling define/require functions in an AMD module. */
+	amdContainer?: AmdContainer;
+
+	/** Add a comment in the UMD wrapper. */
+	auxiliaryComment?: AuxiliaryComment;
+
+	/** Specify which export should be exposed as a library. */
+	export?: LibraryExport;
+
+	/** Specify a name for the library. */
+	name?: LibraryName;
+
+	/** Configure how the library will be exposed. */
+	type: LibraryType;
+
+	/**
+	 * When using output.library.type: "umd", setting output.library.umdNamedDefine to true will name the AMD module of the UMD build.
+	 * Otherwise, an anonymous define is used.
+	 * */
+	umdNamedDefine?: UmdNamedDefine;
+};
+
+/** Options for library. */
+export type Library = LibraryName | LibraryOptions | undefined;
+
+/** The layer of this entry. */
+export type Layer = string | null;
+
+/** The filename of the entry chunk. */
+export type EntryFilename = Filename;
+
+/** The name of the runtime chunk. */
+export type EntryRuntime = false | string;
+
+/** The path to the entry module. */
+export type EntryItem = string | string[];
+
+/** The entry that the current entry depends on. With dependOn option you can share the modules from one entry chunk to another. */
+export type EntryDependOn = string | string[];
+
+export type EntryDescription = {
+	/**
+	 * The path to the entry module.
+	 * @default './src/index.js'
+	 * */
+	import: EntryItem;
+
+	/**
+	 * The name of the runtime chunk.
+	 * When runtime is set, a new runtime chunk will be created.
+	 * You can also set it to false to avoid a new runtime chunk.
+	 * */
+	runtime?: EntryRuntime;
+
+	/** The publicPath of the resource referenced by this entry. */
+	publicPath?: PublicPath;
+
+	/** The baseURI of the resource referenced by this entry. */
+	baseUri?: BaseUri;
+
+	/** How this entry load other chunks. */
+	chunkLoading?: ChunkLoading;
+
+	/** Whether to create a load-on-demand asynchronous chunk for this entry. */
+	asyncChunks?: AsyncChunks;
+
+	/** Option to set the method of loading WebAssembly Modules. */
+	wasmLoading?: WasmLoading;
+
+	/** The filename of the entry chunk. */
+	filename?: EntryFilename;
+
+	/** The format of the chunk generated by this entry as a library. */
+	library?: LibraryOptions;
+
+	/** The entry that the current entry depends on. With dependOn option you can share the modules from one entry chunk to another. */
+	dependOn?: EntryDependOn;
+
+	/** The layer of this entry, make the corresponding configuration take effect through layer matching in SplitChunks, Rules, Stats, and Externals. */
+	layer?: Layer;
+};
+
+export type EntryUnnamed = EntryItem;
+
+export type EntryObject = Record<string, EntryItem | EntryDescription>;
+
+/** A static entry.  */
+export type EntryStatic = EntryObject | EntryUnnamed;
+
+/** A Function returning entry options. */
+export type EntryDynamic = () => EntryStatic | Promise<EntryStatic>;
+
+/** The entry options for building */
+export type Entry = EntryStatic | EntryDynamic;
+//#endregion
+
 //#region Resolve
 /**
  * Path alias
