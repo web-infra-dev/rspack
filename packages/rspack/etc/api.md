@@ -379,13 +379,13 @@ const auxiliaryComment: z.ZodUnion<[z.ZodString, z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     commonjs?: string | undefined;
     amd?: string | undefined;
-    root?: string | undefined;
     commonjs2?: string | undefined;
+    root?: string | undefined;
 }, {
     commonjs?: string | undefined;
     amd?: string | undefined;
-    root?: string | undefined;
     commonjs2?: string | undefined;
+    root?: string | undefined;
 }>]>;
 
 // @public (undocumented)
@@ -1339,8 +1339,8 @@ class ContainerPlugin extends RspackBuiltinPlugin {
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -1375,7 +1375,7 @@ class ContainerReferencePlugin extends RspackBuiltinPlugin {
     name: BuiltinPluginName;
     // (undocumented)
     _options: {
-        remoteType: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs";
+        remoteType: ExternalsType;
         remotes: [string, {
             external: string[];
             shareScope: string;
@@ -1949,13 +1949,13 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -1984,8 +1984,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2000,8 +2000,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2029,8 +2029,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2057,8 +2057,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2083,13 +2083,13 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -2118,8 +2118,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2134,8 +2134,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2163,8 +2163,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2191,8 +2191,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2217,13 +2217,13 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -2252,8 +2252,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2268,8 +2268,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2297,8 +2297,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2325,8 +2325,8 @@ const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodU
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2372,13 +2372,13 @@ const entryDescription: z.ZodObject<{
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -2407,8 +2407,8 @@ const entryDescription: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2423,8 +2423,8 @@ const entryDescription: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2452,8 +2452,8 @@ const entryDescription: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2480,8 +2480,8 @@ const entryDescription: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2536,13 +2536,13 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -2571,8 +2571,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2587,8 +2587,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2616,8 +2616,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2644,8 +2644,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2670,13 +2670,13 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -2705,8 +2705,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2721,8 +2721,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2750,8 +2750,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2778,8 +2778,8 @@ const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.Zo
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2828,13 +2828,13 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -2863,8 +2863,8 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2879,8 +2879,8 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2908,8 +2908,8 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -2936,8 +2936,8 @@ const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString,
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -3018,13 +3018,13 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -3053,8 +3053,8 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -3069,8 +3069,8 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -3098,8 +3098,8 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -3126,8 +3126,8 @@ const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -3570,272 +3570,35 @@ export type ExposesObject = {
     [k: string]: ExposesConfig | ExposesItem | ExposesItems;
 };
 
-// @public (undocumented)
-export type ExternalItem = z.infer<typeof externalItem>;
+// @public
+export type ExternalItem = string | RegExp | ExternalItemObjectUnknown | ((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue, type?: ExternalsType) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
 
-// @public (undocumented)
-const externalItem: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
+// @public
+export type ExternalItemFunctionData = {
+    context?: string;
+    dependencyType?: string;
+    request?: string;
     contextInfo?: {
         issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>;
+    };
+};
 
-// @public (undocumented)
-export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
+// @public
+export type ExternalItemObjectUnknown = {
+    [x: string]: ExternalItemValue;
+};
 
-// @public (undocumented)
-const externalItemFunctionData: z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>;
+// @public
+export type ExternalItemValue = string | boolean | string[] | Record<string, string | string[]>;
 
-// @public (undocumented)
-export type ExternalItemObjectUnknown = z.infer<typeof externalItemObjectUnknown>;
-
-// @public (undocumented)
-const externalItemObjectUnknown: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>;
-
-// @public (undocumented)
-export type ExternalItemValue = z.infer<typeof externalItemValue>;
-
-// @public (undocumented)
-const externalItemValue: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>;
-
-// @public (undocumented)
-export type Externals = z.infer<typeof externals>;
-
-// @public (undocumented)
-const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
-    context: z.ZodOptional<z.ZodString>;
-    dependencyType: z.ZodOptional<z.ZodString>;
-    request: z.ZodOptional<z.ZodString>;
-    contextInfo: z.ZodOptional<z.ZodObject<{
-        issuer: z.ZodString;
-    }, "strict", z.ZodTypeAny, {
-        issuer: string;
-    }, {
-        issuer: string;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}, {
-    context?: string | undefined;
-    dependencyType?: string | undefined;
-    request?: string | undefined;
-    contextInfo?: {
-        issuer: string;
-    } | undefined;
-}>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>]>;
+// @public
+export type Externals = ExternalItem | ExternalItem[];
 
 // @public (undocumented)
 export const ExternalsPlugin: {
-    new (type: string, externals: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-        context?: string | undefined;
-        dependencyType?: string | undefined;
-        request?: string | undefined;
-        contextInfo?: {
-            issuer: string;
-        } | undefined;
-    }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[]): {
+    new (type: string, externals: Externals): {
         name: BuiltinPluginName;
-        _args: [type: string, externals: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
-            context?: string | undefined;
-            dependencyType?: string | undefined;
-            request?: string | undefined;
-            contextInfo?: {
-                issuer: string;
-            } | undefined;
-        }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[]];
+        _args: [type: string, externals: Externals];
         affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -3875,8 +3638,8 @@ const externalsPresets: z.ZodObject<{
     electronRenderer?: boolean | undefined;
 }>;
 
-// @public (undocumented)
-export type ExternalsType = z.infer<typeof externalsType>;
+// @public
+export type ExternalsType = "var" | "module" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system" | "promise" | "import" | "module-import" | "script" | "node-commonjs";
 
 // @public (undocumented)
 export const externalsType: z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>;
@@ -5482,13 +5245,13 @@ const library_2: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, 
     }, "strict", z.ZodTypeAny, {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     }, {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     }>]>>;
     export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
     name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -5517,8 +5280,8 @@ const library_2: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, 
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     } | undefined;
     export?: string | string[] | undefined;
     umdNamedDefine?: boolean | undefined;
@@ -5533,8 +5296,8 @@ const library_2: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, 
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     } | undefined;
     export?: string | string[] | undefined;
     umdNamedDefine?: boolean | undefined;
@@ -5552,13 +5315,13 @@ const libraryCustomUmdCommentObject: z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     commonjs?: string | undefined;
     amd?: string | undefined;
-    root?: string | undefined;
     commonjs2?: string | undefined;
+    root?: string | undefined;
 }, {
     commonjs?: string | undefined;
     amd?: string | undefined;
-    root?: string | undefined;
     commonjs2?: string | undefined;
+    root?: string | undefined;
 }>;
 
 // @public (undocumented)
@@ -5617,13 +5380,13 @@ const libraryOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     }, {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     }>]>>;
     export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
     name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -5652,8 +5415,8 @@ const libraryOptions: z.ZodObject<{
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     } | undefined;
     export?: string | string[] | undefined;
     umdNamedDefine?: boolean | undefined;
@@ -5668,8 +5431,8 @@ const libraryOptions: z.ZodObject<{
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     } | undefined;
     export?: string | string[] | undefined;
     umdNamedDefine?: boolean | undefined;
@@ -8077,13 +7840,13 @@ const output: z.ZodObject<{
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
         name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -8112,8 +7875,8 @@ const output: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -8128,8 +7891,8 @@ const output: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -8145,13 +7908,13 @@ const output: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     }, {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     }>]>>;
     module: z.ZodOptional<z.ZodBoolean>;
     strictModuleExceptionHandling: z.ZodOptional<z.ZodBoolean>;
@@ -8259,8 +8022,8 @@ const output: z.ZodObject<{
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     } | undefined;
     umdNamedDefine?: boolean | undefined;
     chunkLoading?: string | false | undefined;
@@ -8281,8 +8044,8 @@ const output: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -8354,8 +8117,8 @@ const output: z.ZodObject<{
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
-        root?: string | undefined;
         commonjs2?: string | undefined;
+        root?: string | undefined;
     } | undefined;
     umdNamedDefine?: boolean | undefined;
     chunkLoading?: string | false | undefined;
@@ -8376,8 +8139,8 @@ const output: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         export?: string | string[] | undefined;
         umdNamedDefine?: boolean | undefined;
@@ -10126,12 +9889,6 @@ declare namespace rspackExports {
         ModuleOptions,
         Target,
         externalsType,
-        ExternalsType,
-        ExternalItemValue,
-        ExternalItemObjectUnknown,
-        ExternalItemFunctionData,
-        ExternalItem,
-        Externals,
         ExternalsPresets,
         FilterItemTypes,
         FilterTypes,
@@ -10172,7 +9929,13 @@ declare namespace rspackExports {
         ResolveAlias,
         ResolveTsConfig,
         ResolveOptions,
-        Resolve
+        Resolve,
+        ExternalsType,
+        ExternalItemValue,
+        ExternalItemObjectUnknown,
+        ExternalItemFunctionData,
+        ExternalItem,
+        Externals
     }
 }
 
@@ -10234,13 +9997,13 @@ export const rspackOptions: z.ZodObject<{
             }, "strict", z.ZodTypeAny, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }>]>>;
             export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -10269,8 +10032,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10285,8 +10048,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10314,8 +10077,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10342,8 +10105,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10368,13 +10131,13 @@ export const rspackOptions: z.ZodObject<{
             }, "strict", z.ZodTypeAny, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }>]>>;
             export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -10403,8 +10166,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10419,8 +10182,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10448,8 +10211,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10476,8 +10239,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10502,13 +10265,13 @@ export const rspackOptions: z.ZodObject<{
             }, "strict", z.ZodTypeAny, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }>]>>;
             export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -10537,8 +10300,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10553,8 +10316,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10582,8 +10345,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10610,8 +10373,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10658,13 +10421,13 @@ export const rspackOptions: z.ZodObject<{
             }, "strict", z.ZodTypeAny, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }, {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             }>]>>;
             export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
@@ -10693,8 +10456,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10709,8 +10472,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10726,13 +10489,13 @@ export const rspackOptions: z.ZodObject<{
         }, "strict", z.ZodTypeAny, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }, {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         }>]>>;
         module: z.ZodOptional<z.ZodBoolean>;
         strictModuleExceptionHandling: z.ZodOptional<z.ZodBoolean>;
@@ -10840,8 +10603,8 @@ export const rspackOptions: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         chunkLoading?: string | false | undefined;
@@ -10862,8 +10625,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -10935,8 +10698,8 @@ export const rspackOptions: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         chunkLoading?: string | false | undefined;
@@ -10957,8 +10720,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13077,8 +12840,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13105,8 +12868,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13133,8 +12896,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13175,8 +12938,8 @@ export const rspackOptions: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         chunkLoading?: string | false | undefined;
@@ -13197,8 +12960,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13298,7 +13061,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13312,7 +13075,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13320,7 +13083,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined;
+    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -13659,8 +13422,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13687,8 +13450,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13715,8 +13478,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13757,8 +13520,8 @@ export const rspackOptions: z.ZodObject<{
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
-            root?: string | undefined;
             commonjs2?: string | undefined;
+            root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         chunkLoading?: string | false | undefined;
@@ -13779,8 +13542,8 @@ export const rspackOptions: z.ZodObject<{
             auxiliaryComment?: string | {
                 commonjs?: string | undefined;
                 amd?: string | undefined;
-                root?: string | undefined;
                 commonjs2?: string | undefined;
+                root?: string | undefined;
             } | undefined;
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
@@ -13880,7 +13643,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13894,7 +13657,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13902,7 +13665,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined;
+    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -15418,7 +15181,13 @@ declare namespace t {
         ResolveAlias,
         ResolveTsConfig,
         ResolveOptions,
-        Resolve
+        Resolve,
+        ExternalsType,
+        ExternalItemValue,
+        ExternalItemObjectUnknown,
+        ExternalItemFunctionData,
+        ExternalItem,
+        Externals
     }
 }
 

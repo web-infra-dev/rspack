@@ -137,3 +137,106 @@ export type ResolveOptions = {
 /** Used to configure the Rspack module resolution */
 export type Resolve = ResolveOptions;
 //#endregion
+
+//#region ExternalsType
+/**
+ * Specify the default type of externals.
+ * `amd`, `umd`, `system` and `jsonp` externals depend on the `output.libraryTarget` being set to the same value e.g. you can only consume amd externals within an amd library.
+ * @default 'var'
+ */
+export type ExternalsType =
+	| "var"
+	| "module"
+	| "assign"
+	| "this"
+	| "window"
+	| "self"
+	| "global"
+	| "commonjs"
+	| "commonjs2"
+	| "commonjs-module"
+	| "commonjs-static"
+	| "amd"
+	| "amd-require"
+	| "umd"
+	| "umd2"
+	| "jsonp"
+	| "system"
+	| "promise"
+	| "import"
+	| "module-import"
+	| "script"
+	| "node-commonjs";
+//#endregion
+
+//#region Externals
+/**
+ * The dependency used for the external.
+ */
+export type ExternalItemValue =
+	| string
+	| boolean
+	| string[]
+	| Record<string, string | string[]>;
+
+/**
+ * If an dependency matches exactly a property of the object, the property value is used as dependency.
+ */
+export type ExternalItemObjectUnknown = {
+	[x: string]: ExternalItemValue;
+};
+
+/**
+ * Data object passed as argument when a function is set for 'externals'.
+ */
+export type ExternalItemFunctionData = {
+	context?: string;
+	dependencyType?: string;
+	request?: string;
+	contextInfo?: {
+		issuer: string;
+	};
+};
+
+/**
+ * Prevent bundling of certain imported package and instead retrieve these external dependencies at runtime.
+ *
+ * @example
+ * ```js
+ * // jquery lib will be excluded from bundling.
+ * module.exports = {
+ * 	externals: {
+ * 		jquery: 'jQuery',
+ * 	}
+ * }
+ * ```
+ * */
+export type ExternalItem =
+	| string
+	| RegExp
+	| ExternalItemObjectUnknown
+	| ((
+			data: ExternalItemFunctionData,
+			callback: (
+				err?: Error,
+				result?: ExternalItemValue,
+				type?: ExternalsType
+			) => void
+	  ) => void)
+	| ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
+
+/**
+ * Prevent bundling of certain imported packages and instead retrieve these external dependencies at runtime.
+ *
+ * @example
+ * ```js
+ * // jquery lib will be excluded from bundling.
+ * module.exports = {
+ * 	externals: {
+ * 		jquery: 'jQuery',
+ * 	}
+ * }
+ * ```
+ * */
+export type Externals = ExternalItem | ExternalItem[];
+//#endregion

@@ -879,8 +879,7 @@ export const externalsType = z.enum([
 	"module-import",
 	"script",
 	"node-commonjs"
-]);
-export type ExternalsType = z.infer<typeof externalsType>;
+]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
 //#region Externals
@@ -888,13 +887,13 @@ const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(z.record(z.string().or(z.string().array())));
-export type ExternalItemValue = z.infer<typeof externalItemValue>;
+	.or(
+		z.record(z.string().or(z.string().array()))
+	) satisfies z.ZodType<t.ExternalItemValue>;
 
-const externalItemObjectUnknown = z.record(externalItemValue);
-export type ExternalItemObjectUnknown = z.infer<
-	typeof externalItemObjectUnknown
->;
+const externalItemObjectUnknown = z.record(
+	externalItemValue
+) satisfies z.ZodType<t.ExternalItemObjectUnknown>;
 
 const externalItemFunctionData = z.strictObject({
 	context: z.string().optional(),
@@ -905,8 +904,7 @@ const externalItemFunctionData = z.strictObject({
 			issuer: z.string()
 		})
 		.optional()
-});
-export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
+}) satisfies z.ZodType<t.ExternalItemFunctionData>;
 
 const externalItem = z
 	.string()
@@ -932,11 +930,11 @@ const externalItem = z
 			.function()
 			.args(externalItemFunctionData)
 			.returns(z.promise(externalItemValue))
-	);
-export type ExternalItem = z.infer<typeof externalItem>;
+	) satisfies z.ZodType<t.ExternalItem>;
 
-const externals = externalItem.array().or(externalItem);
-export type Externals = z.infer<typeof externals>;
+const externals = externalItem
+	.array()
+	.or(externalItem) satisfies z.ZodType<t.Externals>;
 //#endregion
 
 //#region ExternalsPresets
