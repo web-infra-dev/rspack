@@ -10,6 +10,7 @@ use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_core::{rspack_sources::SourceMap, Mode, RunnerContext};
+use rspack_error::miette::{Error, IntoDiagnostic};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
@@ -43,7 +44,7 @@ impl SwcLoader {
     self
   }
 
-  fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+  async fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let resource_path = loader_context
       .resource_path()
       .map(|p| p.to_path_buf())
@@ -87,56 +88,67 @@ impl SwcLoader {
     };
 
     let source = content.into_string_lossy();
-    let c = SwcCompiler::new(
-      resource_path.into_std_path_buf(),
-      source.clone(),
-      swc_options,
-    )
-    .map_err(AnyhowError::from)?;
-
-    let built = c
-      .parse(None, |_| {
-        transformer::transform(&self.options_with_additional.rspack_experiments)
-      })
+    let options_with_additional = self.options_with_additional.clone();
+    let (code, map) = tokio::task::spawn_blocking(move || {
+      let c = SwcCompiler::new(
+        resource_path.into_std_path_buf(),
+        source.clone(),
+        swc_options,
+      )
       .map_err(AnyhowError::from)?;
 
-    let input_source_map = c
-      .input_source_map(&built.input_source_map)
-      .map_err(|e| error!(e.to_string()))?;
-    let mut codegen_options = ast::CodegenOptions {
-      target: Some(built.target),
-      minify: Some(built.minify),
-      input_source_map: input_source_map.as_ref(),
-      ascii_only: built
-        .output
-        .charset
-        .as_ref()
-        .map(|v| matches!(v, OutputCharset::Ascii)),
-      source_map_config: SourceMapConfig {
-        enable: source_map_kind.source_map(),
-        inline_sources_content: source_map_kind.source_map(),
-        emit_columns: !source_map_kind.cheap(),
-        names: Default::default(),
-      },
-      inline_script: Some(false),
-      keep_comments: Some(true),
-    };
+      let built = c
+        .parse(None, |_| {
+          transformer::transform(&options_with_additional.rspack_experiments)
+        })
+        .map_err(AnyhowError::from)?;
 
-    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
-    if source_map_kind.enabled() {
-      let mut v = IdentCollector {
-        names: Default::default(),
+      let input_source_map = c
+        .input_source_map(&built.input_source_map)
+        .map_err(|e| error!(e.to_string()))?;
+      let mut codegen_options = ast::CodegenOptions {
+        target: Some(built.target),
+        minify: Some(built.minify),
+        input_source_map: input_source_map.as_ref(),
+        ascii_only: built
+          .output
+          .charset
+          .as_ref()
+          .map(|v| matches!(v, OutputCharset::Ascii)),
+        source_map_config: SourceMapConfig {
+          enable: source_map_kind.source_map(),
+          inline_sources_content: source_map_kind.source_map(),
+          emit_columns: !source_map_kind.cheap(),
+          names: Default::default(),
+        },
+        inline_script: Some(false),
+        keep_comments: Some(true),
       };
-      program.visit_with(&mut v);
-      codegen_options.source_map_config.names = v.names;
-    }
-    let ast = c.into_js_ast(program);
-    let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
+      let program = c.transform(built).map_err(AnyhowError::from)?;
+      if source_map_kind.enabled() {
+        let mut v = IdentCollector {
+          names: Default::default(),
+        };
+        program.visit_with(&mut v);
+        codegen_options.source_map_config.names = v.names;
+      }
+      let ast = c.into_js_ast(program);
+      let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
+      let map = map
+        .map(|m| SourceMap::from_json(&m))
+        .transpose()
+        .map_err(|e| error!(e.to_string()))?;
+      Ok::<
+        (
+          std::string::String,
+          std::option::Option<rspack_core::rspack_sources::SourceMap>,
+        ),
+        Error,
+      >((code, map))
+    })
+    .await
+    .into_diagnostic()??;
 
-    let map = map
-      .map(|m| SourceMap::from_json(&m))
-      .transpose()
-      .map_err(|e| error!(e.to_string()))?;
     loader_context.finish_with((code, map));
 
     Ok(())
@@ -148,19 +160,7 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    #[allow(unused_mut)]
-    let mut inner = || self.loader_impl(loader_context);
-    #[cfg(debug_assertions)]
-    {
-      // Adjust stack to avoid stack overflow.
-      stacker::maybe_grow(
-        2 * 1024 * 1024, /* 2mb */
-        4 * 1024 * 1024, /* 4mb */
-        inner,
-      )
-    }
-    #[cfg(not(debug_assertions))]
-    inner()
+    self.loader_impl(loader_context).await
   }
 }
 

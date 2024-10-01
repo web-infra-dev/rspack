@@ -12,7 +12,7 @@ pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
 }
@@ -74,7 +74,7 @@ pub struct SwcLoaderJsOptions {
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   pub(crate) swc_options: Options,
   pub(crate) rspack_experiments: RspackExperiments,
