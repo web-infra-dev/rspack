@@ -61,6 +61,7 @@ module.exports = {
 		    "nameForCondition": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		    "optimizationBailout": Array [
 		      "Statement with side_effects in source code at ./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css:4:0-100",
+		      "ModuleConcatenation bailout: Module uses module.id",
 		    ],
 		    "optional": false,
 		    "orphan": true,
@@ -104,6 +105,7 @@ module.exports = {
 		    "nameForCondition": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/runtime/api.js",
 		    "optimizationBailout": Array [
 		      "Statement with side_effects in source code at ../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/runtime/api.js:7:0-85:2",
+		      "ModuleConcatenation bailout: Module is not an ECMAScript module",
 		    ],
 		    "optional": false,
 		    "orphan": true,
@@ -165,6 +167,7 @@ module.exports = {
 		    "nameForCondition": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/runtime/noSourceMaps.js",
 		    "optimizationBailout": Array [
 		      "Statement with side_effects in source code at ../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/runtime/noSourceMaps.js:3:0-5:2",
+		      "ModuleConcatenation bailout: Module is not an ECMAScript module",
 		    ],
 		    "optional": false,
 		    "orphan": true,
