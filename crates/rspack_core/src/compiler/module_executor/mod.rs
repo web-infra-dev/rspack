@@ -43,6 +43,7 @@ pub struct ModuleExecutor {
   code_generated_modules: IdentifierDashSet,
   module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
+  pub executed_modules: IdentifierDashSet,
 }
 
 impl ModuleExecutor {
@@ -185,8 +186,13 @@ impl ModuleExecutor {
         result_sender: tx,
       }))
       .expect("should success");
-    let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
-      rx.await.expect("should receiver success");
+    let (
+      execute_result,
+      assets,
+      code_generated_modules,
+      executed_modules,
+      executed_runtime_modules,
+    ) = rx.await.expect("should receiver success");
 
     if let Ok(execute_result) = &execute_result
       && let Some(original_module_identifier) = original_module_identifier
@@ -218,6 +224,8 @@ impl ModuleExecutor {
         .executed_runtime_modules
         .insert(runtime_module.identifier, runtime_module);
     }
+
+    self.executed_modules.extend(executed_modules);
 
     execute_result
   }

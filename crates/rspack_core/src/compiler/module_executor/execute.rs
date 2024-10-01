@@ -52,6 +52,7 @@ pub struct ExecuteTask {
     Result<ExecuteModuleResult>,
     CompilationAssets,
     IdentifierSet,
+    IdentifierSet,
     Vec<ExecutedRuntimeModule>,
   )>,
 }
@@ -315,6 +316,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         execute_result,
         assets,
         code_generated_modules,
+        modules,
         executed_runtime_modules,
       ))
       .expect("should send result success");

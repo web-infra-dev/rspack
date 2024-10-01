@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use either::Either;
 use itertools::Itertools;
 use rayon::iter::{
@@ -189,11 +191,26 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let executed_modules = self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|module_executor| Cow::Borrowed(&module_executor.executed_modules))
+      .unwrap_or_else(|| Cow::Owned(Default::default()));
+
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
       .par_bridge()
-      .map(|module| self.get_module(&module_graph, module, false, None, options))
+      .map(|module| {
+        self.get_module(
+          &module_graph,
+          module,
+          executed_modules.contains(&module.identifier()),
+          None,
+          options,
+        )
+      })
       .collect::<Result<_>>()?;
 
     let runtime_modules = self
