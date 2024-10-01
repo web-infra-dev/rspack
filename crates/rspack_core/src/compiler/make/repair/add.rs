@@ -24,7 +24,7 @@ impl Task<MakeTaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  #[instrument("add_task_run")]
+  #[instrument("add_task_run", skip_all, fields(original_module_identifier))]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;

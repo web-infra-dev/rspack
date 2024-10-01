@@ -116,7 +116,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  #[instrument("build_result_task_run")]
+  #[instrument("build_result_task_run", skip_all, fields(module_id = ?self.module.identifier()))]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,

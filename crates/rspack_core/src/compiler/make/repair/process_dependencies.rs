@@ -22,7 +22,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  #[instrument("process_dependencies_task_run")]
+  #[instrument("process_dependencies_task_run",skip_all, fields(id = ?self.original_module_identifier))]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       original_module_identifier,

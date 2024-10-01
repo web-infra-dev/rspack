@@ -208,7 +208,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  #[instrument("factorize_result_task_run")]
+  #[instrument("factorize_result_task_run",skip_all, fields(id=?self.original_module_identifier))]
   fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {
       original_module_identifier,
