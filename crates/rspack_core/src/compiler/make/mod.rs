@@ -145,8 +145,29 @@ pub fn update_module_graph(
   params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {
   let mut cutout = Cutout::default();
-  let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
-  artifact = repair(compilation, artifact, build_dependencies)?;
+  let mut build_dependencies = cutout.cutout_artifact(&mut artifact, params);
+
+  let (module_executor_task_receiver, module_exector_build_dependencies) = compilation
+    .module_executor
+    .as_mut()
+    .map(|module_executor| module_executor.reset(&mut build_dependencies))
+    .map_or((None, None), |result| (Some(result.0), Some(result.1)));
+
+  if let Some(module_executor_build_dependencies) = module_exector_build_dependencies {
+    artifact = repair(
+      compilation,
+      artifact,
+      module_executor_build_dependencies,
+      None,
+    )?;
+  }
+
+  artifact = repair(
+    compilation,
+    artifact,
+    build_dependencies,
+    module_executor_task_receiver,
+  )?;
   cutout.fix_artifact(&mut artifact);
   Ok(artifact)
 }

@@ -34,12 +34,9 @@ impl Task<MakeTaskContext> for EntryTask {
 
     match param {
       EntryParam::DependencyId(dep_id) => {
-        if module_graph
-          .module_identifier_by_dependency_id(&dep_id)
-          .is_some()
-        {
+        if let Some(module_id) = module_graph.module_identifier_by_dependency_id(&dep_id) {
           event_sender
-            .send(Event::FinishDeps)
+            .send(Event::FinishDeps(Some(*module_id)))
             .expect("should success");
         }
         Ok(vec![])

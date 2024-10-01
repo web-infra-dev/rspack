@@ -3,6 +3,7 @@ mod entry;
 mod execute;
 mod overwrite;
 
+use ctrl::Event;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use dashmap::DashSet;
@@ -11,7 +12,9 @@ pub use execute::ExecutedRuntimeModule;
 use rspack_collections::Identifier;
 use rspack_collections::IdentifierDashMap;
 use rspack_collections::IdentifierDashSet;
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
+use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
@@ -23,6 +26,7 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
 };
 use super::make::repair::MakeTaskContext;
+use super::BuildDependency;
 use super::Compilation;
 use super::CompilationAsset;
 use crate::task_loop::Task;
@@ -31,6 +35,7 @@ use crate::{Context, Dependency, DependencyId, LoaderImportDependency, PublicPat
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
   request_dep_map: DashMap<String, DependencyId>,
+  running_module_map: IdentifierMap<Vec<UnboundedSender<Event>>>,
   event_sender: Option<UnboundedSender<Box<dyn Task<MakeTaskContext>>>>,
 
   assets: DashMap<String, CompilationAsset>,
@@ -41,10 +46,29 @@ pub struct ModuleExecutor {
 }
 
 impl ModuleExecutor {
-  pub fn reset(&mut self) -> UnboundedReceiver<Box<dyn Task<MakeTaskContext>>> {
+  pub fn reset(
+    &mut self,
+    build_dependencies: &mut HashSet<BuildDependency>,
+  ) -> (
+    UnboundedReceiver<Box<dyn Task<MakeTaskContext>>>,
+    HashSet<BuildDependency>,
+  ) {
+    self.running_module_map.clear();
+    let mut module_executor_build_dependencies = HashSet::default();
+    for item in self.request_dep_map.iter() {
+      build_dependencies.retain(|&build_dependency| {
+        if build_dependency.0 == *item.value() {
+          module_executor_build_dependencies.insert(build_dependency);
+          false
+        } else {
+          true
+        }
+      });
+    }
+
     let (event_sender, event_receiver) = unbounded_channel();
     self.event_sender = Some(event_sender.clone());
-    event_receiver
+    (event_receiver, module_executor_build_dependencies)
   }
   pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
     let module_assets = std::mem::take(&mut self.module_assets);
@@ -84,7 +108,7 @@ impl ModuleExecutor {
 
   #[allow(clippy::too_many_arguments)]
   pub async fn import_module(
-    &self,
+    &mut self,
     request: String,
     layer: Option<String>,
     public_path: Option<PublicPath>,
@@ -98,7 +122,7 @@ impl ModuleExecutor {
       .expect("should have event sender");
 
     let (tx, mut rx) = unbounded_channel();
-    let (is_created, param, dep_id) = match self.request_dep_map.entry(request.clone()) {
+    let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
       Entry::Vacant(v) => {
         let dep = LoaderImportDependency::new(
           request.clone(),
@@ -106,31 +130,46 @@ impl ModuleExecutor {
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
-        (false, EntryParam::Entry(Box::new(dep)), dep_id)
+        (EntryParam::Entry(Box::new(dep)), dep_id)
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();
-        (true, EntryParam::DependencyId(dep_id), dep_id)
+        (EntryParam::DependencyId(dep_id), dep_id)
       }
     };
+
     sender
       .send(Box::new(entry::EntryTask {
         param,
-        event_sender: tx,
+        event_sender: tx.clone(),
       }))
       .expect("should success");
 
-    if !is_created {
-      let mut finish_counter = 1;
-      while finish_counter != 0 {
-        let event = rx.recv().await.expect("should success");
-        match event {
-          ctrl::Event::FinishDeps => {
+    let mut finish_counter = 1;
+    while finish_counter > 0 {
+      let event = rx.recv().await.expect("should success");
+      match event {
+        Event::StartBuild(module_id) => {
+          self.running_module_map.insert(module_id, Vec::new());
+        }
+        Event::FinishDeps(module_id) => {
+          if let Some(module_id) = module_id
+            && let Some(senders) = self.running_module_map.get_mut(&module_id)
+          {
+            senders.push(tx.clone());
+          } else {
             finish_counter -= 1;
           }
-          ctrl::Event::FinishModule(size) => {
-            finish_counter += size;
-            finish_counter -= 1;
+        }
+        Event::FinishModule(module_id, size) => {
+          finish_counter += size;
+          finish_counter -= 1;
+          if let Some(senders) = self.running_module_map.remove(&module_id) {
+            for sender in senders {
+              sender
+                .send(Event::FinishDeps(None))
+                .expect("should success");
+            }
           }
         }
       }

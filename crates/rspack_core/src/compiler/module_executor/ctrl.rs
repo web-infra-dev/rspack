@@ -1,5 +1,8 @@
+use rspack_collections::Identifier;
+
 #[derive(Debug)]
 pub enum Event {
-  FinishDeps,
-  FinishModule(usize),
+  StartBuild(Identifier),
+  FinishDeps(Option<Identifier>),
+  FinishModule(Identifier, usize),
 }

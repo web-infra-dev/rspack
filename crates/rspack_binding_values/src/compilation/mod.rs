@@ -487,7 +487,7 @@ impl JsCompilation {
   #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn import_module(
-    &'static self,
+    &'static mut self,
     env: Env,
     request: String,
     layer: Option<String>,
@@ -501,7 +501,7 @@ impl JsCompilation {
       let module_executor = self
         .0
         .module_executor
-        .as_ref()
+        .as_mut()
         .expect("should have module executor");
       let result = module_executor
         .import_module(

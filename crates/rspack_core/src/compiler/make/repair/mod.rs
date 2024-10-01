@@ -8,6 +8,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::MakeArtifact;
 use crate::{
@@ -90,6 +91,7 @@ pub fn repair(
   compilation: &mut Compilation,
   mut artifact: MakeArtifact,
   build_dependencies: HashSet<BuildDependency>,
+  module_exector_task_receiver: Option<UnboundedReceiver<Box<dyn Task<MakeTaskContext>>>>,
 ) -> Result<MakeArtifact> {
   let module_graph = artifact.get_module_graph_mut();
   let init_tasks = build_dependencies
@@ -143,10 +145,6 @@ pub fn repair(
     })
     .collect::<Vec<_>>();
 
-  let module_exector_task_receiver = compilation
-    .module_executor
-    .as_mut()
-    .map(|module_executor| module_executor.reset());
   let mut ctx = MakeTaskContext::new(compilation, artifact);
   run_task_loop(&mut ctx, init_tasks, module_exector_task_receiver)?;
   Ok(ctx.transform_to_make_artifact())
