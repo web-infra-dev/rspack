@@ -159,7 +159,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.24.6
+      - uses: crate-ci/typos@v1.25.0
         with:
           files: .
 
