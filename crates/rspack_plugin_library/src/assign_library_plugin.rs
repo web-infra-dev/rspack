@@ -401,20 +401,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
+    let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let exports_info = compilation
-        .get_module_graph_mut()
-        .get_export_info(module_identifier, &(export.as_str()).into());
-      exports_info.set_used(
-        &mut compilation.get_module_graph_mut(),
-        UsageState::Used,
-        Some(&runtime),
-      );
+      let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      export_info.set_used(&mut module_graph, UsageState::Used, Some(&runtime));
+      export_info.set_can_mangle_use(&mut module_graph, Some(false));
     } else {
-      let exports_info = compilation
-        .get_module_graph()
-        .get_exports_info(&module_identifier);
-      exports_info.set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
+      let exports_info = module_graph.get_exports_info(&module_identifier);
+      exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
     }
   }
   Ok(())
