@@ -56,6 +56,18 @@ module.exports = {
 		    "errors": 0,
 		    "failed": false,
 		    "identifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
+		    "issuer": "<RSPACK_ROOT>/packages/rspack/dist/builtin-plugin/css-extract/loader.js!<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
+		    "issuerName": "./fixtures/css/style.css",
+		    "issuerPath": Array [
+		      Object {
+		        "identifier": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/index.js",
+		        "name": "./fixtures/css/index.js",
+		      },
+		      Object {
+		        "identifier": "<RSPACK_ROOT>/packages/rspack/dist/builtin-plugin/css-extract/loader.js!<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
+		        "name": "./fixtures/css/style.css",
+		      },
+		    ],
 		    "moduleType": "javascript/auto",
 		    "name": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
 		    "nameForCondition": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
@@ -95,6 +107,14 @@ module.exports = {
 		    "issuer": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		    "issuerName": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
 		    "issuerPath": Array [
+		      Object {
+		        "identifier": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/index.js",
+		        "name": "./fixtures/css/index.js",
+		      },
+		      Object {
+		        "identifier": "<RSPACK_ROOT>/packages/rspack/dist/builtin-plugin/css-extract/loader.js!<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
+		        "name": "./fixtures/css/style.css",
+		      },
 		      Object {
 		        "identifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "name": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
@@ -157,6 +177,14 @@ module.exports = {
 		    "issuer": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		    "issuerName": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
 		    "issuerPath": Array [
+		      Object {
+		        "identifier": "<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/index.js",
+		        "name": "./fixtures/css/index.js",
+		      },
+		      Object {
+		        "identifier": "<RSPACK_ROOT>/packages/rspack/dist/builtin-plugin/css-extract/loader.js!<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
+		        "name": "./fixtures/css/style.css",
+		      },
 		      Object {
 		        "identifier": "<RSPACK_ROOT>/node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css",
 		        "name": "./fixtures/css/style.css!=!../../../node_modules/.pnpm/css-loader@6.11.0_@rspack+core@packages+rspack_webpack@5.94.0_@swc+core@1.4.0_@swc+helpers@0._abx7cetgatnhmkwejxyhi55br4/node_modules/css-loader/dist/cjs.js!./fixtures/css/style.css",
