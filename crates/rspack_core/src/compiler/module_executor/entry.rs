@@ -1,16 +1,22 @@
+use rspack_collections::Identifier;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{ctrl::Event, overwrite::OverwriteTask};
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Dependency, DependencyId, LoaderImportDependency, ModuleProfile,
+  Context, Dependency, DependencyId, LoaderImportDependency, Module, ModuleProfile,
+  NormalModuleSource,
 };
 
 #[derive(Debug)]
 pub enum EntryParam {
   DependencyId(DependencyId),
-  Entry(Box<LoaderImportDependency>),
+  Entry {
+    original_module_context: Option<Context>,
+    original_module_identifier: Option<Identifier>,
+    dep: Box<LoaderImportDependency>,
+  },
 }
 
 #[derive(Debug)]
@@ -41,8 +47,29 @@ impl Task<MakeTaskContext> for EntryTask {
         }
         Ok(vec![])
       }
-      EntryParam::Entry(dep) => {
+      EntryParam::Entry {
+        original_module_identifier,
+        original_module_context,
+        dep,
+      } => {
         module_graph.add_dependency(dep.clone());
+        let module = original_module_identifier
+          .as_ref()
+          .and_then(|original_module_identifier| {
+            module_graph.module_by_identifier(original_module_identifier)
+          })
+          .and_then(|module| module.as_normal_module());
+        let original_module_source = module.as_ref().and_then(|module| {
+          if let NormalModuleSource::BuiltSucceed(s) = module.source() {
+            Some(s.clone())
+          } else {
+            None
+          }
+        });
+        let resolve_options = module
+          .as_ref()
+          .and_then(|module| module.get_resolve_options());
+
         let task = Box::new(FactorizeTask {
           module_factory: context
             .dependency_factories
@@ -54,13 +81,18 @@ impl Task<MakeTaskContext> for EntryTask {
               )
             })
             .clone(),
-          original_module_identifier: None,
-          original_module_source: None,
-          issuer: None,
-          issuer_layer: None,
-          original_module_context: None,
+          original_module_identifier,
+          original_module_source,
+          issuer: module
+            .as_ref()
+            .and_then(|module| module.name_for_condition()),
+          issuer_layer: module
+            .as_ref()
+            .and_then(|module| module.get_layer())
+            .map(|layer| layer.clone()),
+          original_module_context: original_module_context.map(|ctx| Box::new(ctx)),
           dependencies: vec![dep],
-          resolve_options: None,
+          resolve_options,
           options: context.compiler_options.clone(),
           current_profile: context
             .compiler_options

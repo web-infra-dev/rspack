@@ -122,16 +122,21 @@ impl ModuleExecutor {
       .as_ref()
       .expect("should have event sender");
 
+    let original_module_context = original_module_context.unwrap_or(Context::from(""));
     let (tx, mut rx) = unbounded_channel();
     let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
       Entry::Vacant(v) => {
-        let dep = LoaderImportDependency::new(
-          request.clone(),
-          original_module_context.unwrap_or(Context::from("")),
-        );
+        let dep = LoaderImportDependency::new(request.clone(), original_module_context.clone());
         let dep_id = *dep.id();
         v.insert(dep_id);
-        (EntryParam::Entry(Box::new(dep)), dep_id)
+        (
+          EntryParam::Entry {
+            original_module_identifier: original_module_identifier.clone(),
+            original_module_context: Some(original_module_context.clone()),
+            dep: Box::new(dep),
+          },
+          dep_id,
+        )
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();
