@@ -98,6 +98,8 @@ impl Task<MakeTaskContext> for EntryTask {
             .compiler_options
             .profile
             .then(Box::<ModuleProfile>::default),
+          recursive: true,
+          connect_origin: false,
         });
         Ok(vec![Box::new(OverwriteTask {
           origin_task: task,

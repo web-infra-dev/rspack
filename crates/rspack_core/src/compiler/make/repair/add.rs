@@ -14,6 +14,8 @@ pub struct AddTask {
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub recursive: bool,
+  pub connect_origin: bool,
 }
 
 impl Task<MakeTaskContext> for AddTask {
@@ -35,7 +37,9 @@ impl Task<MakeTaskContext> for AddTask {
 
       set_resolved_module(
         module_graph,
-        self.original_module_identifier,
+        self
+          .original_module_identifier
+          .filter(|_| self.connect_origin),
         self.dependencies,
         *issuer,
       )?;
@@ -50,7 +54,9 @@ impl Task<MakeTaskContext> for AddTask {
     {
       set_resolved_module(
         module_graph,
-        self.original_module_identifier,
+        self
+          .original_module_identifier
+          .filter(|_| self.connect_origin),
         self.dependencies,
         module_identifier,
       )?;
@@ -63,7 +69,9 @@ impl Task<MakeTaskContext> for AddTask {
 
     set_resolved_module(
       module_graph,
-      self.original_module_identifier,
+      self
+        .original_module_identifier
+        .filter(|_| self.connect_origin),
       self.dependencies,
       module_identifier,
     )?;
@@ -77,6 +85,7 @@ impl Task<MakeTaskContext> for AddTask {
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
+      recursive: self.recursive,
       fs: context.fs.clone(),
     })])
   }

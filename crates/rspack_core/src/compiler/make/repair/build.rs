@@ -21,6 +21,7 @@ pub struct BuildTask {
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
+  pub recursive: bool,
   #[derivative(Debug = "ignore")]
   pub fs: Arc<dyn ReadableFileSystem>,
 }
@@ -38,6 +39,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile,
       mut module,
       fs,
+      recursive,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -92,6 +94,7 @@ impl Task<MakeTaskContext> for BuildTask {
         build_result: Box::new(build_result),
         diagnostics,
         current_profile,
+        recursive,
       })]
     })
   }
@@ -103,6 +106,7 @@ struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub recursive: bool,
 }
 
 impl Task<MakeTaskContext> for BuildResultTask {
@@ -115,6 +119,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       build_result,
       diagnostics,
       current_profile,
+      recursive,
     } = *self;
 
     let artifact = &mut context.artifact;
@@ -196,9 +201,13 @@ impl Task<MakeTaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
-    Ok(vec![Box::new(ProcessDependenciesTask {
-      dependencies: all_dependencies,
-      original_module_identifier: module_identifier,
-    })])
+    if recursive {
+      Ok(vec![Box::new(ProcessDependenciesTask {
+        dependencies: all_dependencies,
+        original_module_identifier: module_identifier,
+      })])
+    } else {
+      Ok(vec![])
+    }
   }
 }

@@ -25,6 +25,8 @@ pub struct FactorizeTask {
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub recursive: bool,
+  pub connect_origin: bool,
 }
 
 #[async_trait::async_trait]
@@ -74,6 +76,8 @@ impl Task<MakeTaskContext> for FactorizeTask {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       diagnostics: Default::default(),
+      recursive: self.recursive,
+      connect_origin: self.connect_origin,
     };
 
     // Error and result are not mutually exclusive in webpack module factorization.
@@ -163,6 +167,8 @@ pub struct FactorizeResultTask {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub diagnostics: Vec<Diagnostic>,
+  pub recursive: bool,
+  pub connect_origin: bool,
 }
 
 impl FactorizeResultTask {
@@ -212,6 +218,8 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       context_dependencies,
       missing_dependencies,
       diagnostics,
+      recursive,
+      connect_origin,
     } = *self;
     let artifact = &mut context.artifact;
     if !diagnostics.is_empty() {
@@ -277,6 +285,8 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       module_graph_module: Box::new(mgm),
       dependencies,
       current_profile,
+      recursive,
+      connect_origin,
     })])
   }
 }
