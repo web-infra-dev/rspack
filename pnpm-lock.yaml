@@ -637,8 +637,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.2
       coffee-loader:
-        specifier: ^1.0.0
-        version: 1.0.1(coffeescript@2.7.0)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^5.0.0
+        version: 5.0.0(coffeescript@2.7.0)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0)))
       coffeescript:
         specifier: ^2.5.1
         version: 2.7.0
@@ -4539,6 +4539,13 @@ packages:
     peerDependencies:
       coffeescript: '>= 2.0.0'
       webpack: ^4.0.0 || ^5.0.0
+
+  coffee-loader@5.0.0:
+    resolution: {integrity: sha512-gUIfnuyjVEkjuugx6uRHHhnqmjqsL5dlhYgvhAUla25EoQhI57IFBQvsHvJHtBv5BMB2IzTKezDU2SrZkEiPdQ==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      coffeescript: '>= 2.0.0'
+      webpack: ^5.0.0
 
   coffeescript@2.7.0:
     resolution: {integrity: sha512-hzWp6TUE2d/jCcN67LrW1eh5b/rSDKQK6oD6VMLlggYVUUFexgTH9z3dNYihzX4RMhze5FTUsUmOXViJKFQR/A==}
@@ -14278,19 +14285,17 @@ snapshots:
       schema-utils: 3.3.0
       webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.1))(webpack-cli@5.1.4(webpack@5.94.0))
 
-  coffee-loader@1.0.1(coffeescript@2.7.0)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0))):
-    dependencies:
-      coffeescript: 2.7.0
-      loader-utils: 2.0.4
-      schema-utils: 3.3.0
-      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0))
-
   coffee-loader@1.0.1(coffeescript@2.7.0)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4)):
     dependencies:
       coffeescript: 2.7.0
       loader-utils: 2.0.4
       schema-utils: 3.3.0
       webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4)
+
+  coffee-loader@5.0.0(coffeescript@2.7.0)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0))):
+    dependencies:
+      coffeescript: 2.7.0
+      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.12))(webpack-cli@5.1.4(webpack@5.94.0))
 
   coffeescript@2.7.0: {}
 
