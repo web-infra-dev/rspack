@@ -288,7 +288,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.6
+      - uses: cargo-bins/cargo-binstall@v1.10.7
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
