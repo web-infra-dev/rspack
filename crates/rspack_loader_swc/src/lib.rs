@@ -86,7 +86,7 @@ impl SwcLoader {
       _ => loader_context.context.module_source_map_kind,
     };
 
-    let source = content.try_into_string()?;
+    let source = content.into_string_lossy();
     let c = SwcCompiler::new(
       resource_path.into_std_path_buf(),
       source.clone(),

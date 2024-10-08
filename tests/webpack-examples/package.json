@@ -20,7 +20,7 @@
     "coffeescript": "^2.5.1",
     "@babel/preset-react": "^7.22.15",
     "css-loader": "^6.11.0",
-    "style-loader": "^3.3.3",
+    "style-loader": "^4.0.0",
     "wast-loader": "^1.12.1"
   }
 }

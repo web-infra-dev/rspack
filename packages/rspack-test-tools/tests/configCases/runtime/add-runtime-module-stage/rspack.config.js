@@ -5,7 +5,7 @@ class MockNormalRuntimeModule extends RuntimeModule {
     super("mock-normal", RuntimeModule.STAGE_NORMAL);
   }
 
-  generate(compilation) {
+  generate() {
     return `__webpack_require__.mockNormal = "normal";`;
   }
 }
@@ -15,7 +15,7 @@ class MockTriggerRuntimeModule extends RuntimeModule {
     super("mock-trigger", RuntimeModule.STAGE_TRIGGER);
   }
 
-  generate(compilation) {
+  generate() {
     return `__webpack_require__.mockTrigger = "trigger";`;
   }
 }

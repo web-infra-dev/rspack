@@ -35,6 +35,7 @@ runs:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         if-no-files-found: error
+        overwrite: true
     - name: Upload local
       id: upload-local
       if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}

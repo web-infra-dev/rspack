@@ -439,7 +439,8 @@ module.exports = {
             super('custom');
           }
 
-          generate(compilation) {
+          generate() {
+            const compilation = this.compilation;
             return `
             __webpack_require__.mock = function() {
               // ...

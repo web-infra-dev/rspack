@@ -23,7 +23,7 @@ export class RuntimeModule {
 		return {
 			name: module.name,
 			stage: module.stage,
-			generator: () => module.generate(compilation),
+			generator: module.generate.bind(module),
 			cacheable: !(module.fullHash || module.dependentHash),
 			isolate: module.shouldIsolate()
 		};
@@ -67,7 +67,7 @@ export class RuntimeModule {
 		return true;
 	}
 
-	generate(compilation: Compilation): string {
+	generate(): string {
 		throw new Error(
 			`Should implement "generate" method of runtime module "${this.name}"`
 		);

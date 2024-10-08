@@ -51,7 +51,7 @@
     "postcss-loader": "^8.0.0",
     "react-refresh": "^0.14.0",
     "serve": "14.2.1",
-    "style-loader": "^3.3.3",
+    "style-loader": "^4.0.0",
     "swc-loader": "^0.2.3",
     "webpack": "^5.94.0"
   },
