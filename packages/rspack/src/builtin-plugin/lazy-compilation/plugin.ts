@@ -33,7 +33,7 @@ export default class LazyCompilationPlugin {
 		const backend = getBackend({
 			...this.backend,
 			client: require.resolve(
-				`../../../hot/lazy-compilation-${
+				`../hot/lazy-compilation-${
 					compiler.options.externalsPresets.node ? "node" : "web"
 				}.js`
 			)
