@@ -273,7 +273,7 @@ impl CommonJsImportsParserPlugin {
     }
 
     if matches!(parser.javascript_options.require_dynamic, Some(false)) && !param.is_string() {
-      return Some(true);
+      return Some(false);
     }
 
     // FIXME: should support `LocalModuleDependency`
@@ -298,7 +298,9 @@ impl CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser,
     ident: &Ident,
   ) -> Option<bool> {
-    if matches!(parser.javascript_options.require_as_expression, Some(false)) {
+    if matches!(parser.javascript_options.require_as_expression, Some(false))
+      || matches!(parser.javascript_options.require_dynamic, Some(false))
+    {
       return Some(false);
     }
 
