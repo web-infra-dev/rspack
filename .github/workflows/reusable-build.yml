@@ -242,7 +242,7 @@ jobs:
       - name: Run e2e
         uses: ./.github/actions/docker-run
         with:
-          image: mcr.microsoft.com/playwright:v1.35.0-jammy
+          image: mcr.microsoft.com/playwright:v1.47.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker-run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:$HOME/.tool_cache
