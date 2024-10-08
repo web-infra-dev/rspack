@@ -55,11 +55,21 @@ impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
   }
 }
 
+impl From<&JsChunkPathData> for rspack_core::Chunk {
+  fn from(chunk: &JsChunkPathData) -> rspack_core::Chunk {
+    rspack_core::Chunk::new(chunk.name.clone(), rspack_core::ChunkKind::Normal)
+  }
+}
+
 impl JsPathData {
-  pub fn as_core_path_data(&self) -> rspack_core::PathData {
+  pub fn as_core_path_data<'a>(
+    &'a self,
+    chunk: Option<&'a rspack_core::Chunk>,
+  ) -> rspack_core::PathData<'a> {
     rspack_core::PathData {
       filename: self.filename.as_deref(),
-      chunk: None,
+      chunk,
+      // TODO: support custom module
       module: None,
       hash: self.hash.as_deref(),
       content_hash: self.content_hash.as_deref(),

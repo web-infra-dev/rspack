@@ -14,6 +14,7 @@ use rspack_core::get_chunk_from_ukey;
 use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::Chunk;
 use rspack_core::ChunkUkey;
 use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
@@ -387,9 +388,10 @@ impl JsCompilation {
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<String> {
+    let chunk = data.chunk.as_ref().map(|c| Chunk::from(c));
     self
       .0
-      .get_asset_path(&filename.into(), data.as_core_path_data())
+      .get_asset_path(&filename.into(), data.as_core_path_data(chunk.as_ref()))
   }
 
   #[napi]
@@ -398,15 +400,19 @@ impl JsCompilation {
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
+    let chunk: Option<Chunk> = data.chunk.as_ref().map(|c| Chunk::from(c));
     let path_and_asset_info = self
       .0
-      .get_asset_path_with_info(&filename.into(), data.as_core_path_data())?;
+      .get_asset_path_with_info(&filename.into(), data.as_core_path_data(chunk.as_ref()))?;
     Ok(path_and_asset_info.into())
   }
 
   #[napi]
   pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
-    self.0.get_path(&filename.into(), data.as_core_path_data())
+    let chunk = data.chunk.as_ref().map(|c| Chunk::from(c));
+    self
+      .0
+      .get_path(&filename.into(), data.as_core_path_data(chunk.as_ref()))
   }
 
   #[napi]
@@ -415,9 +421,10 @@ impl JsCompilation {
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
+    let chunk = data.chunk.as_ref().map(|c| Chunk::from(c));
     let path_and_asset_info = self
       .0
-      .get_path_with_info(&filename.into(), data.as_core_path_data())?;
+      .get_path_with_info(&filename.into(), data.as_core_path_data(chunk.as_ref()))?;
     Ok(path_and_asset_info.into())
   }
 
