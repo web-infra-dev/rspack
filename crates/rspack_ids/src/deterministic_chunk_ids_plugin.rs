@@ -74,11 +74,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
 }
 
 impl Plugin for DeterministicChunkIdsPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks

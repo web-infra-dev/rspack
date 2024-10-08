@@ -1040,11 +1040,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 }
 
 impl Plugin for ModuleConcatenationPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks

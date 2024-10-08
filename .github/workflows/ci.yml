@@ -159,7 +159,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.23.6
+      - uses: crate-ci/typos@v1.25.0
         with:
           files: .
 
@@ -288,7 +288,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.2
+      - uses: cargo-bins/cargo-binstall@v1.10.7
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
@@ -388,3 +388,15 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+  pkg-preview:
+    name: Pkg Preview
+    needs:
+      - test-linux
+      - test-windows
+      - cargo-deny
+      - lint
+      - rust_check
+      - rust_test
+    if: ${{ (success() || cancelled()) && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/preview-commit.yml

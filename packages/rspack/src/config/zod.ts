@@ -7,6 +7,9 @@ import type { Compilation, Compiler } from "..";
 import { Chunk } from "../Chunk";
 import type { PathData } from "../Compilation";
 import { Module } from "../Module";
+import type * as t from "./types";
+
+export type * from "./types";
 
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
@@ -410,8 +413,7 @@ const resolveAlias = z.record(
 		.literal(false)
 		.or(z.string())
 		.or(z.array(z.string().or(z.literal(false))))
-);
-export type ResolveAlias = z.infer<typeof resolveAlias>;
+) satisfies z.ZodType<t.ResolveAlias>;
 
 const resolveTsConfigFile = z.string();
 const resolveTsConfig = resolveTsConfigFile.or(
@@ -419,8 +421,7 @@ const resolveTsConfig = resolveTsConfigFile.or(
 		configFile: resolveTsConfigFile,
 		references: z.array(z.string()).or(z.literal("auto")).optional()
 	})
-);
-export type ResolveTsConfig = z.infer<typeof resolveTsConfig>;
+) satisfies z.ZodType<t.ResolveTsConfig>;
 
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
@@ -443,16 +444,12 @@ const baseResolveOptions = z.strictObject({
 	aliasFields: z.array(z.string()).optional(),
 	restrictions: z.array(z.string()).optional(),
 	roots: z.array(z.string()).optional()
-});
+}) satisfies z.ZodType<t.ResolveOptions>;
 
-export type ResolveOptions = z.infer<typeof baseResolveOptions> & {
-	byDependency?: Record<string, ResolveOptions>;
-};
-const resolveOptions: z.ZodType<ResolveOptions> = baseResolveOptions.extend({
+const resolveOptions: z.ZodType<t.ResolveOptions> = baseResolveOptions.extend({
 	byDependency: z.lazy(() => z.record(resolveOptions)).optional()
 });
 
-export type Resolve = z.infer<typeof resolveOptions>;
 //#endregion
 
 //#region Module
@@ -882,8 +879,7 @@ export const externalsType = z.enum([
 	"module-import",
 	"script",
 	"node-commonjs"
-]);
-export type ExternalsType = z.infer<typeof externalsType>;
+]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
 //#region Externals
@@ -891,13 +887,13 @@ const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(z.record(z.string().or(z.string().array())));
-export type ExternalItemValue = z.infer<typeof externalItemValue>;
+	.or(
+		z.record(z.string().or(z.string().array()))
+	) satisfies z.ZodType<t.ExternalItemValue>;
 
-const externalItemObjectUnknown = z.record(externalItemValue);
-export type ExternalItemObjectUnknown = z.infer<
-	typeof externalItemObjectUnknown
->;
+const externalItemObjectUnknown = z.record(
+	externalItemValue
+) satisfies z.ZodType<t.ExternalItemObjectUnknown>;
 
 const externalItemFunctionData = z.strictObject({
 	context: z.string().optional(),
@@ -908,8 +904,7 @@ const externalItemFunctionData = z.strictObject({
 			issuer: z.string()
 		})
 		.optional()
-});
-export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
+}) satisfies z.ZodType<t.ExternalItemFunctionData>;
 
 const externalItem = z
 	.string()
@@ -935,11 +930,11 @@ const externalItem = z
 			.function()
 			.args(externalItemFunctionData)
 			.returns(z.promise(externalItemValue))
-	);
-export type ExternalItem = z.infer<typeof externalItem>;
+	) satisfies z.ZodType<t.ExternalItem>;
 
-const externals = externalItem.array().or(externalItem);
-export type Externals = z.infer<typeof externals>;
+const externals = externalItem
+	.array()
+	.or(externalItem) satisfies z.ZodType<t.Externals>;
 //#endregion
 
 //#region ExternalsPresets

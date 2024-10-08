@@ -1,7 +1,6 @@
 use std::sync::Arc;
-use std::sync::LazyLock;
 
-use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::Compilation;
 use rspack_core::DependencyConditionFn;
 use rspack_core::RealDependencyLocation;
@@ -11,7 +10,7 @@ use rspack_core::{
   Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ExportInfoProvided, ExportsType, ExtendedReferencedExport,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleIdentifier, ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
@@ -25,19 +24,34 @@ use super::create_resource_identifier_for_esm_dependency;
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-static IMPORT_EMITTED_MAP: LazyLock<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
-  LazyLock::new(Default::default);
+pub mod import_emitted_runtime {
+  use once_cell::sync::OnceCell;
+  use rspack_collections::{IdentifierDashMap, IdentifierMap};
+  use rspack_core::{ModuleIdentifier, RuntimeCondition};
 
-pub fn get_import_emitted_runtime(
-  module: &ModuleIdentifier,
-  referenced_module: &ModuleIdentifier,
-) -> RuntimeCondition {
-  let Some(condition_map) = IMPORT_EMITTED_MAP.get(module) else {
-    return RuntimeCondition::Boolean(false);
-  };
-  match condition_map.get(referenced_module) {
-    Some(r) => r.to_owned(),
-    None => RuntimeCondition::Boolean(false),
+  static IMPORT_EMITTED_MAP: OnceCell<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
+    OnceCell::new();
+
+  pub fn init_map() {
+    IMPORT_EMITTED_MAP.get_or_init(Default::default);
+  }
+
+  pub fn get_map() -> Option<&'static IdentifierDashMap<IdentifierMap<RuntimeCondition>>> {
+    IMPORT_EMITTED_MAP.get()
+  }
+
+  pub fn get_runtime(
+    module: &ModuleIdentifier,
+    referenced_module: &ModuleIdentifier,
+  ) -> RuntimeCondition {
+    let map = get_map().expect("must call import_emitted_runtime::init_map() before");
+    let Some(condition_map) = map.get(module) else {
+      return RuntimeCondition::Boolean(false);
+    };
+    match condition_map.get(referenced_module) {
+      Some(r) => r.to_owned(),
+      None => RuntimeCondition::Boolean(false),
+    }
   }
 }
 
@@ -138,11 +152,10 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     .unwrap_or(module_dependency.request());
   let key = format!("harmony import {}", module_key);
 
-  // NOTE: different with webpack
-  // The import emitted map is consumed by HarmonyAcceptDependency which enabled by `dev_server.hot`
-  if compilation.options.dev_server.hot {
+  // The import emitted map is consumed by HarmonyAcceptDependency which enabled by HotModuleReplacementPlugin
+  if let Some(import_emitted_map) = import_emitted_runtime::get_map() {
     if let Some(ref_module) = ref_module {
-      let mut emitted_modules = IMPORT_EMITTED_MAP.entry(module.identifier()).or_default();
+      let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
 
       let old_runtime_condition = match emitted_modules.get(ref_module) {
         Some(v) => v.to_owned(),

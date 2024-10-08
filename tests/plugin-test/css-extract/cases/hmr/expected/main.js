@@ -222,7 +222,7 @@ exports.normalizeUrl = normalizeUrl;
 
 
 }),
-"./index.css?6ed0": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css?a5a7": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -1431,6 +1431,6 @@ __webpack_require__.hmrM = function () {
 // module cache are used so entry inlining is disabled
 // startup
 // Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.css?6ed0");
+var __webpack_exports__ = __webpack_require__("./index.css?a5a7");
 })()
 ;

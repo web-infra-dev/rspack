@@ -151,6 +151,7 @@ Rust
 rustup
 sanyuan
 Shenzhen
+shulaoda
 sockjs
 sokra
 solidjs

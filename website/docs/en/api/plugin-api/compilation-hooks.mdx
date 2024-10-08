@@ -9,6 +9,7 @@ import CompilerType from '../../types/compiler.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from 'rspress/runtime';
+import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation Hooks
 
@@ -268,12 +269,12 @@ direction LR
     HookModuleRuntime --> HookAdditionalChunkRuntime(hooks.additionalChunkRuntimeRequirements)
     HookAdditionalChunkRuntime --> HookChunkRuntime(hooks.runtimeRequirementInChunk)
     HookChunkRuntime --> HookAdditionalTreeRuntime(<a href="#additionaltreeruntimerequirements">hooks.additionalTreeRuntimeRequirements</a>)
-    HookAdditionalTreeRuntime --> HookTreeRuntime(hooks.runtimeRequirementInTree)
+    HookAdditionalTreeRuntime --> HookTreeRuntime(<a href="#runtimerequirementintree">hooks.runtimeRequirementInTree</a>)
     HookTreeRuntime --> HookAfterRuntimeRequirements(hooks.afterRuntimeRequirements)
     HookTreeRuntime <--> HookRuntimeModule(<a href="#runtimemodule">hooks.runtimeModule</a>)
 
-    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookTreeRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
-    class HookAdditionalTreeRuntime,HookRuntimeModule flow-hook-partial-support
+    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
+    class HookAdditionalTreeRuntime,HookRuntimeModule,HookTreeRuntime flow-hook-partial-support
     class ModuleCodeGeneration flow-process
     end
 
@@ -554,8 +555,6 @@ Called after the tree optimization, at the beginning of the chunk modules optimi
 
 ## `additionalTreeRuntimeRequirements`
 
-<Badge text="Read-only" type="info" />
-
 Called after the tree runtime requirements collection.
 
 - **Type:** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
@@ -563,20 +562,91 @@ Called after the tree runtime requirements collection.
   - `Chunk`: chunk instance
   - `Set<RuntimeGlobals>`: runtime requirements
 
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="RuntimeGlobals.ts"
-    key="RuntimeGlobals"
-  >
-    ```ts enum RuntimeGlobals {}
-    ```
-  </CollapsePanel>
-</Collapse>
+Additional builtin runtime modules can be added here by modifying the runtime requirements set.
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap(
+            'CustomPlugin',
+            (_, set) => {
+              // add a runtime module which define `__webpack_require__.h`
+              set.add(RuntimeGlobals.getFullHash);
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// will print hash of this compilation
+console.log(__webpack_require__.h);
+```
+
+## `runtimeRequirementInTree`
+
+<ApiMeta addedVersion="1.0.6" />
+
+Called during adding runtime modules to the compilation.
+
+- **Type:** `HookMap<SyncBailHook<[Chunk, Set<RuntimeGlobals>]>>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `Set<RuntimeGlobals>`: runtime requirements
+
+Additional builtin runtime modules can be added here by modifying the runtime requirements set or calling [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) to add custom runtime modules.
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals, RuntimeModule } = compiler.webpack;
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom');
+          }
+
+          generate() {
+            const compilation = this.compilation;
+            return `
+            __webpack_require__.mock = function(file) {
+              return ${RuntimeGlobals.publicPath} + "/subpath/" + file;
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
+              // add a runtime module to access public path
+              set.add(RuntimeGlobals.publicPath);
+              compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+            });
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// will print "/subpath/index.js"
+console.log(__webpack_require__.mock('index.js'));
+```
 
 ## `runtimeModule`
-
-<Badge text="Read-only" type="info" />
 
 Called after a runtime module is added into the compilation.
 
@@ -584,6 +654,39 @@ Called after a runtime module is added into the compilation.
 - **Arguments:**
   - `RuntimeModule`: runtime module instance
   - `Chunk`: chunk instance
+
+Generated code of this runtime module can be modified through its `source` property.
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.compilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeModule.tap(
+            'CustomPlugin',
+            (module, chunk) => {
+              if (module.name === 'public_path' && chunk.name === 'main') {
+                const originSource = module.source.source.toString('utf-8');
+                module.source.source = Buffer.from(
+                  `${RuntimeGlobals.publicPath} = "/override/public/path";\n`,
+                  'utf-8',
+                );
+              }
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// will print "/override/public/path"
+console.log(__webpack_require__.p);
+```
 
 <Collapse>
   <CollapsePanel

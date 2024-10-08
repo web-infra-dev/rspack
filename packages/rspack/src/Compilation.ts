@@ -212,9 +212,8 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeRequirementInTree: liteTapable.SyncBailHook<
-			[Chunk, Set<string>],
-			void
+		runtimeRequirementInTree: liteTapable.HookMap<
+			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		seal: liteTapable.SyncHook<[], void>;
@@ -348,10 +347,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunk",
 				"runtimeRequirements"
 			]),
-			runtimeRequirementInTree: new liteTapable.SyncBailHook([
-				"chunk",
-				"runtimeRequirements"
-			]),
+			runtimeRequirementInTree: new liteTapable.HookMap(
+				() => new liteTapable.SyncBailHook(["chunk", "runtimeRequirements"])
+			),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
@@ -428,6 +426,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	get modules(): ReadonlySet<Module> {
 		return new Set(
 			this.#inner.modules.map(module => Module.__from_binding(module, this))
+		);
+	}
+
+	get builtModules(): ReadonlySet<Module> {
+		return new Set(
+			this.#inner.builtModules.map(module =>
+				Module.__from_binding(module, this)
+			)
 		);
 	}
 
@@ -784,10 +790,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		];
 
 		for (const item of proxyMethod) {
-			const proxyedMethod = new Proxy(errors[item.method as any], {
+			const proxiedMethod = new Proxy(errors[item.method as any], {
 				apply: item.handler as any
 			});
-			errors[item.method as any] = proxyedMethod;
+			errors[item.method as any] = proxiedMethod;
 		}
 		return errors;
 	}
@@ -877,10 +883,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		];
 
 		for (const item of proxyMethod) {
-			const proxyedMethod = new Proxy(warnings[item.method as any], {
+			const proxiedMethod = new Proxy(warnings[item.method as any], {
 				apply: item.handler as any
 			});
-			warnings[item.method as any] = proxyedMethod;
+			warnings[item.method as any] = proxiedMethod;
 		}
 		return warnings;
 	}

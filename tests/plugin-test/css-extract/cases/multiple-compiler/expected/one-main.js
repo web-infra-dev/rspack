@@ -1,7 +1,7 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"./style.css?305c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./style.css?a1c3": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -48,7 +48,7 @@ __webpack_require__.r = function(exports) {
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?305c");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?a1c3");
 
 
 })()

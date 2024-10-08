@@ -142,7 +142,7 @@ type HtmlRspackPluginOptions = {
   template?: string;
   templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
   templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
-  inject?: 'head' | 'body' | false;
+  inject?: 'head' | 'body' | boolean;
   publicPath?: string;
   base?: string | {
     href?: string;
@@ -216,7 +216,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`inject`',
-      type: "`'head' | 'body' | false | undefined`",
+      type: "`'head' | 'body' | boolean | undefined`",
       default: 'undefined',
       description:
         'The script and link tag inject position in `template`. Use false to not inject. If not specified, it will be automatically determined based on `scriptLoading`.',

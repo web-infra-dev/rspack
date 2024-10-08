@@ -81,6 +81,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   get modules(): Array<ModuleDTO>
+  get builtModules(): Array<ModuleDTO>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
@@ -1880,7 +1881,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+export function registerGlobalTrace(filter: string, layer: "chrome" | "logger"| "console", output: string): void
 
 export enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

@@ -216,7 +216,7 @@ impl Plugin for JsonPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,

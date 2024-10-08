@@ -247,15 +247,20 @@ impl ProgressPlugin {
 
   fn progress_bar_handler(&self, percent: f64, msg: String, state_items: Vec<String>) {
     if let Some(progress_bar) = &self.progress_bar {
-      progress_bar.set_message(msg + " " + state_items.join(" ").as_str());
-      progress_bar.set_position((percent * 100.0) as u64);
+      let msg = msg + " " + state_items.join(" ").as_str();
+      if percent == 1.0 {
+        progress_bar.finish_with_message(msg);
+      } else {
+        progress_bar.set_message(msg);
+        progress_bar.set_position((percent * 100.0) as u64);
+      }
     }
   }
 
   fn sealing_hooks_report(&self, name: &str, index: i32) -> Result<()> {
     let number_of_sealing_hooks = 38;
     self.handler(
-      0.7 + 0.25 * (index / number_of_sealing_hooks) as f64,
+      0.7 + 0.25 * (index as f64 / number_of_sealing_hooks as f64),
       "sealing".to_string(),
       vec![name.to_string()],
       None,
@@ -308,7 +313,7 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  self.handler(0.01, String::from("make"), vec![], None)?;
+  self.handler(0.1, String::from("make"), vec![], None)?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
   Ok(())
@@ -469,11 +474,7 @@ impl Plugin for ProgressPlugin {
     "progress"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

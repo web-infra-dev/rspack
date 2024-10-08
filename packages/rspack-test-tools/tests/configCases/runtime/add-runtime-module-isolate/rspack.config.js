@@ -5,7 +5,7 @@ class IsolateRuntimeModule extends RuntimeModule {
     super("mock-isolate");
   }
 
-  generate(compilation) {
+  generate() {
     return `
       __webpack_require__.mock = function() {
         return someGlobalValue;
@@ -23,7 +23,7 @@ class NonIsolateRuntimeModule extends RuntimeModule {
     return false;
   }
 
-  generate(compilation) {
+  generate() {
     return `
       var someGlobalValue = "isolated";
     `;
@@ -48,7 +48,7 @@ module.exports = {
       compiler.hooks.thisCompilation.tap(
         "MockRuntimePlugin",
         (compilation) => {
-          compilation.hooks.runtimeRequirementInTree.tap("MockRuntimePlugin", (chunk, set) => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap("MockRuntimePlugin", (chunk, set) => {
             compilation.addRuntimeModule(
               chunk,
               new NonIsolateRuntimeModule()

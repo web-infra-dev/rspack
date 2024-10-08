@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
   CacheOptions, CompilerOptions, Context, Experiments, Incremental, ModuleOptions, OutputOptions,
-  References, Target,
+  References,
 };
 
 mod raw_builtins;
@@ -69,7 +69,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
-    let target = Target::new(&value.target)?;
     let cache = value.cache.into();
     let experiments = Experiments {
       incremental: match value.experiments.incremental {
@@ -101,7 +100,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       context,
       mode,
       module,
-      target,
       output,
       resolve,
       resolve_loader,
@@ -111,7 +109,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       snapshot,
       optimization,
       node,
-      dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
       __references: value.__references,
