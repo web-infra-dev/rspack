@@ -20,11 +20,10 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
-    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
+    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json",
     "dev": "tsc -w",
     "prepare": "prebundle",
-    "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
@@ -46,7 +45,6 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@swc/core": "1.4.0",
     "@types/graceful-fs": "4.1.9",
     "@types/neo-async": "^2.6.6",
     "@types/watchpack": "^2.4.0",

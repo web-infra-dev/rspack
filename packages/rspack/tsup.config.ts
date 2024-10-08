@@ -26,12 +26,21 @@ export default defineConfig([
 	{
 		...commonConfig,
 		entry: ["./src/index.ts"],
-		external: ["./css-extract-loader.js"]
+		external: ["./moduleFederationDefaultRuntime.js"]
 	},
 	{
 		...commonConfig,
 		entry: {
-			"css-extract-loader": "./src/builtin-plugin/css-extract/loader.ts"
+			cssExtractLoader: "./src/builtin-plugin/css-extract/loader.ts"
 		}
+	},
+	{
+		...commonConfig,
+		entry: {
+			moduleFederationDefaultRuntime:
+				"./src/runtime/moduleFederationDefaultRuntime.js",
+			cssExtractHmr: "./src/runtime/cssExtractHmr.ts"
+		},
+		target: ["es2015"]
 	}
 ]);
