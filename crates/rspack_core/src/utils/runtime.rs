@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+
+use cow_utils::CowUtils;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -130,7 +133,7 @@ pub fn get_filename_without_hash_length<F: Clone>(
   let Some(template) = filename.template() else {
     return (filename.clone(), hash_len_map);
   };
-  let mut template = template.to_string();
+  let mut template = Cow::Borrowed(template);
   for key in [
     HASH_PLACEHOLDER,
     FULL_HASH_PLACEHOLDER,
@@ -141,8 +144,8 @@ pub fn get_filename_without_hash_length<F: Clone>(
       if let Some(hash_len) = p.len {
         hash_len_map.insert((*key).to_string(), hash_len);
       }
-      template = template.replace(&p.pattern, key);
+      template = Cow::Owned(template.cow_replace(&p.pattern, key).into_owned());
     }
   }
-  (Filename::from(template), hash_len_map)
+  (Filename::from(template.into_owned()), hash_len_map)
 }
