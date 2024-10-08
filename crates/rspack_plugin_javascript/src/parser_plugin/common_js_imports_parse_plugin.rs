@@ -273,7 +273,7 @@ impl CommonJsImportsParserPlugin {
     }
 
     if matches!(parser.javascript_options.require_dynamic, Some(false)) && !param.is_string() {
-      return Some(false);
+      return None;
     }
 
     // FIXME: should support `LocalModuleDependency`
@@ -301,7 +301,7 @@ impl CommonJsImportsParserPlugin {
     if matches!(parser.javascript_options.require_as_expression, Some(false))
       || matches!(parser.javascript_options.require_dynamic, Some(false))
     {
-      return Some(false);
+      return None;
     }
 
     let start = ident.span().real_lo();
