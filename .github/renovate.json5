@@ -120,7 +120,8 @@
       ],
       "excludePackageNames": [
         "typescript",
-        "pnpm"
+        "pnpm",
+        "@playwright/test"
       ],
       // bump major in a separate PR
       "matchUpdateTypes": ["patch", "minor"]
@@ -145,6 +146,11 @@
         "webpack"
       ],
       "enabled": false
-    }
+    },
+    {
+			"groupName": "playwright",
+			"matchManagers": ["npm"],
+			"matchPackagePrefixes": ["@playwright/test"]
+		}
   ]
 }
