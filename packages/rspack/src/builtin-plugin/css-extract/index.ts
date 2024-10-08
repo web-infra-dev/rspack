@@ -3,13 +3,15 @@ import {
 	type RawCssExtractPluginOption
 } from "@rspack/binding";
 
+import { join } from "node:path";
 import type { Compiler } from "../..";
 import { MODULE_TYPE } from "./loader";
+import { PLUGIN_NAME } from "./utils";
 
 export * from "./loader";
 
 const DEFAULT_FILENAME = "[name].css";
-const LOADER_PATH = require.resolve("./loader");
+const LOADER_PATH = join(__dirname, "css-extract-loader.js");
 
 export type { CssExtractRspackLoaderOptions } from "./loader";
 
@@ -27,7 +29,7 @@ export interface CssExtractRspackPluginOptions {
 }
 
 export class CssExtractRspackPlugin {
-	static pluginName = "css-extract-rspack-plugin";
+	static pluginName = PLUGIN_NAME;
 	static loader: string = LOADER_PATH;
 
 	options: CssExtractRspackPluginOptions;

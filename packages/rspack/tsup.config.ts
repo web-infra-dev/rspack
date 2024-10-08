@@ -1,4 +1,4 @@
-import { defineConfig } from "tsup";
+import { type Options, defineConfig } from "tsup";
 import prebundleConfig from "./prebundle.config.mjs";
 
 const aliasCompiledPlugin = {
@@ -16,9 +16,22 @@ const aliasCompiledPlugin = {
 	}
 };
 
-export default defineConfig({
-	entry: ["./src/index.ts"],
+const commonConfig: Options = {
 	format: ["cjs"],
 	target: "node16",
 	esbuildPlugins: [aliasCompiledPlugin]
-});
+};
+
+export default defineConfig([
+	{
+		...commonConfig,
+		entry: ["./src/index.ts"],
+		external: ["./css-extract-loader.js"]
+	},
+	{
+		...commonConfig,
+		entry: {
+			"css-extract-loader": "./src/builtin-plugin/css-extract/loader.ts"
+		}
+	}
+]);
