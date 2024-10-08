@@ -299,7 +299,7 @@ impl CommonJsImportsParserPlugin {
     ident: &Ident,
   ) -> Option<bool> {
     if matches!(parser.javascript_options.require_as_expression, Some(false)) {
-      return Some(true);
+      return Some(false);
     }
 
     let start = ident.span().real_lo();

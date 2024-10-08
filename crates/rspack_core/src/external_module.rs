@@ -128,7 +128,6 @@ fn resolve_external_type<'a>(
   external_type: &'a str,
   dependency_meta: &'a DependencyMeta,
 ) -> &'a str {
-  // let external_type = self.external_type.as_str();
   match external_type {
     "module-import" => {
       if let Some(external_type) = dependency_meta.external_type.as_ref() {

@@ -147,7 +147,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       Some(true)
     } else {
       if matches!(parser.javascript_options.import_dynamic, Some(false)) {
-        return Some(true);
+        return Some(false);
       }
 
       let ContextModuleScanResult {
