@@ -1,7 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "timezone": "Asia/Shanghai",
-  "extends": [":dependencyDashboard"],
+  "extends": [
+    ":dependencyDashboard"
+  ],
   "schedule": [
     "before 8am on wednesday"
   ],
@@ -124,7 +126,10 @@
         "@playwright/test"
       ],
       // bump major in a separate PR
-      "matchUpdateTypes": ["patch", "minor"]
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ]
     },
     {
       "groupName": "npm dependencies",
@@ -135,7 +140,10 @@
         "dependencies"
       ],
       // bump major in a separate PR
-      "matchUpdateTypes": ["patch", "minor"]
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ]
     },
     {
       "groupName": "webpack",
@@ -148,9 +156,13 @@
       "enabled": false
     },
     {
-			"groupName": "playwright",
-			"matchManagers": ["npm"],
-			"matchPackagePrefixes": ["@playwright/test"]
-		}
+      "groupName": "playwright",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackagePrefixes": [
+        "@playwright/test"
+      ]
+    }
   ]
 }
