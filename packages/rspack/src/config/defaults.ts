@@ -251,6 +251,10 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "exprContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
 	D(parserOptions, "strictExportPresence", false);
+	D(parserOptions, "requireAsExpression", true);
+	D(parserOptions, "requireDynamic", true);
+	D(parserOptions, "requireResolve", true);
+	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
 };

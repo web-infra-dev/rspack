@@ -170,7 +170,11 @@ Object {
         "dynamicImportPrefetch": false,
         "dynamicImportPreload": false,
         "exprContextCritical": true,
+        "importDynamic": true,
         "importMeta": true,
+        "requireAsExpression": true,
+        "requireDynamic": true,
+        "requireResolve": true,
         "strictExportPresence": false,
         "url": true,
         "worker": Array [
