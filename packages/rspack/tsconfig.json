@@ -4,6 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "resolveJsonModule": true,
+    "emitDeclarationOnly": true,
     "paths": {
       "zod": [
         "../compiled/zod"

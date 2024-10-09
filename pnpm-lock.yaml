@@ -379,6 +379,9 @@ importers:
         specifier: ^1.0.30001616
         version: 1.0.30001616
     devDependencies:
+      '@swc/core':
+        specifier: 1.4.0
+        version: 1.4.0(@swc/helpers@0.5.12)
       '@types/graceful-fs':
         specifier: 4.1.9
         version: 4.1.9
@@ -12588,7 +12591,6 @@ snapshots:
       '@swc/core-win32-ia32-msvc': 1.4.0
       '@swc/core-win32-x64-msvc': 1.4.0
       '@swc/helpers': 0.5.12
-    optional: true
 
   '@swc/core@1.4.0(@swc/helpers@0.5.8)':
     dependencies:

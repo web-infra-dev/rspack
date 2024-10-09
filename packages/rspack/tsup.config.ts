@@ -37,8 +37,6 @@ export default defineConfig([
 	{
 		...commonConfig,
 		entry: {
-			moduleFederationDefaultRuntime:
-				"./src/runtime/moduleFederationDefaultRuntime.js",
 			cssExtractHmr: "./src/runtime/cssExtractHmr.ts"
 		},
 		target: ["es2015"]
