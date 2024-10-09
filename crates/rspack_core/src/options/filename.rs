@@ -300,16 +300,7 @@ fn render_template(
       })
     });
   }
-  if let Some(hash) = options
-    .hash
-    .or_else(|| options.chunk.and_then(|c| c.rendered_hash.as_deref()))
-    .or_else(|| {
-      options
-        .chunk
-        .and_then(|c| c.hash.as_ref())
-        .map(|h| h.encoded())
-    })
-  {
+  if let Some(hash) = options.hash {
     for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
       t = t.map(|t| {
         reg.replace_all(t, |caps: &Captures| {

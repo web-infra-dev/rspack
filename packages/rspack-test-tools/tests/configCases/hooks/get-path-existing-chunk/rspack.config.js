@@ -4,14 +4,13 @@ class Plugin {
 	apply(compiler) {
 		let called = false;
 		compiler.hooks.compilation.tap(pluginName, compilation => {
-			called = true;
-			expect(compilation.getPath("[id]-[name]-[chunkhash]", {
-				chunk: {
-					name: "chunkname",
-					id: "chunkid",
-					hash: "chunkhash",
-				}
-			})).toBe("chunkid-chunkname-chunkhash");
+			compilation.hooks.processAssets.tap(pluginName, () => {
+				called = true;
+				const mainChunk = Array.from(compilation.chunks).find(chunk => chunk.name === "main");
+				expect(compilation.getPath("[id]-[name]-[chunkhash]", {
+					chunk: mainChunk
+				})).toBe(`${mainChunk.id}-${mainChunk.name}-${mainChunk.renderedHash}`);
+			});
 		});
 		compiler.hooks.done.tap(pluginName, stats => {
 			let json = stats.toJson();

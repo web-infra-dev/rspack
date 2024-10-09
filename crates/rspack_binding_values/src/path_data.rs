@@ -50,7 +50,13 @@ impl JsChunkPathData {
       .clone()
       .map(|s| RspackHashDigest::new(s.into(), &compilation.options.output.hash_digest));
 
-    chunk.rendered_hash = self.hash.as_ref().map(|d| d.as_str().into());
+    chunk.rendered_hash = self.hash.as_ref().map(|d| {
+      if d.len() < compilation.options.output.hash_digest_length {
+        d.as_str().into()
+      } else {
+        d[..compilation.options.output.hash_digest_length].into()
+      }
+    });
     if let Some(hash) = self.content_hash.as_ref() {
       match hash {
         Either::A(hash) => {
