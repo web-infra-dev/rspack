@@ -54,7 +54,6 @@ pub struct JsChunkPathData {
   pub id: Option<String>,
   pub name: Option<String>,
   pub hash: Option<String>,
-  // TODO: support custom content hash type
   pub content_hash: Option<Either<String, HashMap<String, String>>>,
 }
 
