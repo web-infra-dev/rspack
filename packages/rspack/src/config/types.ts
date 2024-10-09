@@ -1,5 +1,8 @@
 import type { JsAssetInfo } from "@rspack/binding";
 import type { PathData } from "../Compilation";
+import type { Compiler } from "../Compiler";
+import type { Module } from "../Module";
+import type { Chunk } from "../exports";
 
 export type FilenameTemplate = string;
 
@@ -460,4 +463,302 @@ export type ExternalItem =
  * ```
  * */
 export type Externals = ExternalItem | ExternalItem[];
+//#region Plugins
+export interface RspackPluginInstance {
+	apply: (compiler: Compiler) => void;
+	[k: string]: any;
+}
+
+export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
+
+// The Compiler type of webpack is not exactly the same as Rspack.
+// It is allowed to use webpack plugins in in the Rspack config,
+// so we have defined a loose type here to adapt to webpack plugins.
+export type WebpackCompiler = any;
+
+export interface WebpackPluginInstance {
+	apply: (compiler: WebpackCompiler) => void;
+	[k: string]: any;
+}
+
+export type WebpackPluginFunction = (
+	this: WebpackCompiler,
+	compiler: WebpackCompiler
+) => void;
+
+export type Plugin =
+	| RspackPluginInstance
+	| RspackPluginFunction
+	| WebpackPluginInstance
+	| WebpackPluginFunction
+	| Falsy;
+
+export type Plugins = Plugin[];
+//#endregion
+
+//#region Optimization
+/** Used to control how the runtime chunk is generated. */
+
+export type OptimizationRuntimeChunk =
+	| boolean
+	| "single"
+	| "multiple"
+	| {
+			name?: string | ((value: { name: string }) => string);
+	  };
+
+export type OptimizationSplitChunksNameFunction = (module?: Module) => unknown;
+
+type OptimizationSplitChunksName =
+	| string
+	| false
+	| OptimizationSplitChunksNameFunction;
+
+type OptimizationSplitChunksSizes = number | Record<string, number>;
+
+type OptimizationSplitChunksChunks =
+	| "initial"
+	| "async"
+	| "all"
+	| RegExp
+	| ((chunk: Chunk) => boolean);
+
+type SharedOptimizationSplitChunksCacheGroup = {
+	/**
+	 * This indicates which chunks will be selected for optimization.
+	 * @default 'async''
+	 * */
+	chunks?: OptimizationSplitChunksChunks;
+
+	// TODO: add JSDoc
+	defaultSizeTypes?: string[];
+
+	/**
+	 * The minimum times must a module be shared among chunks before splitting.
+	 * @default 1
+	 */
+	minChunks?: number;
+
+	/**
+	 * Enabling this, the splitting of chunks will be grouped based on the usage of modules exports in different runtimes,
+	 * ensuring the optimal loading size in each runtime.
+	 */
+	usedExports?: boolean;
+
+	/**
+	 * The name of the split chunk.
+	 * @default false
+	 * */
+	name?: false | OptimizationSplitChunksName;
+
+	/**
+	 * Minimum size, in bytes, for a chunk to be generated.
+	 *
+	 * The value is `20000` in production mode.
+	 * The value is `10000` in others mode.
+	 */
+	minSize?: OptimizationSplitChunksSizes;
+
+	/** Maximum size, in bytes, for a chunk to be generated. */
+	maxSize?: OptimizationSplitChunksSizes;
+
+	/** Maximum size, in bytes, for a async chunk to be generated. */
+	maxAsyncSize?: OptimizationSplitChunksSizes;
+
+	/** Maximum size, in bytes, for a initial chunk to be generated. */
+	maxInitialSize?: OptimizationSplitChunksSizes;
+
+	/**
+	 * Maximum number of parallel requests when on-demand loading.
+	 * @default 30
+	 * */
+	maxAsyncRequests?: number;
+
+	/**
+	 * Maximum number of parallel requests at an entry point.
+	 * @default 30
+	 */
+	maxInitialRequests?: number;
+
+	/**
+	 * Tell Rspack what delimiter to use for the generated names.
+	 *
+	 * @default '-''
+	 */
+	automaticNameDelimiter?: string;
+};
+
+/** How to splitting chunks. */
+export type OptimizationSplitChunksCacheGroup = {
+	/** Controls which modules are selected by this cache group. */
+	test?: string | RegExp | ((module: Module) => unknown);
+
+	/**
+	 * A module can belong to multiple cache groups.
+	 * @default -20
+	 */
+	priority?: number;
+
+	/**
+	 * Tells Rspack to ignore `splitChunks.minSize`, `splitChunks.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options and always create chunks for this cache group.
+	 */
+	enforce?: boolean;
+
+	/** Allows to override the filename when and only when it's an initial chunk. */
+	filename?: string;
+
+	/**
+	 * Whether to reuse existing chunks when possible.
+	 * @default false
+	 * */
+	reuseExistingChunk?: boolean;
+
+	// TODO: add JSDoc
+	type?: string | RegExp;
+
+	/** Sets the hint for chunk id. It will be added to chunk's filename. */
+	idHint?: string;
+} & SharedOptimizationSplitChunksCacheGroup;
+
+/** Tell Rspack how to splitting chunks. */
+export type OptimizationSplitChunksOptions = {
+	cacheGroups?: Record<string, false | OptimizationSplitChunksCacheGroup>;
+
+	// TODO: add JSDoc
+	fallbackCacheGroup?: {
+		chunks?: OptimizationSplitChunksChunks;
+		minSize?: number;
+		maxSize?: number;
+		maxAsyncSize?: number;
+		maxInitialSize?: number;
+		automaticNameDelimiter?: string;
+	};
+
+	// TODO: add JSDoc
+	hidePathInfo?: boolean;
+} & SharedOptimizationSplitChunksCacheGroup;
+
+export type Optimization = {
+	/**
+	 * Which algorithm to use when choosing module ids.
+	 */
+	moduleIds?: "named" | "natural" | "deterministic";
+
+	/**
+	 * Which algorithm to use when choosing chunk ids.
+	 */
+	chunkIds?: "natural" | "named" | "deterministic";
+
+	/**
+	 * Whether to minimize the bundle.
+	 * The value is `true` when production mode.
+	 * The value is `false` when development mode.
+	 */
+	minimize?: boolean;
+
+	/**
+	 * Customize the minimizer.
+	 * By default, `rspack.SwcJsMinimizerRspackPlugin` and `rspack.LightningCssMinimizerRspackPlugin` are used.
+	 */
+	minimizer?: Array<"..." | Plugin>;
+
+	/**
+	 * Whether to merge chunks which contain the same modules.
+	 * Setting optimization.mergeDuplicateChunks to false will disable this optimization.
+	 * @default true
+	 */
+	mergeDuplicateChunks?: boolean;
+
+	/**
+	 * Support splitting chunks.
+	 * It is enabled by default for dynamically imported modules.
+	 * To turn it off, set it to false.
+	 * */
+	splitChunks?: false | OptimizationSplitChunksOptions;
+
+	/**
+	 * Used to control how the runtime chunk is generated.
+	 * Setting it to true or 'multiple' will add an additional chunk containing only the runtime for each entry point.
+	 * Setting it to 'single' will extract the runtime code of all entry points into a single separate chunk.
+	 * @default false
+	 */
+	runtimeChunk?: OptimizationRuntimeChunk;
+
+	/** Detect and remove modules from chunks these modules are already included in all parents. */
+	removeAvailableModules?: boolean;
+
+	/**
+	 * Remove empty chunks generated in the compilation.
+	 * @default true
+	 * */
+	removeEmptyChunks?: boolean;
+
+	/**
+	 * Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes.
+	 *
+	 * The value is `true` when production mode.
+	 * The value is `false` when development mode.
+	 */
+	realContentHash?: boolean;
+
+	/**
+	 * Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
+	 *
+	 * The value is `true` when production mode.
+	 * The value is `false` when development mode.
+	 * */
+	sideEffects?: "flag" | boolean;
+
+	/**
+	 * After enabling, Rspack will analyze which exports the module provides, including re-exported modules.
+	 * @default true
+	 * */
+	providedExports?: boolean;
+
+	/**
+	 * Tells Rspack to find segments of the module graph which can be safely concatenated into a single module.
+	 *
+	 * The value is `true` when production mode.
+	 * The value is `false` when development mode.
+	 */
+	concatenateModules?: boolean;
+
+	/**
+	 * Tells Rspack whether to perform a more detailed analysis of variable assignments.
+	 *
+	 * The value is `true` when production mode.
+	 * The value is `false` when development mode.
+	 */
+	innerGraph?: boolean;
+
+	/**
+	 * Tells Rspack to determine used exports for each module.
+	 *
+	 * The value is `true` when production mode.
+	 * The value is `false` when development mode.
+	 * */
+	usedExports?: "global" | boolean;
+
+	/**
+	 * Allows to control export mangling.
+	 *
+	 * The value is `isdeterministic` when production mode.
+	 * The value is `false` when development mode.
+	 */
+	mangleExports?: "size" | "deterministic" | boolean;
+
+	/**
+	 * Tells Rspack to set process.env.NODE_ENV to a given string value.
+	 * @default false
+	 */
+	nodeEnv?: string | false;
+
+	/**
+	 * Emit assets whenever there are errors while compiling.
+	 *
+	 * The value is `false` when production mode.
+	 * The value is `true` when development mode.
+	 * */
+	emitOnErrors?: boolean;
+};
 //#endregion

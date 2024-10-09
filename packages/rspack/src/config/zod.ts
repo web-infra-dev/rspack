@@ -2,10 +2,8 @@ import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
-
-import type { Compilation, Compiler } from "..";
 import { Chunk } from "../Chunk";
-import type { PathData } from "../Compilation";
+import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import type * as t from "./types";
 
@@ -53,6 +51,7 @@ const falsy = z.union([
 	z.null(),
 	z.undefined()
 ]) satisfies z.ZodType<t.Falsy>;
+
 //#endregion
 
 //#region Entry
@@ -1159,36 +1158,16 @@ export type StatsValue = z.infer<typeof statsValue>;
 //#endregion
 
 //#region Plugins
-export interface RspackPluginInstance {
-	apply: (compiler: Compiler) => void;
-	[k: string]: any;
-}
-export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
-
-// The Compiler type of webpack is not exactly the same as Rspack.
-// It is allowed to use webpack plugins in in the Rspack config,
-// so we have defined a loose type here to adapt to webpack plugins.
-export type WebpackCompiler = any;
-
-export interface WebpackPluginInstance {
-	apply: (compiler: WebpackCompiler) => void;
-	[k: string]: any;
-}
-export type WebpackPluginFunction = (
-	this: WebpackCompiler,
-	compiler: WebpackCompiler
-) => void;
-
 const plugin = z.union([
 	z.custom<
-		| RspackPluginInstance
-		| RspackPluginFunction
-		| WebpackPluginInstance
-		| WebpackPluginFunction
+		| t.RspackPluginInstance
+		| t.RspackPluginFunction
+		| t.WebpackPluginInstance
+		| t.WebpackPluginFunction
 	>(),
 	falsy
-]);
-const plugins = plugin.array();
+]) satisfies z.ZodType<t.Plugin>;
+const plugins = plugin.array() satisfies z.ZodType<t.Plugins>;
 export type Plugins = z.infer<typeof plugins>;
 //#endregion
 
@@ -1208,18 +1187,13 @@ const optimizationRuntimeChunk = z
 				)
 				.optional()
 		})
-	);
-export type OptimizationRuntimeChunk = z.infer<typeof optimizationRuntimeChunk>;
+	) satisfies z.ZodType<t.OptimizationRuntimeChunk>;
 
 const optimizationSplitChunksNameFunction = z.function().args(
 	z.instanceof(Module).optional()
 	// FIXME: z.array(z.instanceof(Chunk)).optional(), z.string()
 	// FIXME: Chunk[],   															cacheChunkKey
-);
-
-export type OptimizationSplitChunksNameFunction = z.infer<
-	typeof optimizationSplitChunksNameFunction
->;
+) satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
 
 const optimizationSplitChunksName = z
 	.string()
@@ -1267,10 +1241,7 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
 	...sharedOptimizationSplitChunksCacheGroup
-});
-export type OptimizationSplitChunksCacheGroup = z.infer<
-	typeof optimizationSplitChunksCacheGroup
->;
+}) satisfies z.ZodType<t.OptimizationSplitChunksCacheGroup>;
 
 const optimizationSplitChunksOptions = z.strictObject({
 	cacheGroups: z
@@ -1288,10 +1259,7 @@ const optimizationSplitChunksOptions = z.strictObject({
 		.optional(),
 	hidePathInfo: z.boolean().optional(),
 	...sharedOptimizationSplitChunksCacheGroup
-});
-export type OptimizationSplitChunksOptions = z.infer<
-	typeof optimizationSplitChunksOptions
->;
+}) satisfies z.ZodType<t.OptimizationSplitChunksOptions>;
 
 const optimization = z.strictObject({
 	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
@@ -1312,8 +1280,7 @@ const optimization = z.strictObject({
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
 	nodeEnv: z.union([z.string(), z.literal(false)]).optional(),
 	emitOnErrors: z.boolean().optional()
-});
-export type Optimization = z.infer<typeof optimization>;
+}) satisfies z.ZodType<t.Optimization>;
 //#endregion
 
 //#region Experiments
