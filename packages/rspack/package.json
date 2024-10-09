@@ -20,9 +20,11 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json",
-    "dev": "tsc -w",
+    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && tsup",
+    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && tsup",
+    "dev": "pnpm run --stream /^dev:.*/",
+    "dev:types": "tsc -w",
+    "dev:js": "tsup --watch",
     "prepare": "prebundle",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
