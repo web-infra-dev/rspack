@@ -65,7 +65,9 @@ export interface Asset {
 	info: AssetInfo;
 }
 
-export type PathData = JsPathData;
+export type PathData = Omit<JsPathData, "chunk"> & {
+	chunk?: Chunk | binding.JsChunkPathData;
+};
 
 export interface LogEntry {
 	type: string;
@@ -892,19 +894,43 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	getPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPath(filename, data);
+		return this.#inner.getPath(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPathWithInfo(filename, data);
+		return this.#inner.getPathWithInfo(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getAssetPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPath(filename, data);
+		return this.#inner.getAssetPath(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPathWithInfo(filename, data);
+		return this.#inner.getAssetPathWithInfo(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getLogger(name: string | (() => string)) {
