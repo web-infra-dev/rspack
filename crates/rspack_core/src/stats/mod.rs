@@ -830,7 +830,7 @@ impl Stats<'_> {
         self
           .compilation
           .chunk_graph
-          .get_chunk_graph_module(mgm.module_identifier)
+          .expect_chunk_graph_module(mgm.module_identifier)
           .chunks
           .iter()
           .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
@@ -1097,7 +1097,7 @@ impl Stats<'_> {
     let mut chunks: Vec<String> = self
       .compilation
       .chunk_graph
-      .get_chunk_graph_module(*identifier)
+      .expect_chunk_graph_module(*identifier)
       .chunks
       .iter()
       .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())

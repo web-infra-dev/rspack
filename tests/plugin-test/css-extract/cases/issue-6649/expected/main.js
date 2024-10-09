@@ -87,22 +87,22 @@ __webpack_require__.e = function (chunkId) {
 // This function allow to reference chunks
         __webpack_require__.u = function (chunkId) {
           // return url for filenames not based on template
-          
+
           // return url for filenames based on template
           return "" + chunkId + ".$" + {"\\css\\chunk": "535f074f7638303f048e","\\js\\chunk": "6dc8ca2dde6467a75ec3",}[chunkId] + "$.js";
         };
-      
+
 })();
 // webpack/runtime/get mini-css chunk filename
 (() => {
 // This function allow to reference chunks
         __webpack_require__.miniCssF = function (chunkId) {
           // return url for filenames not based on template
-          
+
           // return url for filenames based on template
           return "" + chunkId + ".$" + "ab430f3232737cd7fe9a" + "$.css";
         };
-      
+
 })();
 // webpack/runtime/get_full_hash
 (() => {
@@ -155,17 +155,17 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 	if (!script) {
 		needAttach = true;
 		script = document.createElement('script');
-		
+
 		script.charset = 'utf-8';
 		script.timeout = 120;
 		if (__webpack_require__.nc) {
 			script.setAttribute("nonce", __webpack_require__.nc);
 		}
-		
-		
+
+
 		script.src = url;
 
-		
+
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {
@@ -223,13 +223,13 @@ __webpack_require__.r = function(exports) {
             }
       }
       }
-    
+
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
     // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
     if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
     scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
     __webpack_require__.p = scriptUrl
-    
+
 })();
 // webpack/runtime/css loading
 (() => {
@@ -238,7 +238,7 @@ var createStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject
 ) {
 	var linkTag = document.createElement("link");
-	
+
 	linkTag.rel = "stylesheet";
 	linkTag.type="text/css";
 	if (__webpack_require__.nc) {
@@ -263,7 +263,7 @@ var createStylesheet = function (
 
 	linkTag.onerror = linkTag.onload = onLinkComplete;
 	linkTag.href = fullhref;
-	
+
 	if (oldTag) {
   oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
 } else {
@@ -332,7 +332,7 @@ __webpack_require__.f.miniCss = function(chunkId, promises) {
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
       var installedChunks = {"\\entry\\name": 0,};
-      
+
         __webpack_require__.f.j = function (chunkId, promises) {
           // JSONP chunk loading for javascript
 var installedChunkData = __webpack_require__.o(installedChunks, chunkId)
@@ -380,7 +380,7 @@ if (installedChunkData !== 0) {
 				}
 			};
 			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
-		} 
+		}
 	}
 }
 
@@ -414,7 +414,7 @@ var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
 		}
 		installedChunks[chunkId] = 0;
 	}
-	
+
 };
 
 var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
