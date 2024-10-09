@@ -589,6 +589,10 @@ const reexportExportsPresence = z
 const strictExportPresence = z.boolean();
 const worker = z.array(z.string()).or(z.boolean());
 const overrideStrict = z.enum(["strict", "non-strict"]);
+const requireAsExpression = z.boolean();
+const requireDynamic = z.boolean();
+const requireResolve = z.boolean();
+const importDynamic = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -604,7 +608,13 @@ const javascriptParserOptions = z.strictObject({
 	reexportExportsPresence: reexportExportsPresence.optional(),
 	strictExportPresence: strictExportPresence.optional(),
 	worker: worker.optional(),
-	overrideStrict: overrideStrict.optional()
+	overrideStrict: overrideStrict.optional(),
+	// #region Not available in webpack yet.
+	requireAsExpression: requireAsExpression.optional(),
+	requireDynamic: requireDynamic.optional(),
+	requireResolve: requireResolve.optional(),
+	importDynamic: importDynamic.optional()
+	// #endregion
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
