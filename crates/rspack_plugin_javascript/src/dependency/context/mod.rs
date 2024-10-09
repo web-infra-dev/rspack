@@ -7,6 +7,7 @@ mod require_resolve_context_dependency;
 pub use common_js_require_context_dependency::CommonJsRequireContextDependency;
 pub use import_context_dependency::ImportContextDependency;
 pub use import_meta_context_dependency::ImportMetaContextDependency;
+use itertools::Itertools;
 pub use require_context_dependency::RequireContextDependency;
 pub use require_resolve_context_dependency::RequireResolveContextDependency;
 use rspack_core::{
@@ -37,9 +38,14 @@ fn create_resource_identifier_for_context_dependency(
     .map(|x| x.to_source_string())
     .unwrap_or_default();
   let mode = options.mode.as_str();
+  let referenced_exports = options
+    .referenced_exports
+    .as_ref()
+    .map(|x| x.iter().map(|x| format!(r#""{x}""#)).join(","))
+    .unwrap_or_default();
   // TODO: need `RawChunkGroupOptions`
   let id = format!(
-    "context{context}|ctx request{request} {recursive} `{regexp} {include} {exclude} ``{mode} `"
+    "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {referenced_exports}"
   );
   id
 }
