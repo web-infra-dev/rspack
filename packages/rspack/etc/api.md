@@ -698,6 +698,7 @@ const baseRuleSetRule: z.ZodObject<{
     sideEffects: z.ZodOptional<z.ZodBoolean>;
     enforce: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"pre">, z.ZodLiteral<"post">]>>;
 }, "strict", z.ZodTypeAny, {
+    resource?: RuleSetCondition | undefined;
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
     exclude?: RuleSetCondition | undefined;
@@ -710,7 +711,6 @@ const baseRuleSetRule: z.ZodObject<{
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
-    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -734,6 +734,7 @@ const baseRuleSetRule: z.ZodObject<{
     generator?: Record<string, any> | undefined;
     resolve?: ResolveOptions | undefined;
 }, {
+    resource?: RuleSetCondition | undefined;
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
     exclude?: RuleSetCondition | undefined;
@@ -746,7 +747,6 @@ const baseRuleSetRule: z.ZodObject<{
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
-    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -1580,28 +1580,21 @@ class ContextModuleFactory {
 // @public (undocumented)
 class ContextModuleFactoryAfterResolveData {
     // (undocumented)
-    static __drop(data: ContextModuleFactoryAfterResolveData): void;
-    // (undocumented)
     static __from_binding(binding: JsContextModuleFactoryAfterResolveData): ContextModuleFactoryAfterResolveData;
     // (undocumented)
     static __to_binding(data: ContextModuleFactoryAfterResolveData): JsContextModuleFactoryAfterResolveData;
     // (undocumented)
-    get context(): string;
-    set context(val: string);
+    context: string;
     // (undocumented)
-    get dependencies(): Dependency[];
+    readonly dependencies: Dependency[];
     // (undocumented)
-    get recursive(): boolean;
-    set recursive(val: boolean);
+    recursive: boolean;
     // (undocumented)
-    get regExp(): RegExp | undefined;
-    set regExp(val: RegExp | undefined);
+    regExp: RegExp | undefined;
     // (undocumented)
-    get request(): string;
-    set request(val: string);
+    request: string;
     // (undocumented)
-    get resource(): string;
-    set resource(val: string);
+    resource: number;
 }
 
 // @public (undocumented)
@@ -1610,23 +1603,9 @@ type ContextModuleFactoryAfterResolveResult = false | ContextModuleFactoryAfterR
 // @public (undocumented)
 class ContextModuleFactoryBeforeResolveData {
     // (undocumented)
-    static __drop(data: ContextModuleFactoryBeforeResolveData): void;
-    // (undocumented)
     static __from_binding(binding: JsContextModuleFactoryBeforeResolveData): ContextModuleFactoryBeforeResolveData;
     // (undocumented)
     static __to_binding(data: ContextModuleFactoryBeforeResolveData): JsContextModuleFactoryBeforeResolveData;
-    // (undocumented)
-    get context(): string;
-    set context(val: string);
-    // (undocumented)
-    get recursive(): boolean;
-    set recursive(val: boolean);
-    // (undocumented)
-    get regExp(): RegExp | undefined;
-    set regExp(val: RegExp | undefined);
-    // (undocumented)
-    get request(): string;
-    set request(val: string);
 }
 
 // @public (undocumented)
@@ -1888,8 +1867,6 @@ class DependenciesBlock {
 
 // @public (undocumented)
 class Dependency {
-    // (undocumented)
-    static __drop(dependency: Dependency): void;
     // (undocumented)
     static __from_binding(binding: JsDependencyMut | JsDependency): Dependency;
     // (undocumented)
@@ -3731,15 +3708,15 @@ const externalItem: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString,
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3756,15 +3733,15 @@ const externalItem: z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString,
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3787,15 +3764,15 @@ const externalItemFunctionData: z.ZodObject<{
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3830,15 +3807,15 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3855,15 +3832,15 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3880,15 +3857,15 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3905,15 +3882,15 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
     }>>;
 }, "strict", z.ZodTypeAny, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
 }, {
     context?: string | undefined;
-    dependencyType?: string | undefined;
     request?: string | undefined;
+    dependencyType?: string | undefined;
     contextInfo?: {
         issuer: string;
     } | undefined;
@@ -3923,29 +3900,29 @@ const externals: z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.Zo
 export const ExternalsPlugin: {
     new (type: string, externals: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -3953,29 +3930,29 @@ export const ExternalsPlugin: {
         name: BuiltinPluginName;
         _args: [type: string, externals: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
             context?: string | undefined;
-            dependencyType?: string | undefined;
             request?: string | undefined;
+            dependencyType?: string | undefined;
             contextInfo?: {
                 issuer: string;
             } | undefined;
         }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
             context?: string | undefined;
-            dependencyType?: string | undefined;
             request?: string | undefined;
+            dependencyType?: string | undefined;
             contextInfo?: {
                 issuer: string;
             } | undefined;
         }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
             context?: string | undefined;
-            dependencyType?: string | undefined;
             request?: string | undefined;
+            dependencyType?: string | undefined;
             contextInfo?: {
                 issuer: string;
             } | undefined;
         }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
             context?: string | undefined;
-            dependencyType?: string | undefined;
             request?: string | undefined;
+            dependencyType?: string | undefined;
             contextInfo?: {
                 issuer: string;
             } | undefined;
@@ -11424,15 +11401,15 @@ export const rspackOptions: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -11449,15 +11426,15 @@ export const rspackOptions: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -11474,15 +11451,15 @@ export const rspackOptions: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -11499,15 +11476,15 @@ export const rspackOptions: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -13078,6 +13055,8 @@ export const rspackOptions: z.ZodObject<{
         maxEntrypointSize?: number | undefined;
     }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
+    context?: string | undefined;
+    dependencies?: string[] | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -13207,9 +13186,7 @@ export const rspackOptions: z.ZodObject<{
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         noParse?: string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     } | undefined;
-    dependencies?: string[] | undefined;
     name?: string | undefined;
-    context?: string | undefined;
     performance?: false | {
         assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
         hints?: false | "error" | "warning" | undefined;
@@ -13445,29 +13422,29 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -13652,6 +13629,8 @@ export const rspackOptions: z.ZodObject<{
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }, {
+    context?: string | undefined;
+    dependencies?: string[] | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -13781,9 +13760,7 @@ export const rspackOptions: z.ZodObject<{
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         noParse?: string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     } | undefined;
-    dependencies?: string[] | undefined;
     name?: string | undefined;
-    context?: string | undefined;
     performance?: false | {
         assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
         hints?: false | "error" | "warning" | undefined;
@@ -14019,29 +13996,29 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "commonjs2" | "var" | "assign" | "this" | "window" | "self" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
-        dependencyType?: string | undefined;
         request?: string | undefined;
+        dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
