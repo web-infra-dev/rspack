@@ -388,9 +388,14 @@ impl JsCompilation {
     data: JsPathData,
   ) -> napi::Result<String> {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
-    self
-      .0
-      .get_asset_path(&filename.into(), data.as_core_path_data(chunk.as_ref()))
+    let chunk_content_hash = chunk
+      .as_ref()
+      .and_then(|c| data.get_chunk_hash_type(c, self.0.options.output.hash_digest_length));
+
+    self.0.get_asset_path(
+      &filename.into(),
+      data.as_core_path_data(chunk.as_ref(), chunk_content_hash),
+    )
   }
 
   #[napi]
@@ -400,18 +405,26 @@ impl JsCompilation {
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
-    let path_and_asset_info = self
-      .0
-      .get_asset_path_with_info(&filename.into(), data.as_core_path_data(chunk.as_ref()))?;
+    let chunk_content_hash = chunk
+      .as_ref()
+      .and_then(|c| data.get_chunk_hash_type(c, self.0.options.output.hash_digest_length));
+    let path_and_asset_info = self.0.get_asset_path_with_info(
+      &filename.into(),
+      data.as_core_path_data(chunk.as_ref(), chunk_content_hash),
+    )?;
     Ok(path_and_asset_info.into())
   }
 
   #[napi]
   pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
-    self
-      .0
-      .get_path(&filename.into(), data.as_core_path_data(chunk.as_ref()))
+    let chunk_content_hash = chunk
+      .as_ref()
+      .and_then(|c| data.get_chunk_hash_type(c, self.0.options.output.hash_digest_length));
+    self.0.get_path(
+      &filename.into(),
+      data.as_core_path_data(chunk.as_ref(), chunk_content_hash),
+    )
   }
 
   #[napi]
@@ -421,9 +434,13 @@ impl JsCompilation {
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
-    let path_and_asset_info = self
-      .0
-      .get_path_with_info(&filename.into(), data.as_core_path_data(chunk.as_ref()))?;
+    let chunk_content_hash = chunk
+      .as_ref()
+      .and_then(|c| data.get_chunk_hash_type(c, self.0.options.output.hash_digest_length));
+    let path_and_asset_info = self.0.get_path_with_info(
+      &filename.into(),
+      data.as_core_path_data(chunk.as_ref(), chunk_content_hash),
+    )?;
     Ok(path_and_asset_info.into())
   }
 

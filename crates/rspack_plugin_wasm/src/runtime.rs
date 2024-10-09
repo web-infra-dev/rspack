@@ -3,7 +3,7 @@ use rspack_collections::Identifier;
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
-  RuntimeModule, RuntimeModuleStage,
+  RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rspack_util::infallible::ResultInfallibleExt as _;
 use rspack_util::itoa;
@@ -56,6 +56,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
         PathData::default()
           .hash(&hash)
           .content_hash(&hash)
+          .content_hash_type(SourceType::Wasm)
           .id("\" + wasmModuleId + \"")
           .runtime(&chunk.runtime),
       )

@@ -339,6 +339,7 @@ async fn render_manifest(
           .get(&SourceType::Css)
           .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
       )
+      .content_hash_type(SourceType::Css)
       .runtime(&chunk.runtime),
   )?;
   asset_info.set_css_unused_idents(unused_idents);

@@ -261,6 +261,7 @@ async fn render_manifest(
           .get(&SourceType::JavaScript)
           .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
       )
+      .content_hash_type(SourceType::JavaScript)
       .runtime(&chunk.runtime),
   )?;
   asset_info.set_javascript_module(compilation.options.output.module);

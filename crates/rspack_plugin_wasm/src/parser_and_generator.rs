@@ -306,6 +306,7 @@ fn render_wasm_name(
       PathData::default()
         .filename(&normal_module.resource_resolved_data().resource)
         .content_hash(hash)
+        .content_hash_type(SourceType::Wasm)
         .hash(hash),
     )
     .always_ok()
