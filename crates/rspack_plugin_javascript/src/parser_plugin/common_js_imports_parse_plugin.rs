@@ -298,9 +298,7 @@ impl CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser,
     ident: &Ident,
   ) -> Option<bool> {
-    if parser.javascript_options.require_as_expression == Some(false)
-      || parser.javascript_options.require_dynamic == Some(false)
-    {
+    if parser.javascript_options.require_as_expression == Some(false) {
       return None;
     }
 

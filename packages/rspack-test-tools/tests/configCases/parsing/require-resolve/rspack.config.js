@@ -9,7 +9,10 @@ module.exports = {
 	module: {
 		parser: {
 			javascript: {
-				requireResolve: false
+				requireResolve: false,
+				// To preserve `require.resolve`, we need to use `requireResolve: false` to preserve
+				// the `resolve` method and `requireAsExpression: false` to preserve `require`.
+				requireAsExpression: false
 			}
 		}
 	},

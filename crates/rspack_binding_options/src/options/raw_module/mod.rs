@@ -272,9 +272,17 @@ pub struct RawJavascriptParserOptions {
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
   pub import_meta: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub require_as_expression: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub require_dynamic: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub require_resolve: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub import_dynamic: Option<bool>,
 }
 
