@@ -664,8 +664,15 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     .copied()
     .collect();
   let mut new_connections = Default::default();
+  let mut cache = Default::default();
   for module in modules.clone() {
-    optimize_incoming_connections(module, &mut modules, &mut new_connections, compilation);
+    optimize_incoming_connections(
+      module,
+      &mut modules,
+      &mut new_connections,
+      compilation,
+      &mut cache,
+    );
   }
   Ok(None)
 }
@@ -700,6 +707,7 @@ fn optimize_incoming_connections(
   to_be_optimized: &mut IdentifierSet,
   new_connections: &mut IdentifierMap<FxHashSet<ConnectionId>>,
   compilation: &mut Compilation,
+  cache: &mut IdentifierMap<ConnectionState>,
 ) {
   if !to_be_optimized.remove(&module_identifier) {
     return;
@@ -708,8 +716,15 @@ fn optimize_incoming_connections(
   let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
     return;
   };
-  let side_effects_state =
-    module.get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default());
+  let side_effects_state = if let Some(state) = cache.get(&module_identifier) {
+    *state
+  } else {
+    let state =
+      module.get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default());
+    cache.insert(module_identifier, state);
+    state
+  };
+
   if side_effects_state != rspack_core::ConnectionState::Bool(false) {
     return;
   }
@@ -724,6 +739,7 @@ fn optimize_incoming_connections(
       to_be_optimized,
       new_connections,
       compilation,
+      cache,
     );
   }
   // It is possible to add additional new connections when optimizing module's incoming connections
@@ -735,6 +751,7 @@ fn optimize_incoming_connections(
         to_be_optimized,
         new_connections,
         compilation,
+        cache,
       );
     }
   }
@@ -746,6 +763,7 @@ fn optimize_incoming_connection(
   to_be_optimized: &mut IdentifierSet,
   new_connections: &mut IdentifierMap<FxHashSet<ConnectionId>>,
   compilation: &mut Compilation,
+  cache: &mut IdentifierMap<ConnectionState>,
 ) {
   let module_graph = compilation.get_module_graph();
   let connection = module_graph
@@ -769,13 +787,20 @@ fn optimize_incoming_connection(
   };
   // For the best optimization results, connection.origin_module must optimize before connection.module
   // See: https://github.com/webpack/webpack/pull/17595
-  optimize_incoming_connections(origin_module, to_be_optimized, new_connections, compilation);
+  optimize_incoming_connections(
+    origin_module,
+    to_be_optimized,
+    new_connections,
+    compilation,
+    cache,
+  );
   do_optimize_incoming_connection(
     connection_id,
     module_identifier,
     origin_module,
     new_connections,
     compilation,
+    cache,
   );
 }
 
@@ -786,6 +811,7 @@ fn do_optimize_incoming_connection(
   origin_module: ModuleIdentifier,
   new_connections: &mut IdentifierMap<FxHashSet<ConnectionId>>,
   compilation: &mut Compilation,
+  cache: &mut IdentifierMap<ConnectionState>,
 ) {
   if let Some(connections) = new_connections.get_mut(&module_identifier) {
     connections.remove(&connection_id);
@@ -853,17 +879,28 @@ fn do_optimize_incoming_connection(
     let target = export_info.get_target(
       &module_graph,
       Some(Arc::new(
-        |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-          mg.module_by_identifier(&target.module)
-            .expect("should have module graph")
-            .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
-            == ConnectionState::Bool(false)
-        },
+        |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| true,
       )),
     );
     let Some(target) = target else {
       return;
     };
+
+    let state = if let Some(state) = cache.get(&target.module) {
+      *state
+    } else {
+      let state = module_graph
+        .module_by_identifier(&target.module)
+        .expect("should have module")
+        .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default());
+      cache.insert(target.module, state);
+      state
+    };
+
+    if state != ConnectionState::Bool(false) {
+      return;
+    }
+
     let Some(connection_id) = module_graph.update_module(&dep_id, &target.module) else {
       return;
     };
