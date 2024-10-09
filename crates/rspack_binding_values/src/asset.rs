@@ -29,6 +29,8 @@ pub struct JsAssetInfo {
   pub contenthash: Vec<String>,
   // when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   pub source_filename: Option<String>,
+  /// when asset was created from a source file (potentially transformed), it should be flagged as copied
+  pub copied: Option<bool>,
   /// size in bytes, only set after asset has been emitted
   // pub size: f64,
   /// when asset is only used for development and doesn't count towards user-facing assets
@@ -63,6 +65,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       content_hash: i.contenthash.into_iter().collect(),
       version: String::from(""),
       source_filename: i.source_filename,
+      copied: i.copied,
       javascript_module: i.javascript_module,
       css_unused_idents: i.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: i.extras,
@@ -97,6 +100,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       fullhash: info.full_hash.into_iter().collect(),
       contenthash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
+      copied: info.copied,
       javascript_module: info.javascript_module,
       css_unused_idents: info.css_unused_idents.map(|i| i.into_iter().collect()),
       extras: info.extras,

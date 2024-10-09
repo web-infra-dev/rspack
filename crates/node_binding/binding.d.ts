@@ -388,6 +388,8 @@ export interface JsAssetInfo {
    */
   contenthash: Array<string>
   sourceFilename?: string
+  /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
+  copied?: boolean
   /**
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
@@ -791,6 +793,7 @@ export interface JsStatsAssetInfo {
   development?: boolean
   hotModuleReplacement?: boolean
   sourceFilename?: string
+  copied?: boolean
   immutable?: boolean
   javascriptModule?: boolean
   chunkhash: Array<string>

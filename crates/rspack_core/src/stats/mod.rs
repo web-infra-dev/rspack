@@ -101,6 +101,7 @@ impl Stats<'_> {
                 development: asset.info.development,
                 hot_module_replacement: asset.info.hot_module_replacement,
                 source_filename: asset.info.source_filename.clone(),
+                copied: asset.info.copied,
                 is_over_size_limit: asset.info.is_over_size_limit,
               },
               emitted: self.compilation.emitted_assets.contains(name),
