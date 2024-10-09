@@ -1166,9 +1166,6 @@ class Compiler {
 									)
 								: false;
 							const result = await queried.promise(data);
-							if (data) {
-								ContextModuleFactoryBeforeResolveData.__drop(data);
-							}
 							return result
 								? ContextModuleFactoryBeforeResolveData.__to_binding(result)
 								: false;
@@ -1191,9 +1188,6 @@ class Compiler {
 									)
 								: false;
 							const result = await queried.promise(data);
-							if (data) {
-								ContextModuleFactoryAfterResolveData.__drop(data);
-							}
 							return result
 								? ContextModuleFactoryAfterResolveData.__to_binding(result)
 								: false;

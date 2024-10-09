@@ -10,8 +10,8 @@ impl JsDependency {
   pub(crate) fn new(dependency: &BoxDependency) -> Self {
     // SAFETY:
     // The lifetime of the &mut BoxDependency reference is extended to 'static.
-    // This is safe because the JS side will guarantee that the JsDependency instance's
-    // lifetime is properly managed and restricted.
+    // Accessing fields and methods on the Rust object from the JS side after the Rust object's
+    // lifetime has ended is undefined behavior, which we currently disregard.
     let dependency =
       unsafe { std::mem::transmute::<&BoxDependency, &'static BoxDependency>(dependency) };
     Self(dependency)
@@ -60,8 +60,8 @@ impl JsDependencyMut {
   pub(crate) fn new(dependency: &mut BoxDependency) -> Self {
     // SAFETY:
     // The lifetime of the &mut BoxDependency reference is extended to 'static.
-    // This is safe because the JS side will guarantee that the JsDependency instance's
-    // lifetime is properly managed and restricted.
+    // Accessing fields and methods on the Rust object from the JS side after the Rust object's
+    // lifetime has ended is undefined behavior, which we currently disregard.
     let dependency =
       unsafe { std::mem::transmute::<&mut BoxDependency, &'static mut BoxDependency>(dependency) };
     Self(dependency)

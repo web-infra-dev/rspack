@@ -39,7 +39,11 @@ export type ResolveData = {
 
 export class ContextModuleFactoryBeforeResolveData {
 	#inner: JsContextModuleFactoryBeforeResolveData;
-	#dropped = false;
+
+	declare context: string;
+	declare request: string;
+	declare regExp: RegExp | undefined;
+	declare recursive: boolean;
 
 	static __from_binding(binding: JsContextModuleFactoryBeforeResolveData) {
 		return new ContextModuleFactoryBeforeResolveData(binding);
@@ -51,70 +55,58 @@ export class ContextModuleFactoryBeforeResolveData {
 		return data.#inner;
 	}
 
-	static __drop(data: ContextModuleFactoryBeforeResolveData) {
-		data.#dropped = true;
-	}
-
 	private constructor(binding: JsContextModuleFactoryBeforeResolveData) {
 		this.#inner = binding;
-	}
 
-	private ensureValidLifecycle() {
-		if (this.#dropped) {
-			throw new Error(
-				"The ContextModuleFactoryBeforeResolveData has exceeded its lifecycle and has been dropped by Rust."
-			);
-		}
-	}
-
-	get context(): string {
-		this.ensureValidLifecycle();
-		return this.#inner.context;
-	}
-
-	set context(val: string) {
-		this.ensureValidLifecycle();
-		this.#inner.context = val;
-	}
-
-	get request(): string {
-		this.ensureValidLifecycle();
-		return this.#inner.request;
-	}
-
-	set request(val: string) {
-		this.#inner.request = val;
-	}
-
-	get regExp(): RegExp | undefined {
-		this.ensureValidLifecycle();
-		if (!this.#inner.regExp) {
-			return undefined;
-		}
-		const { source, flags } = this.#inner.regExp;
-		return new RegExp(source, flags);
-	}
-
-	set regExp(val: RegExp | undefined) {
-		this.ensureValidLifecycle();
-		if (!val) {
-			this.#inner.regExp = undefined;
-			return;
-		}
-		this.#inner.regExp = {
-			source: val.source,
-			flags: val.flags
-		};
-	}
-
-	get recursive(): boolean {
-		this.ensureValidLifecycle();
-		return this.#inner.recursive;
-	}
-
-	set recursive(val: boolean) {
-		this.ensureValidLifecycle();
-		this.#inner.recursive = val;
+		Object.defineProperties(this, {
+			context: {
+				enumerable: true,
+				get(): string {
+					return binding.context;
+				},
+				set(val: string) {
+					binding.context = val;
+				}
+			},
+			request: {
+				enumerable: true,
+				get(): string {
+					return binding.request;
+				},
+				set(val: string) {
+					binding.request = val;
+				}
+			},
+			regExp: {
+				enumerable: true,
+				get(): RegExp | undefined {
+					if (!binding.regExp) {
+						return undefined;
+					}
+					const { source, flags } = binding.regExp;
+					return new RegExp(source, flags);
+				},
+				set(val: RegExp | undefined) {
+					if (!val) {
+						binding.regExp = undefined;
+						return;
+					}
+					binding.regExp = {
+						source: val.source,
+						flags: val.flags
+					};
+				}
+			},
+			recursive: {
+				enumerable: true,
+				get(this: ContextModuleFactoryAfterResolveData): boolean {
+					return binding.recursive;
+				},
+				set(val: boolean) {
+					binding.recursive = val;
+				}
+			}
+		});
 	}
 }
 
@@ -124,8 +116,13 @@ export type ContextModuleFactoryBeforeResolveResult =
 
 export class ContextModuleFactoryAfterResolveData {
 	#inner: JsContextModuleFactoryAfterResolveData;
-	#resolvedDependencies?: Dependency[];
-	#dropped = false;
+
+	declare resource: number;
+	declare context: string;
+	declare request: string;
+	declare regExp: RegExp | undefined;
+	declare recursive: boolean;
+	declare readonly dependencies: Dependency[];
 
 	static __from_binding(binding: JsContextModuleFactoryAfterResolveData) {
 		return new ContextModuleFactoryAfterResolveData(binding);
@@ -137,95 +134,75 @@ export class ContextModuleFactoryAfterResolveData {
 		return data.#inner;
 	}
 
-	static __drop(data: ContextModuleFactoryAfterResolveData) {
-		data.#dropped = true;
-		if (data.#resolvedDependencies) {
-			for (const dependency of data.#resolvedDependencies) {
-				Dependency.__drop(dependency);
+	private constructor(binding: JsContextModuleFactoryAfterResolveData) {
+		this.#inner = binding;
+
+		Object.defineProperties(this, {
+			resource: {
+				enumerable: true,
+				get(): string {
+					return binding.resource;
+				},
+				set(val: string) {
+					binding.resource = val;
+				}
+			},
+			context: {
+				enumerable: true,
+				get(): string {
+					return binding.context;
+				},
+				set(val: string) {
+					binding.context = val;
+				}
+			},
+			request: {
+				enumerable: true,
+				get(): string {
+					return binding.request;
+				},
+				set(val: string) {
+					binding.request = val;
+				}
+			},
+			regExp: {
+				enumerable: true,
+				get(): RegExp | undefined {
+					if (!binding.regExp) {
+						return undefined;
+					}
+					const { source, flags } = binding.regExp;
+					return new RegExp(source, flags);
+				},
+				set(val: RegExp | undefined) {
+					if (!val) {
+						binding.regExp = undefined;
+						return;
+					}
+					binding.regExp = {
+						source: val.source,
+						flags: val.flags
+					};
+				}
+			},
+			recursive: {
+				enumerable: true,
+				get(): boolean {
+					return binding.recursive;
+				},
+				set(val: boolean) {
+					binding.recursive = val;
+				}
+			},
+			dependencies: {
+				enumerable: true,
+				get(): Dependency[] {
+					return binding.dependencies.map(dep =>
+						Dependency.__from_binding(dep)
+					);
+				}
 			}
-		}
-	}
-
-	private ensureValidLifecycle() {
-		if (this.#dropped) {
-			throw new Error(
-				"The ContextModuleFactoryAfterResolveData has exceeded its lifecycle and has been dropped by Rust."
-			);
-		}
-	}
-
-	private constructor(data: JsContextModuleFactoryAfterResolveData) {
-		this.#inner = data;
-	}
-
-	get resource(): string {
-		this.ensureValidLifecycle();
-		return this.#inner.resource;
-	}
-
-	set resource(val: string) {
-		this.ensureValidLifecycle();
-		this.#inner.resource = val;
-	}
-
-	get context(): string {
-		this.ensureValidLifecycle();
-		return this.#inner.context;
-	}
-
-	set context(val: string) {
-		this.ensureValidLifecycle();
-		this.#inner.context = val;
-	}
-
-	get request(): string {
-		this.ensureValidLifecycle();
-		return this.#inner.request;
-	}
-
-	set request(val: string) {
-		this.#inner.request = val;
-	}
-
-	get regExp(): RegExp | undefined {
-		this.ensureValidLifecycle();
-		if (!this.#inner.regExp) {
-			return undefined;
-		}
-		const { source, flags } = this.#inner.regExp;
-		return new RegExp(source, flags);
-	}
-
-	set regExp(val: RegExp | undefined) {
-		this.ensureValidLifecycle();
-		if (!val) {
-			this.#inner.regExp = undefined;
-			return;
-		}
-		this.#inner.regExp = {
-			source: val.source,
-			flags: val.flags
-		};
-	}
-
-	get recursive(): boolean {
-		this.ensureValidLifecycle();
-		return this.#inner.recursive;
-	}
-
-	set recursive(val: boolean) {
-		this.ensureValidLifecycle();
-		this.#inner.recursive = val;
-	}
-
-	get dependencies(): Dependency[] {
-		this.ensureValidLifecycle();
-		if (!this.#resolvedDependencies) {
-			this.#resolvedDependencies = this.#inner.dependencies.map(dep =>
-				Dependency.__from_binding(dep)
-			);
-		}
-		return this.#resolvedDependencies;
+		});
 	}
 }
 
