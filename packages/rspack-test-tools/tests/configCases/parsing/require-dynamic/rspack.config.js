@@ -9,7 +9,9 @@ module.exports = {
 	module: {
 		parser: {
 			javascript: {
-				requireDynamic: false
+				requireDynamic: false,
+				// To preserve `require(...)`, we need to use `requireAsExpression: false` alongside.
+				requireAsExpression: false
 			}
 		}
 	},
