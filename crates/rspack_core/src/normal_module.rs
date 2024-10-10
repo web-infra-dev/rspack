@@ -10,6 +10,10 @@ use std::{
 
 use dashmap::DashMap;
 use derivative::Derivative;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsMap, AsOption, AsPreset, Skip},
+};
 use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -38,6 +42,7 @@ use crate::{
   RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum ModuleIssuer {
   Unset,
@@ -89,6 +94,7 @@ pub struct NormalModuleHooks {
 }
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
@@ -119,6 +125,7 @@ pub struct NormalModule {
   loaders: Vec<BoxLoader>,
 
   /// Original content of this module, will be available after module build
+  #[cacheable(with=AsOption<AsPreset>)]
   original_source: Option<BoxSource>,
   /// Built source of this module (passed with loaders)
   source: NormalModuleSource,
@@ -132,7 +139,9 @@ pub struct NormalModule {
 
   #[allow(unused)]
   debug_id: usize,
+  #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
+  #[cacheable(with=Skip)]
   diagnostics: Mutex<Vec<Diagnostic>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
@@ -145,10 +154,11 @@ pub struct NormalModule {
   last_successful_build_meta: BuildMeta,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum NormalModuleSource {
   Unbuild,
-  BuiltSucceed(BoxSource),
+  BuiltSucceed(#[cacheable(with=AsPreset)] BoxSource),
   BuiltFailed(Diagnostic),
 }
 
@@ -344,6 +354,7 @@ impl DependenciesBlock for NormalModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for NormalModule {
   impl_module_meta_info!();

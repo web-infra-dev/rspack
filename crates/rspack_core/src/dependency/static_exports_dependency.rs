@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use swc_core::ecma::atoms::Atom;
 
 use super::AffectType;
@@ -6,12 +10,14 @@ use crate::{
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum StaticExportsSpec {
   True,
-  Array(Vec<Atom>),
+  Array(#[cacheable(with=AsVec<AsPreset>)] Vec<Atom>),
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct StaticExportsDependency {
   id: DependencyId,
@@ -29,6 +35,7 @@ impl StaticExportsDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for StaticExportsDependency {
   fn id(&self) -> &DependencyId {
     &self.id

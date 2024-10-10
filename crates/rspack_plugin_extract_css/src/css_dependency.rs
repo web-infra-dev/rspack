@@ -1,5 +1,9 @@
 use std::path::PathBuf;
 
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsString, AsVec},
+};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
@@ -7,8 +11,7 @@ use rspack_core::{
 };
 use rustc_hash::FxHashSet;
 
-use crate::css_module::DEPENDENCY_TYPE;
-
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssDependency {
   pub(crate) id: DependencyId,
@@ -29,9 +32,13 @@ pub struct CssDependency {
   range: RealDependencyLocation,
   resource_identifier: String,
   pub(crate) cacheable: bool,
+  #[cacheable(with=AsVec<AsString>)]
   pub(crate) file_dependencies: FxHashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsString>)]
   pub(crate) context_dependencies: FxHashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsString>)]
   pub(crate) missing_dependencies: FxHashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsString>)]
   pub(crate) build_dependencies: FxHashSet<PathBuf>,
 }
 
@@ -78,6 +85,7 @@ impl CssDependency {
 impl AsDependencyTemplate for CssDependency {}
 impl AsContextDependency for CssDependency {}
 
+#[cacheable_dyn]
 impl Dependency for CssDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
@@ -88,7 +96,7 @@ impl Dependency for CssDependency {
   }
 
   fn dependency_type(&self) -> &rspack_core::DependencyType {
-    &DEPENDENCY_TYPE
+    &rspack_core::DependencyType::MiniExtractDep
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -121,6 +129,7 @@ impl Dependency for CssDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CssDependency {
   fn request(&self) -> &str {
     &self.identifier

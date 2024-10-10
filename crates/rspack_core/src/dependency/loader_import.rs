@@ -1,9 +1,12 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
+
 use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct LoaderImportDependency {
   id: DependencyId,
@@ -24,6 +27,7 @@ impl LoaderImportDependency {
 impl AsDependencyTemplate for LoaderImportDependency {}
 impl AsContextDependency for LoaderImportDependency {}
 
+#[cacheable_dyn]
 impl Dependency for LoaderImportDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -46,6 +50,7 @@ impl Dependency for LoaderImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for LoaderImportDependency {
   fn request(&self) -> &str {
     &self.request

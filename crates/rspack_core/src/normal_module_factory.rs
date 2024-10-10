@@ -2,6 +2,7 @@ use std::sync::LazyLock;
 use std::{borrow::Cow, sync::Arc};
 
 use regex::Regex;
+use rspack_cacheable::cacheable;
 use rspack_error::{error, Result};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
@@ -847,6 +848,7 @@ impl NormalModuleFactory {
 /// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
 /// ## Warning
 /// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
+#[cacheable]
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
 pub struct ErrorSpan {
   pub start: u32,

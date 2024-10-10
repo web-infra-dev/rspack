@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use dyn_clone::{clone_trait_object, DynClone};
+use rspack_cacheable::cacheable_dyn;
 use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
@@ -42,6 +43,7 @@ pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
 clone_trait_object!(DependencyTemplate);
 
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyTemplate.js
+#[cacheable_dyn]
 pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency + AsAny {
   fn apply(
     &self,

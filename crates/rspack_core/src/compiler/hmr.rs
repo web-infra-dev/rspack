@@ -71,6 +71,7 @@ impl Compiler {
         Some(records),
         self.old_cache.clone(),
         self.unaffected_modules_cache.clone(),
+        self.cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -116,6 +117,7 @@ impl Compiler {
       self.compile().await?;
 
       self.old_cache.begin_idle();
+      self.cache.idle();
     }
 
     self.compile_done().await?;

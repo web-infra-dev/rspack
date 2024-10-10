@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
@@ -5,6 +6,7 @@ use rspack_core::{
 
 use crate::ExposeOptions;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContainerEntryDependency {
   id: DependencyId,
@@ -34,6 +36,7 @@ impl ContainerEntryDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ContainerEntryDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -56,6 +59,7 @@ impl Dependency for ContainerEntryDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ContainerEntryDependency {
   fn request(&self) -> &str {
     &self.resource_identifier

@@ -2,9 +2,11 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
+  get_chunk_from_ukey, get_css_chunk_filename_template, get_filename_without_hash_length,
+  get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
   RuntimeModule, SourceType,
@@ -15,20 +17,71 @@ use rustc_hash::FxHashMap;
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
 use super::stringify_static_chunk_map;
-use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
+use crate::{
+  get_chunk_runtime_requirements,
+  runtime_module::{chunk_has_css, unquoted_stringify},
+};
 
-type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
-type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
+#[cacheable]
+pub enum GetChunkFilenameType {
+  Css,
+  MiniCss(Filename, Filename),
+  Javascript,
+}
+
+impl GetChunkFilenameType {
+  fn all_chunks(&self, runtime_requirements: &RuntimeGlobals) -> bool {
+    match self {
+      GetChunkFilenameType::Css => {
+        runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+      }
+      GetChunkFilenameType::MiniCss(_, _) => false,
+      GetChunkFilenameType::Javascript => false,
+    }
+  }
+  fn filename_for_chunk(
+    &self,
+    source_type: &SourceType,
+    chunk: &Chunk,
+    compilation: &Compilation,
+  ) -> Option<Filename> {
+    match self {
+      GetChunkFilenameType::Css => chunk_has_css(&chunk.ukey, compilation).then(|| {
+        get_css_chunk_filename_template(
+          chunk,
+          &compilation.options.output,
+          &compilation.chunk_group_by_ukey,
+        )
+        .clone()
+      }),
+      GetChunkFilenameType::MiniCss(filename, chunk_filename) => {
+        chunk.content_hash.contains_key(source_type).then(|| {
+          if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+            filename.clone()
+          } else {
+            chunk_filename.clone()
+          }
+        })
+      }
+      GetChunkFilenameType::Javascript => Some(
+        get_js_chunk_filename_template(
+          chunk,
+          &compilation.options.output,
+          &compilation.chunk_group_by_ukey,
+        )
+        .clone(),
+      ),
+    }
+  }
+}
 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   id: Identifier,
+  filename_type: GetChunkFilenameType,
   chunk: Option<ChunkUkey>,
-  content_type: &'static str,
   source_type: SourceType,
   global: String,
-  all_chunks: GetChunkFilenameAllChunks,
-  filename_for_chunk: GetFilenameForChunk,
 }
 
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
@@ -36,10 +89,8 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
     f.debug_struct("GetChunkFilenameRuntimeModule")
       .field("id", &self.id)
       .field("chunk", &self.chunk)
-      .field("content_type", &self.content_type)
       .field("source_type", &self.source_type)
       .field("global", &self.global)
-      .field("all_chunks", &"...")
       .finish()
   }
 }
@@ -47,26 +98,27 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
 // It's render is different with webpack, rspack will only render chunk map<chunkId, chunkName>
 // and search it.
 impl GetChunkFilenameRuntimeModule {
-  pub fn new<
-    F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static,
-    T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
-  >(
-    content_type: &'static str,
-    name: &'static str,
-    source_type: SourceType,
-    global: String,
-    all_chunks: F,
-    filename_for_chunk: T,
-  ) -> Self {
+  pub fn new(filename_type: GetChunkFilenameType, source_type: SourceType, global: String) -> Self {
+    let name = match &filename_type {
+      GetChunkFilenameType::Css => "css",
+      GetChunkFilenameType::MiniCss(_, _) => "mini-css",
+      GetChunkFilenameType::Javascript => "javascript",
+    };
     Self::with_default(
       Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
+      filename_type,
       None,
-      content_type,
       source_type,
       global,
-      Box::new(all_chunks),
-      Box::new(filename_for_chunk),
     )
+  }
+
+  fn content_type(&self) -> &str {
+    match self.filename_type {
+      GetChunkFilenameType::Css => "css",
+      GetChunkFilenameType::MiniCss(_, _) => "css",
+      GetChunkFilenameType::Javascript => "javascript",
+    }
   }
 }
 
@@ -85,7 +137,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
-        if (self.all_chunks)(runtime_requirements) {
+        if self.filename_type.all_chunks(runtime_requirements) {
           chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
         } else {
           let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
@@ -125,7 +177,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .iter()
         .filter_map(|chunk_ukey| get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey))
         .for_each(|chunk| {
-          let filename = (self.filename_for_chunk)(chunk, compilation);
+          let filename =
+            self
+              .filename_type
+              .filename_for_chunk(&self.source_type, chunk, compilation);
 
           if let Some(filename) = filename {
             chunk_map.insert(&chunk.ukey, chunk);
@@ -332,7 +387,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           .iter()
           .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
           .join("\n"),
-        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type()))
       ))
       .boxed(),
     )

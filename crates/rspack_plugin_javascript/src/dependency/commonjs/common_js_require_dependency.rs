@@ -1,9 +1,11 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{module_id, Compilation, RealDependencyLocation, RuntimeSpec};
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
@@ -30,6 +32,7 @@ impl CommonJsRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CommonJsRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -56,6 +59,7 @@ impl Dependency for CommonJsRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CommonJsRequireDependency {
   fn request(&self) -> &str {
     &self.request
@@ -74,6 +78,7 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for CommonJsRequireDependency {
   fn apply(
     &self,

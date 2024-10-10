@@ -22,6 +22,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 ropey = { workspace = true }
 rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
+rspack_cacheable = { path = "../rspack_cacheable" }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core = { version = "0.1.0", path = "../rspack_core" }
 rspack_error = { version = "0.1.0", path = "../rspack_error" }

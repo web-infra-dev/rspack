@@ -11,6 +11,7 @@ use std::{
 use async_trait::async_trait;
 use derivative::Derivative;
 use regex::Regex;
+use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
@@ -164,6 +165,7 @@ impl<C> Identifiable for LoaderItem<C> {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 pub trait Loader<Context = ()>: Identifiable + Send + Sync
 where

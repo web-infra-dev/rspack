@@ -1,4 +1,5 @@
 use json::JsonValue;
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
   DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
@@ -6,9 +7,11 @@ use rspack_core::{
 };
 use rspack_util::{ext::DynHash, itoa};
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct JsonExportsDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   data: JsonValue,
 }
 
@@ -21,6 +24,7 @@ impl JsonExportsDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for JsonExportsDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
@@ -41,6 +45,7 @@ impl Dependency for JsonExportsDependency {
 impl AsModuleDependency for JsonExportsDependency {}
 impl AsContextDependency for JsonExportsDependency {}
 
+#[cacheable_dyn]
 impl DependencyTemplate for JsonExportsDependency {
   fn apply(
     &self,

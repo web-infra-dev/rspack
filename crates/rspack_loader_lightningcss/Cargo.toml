@@ -12,6 +12,7 @@ async-trait          = { workspace = true }
 derivative           = { workspace = true }
 lightningcss         = { workspace = true, features = ["sourcemap", "browserslist", "visitor", "into_owned"] }
 parcel_sourcemap     = { workspace = true }
+rspack_cacheable     = { path = "../rspack_cacheable" }
 rspack_core          = { version = "0.1.0", path = "../rspack_core" }
 rspack_error         = { version = "0.1.0", path = "../rspack_error" }
 rspack_loader_runner = { version = "0.1.0", path = "../rspack_loader_runner" }

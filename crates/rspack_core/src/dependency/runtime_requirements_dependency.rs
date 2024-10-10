@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
 use crate::{
@@ -5,11 +6,13 @@ use crate::{
   TemplateReplaceSource,
 };
 
+#[cacheable]
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct RuntimeRequirementsDependency {
   pub runtime_requirements: RuntimeGlobals,
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for RuntimeRequirementsDependency {
   fn apply(
     &self,

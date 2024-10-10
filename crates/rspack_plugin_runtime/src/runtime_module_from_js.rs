@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use derivative::Derivative;
+use rspack_cacheable::with::Unsupported;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -16,6 +17,7 @@ type GenerateFn = Arc<dyn Fn() -> rspack_error::Result<String> + Send + Sync>;
 pub struct RuntimeModuleFromJs {
   pub name: String,
   #[derivative(Debug = "ignore")]
+  #[cacheable(with=Unsupported)]
   pub generator: GenerateFn,
   pub cacheable: bool,
   pub isolate: bool,

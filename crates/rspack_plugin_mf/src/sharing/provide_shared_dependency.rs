@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
@@ -6,6 +7,7 @@ use rspack_core::{
 use super::provide_shared_plugin::ProvideVersion;
 use crate::ConsumeVersion;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ProvideSharedDependency {
   id: DependencyId,
@@ -55,6 +57,7 @@ impl ProvideSharedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ProvideSharedDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -77,6 +80,7 @@ impl Dependency for ProvideSharedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ProvideSharedDependency {
   fn request(&self) -> &str {
     &self.request
