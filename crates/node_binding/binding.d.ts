@@ -673,6 +673,7 @@ export interface JsModule {
   factoryMeta?: JsFactoryMeta
   type: string
   layer?: string
+  useSourceMap?: boolean
 }
 
 export interface JsModuleDescriptor {

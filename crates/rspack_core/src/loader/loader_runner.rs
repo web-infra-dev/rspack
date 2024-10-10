@@ -21,6 +21,7 @@ pub struct CompilerModuleContext {
   pub user_request: Option<String>,
   pub raw_request: Option<String>,
   pub factory_meta: Option<FactoryMeta>,
+  pub use_source_map: bool,
 }
 
 impl CompilerModuleContext {
@@ -40,6 +41,7 @@ impl CompilerModuleContext {
       factory_meta: normal_module
         .and_then(|normal_module| normal_module.factory_meta())
         .map(|factory_meta| factory_meta.to_owned()),
+      use_source_map: module.get_source_map_kind().source_map(),
     }
   }
 }
