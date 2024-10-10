@@ -1895,6 +1895,8 @@ pub struct AssetInfo {
   pub content_hash: HashSet<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   pub source_filename: Option<String>,
+  /// when asset was created from a source file (potentially transformed), it should be flagged as copied
+  pub copied: Option<bool>,
   /// size in bytes, only set after asset has been emitted
   // pub size: f64,
   /// when asset is only used for development and doesn't count towards user-facing assets

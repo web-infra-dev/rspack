@@ -16,6 +16,7 @@ class JsAssetInfo {
 			contenthash,
 			javascriptModule,
 			sourceFilename,
+			copied,
 			extras
 		} = jsAssetInfo;
 		return {
@@ -29,7 +30,8 @@ class JsAssetInfo {
 			chunkhash,
 			contenthash,
 			javascriptModule,
-			sourceFilename
+			sourceFilename,
+			copied
 		};
 	}
 
@@ -45,6 +47,7 @@ class JsAssetInfo {
 			contenthash = [],
 			javascriptModule,
 			sourceFilename,
+			copied,
 			...extras
 		} = assetInfo;
 		extras = extras ?? {};
@@ -59,7 +62,8 @@ class JsAssetInfo {
 			contenthash,
 			extras,
 			javascriptModule,
-			sourceFilename
+			sourceFilename,
+			copied
 		};
 	}
 }

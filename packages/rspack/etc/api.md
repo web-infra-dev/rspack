@@ -3602,6 +3602,7 @@ type KnownAssetInfo = {
     chunkhash?: string | string[];
     contenthash?: string | string[];
     sourceFilename?: string;
+    copied?: boolean;
     size?: number;
     development?: boolean;
     hotModuleReplacement?: boolean;

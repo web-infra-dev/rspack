@@ -631,9 +631,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(info) = result.info {
         set_info(&mut exist_asset.info, info);
       }
-      // TODO set info { copied: true, sourceFilename }
+      exist_asset.info.source_filename = Some(result.source_filename.to_string());
+      exist_asset.info.copied = Some(true);
     } else {
-      let mut asset_info = Default::default();
+      let mut asset_info = AssetInfo {
+        source_filename: Some(result.source_filename.to_string()),
+        copied: Some(true),
+        ..Default::default()
+      };
+
       if let Some(info) = result.info {
         set_info(&mut asset_info, info);
       }

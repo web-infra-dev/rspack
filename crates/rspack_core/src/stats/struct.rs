@@ -114,6 +114,7 @@ pub struct StatsAssetInfo {
   pub development: Option<bool>,
   pub hot_module_replacement: Option<bool>,
   pub source_filename: Option<String>,
+  pub copied: Option<bool>,
   pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
   pub chunk_hash: Vec<String>,
