@@ -71,6 +71,11 @@ async fn compilation(
     DependencyType::RequireContext,
     params.context_module_factory.clone(),
   );
+  // RequireEnsurePlugin
+  compilation.set_dependency_factory(
+    DependencyType::RequireEnsureItem,
+    params.normal_module_factory.clone(),
+  );
   compilation.set_dependency_factory(
     DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import),
     params.normal_module_factory.clone(),

@@ -4,7 +4,6 @@ module.exports = () => {
 	return [
 		FilteredStatus.PARTIAL_PASS,
 		"require.include",
-		"require.ensure",
 		"support amd"
 	];
 };
