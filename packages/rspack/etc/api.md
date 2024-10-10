@@ -18,7 +18,6 @@ import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '../Compiler';
 import { default as default_2 } from './util/hash';
 import type { DependenciesBlockDTO } from '@rspack/binding';
-import type { DependencyDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -41,7 +40,10 @@ import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
+import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
+import { JsDependency } from '@rspack/binding';
+import { JsDependencyMut } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -518,9 +520,10 @@ const baseRuleSetRule: z.ZodObject<{
     sideEffects: z.ZodOptional<z.ZodBoolean>;
     enforce: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"pre">, z.ZodLiteral<"post">]>>;
 }, "strict", z.ZodTypeAny, {
+    type?: string | undefined;
+    resource?: RuleSetCondition | undefined;
     layer?: string | undefined;
     options?: string | Record<string, any> | undefined;
-    type?: string | undefined;
     loader?: string | undefined;
     test?: RuleSetCondition | undefined;
     exclude?: RuleSetCondition | undefined;
@@ -528,7 +531,6 @@ const baseRuleSetRule: z.ZodObject<{
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
-    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -554,9 +556,10 @@ const baseRuleSetRule: z.ZodObject<{
     sideEffects?: boolean | undefined;
     enforce?: "pre" | "post" | undefined;
 }, {
+    type?: string | undefined;
+    resource?: RuleSetCondition | undefined;
     layer?: string | undefined;
     options?: string | Record<string, any> | undefined;
-    type?: string | undefined;
     loader?: string | undefined;
     test?: RuleSetCondition | undefined;
     exclude?: RuleSetCondition | undefined;
@@ -564,7 +567,6 @@ const baseRuleSetRule: z.ZodObject<{
     issuer?: RuleSetCondition | undefined;
     issuerLayer?: RuleSetCondition | undefined;
     dependency?: RuleSetCondition | undefined;
-    resource?: RuleSetCondition | undefined;
     resourceFragment?: RuleSetCondition | undefined;
     resourceQuery?: RuleSetCondition | undefined;
     scheme?: RuleSetCondition | undefined;
@@ -1372,38 +1374,45 @@ class ContextModuleFactory {
 
 // @public (undocumented)
 class ContextModuleFactoryAfterResolveData {
-    constructor(data: JsContextModuleFactoryAfterResolveData);
     // (undocumented)
     static __from_binding(binding: JsContextModuleFactoryAfterResolveData): ContextModuleFactoryAfterResolveData;
     // (undocumented)
     static __to_binding(data: ContextModuleFactoryAfterResolveData): JsContextModuleFactoryAfterResolveData;
     // (undocumented)
-    get context(): string;
-    set context(val: string);
+    context: string;
     // (undocumented)
-    get dependencies(): Dependency[];
+    readonly dependencies: Dependency[];
     // (undocumented)
-    get recursive(): boolean;
-    set recursive(val: boolean);
+    recursive: boolean;
     // (undocumented)
-    get regExp(): RegExp | undefined;
-    set regExp(val: RegExp | undefined);
+    regExp: RegExp | undefined;
     // (undocumented)
-    get request(): string;
-    set request(val: string);
+    request: string;
     // (undocumented)
-    get resource(): string;
-    set resource(val: string);
+    resource: number;
 }
 
 // @public (undocumented)
 type ContextModuleFactoryAfterResolveResult = false | ContextModuleFactoryAfterResolveData;
 
 // @public (undocumented)
-type ContextModuleFactoryBeforeResolveResult = false | {
+class ContextModuleFactoryBeforeResolveData {
+    // (undocumented)
+    static __from_binding(binding: JsContextModuleFactoryBeforeResolveData): ContextModuleFactoryBeforeResolveData;
+    // (undocumented)
+    static __to_binding(data: ContextModuleFactoryBeforeResolveData): JsContextModuleFactoryBeforeResolveData;
+    // (undocumented)
     context: string;
-    request?: string;
-};
+    // (undocumented)
+    recursive: boolean;
+    // (undocumented)
+    regExp: RegExp | undefined;
+    // (undocumented)
+    request: string;
+}
+
+// @public (undocumented)
+type ContextModuleFactoryBeforeResolveResult = false | ContextModuleFactoryBeforeResolveData;
 
 // @public (undocumented)
 export const ContextReplacementPlugin: {
@@ -1658,13 +1667,16 @@ class DependenciesBlock {
 
 // @public (undocumented)
 class Dependency {
-    constructor(binding: DependencyDTO);
     // (undocumented)
-    get category(): string;
+    static __from_binding(binding: JsDependencyMut | JsDependency): Dependency;
     // (undocumented)
-    get request(): string | undefined;
+    readonly category: string;
     // (undocumented)
-    get type(): string;
+    critical: boolean;
+    // (undocumented)
+    readonly request: string | undefined;
+    // (undocumented)
+    readonly type: string;
 }
 
 // @public (undocumented)
@@ -9390,16 +9402,16 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         }>>;
     }, "strict", z.ZodTypeAny, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -9415,16 +9427,16 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         }>>;
     }, "strict", z.ZodTypeAny, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -9440,16 +9452,16 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         }>>;
     }, "strict", z.ZodTypeAny, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -9465,16 +9477,16 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         }>>;
     }, "strict", z.ZodTypeAny, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -9841,10 +9853,10 @@ export const rspackOptions: z.ZodObject<{
                 type: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>>;
                 idHint: z.ZodOptional<z.ZodString>;
             }, "strict", z.ZodTypeAny, {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -9861,10 +9873,10 @@ export const rspackOptions: z.ZodObject<{
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
             }, {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -9918,10 +9930,10 @@ export const rspackOptions: z.ZodObject<{
             maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -9961,10 +9973,10 @@ export const rspackOptions: z.ZodObject<{
             maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -10034,10 +10046,10 @@ export const rspackOptions: z.ZodObject<{
             maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -10100,10 +10112,10 @@ export const rspackOptions: z.ZodObject<{
             maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -11157,6 +11169,8 @@ export const rspackOptions: z.ZodObject<{
         maxEntrypointSize?: number | undefined;
     }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
+    context?: string | undefined;
+    dependencies?: string[] | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -11302,9 +11316,7 @@ export const rspackOptions: z.ZodObject<{
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         noParse?: string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     } | undefined;
-    dependencies?: string[] | undefined;
     name?: string | undefined;
-    context?: string | undefined;
     performance?: false | {
         assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
         hints?: false | "error" | "warning" | undefined;
@@ -11547,30 +11559,30 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -11698,10 +11710,10 @@ export const rspackOptions: z.ZodObject<{
             maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;
@@ -11755,6 +11767,8 @@ export const rspackOptions: z.ZodObject<{
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }, {
+    context?: string | undefined;
+    dependencies?: string[] | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -11900,9 +11914,7 @@ export const rspackOptions: z.ZodObject<{
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         noParse?: string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     } | undefined;
-    dependencies?: string[] | undefined;
     name?: string | undefined;
-    context?: string | undefined;
     performance?: false | {
         assetFilter?: ((args_0: string, ...args_1: unknown[]) => boolean) | undefined;
         hints?: false | "error" | "warning" | undefined;
@@ -12145,30 +12157,30 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
     } | undefined;
     externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
     }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+        request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
-        request?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
@@ -12296,10 +12308,10 @@ export const rspackOptions: z.ZodObject<{
             maxInitialRequests?: number | undefined;
             automaticNameDelimiter?: string | undefined;
             cacheGroups?: Record<string, false | {
+                type?: string | RegExp | undefined;
                 filename?: string | undefined;
                 name?: string | false | ((args_0: Module | undefined, ...args_1: unknown[]) => unknown) | undefined;
                 priority?: number | undefined;
-                type?: string | RegExp | undefined;
                 chunks?: RegExp | "async" | "all" | "initial" | ((args_0: Chunk, ...args_1: unknown[]) => boolean) | undefined;
                 usedExports?: boolean | undefined;
                 test?: string | RegExp | ((args_0: Module, ...args_1: unknown[]) => unknown) | undefined;

@@ -20,7 +20,7 @@ export class ExternalObject<T> {
   }
 }
 export class DependenciesBlockDto {
-  get dependencies(): Array<DependencyDto>
+  get dependencies(): Array<JsDependency>
   get blocks(): Array<DependenciesBlockDto>
 }
 export type DependenciesBlockDTO = DependenciesBlockDto
@@ -41,16 +41,9 @@ export class DependenciesDto {
 }
 export type DependenciesDTO = DependenciesDto
 
-export class DependencyDto {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-}
-export type DependencyDTO = DependencyDto
-
 export class EntryDataDto {
-  get dependencies(): Array<DependencyDTO>
-  get includeDependencies(): Array<DependencyDTO>
+  get dependencies(): Array<JsDependency>
+  get includeDependencies(): Array<JsDependency>
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -132,6 +125,7 @@ export class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RawRegex | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
+  get dependencies(): Array<JsDependencyMut>
 }
 
 export class JsContextModuleFactoryBeforeResolveData {
@@ -143,6 +137,21 @@ export class JsContextModuleFactoryBeforeResolveData {
   set regExp(rawRegExp: RawRegex | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
+}
+
+export class JsDependency {
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+}
+
+export class JsDependencyMut {
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
 }
 
 export class JsEntries {
@@ -526,8 +535,8 @@ export interface JsDiagnosticLocation {
 }
 
 export interface JsEntryData {
-  dependencies: Array<DependencyDTO>
-  includeDependencies: Array<DependencyDTO>
+  dependencies: Array<JsDependency>
+  includeDependencies: Array<JsDependency>
   options: JsEntryOptions
 }
 
