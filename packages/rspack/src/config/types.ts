@@ -530,7 +530,7 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	 * */
 	chunks?: OptimizationSplitChunksChunks;
 
-	// TODO: add JSDoc
+	/** Sets the size types which are used when a number is used for sizes. */
 	defaultSizeTypes?: string[];
 
 	/**
@@ -613,7 +613,7 @@ export type OptimizationSplitChunksCacheGroup = {
 	 * */
 	reuseExistingChunk?: boolean;
 
-	// TODO: add JSDoc
+	/** Allows to assign modules to a cache group by module type. */
 	type?: string | RegExp;
 
 	/** Sets the hint for chunk id. It will be added to chunk's filename. */
@@ -622,9 +622,14 @@ export type OptimizationSplitChunksCacheGroup = {
 
 /** Tell Rspack how to splitting chunks. */
 export type OptimizationSplitChunksOptions = {
+	/**
+	 * Options for module cache group
+	 * */
 	cacheGroups?: Record<string, false | OptimizationSplitChunksCacheGroup>;
 
-	// TODO: add JSDoc
+	/**
+	 * Options for modules not selected by any other group.
+	 */
 	fallbackCacheGroup?: {
 		chunks?: OptimizationSplitChunksChunks;
 		minSize?: number;
@@ -634,7 +639,12 @@ export type OptimizationSplitChunksOptions = {
 		automaticNameDelimiter?: string;
 	};
 
-	// TODO: add JSDoc
+	/**
+	 * Prevents exposing path info when creating names for parts splitted by maxSize.
+	 *
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
+	 * */
 	hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
@@ -651,8 +661,8 @@ export type Optimization = {
 
 	/**
 	 * Whether to minimize the bundle.
-	 * The value is `true` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
 	 */
 	minimize?: boolean;
 
@@ -696,16 +706,16 @@ export type Optimization = {
 	/**
 	 * Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes.
 	 *
-	 * The value is `true` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
 	 */
 	realContentHash?: boolean;
 
 	/**
 	 * Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
 	 *
-	 * The value is `true` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
 	 * */
 	sideEffects?: "flag" | boolean;
 
@@ -718,32 +728,32 @@ export type Optimization = {
 	/**
 	 * Tells Rspack to find segments of the module graph which can be safely concatenated into a single module.
 	 *
-	 * The value is `true` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
 	 */
 	concatenateModules?: boolean;
 
 	/**
 	 * Tells Rspack whether to perform a more detailed analysis of variable assignments.
 	 *
-	 * The value is `true` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
 	 */
 	innerGraph?: boolean;
 
 	/**
 	 * Tells Rspack to determine used exports for each module.
 	 *
-	 * The value is `true` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
 	 * */
 	usedExports?: "global" | boolean;
 
 	/**
 	 * Allows to control export mangling.
 	 *
-	 * The value is `isdeterministic` when production mode.
-	 * The value is `false` when development mode.
+	 * The value is `isdeterministic` in production mode.
+	 * The value is `false` in development mode.
 	 */
 	mangleExports?: "size" | "deterministic" | boolean;
 
@@ -756,8 +766,8 @@ export type Optimization = {
 	/**
 	 * Emit assets whenever there are errors while compiling.
 	 *
-	 * The value is `false` when production mode.
-	 * The value is `true` when development mode.
+	 * The value is `false` in production mode.
+	 * The value is `true` in development mode.
 	 * */
 	emitOnErrors?: boolean;
 };
