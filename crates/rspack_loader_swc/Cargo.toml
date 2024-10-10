@@ -36,3 +36,6 @@ swc_core                 = { workspace = true, features = ["base", "ecma_ast", "
 swc_plugin_import        = { version = "0.1.5", path = "../swc_plugin_import" }
 tokio                    = { workspace = true }
 url                      = "2.5.0"
+
+[build-dependencies]
+cargo_toml = { version = "0.20.4" }
