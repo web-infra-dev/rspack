@@ -60,7 +60,7 @@ impl JavascriptParserPlugin for URLPlugin {
       let dep = URLDependency::new(
         request.into(),
         expr.span.into(),
-        (start, end),
+        (start, end).into(),
         self.relative,
       );
       let dep_id = *dep.id();

@@ -295,8 +295,13 @@ async fn compilation(
 fn exports_definitions(
   &self,
   _exports_definitions: &mut Vec<(String, String)>,
+  is_entry_module: bool,
 ) -> Result<Option<bool>> {
-  Ok(Some(true))
+  // Only the inlined module could skip render definitions as it's in the module scope.
+  match is_entry_module {
+    true => Ok(Some(true)),
+    false => Ok(Some(false)),
+  }
 }
 
 impl Plugin for ModernModuleLibraryPlugin {
@@ -304,11 +309,7 @@ impl Plugin for ModernModuleLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

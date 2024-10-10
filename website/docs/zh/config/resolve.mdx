@@ -85,10 +85,9 @@ module.exports = {
 - **类型：** `Record<string, string[] | string>`
 - **默认值：** `{}`
 
-定义拓展名的别名，例如
+定义拓展名的别名，例如：
 
-```js
-// rspack.config.js
+```js title="rspack.config.js"
 module.exports = {
   resolve: {
     extensionAlias: {
@@ -98,7 +97,13 @@ module.exports = {
 };
 ```
 
-在 `require('./index.js')` 时，会依次尝试解析 `'./index.ts'`, `./index.js`。
+这对于 TypeScript 项目来说非常有用，因为 TypeScript 推荐使用 `.js` 扩展名来引用 TypeScript 文件。
+
+```ts title="index.ts"
+import { foo } from './foo.js'; // 实际引用的是 foo.ts
+```
+
+Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` 和 `./foo.js`。
 
 ## resolve.fallback
 

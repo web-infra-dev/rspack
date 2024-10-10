@@ -61,6 +61,7 @@ pub struct Compiler {
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
+  pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub old_cache: Arc<OldCache>,
@@ -75,6 +76,7 @@ impl Compiler {
   pub fn new(
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
+    buildtime_plugins: Vec<BoxPlugin>,
     output_filesystem: Option<Box<dyn AsyncWritableFileSystem + Send + Sync>>,
     // only supports passing input_filesystem in rust api, no support for js api
     input_filesystem: Option<Arc<dyn ReadableFileSystem + Send + Sync>>,
@@ -102,7 +104,11 @@ impl Compiler {
         input_filesystem.clone(),
       ))
     });
-    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
+
+    let options = Arc::new(options);
+    let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
+    let buildtime_plugin_driver =
+      PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let unaffected_modules_cache = Arc::new(UnaffectedModulesCache::default());
     let module_executor = ModuleExecutor::default();
@@ -113,6 +119,7 @@ impl Compiler {
       compilation: Compilation::new(
         options,
         plugin_driver.clone(),
+        buildtime_plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
@@ -125,6 +132,7 @@ impl Compiler {
       ),
       output_filesystem,
       plugin_driver,
+      buildtime_plugin_driver,
       resolver_factory,
       loader_resolver_factory,
       old_cache,
@@ -152,6 +160,7 @@ impl Compiler {
       Compilation::new(
         self.options.clone(),
         self.plugin_driver.clone(),
+        self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
@@ -299,7 +308,7 @@ impl Compiler {
       .iter()
       .filter_map(|(filename, asset)| {
         // collect version info to new_emitted_asset_versions
-        if self.options.is_incremental_rebuild_emit_asset_enabled() {
+        if self.options.incremental().emit_assets_enabled() {
           new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
         }
 

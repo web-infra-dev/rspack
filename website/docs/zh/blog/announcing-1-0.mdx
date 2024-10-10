@@ -1,5 +1,5 @@
 ---
-date: 2024-08-28 16:00:00
+date: 2024-08-28 16:00:01
 ---
 
 # Rspack 1.0 发布公告
@@ -164,7 +164,7 @@ Rspack 的发展离不开广大的社区贡献者和社区伙伴，这里特别�
 - [Unplugin team](https://github.com/unjs/unplugin) 积极地帮助 Rspack 进行集成，丰富了 Rspack 的插件生态。
 - [Brandon Dail](https://github.com/aweary) 在 Discord 里使用了 Rspack，并帮助我们进行宣传。
 - [Kaffi Y](https://github.com/xc2) 孜孜不倦地在 GitHub 和 Discord 里帮助用户、解答 Rspack 相关的问题。
-- 所有参加字节跳动 Rspack Innovator project 的开发者，如 [Dominus Kelvin](https://x.com/Dominus_Kelvin)，[Yannik Peschke](https://x.com/_yanpes)，[Russell Canfield](https://x.com/RussellCanfield) 提供了早期的反馈和建议。
+- 所有参加字节跳动 Rspack Innovator project 的开发者，如 [Dominus Kelvin](https://x.com/Dominus_Kelvin)，[Yannik Peschke](https://x.com/_yanpes)，[Russell Canfield](https://x.com/RussellCanfield)，[Kyrylo](https://x.com/KyryloBashtenko) 提供了早期的反馈和建议。
 - 所有从 0.x 版本开始使用 Rspack 的企业和用户，他们宝贵的意见帮助了 Rspack 更好地进步。
 
 在开源社区上，Rspack 获得了 2024 年度 [Breakthrough of the Year 奖项](https://osawards.com/javascript/)，这对于 Rspack 团队是一个很大的鼓舞，感谢所有投票支持 Rspack 的开发者：
@@ -207,7 +207,7 @@ Rspack 提供了一些实验性特性，这些特性可以通过 [experiments](h
 
 #### SWC 相关特性
 
-Rspack 基于 SWC 实现，而 SWC 目前处于 pre-1.0 阶段。为了及时地跟进 SWC 的修复和优化，我们会定期升级 SWC 版本，这可能会包含 SWC 的一些不兼容变更，或是导致低版本的 SWC Wasm 插件不可用。在这种情况下，我们会发布 Rspack 的 minor 版本，并在更新日志中说明。
+Rspack 基于 SWC 实现，而 SWC 目前处于 pre-1.0 阶段。为了及时地跟进 SWC 的修复和优化，我们会定期升级 SWC 版本，这可能会包含 SWC 的一些不兼容变更，或是导致低版本的 SWC Wasm 插件不可用。在这种情况下，如果 SWC 升级包含 breaking change，我们会发布 Rspack 的 minor 版本，并在更新日志中说明,；如果 SWC 升级不包含 breaking change，我们可能会发布在 Rspack 的 patch 或者 minor 版本。
 
 #### TS 类型
 
@@ -215,3 +215,7 @@ Rspack 基于 SWC 实现，而 SWC 目前处于 pre-1.0 阶段。为了及时地
 
 - TypeScript 自身不遵循 semver，它可能在 minor 版本引入一些不兼容变更，使得 Rspack 需要调整类型。
 - Rspack 可能会利用一些高版本 TypeScript 引入的特性，对一些使用低版本 TypeScript 的项目造成影响。
+
+#### 修复兼容 webpack 的 Bug
+
+如果在 Rspack 之前版本中错误地实现了 webpack 的 API，那么我们可能在非 major 版本进行修复，并对齐 webpack API 的行为。

@@ -295,7 +295,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      if javascript_options.import_meta {
+      if let Some(true) = javascript_options.import_meta {
         plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
@@ -314,25 +314,6 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
 
-    if compiler_options.dev_server.hot {
-      if module_type.is_js_auto() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
-        ));
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
-        ));
-      } else if module_type.is_js_dynamic() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
-        ));
-      } else if module_type.is_js_esm() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
-        ));
-      }
-    }
-
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
@@ -341,13 +322,16 @@ impl<'parser> JavascriptParser<'parser> {
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
       let parse_url = javascript_options.url;
-      if !matches!(parse_url, JavascriptParserUrl::Disable) {
+      if !matches!(parse_url, Some(JavascriptParserUrl::Disable)) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
-          relative: matches!(parse_url, JavascriptParserUrl::Relative),
+          relative: matches!(parse_url, Some(JavascriptParserUrl::Relative)),
         }));
       }
       plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        &javascript_options.worker,
+        javascript_options
+          .worker
+          .as_ref()
+          .expect("should have worker"),
       )));
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }

@@ -87,8 +87,7 @@ Parse modules in order, e.g. `require('. /index')`, will try to parse `'. /index
 
 Define alias for the extension. e.g.
 
-```js
-// rspack.config.js
+```js title="rspack.config.js"
 module.exports = {
   resolve: {
     extensionAlias: {
@@ -98,7 +97,13 @@ module.exports = {
 };
 ```
 
-`require('./index.js')` will try to parse `'./index.ts'`, `./index.js`.
+This is particularly useful for TypeScript projects, as TypeScript recommends using the `.js` extension to reference TypeScript files.
+
+```ts title="index.ts"
+import { foo } from './foo.js'; // actually refers to `foo.ts`
+```
+
+Rspack will try to resolve `'./foo.ts'` and `./foo.js'` sequentially when resolving `import './foo.js'`.
 
 ## resolve.fallback
 

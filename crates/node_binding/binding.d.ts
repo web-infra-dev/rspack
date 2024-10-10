@@ -74,6 +74,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   get modules(): Array<ModuleDTO>
+  get builtModules(): Array<ModuleDTO>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
@@ -1292,6 +1293,7 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
+  incremental?: RawIncremental
   rspackFuture: RawRspackFuture
 }
 
@@ -1400,6 +1402,16 @@ export interface RawIgnorePluginOptions {
   checkResource?: (resource: string, context: string) => boolean
 }
 
+export interface RawIncremental {
+  make: boolean
+  emitAssets: boolean
+  inferAsyncModules: boolean
+  providedExports: boolean
+  moduleHashes: boolean
+  moduleCodegen: boolean
+  moduleRuntimeRequirements: boolean
+}
+
 export interface RawInfo {
   immutable?: boolean
   minimized?: boolean
@@ -1412,20 +1424,20 @@ export interface RawInfo {
 }
 
 export interface RawJavascriptParserOptions {
-  dynamicImportMode: string
-  dynamicImportPreload: string
-  dynamicImportPrefetch: string
+  dynamicImportMode?: string
+  dynamicImportPreload?: string
+  dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
-  url: string
-  exprContextCritical: boolean
-  wrappedContextCritical: boolean
+  url?: string
+  exprContextCritical?: boolean
+  wrappedContextCritical?: boolean
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence: boolean
-  worker: Array<string>
+  strictExportPresence?: boolean
+  worker?: Array<string>
   overrideStrict?: string
-  importMeta: boolean
+  importMeta?: boolean
 }
 
 export interface RawLazyCompilationOption {
@@ -1757,7 +1769,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newIncremental: boolean
+
 }
 
 export interface RawRuleSetCondition {
@@ -1878,7 +1890,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+export function registerGlobalTrace(filter: string, layer: "chrome" | "logger"| "console", output: string): void
 
 export enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

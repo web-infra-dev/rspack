@@ -65,7 +65,9 @@ export interface Asset {
 	info: AssetInfo;
 }
 
-export type PathData = JsPathData;
+export type PathData = Omit<JsPathData, "chunk"> & {
+	chunk?: Chunk | binding.JsChunkPathData;
+};
 
 export interface LogEntry {
 	type: string;
@@ -212,9 +214,8 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeRequirementInTree: liteTapable.SyncBailHook<
-			[Chunk, Set<string>],
-			void
+		runtimeRequirementInTree: liteTapable.HookMap<
+			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		seal: liteTapable.SyncHook<[], void>;
@@ -348,10 +349,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunk",
 				"runtimeRequirements"
 			]),
-			runtimeRequirementInTree: new liteTapable.SyncBailHook([
-				"chunk",
-				"runtimeRequirements"
-			]),
+			runtimeRequirementInTree: new liteTapable.HookMap(
+				() => new liteTapable.SyncBailHook(["chunk", "runtimeRequirements"])
+			),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
@@ -412,7 +412,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get namedChunkGroups() {
 		return createReadonlyMap<ChunkGroup>({
-			keys: (): IterableIterator<string> => {
+			keys: (): MapIterator<string> => {
 				const names = this.#inner.getNamedChunkGroupKeys();
 				return names[Symbol.iterator]();
 			},
@@ -428,6 +428,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	get modules(): ReadonlySet<Module> {
 		return new Set(
 			this.#inner.modules.map(module => Module.__from_binding(module, this))
+		);
+	}
+
+	get builtModules(): ReadonlySet<Module> {
+		return new Set(
+			this.#inner.builtModules.map(module =>
+				Module.__from_binding(module, this)
+			)
 		);
 	}
 
@@ -784,10 +792,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		];
 
 		for (const item of proxyMethod) {
-			const proxyedMethod = new Proxy(errors[item.method as any], {
+			const proxiedMethod = new Proxy(errors[item.method as any], {
 				apply: item.handler as any
 			});
-			errors[item.method as any] = proxyedMethod;
+			errors[item.method as any] = proxiedMethod;
 		}
 		return errors;
 	}
@@ -877,28 +885,52 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		];
 
 		for (const item of proxyMethod) {
-			const proxyedMethod = new Proxy(warnings[item.method as any], {
+			const proxiedMethod = new Proxy(warnings[item.method as any], {
 				apply: item.handler as any
 			});
-			warnings[item.method as any] = proxyedMethod;
+			warnings[item.method as any] = proxiedMethod;
 		}
 		return warnings;
 	}
 
 	getPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPath(filename, data);
+		return this.#inner.getPath(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPathWithInfo(filename, data);
+		return this.#inner.getPathWithInfo(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getAssetPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPath(filename, data);
+		return this.#inner.getAssetPath(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPathWithInfo(filename, data);
+		return this.#inner.getAssetPathWithInfo(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getLogger(name: string | (() => string)) {
@@ -1184,6 +1216,22 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 export type EntryData = binding.JsEntryData;
 
+/**
+ * Copied from `lib.es2015.iterable.d.ts` in TS 5.6 for compatibility
+ * 1. In 5.6 and after, `IterableIterator` cannot be assigned to 'MapIterator'
+ * 2. Before 5.6, Cannot find name 'MapIterator'
+ * @see https://devblogs.microsoft.com/typescript/announcing-typescript-5-6/#iterator-helper-methods
+ */
+interface IteratorObject<T, TReturn = unknown, TNext = unknown>
+	extends Iterator<T, TReturn, TNext> {
+	[Symbol.iterator](): IteratorObject<T, TReturn, TNext>;
+}
+type BuiltinIteratorReturn = any;
+interface MapIterator<T>
+	extends IteratorObject<T, BuiltinIteratorReturn, unknown> {
+	[Symbol.iterator](): MapIterator<T>;
+}
+
 export class Entries implements Map<string, EntryData> {
 	#data: binding.JsEntries;
 
@@ -1212,7 +1260,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.#data.size;
 	}
 
-	entries(): IterableIterator<[string, binding.JsEntryData]> {
+	entries(): MapIterator<[string, binding.JsEntryData]> {
 		const self = this;
 		const keys = this.keys();
 		return {
@@ -1229,11 +1277,11 @@ export class Entries implements Map<string, EntryData> {
 		};
 	}
 
-	values(): IterableIterator<binding.JsEntryData> {
+	values(): MapIterator<binding.JsEntryData> {
 		return this.#data.values()[Symbol.iterator]();
 	}
 
-	[Symbol.iterator](): IterableIterator<[string, binding.JsEntryData]> {
+	[Symbol.iterator](): MapIterator<[string, binding.JsEntryData]> {
 		return this.entries();
 	}
 
@@ -1258,7 +1306,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.#data.get(key);
 	}
 
-	keys(): IterableIterator<string> {
+	keys(): MapIterator<string> {
 		return this.#data.keys()[Symbol.iterator]();
 	}
 }

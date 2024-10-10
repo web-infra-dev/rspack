@@ -15,7 +15,11 @@ pub struct InferAsyncModulesPlugin;
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
+  let modules: IdentifierSet = if compilation
+    .options
+    .incremental()
+    .infer_async_modules_enabled()
+  {
     compilation
       .unaffected_modules_cache
       .get_affected_modules_with_module_graph()
@@ -42,7 +46,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut mutations = compilation
     .options
-    .new_incremental_enabled()
+    .incremental()
+    .enabled()
     .then(Mutations::default);
 
   set_sync_modules(compilation, sync_modules, &mut mutations);
@@ -80,7 +85,7 @@ fn set_sync_modules(
     // This also applies to set_async_modules
     if ModuleGraph::set_async(compilation, module, false) {
       if let Some(mutations) = mutations {
-        mutations.add(Mutation::ModuleGraphModuleSetAsync { module });
+        mutations.add(Mutation::ModuleSetAsync { module });
       }
       let module_graph = compilation.get_module_graph();
       module_graph
@@ -116,7 +121,7 @@ fn set_async_modules(
   while let Some(module) = queue.pop_front() {
     if ModuleGraph::set_async(compilation, module, true) {
       if let Some(mutations) = mutations {
-        mutations.add(Mutation::ModuleGraphModuleSetAsync { module });
+        mutations.add(Mutation::ModuleSetAsync { module });
       }
       let module_graph = compilation.get_module_graph();
       module_graph
@@ -147,11 +152,7 @@ impl Plugin for InferAsyncModulesPlugin {
     "InferAsyncModulesPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use napi::Either;
 use napi_derive::napi;
+use rspack_core::{Chunk, Compilation, SourceType};
+use rspack_hash::RspackHashDigest;
 
 use super::JsAssetInfo;
 
@@ -35,7 +37,46 @@ pub struct JsChunkPathData {
   pub id: Option<String>,
   pub name: Option<String>,
   pub hash: Option<String>,
+  // TODO: support custom content hash type
   pub content_hash: Option<Either<String, HashMap<String, String>>>,
+}
+
+impl JsChunkPathData {
+  pub fn to_chunk(&self, compilation: &Compilation) -> Chunk {
+    let mut chunk = rspack_core::Chunk::new(self.name.clone(), rspack_core::ChunkKind::Normal);
+    chunk.id = self.id.clone();
+    chunk.hash = self
+      .hash
+      .clone()
+      .map(|s| RspackHashDigest::new(s.into(), &compilation.options.output.hash_digest));
+
+    chunk.rendered_hash = self.hash.as_ref().map(|d| {
+      if d.len() < compilation.options.output.hash_digest_length {
+        d.as_str().into()
+      } else {
+        d[..compilation.options.output.hash_digest_length].into()
+      }
+    });
+    if let Some(hash) = self.content_hash.as_ref() {
+      match hash {
+        Either::A(hash) => {
+          chunk.content_hash.insert(
+            SourceType::Unknown,
+            RspackHashDigest::new(hash.clone().into(), &compilation.options.output.hash_digest),
+          );
+        }
+        Either::B(map) => {
+          for (key, hash) in map {
+            chunk.content_hash.insert(
+              SourceType::from(key.as_str()),
+              RspackHashDigest::new(hash.clone().into(), &compilation.options.output.hash_digest),
+            );
+          }
+        }
+      }
+    }
+    chunk
+  }
 }
 
 impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
@@ -56,10 +97,14 @@ impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
 }
 
 impl JsPathData {
-  pub fn as_core_path_data(&self) -> rspack_core::PathData {
+  pub fn as_core_path_data<'a>(
+    &'a self,
+    chunk: Option<&'a rspack_core::Chunk>,
+  ) -> rspack_core::PathData<'a> {
     rspack_core::PathData {
       filename: self.filename.as_deref(),
-      chunk: None,
+      chunk,
+      // TODO: support custom module
       module: None,
       hash: self.hash.as_deref(),
       content_hash: self.content_hash.as_deref(),

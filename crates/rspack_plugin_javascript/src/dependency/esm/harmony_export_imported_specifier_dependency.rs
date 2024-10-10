@@ -844,7 +844,7 @@ impl HarmonyExportImportedSpecifierDependency {
     options
       .reexport_exports_presence
       .or(options.exports_presence)
-      .unwrap_or(if options.strict_export_presence {
+      .unwrap_or(if let Some(true) = options.strict_export_presence {
         ExportPresenceMode::Error
       } else {
         ExportPresenceMode::Auto

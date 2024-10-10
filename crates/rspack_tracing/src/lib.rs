@@ -84,12 +84,17 @@ fn generate_common_layers(
   }
   layers
 }
-
+// register layer for tokio_console, and tokio_console use network to send trace info so no need to pass result by string back
+pub fn enable_tracing_by_env_with_tokio_console() {
+  if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
+    console_subscriber::init();
+  }
+}
 pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Option<FlushGuard> {
   if !IS_TRACING_ENABLED.swap(true, Ordering::Relaxed) {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
-
+    let console_layer = console_subscriber::ConsoleLayer::builder().spawn();
     let trace_writer = TraceWriter::from(output);
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
       .include_args(true)
@@ -101,6 +106,7 @@ pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Op
     tracing_subscriber::registry()
       .with(layers)
       .with(chrome_layer.with_filter(FilterEvent {}))
+      .with(console_layer)
       .init();
     Some(guard)
   } else {

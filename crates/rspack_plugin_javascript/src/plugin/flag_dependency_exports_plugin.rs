@@ -353,7 +353,7 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let modules: IdentifierSet = if compilation.options.new_incremental_enabled() {
+  let modules: IdentifierSet = if compilation.options.incremental().provided_exports_enabled() {
     compilation
       .unaffected_modules_cache
       .get_affected_modules_with_module_graph()
@@ -377,11 +377,7 @@ impl Plugin for FlagDependencyExportsPlugin {
     "FlagDependencyExportsPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks

@@ -537,7 +537,7 @@ pub fn block_promise(
         message: Some(message),
       },
     );
-    return format!("Promise.resolve({comment})");
+    return format!("Promise.resolve({})", comment.trim());
   };
   let chunk_group = compilation
     .chunk_graph
@@ -551,7 +551,7 @@ pub fn block_promise(
         message: Some(message),
       },
     );
-    return format!("Promise.resolve({comment})");
+    return format!("Promise.resolve({})", comment.trim());
   };
   if chunk_group.chunks.is_empty() {
     let comment = comment(
@@ -562,7 +562,7 @@ pub fn block_promise(
         message: Some(message),
       },
     );
-    return format!("Promise.resolve({comment})");
+    return format!("Promise.resolve({})", comment.trim());
   }
   let mg = compilation.get_module_graph();
   let block = mg.block_by_id_expect(block);
@@ -631,7 +631,7 @@ pub fn block_promise(
         .join(", ")
     )
   } else {
-    format!("Promise.resolve({comment})")
+    format!("Promise.resolve({})", comment.trim())
   }
 }
 

@@ -65,6 +65,7 @@ impl Compiler {
       let mut new_compilation = Compilation::new(
         self.options.clone(),
         self.plugin_driver.clone(),
+        self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
@@ -76,14 +77,10 @@ impl Compiler {
         self.input_filesystem.clone(),
       );
 
-      if let Some(state) = self.options.get_incremental_rebuild_make_state() {
-        state.set_is_not_first();
-      }
-
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
-      let is_incremental_rebuild_make = self.options.is_incremental_rebuild_make_enabled();
-      if is_incremental_rebuild_make {
+      let incremental = self.options.incremental();
+      if incremental.make_enabled() {
         // copy field from old compilation
         // make stage used
         self
@@ -97,12 +94,17 @@ impl Compiler {
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-
-      if self.options.new_incremental_enabled() {
+      if incremental.infer_async_modules_enabled() {
         new_compilation.async_modules = std::mem::take(&mut self.compilation.async_modules);
+      }
+      if incremental.module_hashes_enabled() {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
+      }
+      if incremental.module_codegen_enabled() {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
+      }
+      if incremental.module_runtime_requirements_enabled() {
         new_compilation.cgm_runtime_requirements_results =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
       }

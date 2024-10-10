@@ -282,7 +282,7 @@ impl Plugin for JsPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

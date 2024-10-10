@@ -14,6 +14,7 @@ import CompilerType from '../../types/compiler.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/api/compilation-object/" />
 
@@ -410,6 +411,67 @@ compiler.hooks.make.tap('MyPlugin', compilation => {
   </CollapsePanel>
 </Collapse>
 
+### addRuntimeModule
+
+<ApiMeta addedVersion="1.0.6" />
+
+Add a custom runtime module to the compilation.
+
+```ts
+addRuntimeModule(
+  c: Chunk, // the runtime chunk which to add the runtime module
+  m: RuntimeModule, // the runtime module instance to add
+): void;
+```
+
+The following code will add a runtime module which define `__webpack_require__.mock` to the `"main"` chunk:
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeModule } = compiler.webpack;
+
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom');
+          }
+
+          generate() {
+            const compilation = this.compilation;
+            return `
+            __webpack_require__.mock = function() {
+              // ...
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
+              if (chunk.name === 'main') {
+                compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+              }
+            });
+        });
+      },
+    },
+  ],
+};
+```
+
+When implementing a custom runtime module class, the following methods/properties can be overridden to control the behavior of the runtime module:
+
+- Pass the `name` and `stage` parameters in the constructor to specify the module name and the insertion stage.
+- Override the `generate()` method to control the generated code of the module.
+- Override the `shouldIsolate()` method to control whether the module is wrapped in an IIFE.
+- Override the `attach()` method to modify the behavior when the module is added.
+- Modify its `fullHash` or `dependentHash` properties to control whether the module can be cached.
+
 ### rebuildModule
 
 Triggers a re-build of the module.
@@ -596,6 +658,22 @@ The mapping from names to chunk groups.
 **Type:** `ReadonlySet<Module>`
 
 List of all modules, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### builtModules
+
+**Type:** `ReadonlySet<Module>`
+
+List of built modules that were not be cached, with the structure as follows:
 
 <Collapse>
   <CollapsePanel

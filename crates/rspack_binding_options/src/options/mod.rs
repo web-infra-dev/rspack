@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, References, Target,
+  CacheOptions, CompilerOptions, Context, Experiments, Incremental, ModuleOptions, OutputOptions,
+  References,
 };
 
 mod raw_builtins;
@@ -69,16 +69,23 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
-    let target = Target::new(&value.target)?;
     let cache = value.cache.into();
     let experiments = Experiments {
-      incremental_rebuild: IncrementalRebuild {
-        make: if matches!(cache, CacheOptions::Disabled) {
-          None
-        } else {
-          Some(IncrementalRebuildMakeState::default())
+      incremental: match value.experiments.incremental {
+        Some(value) => Incremental::Enabled {
+          make: if matches!(cache, CacheOptions::Disabled) {
+            false
+          } else {
+            value.make
+          },
+          emit_assets: value.emit_assets,
+          infer_async_modules: value.infer_async_modules,
+          provided_exports: value.provided_exports,
+          module_hashes: value.module_hashes,
+          module_codegen: value.module_codegen,
+          module_runtime_requirements: value.module_runtime_requirements,
         },
-        emit_asset: true,
+        None => Incremental::Disabled,
       },
       layers: value.experiments.layers,
       top_level_await: value.experiments.top_level_await,
@@ -93,7 +100,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       context,
       mode,
       module,
-      target,
       output,
       resolve,
       resolve_loader,
@@ -103,7 +109,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       snapshot,
       optimization,
       node,
-      dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
       __references: value.__references,

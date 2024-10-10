@@ -48,8 +48,8 @@ proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.10.4" }
-rspack_resolver    = { version = "0.3.3", features = ["package_json_raw_json_api"] }
 ropey              = "1.6.1"
+rspack_resolver    = { version = "0.3.3", features = ["package_json_raw_json_api"] }
 rspack_sources     = { version = "=0.3.2" }
 rustc-hash         = { version = "1.1.0" }
 serde              = { version = "1.0.197" }
@@ -75,12 +75,12 @@ napi-derive = { version = "2" }
 # Must be pinned with the same swc versions
 #rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
 swc_config          = { version = "=0.1.15" }
-swc_core            = { version = "=0.101.4", default-features = false }
-swc_ecma_minifier   = { version = "=0.203.1", default-features = false }
-swc_error_reporters = { version = "=0.21.0" }
-swc_html            = { version = "=0.148.0" }
-swc_html_minifier   = { version = "=0.145.0", default-features = false }
-swc_node_comments   = { version = "=0.24.0" }
+swc_core            = { version = "=0.106.0", default-features = false }
+swc_ecma_minifier   = { version = "=0.208.0", default-features = false }
+swc_error_reporters = { version = "=1.0.0" }
+swc_html            = { version = "=0.153.0" }
+swc_html_minifier   = { version = "=0.150.0", default-features = false }
+swc_node_comments   = { version = "=0.27.0" }
 
 rspack_dojang = { version = "0.1.9" }
 [workspace.metadata.release]

@@ -22,6 +22,7 @@ use crate::{
 pub struct MakeTaskContext {
   // compilation info
   pub plugin_driver: SharedPluginDriver,
+  pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -37,6 +38,7 @@ impl MakeTaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
     Self {
       plugin_driver: compilation.plugin_driver.clone(),
+      buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
@@ -63,6 +65,7 @@ impl MakeTaskContext {
     let mut compilation = Compilation::new(
       self.compiler_options.clone(),
       self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
       self.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,

@@ -10,9 +10,9 @@
   "references": [
     {
       "path": "../rspack"
-    },
-    {
-      "path": "../rspack-dev-server"
     }
-  ]
+  ],
+  "ts-node": {
+    "transpileOnly": true
+  }
 }

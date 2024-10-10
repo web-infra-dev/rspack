@@ -69,6 +69,7 @@ impl Rspack {
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
+      rspack_binding_options::buildtime_plugins::buildtime_plugins(),
       Some(Box::new(
         AsyncNodeWritableFileSystem::new(output_filesystem)
           .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
@@ -223,7 +224,7 @@ static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\"")] layer: String,
   output: String,
 ) {
   let mut state = GLOBAL_TRACE_STATE
@@ -232,6 +233,10 @@ pub fn register_global_trace(
   if matches!(&*state, TraceState::Off) {
     let guard = match layer.as_str() {
       "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      "console" => {
+        rspack_tracing::enable_tracing_by_env_with_tokio_console();
+        None
+      }
       "logger" => {
         rspack_tracing::enable_tracing_by_env(&filter, &output);
         None

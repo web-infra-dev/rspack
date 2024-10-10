@@ -404,9 +404,10 @@ export async function runLoaders(
 	};
 	loaderContext.importModule = function importModule(
 		request,
-		options,
+		userOptions,
 		callback
 	) {
+		const options = userOptions ? userOptions : {};
 		if (!callback) {
 			return new Promise((resolve, reject) => {
 				compiler
