@@ -7550,13 +7550,7 @@ type PluginImportConfig = {
 type PluginImportOptions = PluginImportConfig[] | undefined;
 
 // @public (undocumented)
-export type Plugins = z.infer<typeof plugins>;
-
-// @public (undocumented)
-const plugins: z.ZodArray<z.ZodUnion<[z.ZodType<t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction, z.ZodTypeDef, t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">;
-
-// @public (undocumented)
-type Plugins_2 = Plugin_2[];
+export type Plugins = Plugin_2[];
 
 // @public (undocumented)
 type PrintedElement = {
@@ -8234,7 +8228,6 @@ declare namespace rspackExports {
         CacheOptions,
         StatsOptions,
         StatsValue,
-        Plugins,
         RspackFutureOptions,
         LazyCompilationOptions,
         Incremental,
@@ -8301,6 +8294,7 @@ declare namespace rspackExports {
         WebpackPluginInstance,
         WebpackPluginFunction,
         Plugin_2 as Plugin,
+        Plugins,
         OptimizationRuntimeChunk,
         OptimizationSplitChunksNameFunction,
         OptimizationSplitChunksCacheGroup,
@@ -13757,7 +13751,7 @@ declare namespace t {
         WebpackPluginInstance,
         WebpackPluginFunction,
         Plugin_2 as Plugin,
-        Plugins_2 as Plugins,
+        Plugins,
         OptimizationRuntimeChunk,
         OptimizationSplitChunksNameFunction,
         OptimizationSplitChunksCacheGroup,

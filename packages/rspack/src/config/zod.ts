@@ -1167,8 +1167,8 @@ const plugin = z.union([
 	>(),
 	falsy
 ]) satisfies z.ZodType<t.Plugin>;
+
 const plugins = plugin.array() satisfies z.ZodType<t.Plugins>;
-export type Plugins = z.infer<typeof plugins>;
 //#endregion
 
 //#region Optimization
