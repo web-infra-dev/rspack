@@ -22,7 +22,7 @@
 			"packages/playground/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack/src/container/default.runtime.js"
+			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
 		]
 	},
 	"linter": {
@@ -64,7 +64,7 @@
 			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack/src/container/default.runtime.js"
+			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
 		]
 	},
 	"vcs": {

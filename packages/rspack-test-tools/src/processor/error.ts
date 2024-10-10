@@ -46,9 +46,13 @@ function cleanError(err: Error) {
 }
 
 function serialize(received: unknown) {
-	return prettyFormat(received, prettyFormatOptions)
-		.replace(CWD_PATTERN, "<cwd>")
-		.trim();
+	return (
+		prettyFormat(received, prettyFormatOptions)
+			.replace(CWD_PATTERN, "<cwd>")
+			// replace line numbers in error stacks
+			.replace(/:\d+:\d+/g, ":<line>:<col>")
+			.trim()
+	);
 }
 
 const prettyFormatOptions = {

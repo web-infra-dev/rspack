@@ -6,6 +6,8 @@ export function isAbsolutePath(str: string) {
 	return path.posix.isAbsolute(str) || path.win32.isAbsolute(str);
 }
 
+export const PLUGIN_NAME = "css-extract-rspack-plugin";
+
 const RELATIVE_PATH_REGEXP = /^\.\.?[/\\]/;
 
 export function isRelativePath(str: string) {

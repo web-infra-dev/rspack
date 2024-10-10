@@ -38,6 +38,7 @@ const normalize = (str: string) => {
 			(_, g) => `<cwd>${g.replace(/\\\\/g, "/")}`
 		);
 	}
+
 	normalizedStr = normalizedStr.replace(
 		/@@ -\d+,\d+ \+\d+,\d+ @@/g,
 		"@@ ... @@"

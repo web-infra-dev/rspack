@@ -188,7 +188,9 @@ function getDefaultEntryRuntime(
 		`const __module_federation_share_strategy__ = ${JSON.stringify(
 			options.shareStrategy ?? "version-first"
 		)}`,
-		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
+		compiler.webpack.Template.getFunctionContent(
+			require("./moduleFederationDefaultRuntime.js")
+		)
 	].join(";");
 	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }

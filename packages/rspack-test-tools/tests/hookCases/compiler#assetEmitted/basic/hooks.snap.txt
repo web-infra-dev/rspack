@@ -6,7 +6,7 @@
 Array [
   "main.js",
   Object {
-    "compilation": "Compilation(internal ignored)",
+    "compilation": "_Compilation(internal ignored)",
     "content": Object {
       "data": Array [
         40,

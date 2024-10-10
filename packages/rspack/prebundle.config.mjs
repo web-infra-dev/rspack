@@ -7,14 +7,6 @@ import { fileURLToPath } from "node:url";
 export default {
 	dependencies: [
 		"zod",
-		{
-			name: "zod-validation-error",
-			externals: {
-				zod: "../zod"
-			}
-		},
-		"json-parse-even-better-errors",
-		"neo-async",
 		"graceful-fs",
 		{
 			name: "watchpack",
