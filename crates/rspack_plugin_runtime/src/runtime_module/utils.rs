@@ -129,12 +129,9 @@ pub fn get_output_dir(
   );
   let output_dir = compilation.get_path(
     filename,
-    PathData::default().chunk(chunk).content_hash_optional(
-      chunk
-        .content_hash
-        .get(&SourceType::JavaScript)
-        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-    ),
+    PathData::default()
+      .chunk(chunk)
+      .content_hash_type(SourceType::JavaScript),
   )?;
   Ok(get_undo_path(
     output_dir.as_str(),

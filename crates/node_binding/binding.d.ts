@@ -704,6 +704,7 @@ export interface JsPathData {
   url?: string
   id?: string
   chunk?: JsChunkPathData
+  contentHashType?: string
 }
 
 export interface JsResolveArgs {

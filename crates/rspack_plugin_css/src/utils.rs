@@ -90,7 +90,7 @@ impl<'a> LocalIdentOptions<'a> {
       local,
       unique_name: &output.unique_name,
     }
-    .render_local_ident_name(self.local_name_ident)
+    .render_local_ident_name(self.local_name_ident, output.hash_digest_length)
   }
 }
 
@@ -101,10 +101,14 @@ struct LocalIdentNameRenderOptions<'a> {
 }
 
 impl LocalIdentNameRenderOptions<'_> {
-  pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> String {
+  pub fn render_local_ident_name(
+    self,
+    local_ident_name: &LocalIdentName,
+    hash_digest_length: usize,
+  ) -> String {
     let raw = local_ident_name
       .template
-      .render(self.path_data, None)
+      .render(self.path_data, None, hash_digest_length)
       .always_ok();
     let s: &str = raw.as_ref();
 

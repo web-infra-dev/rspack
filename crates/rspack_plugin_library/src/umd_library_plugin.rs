@@ -305,12 +305,9 @@ fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
   compilation
     .get_path(
       &FilenameTemplate::from(v),
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      ),
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_type(SourceType::JavaScript),
     )
     .always_ok()
 }
