@@ -11,25 +11,21 @@ import type * as t from "./types";
 
 export type * from "./types";
 
-const filenameTemplate = z.string();
-export type FilenameTemplate = z.infer<typeof filenameTemplate>;
+const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
 const filename = filenameTemplate.or(
 	z
 		.function()
 		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
 		.returns(z.string())
-);
-export type Filename = z.infer<typeof filename>;
+) satisfies z.ZodType<t.Filename>;
 
 //#region Name
-const name = z.string();
-export type Name = z.infer<typeof name>;
+const name = z.string() satisfies z.ZodType<t.Name>;
 //#endregion
 
 //#region Dependencies
-const dependencies = z.array(name);
-export type Dependencies = z.infer<typeof dependencies>;
+const dependencies = z.array(name) satisfies z.ZodType<t.Dependencies>;
 //#endregion
 
 //#region Context
@@ -38,13 +34,15 @@ const context = z.string().refine(
 	val => ({
 		message: `The provided value ${JSON.stringify(val)} must be an absolute path.`
 	})
-);
-export type Context = z.infer<typeof context>;
+) satisfies z.ZodType<t.Context>;
 //#endregion
 
 //#region Mode
-const mode = z.enum(["development", "production", "none"]);
-export type Mode = z.infer<typeof mode>;
+const mode = z.enum([
+	"development",
+	"production",
+	"none"
+]) satisfies z.ZodType<t.Mode>;
 //#endregion
 
 //#region Falsy
@@ -54,71 +52,65 @@ const falsy = z.union([
 	z.literal(""),
 	z.null(),
 	z.undefined()
-]);
-
-export type Falsy = z.infer<typeof falsy>;
+]) satisfies z.ZodType<t.Falsy>;
 //#endregion
 
 //#region Entry
-const publicPath = z.literal("auto").or(filename);
-export type PublicPath = z.infer<typeof publicPath>;
+const publicPath = z
+	.literal("auto")
+	.or(filename) satisfies z.ZodType<t.PublicPath>;
 
-const baseUri = z.string();
-export type BaseUri = z.infer<typeof baseUri>;
+const baseUri = z.string() satisfies z.ZodType<t.BaseUri>;
 
 const chunkLoadingType = z
 	.enum(["jsonp", "import-scripts", "require", "async-node", "import"])
-	.or(z.string());
-export type ChunkLoadingType = z.infer<typeof chunkLoadingType>;
+	.or(z.string()) satisfies z.ZodType<t.ChunkLoadingType>;
 
-const chunkLoading = z.literal(false).or(chunkLoadingType);
-export type ChunkLoading = z.infer<typeof chunkLoading>;
+const chunkLoading = z
+	.literal(false)
+	.or(chunkLoadingType) satisfies z.ZodType<t.ChunkLoading>;
 
-const asyncChunks = z.boolean();
-export type AsyncChunks = z.infer<typeof asyncChunks>;
+const asyncChunks = z.boolean() satisfies z.ZodType<t.AsyncChunks>;
 
 const wasmLoadingType = z
 	.enum(["fetch-streaming", "fetch", "async-node"])
-	.or(z.string());
-export type WasmLoadingType = z.infer<typeof wasmLoadingType>;
+	.or(z.string()) satisfies z.ZodType<t.WasmLoadingType>;
 
-const wasmLoading = z.literal(false).or(wasmLoadingType);
-export type WasmLoading = z.infer<typeof wasmLoading>;
+const wasmLoading = z
+	.literal(false)
+	.or(wasmLoadingType) satisfies z.ZodType<t.WasmLoading>;
 
-const scriptType = z.enum(["text/javascript", "module"]).or(z.literal(false));
-export type ScriptType = z.infer<typeof scriptType>;
+const scriptType = z
+	.enum(["text/javascript", "module"])
+	.or(z.literal(false)) satisfies z.ZodType<t.ScriptType>;
 
 const libraryCustomUmdObject = z.strictObject({
 	amd: z.string().optional(),
 	commonjs: z.string().optional(),
 	root: z.string().or(z.array(z.string())).optional()
-});
-export type LibraryCustomUmdObject = z.infer<typeof libraryCustomUmdObject>;
+}) satisfies z.ZodType<t.LibraryCustomUmdObject>;
 
 const libraryName = z
 	.string()
 	.or(z.array(z.string()))
-	.or(libraryCustomUmdObject);
-export type LibraryName = z.infer<typeof libraryName>;
+	.or(libraryCustomUmdObject) satisfies z.ZodType<t.LibraryName>;
 
 const libraryCustomUmdCommentObject = z.strictObject({
 	amd: z.string().optional(),
 	commonjs: z.string().optional(),
 	commonjs2: z.string().optional(),
 	root: z.string().optional()
-});
-export type LibraryCustomUmdCommentObject = z.infer<
-	typeof libraryCustomUmdCommentObject
->;
+}) satisfies z.ZodType<t.LibraryCustomUmdCommentObject>;
 
-const amdContainer = z.string();
-export type AmdContainer = z.infer<typeof amdContainer>;
+const amdContainer = z.string() satisfies z.ZodType<t.AmdContainer>;
 
-const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
-export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
+const auxiliaryComment = z
+	.string()
+	.or(libraryCustomUmdCommentObject) satisfies z.ZodType<t.AuxiliaryComment>;
 
-const libraryExport = z.string().or(z.array(z.string()));
-export type LibraryExport = z.infer<typeof libraryExport>;
+const libraryExport = z
+	.string()
+	.or(z.array(z.string())) satisfies z.ZodType<t.LibraryExport>;
 
 const libraryType = z
 	.enum([
@@ -141,11 +133,9 @@ const libraryType = z
 		"jsonp",
 		"system"
 	])
-	.or(z.string());
-export type LibraryType = z.infer<typeof libraryType>;
+	.or(z.string()) satisfies z.ZodType<t.LibraryType>;
 
-const umdNamedDefine = z.boolean();
-export type UmdNamedDefine = z.infer<typeof umdNamedDefine>;
+const umdNamedDefine = z.boolean() satisfies z.ZodType<t.UmdNamedDefine>;
 
 const libraryOptions = z.strictObject({
 	amdContainer: amdContainer.optional(),
@@ -154,26 +144,27 @@ const libraryOptions = z.strictObject({
 	name: libraryName.optional(),
 	type: libraryType,
 	umdNamedDefine: umdNamedDefine.optional()
-});
-export type LibraryOptions = z.infer<typeof libraryOptions>;
+}) satisfies z.ZodType<t.LibraryOptions>;
 
-const library = libraryName.or(libraryOptions).optional();
-export type Library = z.infer<typeof library>;
+const library = libraryName
+	.or(libraryOptions)
+	.optional() satisfies z.ZodType<t.Library>;
 
-const layer = z.string().or(z.null());
-export type Layer = z.infer<typeof layer>;
+const layer = z.string().or(z.null()) satisfies z.ZodType<t.Layer>;
 
-const entryFilename = filename;
-export type EntryFilename = z.infer<typeof entryFilename>;
+const entryFilename = filename satisfies z.ZodType<t.EntryFilename>;
 
-const entryRuntime = z.literal(false).or(z.string());
-export type EntryRuntime = z.infer<typeof entryRuntime>;
+const entryRuntime = z
+	.literal(false)
+	.or(z.string()) satisfies z.ZodType<t.EntryRuntime>;
 
-const entryItem = z.string().or(z.array(z.string()));
-export type EntryItem = z.infer<typeof entryItem>;
+const entryItem = z
+	.string()
+	.or(z.array(z.string())) satisfies z.ZodType<t.EntryItem>;
 
-const entryDependOn = z.string().or(z.array(z.string()));
-export type EntryDependOn = z.infer<typeof entryDependOn>;
+const entryDependOn = z
+	.string()
+	.or(z.array(z.string())) satisfies z.ZodType<t.EntryDependOn>;
 
 const entryDescription = z.strictObject({
 	import: entryItem,
@@ -187,25 +178,25 @@ const entryDescription = z.strictObject({
 	library: libraryOptions.optional(),
 	dependOn: entryDependOn.optional(),
 	layer: layer.optional()
-});
-export type EntryDescription = z.infer<typeof entryDescription>;
+}) satisfies z.ZodType<t.EntryDescription>;
 
-const entryUnnamed = entryItem;
-export type EntryUnnamed = z.infer<typeof entryUnnamed>;
+const entryUnnamed = entryItem satisfies z.ZodType<t.EntryUnnamed>;
 
-const entryObject = z.record(entryItem.or(entryDescription));
-export type EntryObject = z.infer<typeof entryObject>;
+const entryObject = z.record(
+	entryItem.or(entryDescription)
+) satisfies z.ZodType<t.EntryObject>;
 
-const entryStatic = entryObject.or(entryUnnamed);
-export type EntryStatic = z.infer<typeof entryStatic>;
+const entryStatic = entryObject.or(
+	entryUnnamed
+) satisfies z.ZodType<t.EntryStatic>;
 
 const entryDynamic = z
 	.function()
-	.returns(entryStatic.or(z.promise(entryStatic)));
-export type EntryDynamic = z.infer<typeof entryDynamic>;
+	.returns(
+		entryStatic.or(z.promise(entryStatic))
+	) satisfies z.ZodType<t.EntryDynamic>;
 
-const entry = entryStatic.or(entryDynamic);
-export type Entry = z.infer<typeof entry>;
+const entry = entryStatic.or(entryDynamic) satisfies z.ZodType<t.Entry>;
 //#endregion
 
 //#region Output
@@ -598,6 +589,10 @@ const reexportExportsPresence = z
 const strictExportPresence = z.boolean();
 const worker = z.array(z.string()).or(z.boolean());
 const overrideStrict = z.enum(["strict", "non-strict"]);
+const requireAsExpression = z.boolean();
+const requireDynamic = z.boolean();
+const requireResolve = z.boolean();
+const importDynamic = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -613,7 +608,13 @@ const javascriptParserOptions = z.strictObject({
 	reexportExportsPresence: reexportExportsPresence.optional(),
 	strictExportPresence: strictExportPresence.optional(),
 	worker: worker.optional(),
-	overrideStrict: overrideStrict.optional()
+	overrideStrict: overrideStrict.optional(),
+	// #region Not available in webpack yet.
+	requireAsExpression: requireAsExpression.optional(),
+	requireDynamic: requireDynamic.optional(),
+	requireResolve: requireResolve.optional(),
+	importDynamic: importDynamic.optional()
+	// #endregion
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 

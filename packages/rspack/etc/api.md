@@ -37,6 +37,7 @@ import { JsBeforeEmitData } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
+import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
@@ -89,11 +90,8 @@ interface AmdConfig extends BaseModuleConfig {
     type: "amd";
 }
 
-// @public (undocumented)
-export type AmdContainer = z.infer<typeof amdContainer>;
-
-// @public (undocumented)
-const amdContainer: z.ZodString;
+// @public
+export type AmdContainer = string;
 
 // @public (undocumented)
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
@@ -214,11 +212,11 @@ const assetGeneratorOptions: z.ZodObject<z.objectUtil.extendShape<{
     }>], z.ZodUnknown>, z.ZodString>]>>;
 }, {
     emit: z.ZodOptional<z.ZodBoolean>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
 }>, "strict", z.ZodTypeAny, {
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     emit?: boolean | undefined;
     dataUrl?: {
         mimetype?: string | undefined;
@@ -228,8 +226,8 @@ const assetGeneratorOptions: z.ZodObject<z.objectUtil.extendShape<{
         content: string;
     }, ...args_1: unknown[]) => string) | undefined;
 }, {
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     emit?: boolean | undefined;
     dataUrl?: {
         mimetype?: string | undefined;
@@ -292,7 +290,7 @@ const assetInlineGeneratorOptions: z.ZodObject<{
 export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
 
 // @public (undocumented)
-const assetModuleFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
+const assetModuleFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
 
 // @public (undocumented)
 export type AssetParserDataUrl = z.infer<typeof assetParserDataUrl>;
@@ -346,47 +344,26 @@ export type AssetResourceGeneratorOptions = z.infer<typeof assetResourceGenerato
 // @public (undocumented)
 const assetResourceGeneratorOptions: z.ZodObject<{
     emit: z.ZodOptional<z.ZodBoolean>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
 }, "strict", z.ZodTypeAny, {
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     emit?: boolean | undefined;
 }, {
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     emit?: boolean | undefined;
 }>;
 
 // @public (undocumented)
 export type Assets = Record<string, Source>;
 
-// @public (undocumented)
-export type AsyncChunks = z.infer<typeof asyncChunks>;
+// @public
+export type AsyncChunks = boolean;
 
-// @public (undocumented)
-const asyncChunks: z.ZodBoolean;
-
-// @public (undocumented)
-export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
-
-// @public (undocumented)
-const auxiliaryComment: z.ZodUnion<[z.ZodString, z.ZodObject<{
-    amd: z.ZodOptional<z.ZodString>;
-    commonjs: z.ZodOptional<z.ZodString>;
-    commonjs2: z.ZodOptional<z.ZodString>;
-    root: z.ZodOptional<z.ZodString>;
-}, "strict", z.ZodTypeAny, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    commonjs2?: string | undefined;
-    root?: string | undefined;
-}, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    commonjs2?: string | undefined;
-    root?: string | undefined;
-}>]>;
+// @public
+export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 
 // @public (undocumented)
 export type Bail = z.infer<typeof bail>;
@@ -541,9 +518,9 @@ const baseRuleSetRule: z.ZodObject<{
     sideEffects: z.ZodOptional<z.ZodBoolean>;
     enforce: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"pre">, z.ZodLiteral<"post">]>>;
 }, "strict", z.ZodTypeAny, {
+    layer?: string | undefined;
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
-    layer?: string | undefined;
     test?: RuleSetCondition | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
@@ -577,9 +554,9 @@ const baseRuleSetRule: z.ZodObject<{
     generator?: Record<string, any> | undefined;
     resolve?: t.ResolveOptions | undefined;
 }, {
+    layer?: string | undefined;
     options?: string | Record<string, any> | undefined;
     type?: string | undefined;
-    layer?: string | undefined;
     test?: RuleSetCondition | undefined;
     enforce?: "pre" | "post" | undefined;
     sideEffects?: boolean | undefined;
@@ -614,11 +591,8 @@ const baseRuleSetRule: z.ZodObject<{
     resolve?: t.ResolveOptions | undefined;
 }>;
 
-// @public (undocumented)
-export type BaseUri = z.infer<typeof baseUri>;
-
-// @public (undocumented)
-const baseUri: z.ZodString;
+// @public
+export type BaseUri = string;
 
 // @public (undocumented)
 type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
@@ -723,6 +697,8 @@ export class Chunk {
     // @internal
     __internal__innerUkey(): number;
     // (undocumented)
+    __internal_to_path_data_chunk(): JsChunkPathData;
+    // (undocumented)
     auxiliaryFiles: ReadonlySet<string>;
     // (undocumented)
     canBeInitial(): boolean;
@@ -774,7 +750,7 @@ export class Chunk {
 export type ChunkFilename = z.infer<typeof chunkFilename>;
 
 // @public (undocumented)
-const chunkFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
+const chunkFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
 
 // @public (undocumented)
 export type ChunkFormat = z.infer<typeof chunkFormat>;
@@ -822,11 +798,8 @@ export class ChunkGroup {
     get origins(): ReadonlyArray<JsChunkGroupOrigin>;
 }
 
-// @public (undocumented)
-export type ChunkLoading = z.infer<typeof chunkLoading>;
-
-// @public (undocumented)
-const chunkLoading: z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>;
+// @public
+export type ChunkLoading = false | ChunkLoadingType;
 
 // @public (undocumented)
 export type ChunkLoadingGlobal = z.infer<typeof chunkLoadingGlobal>;
@@ -834,11 +807,8 @@ export type ChunkLoadingGlobal = z.infer<typeof chunkLoadingGlobal>;
 // @public (undocumented)
 const chunkLoadingGlobal: z.ZodString;
 
-// @public (undocumented)
-export type ChunkLoadingType = z.infer<typeof chunkLoadingType>;
-
-// @public (undocumented)
-const chunkLoadingType: z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>;
+// @public
+export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
 // @public (undocumented)
 export type Clean = z.infer<typeof clean>;
@@ -1328,24 +1298,8 @@ class ContainerPlugin extends RspackBuiltinPlugin {
     _options: {
         name: string;
         shareScope: string;
-        library: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                commonjs2?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        };
-        runtime: string | false | undefined;
+        library: LibraryOptions;
+        runtime: EntryRuntime | undefined;
         filename: string | undefined;
         exposes: [string, {
             import: string[];
@@ -1394,11 +1348,8 @@ export type ContainerReferencePluginOptions = {
     enhanced?: boolean;
 };
 
-// @public (undocumented)
-export type Context = z.infer<typeof context>;
-
-// @public (undocumented)
-const context: z.ZodEffects<z.ZodString, string, string>;
+// @public
+export type Context = string;
 
 // @public (undocumented)
 type ContextInfo = {
@@ -1532,7 +1483,7 @@ const cssAutoParserOptions: z.ZodObject<{
 export type CssChunkFilename = z.infer<typeof cssChunkFilename>;
 
 // @public (undocumented)
-const cssChunkFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
+const cssChunkFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
 
 // @public (undocumented)
 export interface CssExtractRspackLoaderOptions {
@@ -1587,7 +1538,7 @@ export interface CssExtractRspackPluginOptions {
 export type CssFilename = z.infer<typeof cssFilename>;
 
 // @public (undocumented)
-const cssFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
+const cssFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
 
 // @public (undocumented)
 export type CssGeneratorEsModule = z.infer<typeof cssGeneratorEsModule>;
@@ -1693,11 +1644,8 @@ export const DefinePlugin: {
 // @public (undocumented)
 export type DefinePluginOptions = Record<string, CodeValue>;
 
-// @public (undocumented)
-export type Dependencies = z.infer<typeof dependencies>;
-
-// @public (undocumented)
-const dependencies: z.ZodArray<z.ZodString, "many">;
+// @public
+export type Dependencies = Name[];
 
 // @public (undocumented)
 class DependenciesBlock {
@@ -1926,413 +1874,8 @@ const EnableWasmLoadingPlugin: {
 // @public (undocumented)
 type EncodingOption = ObjectEncodingOptions | BufferEncoding | undefined | null;
 
-// @public (undocumented)
-export type Entry = z.infer<typeof entry>;
-
-// @public (undocumented)
-const entry: z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>]>;
+// @public
+export type Entry = EntryStatic | EntryDynamic;
 
 // @public (undocumented)
 interface Entry_2 {
@@ -2343,151 +1886,23 @@ interface Entry_2 {
 // @public (undocumented)
 type EntryData = binding.JsEntryData;
 
-// @public (undocumented)
-export type EntryDependOn = z.infer<typeof entryDependOn>;
+// @public
+export type EntryDependOn = string | string[];
 
 // @public (undocumented)
-const entryDependOn: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-
-// @public (undocumented)
-export type EntryDescription = z.infer<typeof entryDescription>;
-
-// @public (undocumented)
-const entryDescription: z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>;
+export type EntryDescription = {
+    import: EntryItem;
+    runtime?: EntryRuntime;
+    publicPath?: PublicPath;
+    baseUri?: BaseUri;
+    chunkLoading?: ChunkLoading;
+    asyncChunks?: AsyncChunks;
+    wasmLoading?: WasmLoading;
+    filename?: EntryFilename;
+    library?: LibraryOptions;
+    dependOn?: EntryDependOn;
+    layer?: Layer;
+};
 
 // @public (undocumented)
 export interface EntryDescriptionNormalized {
@@ -2513,437 +1928,23 @@ export interface EntryDescriptionNormalized {
     runtime?: EntryRuntime;
 }
 
-// @public (undocumented)
-export type EntryDynamic = z.infer<typeof entryDynamic>;
-
-// @public (undocumented)
-const entryDynamic: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>;
+// @public
+export type EntryDynamic = () => EntryStatic | Promise<EntryStatic>;
 
 // @public (undocumented)
 export type EntryDynamicNormalized = () => Promise<EntryStaticNormalized>;
 
-// @public (undocumented)
-export type EntryFilename = z.infer<typeof entryFilename>;
+// @public
+export type EntryFilename = Filename;
 
-// @public (undocumented)
-const entryFilename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
-
-// @public (undocumented)
-export type EntryItem = z.infer<typeof entryItem>;
-
-// @public (undocumented)
-const entryItem: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+// @public
+export type EntryItem = string | string[];
 
 // @public (undocumented)
 export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
 
 // @public (undocumented)
-export type EntryObject = z.infer<typeof entryObject>;
-
-// @public (undocumented)
-const entryObject: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>;
+export type EntryObject = Record<string, EntryItem | EntryDescription>;
 
 // @public (undocumented)
 export class EntryOptionPlugin {
@@ -2989,151 +1990,11 @@ class Entrypoint extends ChunkGroup {
     getRuntimeChunk(): Readonly<Chunk | null>;
 }
 
-// @public (undocumented)
-export type EntryRuntime = z.infer<typeof entryRuntime>;
+// @public
+export type EntryRuntime = false | string;
 
-// @public (undocumented)
-const entryRuntime: z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>;
-
-// @public (undocumented)
-export type EntryStatic = z.infer<typeof entryStatic>;
-
-// @public (undocumented)
-const entryStatic: z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-    runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    baseUri: z.ZodOptional<z.ZodString>;
-    chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
-    asyncChunks: z.ZodOptional<z.ZodBoolean>;
-    wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    library: z.ZodOptional<z.ZodObject<{
-        amdContainer: z.ZodOptional<z.ZodString>;
-        auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            commonjs2: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodString>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        }>]>>;
-        export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-            amd: z.ZodOptional<z.ZodString>;
-            commonjs: z.ZodOptional<z.ZodString>;
-            root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }, {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        }>]>>;
-        type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-        umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }, {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    }>>;
-    dependOn: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
-}, "strict", z.ZodTypeAny, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}, {
-    import: string | string[];
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    layer?: string | null | undefined;
-    runtime?: string | false | undefined;
-    baseUri?: string | undefined;
-    chunkLoading?: string | false | undefined;
-    asyncChunks?: boolean | undefined;
-    wasmLoading?: string | false | undefined;
-    library?: {
-        type: string;
-        name?: string | string[] | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            root?: string | string[] | undefined;
-        } | undefined;
-        amdContainer?: string | undefined;
-        auxiliaryComment?: string | {
-            commonjs?: string | undefined;
-            amd?: string | undefined;
-            commonjs2?: string | undefined;
-            root?: string | undefined;
-        } | undefined;
-        export?: string | string[] | undefined;
-        umdNamedDefine?: boolean | undefined;
-    } | undefined;
-    dependOn?: string | string[] | undefined;
-}>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>;
+// @public
+export type EntryStatic = EntryObject | EntryUnnamed;
 
 // @public (undocumented)
 export interface EntryStaticNormalized {
@@ -3142,10 +2003,7 @@ export interface EntryStaticNormalized {
 }
 
 // @public (undocumented)
-export type EntryUnnamed = z.infer<typeof entryUnnamed>;
-
-// @public (undocumented)
-const entryUnnamed: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+export type EntryUnnamed = EntryItem;
 
 // @public (undocumented)
 export type Environment = z.infer<typeof environment>;
@@ -3667,10 +2525,7 @@ type ExtraPluginHookData = {
 };
 
 // @public (undocumented)
-export type Falsy = z.infer<typeof falsy>;
-
-// @public (undocumented)
-const falsy: z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>;
+export type Falsy = false | "" | 0 | null | undefined;
 
 // @public (undocumented)
 const FetchCompileAsyncWasmPlugin: {
@@ -3684,16 +2539,10 @@ const FetchCompileAsyncWasmPlugin: {
 };
 
 // @public (undocumented)
-export type Filename = z.infer<typeof filename>;
+export type Filename = FilenameTemplate | ((pathData: PathData, assetInfo?: JsAssetInfo) => string);
 
 // @public (undocumented)
-const filename: z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>;
-
-// @public (undocumented)
-export type FilenameTemplate = z.infer<typeof filenameTemplate>;
-
-// @public (undocumented)
-const filenameTemplate: z.ZodString;
+export type FilenameTemplate = string;
 
 // @public (undocumented)
 interface FileSystemInfoEntry {
@@ -3750,11 +2599,11 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         }>], z.ZodUnknown>, z.ZodString>]>>;
     }, {
         emit: z.ZodOptional<z.ZodBoolean>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
     }>, "strict", z.ZodTypeAny, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -3764,8 +2613,8 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
             content: string;
         }, ...args_1: unknown[]) => string) | undefined;
     }, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -3814,15 +2663,15 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
     }>>;
     "asset/resource": z.ZodOptional<z.ZodObject<{
         emit: z.ZodOptional<z.ZodBoolean>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
     }, "strict", z.ZodTypeAny, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     }, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     }>>;
     css: z.ZodOptional<z.ZodObject<{
@@ -3885,8 +2734,8 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         localIdentName?: string | undefined;
     } | undefined;
     asset?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -3906,8 +2755,8 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     "asset/resource"?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     } | undefined;
 }, {
@@ -3928,8 +2777,8 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         localIdentName?: string | undefined;
     } | undefined;
     asset?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -3949,8 +2798,8 @@ const generatorOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     "asset/resource"?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     } | undefined;
 }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>;
@@ -3982,11 +2831,11 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         }>], z.ZodUnknown>, z.ZodString>]>>;
     }, {
         emit: z.ZodOptional<z.ZodBoolean>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
     }>, "strict", z.ZodTypeAny, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -3996,8 +2845,8 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
             content: string;
         }, ...args_1: unknown[]) => string) | undefined;
     }, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -4046,15 +2895,15 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
     }>>;
     "asset/resource": z.ZodOptional<z.ZodObject<{
         emit: z.ZodOptional<z.ZodBoolean>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
     }, "strict", z.ZodTypeAny, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     }, {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     }>>;
     css: z.ZodOptional<z.ZodObject<{
@@ -4117,8 +2966,8 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         localIdentName?: string | undefined;
     } | undefined;
     asset?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -4138,8 +2987,8 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     "asset/resource"?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     } | undefined;
 }, {
@@ -4160,8 +3009,8 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         localIdentName?: string | undefined;
     } | undefined;
     asset?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
         dataUrl?: {
             mimetype?: string | undefined;
@@ -4181,8 +3030,8 @@ const generatorOptionsByModuleTypeKnown: z.ZodObject<{
         }, ...args_1: unknown[]) => string) | undefined;
     } | undefined;
     "asset/resource"?: {
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         emit?: boolean | undefined;
     } | undefined;
 }>;
@@ -4644,13 +3493,17 @@ const javascriptParserOptions: z.ZodObject<{
     strictExportPresence: z.ZodOptional<z.ZodBoolean>;
     worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
     overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+    requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+    requireDynamic: z.ZodOptional<z.ZodBoolean>;
+    requireResolve: z.ZodOptional<z.ZodBoolean>;
+    importDynamic: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
+    url?: boolean | "relative" | undefined;
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
     dynamicImportPreload?: number | boolean | undefined;
     dynamicImportPrefetch?: number | boolean | undefined;
     dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
     importMeta?: boolean | undefined;
-    url?: boolean | "relative" | undefined;
     exprContextCritical?: boolean | undefined;
     wrappedContextCritical?: boolean | undefined;
     exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -4659,13 +3512,17 @@ const javascriptParserOptions: z.ZodObject<{
     strictExportPresence?: boolean | undefined;
     worker?: boolean | string[] | undefined;
     overrideStrict?: "strict" | "non-strict" | undefined;
+    requireAsExpression?: boolean | undefined;
+    requireDynamic?: boolean | undefined;
+    requireResolve?: boolean | undefined;
+    importDynamic?: boolean | undefined;
 }, {
+    url?: boolean | "relative" | undefined;
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
     dynamicImportPreload?: number | boolean | undefined;
     dynamicImportPrefetch?: number | boolean | undefined;
     dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
     importMeta?: boolean | undefined;
-    url?: boolean | "relative" | undefined;
     exprContextCritical?: boolean | undefined;
     wrappedContextCritical?: boolean | undefined;
     exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -4674,6 +3531,10 @@ const javascriptParserOptions: z.ZodObject<{
     strictExportPresence?: boolean | undefined;
     worker?: boolean | string[] | undefined;
     overrideStrict?: "strict" | "non-strict" | undefined;
+    requireAsExpression?: boolean | undefined;
+    requireDynamic?: boolean | undefined;
+    requireResolve?: boolean | undefined;
+    importDynamic?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -5100,11 +3961,8 @@ type KnownStatsProfile = {
     building: number;
 };
 
-// @public (undocumented)
-export type Layer = z.infer<typeof layer>;
-
-// @public (undocumented)
-const layer: z.ZodUnion<[z.ZodString, z.ZodNull]>;
+// @public
+export type Layer = string | null;
 
 // @public (undocumented)
 export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
@@ -5210,8 +4068,8 @@ const lazyCompilationOptions: z.ZodObject<{
     imports?: boolean | undefined;
 }>;
 
-// @public (undocumented)
-export type Library = z.infer<typeof library_2>;
+// @public
+export type Library = LibraryName | LibraryOptions | undefined;
 
 // @public (undocumented)
 export const library: Library_2;
@@ -5223,226 +4081,38 @@ interface Library_2 {
 }
 
 // @public (undocumented)
-const library_2: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    amd: z.ZodOptional<z.ZodString>;
-    commonjs: z.ZodOptional<z.ZodString>;
-    root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-}, "strict", z.ZodTypeAny, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    root?: string | string[] | undefined;
-}, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    root?: string | string[] | undefined;
-}>]>, z.ZodObject<{
-    amdContainer: z.ZodOptional<z.ZodString>;
-    auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-        amd: z.ZodOptional<z.ZodString>;
-        commonjs: z.ZodOptional<z.ZodString>;
-        commonjs2: z.ZodOptional<z.ZodString>;
-        root: z.ZodOptional<z.ZodString>;
-    }, "strict", z.ZodTypeAny, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    }, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    }>]>>;
-    export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        amd: z.ZodOptional<z.ZodString>;
-        commonjs: z.ZodOptional<z.ZodString>;
-        root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    }, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    }>]>>;
-    type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-    umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-}, "strict", z.ZodTypeAny, {
-    type: string;
-    name?: string | string[] | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    } | undefined;
-    amdContainer?: string | undefined;
-    auxiliaryComment?: string | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    } | undefined;
-    export?: string | string[] | undefined;
-    umdNamedDefine?: boolean | undefined;
-}, {
-    type: string;
-    name?: string | string[] | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    } | undefined;
-    amdContainer?: string | undefined;
-    auxiliaryComment?: string | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    } | undefined;
-    export?: string | string[] | undefined;
-    umdNamedDefine?: boolean | undefined;
-}>]>>;
+export type LibraryCustomUmdCommentObject = {
+    amd?: string;
+    commonjs?: string;
+    commonjs2?: string;
+    root?: string;
+};
 
 // @public (undocumented)
-export type LibraryCustomUmdCommentObject = z.infer<typeof libraryCustomUmdCommentObject>;
+export type LibraryCustomUmdObject = {
+    amd?: string;
+    commonjs?: string;
+    root?: string | string[];
+};
 
-// @public (undocumented)
-const libraryCustomUmdCommentObject: z.ZodObject<{
-    amd: z.ZodOptional<z.ZodString>;
-    commonjs: z.ZodOptional<z.ZodString>;
-    commonjs2: z.ZodOptional<z.ZodString>;
-    root: z.ZodOptional<z.ZodString>;
-}, "strict", z.ZodTypeAny, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    commonjs2?: string | undefined;
-    root?: string | undefined;
-}, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    commonjs2?: string | undefined;
-    root?: string | undefined;
-}>;
+// @public
+export type LibraryExport = string | string[];
 
-// @public (undocumented)
-export type LibraryCustomUmdObject = z.infer<typeof libraryCustomUmdObject>;
+// @public
+export type LibraryName = string | string[] | LibraryCustomUmdObject;
 
-// @public (undocumented)
-const libraryCustomUmdObject: z.ZodObject<{
-    amd: z.ZodOptional<z.ZodString>;
-    commonjs: z.ZodOptional<z.ZodString>;
-    root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-}, "strict", z.ZodTypeAny, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    root?: string | string[] | undefined;
-}, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    root?: string | string[] | undefined;
-}>;
+// @public
+export type LibraryOptions = {
+    amdContainer?: AmdContainer;
+    auxiliaryComment?: AuxiliaryComment;
+    export?: LibraryExport;
+    name?: LibraryName;
+    type: LibraryType;
+    umdNamedDefine?: UmdNamedDefine;
+};
 
-// @public (undocumented)
-export type LibraryExport = z.infer<typeof libraryExport>;
-
-// @public (undocumented)
-const libraryExport: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-
-// @public (undocumented)
-export type LibraryName = z.infer<typeof libraryName>;
-
-// @public (undocumented)
-const libraryName: z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-    amd: z.ZodOptional<z.ZodString>;
-    commonjs: z.ZodOptional<z.ZodString>;
-    root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-}, "strict", z.ZodTypeAny, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    root?: string | string[] | undefined;
-}, {
-    commonjs?: string | undefined;
-    amd?: string | undefined;
-    root?: string | string[] | undefined;
-}>]>;
-
-// @public (undocumented)
-export type LibraryOptions = z.infer<typeof libraryOptions>;
-
-// @public (undocumented)
-const libraryOptions: z.ZodObject<{
-    amdContainer: z.ZodOptional<z.ZodString>;
-    auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
-        amd: z.ZodOptional<z.ZodString>;
-        commonjs: z.ZodOptional<z.ZodString>;
-        commonjs2: z.ZodOptional<z.ZodString>;
-        root: z.ZodOptional<z.ZodString>;
-    }, "strict", z.ZodTypeAny, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    }, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    }>]>>;
-    export: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        amd: z.ZodOptional<z.ZodString>;
-        commonjs: z.ZodOptional<z.ZodString>;
-        root: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    }, {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    }>]>>;
-    type: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
-    umdNamedDefine: z.ZodOptional<z.ZodBoolean>;
-}, "strict", z.ZodTypeAny, {
-    type: string;
-    name?: string | string[] | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    } | undefined;
-    amdContainer?: string | undefined;
-    auxiliaryComment?: string | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    } | undefined;
-    export?: string | string[] | undefined;
-    umdNamedDefine?: boolean | undefined;
-}, {
-    type: string;
-    name?: string | string[] | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        root?: string | string[] | undefined;
-    } | undefined;
-    amdContainer?: string | undefined;
-    auxiliaryComment?: string | {
-        commonjs?: string | undefined;
-        amd?: string | undefined;
-        commonjs2?: string | undefined;
-        root?: string | undefined;
-    } | undefined;
-    export?: string | string[] | undefined;
-    umdNamedDefine?: boolean | undefined;
-}>;
-
-// @public (undocumented)
-export type LibraryType = z.infer<typeof libraryType>;
-
-// @public (undocumented)
-const libraryType: z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>;
+// @public
+export type LibraryType = string | "var" | "module" | "assign" | "assign-properties" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
 
 // @public (undocumented)
 export type LightningcssFeatureOptions = {
@@ -5867,11 +4537,8 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 // @public (undocumented)
 const matchPart: (str: string, test: Matcher) => boolean;
 
-// @public (undocumented)
-export type Mode = z.infer<typeof mode>;
-
-// @public (undocumented)
-const mode: z.ZodEnum<["development", "production", "none"]>;
+// @public
+export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
@@ -6027,13 +4694,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
             overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+            requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+            requireDynamic: z.ZodOptional<z.ZodBoolean>;
+            requireResolve: z.ZodOptional<z.ZodBoolean>;
+            importDynamic: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6042,13 +4713,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6057,6 +4732,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }>>;
         "javascript/auto": z.ZodOptional<z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -6073,13 +4752,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
             overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+            requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+            requireDynamic: z.ZodOptional<z.ZodBoolean>;
+            requireResolve: z.ZodOptional<z.ZodBoolean>;
+            importDynamic: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6088,13 +4771,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6103,6 +4790,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }>>;
         "javascript/dynamic": z.ZodOptional<z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -6119,13 +4810,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
             overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+            requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+            requireDynamic: z.ZodOptional<z.ZodBoolean>;
+            requireResolve: z.ZodOptional<z.ZodBoolean>;
+            importDynamic: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6134,13 +4829,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6149,6 +4848,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }>>;
         "javascript/esm": z.ZodOptional<z.ZodObject<{
             dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -6165,13 +4868,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence: z.ZodOptional<z.ZodBoolean>;
             worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
             overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+            requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+            requireDynamic: z.ZodOptional<z.ZodBoolean>;
+            requireResolve: z.ZodOptional<z.ZodBoolean>;
+            importDynamic: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6180,13 +4887,17 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }, {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6195,15 +4906,19 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         }>>;
     }, "strict", z.ZodTypeAny, {
         javascript?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6212,6 +4927,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         css?: {
             namedExports?: boolean | undefined;
@@ -6228,12 +4947,12 @@ const moduleOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
         "javascript/auto"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6242,14 +4961,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6258,14 +4981,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6274,15 +5001,19 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
     }, {
         javascript?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6291,6 +5022,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         css?: {
             namedExports?: boolean | undefined;
@@ -6307,12 +5042,12 @@ const moduleOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
         "javascript/auto"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6321,14 +5056,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6337,14 +5076,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6353,6 +5096,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
     }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
     generator: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
@@ -6378,11 +5125,11 @@ const moduleOptions: z.ZodObject<{
             }>], z.ZodUnknown>, z.ZodString>]>>;
         }, {
             emit: z.ZodOptional<z.ZodBoolean>;
-            filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-            publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+            filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+            publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         }>, "strict", z.ZodTypeAny, {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
             dataUrl?: {
                 mimetype?: string | undefined;
@@ -6392,8 +5139,8 @@ const moduleOptions: z.ZodObject<{
                 content: string;
             }, ...args_1: unknown[]) => string) | undefined;
         }, {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
             dataUrl?: {
                 mimetype?: string | undefined;
@@ -6442,15 +5189,15 @@ const moduleOptions: z.ZodObject<{
         }>>;
         "asset/resource": z.ZodOptional<z.ZodObject<{
             emit: z.ZodOptional<z.ZodBoolean>;
-            filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-            publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+            filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+            publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         }, "strict", z.ZodTypeAny, {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
         }, {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
         }>>;
         css: z.ZodOptional<z.ZodObject<{
@@ -6513,8 +5260,8 @@ const moduleOptions: z.ZodObject<{
             localIdentName?: string | undefined;
         } | undefined;
         asset?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
             dataUrl?: {
                 mimetype?: string | undefined;
@@ -6534,8 +5281,8 @@ const moduleOptions: z.ZodObject<{
             }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         "asset/resource"?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
         } | undefined;
     }, {
@@ -6556,8 +5303,8 @@ const moduleOptions: z.ZodObject<{
             localIdentName?: string | undefined;
         } | undefined;
         asset?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
             dataUrl?: {
                 mimetype?: string | undefined;
@@ -6577,8 +5324,8 @@ const moduleOptions: z.ZodObject<{
             }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         "asset/resource"?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
         } | undefined;
     }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
@@ -6586,12 +5333,12 @@ const moduleOptions: z.ZodObject<{
 }, "strict", z.ZodTypeAny, {
     parser?: {
         javascript?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6600,6 +5347,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         css?: {
             namedExports?: boolean | undefined;
@@ -6616,12 +5367,12 @@ const moduleOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
         "javascript/auto"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6630,14 +5381,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6646,14 +5401,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6662,6 +5421,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
     } | Record<string, Record<string, any>> | undefined;
     generator?: Record<string, Record<string, any>> | {
@@ -6682,8 +5445,8 @@ const moduleOptions: z.ZodObject<{
             localIdentName?: string | undefined;
         } | undefined;
         asset?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
             dataUrl?: {
                 mimetype?: string | undefined;
@@ -6703,8 +5466,8 @@ const moduleOptions: z.ZodObject<{
             }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         "asset/resource"?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
         } | undefined;
     } | undefined;
@@ -6714,12 +5477,12 @@ const moduleOptions: z.ZodObject<{
 }, {
     parser?: {
         javascript?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6728,6 +5491,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         css?: {
             namedExports?: boolean | undefined;
@@ -6744,12 +5511,12 @@ const moduleOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
         "javascript/auto"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6758,14 +5525,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/dynamic"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6774,14 +5545,18 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
         "javascript/esm"?: {
+            url?: boolean | "relative" | undefined;
             dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
             dynamicImportPreload?: number | boolean | undefined;
             dynamicImportPrefetch?: number | boolean | undefined;
             dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
             importMeta?: boolean | undefined;
-            url?: boolean | "relative" | undefined;
             exprContextCritical?: boolean | undefined;
             wrappedContextCritical?: boolean | undefined;
             exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -6790,6 +5565,10 @@ const moduleOptions: z.ZodObject<{
             strictExportPresence?: boolean | undefined;
             worker?: boolean | string[] | undefined;
             overrideStrict?: "strict" | "non-strict" | undefined;
+            requireAsExpression?: boolean | undefined;
+            requireDynamic?: boolean | undefined;
+            requireResolve?: boolean | undefined;
+            importDynamic?: boolean | undefined;
         } | undefined;
     } | Record<string, Record<string, any>> | undefined;
     generator?: Record<string, Record<string, any>> | {
@@ -6810,8 +5589,8 @@ const moduleOptions: z.ZodObject<{
             localIdentName?: string | undefined;
         } | undefined;
         asset?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
             dataUrl?: {
                 mimetype?: string | undefined;
@@ -6831,8 +5610,8 @@ const moduleOptions: z.ZodObject<{
             }, ...args_1: unknown[]) => string) | undefined;
         } | undefined;
         "asset/resource"?: {
-            filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-            publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+            publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
             emit?: boolean | undefined;
         } | undefined;
     } | undefined;
@@ -6952,11 +5731,8 @@ class MultiWatching {
     watchings: Watching[];
 }
 
-// @public (undocumented)
-export type Name = z.infer<typeof name_2>;
-
-// @public (undocumented)
-const name_2: z.ZodString;
+// @public
+export type Name = string;
 
 // @public (undocumented)
 export const node: Node_3;
@@ -7804,17 +6580,17 @@ const output: z.ZodObject<{
     path: z.ZodOptional<z.ZodString>;
     pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
     clean: z.ZodOptional<z.ZodBoolean>;
-    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-    chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+    filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
     crossOriginLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["anonymous", "use-credentials"]>]>>;
-    cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
     cssHeadDataCompression: z.ZodOptional<z.ZodBoolean>;
-    cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
     hotUpdateMainFilename: z.ZodOptional<z.ZodString>;
     hotUpdateChunkFilename: z.ZodOptional<z.ZodString>;
     hotUpdateGlobal: z.ZodOptional<z.ZodString>;
-    assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+    assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
     uniqueName: z.ZodOptional<z.ZodString>;
     chunkLoadingGlobal: z.ZodOptional<z.ZodString>;
     enabledLibraryTypes: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>, "many">>;
@@ -7999,8 +6775,8 @@ const output: z.ZodObject<{
     }>>;
 }, "strict", z.ZodTypeAny, {
     module?: boolean | undefined;
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     environment?: {
         module?: boolean | undefined;
         arrowFunction?: boolean | undefined;
@@ -8017,8 +6793,8 @@ const output: z.ZodObject<{
         optionalChaining?: boolean | undefined;
         templateLiteral?: boolean | undefined;
     } | undefined;
+    chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     path?: string | undefined;
-    chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
@@ -8053,13 +6829,13 @@ const output: z.ZodObject<{
     pathinfo?: boolean | "verbose" | undefined;
     clean?: boolean | undefined;
     crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-    cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     cssHeadDataCompression?: boolean | undefined;
-    cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     hotUpdateMainFilename?: string | undefined;
     hotUpdateChunkFilename?: string | undefined;
     hotUpdateGlobal?: string | undefined;
-    assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     uniqueName?: string | undefined;
     chunkLoadingGlobal?: string | undefined;
     enabledLibraryTypes?: string[] | undefined;
@@ -8094,8 +6870,8 @@ const output: z.ZodObject<{
     charset?: boolean | undefined;
 }, {
     module?: boolean | undefined;
-    filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-    publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     environment?: {
         module?: boolean | undefined;
         arrowFunction?: boolean | undefined;
@@ -8112,8 +6888,8 @@ const output: z.ZodObject<{
         optionalChaining?: boolean | undefined;
         templateLiteral?: boolean | undefined;
     } | undefined;
+    chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     path?: string | undefined;
-    chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     auxiliaryComment?: string | {
         commonjs?: string | undefined;
         amd?: string | undefined;
@@ -8148,13 +6924,13 @@ const output: z.ZodObject<{
     pathinfo?: boolean | "verbose" | undefined;
     clean?: boolean | undefined;
     crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-    cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     cssHeadDataCompression?: boolean | undefined;
-    cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     hotUpdateMainFilename?: string | undefined;
     hotUpdateChunkFilename?: string | undefined;
     hotUpdateGlobal?: string | undefined;
-    assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+    assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
     uniqueName?: string | undefined;
     chunkLoadingGlobal?: string | undefined;
     enabledLibraryTypes?: string[] | undefined;
@@ -8395,13 +7171,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8410,13 +7190,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8425,6 +7209,10 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
     "javascript/auto": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -8441,13 +7229,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8456,13 +7248,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8471,6 +7267,10 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
     "javascript/dynamic": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -8487,13 +7287,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8502,13 +7306,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8517,6 +7325,10 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
     "javascript/esm": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -8533,13 +7345,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8548,13 +7364,17 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8563,15 +7383,19 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     javascript?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8580,6 +7404,10 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     css?: {
         namedExports?: boolean | undefined;
@@ -8596,12 +7424,12 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         } | undefined;
     } | undefined;
     "javascript/auto"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8610,14 +7438,18 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8626,14 +7458,18 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8642,15 +7478,19 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
 }, {
     javascript?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8659,6 +7499,10 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     css?: {
         namedExports?: boolean | undefined;
@@ -8675,12 +7519,12 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         } | undefined;
     } | undefined;
     "javascript/auto"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8689,14 +7533,18 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8705,14 +7553,18 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8721,6 +7573,10 @@ const parserOptionsByModuleType: z.ZodUnion<[z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
 }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>;
 
@@ -8782,13 +7638,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8797,13 +7657,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8812,6 +7676,10 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
     "javascript/auto": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -8828,13 +7696,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8843,13 +7715,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8858,6 +7734,10 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
     "javascript/dynamic": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -8874,13 +7754,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8889,13 +7773,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8904,6 +7792,10 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
     "javascript/esm": z.ZodOptional<z.ZodObject<{
         dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -8920,13 +7812,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence: z.ZodOptional<z.ZodBoolean>;
         worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
         overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+        requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+        requireDynamic: z.ZodOptional<z.ZodBoolean>;
+        requireResolve: z.ZodOptional<z.ZodBoolean>;
+        importDynamic: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8935,13 +7831,17 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }, {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8950,15 +7850,19 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     }>>;
 }, "strict", z.ZodTypeAny, {
     javascript?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8967,6 +7871,10 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     css?: {
         namedExports?: boolean | undefined;
@@ -8983,12 +7891,12 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         } | undefined;
     } | undefined;
     "javascript/auto"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8997,14 +7905,18 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -9013,14 +7925,18 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -9029,15 +7945,19 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
 }, {
     javascript?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -9046,6 +7966,10 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     css?: {
         namedExports?: boolean | undefined;
@@ -9062,12 +7986,12 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         } | undefined;
     } | undefined;
     "javascript/auto"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -9076,14 +8000,18 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/dynamic"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -9092,14 +8020,18 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
     "javascript/esm"?: {
+        url?: boolean | "relative" | undefined;
         dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
         dynamicImportPreload?: number | boolean | undefined;
         dynamicImportPrefetch?: number | boolean | undefined;
         dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
         importMeta?: boolean | undefined;
-        url?: boolean | "relative" | undefined;
         exprContextCritical?: boolean | undefined;
         wrappedContextCritical?: boolean | undefined;
         exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -9108,6 +8040,10 @@ const parserOptionsByModuleTypeKnown: z.ZodObject<{
         strictExportPresence?: boolean | undefined;
         worker?: boolean | string[] | undefined;
         overrideStrict?: "strict" | "non-strict" | undefined;
+        requireAsExpression?: boolean | undefined;
+        requireDynamic?: boolean | undefined;
+        requireResolve?: boolean | undefined;
+        importDynamic?: boolean | undefined;
     } | undefined;
 }>;
 
@@ -9124,7 +8060,9 @@ export type Path = z.infer<typeof path>;
 const path: z.ZodString;
 
 // @public (undocumented)
-type PathData = JsPathData;
+type PathData = Omit<JsPathData, "chunk"> & {
+    chunk?: Chunk | binding.JsChunkPathData;
+};
 
 // @public (undocumented)
 export type Pathinfo = z.infer<typeof pathinfo>;
@@ -9292,11 +8230,8 @@ interface PseudoClasses {
     hover?: string;
 }
 
-// @public (undocumented)
-export type PublicPath = z.infer<typeof publicPath>;
-
-// @public (undocumented)
-const publicPath: z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>;
+// @public
+export type PublicPath = "auto" | Filename;
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
@@ -9775,42 +8710,6 @@ declare namespace rspackExports {
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
-        FilenameTemplate,
-        Filename,
-        Name,
-        Dependencies,
-        Context,
-        Mode,
-        Falsy,
-        PublicPath,
-        BaseUri,
-        ChunkLoadingType,
-        ChunkLoading,
-        AsyncChunks,
-        WasmLoadingType,
-        WasmLoading,
-        ScriptType,
-        LibraryCustomUmdObject,
-        LibraryName,
-        LibraryCustomUmdCommentObject,
-        AmdContainer,
-        AuxiliaryComment,
-        LibraryExport,
-        LibraryType,
-        UmdNamedDefine,
-        LibraryOptions,
-        Library,
-        Layer,
-        EntryFilename,
-        EntryRuntime,
-        EntryItem,
-        EntryDependOn,
-        EntryDescription,
-        EntryUnnamed,
-        EntryObject,
-        EntryStatic,
-        EntryDynamic,
-        Entry,
         Path,
         Pathinfo,
         AssetModuleFilename,
@@ -9926,6 +8825,42 @@ declare namespace rspackExports {
         rspackOptions,
         RspackOptions,
         Configuration,
+        FilenameTemplate,
+        Filename,
+        Name,
+        Dependencies,
+        Context,
+        Mode,
+        Falsy,
+        PublicPath,
+        BaseUri,
+        ChunkLoadingType,
+        ChunkLoading,
+        AsyncChunks,
+        WasmLoadingType,
+        WasmLoading,
+        ScriptType,
+        LibraryCustomUmdObject,
+        LibraryName,
+        LibraryCustomUmdCommentObject,
+        AmdContainer,
+        AuxiliaryComment,
+        LibraryExport,
+        LibraryType,
+        UmdNamedDefine,
+        LibraryOptions,
+        Library,
+        Layer,
+        EntryFilename,
+        EntryRuntime,
+        EntryItem,
+        EntryDependOn,
+        EntryDescription,
+        EntryUnnamed,
+        EntryObject,
+        EntryStatic,
+        EntryDynamic,
+        Entry,
         ResolveAlias,
         ResolveTsConfig,
         ResolveOptions,
@@ -9981,12 +8916,12 @@ export const rspackOptions: z.ZodObject<{
     entry: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         baseUri: z.ZodOptional<z.ZodString>;
         chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
         asyncChunks: z.ZodOptional<z.ZodBoolean>;
         wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         library: z.ZodOptional<z.ZodObject<{
             amdContainer: z.ZodOptional<z.ZodString>;
             auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -10058,8 +8993,8 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -10086,8 +9021,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -10115,12 +9050,12 @@ export const rspackOptions: z.ZodObject<{
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         baseUri: z.ZodOptional<z.ZodString>;
         chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
         asyncChunks: z.ZodOptional<z.ZodBoolean>;
         wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         library: z.ZodOptional<z.ZodObject<{
             amdContainer: z.ZodOptional<z.ZodString>;
             auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -10192,8 +9127,8 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -10220,8 +9155,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -10249,12 +9184,12 @@ export const rspackOptions: z.ZodObject<{
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         baseUri: z.ZodOptional<z.ZodString>;
         chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
         asyncChunks: z.ZodOptional<z.ZodBoolean>;
         wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         library: z.ZodOptional<z.ZodObject<{
             amdContainer: z.ZodOptional<z.ZodString>;
             auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -10326,8 +9261,8 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -10354,8 +9289,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -10385,17 +9320,17 @@ export const rspackOptions: z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
         pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
         clean: z.ZodOptional<z.ZodBoolean>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         crossOriginLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["anonymous", "use-credentials"]>]>>;
-        cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         cssHeadDataCompression: z.ZodOptional<z.ZodBoolean>;
-        cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         hotUpdateMainFilename: z.ZodOptional<z.ZodString>;
         hotUpdateChunkFilename: z.ZodOptional<z.ZodString>;
         hotUpdateGlobal: z.ZodOptional<z.ZodString>;
-        assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         uniqueName: z.ZodOptional<z.ZodString>;
         chunkLoadingGlobal: z.ZodOptional<z.ZodString>;
         enabledLibraryTypes: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>, "many">>;
@@ -10580,8 +9515,8 @@ export const rspackOptions: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         module?: boolean | undefined;
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         environment?: {
             module?: boolean | undefined;
             arrowFunction?: boolean | undefined;
@@ -10598,8 +9533,8 @@ export const rspackOptions: z.ZodObject<{
             optionalChaining?: boolean | undefined;
             templateLiteral?: boolean | undefined;
         } | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         path?: string | undefined;
-        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -10634,13 +9569,13 @@ export const rspackOptions: z.ZodObject<{
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         cssHeadDataCompression?: boolean | undefined;
-        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -10675,8 +9610,8 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
     }, {
         module?: boolean | undefined;
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         environment?: {
             module?: boolean | undefined;
             arrowFunction?: boolean | undefined;
@@ -10693,8 +9628,8 @@ export const rspackOptions: z.ZodObject<{
             optionalChaining?: boolean | undefined;
             templateLiteral?: boolean | undefined;
         } | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         path?: string | undefined;
-        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -10729,13 +9664,13 @@ export const rspackOptions: z.ZodObject<{
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         cssHeadDataCompression?: boolean | undefined;
-        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -11849,13 +10784,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
                 overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+                requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+                requireDynamic: z.ZodOptional<z.ZodBoolean>;
+                requireResolve: z.ZodOptional<z.ZodBoolean>;
+                importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -11864,13 +10803,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -11879,6 +10822,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }>>;
             "javascript/auto": z.ZodOptional<z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -11895,13 +10842,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
                 overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+                requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+                requireDynamic: z.ZodOptional<z.ZodBoolean>;
+                requireResolve: z.ZodOptional<z.ZodBoolean>;
+                importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -11910,13 +10861,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -11925,6 +10880,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }>>;
             "javascript/dynamic": z.ZodOptional<z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -11941,13 +10900,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
                 overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+                requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+                requireDynamic: z.ZodOptional<z.ZodBoolean>;
+                requireResolve: z.ZodOptional<z.ZodBoolean>;
+                importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -11956,13 +10919,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -11971,6 +10938,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }>>;
             "javascript/esm": z.ZodOptional<z.ZodObject<{
                 dynamicImportMode: z.ZodOptional<z.ZodEnum<["eager", "lazy", "weak", "lazy-once"]>>;
@@ -11987,13 +10958,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence: z.ZodOptional<z.ZodBoolean>;
                 worker: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodBoolean]>>;
                 overrideStrict: z.ZodOptional<z.ZodEnum<["strict", "non-strict"]>>;
+                requireAsExpression: z.ZodOptional<z.ZodBoolean>;
+                requireDynamic: z.ZodOptional<z.ZodBoolean>;
+                requireResolve: z.ZodOptional<z.ZodBoolean>;
+                importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12002,13 +10977,17 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }, {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12017,15 +10996,19 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             }>>;
         }, "strict", z.ZodTypeAny, {
             javascript?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12034,6 +11017,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             css?: {
                 namedExports?: boolean | undefined;
@@ -12050,12 +11037,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12064,14 +11051,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12080,14 +11071,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12096,15 +11091,19 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
         }, {
             javascript?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12113,6 +11112,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             css?: {
                 namedExports?: boolean | undefined;
@@ -12129,12 +11132,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12143,14 +11146,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12159,14 +11166,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12175,6 +11186,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
         }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
         generator: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
@@ -12200,11 +11215,11 @@ export const rspackOptions: z.ZodObject<{
                 }>], z.ZodUnknown>, z.ZodString>]>>;
             }, {
                 emit: z.ZodOptional<z.ZodBoolean>;
-                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
             }>, "strict", z.ZodTypeAny, {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12214,8 +11229,8 @@ export const rspackOptions: z.ZodObject<{
                     content: string;
                 }, ...args_1: unknown[]) => string) | undefined;
             }, {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12264,15 +11279,15 @@ export const rspackOptions: z.ZodObject<{
             }>>;
             "asset/resource": z.ZodOptional<z.ZodObject<{
                 emit: z.ZodOptional<z.ZodBoolean>;
-                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<JsPathData, z.ZodTypeDef, JsPathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
             }, "strict", z.ZodTypeAny, {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             }, {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             }>>;
             css: z.ZodOptional<z.ZodObject<{
@@ -12335,8 +11350,8 @@ export const rspackOptions: z.ZodObject<{
                 localIdentName?: string | undefined;
             } | undefined;
             asset?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12356,8 +11371,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         }, {
@@ -12378,8 +11393,8 @@ export const rspackOptions: z.ZodObject<{
                 localIdentName?: string | undefined;
             } | undefined;
             asset?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12399,8 +11414,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
@@ -12408,12 +11423,12 @@ export const rspackOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         parser?: {
             javascript?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12422,6 +11437,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             css?: {
                 namedExports?: boolean | undefined;
@@ -12438,12 +11457,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12452,14 +11471,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12468,14 +11491,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12484,6 +11511,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -12504,8 +11535,8 @@ export const rspackOptions: z.ZodObject<{
                 localIdentName?: string | undefined;
             } | undefined;
             asset?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12525,8 +11556,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -12536,12 +11567,12 @@ export const rspackOptions: z.ZodObject<{
     }, {
         parser?: {
             javascript?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12550,6 +11581,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             css?: {
                 namedExports?: boolean | undefined;
@@ -12566,12 +11601,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12580,14 +11615,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12596,14 +11635,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12612,6 +11655,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -12632,8 +11679,8 @@ export const rspackOptions: z.ZodObject<{
                 localIdentName?: string | undefined;
             } | undefined;
             asset?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12653,8 +11700,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -12684,12 +11731,12 @@ export const rspackOptions: z.ZodObject<{
     module?: {
         parser?: {
             javascript?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12698,6 +11745,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             css?: {
                 namedExports?: boolean | undefined;
@@ -12714,12 +11765,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12728,14 +11779,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12744,14 +11799,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -12760,6 +11819,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -12780,8 +11843,8 @@ export const rspackOptions: z.ZodObject<{
                 localIdentName?: string | undefined;
             } | undefined;
             asset?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -12801,8 +11864,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -12821,8 +11884,8 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -12849,8 +11912,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -12877,8 +11940,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -12915,8 +11978,8 @@ export const rspackOptions: z.ZodObject<{
     resolve?: t.ResolveOptions | undefined;
     output?: {
         module?: boolean | undefined;
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         environment?: {
             module?: boolean | undefined;
             arrowFunction?: boolean | undefined;
@@ -12933,8 +11996,8 @@ export const rspackOptions: z.ZodObject<{
             optionalChaining?: boolean | undefined;
             templateLiteral?: boolean | undefined;
         } | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         path?: string | undefined;
-        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -12969,13 +12032,13 @@ export const rspackOptions: z.ZodObject<{
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         cssHeadDataCompression?: boolean | undefined;
-        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -13061,7 +12124,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13075,7 +12138,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13083,7 +12146,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined;
+    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -13266,12 +12329,12 @@ export const rspackOptions: z.ZodObject<{
     module?: {
         parser?: {
             javascript?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -13280,6 +12343,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             css?: {
                 namedExports?: boolean | undefined;
@@ -13296,12 +12363,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -13310,14 +12377,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -13326,14 +12397,18 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
+                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
-                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -13342,6 +12417,10 @@ export const rspackOptions: z.ZodObject<{
                 strictExportPresence?: boolean | undefined;
                 worker?: boolean | string[] | undefined;
                 overrideStrict?: "strict" | "non-strict" | undefined;
+                requireAsExpression?: boolean | undefined;
+                requireDynamic?: boolean | undefined;
+                requireResolve?: boolean | undefined;
+                importDynamic?: boolean | undefined;
             } | undefined;
         } | Record<string, Record<string, any>> | undefined;
         generator?: Record<string, Record<string, any>> | {
@@ -13362,8 +12441,8 @@ export const rspackOptions: z.ZodObject<{
                 localIdentName?: string | undefined;
             } | undefined;
             asset?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
                 dataUrl?: {
                     mimetype?: string | undefined;
@@ -13383,8 +12462,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args_1: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-                publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -13403,8 +12482,8 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -13431,8 +12510,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -13459,8 +12538,8 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
@@ -13497,8 +12576,8 @@ export const rspackOptions: z.ZodObject<{
     resolve?: t.ResolveOptions | undefined;
     output?: {
         module?: boolean | undefined;
-        filename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
-        publicPath?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         environment?: {
             module?: boolean | undefined;
             arrowFunction?: boolean | undefined;
@@ -13515,8 +12594,8 @@ export const rspackOptions: z.ZodObject<{
             optionalChaining?: boolean | undefined;
             templateLiteral?: boolean | undefined;
         } | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         path?: string | undefined;
-        chunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         auxiliaryComment?: string | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -13551,13 +12630,13 @@ export const rspackOptions: z.ZodObject<{
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         cssHeadDataCompression?: boolean | undefined;
-        cssChunkFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: JsPathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args_2: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -13643,7 +12722,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13657,7 +12736,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined, ...args_3: unknown[]) => void, ...args_2: unknown[]) => unknown) | ((args_0: {
         context?: string | undefined;
         dependencyType?: string | undefined;
         request?: string | undefined;
@@ -13665,7 +12744,7 @@ export const rspackOptions: z.ZodObject<{
             issuer: string;
         } | undefined;
     }, ...args_1: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
-    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "jsonp" | "import" | "module-import" | "script" | "node-commonjs" | undefined;
+    externalsType?: "module" | "global" | "system" | "promise" | "commonjs" | "umd" | "amd" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "module-import" | "script" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
         web?: boolean | undefined;
@@ -14207,10 +13286,7 @@ enum RuntimeModuleStage {
 type RuntimePlugins = string[];
 
 // @public (undocumented)
-export type ScriptType = z.infer<typeof scriptType>;
-
-// @public (undocumented)
-const scriptType: z.ZodUnion<[z.ZodEnum<["text/javascript", "module"]>, z.ZodLiteral<false>]>;
+export type ScriptType = false | "text/javascript" | "module";
 
 // @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
@@ -15178,6 +14254,42 @@ interface SystemjsConfig {
 
 declare namespace t {
     export {
+        FilenameTemplate,
+        Filename,
+        Name,
+        Dependencies,
+        Context,
+        Mode,
+        Falsy,
+        PublicPath,
+        BaseUri,
+        ChunkLoadingType,
+        ChunkLoading,
+        AsyncChunks,
+        WasmLoadingType,
+        WasmLoading,
+        ScriptType,
+        LibraryCustomUmdObject,
+        LibraryName,
+        LibraryCustomUmdCommentObject,
+        AmdContainer,
+        AuxiliaryComment,
+        LibraryExport,
+        LibraryType,
+        UmdNamedDefine,
+        LibraryOptions,
+        Library,
+        Layer,
+        EntryFilename,
+        EntryRuntime,
+        EntryItem,
+        EntryDependOn,
+        EntryDescription,
+        EntryUnnamed,
+        EntryObject,
+        EntryStatic,
+        EntryDynamic,
+        Entry,
         ResolveAlias,
         ResolveTsConfig,
         ResolveOptions,
@@ -15431,11 +14543,8 @@ interface UmdConfig extends BaseModuleConfig {
     type: "umd";
 }
 
-// @public (undocumented)
-export type UmdNamedDefine = z.infer<typeof umdNamedDefine>;
-
-// @public (undocumented)
-const umdNamedDefine: z.ZodBoolean;
+// @public
+export type UmdNamedDefine = boolean;
 
 // @public (undocumented)
 export type UniqueName = z.infer<typeof uniqueName>;
@@ -15466,17 +14575,11 @@ interface Wasm {
 // @public (undocumented)
 export const wasm: Wasm;
 
-// @public (undocumented)
-export type WasmLoading = z.infer<typeof wasmLoading>;
+// @public
+export type WasmLoading = false | WasmLoadingType;
 
-// @public (undocumented)
-const wasmLoading: z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>;
-
-// @public (undocumented)
-export type WasmLoadingType = z.infer<typeof wasmLoadingType>;
-
-// @public (undocumented)
-const wasmLoadingType: z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>;
+// @public
+export type WasmLoadingType = string | "fetch-streaming" | "fetch" | "async-node";
 
 // @public (undocumented)
 export type Watch = z.infer<typeof watch>;

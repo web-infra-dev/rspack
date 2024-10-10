@@ -113,9 +113,8 @@ const describeCases = config => {
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								// CHANGE: rspack does not support `pathinfo` yet.
-								// if (typeof options.output.pathinfo === "undefined")
-								// 	options.output.pathinfo = true;
+								if (typeof options.output.pathinfo === "undefined")
+									options.output.pathinfo = true;
 								if (!options.output.filename)
 									options.output.filename =
 										"bundle" +
