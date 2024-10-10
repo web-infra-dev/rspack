@@ -4284,6 +4284,8 @@ export interface LoaderContext<OptionsType = {}> {
     loaderIndex: number;
     loaders: LoaderObject[];
     // (undocumented)
+    loadModule(request: string, callback: (err: Error | null, source?: string | Buffer, sourceMap?: object | null, module?: Module) => void): void;
+    // (undocumented)
     mode?: Mode;
     // (undocumented)
     _module: Module;
