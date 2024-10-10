@@ -1,4 +1,3 @@
-mod as_bytes;
 mod as_cacheable;
 mod as_inner;
 mod as_map;
@@ -10,7 +9,6 @@ mod as_tuple3;
 mod as_vec;
 mod unsupported;
 
-pub use as_bytes::{AsBytes, AsBytesConverter};
 pub use as_cacheable::AsCacheable;
 pub use as_inner::{AsInner, AsInnerConverter};
 pub use as_map::{AsMap, AsMapConverter};
