@@ -1,0 +1,1 @@
+mod rspack_resolver;
