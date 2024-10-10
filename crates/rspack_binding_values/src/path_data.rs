@@ -77,7 +77,7 @@ impl JsChunkPathData {
     chunk
   }
 
-  fn from_chunk<'a>(chunk: &'a rspack_core::Chunk, hash_digest_length: usize) -> JsChunkPathData {
+  fn from_chunk(chunk: &rspack_core::Chunk, hash_digest_length: usize) -> JsChunkPathData {
     Self {
       id: chunk.id.clone(),
       name: chunk.name.clone(),
