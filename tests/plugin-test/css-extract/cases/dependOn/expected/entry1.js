@@ -1,6 +1,6 @@
 "use strict";
 (self['webpackChunk'] = self['webpackChunk'] || []).push([["entry1"], {
-"./styleA.css?f3f1": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./styleA.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -8,7 +8,7 @@ __webpack_require__.r(__webpack_exports__);
 }),
 "./entryA.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleA.css?f3f1");
+/* harmony import */var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleA.css");
 
 
 
