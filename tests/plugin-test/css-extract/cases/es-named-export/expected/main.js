@@ -1,7 +1,7 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"./style.css?fe8c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./style.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "a-class": function() { return _1; },
@@ -74,7 +74,7 @@ __webpack_require__.r = function(exports) {
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?fe8c");
+/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css");
 
 
 // eslint-disable-next-line no-console

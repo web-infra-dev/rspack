@@ -161,6 +161,10 @@ impl Module for CssModule {
     &*SOURCE_TYPE
   }
 
+  fn need_id(&self) -> bool {
+    false
+  }
+
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
