@@ -186,6 +186,7 @@ export class ModuleDto {
   get type(): string
   get layer(): string | undefined
   get blocks(): Array<DependenciesBlockDto>
+  get dependencies(): Array<DependencyDto>
   size(ty?: string | undefined | null): number
 }
 export type ModuleDTO = ModuleDto

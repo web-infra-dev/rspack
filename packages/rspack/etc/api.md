@@ -4552,6 +4552,8 @@ export class Module {
     // (undocumented)
     context?: Readonly<string>;
     // (undocumented)
+    get dependencies(): Dependency[];
+    // (undocumented)
     factoryMeta?: Readonly<JsFactoryMeta>;
     // (undocumented)
     identifier(): string;
@@ -11157,6 +11159,7 @@ export const rspackOptions: z.ZodObject<{
         maxEntrypointSize?: number | undefined;
     }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
+    dependencies?: string[] | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -11302,7 +11305,6 @@ export const rspackOptions: z.ZodObject<{
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         noParse?: string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     } | undefined;
-    dependencies?: string[] | undefined;
     name?: string | undefined;
     context?: string | undefined;
     performance?: false | {
@@ -11755,6 +11757,7 @@ export const rspackOptions: z.ZodObject<{
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }, {
+    dependencies?: string[] | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -11900,7 +11903,6 @@ export const rspackOptions: z.ZodObject<{
         defaultRules?: (false | "" | 0 | "..." | RuleSetRule | null | undefined)[] | undefined;
         noParse?: string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args_1: unknown[]) => boolean))[] | undefined;
     } | undefined;
-    dependencies?: string[] | undefined;
     name?: string | undefined;
     context?: string | undefined;
     performance?: false | {

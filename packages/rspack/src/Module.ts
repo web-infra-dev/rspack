@@ -10,7 +10,7 @@ import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
-import type { Dependency } from "./Dependency";
+import { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -196,6 +196,13 @@ export class Module {
 	get blocks(): DependenciesBlock[] {
 		if ("blocks" in this.#inner) {
 			return this.#inner.blocks.map(b => new DependenciesBlock(b));
+		}
+		return [];
+	}
+
+	get dependencies(): Dependency[] {
+		if ("dependencies" in this.#inner) {
+			return this.#inner.dependencies.map(d => new Dependency(d));
 		}
 		return [];
 	}

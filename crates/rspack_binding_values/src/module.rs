@@ -218,6 +218,17 @@ impl ModuleDTO {
       .collect::<Vec<_>>()
   }
 
+  #[napi(getter)]
+  pub fn dependencies(&self) -> Vec<DependencyDTO> {
+    let module = self.module();
+    let dependencies = module.get_dependencies();
+    dependencies
+      .iter()
+      .cloned()
+      .map(|dependency_id| DependencyDTO::new(dependency_id, self.compilation))
+      .collect::<Vec<_>>()
+  }
+
   #[napi]
   pub fn size(&self, ty: Option<String>) -> f64 {
     let module = self.module();
