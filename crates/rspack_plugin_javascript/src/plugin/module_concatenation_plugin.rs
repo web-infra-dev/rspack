@@ -325,7 +325,7 @@ impl ModuleConcatenationPlugin {
         }
 
         let is_intersect = if let Some(runtime) = runtime {
-          runtime.intersection(&origin_runtime).count() > 0
+          runtime.is_intersect(&origin_runtime)
         } else {
           false
         };
