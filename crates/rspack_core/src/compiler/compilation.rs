@@ -1758,7 +1758,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    filename.render(data, None)
+    filename.render(data, None, self.options.output.hash_digest_length)
   }
 
   pub fn get_path_with_info<'b, 'a: 'b, F: LocalFilenameFn>(
@@ -1770,7 +1770,11 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(&mut info))?;
+    let path = filename.render(
+      data,
+      Some(&mut info),
+      self.options.output.hash_digest_length,
+    )?;
     Ok((path, info))
   }
 
@@ -1779,7 +1783,7 @@ impl Compilation {
     filename: &Filename<F>,
     data: PathData,
   ) -> Result<String, F::Error> {
-    filename.render(data, None)
+    filename.render(data, None, self.options.output.hash_digest_length)
   }
 
   pub fn get_asset_path_with_info<F: LocalFilenameFn>(
@@ -1788,7 +1792,11 @@ impl Compilation {
     data: PathData,
   ) -> Result<(String, AssetInfo), F::Error> {
     let mut info = AssetInfo::default();
-    let path = filename.render(data, Some(&mut info))?;
+    let path = filename.render(
+      data,
+      Some(&mut info),
+      self.options.output.hash_digest_length,
+    )?;
     Ok((path, info))
   }
 

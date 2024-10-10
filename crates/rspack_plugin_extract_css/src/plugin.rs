@@ -591,12 +591,9 @@ async fn render_manifest(
       rendered_modules,
       filename_template,
       compilation,
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SOURCE_TYPE[0])
-          .map(|hash| hash.encoded()),
-      ),
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_type(SOURCE_TYPE[0]),
     )
     .await?;
 

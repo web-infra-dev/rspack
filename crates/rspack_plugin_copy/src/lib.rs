@@ -423,7 +423,7 @@ impl CopyRspackPlugin {
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let mut escaped = Utf8PathBuf::from(escape_glob_chars(abs_from.as_str()));
+        let mut escaped = Utf8PathBuf::from(GlobPattern::escape(abs_from.as_str()));
         escaped.push("**/*");
 
         escaped.as_str().to_string()
@@ -437,7 +437,7 @@ impl CopyRspackPlugin {
           dot_enable = Some(true);
         }
 
-        escape_glob_chars(abs_from.as_str())
+        GlobPattern::escape(abs_from.as_str())
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
@@ -693,18 +693,6 @@ fn get_closest_common_parent_dir(paths: &[&Utf8Path]) -> Option<Utf8PathBuf> {
   Some(parent_dir)
 }
 
-fn escape_glob_chars(s: &str) -> String {
-  let mut escaped = String::with_capacity(s.len());
-  for c in s.chars() {
-    match c {
-      '*' | '?' | '[' | ']' => escaped.push('\\'),
-      _ => {}
-    }
-    escaped.push(c);
-  }
-  escaped
-}
-
 fn set_info(target: &mut AssetInfo, info: Info) {
   if let Some(minimized) = info.minimized {
     target.minimized.replace(minimized);
@@ -741,12 +729,6 @@ fn set_info(target: &mut AssetInfo, info: Info) {
   if let Some(version) = info.version {
     target.version = version;
   }
-}
-
-#[test]
-fn test_escape() {
-  assert_eq!(escape_glob_chars("a/b/**/*.js"), r#"a/b/\*\*/\*.js"#);
-  assert_eq!(escape_glob_chars("a/b/c"), r#"a/b/c"#);
 }
 
 // If this test fails, you should modify `set_info` function, according to your changes about AssetInfo

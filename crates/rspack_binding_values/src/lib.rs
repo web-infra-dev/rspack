@@ -32,7 +32,7 @@ pub use chunk_group::*;
 pub use codegen_result::*;
 pub use compilation::*;
 pub use context_module_factory::*;
-pub use dependency::DependencyDTO;
+pub use dependency::*;
 pub use filename::*;
 pub use html::*;
 pub use module::*;

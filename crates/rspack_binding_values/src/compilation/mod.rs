@@ -390,7 +390,7 @@ impl JsCompilation {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
     self
       .0
-      .get_asset_path(&filename.into(), data.as_core_path_data(chunk.as_ref()))
+      .get_asset_path(&filename.into(), data.to_path_data(chunk.as_ref()))
   }
 
   #[napi]
@@ -402,7 +402,7 @@ impl JsCompilation {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
     let path_and_asset_info = self
       .0
-      .get_asset_path_with_info(&filename.into(), data.as_core_path_data(chunk.as_ref()))?;
+      .get_asset_path_with_info(&filename.into(), data.to_path_data(chunk.as_ref()))?;
     Ok(path_and_asset_info.into())
   }
 
@@ -411,7 +411,7 @@ impl JsCompilation {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
     self
       .0
-      .get_path(&filename.into(), data.as_core_path_data(chunk.as_ref()))
+      .get_path(&filename.into(), data.to_path_data(chunk.as_ref()))
   }
 
   #[napi]
@@ -423,7 +423,7 @@ impl JsCompilation {
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(self.0));
     let path_and_asset_info = self
       .0
-      .get_path_with_info(&filename.into(), data.as_core_path_data(chunk.as_ref()))?;
+      .get_path_with_info(&filename.into(), data.to_path_data(chunk.as_ref()))?;
     Ok(path_and_asset_info.into())
   }
 

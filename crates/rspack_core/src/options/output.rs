@@ -11,7 +11,7 @@ use sugar_path::SugarPath;
 
 use crate::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate, Module,
-  RuntimeSpec,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -213,6 +213,7 @@ pub struct PathData<'a> {
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
   pub id: Option<&'a str>,
+  pub content_hash_type: Option<SourceType>,
 }
 
 static PREPARE_ID_REGEX: LazyLock<Regex> =
@@ -255,6 +256,11 @@ impl<'a> PathData<'a> {
 
   pub fn content_hash_optional(mut self, v: Option<&'a str>) -> Self {
     self.content_hash = v;
+    self
+  }
+
+  pub fn content_hash_type(mut self, v: SourceType) -> Self {
+    self.content_hash_type = Some(v);
     self
   }
 

@@ -1,6 +1,7 @@
 import type {
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
+	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
 	JsFactoryMeta,
 	JsModule,
@@ -10,7 +11,7 @@ import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
-import type { Dependency } from "./Dependency";
+import { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -36,82 +37,172 @@ export type ResolveData = {
 	createData?: CreateData;
 };
 
+export class ContextModuleFactoryBeforeResolveData {
+	#inner: JsContextModuleFactoryBeforeResolveData;
+
+	declare context: string;
+	declare request: string;
+	declare regExp: RegExp | undefined;
+	declare recursive: boolean;
+
+	static __from_binding(binding: JsContextModuleFactoryBeforeResolveData) {
+		return new ContextModuleFactoryBeforeResolveData(binding);
+	}
+
+	static __to_binding(
+		data: ContextModuleFactoryBeforeResolveData
+	): JsContextModuleFactoryBeforeResolveData {
+		return data.#inner;
+	}
+
+	private constructor(binding: JsContextModuleFactoryBeforeResolveData) {
+		this.#inner = binding;
+
+		Object.defineProperties(this, {
+			context: {
+				enumerable: true,
+				get(): string {
+					return binding.context;
+				},
+				set(val: string) {
+					binding.context = val;
+				}
+			},
+			request: {
+				enumerable: true,
+				get(): string {
+					return binding.request;
+				},
+				set(val: string) {
+					binding.request = val;
+				}
+			},
+			regExp: {
+				enumerable: true,
+				get(): RegExp | undefined {
+					if (!binding.regExp) {
+						return undefined;
+					}
+					const { source, flags } = binding.regExp;
+					return new RegExp(source, flags);
+				},
+				set(val: RegExp | undefined) {
+					if (!val) {
+						binding.regExp = undefined;
+						return;
+					}
+					binding.regExp = {
+						source: val.source,
+						flags: val.flags
+					};
+				}
+			},
+			recursive: {
+				enumerable: true,
+				get(this: ContextModuleFactoryAfterResolveData): boolean {
+					return binding.recursive;
+				},
+				set(val: boolean) {
+					binding.recursive = val;
+				}
+			}
+		});
+	}
+}
+
 export type ContextModuleFactoryBeforeResolveResult =
 	| false
-	| {
-			context: string;
-			request?: string;
-	  };
+	| ContextModuleFactoryBeforeResolveData;
 
 export class ContextModuleFactoryAfterResolveData {
 	#inner: JsContextModuleFactoryAfterResolveData;
+
+	declare resource: number;
+	declare context: string;
+	declare request: string;
+	declare regExp: RegExp | undefined;
+	declare recursive: boolean;
+	declare readonly dependencies: Dependency[];
 
 	static __from_binding(binding: JsContextModuleFactoryAfterResolveData) {
 		return new ContextModuleFactoryAfterResolveData(binding);
 	}
 
-	static __to_binding(data: ContextModuleFactoryAfterResolveData) {
+	static __to_binding(
+		data: ContextModuleFactoryAfterResolveData
+	): JsContextModuleFactoryAfterResolveData {
 		return data.#inner;
 	}
 
-	constructor(data: JsContextModuleFactoryAfterResolveData) {
-		this.#inner = data;
-	}
+	private constructor(binding: JsContextModuleFactoryAfterResolveData) {
+		this.#inner = binding;
 
-	get resource(): string {
-		return this.#inner.resource;
-	}
-
-	set resource(val: string) {
-		this.#inner.resource = val;
-	}
-
-	get context(): string {
-		return this.#inner.context;
-	}
-
-	set context(val: string) {
-		this.#inner.context = val;
-	}
-
-	get request(): string {
-		return this.#inner.request;
-	}
-
-	set request(val: string) {
-		this.#inner.request = val;
-	}
-
-	get regExp(): RegExp | undefined {
-		if (!this.#inner.regExp) {
-			return undefined;
-		}
-		const { source, flags } = this.#inner.regExp;
-		return new RegExp(source, flags);
-	}
-
-	set regExp(val: RegExp | undefined) {
-		if (!val) {
-			this.#inner.regExp = undefined;
-			return;
-		}
-		this.#inner.regExp = {
-			source: val.source,
-			flags: val.flags
-		};
-	}
-
-	get recursive(): boolean {
-		return this.#inner.recursive;
-	}
-
-	set recursive(val: boolean) {
-		this.#inner.recursive = val;
-	}
-
-	get dependencies(): Dependency[] {
-		// TODO: Dependencies are not fully supported yet; this is a placeholder to prevent errors in moment-locales-webpack-plugin.
-		return [];
+		Object.defineProperties(this, {
+			resource: {
+				enumerable: true,
+				get(): string {
+					return binding.resource;
+				},
+				set(val: string) {
+					binding.resource = val;
+				}
+			},
+			context: {
+				enumerable: true,
+				get(): string {
+					return binding.context;
+				},
+				set(val: string) {
+					binding.context = val;
+				}
+			},
+			request: {
+				enumerable: true,
+				get(): string {
+					return binding.request;
+				},
+				set(val: string) {
+					binding.request = val;
+				}
+			},
+			regExp: {
+				enumerable: true,
+				get(): RegExp | undefined {
+					if (!binding.regExp) {
+						return undefined;
+					}
+					const { source, flags } = binding.regExp;
+					return new RegExp(source, flags);
+				},
+				set(val: RegExp | undefined) {
+					if (!val) {
+						binding.regExp = undefined;
+						return;
+					}
+					binding.regExp = {
+						source: val.source,
+						flags: val.flags
+					};
+				}
+			},
+			recursive: {
+				enumerable: true,
+				get(): boolean {
+					return binding.recursive;
+				},
+				set(val: boolean) {
+					binding.recursive = val;
+				}
+			},
+			dependencies: {
+				enumerable: true,
+				get(): Dependency[] {
+					return binding.dependencies.map(dep =>
+						Dependency.__from_binding(dep)
+					);
+				}
+			}
+		});
 	}
 }
 

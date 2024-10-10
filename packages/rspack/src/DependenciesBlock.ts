@@ -9,7 +9,7 @@ export class DependenciesBlock {
 	}
 
 	get dependencies(): Dependency[] {
-		return this.#binding.dependencies.map(d => new Dependency(d));
+		return this.#binding.dependencies.map(d => Dependency.__from_binding(d));
 	}
 
 	get blocks(): DependenciesBlock[] {
