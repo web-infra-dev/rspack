@@ -42,6 +42,19 @@ describe("CopyPlugin", () => {
 				.catch(done);
 		});
 
+		it("should copy files when the directory name contains brackets", done => {
+			runEmit({
+				expectedAssetKeys: ["file[1].txt"],
+				patterns: [
+					{
+						from: "directory[1]"
+					}
+				]
+			})
+				.then(done)
+				.catch(done);
+		});
+
 		it("should copy files to new directory", done => {
 			runEmit({
 				expectedAssetKeys: [
@@ -199,8 +212,8 @@ describe("CopyPlugin", () => {
 
 		it("should works with multiple patterns as String", done => {
 			runEmit({
-				expectedAssetKeys: ["binextension.bin", "file.txt", "noextension"],
-				patterns: ["binextension.bin", "file.txt", "noextension"]
+				expectedAssetKeys: ["binextension.bin", "file.txt", "noextension", "file[1].txt"],
+				patterns: ["binextension.bin", "file.txt", "noextension", "file[1].txt"]
 			})
 				.then(done)
 				.catch(done);
@@ -208,7 +221,7 @@ describe("CopyPlugin", () => {
 
 		it("should works with multiple patterns as Object", done => {
 			runEmit({
-				expectedAssetKeys: ["binextension.bin", "file.txt", "noextension"],
+				expectedAssetKeys: ["binextension.bin", "file.txt", "noextension", "file[1].txt"],
 				patterns: [
 					{
 						from: "binextension.bin"
@@ -218,6 +231,9 @@ describe("CopyPlugin", () => {
 					},
 					{
 						from: "noextension"
+					},
+					{
+						from: "file[1].txt"
 					}
 				]
 			})
