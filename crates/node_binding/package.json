@@ -40,7 +40,7 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@napi-rs/cli": "3.0.0-alpha.45",
-    "typescript": "5.0.2"
+    "typescript": "5.6.3"
   },
   "napi": {
     "binaryName": "rspack"
