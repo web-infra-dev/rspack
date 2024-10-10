@@ -121,6 +121,7 @@ impl LocalFilenameFn for NoFilenameFn {
     &self,
     _path_data: &PathData,
     _asset_info: Option<&AssetInfo>,
+    _hash_digest_length: usize,
   ) -> Result<String, Self::Error> {
     match self.0 {}
   }
@@ -142,6 +143,7 @@ pub trait LocalFilenameFn {
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
+    hash_digest_length: usize,
   ) -> Result<String, Self::Error>;
 }
 
@@ -154,13 +156,17 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
+    hash_digest_length: usize,
   ) -> Result<String, Self::Error> {
-    self.deref().call(path_data, asset_info).map_err(|err| {
-      error!(
-        "Failed to render filename function: {}. Did you return the correct filename?",
-        err.to_string()
-      )
-    })
+    self
+      .deref()
+      .call(path_data, asset_info, hash_digest_length)
+      .map_err(|err| {
+        error!(
+          "Failed to render filename function: {}. Did you return the correct filename?",
+          err.to_string()
+        )
+      })
   }
 }
 
@@ -204,14 +210,20 @@ impl<F: LocalFilenameFn> Filename<F> {
     &self,
     options: PathData,
     asset_info: Option<&mut AssetInfo>,
+    hash_digest_length: usize,
   ) -> Result<String, F::Error> {
     let template = match &self.0 {
       FilenameKind::Template(template) => Cow::Borrowed(template.as_str()),
       FilenameKind::Fn(filename_fn) => {
-        Cow::Owned(filename_fn.call(&options, asset_info.as_deref())?)
+        Cow::Owned(filename_fn.call(&options, asset_info.as_deref(), hash_digest_length)?)
       }
     };
-    Ok(render_template(template, options, asset_info))
+    Ok(render_template(
+      template,
+      options,
+      asset_info,
+      hash_digest_length,
+    ))
   }
 }
 
@@ -219,6 +231,7 @@ fn render_template(
   template: Cow<str>,
   options: PathData,
   mut asset_info: Option<&mut AssetInfo>,
+  hash_digest_length: usize,
 ) -> String {
   let mut t = template;
   if let Some(filename) = options.filename {
@@ -284,7 +297,14 @@ fn render_template(
         .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, NoExpand(&fragment.unwrap_or_default())));
     }
   }
-  if let Some(content_hash) = options.content_hash {
+  if let Some(content_hash) = options.content_hash.or_else(|| {
+    let chunk = options.chunk?;
+    let content_hash_type = options.content_hash_type?;
+    chunk
+      .content_hash
+      .get(&content_hash_type)
+      .map(|h| h.rendered(hash_digest_length))
+  }) {
     if let Some(asset_info) = asset_info.as_mut() {
       // set version as content hash
       asset_info.version = content_hash.to_string();

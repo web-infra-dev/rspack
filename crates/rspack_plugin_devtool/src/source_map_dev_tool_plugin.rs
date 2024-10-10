@@ -423,7 +423,7 @@ impl SourceMapDevToolPlugin {
               SourceMappingUrlCommentRef::Fn(f) => {
                 let comment = futures::executor::block_on(f(data))?;
                 FilenameTemplate::from(comment)
-                  .render(data, None)
+                  .render(data, None, output_options.hash_digest_length)
                   .always_ok()
               }
             };

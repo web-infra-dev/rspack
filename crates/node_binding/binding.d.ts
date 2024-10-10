@@ -682,6 +682,7 @@ export interface JsModule {
   factoryMeta?: JsFactoryMeta
   type: string
   layer?: string
+  useSourceMap?: boolean
 }
 
 export interface JsModuleDescriptor {
@@ -712,6 +713,7 @@ export interface JsPathData {
   url?: string
   id?: string
   chunk?: JsChunkPathData
+  contentHashType?: string
 }
 
 export interface JsResolveArgs {
@@ -1438,6 +1440,26 @@ export interface RawJavascriptParserOptions {
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireAsExpression?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireResolve?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  importDynamic?: boolean
 }
 
 export interface RawLazyCompilationOption {

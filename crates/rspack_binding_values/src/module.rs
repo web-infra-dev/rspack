@@ -331,6 +331,7 @@ pub struct JsModule {
   pub factory_meta: Option<JsFactoryMeta>,
   pub r#type: String,
   pub layer: Option<String>,
+  pub use_source_map: Option<bool>,
 }
 
 pub trait ToJsModule {
@@ -368,6 +369,7 @@ impl ToJsModule for dyn Module {
           .map(|factory_meta| JsFactoryMeta {
             side_effect_free: factory_meta.side_effect_free,
           }),
+        ..Default::default()
       })
       .or_else(|_| {
         self.try_as_raw_module().map(|_| JsModule {
@@ -375,13 +377,9 @@ impl ToJsModule for dyn Module {
           r#type: module_type(),
           layer: module_layer(),
           original_source: original_source(),
-          resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
-          raw_request: None,
-          user_request: None,
-          request: None,
-          factory_meta: None,
+          ..Default::default()
         })
       })
       .or_else(|_| {
@@ -390,13 +388,9 @@ impl ToJsModule for dyn Module {
           original_source: original_source(),
           r#type: module_type(),
           layer: module_layer(),
-          resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
-          raw_request: None,
-          user_request: None,
-          request: None,
-          factory_meta: None,
+          ..Default::default()
         })
       })
       .or_else(|_| {
@@ -405,13 +399,9 @@ impl ToJsModule for dyn Module {
           original_source: original_source(),
           r#type: module_type(),
           layer: module_layer(),
-          resource: None,
           module_identifier: module_identifier(),
           name_for_condition: name_for_condition(),
-          raw_request: None,
-          user_request: None,
-          request: None,
-          factory_meta: None,
+          ..Default::default()
         })
       })
       .or_else(|_| {
@@ -443,6 +433,7 @@ impl ToJsModule for CompilerModuleContext {
       factory_meta: self.factory_meta.as_ref().map(|fm| JsFactoryMeta {
         side_effect_free: fm.side_effect_free,
       }),
+      use_source_map: Some(self.use_source_map),
     };
     Ok(module)
   }
