@@ -333,12 +333,6 @@ async fn render_manifest(
     filename_template,
     PathData::default()
       .chunk(chunk)
-      .content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::Css)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      )
       .content_hash_type(SourceType::Css)
       .runtime(&chunk.runtime),
   )?;

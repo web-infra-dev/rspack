@@ -593,12 +593,6 @@ async fn render_manifest(
       compilation,
       PathData::default()
         .chunk(chunk)
-        .content_hash_optional(
-          chunk
-            .content_hash
-            .get(&SOURCE_TYPE[0])
-            .map(|hash| hash.encoded()),
-        )
         .content_hash_type(SOURCE_TYPE[0]),
     )
     .await?;

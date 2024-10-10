@@ -235,7 +235,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk(&fake_chunk)
               .hash_optional(Some(full_hash.as_str()))
               .content_hash_optional(content_hash.as_deref())
-              .content_hash_type(self.source_type),
           )
           .always_ok()
       )

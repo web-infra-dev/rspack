@@ -256,7 +256,7 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
     filename,
     PathData::default()
       .chunk(chunk)
-      .content_hash_optional(hash)
+      .hash_optional(hash)
       .content_hash_type(SourceType::JavaScript)
       .hash_optional(hash),
   )

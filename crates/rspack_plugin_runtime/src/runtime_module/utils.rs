@@ -131,12 +131,6 @@ pub fn get_output_dir(
     filename,
     PathData::default()
       .chunk(chunk)
-      .content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      )
       .content_hash_type(SourceType::JavaScript),
   )?;
   Ok(get_undo_path(

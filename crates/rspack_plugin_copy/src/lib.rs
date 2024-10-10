@@ -17,7 +17,7 @@ use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, Source},
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin, SourceType,
+  CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -327,7 +327,6 @@ impl CopyRspackPlugin {
           PathData::default()
             .filename(source_filename.as_str())
             .content_hash(content_hash)
-            .content_hash_type(SourceType::Asset)
             .hash_optional(compilation.get_hash()),
         )
         .always_ok();

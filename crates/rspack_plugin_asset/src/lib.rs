@@ -230,7 +230,6 @@ impl AssetParserAndGenerator {
         .module(module)
         .chunk_graph(&compilation.chunk_graph)
         .content_hash_optional(contenthash)
-        .content_hash_type(SourceType::Asset)
         .hash_optional(contenthash)
         .filename(source_file_name),
     )
@@ -250,7 +249,6 @@ impl AssetParserAndGenerator {
         .module(module)
         .chunk_graph(&compilation.chunk_graph)
         .content_hash_optional(contenthash)
-        .content_hash_type(SourceType::Asset)
         .hash_optional(contenthash)
         .filename(source_file_name),
     )?;

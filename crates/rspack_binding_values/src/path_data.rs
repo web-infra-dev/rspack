@@ -20,22 +20,7 @@ pub struct JsPathData {
 }
 
 impl JsPathData {
-  pub fn get_chunk_hash_type<'a>(
-    &'a self,
-    chunk: &'a Chunk,
-    hash_digest_length: usize,
-  ) -> Option<&'a str> {
-    let raw_content_hash_type = self.content_hash_type.as_ref()?;
-    let content_hash_type = SourceType::from(raw_content_hash_type.as_str());
-    chunk
-      .content_hash
-      .get(&content_hash_type)
-      .map(|h| h.rendered(hash_digest_length))
-  }
-}
-
-impl From<rspack_core::PathData<'_>> for JsPathData {
-  fn from(path_data: rspack_core::PathData<'_>) -> Self {
+  pub fn from_path_data(path_data: rspack_core::PathData, hash_digest_length: usize) -> JsPathData {
     Self {
       filename: path_data.filename.map(|s| s.to_string()),
       hash: path_data.hash.map(|s| s.to_string()),
@@ -43,7 +28,9 @@ impl From<rspack_core::PathData<'_>> for JsPathData {
       runtime: path_data.runtime.map(|s| s.to_string()),
       url: path_data.url.map(|s| s.to_string()),
       id: path_data.id.map(|s| s.to_string()),
-      chunk: path_data.chunk.map(JsChunkPathData::from),
+      chunk: path_data
+        .chunk
+        .map(|c| JsChunkPathData::from_chunk(c, hash_digest_length)),
       content_hash_type: path_data.content_hash_type.map(|c| c.to_string()),
     }
   }
@@ -89,10 +76,8 @@ impl JsChunkPathData {
     }
     chunk
   }
-}
 
-impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
-  fn from(chunk: &'a rspack_core::Chunk) -> Self {
+  fn from_chunk<'a>(chunk: &'a rspack_core::Chunk, hash_digest_length: usize) -> JsChunkPathData {
     Self {
       id: chunk.id.clone(),
       name: chunk.name.clone(),
@@ -101,7 +86,7 @@ impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
         chunk
           .content_hash
           .iter()
-          .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
+          .map(|(key, v)| (key.to_string(), v.rendered(hash_digest_length).to_string()))
           .collect(),
       )),
     }
@@ -109,10 +94,9 @@ impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
 }
 
 impl JsPathData {
-  pub fn as_core_path_data<'a>(
+  pub fn to_path_data<'a>(
     &'a self,
     chunk: Option<&'a rspack_core::Chunk>,
-    chunk_content_hash: Option<&'a str>,
   ) -> rspack_core::PathData<'a> {
     let content_hash_type = self
       .content_hash_type
@@ -125,7 +109,7 @@ impl JsPathData {
       // TODO: support custom module
       module: None,
       hash: self.hash.as_deref(),
-      content_hash: self.content_hash.as_deref().or(chunk_content_hash),
+      content_hash: self.content_hash.as_deref(),
       chunk_graph: None,
       runtime: self.runtime.as_deref(),
       url: self.url.as_deref(),
