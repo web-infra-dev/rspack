@@ -20,7 +20,7 @@
   "packageManager": "pnpm@9.12.1",
   "dependencies": {
     "@rstack-dev/doc-ui": "1.5.2",
-    "antd": "5.19.3",
+    "antd": "5.21.3",
     "axios": "^1.6.1",
     "markdown-to-jsx": "^7.2.1",
     "mermaid": "^10.9.0",
