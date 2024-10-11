@@ -165,6 +165,35 @@ export class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export class JsLoaderContext {
+  get additionalData(): any
+  set additionalData(val: any)
+  get resourceData(): JsResourceData
+  get _moduleIdentifier(): string
+  get _module(): JsModule
+  get hot(): boolean
+  get content(): null | Buffer | string
+  set content(val: null | Buffer | string)
+  get sourceMap(): string | undefined
+  set sourceMap(val: string | undefined)
+  get cacheable(): boolean
+  set cacheable(val: boolean)
+  get loaderItems(): Array<JsLoaderItem>
+  set loaderItems(val: Array<JsLoaderItem>)
+  get loaderIndex(): number
+  set loaderIndex(val: number)
+  get loaderState(): JsLoaderState
+  __internal__addParseMeta(key: string, val: string): void
+  addDependency(file: string): void
+  addContextDependency(file: string): void
+  addMissingDependency(file: string): void
+  addBuildDependency(file: string): void
+  getDependencies(): Array<string>
+  getContextDependencies(): Array<string>
+  getMissingDependencies(): Array<string>
+  clearDependencies(): void
+}
+
 export class JsResolver {
   resolveSync(path: string, request: string): string | false
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): this
@@ -634,27 +663,6 @@ export interface JsLibraryOptions {
   umdNamedDefine?: boolean
   auxiliaryComment?: JsLibraryAuxiliaryComment
   amdContainer?: string
-}
-
-export interface JsLoaderContext {
-  resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
-  _module: JsModule
-  hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
-  content: null | Buffer
-  additionalData?: any
-  __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
-  cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
 }
 
 export interface JsLoaderItem {

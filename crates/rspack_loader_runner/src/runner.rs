@@ -8,7 +8,7 @@ use tokio::task::spawn_blocking;
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, State},
+  context::{LoaderContext, LoaderContextId, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
@@ -77,6 +77,7 @@ async fn create_loader_context<Context: 'static>(
   }
 
   let mut loader_context = LoaderContext {
+    id: LoaderContextId::new(),
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),

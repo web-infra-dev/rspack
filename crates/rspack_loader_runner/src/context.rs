@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+  path::PathBuf,
+  sync::{atomic::AtomicU32, Arc},
+};
 
 use derivative::Derivative;
 use rspack_error::Diagnostic;
@@ -32,18 +35,37 @@ impl State {
   }
 }
 
+static LOADER_CONTEXT_ID: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct LoaderContextId(u32);
+
+impl LoaderContextId {
+  pub fn new() -> Self {
+    Self(LOADER_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for LoaderContextId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct LoaderContext<Context: 'static> {
+  pub id: LoaderContextId,
+
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[derivative(Debug = "ignore")]
   pub context: Context,
   pub parse_meta: FxHashMap<String, String>,
 
-  pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap>,
-  pub(crate) additional_data: Option<AdditionalData>,
+  pub content: Option<Content>,
+  pub source_map: Option<SourceMap>,
+  pub additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
   pub file_dependencies: HashSet<PathBuf>,
