@@ -28,7 +28,7 @@ impl ModuleDeps {
         .dependency_by_id(dep_id)
         .expect("should have dependency");
 
-      let Some(conn) = module_graph.connection_by_dependency(dep_id) else {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
       let identifier = conn.module_identifier();

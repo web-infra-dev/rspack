@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 
 use rspack_collections::IdentifierMap;
 use rspack_collections::IdentifierSet;
-use rspack_core::ConnectionId;
+use rspack_core::DependencyId;
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
   ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, NormalModuleCreateData,
@@ -698,7 +698,7 @@ impl Plugin for SideEffectsFlagPlugin {
 fn optimize_incoming_connections(
   module_identifier: ModuleIdentifier,
   to_be_optimized: &mut IdentifierSet,
-  new_connections: &mut IdentifierMap<FxHashSet<ConnectionId>>,
+  new_connections: &mut IdentifierMap<FxHashSet<DependencyId>>,
   compilation: &mut Compilation,
 ) {
   if !to_be_optimized.remove(&module_identifier) {
@@ -717,9 +717,9 @@ fn optimize_incoming_connections(
     .module_graph_module_by_identifier(&module_identifier)
     .map(|mgm| mgm.incoming_connections().clone())
     .unwrap_or_default();
-  for &connection_id in &incoming_connections {
+  for &dep_id in &incoming_connections {
     optimize_incoming_connection(
-      connection_id,
+      dep_id,
       module_identifier,
       to_be_optimized,
       new_connections,
@@ -728,9 +728,9 @@ fn optimize_incoming_connections(
   }
   // It is possible to add additional new connections when optimizing module's incoming connections
   while let Some(connections) = new_connections.remove(&module_identifier) {
-    for new_connection_id in connections {
+    for new_dep_id in connections {
       optimize_incoming_connection(
-        new_connection_id,
+        new_dep_id,
         module_identifier,
         to_be_optimized,
         new_connections,
@@ -741,17 +741,17 @@ fn optimize_incoming_connections(
 }
 
 fn optimize_incoming_connection(
-  connection_id: ConnectionId,
+  dependency_id: DependencyId,
   module_identifier: ModuleIdentifier,
   to_be_optimized: &mut IdentifierSet,
-  new_connections: &mut IdentifierMap<FxHashSet<ConnectionId>>,
+  new_connections: &mut IdentifierMap<FxHashSet<DependencyId>>,
   compilation: &mut Compilation,
 ) {
   let module_graph = compilation.get_module_graph();
   let connection = module_graph
-    .connection_by_connection_id(&connection_id)
+    .connection_by_dependency_id(&dependency_id)
     .expect("should have connection");
-  let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) else {
+  let Some(dep) = module_graph.dependency_by_id(&dependency_id) else {
     return;
   };
   let is_reexport = dep
@@ -771,7 +771,7 @@ fn optimize_incoming_connection(
   // See: https://github.com/webpack/webpack/pull/17595
   optimize_incoming_connections(origin_module, to_be_optimized, new_connections, compilation);
   do_optimize_incoming_connection(
-    connection_id,
+    dependency_id,
     module_identifier,
     origin_module,
     new_connections,
@@ -781,22 +781,18 @@ fn optimize_incoming_connection(
 
 #[tracing::instrument(skip_all, fields(origin = ?origin_module, module = ?module_identifier))]
 fn do_optimize_incoming_connection(
-  connection_id: ConnectionId,
+  dependency_id: DependencyId,
   module_identifier: ModuleIdentifier,
   origin_module: ModuleIdentifier,
-  new_connections: &mut IdentifierMap<FxHashSet<ConnectionId>>,
+  new_connections: &mut IdentifierMap<FxHashSet<DependencyId>>,
   compilation: &mut Compilation,
 ) {
   if let Some(connections) = new_connections.get_mut(&module_identifier) {
-    connections.remove(&connection_id);
+    connections.remove(&dependency_id);
   }
   let mut module_graph = compilation.get_module_graph_mut();
-  let connection = module_graph
-    .connection_by_connection_id(&connection_id)
-    .expect("should have connection");
-  let dep_id = connection.dependency_id;
   let dep = module_graph
-    .dependency_by_id(&dep_id)
+    .dependency_by_id(&dependency_id)
     .expect("should have dep");
   if let Some(name) = dep
     .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
@@ -813,9 +809,11 @@ fn do_optimize_incoming_connection(
       }),
       Arc::new(
         move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
-          mg.update_module(&dep_id, &target.module)?;
+          if !mg.update_module(&dependency_id, &target.module) {
+            return None;
+          }
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
-          let ids = dep_id.get_ids(mg);
+          let ids = dependency_id.get_ids(mg);
           let processed_ids = target
             .export
             .as_ref()
@@ -825,27 +823,24 @@ fn do_optimize_incoming_connection(
               ret
             })
             .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
-          dep_id.set_ids(processed_ids, mg);
-          Some(dep_id)
+          dependency_id.set_ids(processed_ids, mg);
+          Some(dependency_id)
         },
       ),
     );
     if let Some(ResolvedExportInfoTarget {
-      connection, module, ..
+      dependency, module, ..
     }) = target
-      && let Some(&connection_id) = compilation
-        .get_module_graph()
-        .connection_id_by_dependency_id(&connection)
     {
       new_connections
         .entry(module)
         .or_default()
-        .insert(connection_id);
+        .insert(dependency);
     };
     return;
   }
 
-  let ids = dep_id.get_ids(&module_graph);
+  let ids = dependency_id.get_ids(&module_graph);
   if !ids.is_empty() {
     let cur_exports_info = module_graph.get_exports_info(&module_identifier);
     let export_info = cur_exports_info.get_export_info(&mut module_graph, &ids[0]);
@@ -864,13 +859,13 @@ fn do_optimize_incoming_connection(
     let Some(target) = target else {
       return;
     };
-    let Some(connection_id) = module_graph.update_module(&dep_id, &target.module) else {
+    if !module_graph.update_module(&dependency_id, &target.module) {
       return;
     };
     new_connections
       .entry(target.module)
       .or_default()
-      .insert(connection_id);
+      .insert(dependency_id);
     // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
     let processed_ids = target
       .export
@@ -879,7 +874,7 @@ fn do_optimize_incoming_connection(
         item
       })
       .unwrap_or_else(|| ids[1..].to_vec());
-    dep_id.set_ids(processed_ids, &mut module_graph);
+    dependency_id.set_ids(processed_ids, &mut module_graph);
   }
 }
 

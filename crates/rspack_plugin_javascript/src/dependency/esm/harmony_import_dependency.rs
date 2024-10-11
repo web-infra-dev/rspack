@@ -110,7 +110,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
-  let connection = module_graph.connection_by_dependency(module_dependency.id());
+  let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
     Some(con.is_target_active(&module_graph, *runtime))
   } else {
@@ -123,7 +123,8 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
 
   let runtime_condition = if module_dependency.weak() {
     RuntimeCondition::Boolean(false)
-  } else if let Some(connection) = module_graph.connection_by_dependency(module_dependency.id()) {
+  } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
+  {
     filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
   } else {
     RuntimeCondition::Boolean(true)

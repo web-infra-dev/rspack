@@ -179,7 +179,7 @@ impl Dependency for CommonJsExportRequireDependency {
       let Some(name) = self.names.first() else {
         unreachable!();
       };
-      let from = mg.connection_by_dependency(&self.id)?;
+      let from = mg.connection_by_dependency_id(&self.id)?;
       Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
@@ -196,7 +196,7 @@ impl Dependency for CommonJsExportRequireDependency {
         ..Default::default()
       })
     } else if self.names.is_empty() {
-      let from = mg.connection_by_dependency(&self.id)?;
+      let from = mg.connection_by_dependency_id(&self.id)?;
       if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(

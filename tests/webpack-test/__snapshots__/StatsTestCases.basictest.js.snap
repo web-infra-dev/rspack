@@ -1589,9 +1589,6 @@ cacheable modules 967 bytes
       ./components/src/index.js 84 bytes [orphan] [built]
         [module unused]
         esm import ./components ./foo.js
-        esm import specifier ./components ./foo.js
-        esm import specifier ./components ./main.js
-        esm import specifier ./components ./main.js
         esm import ./components ./main.js
     code generated modules 186 bytes [code generated]
       ./components/src/CompAB/CompA.js 89 bytes [built] [code generated]
@@ -1604,8 +1601,6 @@ cacheable modules 967 bytes
       ./components/src/CompAB/utils.js 97 bytes [built] [code generated]
         esm import ./utils ./components/src/CompAB/CompA.js
         esm import specifier ./utils ./components/src/CompAB/CompA.js
-        esm import ./utils ./components/src/CompAB/CompB.js
-        esm import specifier ./utils ./components/src/CompAB/CompB.js
         esm import ./utils ./components/src/CompAB/CompB.js
         esm import specifier ./utils ./components/src/CompAB/CompB.js
   modules by path ./*.js 466 bytes
@@ -1634,7 +1629,6 @@ modules by path ./node_modules/pmodule/*.js 232 bytes
     [only some exports used: default]
     esm import pmodule ./index.js
     esm import specifier pmodule ./index.js
-    esm import specifier pmodule ./index.js
   ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
     [only some exports used: z]
     esm import specifier pmodule ./index.js
@@ -1644,14 +1638,8 @@ modules by path ./node_modules/pmodule/*.js 232 bytes
     [module unused]
     esm export ./a ./node_modules/pmodule/index.js
     esm export import specifier ./a ./node_modules/pmodule/index.js
-    esm export ./a ./node_modules/pmodule/index.js
-    esm export import specifier ./a ./node_modules/pmodule/index.js
   ./node_modules/pmodule/b.js 69 bytes [orphan] [built]
     [module unused]
-    esm export ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
     esm export ./b ./node_modules/pmodule/index.js
     esm export import specifier ./b ./node_modules/pmodule/index.js
     esm export import specifier ./b ./node_modules/pmodule/index.js
@@ -1667,7 +1655,6 @@ modules by path ./*.js 213 bytes
     | ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     |   [only some exports used: default]
     |   esm import pmodule ./index.js
-    |   esm import specifier pmodule ./index.js
     |   esm import specifier pmodule ./index.js
     | ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
     |   [only some exports used: z]

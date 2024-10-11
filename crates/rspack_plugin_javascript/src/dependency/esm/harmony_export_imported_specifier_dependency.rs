@@ -619,7 +619,7 @@ impl HarmonyExportImportedSpecifierDependency {
             ));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
-            } else if let Some(connection) = mg.connection_by_dependency(self.id()) {
+            } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
               filter_runtime(ctxt.runtime, |r| connection.is_target_active(mg, r))
             } else {
               RuntimeCondition::Boolean(true)
@@ -1092,7 +1092,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         ..Default::default()
       }),
       ExportModeType::ReexportDynamicDefault => {
-        let from = mg.connection_by_dependency(self.id());
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
@@ -1106,7 +1106,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         })
       }
       ExportModeType::ReexportNamedDefault => {
-        let from = mg.connection_by_dependency(self.id());
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
@@ -1120,7 +1120,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         })
       }
       ExportModeType::ReexportNamespaceObject => {
-        let from = mg.connection_by_dependency(self.id());
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
@@ -1134,7 +1134,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         })
       }
       ExportModeType::ReexportFakeNamespaceObject => {
-        let from = mg.connection_by_dependency(self.id());
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
@@ -1164,7 +1164,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         ..Default::default()
       }),
       ExportModeType::NormalReexport => {
-        let from = mg.connection_by_dependency(self.id());
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           priority: Some(1),
           exports: ExportsOfExportsSpec::Array(
@@ -1191,7 +1191,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         })
       }
       ExportModeType::DynamicReexport => {
-        let from = mg.connection_by_dependency(self.id());
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::True,
           from: from.cloned(),
