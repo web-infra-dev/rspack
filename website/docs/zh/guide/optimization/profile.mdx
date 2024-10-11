@@ -86,3 +86,11 @@ $ RSPACK_PROFILE=ALL rspack build
 - 使用文档：
   - Loader Analysis 使用文档可查看 [Loader Timeline](https://rsdoctor.dev/zh/guide/usage/loaders-timeline) 和 [Loader Details](https://rsdoctor.dev/zh/guide/usage/loaders-analysis)。
   - Plugins Analysis 使用文档可查看 [Plugin Analysis](https://rsdoctor.dev/zh/guide/usage/plugins-analysis)。
+
+#### 📢 注意
+
+**CssExtractRspackPlugin 的 loader 耗时过长问题**
+
+在使用 Rsdoctor 对 Rspack 项目进行编译耗时分析时，可能会发现 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 的 loader 耗时较长，详情及原因请查看：
+
+[> CssExtractRspackPlugin 的 loader 耗时过长问题](https://rsdoctor.dev/zh/guide/more/faq#cssextractrspackplugin-%E7%9A%84-loader-%E8%80%97%E6%97%B6%E8%BF%87%E9%95%BF%E9%97%AE%E9%A2%98)
