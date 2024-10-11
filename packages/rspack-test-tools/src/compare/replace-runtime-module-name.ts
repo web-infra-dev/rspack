@@ -9,6 +9,8 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/compat": "webpack/runtime/compat",
 	"webpack/runtime/create_fake_namespace_object":
 		"webpack/runtime/create fake namespace object",
+	"webpack/runtime/create_script_url":
+		"webpack/runtime/trusted types script url",
 	"webpack/runtime/create_script": "webpack/runtime/trusted types script",
 	"webpack/runtime/define_property_getters":
 		"webpack/runtime/define property getters",
