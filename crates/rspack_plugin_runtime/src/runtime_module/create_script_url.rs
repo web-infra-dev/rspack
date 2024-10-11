@@ -37,7 +37,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
             RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
           )
         } else {
-          "'{url}'".to_string()
+          "url".to_string()
         }
       ))
       .boxed(),
