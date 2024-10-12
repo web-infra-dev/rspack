@@ -3,7 +3,7 @@ const path = require("node:path");
 const swc = require("@swc/core");
 
 const runtime = fs.readFileSync(
-	path.resolve(__dirname, "../src/container/default.runtime.js"),
+	path.resolve(__dirname, "../src/runtime/moduleFederationDefaultRuntime.js"),
 	"utf-8"
 );
 const downgradedRuntime = swc.transformSync(runtime, {
@@ -18,6 +18,6 @@ const minimizedRuntime = swc.minifySync(downgradedRuntime, {
 });
 
 fs.writeFileSync(
-	path.resolve(__dirname, "../dist/container/default.runtime.js"),
+	path.resolve(__dirname, "../dist/moduleFederationDefaultRuntime.js"),
 	minimizedRuntime.code
 );
