@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6867
+- Update: main.hot-update.js, size: 6903
 
 ## Manifest
 
@@ -56,7 +56,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/runtime/cssExtractHmr.ts
 var cssExtractHmr_exports = {};
 __export(cssExtractHmr_exports, {
-  cssReload: () => cssReload
+  cssReload: () => cssReload,
+  normalizeUrl: () => normalizeUrl
 });
 module.exports = __toCommonJS(cssExtractHmr_exports);
 function normalizeUrl(url) {
