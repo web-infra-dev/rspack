@@ -1,4 +1,4 @@
-function normalizeUrl(url: string): string {
+export function normalizeUrl(url: string): string {
 	const urlString = url.trim();
 
 	if (/^data:/i.test(urlString)) {
