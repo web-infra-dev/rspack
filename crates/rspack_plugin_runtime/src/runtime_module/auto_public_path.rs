@@ -44,12 +44,9 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     );
     let filename = compilation.get_path(
       filename,
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      ),
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_type(SourceType::JavaScript),
     )?;
     Ok(
       RawSource::from(auto_public_path_template(

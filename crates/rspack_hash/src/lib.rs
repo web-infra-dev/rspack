@@ -126,6 +126,14 @@ pub struct RspackHashDigest {
   encoded: SmolStr,
 }
 
+impl From<&str> for RspackHashDigest {
+  fn from(value: &str) -> Self {
+    Self {
+      encoded: value.into(),
+    }
+  }
+}
+
 impl RspackHashDigest {
   pub fn new(inner: Vec<u8>, digest: &HashDigest) -> Self {
     let encoded = match digest {

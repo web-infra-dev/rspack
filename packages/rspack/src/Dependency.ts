@@ -1,21 +1,46 @@
-import type { DependencyDTO } from "@rspack/binding";
+import { type JsDependency, JsDependencyMut } from "@rspack/binding";
 
 export class Dependency {
-	#binding: DependencyDTO;
+	declare readonly type: string;
+	declare readonly category: string;
+	declare readonly request: string | undefined;
+	declare critical: boolean;
 
-	constructor(binding: DependencyDTO) {
-		this.#binding = binding;
+	static __from_binding(binding: JsDependencyMut | JsDependency): Dependency {
+		return new Dependency(binding);
 	}
 
-	get type(): string {
-		return this.#binding.type;
-	}
-
-	get category(): string {
-		return this.#binding.category;
-	}
-
-	get request(): string | undefined {
-		return this.#binding.request;
+	private constructor(binding: JsDependencyMut | JsDependency) {
+		Object.defineProperties(this, {
+			type: {
+				enumerable: true,
+				get(): string {
+					return binding.type;
+				}
+			},
+			category: {
+				enumerable: true,
+				get(): string {
+					return binding.category;
+				}
+			},
+			request: {
+				enumerable: true,
+				get(): string | undefined {
+					return binding.request;
+				}
+			},
+			critical: {
+				enumerable: true,
+				get(): boolean {
+					return binding.critical;
+				},
+				set(val: boolean) {
+					if (binding instanceof JsDependencyMut) {
+						binding.critical = val;
+					}
+				}
+			}
+		});
 	}
 }

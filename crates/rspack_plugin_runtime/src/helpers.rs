@@ -5,6 +5,7 @@ use rspack_core::{
   get_chunk_from_ukey, get_chunk_group_from_ukey, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RuntimeGlobals,
+  SourceType,
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
@@ -255,7 +256,8 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
     filename,
     PathData::default()
       .chunk(chunk)
-      .content_hash_optional(hash)
+      .hash_optional(hash)
+      .content_hash_type(SourceType::JavaScript)
       .hash_optional(hash),
   )
 }

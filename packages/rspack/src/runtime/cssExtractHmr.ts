@@ -247,7 +247,7 @@ function isUrlRequest(url: string): boolean {
 
 function cssReload(moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
-		console.log("no window.document found, will not HMR CSS");
+		console.log("[HMR] No `window.document` found, CSS HMR disabled");
 
 		return noop;
 	}
@@ -259,7 +259,7 @@ function cssReload(moduleId: string, options: Record<string, any>) {
 		const reloaded = reloadStyle(src);
 
 		if (options.locals) {
-			console.log("[HMR] Detected local css modules. Reload all css");
+			console.log("[HMR] Detected local CSS Modules. Reload all CSS");
 
 			reloadAll();
 
@@ -268,9 +268,9 @@ function cssReload(moduleId: string, options: Record<string, any>) {
 
 		if (reloaded) {
 			// biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
-			console.log("[HMR] css reload %s", src && src.join(" "));
+			console.log("[HMR] CSS reload %s", src && src.join(" "));
 		} else {
-			console.log("[HMR] Reload all css");
+			console.log("[HMR] Reload all CSS");
 
 			reloadAll();
 		}

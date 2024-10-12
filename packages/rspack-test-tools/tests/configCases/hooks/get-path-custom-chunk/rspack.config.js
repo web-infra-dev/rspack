@@ -5,13 +5,17 @@ class Plugin {
 		let called = false;
 		compiler.hooks.compilation.tap(pluginName, compilation => {
 			called = true;
-			expect(compilation.getPath("[id]-[name]-[chunkhash]", {
+			expect(compilation.getPath("[id]-[name]-[chunkhash]-[contenthash]", {
 				chunk: {
 					name: "chunkname",
 					id: "chunkid",
 					hash: "chunkhash",
-				}
-			})).toBe("chunkid-chunkname-chunkhash");
+					contentHash: {
+						javascript: "contenthash"
+					}
+				},
+				contentHashType: "javascript"
+			})).toBe("chunkid-chunkname-chunkhash-contenthash");
 		});
 		compiler.hooks.done.tap(pluginName, stats => {
 			let json = stats.toJson();
