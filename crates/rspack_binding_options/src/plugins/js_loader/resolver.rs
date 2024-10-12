@@ -1,4 +1,7 @@
-use std::sync::{Arc, LazyLock};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -42,13 +45,17 @@ pub fn serde_error_to_miette(
   miette!(labels = vec![span], "{msg}").with_source_code(content.clone())
 }
 
-static SWC_LOADER_CACHE: LazyLock<RwLock<FxHashMap<String, Arc<SwcLoader>>>> =
+static SWC_LOADER_CACHE: LazyLock<RwLock<FxHashMap<(Cow<str>, Arc<str>), Arc<SwcLoader>>>> =
   LazyLock::new(|| RwLock::new(FxHashMap::default()));
 
 pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
   let options: Arc<str> = options.unwrap_or("{}").into();
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    if let Some(loader) = SWC_LOADER_CACHE.read().await.get(options.as_ref()) {
+    if let Some(loader) = SWC_LOADER_CACHE
+      .read()
+      .await
+      .get(&(Cow::Borrowed(builtin), options.clone()))
+    {
       return Ok(loader.clone());
     }
 
@@ -63,10 +70,10 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
       .with_identifier(builtin.into()),
     );
 
-    SWC_LOADER_CACHE
-      .write()
-      .await
-      .insert(options.to_string(), loader.clone());
+    SWC_LOADER_CACHE.write().await.insert(
+      (Cow::Owned(builtin.to_owned()), options.clone()),
+      loader.clone(),
+    );
     return Ok(loader);
   }
 
