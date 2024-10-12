@@ -1,16 +1,13 @@
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::ExportsInfo;
-use crate::{
-  module_graph::ConnectionId, ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer,
-  ModuleProfile,
-};
+use crate::{ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer, ModuleProfile};
 
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: HashSet<ConnectionId>,
-  incoming_connections: HashSet<ConnectionId>,
+  outgoing_connections: HashSet<DependencyId>,
+  incoming_connections: HashSet<DependencyId>,
 
   issuer: ModuleIssuer,
 
@@ -50,35 +47,27 @@ impl ModuleGraphModule {
     c.unwrap_or_else(|| panic!("{} module id not found", self.module_identifier))
   }
 
-  pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {
-    self.incoming_connections.insert(connection_id);
+  pub fn add_incoming_connection(&mut self, dependency_id: DependencyId) {
+    self.incoming_connections.insert(dependency_id);
   }
 
-  pub fn remove_incoming_connection(&mut self, connection_id: &ConnectionId) {
-    self.incoming_connections.remove(connection_id);
+  pub fn remove_incoming_connection(&mut self, dependency_id: &DependencyId) {
+    self.incoming_connections.remove(dependency_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection_id: ConnectionId) {
-    self.outgoing_connections.insert(connection_id);
+  pub fn add_outgoing_connection(&mut self, dependency_id: DependencyId) {
+    self.outgoing_connections.insert(dependency_id);
   }
 
-  pub fn remove_outgoing_connection(&mut self, connection_id: &ConnectionId) {
-    self.outgoing_connections.remove(connection_id);
+  pub fn remove_outgoing_connection(&mut self, dependency_id: &DependencyId) {
+    self.outgoing_connections.remove(dependency_id);
   }
 
-  pub fn incoming_connections(&self) -> &HashSet<ConnectionId> {
+  pub fn incoming_connections(&self) -> &HashSet<DependencyId> {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &HashSet<ConnectionId> {
-    &self.outgoing_connections
-  }
-
-  pub fn get_incoming_connections_unordered(&self) -> &HashSet<ConnectionId> {
-    &self.incoming_connections
-  }
-
-  pub fn get_outgoing_connections_unordered(&self) -> &HashSet<ConnectionId> {
+  pub fn outgoing_connections(&self) -> &HashSet<DependencyId> {
     &self.outgoing_connections
   }
 
@@ -86,7 +75,7 @@ impl ModuleGraphModule {
     self.profile = Some(profile);
   }
 
-  pub fn get_profile(&self) -> Option<&ModuleProfile> {
+  pub fn profile(&self) -> Option<&ModuleProfile> {
     self.profile.as_deref()
   }
 
@@ -100,7 +89,7 @@ impl ModuleGraphModule {
     self.issuer = issuer;
   }
 
-  pub fn get_issuer(&self) -> &ModuleIssuer {
+  pub fn issuer(&self) -> &ModuleIssuer {
     &self.issuer
   }
 

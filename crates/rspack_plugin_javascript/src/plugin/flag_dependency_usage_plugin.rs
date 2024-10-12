@@ -145,14 +145,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
       for dep_id in dep_id_list.into_iter() {
         let module_graph = self.compilation.get_module_graph();
-        let connection = module_graph.connection_by_dependency(&dep_id);
+        let connection = module_graph.connection_by_dependency_id(&dep_id);
 
         let connection = if let Some(connection) = connection {
           connection
         } else {
           continue;
         };
-        let active_state = connection.get_active_state(&module_graph, runtime.as_ref());
+        let active_state = connection.active_state(&module_graph, runtime.as_ref());
 
         match active_state {
           ConnectionState::Bool(false) => {

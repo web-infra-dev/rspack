@@ -166,7 +166,7 @@ impl ModuleConcatenationPlugin {
       if !is_harmony_import_like {
         continue;
       }
-      let Some(con) = mg.connection_by_dependency(d) else {
+      let Some(con) = mg.connection_by_dependency_id(d) else {
         continue;
       };
       if !con.is_target_active(mg, runtime) {
@@ -271,10 +271,7 @@ impl ModuleConcatenationPlugin {
       return Some(problem);
     }
 
-    let get_incoming_connections_by_origin_module =
-      module_graph.get_incoming_connections_by_origin_module(module_id);
-
-    let incoming_connections = get_incoming_connections_by_origin_module;
+    let incoming_connections = module_graph.get_incoming_connections_by_origin_module(module_id);
 
     if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
       let active_non_modules_connections = incoming_connections_from_non_modules
@@ -663,12 +660,9 @@ impl ModuleConcatenationPlugin {
       if m == &root_module_id {
         continue;
       }
-      module_graph.copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
-        let dep = mg
-          .dependency_by_id(&c.dependency_id)
-          .expect("should have dependency");
-        c.original_module_identifier.as_ref() == Some(m)
-          && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
+      module_graph.copy_outgoing_module_connections(m, &new_module.id(), |con, dep| {
+        con.original_module_identifier.as_ref() == Some(m)
+          && !(is_harmony_dep_like(dep) && modules_set.contains(con.module_identifier()))
       });
       // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
       for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {

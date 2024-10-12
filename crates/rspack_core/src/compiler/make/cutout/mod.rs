@@ -132,12 +132,11 @@ impl Cutout {
     let mut module_graph = artifact.get_module_graph_mut();
     for dep_id in remove_entry_deps {
       // connection may have been deleted by revoke module
-      if let Some(con) = module_graph.connection_by_dependency(&dep_id) {
+      if let Some(con) = module_graph.connection_by_dependency_id(&dep_id) {
         self
           .clean_isolated_module
           .add_need_check_module(*con.module_identifier());
-        let con_id = con.id;
-        module_graph.revoke_connection(&con_id, true);
+        module_graph.revoke_connection(&dep_id, true);
       }
       force_build_deps.remove(&(dep_id, None));
     }

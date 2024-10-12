@@ -785,7 +785,7 @@ impl Stats<'_> {
         .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
         .count() as u32;
 
-      let profile = if let Some(p) = mgm.get_profile()
+      let profile = if let Some(p) = mgm.profile()
         && let Some(factory) = p.factory.duration()
         && let Some(building) = p.building.duration()
       {
@@ -857,11 +857,11 @@ impl Stats<'_> {
 
     if options.reasons {
       let mut reasons: Vec<StatsModuleReason> = mgm
-        .get_incoming_connections_unordered()
+        .incoming_connections()
         .iter()
-        .filter_map(|connection_id| {
+        .filter_map(|dep_id| {
           // the connection is removed
-          let connection = module_graph.connection_by_connection_id(connection_id)?;
+          let connection = module_graph.connection_by_dependency_id(dep_id)?;
           let (module_name, module_id) = connection
             .original_module_identifier
             .and_then(|i| module_graph.module_by_identifier(&i))

@@ -39,13 +39,12 @@ use crate::{
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionId,
-  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportInfo, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta,
-  IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState,
+  Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportInfo, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
+  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
+  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -140,14 +139,14 @@ struct ConcatenationEntryConcatenated {
 
 #[derive(Debug)]
 struct ConcatenationEntryExternal {
-  connection: ConnectionId,
+  dependency: DependencyId,
   runtime_condition: RuntimeCondition,
 }
 
 impl ConcatenationEntryExternal {
   pub fn module(&self, mg: &ModuleGraph) -> ModuleIdentifier {
     let con = mg
-      .connection_by_connection_id(&self.connection)
+      .connection_by_dependency_id(&self.dependency)
       .expect("should have connection");
     *con.module_identifier()
   }
@@ -1580,11 +1579,8 @@ impl ConcatenatedModule {
           merge_runtime_condition(&last.runtime_condition, &runtime_condition, runtime);
         return;
       }
-      let con_id = mg
-        .connection_id_by_dependency_id(&con.dependency_id)
-        .expect("should have dep id");
       list.push(ConcatenationEntry::External(ConcatenationEntryExternal {
-        connection: *con_id,
+        dependency: con.dependency_id,
         runtime_condition,
       }));
     }

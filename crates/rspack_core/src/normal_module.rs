@@ -28,10 +28,10 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier, BoxLoader,
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult,
-  Compilation, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  contextify, diagnostics::ModuleBuildError, get_context, impl_module_meta_info,
+  module_update_hash, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
   DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions,
   ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
@@ -721,7 +721,7 @@ impl Module for NormalModule {
             module_chain.remove(&self.identifier());
             return ConnectionState::Bool(true);
           } else if !matches!(state, ConnectionState::CircularConnection) {
-            current = add_connection_states(current, state);
+            current = current + state;
           }
         }
       }
