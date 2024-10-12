@@ -367,6 +367,10 @@ pub trait Module:
 
     false
   }
+
+  fn need_id(&self) -> bool {
+    true
+  }
 }
 
 fn get_exports_type_impl(
