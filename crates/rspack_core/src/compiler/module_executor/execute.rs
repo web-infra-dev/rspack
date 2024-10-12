@@ -101,7 +101,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     chunk.id = chunk.name.clone();
     chunk.ids = vec![chunk.id.clone().expect("id is set")];
-    let runtime: RuntimeSpec = once("build time".into()).collect();
+    let runtime: RuntimeSpec = once("build time").collect();
 
     chunk.runtime = runtime.clone();
 

@@ -73,7 +73,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|runtime| {
       (
         runtime.to_string(),
-        HotUpdateContent::new(RuntimeSpec::from_iter([runtime.clone()])),
+        HotUpdateContent::new(RuntimeSpec::from_iter([runtime])),
       )
     })
     .collect::<HashMap<String, HotUpdateContent>>();
@@ -150,7 +150,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // intersectRuntime
       for old_runtime in all_old_runtime.iter() {
         if current_chunk.runtime.contains(old_runtime) {
-          new_runtime.insert(old_runtime.clone());
+          new_runtime.insert(old_runtime);
         }
       }
       // ------
@@ -181,7 +181,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for removed in removed_from_runtime {
-      if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
+      if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_str()) {
         info.removed_chunk_ids.insert(chunk_id.to_string());
       }
       // TODO:
@@ -286,7 +286,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       new_runtime.iter().for_each(|runtime| {
-        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime.as_ref()) {
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.to_string());
         }
       });

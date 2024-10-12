@@ -347,7 +347,7 @@ impl JsPlugin {
                       .chunk_graph
                       .get_module_runtimes(*origin_module, &compilation.chunk_by_ukey)
                       .into_values()
-                      .any(|runtime| runtime.intersection(&chunk.runtime).count() > 0)
+                      .any(|runtime| runtime.is_intersect(&chunk.runtime))
                 } else {
                   false
                 }

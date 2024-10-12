@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::hash::{BuildHasherDefault, Hash};
 use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
@@ -119,16 +118,16 @@ impl ChunkGroupInfo {
   }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+// #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+// struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
 
-impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
-  fn from(value: Option<RuntimeSpec>) -> Self {
-    let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
-    vec.sort();
-    Self(vec)
-  }
-}
+// impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
+//   fn from(value: Option<RuntimeSpec>) -> Self {
+//     let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
+//     vec.sort();
+//     Self(vec)
+//   }
+// }
 
 static NEXT_CGI_UKEY: AtomicU32 = AtomicU32::new(0);
 
@@ -149,7 +148,7 @@ impl CgiUkey {
 }
 
 type BlockModulesRuntimeMap = IndexMap<
-  OptionalRuntimeSpec,
+  RuntimeSpec,
   IndexMap<
     DependenciesBlockIdentifier,
     Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)>,
@@ -899,7 +898,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     visited: &mut IdentifierIndexSet,
     ctx: &mut (usize, usize, IndexMap<ModuleIdentifier, (usize, usize)>),
   ) {
-    let block_modules = self.get_block_modules(module_identifier.into(), Some(runtime));
+    let block_modules = self.get_block_modules(module_identifier.into(), runtime);
     if visited.contains(&module_identifier) {
       return;
     }
@@ -1106,7 +1105,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let runtime = chunk_group_info.runtime.clone();
 
-    let modules = self.get_block_modules(item.block.into(), Some(&runtime));
+    let modules = self.get_block_modules(item.block.into(), &runtime);
 
     for (module, active_state, _) in modules {
       if active_state.is_true() {
@@ -1147,7 +1146,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let runtime = chunk_group_info.runtime.clone();
     let min_available_modules = chunk_group_info.min_available_modules.clone();
 
-    let block_modules = self.get_block_modules(item.block, Some(&runtime));
+    let block_modules = self.get_block_modules(item.block, &runtime);
     for (module, active_state, connections) in block_modules.into_iter().rev() {
       if self
         .compilation
@@ -1466,11 +1465,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn get_block_modules(
     &mut self,
     module: DependenciesBlockIdentifier,
-    runtime: Option<&RuntimeSpec>,
+    runtime: &RuntimeSpec,
   ) -> Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)> {
     if let Some(modules) = self
       .block_modules_runtime_map
-      .get::<OptionalRuntimeSpec>(&runtime.cloned().into())
+      .get(runtime)
       .and_then(|map| map.get(&module))
     {
       return modules.clone();
@@ -1478,7 +1477,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.extract_block_modules(module.get_root_block(self.compilation), runtime);
     self
       .block_modules_runtime_map
-      .get::<OptionalRuntimeSpec>(&runtime.cloned().into())
+      .get(runtime)
       .and_then(|map| map.get(&module))
       .unwrap_or_else(|| {
         panic!("block_modules_map.get({module:?}) must not empty after extract_block_modules")
@@ -1486,11 +1485,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .clone()
   }
 
-  fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
+  fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: &RuntimeSpec) {
     let module_graph = &self.compilation.get_module_graph();
     let map = self
       .block_modules_runtime_map
-      .entry(runtime.cloned().into())
+      .entry(runtime.clone())
       .or_default();
     let block = module.into();
     map.insert(block, Vec::new());
@@ -1552,7 +1551,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect("should have modules in block_modules_runtime_map");
       let active_state = get_active_state_of_connections(
         &connections,
-        runtime,
+        Some(runtime),
         &self.compilation.get_module_graph(),
       );
       modules.push((module_identifier, active_state, connections));
@@ -1611,7 +1610,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .insert((target_ukey, process_block));
         let mut updated = false;
         for r in runtime.iter() {
-          updated |= target_cgi.runtime.insert(r.clone());
+          updated |= target_cgi.runtime.insert(r);
         }
         if updated {
           self.outdated_chunk_group_info.insert(target_ukey);
