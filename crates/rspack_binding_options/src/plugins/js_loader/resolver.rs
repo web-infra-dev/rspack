@@ -45,8 +45,8 @@ pub fn serde_error_to_miette(
   miette!(labels = vec![span], "{msg}").with_source_code(content.clone())
 }
 
-static SWC_LOADER_CACHE: LazyLock<RwLock<FxHashMap<(Cow<str>, Arc<str>), Arc<SwcLoader>>>> =
-  LazyLock::new(|| RwLock::new(FxHashMap::default()));
+type SwcLoaderCache<'a> = LazyLock<RwLock<FxHashMap<(Cow<'a, str>, Arc<str>), Arc<SwcLoader>>>>;
+static SWC_LOADER_CACHE: SwcLoaderCache = LazyLock::new(|| RwLock::new(FxHashMap::default()));
 
 pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
   let options: Arc<str> = options.unwrap_or("{}").into();
