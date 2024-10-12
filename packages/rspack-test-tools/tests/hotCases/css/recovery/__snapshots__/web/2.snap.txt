@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 6864
+- Update: main.LAST_HASH.hot-update.js, size: 6872
 
 ## Manifest
 
@@ -230,27 +230,24 @@ function isUrlRequest(url) {
   return true;
 }
 function cssReload(moduleId, options) {
-    if (noDocument) {
-        console.log("[HMR] No `window.document` found, CSS HMR disabled");
-        return noop;
+  if (noDocument) {
+    console.log("[HMR] No `window.document` found, CSS HMR disabled");
+    return noop;
+  }
+  const getScriptSrc = getCurrentScriptUrl(moduleId);
+  function update() {
+    const src = getScriptSrc(options.filename);
+    const reloaded = reloadStyle(src);
+    if (options.locals) {
+      console.log("[HMR] Detected local CSS Modules. Reload all CSS");
+      reloadAll();
+      return;
     }
-    const getScriptSrc = getCurrentScriptUrl(moduleId);
-    function update() {
-        const src = getScriptSrc(options.filename);
-        const reloaded = reloadStyle(src);
-        if (options.locals) {
-            console.log("[HMR] Detected local CSS Modules. Reload all CSS");
-            reloadAll();
-            return;
-        }
-        if (reloaded) {
-            // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
-            console.log("[HMR] CSS reload %s", src && src.join(" "));
-        }
-        else {
-            console.log("[HMR] Reload all CSS");
-            reloadAll();
-        }
+    if (reloaded) {
+      console.log("[HMR] CSS reload %s", src && src.join(" "));
+    } else {
+      console.log("[HMR] Reload all CSS");
+      reloadAll();
     }
   }
   return debounce(update, 50);
