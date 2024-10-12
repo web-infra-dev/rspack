@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1140
+- Update: main.hot-update.js, size: 1135
 
 ## Manifest
 
@@ -20,10 +20,10 @@
 ## Update
 
 
-### main.LAST_HASH.hot-update.js
+### main.hot-update.js
 
 #### Changed Modules
-- ./change.css?d2c5
+- ./change.css
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -32,7 +32,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('main', {
-"./change.css?d2c5": (function (module, __webpack_exports__, __webpack_require__) {
+"./change.css": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 

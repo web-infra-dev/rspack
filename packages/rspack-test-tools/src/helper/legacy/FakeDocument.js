@@ -45,6 +45,10 @@ export default class FakeDocument {
 		return this._elementsByTagName.get(name) || [];
 	}
 
+	querySelectorAll(name) {
+		return this._elementsByTagName.get(name) || [];
+	}
+
 	getComputedStyle(element) {
 		const style = { getPropertyValue };
 		const links = this.getElementsByTagName("link");
@@ -63,6 +67,7 @@ export class FakeElement {
 	constructor(document, type, basePath) {
 		this._document = document;
 		this._type = type;
+		this._basePath = basePath;
 		this._children = [];
 		this._attributes = Object.create(null);
 		this._src = undefined;
@@ -71,6 +76,12 @@ export class FakeElement {
 		this.parentNode = undefined;
 		this.sheet = type === "link" ? new FakeSheet(this, basePath) : undefined;
 	}
+
+	cloneNode() {
+		return new FakeElement(this._document, this._type, this._basePath)
+	}
+
+	addEventListener() {}
 
 	insertBefore(node, before) {
 		this._document._onElementAttached(node);
