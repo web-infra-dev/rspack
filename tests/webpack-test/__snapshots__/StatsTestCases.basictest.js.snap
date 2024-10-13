@@ -1181,11 +1181,11 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
   assets by path *.gz 13.9 KiB
     asset default-main.js.gz 11.9 KiB [emitted]
     asset default-main.js.map.gz 673 bytes [emitted]
-    asset default-chunk_js.js.gz 625 bytes [emitted]
+    asset default-chunk_js.js.gz 615 bytes [emitted]
     + 5 assets
   assets by path *.js 12.5 KiB
     asset default-main.js 11.9 KiB [emitted] (name: main)
-    asset default-chunk_js.js 625 bytes [emitted]
+    asset default-chunk_js.js 615 bytes [emitted]
   assets by path *.css 142 bytes
     asset default-chunk_js.css 73 bytes [emitted]
     asset default-main.css 69 bytes [emitted] (name: main)
@@ -1198,21 +1198,21 @@ relatedAssets:
   assets by path *.gz 13.9 KiB
     asset relatedAssets-main.js.gz 11.9 KiB [emitted]
     asset relatedAssets-main.js.map.gz 679 bytes [emitted]
-    asset relatedAssets-chunk_js.js.gz 631 bytes [emitted]
+    asset relatedAssets-chunk_js.js.gz 621 bytes [emitted]
     + 5 assets
   assets by path *.js 12.5 KiB
     asset relatedAssets-main.js 11.9 KiB [emitted] (name: main)
-    asset relatedAssets-chunk_js.js 631 bytes [emitted]
+    asset relatedAssets-chunk_js.js 621 bytes [emitted]
   assets by path *.css 154 bytes
     asset relatedAssets-chunk_js.css 79 bytes [emitted]
     asset relatedAssets-main.css 75 bytes [emitted] (name: main)
 
 exclude1:
-  hidden assets 27.8 KiB 16 assets
+  hidden assets 27.7 KiB 16 assets
   assets by status 12.6 KiB [emitted]
     assets by path *.js 12.5 KiB
       asset exclude1-main.js 11.9 KiB [emitted] (name: main)
-      asset exclude1-chunk_js.js 626 bytes [emitted]
+      asset exclude1-chunk_js.js 616 bytes [emitted]
     assets by path *.css 144 bytes
       asset exclude1-chunk_js.css 74 bytes [emitted]
       asset exclude1-main.css 70 bytes [emitted] (name: main)
@@ -1225,17 +1225,17 @@ exclude2:
   assets by path *.gz 13.9 KiB
     asset exclude2-main.js.gz 11.9 KiB [emitted]
     asset exclude2-main.js.map.gz 674 bytes [emitted]
-    asset exclude2-chunk_js.js.gz 626 bytes [emitted]
+    asset exclude2-chunk_js.js.gz 616 bytes [emitted]
     + 5 assets
   assets by path *.js 12.5 KiB
     asset exclude2-main.js 11.9 KiB [emitted] (name: main)
-    asset exclude2-chunk_js.js 626 bytes [emitted]
+    asset exclude2-chunk_js.js 616 bytes [emitted]
   assets by path *.css 144 bytes
     asset exclude2-chunk_js.css 74 bytes [emitted]
     asset exclude2-main.css 70 bytes [emitted] (name: main)
 
 exclude3:
-  hidden assets 2.93 KiB 10 assets
+  hidden assets 2.9 KiB 10 assets
   assets by status 37.5 KiB [emitted]
     assets by path *.br 12.8 KiB
       asset exclude3-main.js.br 11.9 KiB [emitted]
@@ -1589,9 +1589,6 @@ cacheable modules 967 bytes
       ./components/src/index.js 84 bytes [orphan] [built]
         [module unused]
         esm import ./components ./foo.js
-        esm import specifier ./components ./foo.js
-        esm import specifier ./components ./main.js
-        esm import specifier ./components ./main.js
         esm import ./components ./main.js
     code generated modules 186 bytes [code generated]
       ./components/src/CompAB/CompA.js 89 bytes [built] [code generated]
@@ -1604,8 +1601,6 @@ cacheable modules 967 bytes
       ./components/src/CompAB/utils.js 97 bytes [built] [code generated]
         esm import ./utils ./components/src/CompAB/CompA.js
         esm import specifier ./utils ./components/src/CompAB/CompA.js
-        esm import ./utils ./components/src/CompAB/CompB.js
-        esm import specifier ./utils ./components/src/CompAB/CompB.js
         esm import ./utils ./components/src/CompAB/CompB.js
         esm import specifier ./utils ./components/src/CompAB/CompB.js
   modules by path ./*.js 466 bytes
@@ -1634,7 +1629,6 @@ modules by path ./node_modules/pmodule/*.js 232 bytes
     [only some exports used: default]
     esm import pmodule ./index.js
     esm import specifier pmodule ./index.js
-    esm import specifier pmodule ./index.js
   ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
     [only some exports used: z]
     esm import specifier pmodule ./index.js
@@ -1644,14 +1638,8 @@ modules by path ./node_modules/pmodule/*.js 232 bytes
     [module unused]
     esm export ./a ./node_modules/pmodule/index.js
     esm export import specifier ./a ./node_modules/pmodule/index.js
-    esm export ./a ./node_modules/pmodule/index.js
-    esm export import specifier ./a ./node_modules/pmodule/index.js
   ./node_modules/pmodule/b.js 69 bytes [orphan] [built]
     [module unused]
-    esm export ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
     esm export ./b ./node_modules/pmodule/index.js
     esm export import specifier ./b ./node_modules/pmodule/index.js
     esm export import specifier ./b ./node_modules/pmodule/index.js
@@ -1667,7 +1655,6 @@ modules by path ./*.js 213 bytes
     | ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     |   [only some exports used: default]
     |   esm import pmodule ./index.js
-    |   esm import specifier pmodule ./index.js
     |   esm import specifier pmodule ./index.js
     | ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
     |   [only some exports used: z]

@@ -795,7 +795,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
-  connection: Option<DependencyId>,
+  dependency: Option<DependencyId>,
   export: Option<Vec<Atom>>,
   priority: u8,
 }
@@ -1085,7 +1085,7 @@ impl ExportInfo {
     &self,
     mg: &mut ModuleGraph,
     key: Option<DependencyId>,
-    connection_inner_dep_id: Option<DependencyId>,
+    dependency: Option<DependencyId>,
     export_name: Option<&Nullable<Vec<Atom>>>,
     priority: Option<u8>,
   ) -> bool {
@@ -1100,7 +1100,7 @@ impl ExportInfo {
       info.target.insert(
         key,
         ExportInfoTargetValue {
-          connection: connection_inner_dep_id,
+          dependency,
           export: export_name.cloned(),
           priority: normalized_priority,
         },
@@ -1109,27 +1109,27 @@ impl ExportInfo {
       return true;
     }
     let Some(old_target) = info.target.get_mut(&key) else {
-      if connection_inner_dep_id.is_none() {
+      if dependency.is_none() {
         return false;
       }
 
       info.target.insert(
         key,
         ExportInfoTargetValue {
-          connection: connection_inner_dep_id,
+          dependency,
           export: export_name.cloned(),
           priority: normalized_priority,
         },
       );
       return true;
     };
-    if old_target.connection != connection_inner_dep_id
+    if old_target.dependency != dependency
       || old_target.priority != normalized_priority
       || old_target.export.as_ref() != export_name
     {
       old_target.export = export_name.cloned();
       old_target.priority = normalized_priority;
-      old_target.connection = connection_inner_dep_id;
+      old_target.dependency = dependency;
       return true;
     }
 
@@ -1168,7 +1168,7 @@ impl ExportInfo {
 
     let max_target = self.get_max_target(mg);
     let mut values = max_target.values().map(|item| UnResolvedExportInfoTarget {
-      connection: item.connection,
+      dependency: item.dependency,
       export: item.export.clone(),
     });
 
@@ -1307,14 +1307,14 @@ impl ExportInfo {
       .values()
       .next()
       .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
-    if original_target.connection.as_ref() == Some(&target.connection)
+    if original_target.dependency.as_ref() == Some(&target.dependency)
       || original_target.export == target.export
     {
       return None;
     }
     let export_info_mut = self.as_export_info_mut(mg);
     export_info_mut.target.clear();
-    let updated_connection = update_original_connection(&target, mg);
+    let updated_dependency_id = update_original_connection(&target, mg);
 
     // shadowning `export_info_mut` to reduce `&mut ModuleGraph` borrow life time, since
     // `update_original_connection` also needs `&mut ModuleGraph`
@@ -1322,7 +1322,7 @@ impl ExportInfo {
     export_info_mut.target.insert(
       None,
       ExportInfoTargetValue {
-        connection: updated_connection,
+        dependency: updated_dependency_id,
         export: target.export.clone(),
         priority: 0,
       },
@@ -1440,8 +1440,8 @@ impl ExportInfo {
     };
     let mut target = FindTargetRetValue {
       module: *raw_target
-        .connection
-        .and_then(|dep_id| mg.connection_by_dependency(&dep_id))
+        .dependency
+        .and_then(|dep_id| mg.connection_by_dependency_id(&dep_id))
         .expect("should have connection")
         .module_identifier(),
       export: raw_target.export.clone(),
@@ -1590,7 +1590,7 @@ pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
   /// using dependency id to retrieve Connection
-  pub connection: DependencyId,
+  pub dependency: DependencyId,
 }
 
 #[derive(Clone, Debug)]
@@ -1616,7 +1616,7 @@ impl UsageKey {
 
 #[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
-  connection: Option<DependencyId>,
+  dependency: Option<DependencyId>,
   export: Option<Vec<Atom>>,
 }
 
@@ -1658,7 +1658,7 @@ impl ExportInfoData {
                 (
                   k,
                   ExportInfoTargetValue {
-                    connection: v.connection,
+                    dependency: v.dependency,
                     export: match v.export {
                       Some(vec) => Some(vec),
                       None => Some(vec![name
@@ -1708,13 +1708,12 @@ fn resolve_target(
   if let Some(input_target) = input_target {
     let mut target = ResolvedExportInfoTarget {
       module: *input_target
-        .connection
-        .as_ref()
-        .and_then(|dep_id| mg.connection_by_dependency(dep_id))
+        .dependency
+        .and_then(|dep_id| mg.connection_by_dependency_id(&dep_id))
         .expect("should have connection")
         .module_identifier(),
       export: input_target.export,
-      connection: input_target.connection.expect("should have connection"),
+      dependency: input_target.dependency.expect("should have dependency"),
     };
     if target.export.is_none() {
       return Some(ResolvedExportInfoTargetWithCircular::Target(target));
@@ -1751,7 +1750,7 @@ fn resolve_target(
             }
           } else {
             target.module = t.module;
-            target.connection = t.connection;
+            target.dependency = t.dependency;
             target.export = if let Some(mut exports) = t.export {
               exports.extend_from_slice(&target_exports[1..]);
               Some(exports)

@@ -29,7 +29,7 @@ impl Task<MakeTaskContext> for AddTask {
     if self.module.as_self_module().is_some() {
       let issuer = self
         .module_graph_module
-        .get_issuer()
+        .issuer()
         .identifier()
         .expect("self module should have issuer");
 

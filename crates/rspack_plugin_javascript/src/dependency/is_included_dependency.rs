@@ -67,7 +67,7 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
 
     let included = compilation
       .get_module_graph()
-      .connection_by_dependency(&self.id)
+      .connection_by_dependency_id(&self.id)
       .map(|connection| {
         compilation
           .chunk_graph

@@ -4245,13 +4245,22 @@ dependencies = [
 name = "rspack_plugin_schemes"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
+ "cow-utils",
+ "derivative",
+ "once_cell",
  "regex",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_hook",
  "rspack_paths",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
  "tracing",
  "url",
  "urlencoding",

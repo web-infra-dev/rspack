@@ -192,7 +192,7 @@ impl ChunkGraph {
         if visited_modules.contains(module_identifier) {
           continue;
         }
-        if connection.get_active_state(&mg, runtime).is_false() {
+        if connection.active_state(&mg, runtime).is_false() {
           continue;
         }
         visited_modules.insert(*module_identifier);

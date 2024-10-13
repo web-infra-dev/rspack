@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -20,9 +20,11 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
-    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && npm run prepare-container-runtime",
-    "dev": "tsc -w",
+    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
+    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
+    "dev": "pnpm run --stream /^dev:.*/",
+    "dev:types": "tsc -w",
+    "dev:js": "tsup --watch",
     "prepare": "prebundle",
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
@@ -59,6 +61,7 @@
     "neo-async": "2.6.2",
     "prebundle": "^1.1.0",
     "tsc-alias": "^1.8.8",
+    "tsup": "^8.3.0",
     "typescript": "5.0.2",
     "watchpack": "^2.4.0",
     "webpack-dev-server": "5.0.4",

@@ -125,7 +125,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let module_graph = compilation.get_module_graph();
     // Only available when module factorization is successful.
     let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);
-    let connection = module_graph.connection_by_dependency(&self.id);
+    let connection = module_graph.connection_by_dependency_id(&self.id);
     let is_target_active = if let Some(con) = connection {
       con.is_target_active(&module_graph, *runtime)
     } else {
@@ -152,7 +152,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let import_var = compilation.get_import_var(&self.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
-      && let Some(con) = module_graph.connection_by_dependency(&self.id)
+      && let Some(con) = module_graph.connection_by_dependency_id(&self.id)
       && scope.is_module_in_scope(con.module_identifier())
     {
       if ids.is_empty() {

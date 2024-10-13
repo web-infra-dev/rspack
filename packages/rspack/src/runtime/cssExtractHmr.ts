@@ -1,4 +1,37 @@
-import { normalizeUrl } from "./normalizeUrl";
+export function normalizeUrl(url: string): string {
+	const urlString = url.trim();
+
+	if (/^data:/i.test(urlString)) {
+		return urlString;
+	}
+
+	const protocol =
+		urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
+	const components = urlString
+		.replace(new RegExp(protocol, "i"), "")
+		.split("/");
+	const host = components[0].toLowerCase().replace(/\.$/, "");
+
+	components[0] = "";
+
+	const path = components
+		.reduce((accumulator: string[], item) => {
+			switch (item) {
+				case "..":
+					accumulator.pop();
+					break;
+				case ".":
+					break;
+				default:
+					accumulator.push(item);
+			}
+
+			return accumulator;
+		}, [])
+		.join("/");
+
+	return protocol + host + path;
+}
 
 type Option<T> = T | null | undefined;
 type DebouncedFunction<T extends (...args: any[]) => any> = (
@@ -214,7 +247,7 @@ function isUrlRequest(url: string): boolean {
 
 function cssReload(moduleId: string, options: Record<string, any>) {
 	if (noDocument) {
-		console.log("no window.document found, will not HMR CSS");
+		console.log("[HMR] No `window.document` found, CSS HMR disabled");
 
 		return noop;
 	}
@@ -226,7 +259,7 @@ function cssReload(moduleId: string, options: Record<string, any>) {
 		const reloaded = reloadStyle(src);
 
 		if (options.locals) {
-			console.log("[HMR] Detected local css modules. Reload all css");
+			console.log("[HMR] Detected local CSS Modules. Reload all CSS");
 
 			reloadAll();
 
@@ -235,9 +268,9 @@ function cssReload(moduleId: string, options: Record<string, any>) {
 
 		if (reloaded) {
 			// biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
-			console.log("[HMR] css reload %s", src && src.join(" "));
+			console.log("[HMR] CSS reload %s", src && src.join(" "));
 		} else {
-			console.log("[HMR] Reload all css");
+			console.log("[HMR] Reload all CSS");
 
 			reloadAll();
 		}

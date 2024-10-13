@@ -4,12 +4,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "resolveJsonModule": true,
+    "emitDeclarationOnly": true,
     "paths": {
       "zod": [
         "../compiled/zod"
-      ],
-      "neo-async": [
-        "../compiled/neo-async"
       ],
       "watchpack": [
         "../compiled/watchpack"
@@ -25,12 +23,6 @@
       ],
       "enhanced-resolve/lib/CachedInputFileSystem": [
         "../compiled/enhanced-resolve/CachedInputFileSystem"
-      ],
-      "zod-validation-error": [
-        "../compiled/zod-validation-error"
-      ],
-      "json-parse-even-better-errors": [
-        "../compiled/json-parse-even-better-errors"
       ],
       "webpack-sources": [
         "../compiled/webpack-sources"

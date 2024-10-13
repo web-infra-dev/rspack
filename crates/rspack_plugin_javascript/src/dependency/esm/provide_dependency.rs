@@ -98,7 +98,7 @@ impl DependencyTemplate for ProvideDependency {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    let Some(con) = module_graph.connection_by_dependency(&self.id) else {
+    let Some(con) = module_graph.connection_by_dependency_id(&self.id) else {
       // not find connection, maybe because it's not resolved in make phase, and `bail` is false
       return;
     };

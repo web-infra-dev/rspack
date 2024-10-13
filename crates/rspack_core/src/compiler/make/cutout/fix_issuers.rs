@@ -20,7 +20,7 @@ impl FixIssuers {
       .expect("should have module graph module");
     self
       .origin_module_issuers
-      .insert(*module_identifier, mgm.get_issuer().clone());
+      .insert(*module_identifier, mgm.issuer().clone());
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {

@@ -16,11 +16,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
-  add_connection_states, assign_depth, assign_depths, get_entry_runtime, merge_runtime,
-  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
-  ChunkLoading, ChunkUkey, Compilation, ConnectionId, ConnectionState, DependenciesBlock,
-  DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
+  assign_depth, assign_depths, get_entry_runtime, merge_runtime, AsyncDependenciesBlockIdentifier,
+  ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey,
+  Compilation, ConnectionState, DependenciesBlock, DependencyId, DependencyLocation,
+  EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -39,7 +39,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<BigUint>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<ConnectionId>)>,
+  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: UkeyIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -152,7 +152,7 @@ type BlockModulesRuntimeMap = IndexMap<
   OptionalRuntimeSpec,
   IndexMap<
     DependenciesBlockIdentifier,
-    Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)>,
+    Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>,
   >,
 >;
 
@@ -278,24 +278,24 @@ fn add_chunk_in_group(
 }
 
 fn get_active_state_of_connections(
-  connections: &[ConnectionId],
+  connections: &[DependencyId],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
 ) -> ConnectionState {
   let mut iter = connections.iter();
   let id = iter.next().expect("should have connection");
   let mut merged = module_graph
-    .connection_by_connection_id(id)
+    .connection_by_dependency_id(id)
     .expect("should have connection")
-    .get_active_state(module_graph, runtime);
+    .active_state(module_graph, runtime);
   if merged.is_true() {
     return merged;
   }
   for c in iter {
     let c = module_graph
-      .connection_by_connection_id(c)
+      .connection_by_dependency_id(c)
       .expect("should have connection");
-    merged = add_connection_states(merged, c.get_active_state(module_graph, runtime));
+    merged = merged + c.active_state(module_graph, runtime);
     if merged.is_true() {
       return merged;
     }
@@ -1467,7 +1467,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module: DependenciesBlockIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<(ModuleIdentifier, ConnectionState, Vec<ConnectionId>)> {
+  ) -> Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)> {
     if let Some(modules) = self
       .block_modules_runtime_map
       .get::<OptionalRuntimeSpec>(&runtime.cloned().into())
@@ -1500,34 +1500,24 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let sorted_connections = module_graph
       .get_ordered_connections(&module)
-      .expect("should have module")
-      .into_iter()
-      .map(|conn_id| {
-        let conn = module_graph
-          .connection_by_connection_id(conn_id)
-          .expect("should have connection");
-
-        let dep = module_graph
-          .dependency_by_id(&conn.dependency_id)
-          .expect("should have dependency");
-
-        (dep, conn_id)
-      });
+      .expect("should have module");
 
     // keep the dependency order sorted by span
     let mut connection_map: IndexMap<
       (DependenciesBlockIdentifier, ModuleIdentifier),
-      Vec<ConnectionId>,
+      Vec<DependencyId>,
     > = IndexMap::default();
 
-    for (dep, connection_id) in sorted_connections {
+    for dep_id in sorted_connections {
+      let dep = module_graph
+        .dependency_by_id(dep_id)
+        .expect("should have dep");
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
       }
       if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
         continue;
       }
-      let dep_id = dep.id();
       // Dependency created but no module is available.
       // This could happen when module factorization is failed, but `options.bail` set to `false`
       let module_graph = self.compilation.get_module_graph();
@@ -1542,8 +1532,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         };
       connection_map
         .entry((block_id, *module_identifier))
-        .and_modify(|e| e.push(*connection_id))
-        .or_insert_with(|| vec![*connection_id]);
+        .and_modify(|e| e.push(*dep_id))
+        .or_insert_with(|| vec![*dep_id]);
     }
 
     for ((block_id, module_identifier), connections) in connection_map {

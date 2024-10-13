@@ -121,14 +121,11 @@ impl UnaffectedModuleCache {
       .hash
       .as_ref()
       .hash(&mut hasher);
-    for connection_id in module_graph
+    for dep_id in module_graph
       .get_ordered_connections(&module.identifier())
       .expect("should have module")
     {
-      let connection = module_graph
-        .connection_by_connection_id(connection_id)
-        .expect("should have connection");
-      connection.dependency_id.hash(&mut hasher);
+      dep_id.hash(&mut hasher);
     }
     hasher.finish()
   }
@@ -151,9 +148,9 @@ impl UnaffectedModuleWithChunkGraphCache {
       .get_ordered_connections(&module_identifier)
       .expect("should have module")
       .into_iter()
-      .filter_map(|c| {
+      .filter_map(|dep_id| {
         let connection = module_graph
-          .connection_by_connection_id(c)
+          .connection_by_dependency_id(dep_id)
           .expect("should have connection");
         chunk_graph.get_module_id(*connection.module_identifier())
       })

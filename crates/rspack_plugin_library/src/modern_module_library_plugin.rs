@@ -2,10 +2,11 @@ use std::hash::Hash;
 
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  merge_runtime, to_identifier, ApplyContext, ChunkUkey, CodeGenerationExportsFinalNames,
-  Compilation, CompilationFinishModules, CompilationOptimizeChunkModules, CompilationParams,
-  CompilerCompilation, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
-  DependenciesBlock, Dependency, LibraryOptions, ModuleIdentifier, Plugin, PluginContext,
+  merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
+  CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
+  CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
+  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
+  LibraryOptions, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -236,7 +237,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
                   *block_id,
                   block_dep.clone(),
                   new_dep.clone(),
-                  import_dep_connection.id,
+                  import_dep_connection.dependency_id,
                 ));
               }
             }
@@ -249,7 +250,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       let block = mg.block_by_id_mut(block_id).expect("should have block");
       let dep_id = dep.id();
       block.remove_dependency_id(*dep_id);
-      let boxed_dep = Box::new(new_dep.clone()) as Box<dyn rspack_core::Dependency>;
+      let boxed_dep = Box::new(new_dep.clone()) as BoxDependency;
       block.add_dependency_id(*new_dep.id());
       mg.add_dependency(boxed_dep);
       mg.revoke_connection(connection_id, true);
