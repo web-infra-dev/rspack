@@ -4,8 +4,8 @@
 /* eslint-env browser */
 /* eslint-disable no-console */
 
-const hotModuleReplacement = require("../../../packages/rspack/dist/cssExtractHmr").cssReload;
-const hotLoader = require("../../../packages/rspack/dist/cssExtractLoader").hotLoader;
+const hotModuleReplacement = require("../../../packages/rspack/src/runtime/cssExtractHmr").cssReload;
+const hotLoader = require("../../../packages/rspack/src/builtin-plugin/css-extract/loader").hotLoader;
 
 function getLoadEvent() {
 	const event = document.createEvent("Event");

@@ -1,4 +1,4 @@
-const { normalizeUrl } = require("../../../packages/rspack/dist/cssExtractHmr");
+const { normalizeUrl } = require("../../../packages/rspack/src/runtime/cssExtractHmr");
 const dataUrls = require("./fixtures/json/data-urls.json");
 
 describe("normalize-url", () => {
