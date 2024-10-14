@@ -6,36 +6,26 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use regex::{NoExpand, Regex};
+use regex::Regex;
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
 use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
-use crate::replace_all_hash_pattern;
+use crate::replace_all_placeholder;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
-pub static FILE_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
-pub static BASE_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
-pub static NAME_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
-pub static PATH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
-pub static EXT_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
-pub static QUERY_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
-pub static FRAGMENT_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
-pub static ID_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
-pub static RUNTIME_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
-pub static URL_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
+static FILE_PLACEHOLDER: &str = "[file]";
+static BASE_PLACEHOLDER: &str = "[base]";
+static NAME_PLACEHOLDER: &str = "[name]";
+static PATH_PLACEHOLDER: &str = "[path]";
+static EXT_PLACEHOLDER: &str = "[ext]";
+static QUERY_PLACEHOLDER: &str = "[query]";
+static FRAGMENT_PLACEHOLDER: &str = "[fragment]";
+static ID_PLACEHOLDER: &str = "[id]";
+static RUNTIME_PLACEHOLDER: &str = "[runtime]";
+static URL_PLACEHOLDER: &str = "[url]";
 
 pub static HASH_PLACEHOLDER: &str = "[hash]";
 pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
@@ -247,14 +237,18 @@ fn render_template(
       )
       .map(|exts| exts[0]);
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| PATH_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| BASE_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| NAME_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, PATH_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, ""))
         .map(|t| {
-          EXT_PLACEHOLDER.replace_all(t, &ext.map(|ext| format!(".{}", ext)).unwrap_or_default())
+          replace_all_placeholder(
+            t,
+            EXT_PLACEHOLDER,
+            &ext.map(|ext| format!(".{}", ext)).unwrap_or_default(),
+          )
         });
     } else if let Some(ResourceParsedData {
       path: file,
@@ -263,41 +257,39 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, NoExpand(file.as_str())))
+        .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, file.as_str()))
         .map(|t| {
-          EXT_PLACEHOLDER.replace_all(
+          replace_all_placeholder(
             t,
-            NoExpand(
-              &file
-                .extension()
-                .map(|p| format!(".{p}"))
-                .unwrap_or_default(),
-            ),
+            EXT_PLACEHOLDER,
+            &file
+              .extension()
+              .map(|p| format!(".{p}"))
+              .unwrap_or_default(),
           )
         });
 
       if let Some(base) = file.file_name() {
-        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, NoExpand(base)));
+        t = t.map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, base));
       }
       if let Some(name) = file.file_stem() {
-        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, NoExpand(name)));
+        t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
       }
       t = t
         .map(|t| {
-          PATH_PLACEHOLDER.replace_all(
+          replace_all_placeholder(
             t,
-            NoExpand(
-              &file
-                .parent()
-                // "" -> "", "folder" -> "folder/"
-                .filter(|p| !p.as_str().is_empty())
-                .map(|p| p.as_str().to_owned() + "/")
-                .unwrap_or_default(),
-            ),
+            PATH_PLACEHOLDER,
+            &file
+              .parent()
+              // "" -> "", "folder" -> "folder/"
+              .filter(|p| !p.as_str().is_empty())
+              .map(|p| p.as_str().to_owned() + "/")
+              .unwrap_or_default(),
           )
         })
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, NoExpand(&query.unwrap_or_default())))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, NoExpand(&fragment.unwrap_or_default())));
+        .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, &query.unwrap_or_default()))
+        .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default()));
     }
   }
   if let Some(content_hash) = options.content_hash.or_else(|| {
@@ -313,7 +305,7 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      replace_all_hash_pattern(t, CONTENT_HASH_PLACEHOLDER, |len| {
+      replace_all_placeholder(t, CONTENT_HASH_PLACEHOLDER, |len| {
         let hash: &str = &content_hash[..hash_len(content_hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
@@ -321,13 +313,12 @@ fn render_template(
         }
         hash
       })
-      .map_or(Cow::Borrowed(t), Cow::Owned)
     });
   }
   if let Some(hash) = options.hash {
     for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
       t = t.map(|t| {
-        replace_all_hash_pattern(t, key, |len| {
+        replace_all_placeholder(t, key, |len| {
           let hash = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
@@ -335,23 +326,20 @@ fn render_template(
           }
           hash
         })
-        .map_or(Cow::Borrowed(t), Cow::Owned)
       });
     }
   }
   if let Some(chunk) = options.chunk {
-    if let Some(id) = &options.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
-    } else if let Some(id) = &chunk.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
+    if let Some(id) = options.id.or(chunk.id.as_deref()) {
+      t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
     }
     if let Some(name) = chunk.name_for_filename_template() {
-      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, NoExpand(name)));
+      t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
         let hash = &**d;
-        replace_all_hash_pattern(t, CHUNK_HASH_PLACEHOLDER, |len| {
+        replace_all_placeholder(t, CHUNK_HASH_PLACEHOLDER, |len| {
           let hash: &str = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
@@ -359,23 +347,22 @@ fn render_template(
           }
           hash
         })
-        .map_or(Cow::Borrowed(t), Cow::Owned)
       });
     }
   }
 
-  if let Some(id) = &options.id {
-    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
+  if let Some(id) = options.id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
   } else if let Some(module) = options.module {
     if let Some(chunk_graph) = options.chunk_graph {
       if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, NoExpand(id)));
+        t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
       }
     }
   }
-  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, NoExpand(options.runtime.unwrap_or("_"))));
+  t = t.map(|t| replace_all_placeholder(t, RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
-    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, NoExpand(url)));
+    t = t.map(|t| replace_all_placeholder(t, URL_PLACEHOLDER, url));
   }
   t.into_owned()
 }
