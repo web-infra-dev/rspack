@@ -6,13 +6,14 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use regex::{Captures, NoExpand, Regex};
+use regex::{NoExpand, Regex};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
 use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
+use crate::replace_all_hash_pattern;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
 pub static FILE_PLACEHOLDER: LazyLock<Regex> =
@@ -35,14 +36,11 @@ pub static RUNTIME_PLACEHOLDER: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
 pub static URL_PLACEHOLDER: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
-pub static HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
-pub static CHUNK_HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
-pub static CONTENT_HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
-pub static FULL_HASH_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
+
+pub static HASH_PLACEHOLDER: &str = "[hash]";
+pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
+pub static CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
+pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 
 static DATA_URI_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
@@ -183,17 +181,22 @@ impl<F> FromStr for Filename<F> {
   }
 }
 
-fn hash_len(hash: &str, caps: &Captures) -> usize {
+#[inline]
+fn hash_len(hash: &str, len: Option<usize>) -> usize {
   let hash_len = hash.len();
-  caps
-    .get(2)
-    .and_then(|m| m.as_str().parse().ok())
-    .unwrap_or(hash_len)
-    .min(hash_len)
+  len.unwrap_or(hash_len).min(hash_len)
 }
 
 pub fn has_hash_placeholder(template: &str) -> bool {
-  HASH_PLACEHOLDER.is_match(template) || FULL_HASH_PLACEHOLDER.is_match(template)
+  for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
+    let offset = key.len() - 1;
+    if let Some(start) = template.find(&key[..offset]) {
+      if template[start + offset..].find(']').is_some() {
+        return true;
+      }
+    }
+  }
+  false
 }
 
 impl<F> Filename<F> {
@@ -310,27 +313,29 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      CONTENT_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
-        let content_hash = &content_hash[..hash_len(content_hash, caps)];
+      replace_all_hash_pattern(t, CONTENT_HASH_PLACEHOLDER, |len| {
+        let hash: &str = &content_hash[..hash_len(content_hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
-          asset_info.set_content_hash(content_hash.to_owned());
+          asset_info.set_content_hash(hash.to_owned());
         }
-        content_hash
+        hash
       })
+      .map_or(Cow::Borrowed(t), Cow::Owned)
     });
   }
   if let Some(hash) = options.hash {
-    for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
+    for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
       t = t.map(|t| {
-        reg.replace_all(t, |caps: &Captures| {
-          let hash = &hash[..hash_len(hash, caps)];
+        replace_all_hash_pattern(t, key, |len| {
+          let hash = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
             asset_info.set_full_hash(hash.to_owned());
           }
           hash
         })
+        .map_or(Cow::Borrowed(t), Cow::Owned)
       });
     }
   }
@@ -345,15 +350,16 @@ fn render_template(
     }
     if let Some(d) = chunk.rendered_hash.as_ref() {
       t = t.map(|t| {
-        CHUNK_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
-          let hash = &**d;
-          let hash = &hash[..hash_len(hash, caps)];
+        let hash = &**d;
+        replace_all_hash_pattern(t, CHUNK_HASH_PLACEHOLDER, |len| {
+          let hash: &str = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
             asset_info.set_chunk_hash(hash.to_owned());
           }
           hash
         })
+        .map_or(Cow::Borrowed(t), Cow::Owned)
       });
     }
   }
