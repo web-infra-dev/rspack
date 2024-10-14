@@ -800,6 +800,18 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return errors;
 	}
 
+	set errors(errors: RspackError[]) {
+		const inner = this.#inner;
+		const length = inner.getErrors().length;
+		inner.spliceDiagnostic(
+			0,
+			length,
+			errors.map(error => {
+				return JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error);
+			})
+		);
+	}
+
 	get warnings(): RspackError[] {
 		const inner = this.#inner;
 		type WarnType = Error | RspackError;
@@ -891,6 +903,18 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			warnings[item.method as any] = proxiedMethod;
 		}
 		return warnings;
+	}
+
+	set warnings(warnings: RspackError[]) {
+		const inner = this.#inner;
+		const length = inner.getWarnings().length;
+		inner.spliceDiagnostic(
+			0,
+			length,
+			warnings.map(warning => {
+				return JsRspackDiagnostic.__to_binding(warning, JsRspackSeverity.Warn);
+			})
+		);
 	}
 
 	getPath(filename: Filename, data: PathData = {}) {
