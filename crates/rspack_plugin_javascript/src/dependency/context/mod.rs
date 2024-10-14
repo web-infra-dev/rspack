@@ -49,18 +49,15 @@ fn create_resource_identifier_for_context_dependency(
     if let Some(chunk_name) = &group.name {
       group_options += chunk_name;
     }
-    group_options += "{";
+    group_options += " {";
     if let Some(o) = group.prefetch_order {
-      group_options += "prefetchOrder: ";
-      group_options += &o.to_string();
+      group_options.push_str(&format!("prefetchOrder: {},", o));
     }
     if let Some(o) = group.preload_order {
-      group_options += "preloadOrder: ";
-      group_options += &o.to_string();
+      group_options.push_str(&format!("preloadOrder: {},", o));
     }
     if let Some(o) = group.fetch_priority {
-      group_options += "fetchPriority: ";
-      group_options += &o.to_string();
+      group_options.push_str(&format!("fetchPriority: {},", o));
     }
     group_options += "}";
   }
