@@ -87,7 +87,7 @@ rspack_dojang = { version = "0.1.9" }
 rate-limit = { existing-packages = 70, new-packages = 70 }
 [profile.dev]
 codegen-units = 16
-debug         = 2       # debug build will cause runtime panic if codegen-unints is default
+debug         = 2    # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
 panic         = "abort"
 
