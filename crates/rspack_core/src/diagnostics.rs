@@ -78,6 +78,7 @@ impl miette::Diagnostic for ModuleBuildError {
 }
 
 /// Represent any errors or warnings during module parse
+///
 /// This does NOT aligned with webpack as webpack does not have parse warning.
 /// However, rspack may create warning during parsing stage, taking CSS as an example.
 #[derive(Debug, Error)]
