@@ -1,9 +1,8 @@
-// const {
-// 	stringifyLocal
-// } = require("../../../packages/rspack/dist/builtin-plugin/css-extract/utils");
+const {
+	stringifyLocal
+} = require("../../../packages/rspack/src/builtin-plugin/css-extract/utils");
 
-// TODO: should require from src instead of dist
-describe.skip("stringifyLocal", () => {
+describe("stringifyLocal", () => {
 	it(`primitive`, async () => {
 		const testObj = "classA";
 

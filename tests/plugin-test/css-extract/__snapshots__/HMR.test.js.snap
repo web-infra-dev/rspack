@@ -6,7 +6,7 @@ exports[`HMR hotLoader works for locals 1`] = `
       (function() {
         var localsJsonString = \\"{\\\\\\"foo\\\\\\":\\\\\\"bar\\\\\\"}\\";
         // 1
-        var cssReload = require(\\"../../../packages/rspack/dist/cssExtractHmr.js\\").cssReload(module.id, {});
+        var cssReload = require(\\"../../../packages/rspack/src/builtin-plugin/css-extract/cssExtractHmr.js\\").cssReload(module.id, {});
         // only invalidate when locals change
         if (
           module.hot.data &&
@@ -32,7 +32,7 @@ exports[`HMR hotLoader works for non-locals 1`] = `
       (function() {
         var localsJsonString = undefined;
         // 1
-        var cssReload = require(\\"../../../packages/rspack/dist/cssExtractHmr.js\\").cssReload(module.id, {});
+        var cssReload = require(\\"../../../packages/rspack/src/builtin-plugin/css-extract/cssExtractHmr.js\\").cssReload(module.id, {});
         // only invalidate when locals change
         if (
           module.hot.data &&
