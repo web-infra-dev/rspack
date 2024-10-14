@@ -146,7 +146,7 @@ describe("CopyPlugin", () => {
 		});
 
 		it("should copy a file to a new file", done => {
-			runEmit({
+			run({
 				expectedAssetKeys: ["newfile.txt"],
 				patterns: [
 					{
@@ -155,6 +155,12 @@ describe("CopyPlugin", () => {
 					}
 				]
 			})
+				.then(({ stats, compilation }) => {
+					const assetInfo = stats.compilation.getAsset("newfile.txt");
+					expect(assetInfo.info.sourceFilename).toBe("file.txt");
+					expect(assetInfo.name).toBe("newfile.txt");
+					expect(compilation.assets["newfile.txt"]).toBeDefined();
+				})
 				.then(done)
 				.catch(done);
 		});
@@ -306,7 +312,7 @@ describe("CopyPlugin", () => {
 			})
 				.then(({ stats }) => {
 					for (const name of expectedAssetKeys) {
-						const info = stats.compilation.assetsInfo.get(name);
+						const { info } = stats.compilation.getAsset(name);
 
 						expect(info.copied).toBe(true);
 
@@ -350,7 +356,7 @@ describe("CopyPlugin", () => {
 			})
 				.then(({ stats }) => {
 					for (const name of expectedAssetKeys) {
-						const info = stats.compilation.assetsInfo.get(name);
+						const { info } = stats.compilation.getAsset(name);
 
 						expect(info.immutable).toBe(true);
 
@@ -363,7 +369,7 @@ describe("CopyPlugin", () => {
 				.catch(done);
 		});
 
-		it.skip('should copy files and print "copied" in the string representation ', done => {
+		it('should copy files and print "copied" in the string representation ', done => {
 			expect.assertions(1);
 
 			const expectedAssetKeys = [
@@ -524,7 +530,7 @@ describe("CopyPlugin", () => {
 								{
 									from: path.resolve(__dirname, "./fixtures/directory"),
 									to: () => {
-										return 'directory';
+										return "directory";
 									}
 								}
 							]
