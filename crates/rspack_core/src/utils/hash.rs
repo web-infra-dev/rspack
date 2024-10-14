@@ -13,6 +13,22 @@ pub struct ExtractedHashPattern {
   pub len: Option<usize>,
 }
 
+/// Extract `[hash]` or `[hash:8]` in the template
+pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPattern> {
+  let key_offset = key.len() - 1;
+  let start = pattern.find(&key[..key_offset])?;
+  let end = pattern[start + key_offset..].find(']')?;
+  let len = pattern[start + key_offset..start + key_offset + end]
+    .strip_prefix(':')
+    .and_then(|n| n.parse::<usize>().ok());
+
+  let pattern = &pattern[start..=start + key_offset + end];
+  Some(ExtractedHashPattern {
+    pattern: pattern.to_string(),
+    len,
+  })
+}
+
 pub trait Replacer {
   fn get_replacer(&mut self, hash_len: Option<usize>) -> Cow<'_, str>;
 }
@@ -40,22 +56,6 @@ where
   fn get_replacer(&mut self, hash_len: Option<usize>) -> Cow<'_, str> {
     Cow::Owned((*self)(hash_len).as_ref().to_string())
   }
-}
-
-/// Extract `[hash]` or `[hash:8]` in the template
-pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPattern> {
-  let key_offset = key.len() - 1;
-  let start = pattern.find(&key[..key_offset])?;
-  let end = pattern[start + key_offset..].find(']')?;
-  let len = pattern[start + key_offset..start + key_offset + end]
-    .strip_prefix(':')
-    .and_then(|n| n.parse::<usize>().ok());
-
-  let pattern = &pattern[start..=start + key_offset + end];
-  Some(ExtractedHashPattern {
-    pattern: pattern.to_string(),
-    len,
-  })
 }
 
 /// Replace all `[placeholder]` or `[placeholder:8]` in the pattern
