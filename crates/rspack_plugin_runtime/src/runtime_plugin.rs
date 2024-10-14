@@ -15,16 +15,17 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 
 use crate::runtime_module::{
-  chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
-  BaseUriRuntimeModule, ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
-  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
-  CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
-  EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule,
-  GetFullHashRuntimeModule, GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule,
-  GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule,
-  NonceRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  chunk_has_css, chunk_has_js, is_enabled_for_chunk, AsyncRuntimeModule,
+  AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkNameRuntimeModule,
+  ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
+  CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule,
+  DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
+  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
+  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule,
+  HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
+  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
+  PublicPathRuntimeModule, RelativeUrlRuntimeModule, RuntimeIdRuntimeModule,
+  SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
@@ -324,14 +325,14 @@ fn runtime_requirements_in_tree(
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
             |_| false,
             |chunk, compilation| {
-              Some(
+              chunk_has_js(&chunk.ukey, compilation).then(|| {
                 get_js_chunk_filename_template(
                   chunk,
                   &compilation.options.output,
                   &compilation.chunk_group_by_ukey,
                 )
-                .clone(),
-              )
+                .clone()
+              })
             },
           )
           .boxed(),
