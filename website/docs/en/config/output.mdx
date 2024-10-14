@@ -355,6 +355,8 @@ module.exports = {
       const: true,
       // The environment supports destructuring ('{ a, b } = obj').
       destructuring: true,
+      // The environment supports 'document' variable.
+      document: true,
       // The environment supports an async import() function to import EcmaScript modules.
       dynamicImport: false,
       // The environment supports an async import() when creating a worker, only for web targets at the moment.
@@ -1652,6 +1654,12 @@ module.exports = {
   },
 };
 ```
+
+## output.strictModuleExceptionHandling
+
+- **Types:** boolean
+
+Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required.
 
 ## output.trustedTypes
 

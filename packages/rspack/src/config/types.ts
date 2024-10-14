@@ -222,6 +222,420 @@ export type EntryDynamic = () => EntryStatic | Promise<EntryStatic>;
 export type Entry = EntryStatic | EntryDynamic;
 //#endregion
 
+//#region Output
+/** The output directory as an absolute path. */
+export type Path = string;
+
+/** Tells Rspack to include comments in bundles with information about the contained modules. */
+export type Pathinfo = boolean | "verbose";
+
+/** Before generating the products, delete all files in the output directory. */
+export type AssetModuleFilename = Filename;
+
+/** Specifies the filename of WebAssembly modules. */
+export type WebassemblyModuleFilename = string;
+
+/** This option determines the name of non-initial chunk files. */
+export type ChunkFilename = Filename;
+
+/** Allows you to set the [crossorigin attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script)  */
+export type CrossOriginLoading = false | "anonymous" | "use-credentials";
+
+/** This option determines the name of CSS output files on disk. */
+export type CssFilename = Filename;
+
+/** This option determines the name of non-initial CSS output files on disk. */
+export type CssChunkFilename = Filename;
+
+/** Customize the filenames of hot update chunks. */
+export type HotUpdateChunkFilename = FilenameTemplate;
+
+/** Customize the main hot update filename. */
+export type HotUpdateMainFilename = FilenameTemplate;
+
+/** Which uses JSONP for loading hot updates. */
+export type HotUpdateGlobal = string;
+
+/** A unique name of the Rspack build */
+export type UniqueName = string;
+
+/** The global variable is used by Rspack for loading chunks. */
+export type ChunkLoadingGlobal = string;
+
+/** List of library types enabled for use by entry points. */
+export type EnabledLibraryTypes = string[];
+
+/** Whether delete all files in the output directory. */
+export type Clean = boolean;
+
+/** Output JavaScript files as module type. */
+export type OutputModule = boolean;
+
+/** Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required. */
+export type StrictModuleExceptionHandling = boolean;
+
+/** Handle error in module loading as per EcmaScript Modules spec at a performance cost. */
+export type StrictModuleErrorHandling = boolean;
+
+/** Indicates what global object will be used to mount the library. */
+export type GlobalObject = string;
+
+/** List of wasm loading types enabled for use by entry points. */
+export type EnabledWasmLoadingTypes = string[];
+
+/** The name of the native import() function. */
+export type ImportFunctionName = string;
+
+/** The name of the native import.meta object. */
+export type ImportMetaName = string;
+
+/** Tells Rspack to add IIFE wrapper around emitted code. */
+export type Iife = boolean;
+
+/** List of chunk loading types enabled for use by entry points. */
+export type EnabledChunkLoadingTypes = string[];
+
+/** The format of chunks */
+export type ChunkFormat = string | false;
+
+/** Set a public path for Worker. */
+export type WorkerPublicPath = string;
+
+/** Controls [Trusted Types](https://web.dev/articles/trusted-types) compatibility. */
+export type TrustedTypes = {
+	policyName?: string;
+};
+
+/** The encoding to use when generating the hash. */
+export type HashDigest = string;
+
+/** The prefix length of the hash digest to use. */
+export type HashDigestLength = number;
+
+/** The hashing algorithm to use. */
+export type HashFunction = "md4" | "xxhash64";
+
+/** An optional salt to update the hash. */
+export type HashSalt = string;
+
+/** Configure how source maps are named. */
+export type SourceMapFilename = string;
+
+/** This option determines the module's namespace */
+export type DevtoolNamespace = string;
+
+/** This option is only used when devtool uses an option that requires module names. */
+export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
+
+/** A fallback is used when the template string or function above yields duplicates. */
+export type DevtoolFallbackModuleFilenameTemplate =
+	DevtoolModuleFilenameTemplate;
+
+/** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
+export type Environment = {
+	/** The environment supports arrow functions ('() => { ... }'). */
+	arrowFunction?: boolean;
+
+	/** The environment supports async function and await ('async function () { await ... }'). */
+	asyncFunction?: boolean;
+
+	/** The environment supports BigInt as literal (123n). */
+	bigIntLiteral?: boolean;
+
+	/** The environment supports const and let for variable declarations. */
+	const?: boolean;
+
+	/** The environment supports destructuring ('{ a, b } = obj'). */
+	destructuring?: boolean;
+
+	/** The environment supports 'document' variable. */
+	document?: boolean;
+
+	/** The environment supports an async import() function to import EcmaScript modules. */
+	dynamicImport?: boolean;
+
+	/** The environment supports an async import() when creating a worker, only for web targets at the moment. */
+	dynamicImportInWorker?: boolean;
+
+	/** The environment supports 'for of' iteration ('for (const x of array) { ... }'). */
+	forOf?: boolean;
+
+	/** The environment supports 'globalThis'. */
+	globalThis?: boolean;
+
+	/** The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...'). */
+	module?: boolean;
+
+	/**
+	 * Determines if the node: prefix is generated for core module imports in environments that support it.
+	 * This is only applicable to Webpack runtime code.
+	 * */
+	nodePrefixForCoreModules?: boolean;
+
+	/** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
+	optionalChaining?: boolean;
+
+	/** The environment supports template literals. */
+	templateLiteral?: boolean;
+};
+
+export type Output = {
+	/**
+	 * The output directory as an absolute path.
+	 * @default path.resolve(process.cwd(), 'dist')
+	 * */
+	path?: Path;
+
+	/**
+	 * Tells Rspack to include comments in bundles with information about the contained modules.
+	 * @default true
+	 */
+	pathinfo?: Pathinfo;
+
+	/**
+	 * Before generating the products, whether delete all files in the output directory.
+	 * @default false
+	 * */
+	clean?: Clean;
+
+	/** This option determines the URL prefix of the referenced resource, such as: image, file, etc. */
+	publicPath?: PublicPath;
+
+	/** This option determines the name of each output bundle. */
+	filename?: Filename;
+
+	/** This option determines the name of non-initial chunk files. */
+	chunkFilename?: ChunkFilename;
+
+	/** Allows you to set the [crossorigin attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script) for dynamically loaded chunks. */
+	crossOriginLoading?: CrossOriginLoading;
+
+	/** This option determines the name of CSS output files on disk. */
+	cssFilename?: CssFilename;
+
+	/**
+	 * Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
+	 *
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
+	 * */
+	cssHeadDataCompression?: boolean;
+
+	/** This option determines the name of non-initial CSS output files on disk. */
+	cssChunkFilename?: CssChunkFilename;
+
+	/**
+	 * Customize the main hot update filename. [fullhash] and [runtime] are available as placeholder.
+	 * @default '[runtime].[fullhash].hot-update.json'
+	 * */
+	hotUpdateMainFilename?: HotUpdateMainFilename;
+
+	/**
+	 * Customize the filenames of hot update chunks.
+	 * @default '[id].[fullhash].hot-update.js'
+	 * */
+	hotUpdateChunkFilename?: HotUpdateChunkFilename;
+
+	/**
+	 * Only used when target is set to 'web', which uses JSONP for loading hot updates.
+	 * @default 'webpackHotUpdate' + output.uniqueName
+	 * */
+	hotUpdateGlobal?: HotUpdateGlobal;
+
+	/**
+	 * This option determines the name of each asset modules.
+	 * @default '[hash][ext][query]'
+	 * */
+	assetModuleFilename?: AssetModuleFilename;
+
+	/** A unique name of the Rspack build to avoid multiple Rspack runtimes to conflict when using globals. */
+	uniqueName?: UniqueName;
+
+	/**
+	 * The global variable is used by Rspack for loading chunks.
+	 * Determined by output.uniqueName default.
+	 * */
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
+
+	/**
+	 * List of library types enabled for use by entry points.
+	 * Determined by output.library and Entry default.
+	 * */
+	enabledLibraryTypes?: EnabledLibraryTypes;
+
+	/** Output a library exposing the exports of your entry point. */
+	library?: Library;
+
+	/**
+	 * Specify which export should be exposed as a library.
+	 * @deprecated We might drop support for this, so prefer to use output.library.export
+	 * */
+	libraryExport?: LibraryExport;
+
+	/**
+	 * Configure how the library will be exposed.
+	 * @deprecated Use output.library.type instead as we might drop support for output.libraryTarget in the future.
+	 * */
+	libraryTarget?: LibraryType;
+
+	/**
+	 * When using output.library.type: "umd", setting output.umdNamedDefine to true will name the AMD module of the UMD build.
+	 * @deprecated Use output.library.umdNamedDefine instead.
+	 */
+	umdNamedDefine?: UmdNamedDefine;
+
+	/**
+	 * Add a comment in the UMD wrapper.
+	 * @deprecated use output.library.auxiliaryComment instead.
+	 * */
+	auxiliaryComment?: AuxiliaryComment;
+
+	/**
+	 * Output JavaScript files as module type.
+	 * Disabled by default as it's an experimental feature. To use it, you must set experiments.outputModule to true.
+	 * @default false
+	 */
+	module?: OutputModule;
+
+	/** Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required. */
+	strictModuleExceptionHandling?: StrictModuleExceptionHandling;
+
+	/**
+	 * Handle error in module loading as per EcmaScript Modules spec at a performance cost.
+	 * @default false
+	 * */
+	strictModuleErrorHandling?: StrictModuleErrorHandling;
+
+	/**
+	 * When targeting a library, especially when library.type is 'umd', this option indicates what global object will be used to mount the library.
+	 * @default 'self'
+	 */
+	globalObject?: GlobalObject;
+
+	/**
+	 * The name of the native import() function.
+	 * @default 'import'
+	 * */
+	importFunctionName?: ImportFunctionName;
+
+	/**
+	 * The name of the native import.meta object (can be exchanged for a polyfill).
+	 * @default 'import.meta'
+	 */
+	importMetaName?: ImportMetaName;
+
+	/**
+	 * Tells Rspack to add IIFE wrapper around emitted code.
+	 * @default true
+	 */
+	iife?: Iife;
+
+	/**
+	 * Option to set the method of loading WebAssembly Modules.
+	 * @default 'fetch'
+	 * */
+	wasmLoading?: WasmLoading;
+
+	/** List of wasm loading types enabled for use by entry points. */
+	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+
+	/**
+	 * Specifies the filename of WebAssembly modules.
+	 * @default '[hash].module.wasm'
+	 * */
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
+
+	/** The format of chunks (formats included by default are 'array-push' (web/webworker), 'commonjs' (node.js), 'module' (ESM). */
+	chunkFormat?: ChunkFormat;
+
+	/** The method to load chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (webworker), 'require' (sync node.js), 'async-node' (async node.js) */
+	chunkLoading?: ChunkLoading;
+
+	/** List of chunk loading types enabled for use by entry points. */
+	enabledChunkLoadingTypes?: EnabledChunkLoadingTypes;
+
+	/** Controls [Trusted Types](https://web.dev/articles/trusted-types) compatibility. */
+	trustedTypes?: true | string | TrustedTypes;
+
+	/**
+	 * Configure how source maps are named.
+	 * Only takes effect when devtool is set to 'source-map', which writes an output file.
+	 * @default '[file].map[query]'
+	 * */
+	sourceMapFilename?: SourceMapFilename;
+
+	/** The encoding to use when generating the hash. */
+	hashDigest?: HashDigest;
+
+	/**
+	 * The prefix length of the hash digest to use.
+	 * @default 20
+	 * */
+	hashDigestLength?: HashDigestLength;
+
+	/**
+	 * The hashing algorithm to use.
+	 * @default 'md4'
+	 * */
+	hashFunction?: HashFunction;
+
+	/** An optional salt to update the hash. */
+	hashSalt?: HashSalt;
+
+	/**
+	 * Create async chunks that are loaded on demand.
+	 * @default true
+	 * */
+	asyncChunks?: AsyncChunks;
+
+	/**
+	 * The new option workerChunkLoading controls the chunk loading of workers.
+	 * @default false
+	 * */
+	workerChunkLoading?: ChunkLoading;
+
+	/**
+	 * Option to set the method of loading WebAssembly Modules in workers, defaults to the value of output.wasmLoading.
+	 * @default false
+	 * */
+	workerWasmLoading?: WasmLoading;
+
+	/** Set a public path for Worker, defaults to value of output.publicPath. */
+	workerPublicPath?: WorkerPublicPath;
+
+	/**
+	 * This option allows loading asynchronous chunks with a custom script type.
+	 * @default false
+	 * */
+	scriptType?: ScriptType;
+
+	/** This option determines the module's namespace used with the output.devtoolModuleFilenameTemplate */
+	devtoolNamespace?: DevtoolNamespace;
+
+	/** This option is only used when devtool uses an option that requires module names. */
+	devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
+
+	/** A fallback is used when the template string or function above yields duplicates. */
+	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
+
+	/**
+	 * The Number of milliseconds before chunk request timed out.
+	 * @default 120000
+	 * */
+	chunkLoadTimeout?: number;
+
+	/**
+	 * Add charset="utf-8" to the HTML <script> tag.
+	 * @default true
+	 * */
+	charset?: boolean;
+
+	/** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
+	environment?: Environment;
+};
+
+//#endregion
+
 //#region Resolve
 /**
  * Path alias

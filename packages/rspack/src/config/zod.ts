@@ -199,127 +199,103 @@ const entry = entryStatic.or(entryDynamic) satisfies z.ZodType<t.Entry>;
 //#endregion
 
 //#region Output
-const path = z.string();
-export type Path = z.infer<typeof path>;
+const path = z.string() satisfies z.ZodType<t.Path>;
 
-const pathinfo = z.boolean().or(z.literal("verbose"));
-export type Pathinfo = z.infer<typeof pathinfo>;
+const pathinfo = z
+	.boolean()
+	.or(z.literal("verbose")) satisfies z.ZodType<t.Pathinfo>;
 
-const assetModuleFilename = filename;
-export type AssetModuleFilename = z.infer<typeof assetModuleFilename>;
+const assetModuleFilename = filename satisfies z.ZodType<t.AssetModuleFilename>;
 
-const webassemblyModuleFilename = z.string();
-export type WebassemblyModuleFilename = z.infer<
-	typeof webassemblyModuleFilename
->;
+const webassemblyModuleFilename =
+	z.string() satisfies z.ZodType<t.WebassemblyModuleFilename>;
 
-const chunkFilename = filename;
-export type ChunkFilename = z.infer<typeof chunkFilename>;
+const chunkFilename = filename satisfies z.ZodType<t.ChunkFilename>;
 
 const crossOriginLoading = z
 	.literal(false)
-	.or(z.enum(["anonymous", "use-credentials"]));
-export type CrossOriginLoading = z.infer<typeof crossOriginLoading>;
+	.or(
+		z.enum(["anonymous", "use-credentials"])
+	) satisfies z.ZodType<t.CrossOriginLoading>;
 
-const cssFilename = filename;
-export type CssFilename = z.infer<typeof cssFilename>;
+const cssFilename = filename satisfies z.ZodType<t.CssFilename>;
 
-const cssChunkFilename = filename;
-export type CssChunkFilename = z.infer<typeof cssChunkFilename>;
+const cssChunkFilename = filename satisfies z.ZodType<t.CssChunkFilename>;
 
-const hotUpdateChunkFilename = filenameTemplate;
-export type HotUpdateChunkFilename = z.infer<typeof hotUpdateChunkFilename>;
+const hotUpdateChunkFilename =
+	filenameTemplate satisfies z.ZodType<t.HotUpdateChunkFilename>;
 
-const hotUpdateMainFilename = filenameTemplate;
-export type HotUpdateMainFilename = z.infer<typeof hotUpdateMainFilename>;
+const hotUpdateMainFilename =
+	filenameTemplate satisfies z.ZodType<t.HotUpdateMainFilename>;
 
-const hotUpdateGlobal = z.string();
-export type HotUpdateGlobal = z.infer<typeof hotUpdateGlobal>;
+const hotUpdateGlobal = z.string() satisfies z.ZodType<t.HotUpdateGlobal>;
 
-const uniqueName = z.string();
-export type UniqueName = z.infer<typeof uniqueName>;
+const uniqueName = z.string() satisfies z.ZodType<t.UniqueName>;
 
-const chunkLoadingGlobal = z.string();
-export type ChunkLoadingGlobal = z.infer<typeof chunkLoadingGlobal>;
+const chunkLoadingGlobal = z.string() satisfies z.ZodType<t.ChunkLoadingGlobal>;
 
-const enabledLibraryTypes = z.array(libraryType);
-export type EnabledLibraryTypes = z.infer<typeof enabledLibraryTypes>;
+const enabledLibraryTypes = z.array(
+	libraryType
+) satisfies z.ZodType<t.EnabledLibraryTypes>;
 
-const clean = z.boolean();
-export type Clean = z.infer<typeof clean>;
+const clean = z.boolean() satisfies z.ZodType<t.Clean>;
 
-const outputModule = z.boolean();
-export type OutputModule = z.infer<typeof outputModule>;
+const outputModule = z.boolean() satisfies z.ZodType<t.OutputModule>;
 
-const strictModuleExceptionHandling = z.boolean();
-export type StrictModuleExceptionHandling = z.infer<
-	typeof strictModuleExceptionHandling
->;
+const strictModuleExceptionHandling =
+	z.boolean() satisfies z.ZodType<t.StrictModuleExceptionHandling>;
 
-const strictModuleErrorHandling = z.boolean();
-export type StrictModuleErrorHandling = z.infer<
-	typeof strictModuleErrorHandling
->;
+const strictModuleErrorHandling =
+	z.boolean() satisfies z.ZodType<t.StrictModuleErrorHandling>;
 
-const globalObject = z.string();
-export type GlobalObject = z.infer<typeof globalObject>;
+const globalObject = z.string() satisfies z.ZodType<t.GlobalObject>;
 
-const enabledWasmLoadingTypes = z.array(wasmLoadingType);
-export type EnabledWasmLoadingTypes = z.infer<typeof enabledWasmLoadingTypes>;
+const enabledWasmLoadingTypes = z.array(
+	wasmLoadingType
+) satisfies z.ZodType<t.EnabledWasmLoadingTypes>;
 
-const importFunctionName = z.string();
-export type ImportFunctionName = z.infer<typeof importFunctionName>;
+const importFunctionName = z.string() satisfies z.ZodType<t.ImportFunctionName>;
 
-const importMetaName = z.string();
-export type ImportMetaName = z.infer<typeof importMetaName>;
+const importMetaName = z.string() satisfies z.ZodType<t.ImportMetaName>;
 
-const iife = z.boolean();
-export type Iife = z.infer<typeof iife>;
+const iife = z.boolean() satisfies z.ZodType<t.Iife>;
 
-const enabledChunkLoadingTypes = z.array(chunkLoadingType);
-export type EnabledChunkLoadingTypes = z.infer<typeof enabledChunkLoadingTypes>;
+const enabledChunkLoadingTypes = z.array(
+	chunkLoadingType
+) satisfies z.ZodType<t.EnabledChunkLoadingTypes>;
 
-const chunkFormat = z.literal(false).or(z.string());
-export type ChunkFormat = z.infer<typeof chunkFormat>;
+const chunkFormat = z
+	.literal(false)
+	.or(z.string()) satisfies z.ZodType<t.ChunkFormat>;
 
-const workerPublicPath = z.string();
-export type WorkerPublicPath = z.infer<typeof workerPublicPath>;
+const workerPublicPath = z.string() satisfies z.ZodType<t.WorkerPublicPath>;
 
 const trustedTypes = z.strictObject({
 	policyName: z.string().optional()
-});
-export type TrustedTypes = z.infer<typeof trustedTypes>;
+}) satisfies z.ZodType<t.TrustedTypes>;
 
-const hashDigest = z.string();
-export type HashDigest = z.infer<typeof hashDigest>;
+const hashDigest = z.string() satisfies z.ZodType<t.HashDigest>;
 
-const hashDigestLength = z.number();
-export type HashDigestLength = z.infer<typeof hashDigestLength>;
+const hashDigestLength = z.number() satisfies z.ZodType<t.HashDigestLength>;
 
-const hashFunction = z.enum(["md4", "xxhash64"]);
-export type HashFunction = z.infer<typeof hashFunction>;
+const hashFunction = z.enum([
+	"md4",
+	"xxhash64"
+]) satisfies z.ZodType<t.HashFunction>;
 
-const hashSalt = z.string();
-export type HashSalt = z.infer<typeof hashSalt>;
+const hashSalt = z.string() satisfies z.ZodType<t.HashSalt>;
 
-const sourceMapFilename = z.string();
-export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
+const sourceMapFilename = z.string() satisfies z.ZodType<t.SourceMapFilename>;
 
-const devtoolNamespace = z.string();
-export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
+const devtoolNamespace = z.string() satisfies z.ZodType<t.DevtoolNamespace>;
 
 const devtoolModuleFilenameTemplate = z.union([
 	z.string(),
 	z.function(z.tuple([z.any()]), z.any())
-]);
-export type DevtoolModuleFilenameTemplate = z.infer<
-	typeof devtoolModuleFilenameTemplate
->;
+]) satisfies z.ZodType<t.DevtoolModuleFilenameTemplate>;
 
-const devtoolFallbackModuleFilenameTemplate = devtoolModuleFilenameTemplate;
-export type DevtoolFallbackModuleFilenameTemplate = z.infer<
-	typeof devtoolFallbackModuleFilenameTemplate
->;
+const devtoolFallbackModuleFilenameTemplate =
+	devtoolModuleFilenameTemplate satisfies z.ZodType<t.DevtoolFallbackModuleFilenameTemplate>;
 
 const environment = z.strictObject({
 	arrowFunction: z.boolean().optional(),
@@ -336,8 +312,7 @@ const environment = z.strictObject({
 	nodePrefixForCoreModules: z.boolean().optional(),
 	optionalChaining: z.boolean().optional(),
 	templateLiteral: z.boolean().optional()
-});
-export type Environment = z.infer<typeof environment>;
+}) satisfies z.ZodType<t.Environment>;
 
 const output = z.strictObject({
 	path: path.optional(),
@@ -393,8 +368,7 @@ const output = z.strictObject({
 	chunkLoadTimeout: z.number().optional(),
 	charset: z.boolean().optional(),
 	environment: environment.optional()
-});
-export type Output = z.infer<typeof output>;
+}) satisfies z.ZodType<t.Output>;
 //#endregion
 
 //#region Resolve
