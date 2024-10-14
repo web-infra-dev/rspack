@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::fmt::Debug;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -664,8 +666,15 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     .copied()
     .collect();
   let mut new_connections = Default::default();
+  let cache = Rc::new(RefCell::new(Default::default()));
   for module in modules.clone() {
-    optimize_incoming_connections(module, &mut modules, &mut new_connections, compilation);
+    optimize_incoming_connections(
+      module,
+      &mut modules,
+      &mut new_connections,
+      compilation,
+      cache.clone(),
+    );
   }
   Ok(None)
 }
@@ -700,6 +709,7 @@ fn optimize_incoming_connections(
   to_be_optimized: &mut IdentifierSet,
   new_connections: &mut IdentifierMap<FxHashSet<DependencyId>>,
   compilation: &mut Compilation,
+  cache: Rc<RefCell<IdentifierMap<ConnectionState>>>,
 ) {
   if !to_be_optimized.remove(&module_identifier) {
     return;
@@ -708,8 +718,18 @@ fn optimize_incoming_connections(
   let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
     return;
   };
-  let side_effects_state =
-    module.get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default());
+
+  let mut cache_inner = cache.borrow_mut();
+  let side_effects_state = if let Some(state) = cache_inner.get(&module_identifier) {
+    *state
+  } else {
+    let state =
+      module.get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default());
+    cache_inner.insert(module_identifier, state);
+    state
+  };
+  drop(cache_inner);
+
   if side_effects_state != rspack_core::ConnectionState::Bool(false) {
     return;
   }
@@ -724,6 +744,7 @@ fn optimize_incoming_connections(
       to_be_optimized,
       new_connections,
       compilation,
+      cache.clone(),
     );
   }
   // It is possible to add additional new connections when optimizing module's incoming connections
@@ -735,6 +756,7 @@ fn optimize_incoming_connections(
         to_be_optimized,
         new_connections,
         compilation,
+        cache.clone(),
       );
     }
   }
@@ -746,6 +768,7 @@ fn optimize_incoming_connection(
   to_be_optimized: &mut IdentifierSet,
   new_connections: &mut IdentifierMap<FxHashSet<DependencyId>>,
   compilation: &mut Compilation,
+  cache: Rc<RefCell<IdentifierMap<ConnectionState>>>,
 ) {
   let module_graph = compilation.get_module_graph();
   let connection = module_graph
@@ -769,13 +792,20 @@ fn optimize_incoming_connection(
   };
   // For the best optimization results, connection.origin_module must optimize before connection.module
   // See: https://github.com/webpack/webpack/pull/17595
-  optimize_incoming_connections(origin_module, to_be_optimized, new_connections, compilation);
+  optimize_incoming_connections(
+    origin_module,
+    to_be_optimized,
+    new_connections,
+    compilation,
+    cache.clone(),
+  );
   do_optimize_incoming_connection(
     dependency_id,
     module_identifier,
     origin_module,
     new_connections,
     compilation,
+    cache.clone(),
   );
 }
 
@@ -786,6 +816,7 @@ fn do_optimize_incoming_connection(
   origin_module: ModuleIdentifier,
   new_connections: &mut IdentifierMap<FxHashSet<DependencyId>>,
   compilation: &mut Compilation,
+  cache: Rc<RefCell<IdentifierMap<ConnectionState>>>,
 ) {
   if let Some(connections) = new_connections.get_mut(&module_identifier) {
     connections.remove(&dependency_id);
@@ -799,13 +830,23 @@ fn do_optimize_incoming_connection(
     .and_then(|dep| dep.name.clone())
   {
     let export_info = module_graph.get_export_info(origin_module, &name);
+    let cache_clone = cache.clone();
     let target = export_info.move_target(
       &mut module_graph,
-      Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-        mg.module_by_identifier(&target.module)
-          .expect("should have module")
-          .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
-          == ConnectionState::Bool(false)
+      Rc::new(move |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+        let mut cache = cache_clone.borrow_mut();
+        let state = if let Some(state) = cache.get(&target.module) {
+          *state
+        } else {
+          let state = mg
+            .module_by_identifier(&target.module)
+            .expect("should have module")
+            .get_side_effects_connection_state(mg, &mut IdentifierSet::default());
+          cache.insert(target.module, state);
+          state
+        };
+
+        state == ConnectionState::Bool(false)
       }),
       Arc::new(
         move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
@@ -845,20 +886,30 @@ fn do_optimize_incoming_connection(
     let cur_exports_info = module_graph.get_exports_info(&module_identifier);
     let export_info = cur_exports_info.get_export_info(&mut module_graph, &ids[0]);
 
+    let cache = cache.clone();
     let target = export_info.get_target(
       &module_graph,
-      Some(Arc::new(
-        |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
-          mg.module_by_identifier(&target.module)
-            .expect("should have module graph")
-            .get_side_effects_connection_state(mg, &mut IdentifierSet::default())
-            == ConnectionState::Bool(false)
+      Some(Rc::new(
+        move |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+          let mut cache = cache.borrow_mut();
+          let state = if let Some(state) = cache.get(&target.module) {
+            *state
+          } else {
+            let state = mg
+              .module_by_identifier(&target.module)
+              .expect("should have module graph")
+              .get_side_effects_connection_state(mg, &mut IdentifierSet::default());
+            cache.insert(target.module, state);
+            state
+          };
+          state == ConnectionState::Bool(false)
         },
       )),
     );
     let Some(target) = target else {
       return;
     };
+
     if !module_graph.update_module(&dependency_id, &target.module) {
       return;
     };

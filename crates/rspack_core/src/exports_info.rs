@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -1141,7 +1142,7 @@ impl ExportInfo {
     mg: &ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
-    let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
+    let filter = resolve_filter.unwrap_or(Rc::new(|_, _| true));
 
     let mut already_visited = UkeySet::default();
     match self._get_target(mg, filter, &mut already_visited) {
@@ -1629,7 +1630,7 @@ pub enum ResolvedExportInfoTargetWithCircular {
 pub type UpdateOriginalFunctionTy =
   Arc<dyn Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<DependencyId>>;
 
-pub type ResolveFilterFnTy = Arc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
+pub type ResolveFilterFnTy = Rc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
 
 pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
 
