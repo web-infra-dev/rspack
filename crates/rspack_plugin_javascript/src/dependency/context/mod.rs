@@ -11,7 +11,7 @@ use itertools::Itertools;
 pub use require_context_dependency::RequireContextDependency;
 pub use require_resolve_context_dependency::RequireResolveContextDependency;
 use rspack_core::{
-  module_raw, ContextDependency, ContextMode, ContextOptions, RealDependencyLocation,
+  module_raw, ContextDependency, ContextMode, ContextOptions, GroupOptions, RealDependencyLocation,
   TemplateContext, TemplateReplaceSource,
 };
 
@@ -43,9 +43,30 @@ fn create_resource_identifier_for_context_dependency(
     .as_ref()
     .map(|x| x.iter().map(|x| format!(r#""{x}""#)).join(","))
     .unwrap_or_default();
-  // TODO: need `RawChunkGroupOptions`
+  let mut group_options = String::new();
+
+  if let Some(GroupOptions::ChunkGroup(group)) = &options.group_options {
+    if let Some(chunk_name) = &group.name {
+      group_options += chunk_name;
+    }
+    group_options += "{";
+    if let Some(o) = group.prefetch_order {
+      group_options += "prefetchOrder: ";
+      group_options += &o.to_string();
+    }
+    if let Some(o) = group.preload_order {
+      group_options += "preloadOrder: ";
+      group_options += &o.to_string();
+    }
+    if let Some(o) = group.fetch_priority {
+      group_options += "fetchPriority: ";
+      group_options += &o.to_string();
+    }
+    group_options += "}";
+  }
+
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {referenced_exports}"
+    "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}"
   );
   id
 }
