@@ -174,6 +174,7 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
+  SwcDtsEmitRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -486,6 +487,9 @@ impl BuiltinPlugin {
         )
         .boxed();
         plugins.push(plugin);
+      }
+      BuiltinPluginName::SwcDtsEmitRspackPlugin => {
+        rspack_loader_swc::
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
         plugins

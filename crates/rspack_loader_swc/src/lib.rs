@@ -2,6 +2,7 @@
 
 mod compiler;
 mod options;
+mod plugin;
 mod transformer;
 
 use std::default::Default;
@@ -9,6 +10,7 @@ use std::default::Default;
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
+pub use plugin::PluginCssExtract;
 use rspack_core::{rspack_sources::SourceMap, Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -18,6 +20,7 @@ use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
 use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
+use swc_core::ecma::codegen::to_code_with_comments;
 use swc_core::ecma::visit::VisitWith;
 use transformer::IdentCollector;
 
@@ -121,6 +124,19 @@ impl SwcLoader {
       inline_script: Some(false),
       keep_comments: Some(true),
     };
+    let emit_dts = built.syntax.typescript() && built.emit_isolated_dts;
+
+    let program = &built.program;
+    if emit_dts && program.is_module() {
+      let dts_code = to_code_with_comments(
+        Some(&built.comments),
+        &program.as_module().expect("cannot reach"),
+      );
+      loader_context
+        .parse_meta
+        .entry("swc-loader-dts-extract".into())
+        .and_modify(|v| v.push_str(&dts_code));
+    }
 
     let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
     if source_map_kind.enabled() {
@@ -130,6 +146,7 @@ impl SwcLoader {
       program.visit_with(&mut v);
       codegen_options.source_map_config.names = v.names;
     }
+
     let ast = c.into_js_ast(program);
     let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
 
