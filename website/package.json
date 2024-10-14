@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.0",
-    "@rspress/plugin-rss": "^1.28.2",
+    "@rspress/plugin-rss": "1.33.1",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/semver": "^7.5.2",
@@ -39,11 +39,11 @@
     "cspell": "^8.7.0",
     "cspell-ban-words": "0.0.3",
     "prettier": "3.2.5",
-    "rsbuild-plugin-google-analytics": "1.0.1",
-    "rsbuild-plugin-open-graph": "1.0.1",
-    "rspress": "1.28.2",
+    "rsbuild-plugin-google-analytics": "1.0.3",
+    "rsbuild-plugin-open-graph": "1.0.2",
+    "rspress": "1.33.1",
     "rspress-plugin-font-open-sans": "1.0.0",
-    "rspress-plugin-sitemap": "^1.0.1",
+    "rspress-plugin-sitemap": "^1.1.1",
     "typescript": "^5.0.4"
   }
 }
