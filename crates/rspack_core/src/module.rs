@@ -421,7 +421,7 @@ fn get_exports_type_impl(
             if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
               handle_default(default_object)
             } else {
-              let Some(target) = export_info.get_target(mg, None) else {
+              let Some(target) = export_info.get_target(mg) else {
                 return ExportsType::Dynamic;
               };
               if target
