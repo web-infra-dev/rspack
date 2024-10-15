@@ -1,6 +1,7 @@
 packages:
   - "packages/*"
   - "scripts"
+  - "website"
   - "packages/playground/fixtures/**"
   - "packages/create-rspack/**"
   - "npm/*"

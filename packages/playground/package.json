@@ -19,7 +19,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "1.0.5",
     "@rspack/plugin-react-refresh": "1.0.0",
-    "@swc/helpers": "0.5.8",
+    "@swc/helpers": "0.5.13",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^9.1.3",
     "fs-extra": "^11.2.0",
