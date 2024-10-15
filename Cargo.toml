@@ -55,6 +55,7 @@ rustc-hash         = { version = "1.1.0" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
 simd-json          = { version = "0.14.0-rc.2" }
+smol_str           = { version = "0.2.2" }
 stacker            = { version = "0.1.15" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.58" }
@@ -71,6 +72,9 @@ xxhash-rust        = { version = "0.8.10" }
 napi        = { package = "napi-h", version = "=2.16.1" }
 napi-build  = { version = "2" }
 napi-derive = { version = "2" }
+
+inventory = { version = "0.1" }
+rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
 #rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin

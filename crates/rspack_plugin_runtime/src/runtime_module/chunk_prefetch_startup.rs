@@ -6,11 +6,15 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
+#[rspack_cacheable::cacheable]
+#[derive(Debug)]
+struct ChunkPair(Vec<ChunkUkey>, Vec<ChunkUkey>);
+
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPrefetchStartupRuntimeModule {
   id: Identifier,
-  startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
+  startup_chunks: Vec<ChunkPair>,
   chunk: Option<ChunkUkey>,
 }
 
@@ -18,7 +22,10 @@ impl ChunkPrefetchStartupRuntimeModule {
   pub fn new(startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>) -> Self {
     Self::with_default(
       Identifier::from("webpack/runtime/chunk_prefetch_startup"),
-      startup_chunks,
+      startup_chunks
+        .into_iter()
+        .map(|(a, b)| ChunkPair(a, b))
+        .collect(),
       None,
     )
   }
@@ -40,7 +47,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
         self
           .startup_chunks
           .iter()
-          .map(|(group_chunks, child_chunks)| {
+          .map(|ChunkPair(group_chunks, child_chunks)| {
             let group_chunk_ids = group_chunks
               .iter()
               .filter_map(|c| {

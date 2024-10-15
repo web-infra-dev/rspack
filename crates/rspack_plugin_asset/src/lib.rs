@@ -4,6 +4,7 @@ use std::{borrow::Cow, hash::Hasher};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetInfo, AssetParserDataUrl,
@@ -30,6 +31,7 @@ static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Ja
 
 const DEFAULT_ENCODING: &str = "base64";
 
+#[cacheable]
 #[derive(Debug)]
 enum DataUrlOptions {
   Inline(bool),
@@ -42,6 +44,7 @@ type IsInline = bool;
 const ASSET_INLINE: bool = true;
 const ASSET_RESOURCE: bool = false;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 enum CanonicalizedDataUrlOption {
   Source,
@@ -62,6 +65,7 @@ impl CanonicalizedDataUrlOption {
   }
 }
 
+#[cacheable]
 #[derive(Debug)]
 pub struct AssetParserAndGenerator {
   emit: bool,
@@ -260,6 +264,7 @@ impl AssetParserAndGenerator {
 // Webpack's default parser.dataUrlCondition.maxSize
 const DEFAULT_MAX_SIZE: u32 = 8096;
 
+#[cacheable_dyn]
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     if let Some(config) = self.parsed_asset_config.as_ref() {

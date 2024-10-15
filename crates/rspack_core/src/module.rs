@@ -6,6 +6,11 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
+use rspack_cacheable::with::AsPreset;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsString, AsVec},
+};
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
@@ -40,20 +45,28 @@ pub enum BuildExtraDataType {
   JavaScriptParserAndGenerator,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
+  #[cacheable(with=AsVec<AsString>)]
   pub file_dependencies: HashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsString>)]
   pub context_dependencies: HashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsString>)]
   pub missing_dependencies: HashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsString>)]
   pub build_dependencies: HashSet<PathBuf>,
+  #[cacheable(with=AsVec<AsPreset>)]
   pub harmony_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
 }
@@ -78,6 +91,7 @@ impl Default for BuildInfo {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum BuildMetaExportsType {
   #[default]
@@ -96,6 +110,7 @@ pub enum ExportsType {
   Dynamic,
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash)]
 pub enum BuildMetaDefaultObject {
   #[default]
@@ -110,6 +125,7 @@ pub enum BuildMetaDefaultObject {
   },
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash)]
 pub enum ModuleArgument {
   #[default]
@@ -126,6 +142,7 @@ impl Display for ModuleArgument {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ExportsArgument {
   #[default]
@@ -142,6 +159,7 @@ impl Display for ExportsArgument {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
   pub strict_harmony_module: bool,
@@ -166,12 +184,15 @@ pub struct BuildResult {
   pub optimization_bailouts: Vec<String>,
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;
+
+#[cacheable_dyn]
 #[async_trait]
 pub trait Module:
   Debug
@@ -605,6 +626,7 @@ pub struct LibIdentOptions<'me> {
 mod test {
   use std::borrow::Cow;
 
+  use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{Diagnosable, Diagnostic, Result};
   use rspack_sources::Source;
@@ -617,17 +639,19 @@ mod test {
     RuntimeSpec, SourceType,
   };
 
+  #[cacheable]
   #[derive(Debug)]
-  struct RawModule(&'static str);
+  struct RawModule(String);
 
+  #[cacheable]
   #[derive(Debug)]
-  struct ExternalModule(&'static str);
+  struct ExternalModule(String);
 
   macro_rules! impl_noop_trait_module_type {
     ($ident: ident) => {
       impl Identifiable for $ident {
         fn identifier(&self) -> Identifier {
-          (stringify!($ident).to_owned() + self.0).into()
+          self.0.clone().into()
         }
       }
 
@@ -651,6 +675,7 @@ mod test {
         }
       }
 
+      #[::rspack_cacheable::cacheable_dyn]
       #[::async_trait::async_trait]
       impl Module for $ident {
         fn module_type(&self) -> &ModuleType {
@@ -670,7 +695,7 @@ mod test {
         }
 
         fn readable_identifier(&self, _context: &Context) -> Cow<str> {
-          (stringify!($ident).to_owned() + self.0).into()
+          self.0.clone().into()
         }
 
         async fn build(
@@ -744,8 +769,8 @@ mod test {
 
   #[test]
   fn should_downcast_successfully() {
-    let a: Box<dyn Module> = ExternalModule("a").boxed();
-    let b: Box<dyn Module> = RawModule("a").boxed();
+    let a: Box<dyn Module> = ExternalModule(String::from("a")).boxed();
+    let b: Box<dyn Module> = RawModule(String::from("a")).boxed();
 
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());

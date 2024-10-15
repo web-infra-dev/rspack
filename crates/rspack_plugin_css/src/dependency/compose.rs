@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, RealDependencyLocation,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
   id: DependencyId,
@@ -20,6 +22,7 @@ impl CssComposeDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CssComposeDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -42,6 +45,7 @@ impl Dependency for CssComposeDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CssComposeDependency {
   fn request(&self) -> &str {
     &self.request

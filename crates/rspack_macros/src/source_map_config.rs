@@ -13,7 +13,10 @@ pub fn impl_source_map_config(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
+        .parse2(quote! {
+            #[cacheable(with=::rspack_cacheable::with::Unsupported)]
+            pub source_map_kind: ::rspack_util::source_map::SourceMapKind
+        })
         .expect("Failed to parse new field for source_map_kind"),
     );
   }

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, with::Unsupported};
 use serde::Deserialize;
 use swc_config::config_types::BoolConfig;
 use swc_core::base::config::{
@@ -74,9 +75,12 @@ pub struct SwcLoaderJsOptions {
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
+#[cacheable]
 #[derive(Debug)]
 pub(crate) struct SwcCompilerOptionsWithAdditional {
+  #[cacheable(with=Unsupported)]
   pub(crate) swc_options: Options,
+  #[cacheable(with=Unsupported)]
   pub(crate) rspack_experiments: RspackExperiments,
 }
 

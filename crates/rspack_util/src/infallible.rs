@@ -10,6 +10,7 @@ impl<T> ResultInfallibleExt for Result<T, Infallible> {
   fn always_ok(self) -> T {
     match self {
       Ok(ok) => ok,
+      #[allow(unreachable_patterns)]
       Err(infallible) => match infallible {},
     }
   }

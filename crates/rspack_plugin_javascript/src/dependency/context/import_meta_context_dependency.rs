@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleGraph,
@@ -7,6 +8,7 @@ use rspack_error::Diagnostic;
 
 use super::create_resource_identifier_for_context_dependency;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportMetaContextDependency {
   id: DependencyId,
@@ -31,6 +33,7 @@ impl ImportMetaContextDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ImportMetaContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -98,6 +101,7 @@ impl ContextDependency for ImportMetaContextDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ImportMetaContextDependency {
   fn apply(
     &self,

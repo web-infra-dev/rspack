@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
   DependencyTemplate, RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct RequireResolveHeaderDependency {
   id: DependencyId,
@@ -18,6 +20,7 @@ impl RequireResolveHeaderDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for RequireResolveHeaderDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -35,6 +38,7 @@ impl Dependency for RequireResolveHeaderDependency {
 impl AsModuleDependency for RequireResolveHeaderDependency {}
 impl AsContextDependency for RequireResolveHeaderDependency {}
 
+#[cacheable_dyn]
 impl DependencyTemplate for RequireResolveHeaderDependency {
   fn apply(
     &self,

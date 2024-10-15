@@ -1,9 +1,11 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsDependency, Compilation, DependencyId, DependencyTemplate, ExternalModuleInitFragment,
   InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExternalModuleDependency {
   id: DependencyId,
@@ -27,6 +29,7 @@ impl ExternalModuleDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ExternalModuleDependency {
   fn apply(
     &self,

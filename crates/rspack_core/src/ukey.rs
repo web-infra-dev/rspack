@@ -6,6 +6,7 @@ use crate::{Chunk, ChunkGroup};
 
 static NEXT_CHUNK_UKEY: AtomicU32 = AtomicU32::new(0);
 
+#[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ChunkUkey(Ukey, std::marker::PhantomData<Chunk>);
 

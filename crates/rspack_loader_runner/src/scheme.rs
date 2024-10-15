@@ -1,5 +1,8 @@
 use std::fmt;
 
+use rspack_cacheable::cacheable;
+
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Scheme {
   None,

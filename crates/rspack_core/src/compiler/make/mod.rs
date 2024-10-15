@@ -19,13 +19,13 @@ pub struct MakeArtifact {
   // should be reset when rebuild
   pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
+  pub built_modules: IdentifierSet,
 
   // data
-  pub built_modules: IdentifierSet,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
-  entry_dependencies: HashSet<DependencyId>,
+  pub entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
   pub missing_dependencies: FileCounter,
@@ -83,6 +83,31 @@ impl MakeArtifact {
     self.context_dependencies.reset_incremental_info();
     self.missing_dependencies.reset_incremental_info();
     self.build_dependencies.reset_incremental_info();
+  }
+
+  pub fn added_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .file_dependencies
+      .added_files()
+      .iter()
+      .chain(self.context_dependencies.added_files().iter())
+      .chain(self.build_dependencies.added_files().iter())
+      .chain(self.missing_dependencies.added_files().iter())
+  }
+  pub fn removed_dependencies(&self) -> impl Iterator<Item = &PathBuf> {
+    self
+      .file_dependencies
+      .removed_files()
+      .iter()
+      .chain(self.context_dependencies.removed_files().iter())
+      .chain(self.build_dependencies.removed_files().iter())
+      .chain(self.missing_dependencies.removed_files().iter())
+      .filter(|path| {
+        self.file_dependencies.contains(path)
+          || self.build_dependencies.contains(path)
+          || self.context_dependencies.contains(path)
+          || self.missing_dependencies.contains(path)
+      })
   }
 }
 

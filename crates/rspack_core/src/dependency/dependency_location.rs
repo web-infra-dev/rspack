@@ -1,12 +1,15 @@
 use std::{fmt, sync::Arc};
 
 use derivative::Derivative;
+use rspack_cacheable::{cacheable, with::Skip};
 
+#[cacheable]
 #[derive(Derivative)]
 #[derivative(Debug, Clone, Hash)]
 pub struct RealDependencyLocation {
   pub end: u32,
   pub start: u32,
+  #[cacheable(with=Skip)]
   #[derivative(Debug = "ignore", Hash = "ignore")]
   source: Option<Arc<dyn SourceLocation>>,
 }
@@ -70,6 +73,7 @@ impl fmt::Display for RealDependencyLocation {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct SyntheticDependencyLocation {
   pub name: String,
@@ -89,6 +93,7 @@ impl fmt::Display for SyntheticDependencyLocation {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum DependencyLocation {
   Real(RealDependencyLocation),

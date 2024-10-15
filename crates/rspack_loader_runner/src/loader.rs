@@ -11,6 +11,7 @@ use std::{
 use async_trait::async_trait;
 use derivative::Derivative;
 use regex::Regex;
+use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
@@ -164,6 +165,7 @@ impl<C> Identifiable for LoaderItem<C> {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 pub trait Loader<Context = ()>: Identifiable + Send + Sync
 where
@@ -260,13 +262,15 @@ static PATH_QUERY_FRAGMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
 pub(crate) mod test {
   use std::{path::PathBuf, sync::Arc};
 
+  use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::{Identifiable, Identifier};
 
   use super::{Loader, LoaderItem};
 
+  #[cacheable]
   #[allow(dead_code)]
   pub(crate) struct Custom;
-
+  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for Custom {}
   impl Identifiable for Custom {
@@ -275,8 +279,10 @@ pub(crate) mod test {
     }
   }
 
+  #[cacheable]
   #[allow(dead_code)]
   pub(crate) struct Custom2;
+  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for Custom2 {}
   impl Identifiable for Custom2 {
@@ -285,8 +291,10 @@ pub(crate) mod test {
     }
   }
 
+  #[cacheable]
   #[allow(dead_code)]
   pub(crate) struct Builtin;
+  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for Builtin {}
   impl Identifiable for Builtin {
@@ -295,8 +303,10 @@ pub(crate) mod test {
     }
   }
 
+  #[cacheable]
   pub(crate) struct PosixNonLenBlankUnicode;
 
+  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for PosixNonLenBlankUnicode {}
   impl Identifiable for PosixNonLenBlankUnicode {
@@ -305,7 +315,9 @@ pub(crate) mod test {
     }
   }
 
+  #[cacheable]
   pub(crate) struct WinNonLenBlankUnicode;
+  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for WinNonLenBlankUnicode {}
   impl Identifiable for WinNonLenBlankUnicode {

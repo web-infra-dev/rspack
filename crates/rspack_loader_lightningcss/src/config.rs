@@ -1,18 +1,25 @@
 use lightningcss::targets::Browsers;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsOption, AsPreset},
+};
 use serde::Deserialize;
 
+#[cacheable]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Draft {
   pub custom_media: bool,
 }
 
+#[cacheable]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NonStandard {
   pub deep_selector_combinator: bool,
 }
 
+#[cacheable]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PseudoClasses {
@@ -23,10 +30,12 @@ pub struct PseudoClasses {
   pub focus_within: Option<String>,
 }
 
+#[cacheable]
 #[derive(Debug, Default)]
 pub struct Config {
   pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,

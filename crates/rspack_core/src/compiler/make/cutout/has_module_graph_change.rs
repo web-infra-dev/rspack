@@ -120,6 +120,7 @@ mod t {
   use std::borrow::Cow;
 
   use itertools::Itertools;
+  use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
   use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
   use rspack_macros::impl_source_map_config;
@@ -134,8 +135,10 @@ mod t {
     ModuleType, RuntimeSpec, SourceType,
   };
 
+  #[cacheable]
   #[derive(Debug, Clone)]
   struct TestDep {
+    #[cacheable(with=Skip)]
     ids: Vec<&'static str>,
     id: DependencyId,
   }
@@ -151,6 +154,7 @@ mod t {
 
   impl AsContextDependency for TestDep {}
 
+  #[cacheable_dyn]
   impl Dependency for TestDep {
     fn dependency_type(&self) -> &crate::DependencyType {
       &crate::DependencyType::EsmImportSpecifier
@@ -173,6 +177,7 @@ mod t {
     }
   }
 
+  #[cacheable_dyn]
   impl DependencyTemplate for TestDep {
     fn apply(
       &self,
@@ -196,14 +201,16 @@ mod t {
     }
   }
 
+  #[cacheable_dyn]
   impl ModuleDependency for TestDep {
     fn request(&self) -> &str {
       ""
     }
   }
 
-  #[derive(Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
   #[impl_source_map_config]
+  #[cacheable]
+  #[derive(Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
   struct TestModule {
     pub(crate) id: ModuleIdentifier,
     deps: Vec<DependencyId>,
@@ -245,6 +252,7 @@ mod t {
 
   impl_empty_diagnosable_trait!(TestModule);
 
+  #[cacheable_dyn]
   impl Module for TestModule {
     fn module_type(&self) -> &ModuleType {
       todo!()

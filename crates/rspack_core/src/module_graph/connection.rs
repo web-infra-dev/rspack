@@ -1,7 +1,10 @@
 use std::hash::Hash;
 
+use rspack_cacheable::cacheable;
+
 use crate::{DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
+#[cacheable]
 #[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
   pub dependency_id: DependencyId,
@@ -93,6 +96,7 @@ impl ModuleGraphConnection {
   }
 }
 
+#[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ConnectionState {
   Bool(bool),

@@ -11,6 +11,7 @@ use json::{
   },
   JsonValue,
 };
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
@@ -29,9 +30,11 @@ use crate::json_exports_dependency::JsonExportsDependency;
 mod json_exports_dependency;
 mod utils;
 
+#[cacheable]
 #[derive(Debug)]
 struct JsonParserAndGenerator;
 
+#[cacheable_dyn]
 impl ParserAndGenerator for JsonParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]

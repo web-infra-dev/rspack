@@ -8,6 +8,7 @@ version     = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rspack_cacheable      = { path = "../rspack_cacheable" }
 rspack_collections    = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core           = { version = "0.1.0", path = "../rspack_core" }
 rspack_error          = { version = "0.1.0", path = "../rspack_error" }

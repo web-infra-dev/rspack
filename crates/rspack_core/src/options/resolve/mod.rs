@@ -4,6 +4,10 @@ mod value_type;
 use std::borrow::Cow;
 
 use hashlink::LinkedHashMap;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsCacheable, AsMap, AsOption, AsPreset, AsRefStr, AsTuple2, AsVec, Unsupported},
+};
 use rspack_paths::Utf8PathBuf;
 
 use crate::DependencyCategory;
@@ -30,12 +34,25 @@ pub(super) type Modules = Vec<String>;
 pub(super) type Roots = Vec<String>;
 pub(super) type Restrictions = Vec<String>;
 
+#[cacheable]
+/*#[rkyv(serialize_bounds(
+    __S: rspack_cacheable::__private::rkyv::ser::Writer + rspack_cacheable::__private::rkyv::ser::Allocator,
+    __S::Error: rspack_cacheable::__private::rkyv::rancor::Source,
+))]
+#[rkyv(deserialize_bounds(__D::Error: rspack_cacheable::__private::rkyv::rancor::Source))]
+#[rkyv(bytecheck(
+    bounds(
+        __C: rspack_cacheable::__private::rkyv::validation::ArchiveContext,
+        __C::Error: rspack_cacheable::__private::rkyv::rancor::Source
+    )
+))]*/
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct Resolve {
   /// Tried detect file with this extension.
   pub extensions: Option<Extensions>,
   /// Maps key to value.
   /// The reason for using `Vec` instead `HashMap` to keep the order.
+  #[cacheable(with=AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>>)]
   pub alias: Option<Alias>,
   /// Prefer to resolve request as relative request and
   /// fallback to resolving as modules.
@@ -61,6 +78,7 @@ pub struct Resolve {
   pub modules: Option<Modules>,
   /// Same as `alias`, but only used if default resolving fails
   /// Default is `[]`
+  #[cacheable(with=AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>>)]
   pub fallback: Option<Fallback>,
   /// Request passed to resolve is already fully specified and
   /// extensions or main files are not resolved for it.
@@ -81,6 +99,7 @@ pub struct Resolve {
   /// Field names from the description file (usually package.json) which are used to provide internal request of a package (requests starting with # are considered as internal).
   pub imports_fields: Option<ImportsFields>,
   /// Configure resolve options by the type of module request.
+  //  #[rkyv(omit_bounds)]
   pub by_dependency: Option<ByDependency>,
   /// The JSON files to use for descriptions
   /// Default is [`package.json`]
@@ -92,12 +111,14 @@ pub struct Resolve {
 /// Tsconfig Options
 ///
 /// Derived from [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#options)
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
 pub struct TsconfigOptions {
   /// Allows you to specify where to find the TypeScript configuration file.
   /// You may provide
   /// * a relative path to the configuration file. It will be resolved relative to cwd.
   /// * an absolute path to the configuration file.
+  #[cacheable(with=AsPreset)]
   pub config_file: Utf8PathBuf,
 
   /// Support for Typescript Project References.
@@ -113,6 +134,7 @@ impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
 pub enum TsconfigReferences {
   #[default]
@@ -120,7 +142,7 @@ pub enum TsconfigReferences {
   /// Use the `references` field from tsconfig read from `config_file`.
   Auto,
   /// Manually provided relative or absolute path.
-  Paths(Vec<Utf8PathBuf>),
+  Paths(#[cacheable(with=AsVec<AsPreset>)] Vec<Utf8PathBuf>),
 }
 
 impl From<TsconfigReferences> for rspack_resolver::TsconfigReferences {
@@ -174,8 +196,23 @@ impl Resolve {
 
 type DependencyCategoryStr = Cow<'static, str>;
 
+#[cacheable]
+/*#[rkyv(serialize_bounds(
+    __S: rspack_cacheable::__private::rkyv::ser::Writer + rspack_cacheable::__private::rkyv::ser::Allocator,
+    __S::Error: rspack_cacheable::__private::rkyv::rancor::Source,
+))]
+#[rkyv(deserialize_bounds(__D::Error: rspack_cacheable::__private::rkyv::rancor::Source))]
+#[rkyv(bytecheck(
+    bounds(
+        __C: rspack_cacheable::__private::rkyv::validation::ArchiveContext,
+        __C::Error: rspack_cacheable::__private::rkyv::rancor::Source
+    )
+))]*/
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
-pub struct ByDependency(LinkedHashMap<DependencyCategoryStr, Resolve>);
+pub struct ByDependency(
+  //  #[rkyv(omit_bounds)]
+  #[cacheable(with=AsMap<AsRefStr, Unsupported>)] LinkedHashMap<DependencyCategoryStr, Resolve>,
+);
 
 impl FromIterator<(DependencyCategoryStr, Resolve)> for ByDependency {
   fn from_iter<I: IntoIterator<Item = (DependencyCategoryStr, Resolve)>>(i: I) -> Self {

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ModuleDependency, RealDependencyLocation, RuntimeSpec,
@@ -5,9 +6,11 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleHotAcceptDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   request: Atom,
   range: RealDependencyLocation,
 }
@@ -22,6 +25,7 @@ impl ModuleHotAcceptDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ModuleHotAcceptDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -44,6 +48,7 @@ impl Dependency for ModuleHotAcceptDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ModuleHotAcceptDependency {
   fn request(&self) -> &str {
     &self.request
@@ -62,6 +67,7 @@ impl ModuleDependency for ModuleHotAcceptDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ModuleHotAcceptDependency {
   fn apply(
     &self,

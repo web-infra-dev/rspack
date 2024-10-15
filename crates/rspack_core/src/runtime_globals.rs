@@ -3,9 +3,12 @@ use std::fmt;
 use bitflags::bitflags;
 use swc_core::ecma::atoms::Atom;
 
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub struct RuntimeGlobals(u128);
+
 bitflags! {
-  #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-  pub struct RuntimeGlobals: u128 {
+  impl RuntimeGlobals: u128 {
     const REQUIRE_SCOPE = 1 << 0;
 
     /**

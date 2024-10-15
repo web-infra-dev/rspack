@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
@@ -15,6 +16,7 @@ use crate::{
 };
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct SelfModule {
   identifier: ModuleIdentifier,
@@ -66,6 +68,7 @@ impl DependenciesBlock for SelfModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 impl Module for SelfModule {
   impl_module_meta_info!();

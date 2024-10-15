@@ -9,9 +9,10 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
+  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -19,12 +20,12 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
 };
-use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
+use rspack_plugin_runtime::{GetChunkFilenameRuntimeModule, GetChunkFilenameType};
 use rustc_hash::FxHashMap;
 use ustr::Ustr;
 
 use crate::{
-  css_module::{CssModule, CssModuleFactory, DEPENDENCY_TYPE},
+  css_module::{CssModule, CssModuleFactory},
   parser_plugin::PluginCssExtractParserPlugin,
   runtime::CssLoadingRuntimeModule,
 };
@@ -112,6 +113,7 @@ pub struct CssExtractOptions {
 //   }
 // }
 
+#[rspack_cacheable::cacheable]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InsertType {
   Fn(String),
@@ -439,7 +441,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.set_dependency_factory(*DEPENDENCY_TYPE, Arc::new(CssModuleFactory));
+  compilation.set_dependency_factory(DependencyType::MiniExtractDep, Arc::new(CssModuleFactory));
   Ok(())
 }
 
@@ -487,20 +489,9 @@ fn runtime_requirements_in_tree(
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(GetChunkFilenameRuntimeModule::new(
-        "css",
-        "mini-css",
+        GetChunkFilenameType::MiniCss(filename, chunk_filename),
         SOURCE_TYPE[0],
         "__webpack_require__.miniCssF".into(),
-        |_| false,
-        move |chunk, compilation| {
-          chunk.content_hash.contains_key(&SOURCE_TYPE[0]).then(|| {
-            if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-              filename.clone()
-            } else {
-              chunk_filename.clone()
-            }
-          })
-        },
       )),
     )?;
 

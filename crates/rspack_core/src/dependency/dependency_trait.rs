@@ -1,6 +1,7 @@
 use std::{any::Any, fmt::Debug};
 
 use dyn_clone::{clone_trait_object, DynClone};
+use rspack_cacheable::cacheable_dyn;
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_util::ext::AsAny;
@@ -26,6 +27,7 @@ pub enum AffectType {
   Transitive,
 }
 
+#[cacheable_dyn]
 pub trait Dependency:
   AsDependencyTemplate
   + AsContextDependency

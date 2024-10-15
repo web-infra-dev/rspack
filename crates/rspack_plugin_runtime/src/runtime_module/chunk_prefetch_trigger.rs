@@ -14,6 +14,8 @@ use rustc_hash::FxHasher;
 #[derive(Debug)]
 pub struct ChunkPrefetchTriggerRuntimeModule {
   id: Identifier,
+  // TODO
+  #[cacheable(with=rspack_cacheable::with::Skip)]
   chunk_map: IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>,
 }
 

@@ -5,6 +5,7 @@ use std::{fmt, path::Path, sync::Arc};
 
 use async_trait::async_trait;
 use regex::Regex;
+use rspack_cacheable::cacheable;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
@@ -21,6 +22,7 @@ use super::{
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
 
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct ConsumeOptions {
   pub import: Option<String>,
@@ -34,6 +36,7 @@ pub struct ConsumeOptions {
   pub eager: bool,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ConsumeVersion {
   Version(String),

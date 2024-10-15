@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use cow_utils::CowUtils;
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
@@ -24,6 +25,7 @@ use crate::dependency::LazyCompilationDependency;
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
+#[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
   build_info: Option<BuildInfo>,
@@ -37,6 +39,7 @@ pub(crate) struct LazyCompilationProxyModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
+  #[cacheable(with=Unsupported)]
   source_map_kind: SourceMapKind,
   create_data: ModuleFactoryCreateData,
   pub resource: String,
@@ -100,6 +103,7 @@ impl Diagnosable for LazyCompilationProxyModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
   impl_module_meta_info!();
