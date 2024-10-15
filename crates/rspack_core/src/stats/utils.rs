@@ -11,12 +11,12 @@ use crate::{
   ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, Compilation, CompilerOptions, ModuleGraph,
 };
 
-pub fn get_asset_size(file: &str, compilation: &Compilation) -> f64 {
+pub fn get_asset_size(file: &str, compilation: &Compilation) -> usize {
   compilation
     .assets()
     .get(file)
-    .and_then(|asset| asset.get_source().map(|s| s.size() as f64))
-    .unwrap_or(-1f64)
+    .and_then(|asset| asset.get_source().map(|s| s.size()))
+    .unwrap_or(0)
 }
 
 pub fn sort_modules(modules: &mut [StatsModule]) {

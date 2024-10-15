@@ -117,10 +117,9 @@ impl LocalFilenameFn for NoFilenameFn {
 
 impl From<FilenameTemplate> for Filename {
   fn from(value: FilenameTemplate) -> Self {
-    Self(match value.0 {
-      FilenameKind::Template(template) => FilenameKind::Template(template),
-      FilenameKind::Fn(no_fn) => match no_fn.0 {},
-    })
+    let FilenameKind::Template(template) = value.0;
+
+    Self(FilenameKind::Template(template))
   }
 }
 

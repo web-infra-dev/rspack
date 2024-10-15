@@ -991,7 +991,7 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
   fn from(stats: rspack_core::StatsChunkGroupAsset) -> Self {
     Self {
       name: stats.name,
-      size: stats.size,
+      size: stats.size as f64,
     }
   }
 }
@@ -1024,11 +1024,11 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
       name: stats.name,
       chunks: stats.chunks,
       assets: stats.assets.into_iter().map(Into::into).collect(),
-      assets_size: stats.assets_size,
+      assets_size: stats.assets_size as f64,
       auxiliary_assets: stats
         .auxiliary_assets
         .map(|assets| assets.into_iter().map(Into::into).collect()),
-      auxiliary_assets_size: stats.auxiliary_assets_size,
+      auxiliary_assets_size: stats.auxiliary_assets_size.map(|inner| inner as f64),
       children: stats.children.map(|i| i.into()),
       child_assets: stats.child_assets.map(|i| i.into()),
       is_over_size_limit: stats.is_over_size_limit,
