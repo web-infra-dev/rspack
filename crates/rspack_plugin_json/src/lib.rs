@@ -145,9 +145,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let module_graph = compilation.get_module_graph();
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE);
         let module = module_graph
           .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
@@ -184,6 +181,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
           format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
         } else {
+          generate_context
+            .runtime_requirements
+            .insert(RuntimeGlobals::MODULE);
           format!(r#"module.exports = {}"#, json_expr)
         };
         Ok(RawSource::from(content).boxed())

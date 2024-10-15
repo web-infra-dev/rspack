@@ -449,7 +449,7 @@ chunk (runtime: main) trees.js (trees) 215 bytes [rendered]
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warnings 1`] = `
-"asset main.js 1.83 KiB [emitted] (name: main)
+"asset main.js 928 bytes [emitted] (name: main)
 orphan modules 794 bytes [orphan] 10 modules
 ./index.js + 9 modules 794 bytes [code generated]
 Rspack x.x.x compiled successfully in X.23"
