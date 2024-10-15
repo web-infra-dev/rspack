@@ -20,7 +20,7 @@ use crate::{
   ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey,
   Compilation, ConnectionState, DependenciesBlock, DependencyId, DependencyLocation,
   EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
+  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -220,6 +220,27 @@ type BlockModulesRuntimeMap = IndexMap<
 //   }
 // }
 
+#[derive(Default)]
+struct ActiveStateCache(IdentifierMap<ConnectionState>);
+
+impl ActiveStateCache {
+  fn active_state(
+    &mut self,
+    conn: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+  ) -> ConnectionState {
+    let module_identifier = *conn.module_identifier();
+    if let Some(state) = self.0.get(&module_identifier) {
+      *state
+    } else {
+      let state = conn.active_state(module_graph, runtime);
+      self.0.insert(module_identifier, state);
+      state
+    }
+  }
+}
+
 pub(super) struct CodeSplitter<'me> {
   chunk_group_info_map: UkeyMap<ChunkGroupUkey, CgiUkey>,
   chunk_group_infos: Database<ChunkGroupInfo>,
@@ -241,6 +262,8 @@ pub(super) struct CodeSplitter<'me> {
   block_modules_runtime_map: BlockModulesRuntimeMap,
   ordinal_by_module: IdentifierMap<u64>,
   mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
+
+  active_state_cache: ActiveStateCache,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -281,21 +304,24 @@ fn get_active_state_of_connections(
   connections: &[DependencyId],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
+  active_state_cache: &mut ActiveStateCache,
 ) -> ConnectionState {
   let mut iter = connections.iter();
   let id = iter.next().expect("should have connection");
-  let mut merged = module_graph
+  let conn = module_graph
     .connection_by_dependency_id(id)
-    .expect("should have connection")
-    .active_state(module_graph, runtime);
+    .expect("should have connection");
+  let mut merged = active_state_cache.active_state(conn, runtime, module_graph);
   if merged.is_true() {
     return merged;
   }
+
   for c in iter {
     let c = module_graph
       .connection_by_dependency_id(c)
       .expect("should have connection");
-    merged = merged + c.active_state(module_graph, runtime);
+
+    merged = merged + active_state_cache.active_state(c, runtime, module_graph);
     if merged.is_true() {
       return merged;
     }
@@ -353,6 +379,8 @@ impl<'me> CodeSplitter<'me> {
       block_modules_runtime_map: Default::default(),
       ordinal_by_module,
       mask_by_chunk,
+
+      active_state_cache: Default::default(),
 
       stat_processed_queue_items: 0,
       stat_processed_blocks: 0,
@@ -1536,6 +1564,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .or_insert_with(|| vec![*dep_id]);
     }
 
+    let module_graph = self.compilation.get_module_graph();
     for ((block_id, module_identifier), connections) in connection_map {
       let modules = map
         .get_mut(&block_id)
@@ -1543,7 +1572,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let active_state = get_active_state_of_connections(
         &connections,
         runtime,
-        &self.compilation.get_module_graph(),
+        &module_graph,
+        &mut self.active_state_cache,
       );
       modules.push((module_identifier, active_state, connections));
     }
@@ -1656,6 +1686,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }))
       }
 
+      let module_graph = self.compilation.get_module_graph();
       // 2. Reconsider skipped connections
       if !cgi.skipped_module_connections.is_empty() {
         let mut active_connections = Vec::new();
@@ -1663,7 +1694,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           let active_state = get_active_state_of_connections(
             connections,
             Some(&cgi.runtime),
-            &self.compilation.get_module_graph(),
+            &module_graph,
+            &mut self.active_state_cache,
           );
           if active_state.is_false() {
             continue;
