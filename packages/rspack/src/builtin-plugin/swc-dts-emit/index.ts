@@ -1,7 +1,12 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawSwcDtsEmitRspackPluginOptions
+} from "@rspack/binding";
 import { Compiler } from "../../Compiler";
 
-export interface SwcDtsEmitRspackPluginOptions {}
+export interface SwcDtsEmitRspackPluginOptions {
+	rootDir: string;
+}
 
 export class SwcDtsEmitRspackPlugin {
 	apply(compiler: Compiler) {
@@ -9,5 +14,13 @@ export class SwcDtsEmitRspackPlugin {
 			name: BuiltinPluginName.SwcDtsEmitRspackPlugin,
 			options: {}
 		});
+	}
+	normalizeOptions(
+		options: SwcDtsEmitRspackPluginOptions
+	): RawSwcDtsEmitRspackPluginOptions {
+		const normalzedOptions: RawSwcDtsEmitRspackPluginOptions = {
+			rootDir: options.rootDir
+		};
+		return normalzedOptions;
 	}
 }

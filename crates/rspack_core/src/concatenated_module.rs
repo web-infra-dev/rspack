@@ -544,6 +544,7 @@ impl Module for ConcatenatedModule {
       json_data: Default::default(),
       top_level_declarations: Some(Default::default()),
       module_concatenation_bailout: Default::default(),
+      parse_meta: Default::default(),
     };
     self.clear_diagnostics();
 

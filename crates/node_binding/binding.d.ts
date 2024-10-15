@@ -1884,6 +1884,10 @@ export interface RawStatsOptions {
   colors: boolean
 }
 
+export interface RawSwcDtsEmitRspackPluginOptions {
+  rootDir?: string
+}
+
 export interface RawSwcJsMinimizerOptions {
   compress: any
   mangle: any

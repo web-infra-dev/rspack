@@ -2,6 +2,7 @@ mod raw_banner;
 mod raw_bundle_info;
 mod raw_copy;
 mod raw_css_extract;
+mod raw_swc_dts_emit;
 mod raw_html;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -86,6 +87,7 @@ pub use self::{
 use self::{
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_css_extract::RawCssExtractPluginOption,
+  raw_swc_dts_emit::RawSwcDtsEmitRspackPluginOptions,
   raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
   raw_runtime_chunk::RawRuntimeChunkOptions,
@@ -489,7 +491,10 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcDtsEmitRspackPlugin => {
-        rspack_loader_swc::
+        let plugin = rspack_loader_swc::PluginSwcDtsEmit::new(
+          downcast_into::<RawSwcDtsEmitRspackPluginOptions>(self.options)?.into(),
+        ).boxed();
+        plugins.push(plugin);
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
         plugins
