@@ -1412,6 +1412,7 @@ export interface RawIncremental {
   emitAssets: boolean
   inferAsyncModules: boolean
   providedExports: boolean
+  collectModuleDiagnostics: boolean
   moduleHashes: boolean
   moduleCodegen: boolean
   moduleRuntimeRequirements: boolean

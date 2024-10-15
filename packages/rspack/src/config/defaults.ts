@@ -208,6 +208,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 		D(experiments.incremental, "emitAssets", true);
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);
+		D(experiments.incremental, "collectModuleDiagnostics", false);
 		D(experiments.incremental, "moduleHashes", false);
 		D(experiments.incremental, "moduleCodegen", false);
 		D(experiments.incremental, "moduleRuntimeRequirements", false);

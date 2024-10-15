@@ -81,6 +81,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
           emit_assets: value.emit_assets,
           infer_async_modules: value.infer_async_modules,
           provided_exports: value.provided_exports,
+          collect_module_diagnostics: value.collect_module_diagnostics,
           module_hashes: value.module_hashes,
           module_codegen: value.module_codegen,
           module_runtime_requirements: value.module_runtime_requirements,

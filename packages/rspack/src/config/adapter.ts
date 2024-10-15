@@ -907,6 +907,7 @@ function getRawIncremental(
 		emitAssets: incremental.emitAssets!,
 		inferAsyncModules: incremental.inferAsyncModules!,
 		providedExports: incremental.providedExports!,
+		collectModuleDiagnostics: incremental.collectModuleDiagnostics!,
 		moduleHashes: incremental.moduleHashes!,
 		moduleCodegen: incremental.moduleCodegen!,
 		moduleRuntimeRequirements: incremental.moduleRuntimeRequirements!
