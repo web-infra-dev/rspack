@@ -220,7 +220,7 @@ pub struct StatsChunk<'a> {
 #[derive(Debug)]
 pub struct StatsChunkGroupAsset {
   pub name: String,
-  pub size: f64,
+  pub size: usize,
 }
 
 #[derive(Debug)]
@@ -228,9 +228,9 @@ pub struct StatsChunkGroup {
   pub name: String,
   pub chunks: Vec<String>,
   pub assets: Vec<StatsChunkGroupAsset>,
-  pub assets_size: f64,
+  pub assets_size: usize,
   pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
-  pub auxiliary_assets_size: Option<f64>,
+  pub auxiliary_assets_size: Option<usize>,
   pub children: Option<StatsChunkGroupChildren>,
   pub is_over_size_limit: Option<bool>,
   pub child_assets: Option<StatschunkGroupChildAssets>,
