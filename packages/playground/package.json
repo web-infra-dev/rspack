@@ -32,7 +32,7 @@
     "tailwindcss": "^3.3.0",
     "vue": "^3.4.21",
     "vue-loader": "^17.3.1",
-    "css-loader": "^6.11.0",
+    "css-loader": "^7.0.0",
     "webpack-dev-server": "5.0.4",
     "ws": "^8.16.0"
   }

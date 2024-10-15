@@ -322,8 +322,8 @@ importers:
         specifier: 3.36.1
         version: 3.36.1
       css-loader:
-        specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^7.0.0
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))
       fs-extra:
         specifier: ^11.2.0
         version: 11.2.0
@@ -652,8 +652,8 @@ importers:
         specifier: 3.36.1
         version: 3.36.1
       css-loader:
-        specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^7.0.0
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))
@@ -5263,7 +5263,7 @@ packages:
     resolution: {integrity: sha512-rj8l8pD4bJ1nx+dAkMhV1xB5RuZEyVysfxJqB1pRchh1KVvwOv9b7CGB8ZfjTImVv2oF+sYMUkMZq6Na5Ftmbg==}
 
   concat-map@0.0.1:
-    resolution: {integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=}
+    resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
   concat-stream@1.6.2:
     resolution: {integrity: sha512-27HBghJxjiZtIk3Ycvn/4kbJk/1uZuJFfuPEns6LaEvpvG1f0hTea8lilrouyo9mVc2GWdcEZ8OLoGmSADlrCw==}
@@ -5471,6 +5471,18 @@ packages:
     peerDependencies:
       '@rspack/core': 0.x || 1.x
       webpack: ^5.0.0
+    peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
+      webpack:
+        optional: true
+
+  css-loader@7.1.2:
+    resolution: {integrity: sha512-6WvYYn7l/XEGN8Xu2vWFt9nVzrCn39vKyTEFf/ExEyoksJjjSZV/0/35XPlMbpnr6VGhZIUg5yJrL8tGfes/FA==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      '@rspack/core': 0.x || 1.x
+      webpack: ^5.27.0
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
@@ -5888,7 +5900,7 @@ packages:
     engines: {node: '>=0.4.0'}
 
   density-clustering@1.3.0:
-    resolution: {integrity: sha1-3J9ZyPCrl+FiSsZJMP0xlIF9ysU=}
+    resolution: {integrity: sha512-icpmBubVTwLnsaor9qH/4tG5+7+f61VcqMN3V3pm9sxxSCt2Jcs0zWOgwZW9ARJYaKD3FumIgHiMOcIMRRAzFQ==}
 
   depd@1.1.2:
     resolution: {integrity: sha512-7emPTl6Dpo6JRXOXjLRxck+FlLRX5847cLKEn00PLAgc3g2hTZZgr+e4c2v6QpSmLeFP3n5yUo7ft6avBK/5jQ==}
@@ -6245,7 +6257,7 @@ packages:
     resolution: {integrity: sha512-D9rRn9y7kLPnJ+hMq7S/nhvoKwwvVJahBi2BPmx3bvbsEdK3W9ii8cBSGjP+72/LnM4n6fo3+dkCX5FeTQruXA==}
 
   event-stream@3.3.4:
-    resolution: {integrity: sha1-SrTJoPWlTbkzi0w02Gv86PSzVXE=}
+    resolution: {integrity: sha512-QHpkERcGsR0T7Qm3HNJSyXKEEj8AHNxkY3PK8TS2KJvQ7NiSHe3DDpwVKKtoYprL/AreyzFBeIkBIWChAqn60g==}
 
   event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
@@ -6320,7 +6332,7 @@ packages:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
 
   fast-url-parser@1.1.3:
-    resolution: {integrity: sha1-9K8+qfNNiicc9YrSs3WfQx8LMY0=}
+    resolution: {integrity: sha512-5jOCVXADYNuRkKFzNJ0dCCewsZiYo0dz8QNYljkOpFC6r2U4OBmKtvm/Tsuh4w1YYdDqDb31a8TVhBJ2OJKdqQ==}
 
   fastest-levenshtein@1.0.16:
     resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
@@ -6561,7 +6573,7 @@ packages:
     engines: {node: '>=6.9.0'}
 
   geojson-equality@0.1.6:
-    resolution: {integrity: sha1-oXE3TvBD5dR5eZWEC65GSOB1LXI=}
+    resolution: {integrity: sha512-TqG8YbqizP3EfwP5Uw4aLu6pKkg6JQK9uq/XZ1lXQntvTHD1BBKJWhNpJ2M0ax6TuWMP3oyx6Oq7FCIfznrgpQ==}
 
   geojson-rbush@3.2.0:
     resolution: {integrity: sha512-oVltQTXolxvsz1sZnutlSuLDEcQAKYC/uXt9zDzJJ6bu0W+baTI8LZBaTup5afzibEH4N3jlq2p+a152wlBJ7w==}
@@ -8003,7 +8015,7 @@ packages:
     resolution: {integrity: sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==}
 
   media-typer@0.3.0:
-    resolution: {integrity: sha1-hxDXrwqmJvj/+hzgAWhUUmMlV0g=}
+    resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
     engines: {node: '>= 0.6'}
 
   medium-zoom@1.1.0:
@@ -10906,7 +10918,7 @@ packages:
     resolution: {integrity: sha512-Z0DbgELS9/L/75wZbro8xAnT50pBVFQZ+hUEueGDU5FN51YSCYM+jdxsfCiHjwNP/4LCDD0i/graKpeBnOXKRA==}
 
   utils-merge@1.0.1:
-    resolution: {integrity: sha1-n5VxD1CiZ5R7LMwSR0HBAoQn5xM=}
+    resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
   uuid@3.4.0:
@@ -17104,6 +17116,20 @@ snapshots:
       webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4)
 
   css-loader@6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0))):
+    dependencies:
+      icss-utils: 5.1.0(postcss@8.4.47)
+      postcss: 8.4.47
+      postcss-modules-extract-imports: 3.1.0(postcss@8.4.47)
+      postcss-modules-local-by-default: 4.0.5(postcss@8.4.47)
+      postcss-modules-scope: 3.2.0(postcss@8.4.47)
+      postcss-modules-values: 4.0.0(postcss@8.4.47)
+      postcss-value-parser: 4.2.0
+      semver: 7.6.3
+    optionalDependencies:
+      '@rspack/core': link:packages/rspack
+      webpack: 5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0))
+
+  css-loader@7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0))):
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.47)
       postcss: 8.4.47
