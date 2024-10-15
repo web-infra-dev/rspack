@@ -148,5 +148,9 @@ module.exports = {
 	"snapshotFormat": {
 		"escapeString": true,
 		"printBasicPrototype": true
-	}
+	},
+	"reporters": [
+		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
+		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+	],
 }
