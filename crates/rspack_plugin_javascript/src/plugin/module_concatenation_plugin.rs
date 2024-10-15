@@ -772,7 +772,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             export_info.is_reexport(&module_graph)
-              && export_info.get_target(&module_graph, None).is_none()
+              && export_info.get_target(&module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
