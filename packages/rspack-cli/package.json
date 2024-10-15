@@ -1,26 +1,7 @@
 {
   "name": "@rspack/cli",
   "version": "1.0.10",
-  "license": "MIT",
   "description": "CLI for rspack",
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "bin": {
-    "rspack": "./bin/rspack"
-  },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w",
-    "test": "cross-env jest --colors"
-  },
-  "files": [
-    "bin",
-    "dist"
-  ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -28,8 +9,35 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-cli"
   },
-  "peerDependencies": {
-    "@rspack/core": "^1.0.0-alpha || ^1.x"
+  "license": "MIT",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "rspack": "./bin/rspack"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b ./tsconfig.build.json",
+    "dev": "tsc -b -w",
+    "test": "cross-env jest --colors"
+  },
+  "dependencies": {
+    "@discoveryjs/json-ext": "^0.5.7",
+    "@rspack/dev-server": "1.0.5",
+    "colorette": "2.0.19",
+    "exit-hook": "^3.2.0",
+    "interpret": "^3.1.1",
+    "rechoir": "^0.8.0",
+    "semver": "^7.6.2",
+    "webpack-bundle-analyzer": "4.6.1",
+    "yargs": "17.6.2"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
@@ -45,15 +53,11 @@
     "ts-node": "^10.9.2",
     "typescript": "5.0.2"
   },
-  "dependencies": {
-    "@discoveryjs/json-ext": "^0.5.7",
-    "@rspack/dev-server": "1.0.5",
-    "colorette": "2.0.19",
-    "exit-hook": "^3.2.0",
-    "interpret": "^3.1.1",
-    "rechoir": "^0.8.0",
-    "semver": "^7.6.2",
-    "webpack-bundle-analyzer": "4.6.1",
-    "yargs": "17.6.2"
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0-alpha || ^1.x"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
