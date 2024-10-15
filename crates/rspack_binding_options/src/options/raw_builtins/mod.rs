@@ -68,6 +68,7 @@ use rspack_plugin_runtime::{
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
+use rspack_plugin_split_shared_modules::SplitSharedModulesPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
@@ -126,6 +127,7 @@ pub enum BuiltinPluginName {
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
+  SplitSharedModulesPlugin,
   ShareRuntimePlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
@@ -299,6 +301,9 @@ impl BuiltinPlugin {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::SplitSharedModulesPlugin => {
+        plugins.push(SplitSharedModulesPlugin::new().boxed());
       }
       BuiltinPluginName::ShareRuntimePlugin => {
         plugins.push(ShareRuntimePlugin::new(downcast_into::<bool>(self.options)?).boxed())
