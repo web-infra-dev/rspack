@@ -14,6 +14,7 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.SourceMapDevToolPlugin({
+			test: /\.js/,
 			filename: "[file].map",
 			sourceRoot: path.join(__dirname, "folder") + "/"
 		}),
