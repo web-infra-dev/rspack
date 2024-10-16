@@ -1,7 +1,7 @@
 import { type Options, defineConfig } from "tsup";
 import prebundleConfig from "./prebundle.config.mjs";
 
-const aliasCompiledPlugin = {
+const aliasPlugin = {
 	name: "alias-compiled-plugin",
 	setup(build) {
 		const { dependencies } = prebundleConfig;
@@ -13,20 +13,25 @@ const aliasCompiledPlugin = {
 				external: true
 			}));
 		}
+
+		build.onResolve({ filter: /..\/package\.json/ }, () => ({
+			path: "../package.json",
+			external: true
+		}));
 	}
 };
 
 const commonConfig: Options = {
 	format: ["cjs"],
 	target: "node16",
-	esbuildPlugins: [aliasCompiledPlugin]
+	esbuildPlugins: [aliasPlugin]
 };
 
 export default defineConfig([
 	{
 		...commonConfig,
 		entry: ["./src/index.ts"],
-		external: ["./moduleFederationDefaultRuntime.js", /..\/package\.json/]
+		external: ["./moduleFederationDefaultRuntime.js"]
 	},
 	{
 		...commonConfig,
