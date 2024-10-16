@@ -2,17 +2,21 @@ import {
 	BuiltinPluginName,
 	type RawSwcDtsEmitRspackPluginOptions
 } from "@rspack/binding";
-import { Compiler } from "../../Compiler";
+import type { Compiler } from "../../Compiler";
 
 export interface SwcDtsEmitRspackPluginOptions {
 	rootDir: string;
 }
 
 export class SwcDtsEmitRspackPlugin {
+	options: SwcDtsEmitRspackPluginOptions;
+	constructor(options: SwcDtsEmitRspackPluginOptions) {
+		this.options = options;
+	}
 	apply(compiler: Compiler) {
 		compiler.__internal__registerBuiltinPlugin({
 			name: BuiltinPluginName.SwcDtsEmitRspackPlugin,
-			options: {}
+			options: this.options
 		});
 	}
 	normalizeOptions(

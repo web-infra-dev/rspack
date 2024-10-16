@@ -6,11 +6,12 @@ mod plugin;
 mod transformer;
 
 use std::default::Default;
+use std::sync::Arc;
 
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
-pub use plugin::{SwcDtsEmitOptions, PluginSwcDtsEmit};
+pub use plugin::{PluginSwcDtsEmit, SwcDtsEmitOptions};
 use rspack_core::{rspack_sources::SourceMap, Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -18,10 +19,12 @@ use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
 use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_core::alloc::collections::FxHashMap;
 use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
 use swc_core::ecma::codegen::to_code_with_comments;
 use swc_core::ecma::visit::VisitWith;
+use swc_typescript::fast_dts::FastDts;
 use transformer::IdentCollector;
 
 #[derive(Debug)]
@@ -84,6 +87,8 @@ impl SwcLoader {
       swc_options
     };
 
+    let name = (swc_options).filename.clone();
+
     let source_map_kind: SourceMapKind = match swc_options.config.source_maps {
       Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
       _ => loader_context.context.module_source_map_kind,
@@ -128,14 +133,18 @@ impl SwcLoader {
 
     let program = &built.program;
     if emit_dts && program.is_module() {
-      let dts_code = to_code_with_comments(
-        Some(&built.comments),
-        &program.as_module().expect("cannot reach"),
-      );
+      let mut module = program.clone().expect_module();
+      let mut checker = FastDts::new(Arc::new(swc_core::common::FileName::Custom(name)));
+      let issues = checker.transform(&mut module);
+      for issue in issues {
+        error!(issue);
+      }
+      let dts_code = to_code_with_comments(Some(&built.comments), &module);
       loader_context
         .parse_meta
         .entry("swc-loader-dts-extract".into())
-        .and_modify(|v| v.push_str(&dts_code));
+        .and_modify(|v| v.push_str(&dts_code))
+        .or_insert(dts_code);
     }
 
     let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;

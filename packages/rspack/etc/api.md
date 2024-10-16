@@ -67,6 +67,7 @@ import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
+import { RawSwcDtsEmitRspackPluginOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
@@ -7665,6 +7666,7 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
+        SwcDtsEmitRspackPlugin,
         ContextReplacementPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
@@ -13102,6 +13104,23 @@ type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
+export class SwcDtsEmitRspackPlugin {
+    constructor(options: SwcDtsEmitRspackPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    normalizeOptions(options: SwcDtsEmitRspackPluginOptions): RawSwcDtsEmitRspackPluginOptions;
+    // (undocumented)
+    options: SwcDtsEmitRspackPluginOptions;
+}
+
+// @public (undocumented)
+interface SwcDtsEmitRspackPluginOptions {
+    // (undocumented)
+    rootDir: string;
+}
+
+// @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
     new (options?: SwcJsMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
@@ -13155,11 +13174,15 @@ export interface SwcLoaderEnvConfig {
 
 // @public (undocumented)
 export interface SwcLoaderEsParserConfig {
+    allowReturnOutsideFunction?: boolean;
+    allowSuperOutsideMethod?: boolean;
+    autoAccessors?: boolean;
     decorators?: boolean;
     decoratorsBeforeExport?: boolean;
+    explicitResourceManagement?: boolean;
     exportDefaultFrom?: boolean;
     functionBind?: boolean;
-    importAssertions?: boolean;
+    importAttributes?: boolean;
     jsx?: boolean;
     // (undocumented)
     syntax: "ecmascript";
@@ -13176,6 +13199,7 @@ export interface SwcLoaderJscConfig {
         cacheRoot?: string;
         plugins?: Array<[string, Record<string, any>]>;
         disableBuiltinTransformsForInternalTesting?: boolean;
+        emitIsolatedDts?: boolean;
     };
     externalHelpers?: boolean;
     keepClassNames?: boolean;
