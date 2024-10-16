@@ -20,7 +20,11 @@ const placeholderSerializer = createSnapshotSerializer({
 			match: /:\d+:\d+/g,
 			mark: "line_col"
 		}
-	]
+	],
+	features: {
+		addDoubleQuotes: false,
+		ansiDoubleQuotes: false
+	}
 });
 
-export const normalizePlaceholder = placeholderSerializer.print;
+export const normalizePlaceholder = placeholderSerializer.serialize;
