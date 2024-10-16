@@ -301,7 +301,8 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-assets-manifest',
       url: 'https://github.com/webdeveric/webpack-assets-manifest',
-      status: CompatibleStatus.Compatible,
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['webpack-assets-manifest-desc'],
     },
     {
       name: 'git-revision-webpack-plugin',
