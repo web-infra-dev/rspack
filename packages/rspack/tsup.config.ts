@@ -26,7 +26,7 @@ export default defineConfig([
 	{
 		...commonConfig,
 		entry: ["./src/index.ts"],
-		external: ["./moduleFederationDefaultRuntime.js"]
+		external: ["./moduleFederationDefaultRuntime.js", /..\/package\.json/]
 	},
 	{
 		...commonConfig,
