@@ -422,56 +422,42 @@ const baseRuleSetCondition = z
 	.or(z.string())
 	.or(z.function().args(z.string()).returns(z.boolean()));
 
-export type RuleSetCondition =
-	| z.infer<typeof baseRuleSetCondition>
-	| RuleSetConditions
-	| RuleSetLogicalConditions;
-
-const ruleSetCondition: z.ZodType<RuleSetCondition> = baseRuleSetCondition
+const ruleSetCondition: z.ZodType<t.RuleSetCondition> = baseRuleSetCondition
 	.or(z.lazy(() => ruleSetConditions))
 	.or(z.lazy(() => ruleSetLogicalConditions));
 
-export type RuleSetConditions = RuleSetCondition[];
-
-const ruleSetConditions: z.ZodType<RuleSetConditions> = z.lazy(() =>
+const ruleSetConditions: z.ZodType<t.RuleSetConditions> = z.lazy(() =>
 	z.array(ruleSetCondition)
 );
 
-export type RuleSetLogicalConditions = {
-	and?: RuleSetConditions;
-	or?: RuleSetConditions;
-	not?: RuleSetCondition;
-};
-
-const ruleSetLogicalConditions: z.ZodType<RuleSetLogicalConditions> =
+const ruleSetLogicalConditions: z.ZodType<t.RuleSetLogicalConditions> =
 	z.strictObject({
 		and: ruleSetConditions.optional(),
 		or: ruleSetConditions.optional(),
 		not: ruleSetCondition.optional()
 	});
 
-const ruleSetLoader = z.string();
-export type RuleSetLoader = z.infer<typeof ruleSetLoader>;
+const ruleSetLoader = z.string() satisfies z.ZodType<t.RuleSetLoader>;
 
-const ruleSetLoaderOptions = z.string().or(z.record(z.any()));
-export type RuleSetLoaderOptions = z.infer<typeof ruleSetLoaderOptions>;
+const ruleSetLoaderOptions = z
+	.string()
+	.or(z.record(z.any())) satisfies z.ZodType<t.RuleSetLoaderOptions>;
 
 const ruleSetLoaderWithOptions = z.strictObject({
 	ident: z.string().optional(),
 	loader: ruleSetLoader,
 	options: ruleSetLoaderOptions.optional()
-});
-export type RuleSetLoaderWithOptions = z.infer<typeof ruleSetLoaderWithOptions>;
+}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
-const ruleSetUseItem = ruleSetLoader.or(ruleSetLoaderWithOptions);
-export type RuleSetUseItem = z.infer<typeof ruleSetUseItem>;
+const ruleSetUseItem = ruleSetLoader.or(
+	ruleSetLoaderWithOptions
+) satisfies z.ZodType<t.RuleSetUseItem>;
 
 const ruleSetUse = ruleSetUseItem
 	.or(ruleSetUseItem.array())
 	.or(
 		z.function().args(z.custom<RawFuncUseCtx>()).returns(ruleSetUseItem.array())
-	);
-export type RuleSetUse = z.infer<typeof ruleSetUse>;
+	) satisfies z.ZodType<t.RuleSetUse>;
 
 const baseRuleSetRule = z.strictObject({
 	test: ruleSetCondition.optional(),
@@ -497,53 +483,42 @@ const baseRuleSetRule = z.strictObject({
 	resolve: resolveOptions.optional(),
 	sideEffects: z.boolean().optional(),
 	enforce: z.literal("pre").or(z.literal("post")).optional()
-});
+}) satisfies z.ZodType<t.RuleSetRule>;
 
-export type RuleSetRule = z.infer<typeof baseRuleSetRule> & {
-	oneOf?: RuleSetRule[];
-	rules?: RuleSetRule[];
-};
-
-const ruleSetRule: z.ZodType<RuleSetRule> = baseRuleSetRule.extend({
+const ruleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule.extend({
 	oneOf: z.lazy(() => ruleSetRule.array()).optional(),
 	rules: z.lazy(() => ruleSetRule.array()).optional()
 });
 
-const ruleSetRules = z.array(z.literal("...").or(ruleSetRule).or(falsy));
-export type RuleSetRules = z.infer<typeof ruleSetRules>;
+const ruleSetRules = z.array(
+	z.literal("...").or(ruleSetRule).or(falsy)
+) satisfies z.ZodType<t.RuleSetRules>;
 
 const assetParserDataUrlOptions = z.strictObject({
 	maxSize: z.number().optional()
-});
-export type AssetParserDataUrlOptions = z.infer<
-	typeof assetParserDataUrlOptions
->;
+}) satisfies z.ZodType<t.AssetParserDataUrlOptions>;
 
-const assetParserDataUrl = assetParserDataUrlOptions;
-export type AssetParserDataUrl = z.infer<typeof assetParserDataUrl>;
+const assetParserDataUrl =
+	assetParserDataUrlOptions satisfies z.ZodType<t.AssetParserDataUrl>;
 
 const assetParserOptions = z.strictObject({
 	dataUrlCondition: assetParserDataUrl.optional()
-});
-export type AssetParserOptions = z.infer<typeof assetParserOptions>;
+}) satisfies z.ZodType<t.AssetParserOptions>;
 
-const cssParserNamedExports = z.boolean();
-export type CssParserNamedExports = z.infer<typeof cssParserNamedExports>;
+const cssParserNamedExports =
+	z.boolean() satisfies z.ZodType<t.CssParserNamedExports>;
 
 const cssParserOptions = z.strictObject({
 	namedExports: cssParserNamedExports.optional()
-});
-export type CssParserOptions = z.infer<typeof cssParserOptions>;
+}) satisfies z.ZodType<t.CssParserOptions>;
 
 const cssAutoParserOptions = z.strictObject({
 	namedExports: cssParserNamedExports.optional()
-});
-export type CssAutoParserOptions = z.infer<typeof cssAutoParserOptions>;
+}) satisfies z.ZodType<t.CssAutoParserOptions>;
 
 const cssModuleParserOptions = z.strictObject({
 	namedExports: cssParserNamedExports.optional()
-});
-export type CssModuleParserOptions = z.infer<typeof cssModuleParserOptions>;
+}) satisfies z.ZodType<t.CssModuleParserOptions>;
 
 const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
 const dynamicImportPreload = z.union([z.boolean(), z.number()]);
@@ -588,8 +563,7 @@ const javascriptParserOptions = z.strictObject({
 	requireResolve: requireResolve.optional(),
 	importDynamic: importDynamic.optional()
 	// #endregion
-});
-export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
+}) satisfies z.ZodType<t.JavascriptParserOptions>;
 
 const parserOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetParserOptions.optional(),
@@ -600,31 +574,20 @@ const parserOptionsByModuleTypeKnown = z.strictObject({
 	"javascript/auto": javascriptParserOptions.optional(),
 	"javascript/dynamic": javascriptParserOptions.optional(),
 	"javascript/esm": javascriptParserOptions.optional()
-});
+}) satisfies z.ZodType<t.ParserOptionsByModuleTypeKnown>;
 
-export type ParserOptionsByModuleTypeKnown = z.infer<
-	typeof parserOptionsByModuleTypeKnown
->;
-
-const parserOptionsByModuleTypeUnknown = z.record(z.record(z.any()));
-export type ParserOptionsByModuleTypeUnknown = z.infer<
-	typeof parserOptionsByModuleTypeUnknown
->;
+const parserOptionsByModuleTypeUnknown = z.record(
+	z.record(z.any())
+) satisfies z.ZodType<t.ParserOptionsByModuleTypeUnknown>;
 
 const parserOptionsByModuleType = parserOptionsByModuleTypeKnown.or(
 	parserOptionsByModuleTypeUnknown
-);
-export type ParserOptionsByModuleType = z.infer<
-	typeof parserOptionsByModuleType
->;
+) satisfies z.ZodType<t.ParserOptionsByModuleType>;
 
 const assetGeneratorDataUrlOptions = z.strictObject({
 	encoding: z.literal(false).or(z.literal("base64")).optional(),
 	mimetype: z.string().optional()
-});
-export type AssetGeneratorDataUrlOptions = z.infer<
-	typeof assetGeneratorDataUrlOptions
->;
+}) satisfies z.ZodType<t.AssetGeneratorDataUrlOptions>;
 
 const assetGeneratorDataUrlFunction = z
 	.function()
@@ -634,19 +597,15 @@ const assetGeneratorDataUrlFunction = z
 			filename: z.string()
 		})
 	)
-	.returns(z.string());
-export type AssetGeneratorDataUrlFunction = z.infer<
-	typeof assetGeneratorDataUrlFunction
->;
+	.returns(z.string()) satisfies z.ZodType<t.AssetGeneratorDataUrlFunction>;
 
 const assetGeneratorDataUrl = assetGeneratorDataUrlOptions.or(
 	assetGeneratorDataUrlFunction
-);
-export type AssetGeneratorDataUrl = z.infer<typeof assetGeneratorDataUrl>;
+) satisfies z.ZodType<t.AssetGeneratorDataUrl>;
 
 const assetInlineGeneratorOptions = z.strictObject({
 	dataUrl: assetGeneratorDataUrl.optional()
-});
+}) satisfies z.ZodType<t.AssetInlineGeneratorOptions>;
 export type AssetInlineGeneratorOptions = z.infer<
 	typeof assetInlineGeneratorOptions
 >;
@@ -655,15 +614,11 @@ const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
 	filename: filename.optional(),
 	publicPath: publicPath.optional()
-});
-export type AssetResourceGeneratorOptions = z.infer<
-	typeof assetResourceGeneratorOptions
->;
+}) satisfies z.ZodType<t.AssetResourceGeneratorOptions>;
 
 const assetGeneratorOptions = assetInlineGeneratorOptions.merge(
 	assetResourceGeneratorOptions
-);
-export type AssetGeneratorOptions = z.infer<typeof assetGeneratorOptions>;
+) satisfies z.ZodType<t.AssetGeneratorOptions>;
 
 const cssGeneratorExportsConvention = z.enum([
 	"as-is",
@@ -671,45 +626,35 @@ const cssGeneratorExportsConvention = z.enum([
 	"camel-case-only",
 	"dashes",
 	"dashes-only"
-]);
-export type CssGeneratorExportsConvention = z.infer<
-	typeof cssGeneratorExportsConvention
->;
+]) satisfies z.ZodType<t.CssGeneratorExportsConvention>;
 
-const cssGeneratorExportsOnly = z.boolean();
-export type CssGeneratorExportsOnly = z.infer<typeof cssGeneratorExportsOnly>;
+const cssGeneratorExportsOnly =
+	z.boolean() satisfies z.ZodType<t.CssGeneratorExportsOnly>;
 
-const cssGeneratorLocalIdentName = z.string();
-export type CssGeneratorLocalIdentName = z.infer<
-	typeof cssGeneratorLocalIdentName
->;
+const cssGeneratorLocalIdentName =
+	z.string() satisfies z.ZodType<t.CssGeneratorLocalIdentName>;
 
-const cssGeneratorEsModule = z.boolean();
-export type CssGeneratorEsModule = z.infer<typeof cssGeneratorEsModule>;
+const cssGeneratorEsModule =
+	z.boolean() satisfies z.ZodType<t.CssGeneratorEsModule>;
 
 const cssGeneratorOptions = z.strictObject({
 	exportsOnly: cssGeneratorExportsOnly.optional(),
 	esModule: cssGeneratorEsModule.optional()
-});
-export type CssGeneratorOptions = z.infer<typeof cssGeneratorOptions>;
+}) satisfies z.ZodType<t.CssGeneratorOptions>;
 
 const cssAutoGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
 	localIdentName: cssGeneratorLocalIdentName.optional(),
 	esModule: cssGeneratorEsModule.optional()
-});
-export type CssAutoGeneratorOptions = z.infer<typeof cssAutoGeneratorOptions>;
+}) satisfies z.ZodType<t.CssAutoGeneratorOptions>;
 
 const cssModuleGeneratorOptions = z.strictObject({
 	exportsConvention: cssGeneratorExportsConvention.optional(),
 	exportsOnly: cssGeneratorExportsOnly.optional(),
 	localIdentName: cssGeneratorLocalIdentName.optional(),
 	esModule: cssGeneratorEsModule.optional()
-});
-export type CssModuleGeneratorOptions = z.infer<
-	typeof cssModuleGeneratorOptions
->;
+}) satisfies z.ZodType<t.CssModuleGeneratorOptions>;
 
 const generatorOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetGeneratorOptions.optional(),
@@ -718,29 +663,26 @@ const generatorOptionsByModuleTypeKnown = z.strictObject({
 	css: cssGeneratorOptions.optional(),
 	"css/auto": cssAutoGeneratorOptions.optional(),
 	"css/module": cssModuleGeneratorOptions.optional()
-});
+}) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
 export type GeneratorOptionsByModuleTypeKnown = z.infer<
 	typeof generatorOptionsByModuleTypeKnown
 >;
 
-const generatorOptionsByModuleTypeUnknown = z.record(z.record(z.any()));
-export type GeneratorOptionsByModuleTypeUnknown = z.infer<
-	typeof generatorOptionsByModuleTypeUnknown
->;
+const generatorOptionsByModuleTypeUnknown = z.record(
+	z.record(z.any())
+) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeUnknown>;
 
 const generatorOptionsByModuleType = generatorOptionsByModuleTypeKnown.or(
 	generatorOptionsByModuleTypeUnknown
-);
-export type GeneratorOptionsByModuleType = z.infer<
-	typeof generatorOptionsByModuleType
->;
+) satisfies z.ZodType<t.GeneratorOptionsByModuleType>;
 
 const noParseOptionSingle = z
 	.string()
 	.or(z.instanceof(RegExp))
 	.or(z.function().args(z.string()).returns(z.boolean()));
-const noParseOption = noParseOptionSingle.or(z.array(noParseOptionSingle));
-export type NoParseOption = z.infer<typeof noParseOption>;
+const noParseOption = noParseOptionSingle.or(
+	z.array(noParseOptionSingle)
+) satisfies z.ZodType<t.NoParseOption>;
 
 const moduleOptions = z.strictObject({
 	defaultRules: ruleSetRules.optional(),
@@ -748,8 +690,7 @@ const moduleOptions = z.strictObject({
 	parser: parserOptionsByModuleType.optional(),
 	generator: generatorOptionsByModuleType.optional(),
 	noParse: noParseOption.optional()
-});
-export type ModuleOptions = z.infer<typeof moduleOptions>;
+}) satisfies z.ZodType<t.ModuleOptions>;
 //#endregion
 
 //#region Target
