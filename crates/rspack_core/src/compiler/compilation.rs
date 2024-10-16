@@ -28,7 +28,7 @@ use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use tracing::instrument;
+use tracing::{info_span, instrument, Instrument};
 
 use super::{
   hmr::CompilationRecords,
@@ -813,7 +813,7 @@ impl Compilation {
     ukey
   }
 
-  #[instrument(name = "compilation:make", skip_all)]
+  #[instrument("Compilation:make", skip_all)]
   pub async fn make(&mut self) -> Result<()> {
     self.make_artifact.reset_dependencies_incremental_info();
     //        self.module_executor.
@@ -852,7 +852,7 @@ impl Compilation {
       .collect::<Vec<_>>()))
   }
 
-  #[instrument(name = "compilation:code_generation", skip_all)]
+  #[instrument("Compilation:code_generation", skip_all)]
   fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
@@ -990,7 +990,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(name = "compilation::create_module_assets", skip_all)]
+  #[instrument("Compilation:create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
     let mut temp = vec![];
     for (module_identifier, assets) in self.module_assets.iter() {
@@ -1018,7 +1018,7 @@ impl Compilation {
     }
   }
 
-  #[instrument(skip_all)]
+  #[instrument("Compilation::create_chunk_assets", skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let mutations = self
       .incremental
@@ -1118,7 +1118,16 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(name = "compilation:after_process_asssets", skip_all)]
+  #[instrument("Compilation:process_assets", skip_all)]
+  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver
+      .compilation_hooks
+      .process_assets
+      .call(self)
+      .await
+  }
+
+  #[instrument("Compilation:after_process_asssets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .compilation_hooks
@@ -1127,15 +1136,15 @@ impl Compilation {
       .await
   }
 
-  #[instrument(name = "compilation:after_seal", skip_all)]
+  #[instrument("Compilation:after_seal", skip_all)]
   async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver.compilation_hooks.after_seal.call(self).await
   }
 
-  #[instrument(
-    name = "compilation:chunk_asset",
-    skip(self, plugin_driver, chunk_ukey)
-  )]
+  // #[instrument(
+  //   name = "Compilation:chunk_asset",
+  //   skip(self, plugin_driver, chunk_ukey)
+  // )]
   async fn chunk_asset(
     &self,
     chunk_ukey: ChunkUkey,
@@ -1172,7 +1181,7 @@ impl Compilation {
     self.chunk_group_by_ukey.expect_get(ukey)
   }
 
-  #[instrument(name = "compilation:finish", skip_all)]
+  #[instrument("Compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
@@ -1228,7 +1237,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
     let mutations = self
       .incremental
@@ -1285,7 +1294,7 @@ impl Compilation {
     self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
   }
 
-  #[instrument(name = "compilation:seal", skip_all)]
+  #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());
     let logger = self.get_logger("rspack.Compilation");
@@ -1319,6 +1328,7 @@ impl Compilation {
         .compilation_hooks
         .optimize_modules
         .call(self)
+        .instrument(info_span!("Compilation:optimize_modules"))
         .await?,
       Some(true)
     ) {}
@@ -1326,12 +1336,12 @@ impl Compilation {
       .compilation_hooks
       .after_optimize_modules
       .call(self)
+      .instrument(info_span!("Compilation:after_optimize_modules"))
       .await?;
     while matches!(
       plugin_driver.compilation_hooks.optimize_chunks.call(self)?,
       Some(true)
     ) {}
-
     logger.time_end(start);
 
     let start = logger.time("optimize");
@@ -1339,12 +1349,14 @@ impl Compilation {
       .compilation_hooks
       .optimize_tree
       .call(self)
+      .instrument(info_span!("Compilation:optimize_tree"))
       .await?;
 
     plugin_driver
       .compilation_hooks
       .optimize_chunk_modules
       .call(self)
+      .instrument(info_span!("Compilation:optimize_chunk_modules"))
       .await?;
     logger.time_end(start);
 
@@ -1352,12 +1364,13 @@ impl Compilation {
     // so now we can start to generate assets based on the chunk graph
 
     let start = logger.time("module ids");
-    plugin_driver.compilation_hooks.module_ids.call(self)?;
+    tracing::info_span!("Compilation:module_ids")
+      .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
-    plugin_driver.compilation_hooks.chunk_ids.call(self)?;
-
+    tracing::info_span!("Compilation:chunk_ids")
+      .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
@@ -1388,10 +1401,12 @@ impl Compilation {
     self.create_module_hashes(create_module_hashes_modules)?;
 
     let start = logger.time("optimize code generation");
-    plugin_driver
-      .compilation_hooks
-      .optimize_code_generation
-      .call(self)?;
+    tracing::info_span!("Compilation::optimize_code_generation").in_scope(|| {
+      plugin_driver
+        .compilation_hooks
+        .optimize_code_generation
+        .call(self)
+    })?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -1539,11 +1554,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("process assets");
-    plugin_driver
-      .compilation_hooks
-      .process_assets
-      .call(self)
-      .await?;
+    self.process_assets(plugin_driver.clone()).await?;
     logger.time_end(start);
 
     let start = logger.time("after process assets");
@@ -1613,7 +1624,7 @@ impl Compilation {
     entries.chain(async_entries)
   }
 
-  #[instrument(skip_all)]
+  #[instrument("Compilation:process_modules_runtime_requirements", skip_all)]
   pub async fn process_modules_runtime_requirements(
     &mut self,
     modules: IdentifierSet,
@@ -1673,7 +1684,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(skip_all)]
+  #[instrument(name = "Compilation:process_chunks_runtime_requirements", skip_all)]
   pub async fn process_chunks_runtime_requirements(
     &mut self,
     chunks: UkeySet<ChunkUkey>,
@@ -1785,7 +1796,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(name = "compilation:create_hash", skip_all)]
+  #[instrument(name = "Compilation:create_hash", skip_all)]
   pub async fn create_hash(
     &mut self,
     create_hash_chunks: UkeySet<ChunkUkey>,
@@ -2084,7 +2095,7 @@ impl Compilation {
     Ok((chunk_hash, content_hashes))
   }
 
-  #[instrument(name = "compilation:create_module_hashes", skip_all)]
+  #[instrument("Compilation:create_module_hashes", skip_all)]
   pub fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
     let mg = self.get_module_graph();
     let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules

@@ -184,7 +184,7 @@ impl<'a> ModuleGraph<'a> {
     res
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?module_id))]
+  // #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,

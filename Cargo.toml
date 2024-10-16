@@ -85,7 +85,7 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-alpha.24" }
+napi        = { version = "3.0.0-alpha.24", features = ["anyhow"] }
 napi-build  = { version = "2.1.4" }
 napi-derive = { version = "3.0.0-alpha.22" }
 
