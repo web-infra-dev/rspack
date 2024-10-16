@@ -1,4 +1,4 @@
-import type { JsAssetInfo } from "@rspack/binding";
+import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type { PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
@@ -776,6 +776,450 @@ export type ResolveOptions = {
 export type Resolve = ResolveOptions;
 //#endregion
 
+//#region Module
+export type RuleSetCondition =
+	| string
+	| RegExp
+	| ((value: string) => boolean)
+	| RuleSetConditions
+	| RuleSetLogicalConditions;
+
+export type RuleSetConditions = RuleSetCondition[];
+
+export type RuleSetLogicalConditions = {
+	and?: RuleSetConditions;
+	or?: RuleSetConditions;
+	not?: RuleSetCondition;
+};
+
+export type RuleSetLoader = string;
+
+export type RuleSetLoaderOptions = string | Record<string, any>;
+
+export type RuleSetLoaderWithOptions = {
+	ident?: string;
+
+	loader: RuleSetLoader;
+
+	options?: RuleSetLoaderOptions;
+};
+
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+
+export type RuleSetUse =
+	| RuleSetUseItem
+	| RuleSetUseItem[]
+	| ((data: RawFuncUseCtx) => RuleSetUseItem[]);
+
+/** Rule defines the conditions for matching a module and the behavior of handling those modules. */
+export type RuleSetRule = {
+	/** Matches all modules that match this resource, and will match against Resource. */
+	test?: RuleSetCondition;
+
+	/** Excludes all modules that match this condition and will match against the absolute path of the resource */
+	exclude?: RuleSetCondition;
+
+	/** Matches all modules that match this condition against the absolute path of the resource */
+	include?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against Resource */
+	issuer?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against layer of the module that issued the current module. */
+	issuerLayer?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module */
+	dependency?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against Resource */
+	resource?: RuleSetCondition;
+
+	/** Matches all modules that match this resource against the Resource's fragment. */
+	resourceFragment?: RuleSetCondition;
+
+	/** Matches all modules that match this resource against the Resource's query. */
+	resourceQuery?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against the Resource's mimetype. */
+	mimetype?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against the Resource's scheme. */
+	scheme?: RuleSetCondition;
+
+	/** Allows you to match values of properties in the description file, typically package.json, to determine which modules a rule should apply to. */
+	descriptionData?: Record<string, RuleSetCondition>;
+
+	/** Used in conjunction with [import attributes](https://github.com/tc39/proposal-import-attributes). */
+	with?: Record<string, RuleSetCondition>;
+
+	/** Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing. */
+	type?: string;
+
+	/** Used to mark the layer of the matching module. */
+	layer?: string;
+
+	/** A loader name */
+	loader?: RuleSetLoader;
+
+	/** A loader options */
+	options?: RuleSetLoaderOptions;
+
+	/** An array to pass the Loader package name and its options.  */
+	use?: RuleSetUse;
+
+	/**
+	 * Parser options for the specific modules that matched by the rule conditions
+	 * It will override the parser options in module.parser.
+	 * @default {}
+	 * */
+	parser?: Record<string, any>;
+
+	/**
+	 * Generator options for the specific modules that matched by the rule conditions
+	 * It will override the parser options in module.generator.
+	 * @default {}
+	 */
+	generator?: Record<string, any>;
+
+	/** Matches all modules that match this resource, and will match against Resource. */
+	resolve?: ResolveOptions;
+
+	/** Flag the module for side effects */
+	sideEffects?: boolean;
+
+	/** Specify loader category.  */
+	enforce?: "pre" | "post";
+
+	/** A kind of Nested Rule, an array of Rules from which only the first matching Rule is used when the parent Rule matches. */
+	oneOf?: RuleSetRule[];
+
+	/** A kind of Nested Rule, an array of Rules that is also used when the parent Rule matches. */
+	rules?: RuleSetRule[];
+};
+
+/** A list of rules. */
+export type RuleSetRules = ("..." | RuleSetRule | Falsy)[];
+
+/**
+ * Options object for DataUrl condition.
+ * */
+export type AssetParserDataUrlOptions = {
+	maxSize?: number | undefined;
+};
+
+/**
+ * Options object for DataUrl condition.
+ * */
+export type AssetParserDataUrl = AssetParserDataUrlOptions;
+
+/** Options object for `asset` modules. */
+export type AssetParserOptions = {
+	/**
+	 * It be used only for Asset Module scenarios.
+	 * @default { maxSize: 8096 }
+	 * */
+	dataUrlCondition?: AssetParserDataUrlOptions;
+};
+
+export type CssParserNamedExports = boolean;
+
+/** Options object for `css` modules. */
+export type CssParserOptions = {
+	/**
+	 * Use ES modules named export for CSS exports.
+	 * @default true
+	 * */
+	namedExports?: CssParserNamedExports;
+};
+
+/** Options object for `css/auto` modules. */
+export type CssAutoParserOptions = {
+	/**
+	 * Use ES modules named export for CSS exports.
+	 * @default true
+	 * */
+	namedExports?: CssParserNamedExports;
+};
+
+/** Options object for `css/module` modules. */
+export type CssModuleParserOptions = {
+	/**
+	 * Use ES modules named export for CSS exports.
+	 * @default true
+	 * */
+	namedExports?: CssParserNamedExports;
+};
+
+type ExportsPresence = "error" | "warn" | "auto" | false;
+
+export type JavascriptParserOptions = {
+	/**
+	 * Specifies global mode for dynamic import.
+	 * @default 'lazy'
+	 * */
+	dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once";
+
+	/**
+	 * Specifies global preload for dynamic import.
+	 * @default false
+	 * */
+	dynamicImportPreload?: boolean | number;
+
+	/**
+	 * Specifies global prefetch for dynamic import
+	 * @default false
+	 * */
+	dynamicImportPrefetch?: boolean | number;
+
+	/**
+	 * Specifies global fetchPriority for dynamic import
+	 * @default 'auto'
+	 */
+	dynamicImportFetchPriority?: "low" | "high" | "auto";
+
+	/**
+	 * Enable or disable evaluating import.meta.
+	 * @default true
+	 */
+	importMeta?: boolean;
+
+	/**
+	 * Enable parsing of new URL() syntax.
+	 * @default true
+	 * */
+	url?: "relative" | boolean;
+
+	/**
+	 * Enable warnings for full dynamic dependencies
+	 * @default true
+	 * */
+	exprContextCritical?: boolean;
+
+	/**
+	 * Enable warnings for partial dynamic dependencies
+	 * @default false
+	 * */
+	wrappedContextCritical?: boolean;
+
+	/**
+	 * Warn or error for using non-existent exports and conflicting re-exports.
+	 * @default 'auto'
+	 */
+	exportsPresence?: ExportsPresence;
+
+	/** Warn or error for using non-existent exports */
+	importExportsPresence?: ExportsPresence;
+
+	/** Warn or error for conflicting re-exports */
+	reexportExportsPresence?: ExportsPresence;
+
+	/** Emit errors instead of warnings when imported names don't exist in imported module. */
+	strictExportPresence?: boolean;
+
+	/** Provide custom syntax for Worker parsing, commonly used to support Worklet */
+	worker?: string[] | boolean;
+
+	/** Override the module to strict or non-strict. */
+	overrideStrict?: "strict" | "non-strict";
+
+	// TODO: add docs
+	requireAsExpression?: boolean;
+
+	// TODO: add docs
+	requireDynamic?: boolean;
+
+	// TODO: add docs
+	requireResolve?: boolean;
+
+	// TODO: add docs
+	importDynamic?: boolean;
+};
+
+/** Configure all parsers' options in one place with module.parser. */
+export type ParserOptionsByModuleTypeKnown = {
+	/** Parser options for `asset` modules. */
+	asset?: AssetParserOptions;
+
+	/** Parser options for `css` modules. */
+	css?: CssParserOptions;
+
+	/** Parser options for `css/auto` modules. */
+	"css/auto"?: CssAutoParserOptions;
+
+	/** Parser options for `css/module` modules. */
+	"css/module"?: CssModuleParserOptions;
+
+	/** Parser options for `javascript` modules. */
+	javascript?: JavascriptParserOptions;
+
+	/** Parser options for `javascript/auto` modules. */
+	"javascript/auto"?: JavascriptParserOptions;
+
+	/** Parser options for `javascript/dynamic` modules. */
+	"javascript/dynamic"?: JavascriptParserOptions;
+
+	/** Parser options for `javascript/esm` modules. */
+	"javascript/esm"?: JavascriptParserOptions;
+};
+
+/** Configure all parsers' options in one place with module.parser. */
+export type ParserOptionsByModuleTypeUnknown = {
+	[x: string]: Record<string, any>;
+};
+
+/** Configure all parsers' options in one place with module.parser. */
+export type ParserOptionsByModuleType =
+	| ParserOptionsByModuleTypeKnown
+	| ParserOptionsByModuleTypeUnknown;
+
+export type AssetGeneratorDataUrlOptions = {
+	encoding?: false | "base64";
+	mimetype?: string;
+};
+
+export type AssetGeneratorDataUrlFunction = (options: {
+	filename: string;
+	content: string;
+}) => string;
+
+export type AssetGeneratorDataUrl =
+	| AssetGeneratorDataUrlOptions
+	| AssetGeneratorDataUrlFunction;
+
+/** Options for asset inline modules. */
+export type AssetInlineGeneratorOptions = {
+	/** Only for modules with module type 'asset' or 'asset/inline'. */
+	dataUrl?: AssetGeneratorDataUrl;
+};
+
+/** Options for asset modules. */
+export type AssetResourceGeneratorOptions = {
+	/**
+	 * Whether to output assets to disk.
+	 * @default true
+	 * */
+	emit?: boolean;
+
+	/** This option determines the name of each asset resource output bundle.*/
+	filename?: Filename;
+
+	/** This option determines the URL prefix of the referenced 'asset' or 'asset/resource'*/
+	publicPath?: PublicPath;
+};
+
+/** Generator options for asset modules. */
+export type AssetGeneratorOptions = AssetInlineGeneratorOptions &
+	AssetResourceGeneratorOptions;
+
+export type CssGeneratorExportsConvention =
+	| "as-is"
+	| "camel-case"
+	| "camel-case-only"
+	| "dashes"
+	| "dashes-only";
+
+export type CssGeneratorExportsOnly = boolean;
+
+export type CssGeneratorLocalIdentName = string;
+
+export type CssGeneratorEsModule = boolean;
+
+/** Generator options for css modules. */
+export type CssGeneratorOptions = {
+	/**
+	 * If true, only exports the identifier mappings from CSS into the output JavaScript files
+	 * If false, generate stylesheets and embed them in the template.
+	 */
+	exportsOnly?: CssGeneratorExportsOnly;
+
+	/** This configuration is available for improved ESM-CJS interoperability purposes. */
+	esModule?: CssGeneratorEsModule;
+};
+
+/** Generator options for css/auto modules. */
+export type CssAutoGeneratorOptions = {
+	/**
+	 * Customize how CSS export names are exported to javascript modules
+	 * @default 'as-is'
+	 * */
+	exportsConvention?: CssGeneratorExportsConvention;
+
+	/**
+	 * If true, only exports the identifier mappings from CSS into the output JavaScript files
+	 * If false, generate stylesheets and embed them in the template.
+	 */
+	exportsOnly?: CssGeneratorExportsOnly;
+
+	/** Customize the format of the local class names generated for CSS modules */
+	localIdentName?: CssGeneratorLocalIdentName;
+
+	/** This configuration is available for improved ESM-CJS interoperability purposes. */
+	esModule?: CssGeneratorEsModule;
+};
+
+/** Generator options for css/module modules. */
+export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
+
+export type GeneratorOptionsByModuleTypeKnown = {
+	/** Generator options for asset modules. */
+	asset?: AssetGeneratorOptions;
+
+	/** Generator options for asset/inline modules. */
+	"asset/inline"?: AssetInlineGeneratorOptions;
+
+	/** Generator options for asset/resource modules. */
+	"asset/resource"?: AssetResourceGeneratorOptions;
+
+	/** Generator options for css modules. */
+	css?: CssGeneratorOptions;
+
+	/** Generator options for css/auto modules. */
+	"css/auto"?: CssAutoGeneratorOptions;
+
+	/** Generator options for css/module modules. */
+	"css/module"?: CssModuleGeneratorOptions;
+};
+
+export type GeneratorOptionsByModuleTypeUnknown = Record<
+	string,
+	Record<string, any>
+>;
+
+/** Options for module.generator */
+export type GeneratorOptionsByModuleType =
+	| GeneratorOptionsByModuleTypeKnown
+	| GeneratorOptionsByModuleTypeUnknown;
+
+type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
+
+/** Options for module.noParse */
+export type NoParseOption = NoParseOptionSingle | NoParseOptionSingle[];
+
+export type ModuleOptions = {
+	/** Used to decide how to handle different types of modules in a project. */
+	defaultRules?: RuleSetRules;
+
+	/**
+	 * An array of rules that match the module's requests when it is created.
+	 * @default []
+	 * */
+	rules?: RuleSetRules;
+
+	/**
+	 * Configure all parsers' options in one place with module.parser.
+	 * @default {}
+	 * */
+	parser?: ParserOptionsByModuleType;
+
+	/** Configure all generators' options in one place with module.generator. */
+	generator?: GeneratorOptionsByModuleType;
+
+	/** Keep module mechanism of the matched modules as-is, such as module.exports, require, import. */
+	noParse?: NoParseOption;
+};
+
+//#endregion
+
 //#region ExternalsType
 /**
  * Specify the default type of externals.
@@ -877,6 +1321,8 @@ export type ExternalItem =
  * ```
  * */
 export type Externals = ExternalItem | ExternalItem[];
+//#endregion
+
 //#region Plugins
 export interface RspackPluginInstance {
 	apply: (compiler: Compiler) => void;
