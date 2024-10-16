@@ -825,6 +825,9 @@ export type RuleSetRule = {
 	/** Matches all modules that match this resource, and will match against Resource */
 	issuer?: RuleSetCondition;
 
+	/** Matches all modules that match this resource, and will match against layer of the module that issued the current module. */
+	issuerLayer?: RuleSetCondition;
+
 	/** Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module */
 	dependency?: RuleSetCondition;
 
@@ -836,6 +839,9 @@ export type RuleSetRule = {
 
 	/** Matches all modules that match this resource against the Resource's query. */
 	resourceQuery?: RuleSetCondition;
+
+	/** Matches all modules that match this resource, and will match against the Resource's mimetype. */
+	mimetype?: RuleSetCondition;
 
 	/** Matches all modules that match this resource, and will match against the Resource's scheme. */
 	scheme?: RuleSetCondition;
@@ -881,7 +887,7 @@ export type RuleSetRule = {
 	/** Flag the module for side effects */
 	sideEffects?: boolean;
 
-	// TODO: add docs
+	/** Specify loader category.  */
 	enforce?: "pre" | "post";
 
 	/** A kind of Nested Rule, an array of Rules from which only the first matching Rule is used when the parent Rule matches. */
@@ -1007,7 +1013,7 @@ export type JavascriptParserOptions = {
 	/** Warn or error for conflicting re-exports */
 	reexportExportsPresence?: ExportsPresence;
 
-	// TODO: add docs
+	/** Emit errors instead of warnings when imported names don't exist in imported module. */
 	strictExportPresence?: boolean;
 
 	/** Provide custom syntax for Worker parsing, commonly used to support Worklet */

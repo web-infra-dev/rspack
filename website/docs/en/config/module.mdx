@@ -245,6 +245,12 @@ Warn or error for using non-existent exports, defaulting to the configuration of
 
 Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
 
+#### module.parser.javascript.strictExportPresence
+
+- **Type:** `boolean`
+
+Emit errors instead of warnings when imported names don't exist in imported module.
+
 #### module.parser.javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
@@ -969,6 +975,16 @@ For specific generator options and the corresponding module type, you can refer 
 - **Type:** `boolean`
 
 Flag the module for side effects
+
+### Rule.enforce
+
+<PropertyType type="'pre' | 'post'" />
+
+Specifies the category of the loader.
+
+When specified as 'pre', the loader will execute before all other loaders.
+
+When specified as 'post', the loader will execute after all other loaders.
 
 ### Rule.type
 

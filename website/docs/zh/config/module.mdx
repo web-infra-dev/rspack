@@ -245,6 +245,12 @@ module.exports = {
 
 当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
 
+#### module.parser.javascript.strictExportPresence
+
+- **类型：** `boolean`
+
+当导入的名称在导入模块中不存在时，发出错误而不是警告。
+
 #### module.parser.javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
@@ -968,6 +974,16 @@ module.exports = {
 - **类型：** `boolean`
 
 标记模块是否存在副作用。
+
+### Rule.enforce
+
+<PropertyType type="'pre' | 'post'" />
+
+指定 loader 的类型。
+
+当指定为 'pre' 时，该 loader 会在其他所有 loader 之前执行。
+
+当指定为 'post' 时，该 loader 会在其他所有 loader 之后执行。
 
 ### Rule.type
 
