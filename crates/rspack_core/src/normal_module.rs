@@ -481,6 +481,7 @@ impl Module for NormalModule {
     }
 
     build_info.cacheable = loader_result.cacheable;
+    build_info.parse_meta = loader_result.parse_meta.clone();
     build_info.file_dependencies = loader_result.file_dependencies;
     build_info.context_dependencies = loader_result.context_dependencies;
     build_info.missing_dependencies = loader_result.missing_dependencies;

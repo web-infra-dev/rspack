@@ -308,6 +308,7 @@ export enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  SwcDtsEmitRspackPlugin = 'SwcDtsEmitRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
@@ -1881,6 +1882,10 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
+}
+
+export interface RawSwcDtsEmitRspackPluginOptions {
+  rootDir?: string
 }
 
 export interface RawSwcJsMinimizerOptions {
