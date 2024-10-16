@@ -87,7 +87,7 @@ const watchCreator = new BasicCaseCreator({
 								emitAssets: true,
 								inferAsyncModules: true,
 								providedExports: true,
-								collectModuleDiagnostics: true,
+								collectModulesDiagnostics: true,
 								moduleHashes: true,
 								moduleCodegen: true,
 								moduleRuntimeRequirements: true

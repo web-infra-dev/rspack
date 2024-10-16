@@ -1848,7 +1848,7 @@ const experiments_2: z.ZodObject<{
         emitAssets: z.ZodOptional<z.ZodBoolean>;
         inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
         providedExports: z.ZodOptional<z.ZodBoolean>;
-        collectModuleDiagnostics: z.ZodOptional<z.ZodBoolean>;
+        collectModulesDiagnostics: z.ZodOptional<z.ZodBoolean>;
         moduleHashes: z.ZodOptional<z.ZodBoolean>;
         moduleCodegen: z.ZodOptional<z.ZodBoolean>;
         moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
@@ -1857,7 +1857,7 @@ const experiments_2: z.ZodObject<{
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModuleDiagnostics?: boolean | undefined;
+        collectModulesDiagnostics?: boolean | undefined;
         moduleHashes?: boolean | undefined;
         moduleCodegen?: boolean | undefined;
         moduleRuntimeRequirements?: boolean | undefined;
@@ -1866,7 +1866,7 @@ const experiments_2: z.ZodObject<{
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModuleDiagnostics?: boolean | undefined;
+        collectModulesDiagnostics?: boolean | undefined;
         moduleHashes?: boolean | undefined;
         moduleCodegen?: boolean | undefined;
         moduleRuntimeRequirements?: boolean | undefined;
@@ -1929,7 +1929,7 @@ const experiments_2: z.ZodObject<{
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModuleDiagnostics?: boolean | undefined;
+        collectModulesDiagnostics?: boolean | undefined;
         moduleHashes?: boolean | undefined;
         moduleCodegen?: boolean | undefined;
         moduleRuntimeRequirements?: boolean | undefined;
@@ -1972,7 +1972,7 @@ const experiments_2: z.ZodObject<{
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModuleDiagnostics?: boolean | undefined;
+        collectModulesDiagnostics?: boolean | undefined;
         moduleHashes?: boolean | undefined;
         moduleCodegen?: boolean | undefined;
         moduleRuntimeRequirements?: boolean | undefined;
@@ -2678,7 +2678,7 @@ const incremental: z.ZodObject<{
     emitAssets: z.ZodOptional<z.ZodBoolean>;
     inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
     providedExports: z.ZodOptional<z.ZodBoolean>;
-    collectModuleDiagnostics: z.ZodOptional<z.ZodBoolean>;
+    collectModulesDiagnostics: z.ZodOptional<z.ZodBoolean>;
     moduleHashes: z.ZodOptional<z.ZodBoolean>;
     moduleCodegen: z.ZodOptional<z.ZodBoolean>;
     moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
@@ -2687,7 +2687,7 @@ const incremental: z.ZodObject<{
     providedExports?: boolean | undefined;
     emitAssets?: boolean | undefined;
     inferAsyncModules?: boolean | undefined;
-    collectModuleDiagnostics?: boolean | undefined;
+    collectModulesDiagnostics?: boolean | undefined;
     moduleHashes?: boolean | undefined;
     moduleCodegen?: boolean | undefined;
     moduleRuntimeRequirements?: boolean | undefined;
@@ -2696,7 +2696,7 @@ const incremental: z.ZodObject<{
     providedExports?: boolean | undefined;
     emitAssets?: boolean | undefined;
     inferAsyncModules?: boolean | undefined;
-    collectModuleDiagnostics?: boolean | undefined;
+    collectModulesDiagnostics?: boolean | undefined;
     moduleHashes?: boolean | undefined;
     moduleCodegen?: boolean | undefined;
     moduleRuntimeRequirements?: boolean | undefined;
@@ -6312,7 +6312,7 @@ export const rspackOptions: z.ZodObject<{
             emitAssets: z.ZodOptional<z.ZodBoolean>;
             inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
             providedExports: z.ZodOptional<z.ZodBoolean>;
-            collectModuleDiagnostics: z.ZodOptional<z.ZodBoolean>;
+            collectModulesDiagnostics: z.ZodOptional<z.ZodBoolean>;
             moduleHashes: z.ZodOptional<z.ZodBoolean>;
             moduleCodegen: z.ZodOptional<z.ZodBoolean>;
             moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
@@ -6321,7 +6321,7 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModuleDiagnostics?: boolean | undefined;
+            collectModulesDiagnostics?: boolean | undefined;
             moduleHashes?: boolean | undefined;
             moduleCodegen?: boolean | undefined;
             moduleRuntimeRequirements?: boolean | undefined;
@@ -6330,7 +6330,7 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModuleDiagnostics?: boolean | undefined;
+            collectModulesDiagnostics?: boolean | undefined;
             moduleHashes?: boolean | undefined;
             moduleCodegen?: boolean | undefined;
             moduleRuntimeRequirements?: boolean | undefined;
@@ -6393,7 +6393,7 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModuleDiagnostics?: boolean | undefined;
+            collectModulesDiagnostics?: boolean | undefined;
             moduleHashes?: boolean | undefined;
             moduleCodegen?: boolean | undefined;
             moduleRuntimeRequirements?: boolean | undefined;
@@ -6436,7 +6436,7 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModuleDiagnostics?: boolean | undefined;
+            collectModulesDiagnostics?: boolean | undefined;
             moduleHashes?: boolean | undefined;
             moduleCodegen?: boolean | undefined;
             moduleRuntimeRequirements?: boolean | undefined;
@@ -8605,7 +8605,7 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModuleDiagnostics?: boolean | undefined;
+            collectModulesDiagnostics?: boolean | undefined;
             moduleHashes?: boolean | undefined;
             moduleCodegen?: boolean | undefined;
             moduleRuntimeRequirements?: boolean | undefined;
@@ -9204,7 +9204,7 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModuleDiagnostics?: boolean | undefined;
+            collectModulesDiagnostics?: boolean | undefined;
             moduleHashes?: boolean | undefined;
             moduleCodegen?: boolean | undefined;
             moduleRuntimeRequirements?: boolean | undefined;
