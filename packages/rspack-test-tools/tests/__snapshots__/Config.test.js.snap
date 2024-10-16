@@ -369,7 +369,6 @@ return module.exports;
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
 var __webpack_exports__ = __webpack_require__("851");
-
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: .cjs should bail out when bundling 1`] = `
@@ -453,14 +452,11 @@ var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 
 var __webpack_exports__bar = (bar_default());
 export { foo, __webpack_exports__bar as bar };
-
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: .mjs should concat 1`] = `
-
 ;// CONCATENATED MODULE: ./d.mjs
 const d = 'd'
-
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
@@ -553,23 +549,16 @@ const value = foo + (bar_default())
 
 
 export { value };
-
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat 1`] = `
-
 ;// CONCATENATED MODULE: ./a.js
 const a = 'a'
 
 export { a };
-
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: unambiguous should bail out 1`] = `
-const c = 'c'
-
-
-`;
+exports[`config config/library/modern-module-force-concaten step  should pass: unambiguous should bail out 1`] = `const c = 'c'`;
 
 exports[`config config/optimization/minimizer-esm-asset exported tests minimizing an asset file of esm type should success 1`] = `console.log(import.meta.url);export const a=1;`;
 

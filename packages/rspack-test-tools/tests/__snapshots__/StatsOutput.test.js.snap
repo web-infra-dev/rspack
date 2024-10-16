@@ -196,7 +196,6 @@ DEBUG LOG from TestLoader|<ROOT>/tests/statsOutputCases/logging-loader/index.js
   <i> info something
       log something
     -------
-
 `;
 
 exports[`statsOutput statsOutput/match-resource-data-url should print correct stats for 1`] = `

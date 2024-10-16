@@ -76,7 +76,6 @@ module.exports = {
 		    0 chunk groups connected
 		    0 chunk groups processed for merging (0 module sets)
 		    0 chunk group info updated (0 already connected chunk groups reconnected)
-
 	`);
 	}
 };

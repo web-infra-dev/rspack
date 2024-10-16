@@ -34,7 +34,7 @@ expect.addSnapshotSerializer({
 		return typeof received === "string";
 	},
 	print(received) {
-		return serialize(received as string);
+		return serialize((received as string).trim());
 	}
 });
 

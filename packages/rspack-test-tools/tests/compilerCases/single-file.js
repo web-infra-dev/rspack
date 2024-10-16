@@ -45,7 +45,6 @@ module.exports = {
 		 4 │     return "This is an empty dependency";
 		 5 │ };
 		   ╰────
-
 	`);
 	}
 };

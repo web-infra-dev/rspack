@@ -1915,8 +1915,7 @@ Object {
           },
           source: exports.a = require("./a?a=1");
 // exports.b = require("./b?b=2");
-exports.c = require("./c?c=3");
-,
+exports.c = require("./c?c=3");,
           type: module,
           usedExports: Array [],
           warnings: 0,
@@ -2106,8 +2105,7 @@ exports.c = require("./c?c=3");
       },
       source: exports.a = require("./a?a=1");
 // exports.b = require("./b?b=2");
-exports.c = require("./c?c=3");
-,
+exports.c = require("./c?c=3");,
       type: module,
       usedExports: Array [],
       warnings: 0,
