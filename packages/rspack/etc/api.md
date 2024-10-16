@@ -636,6 +636,7 @@ export class Compilation {
     get entrypoints(): ReadonlyMap<string, Entrypoint>;
     // (undocumented)
     get errors(): RspackError[];
+    set errors(errors: RspackError[]);
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
@@ -783,6 +784,7 @@ export class Compilation {
     updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void;
     // (undocumented)
     get warnings(): RspackError[];
+    set warnings(warnings: RspackError[]);
 }
 
 // @public (undocumented)
