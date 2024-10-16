@@ -11,42 +11,7 @@ import { SimpleTaskProcessor } from "./simple";
 
 const CURRENT_CWD = process.cwd();
 
-const quoteMeta = (str: string) => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
-const cwdRegExp = new RegExp(
-	`${quoteMeta(CURRENT_CWD)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
-	"g"
-);
-const escapedCwd = JSON.stringify(CURRENT_CWD).slice(1, -1);
-const escapedCwdRegExp = new RegExp(
-	`${quoteMeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
-	"g"
-);
-const normalize = (str: string) => {
-	let normalizedStr: string;
-	if (CURRENT_CWD.startsWith("/")) {
-		normalizedStr = str.replace(
-			new RegExp(quoteMeta(CURRENT_CWD), "g"),
-			"<cwd>"
-		);
-	} else {
-		normalizedStr = str.replace(
-			cwdRegExp,
-			(_, g) => `<cwd>${g.replace(/\\/g, "/")}`
-		);
-		normalizedStr = normalizedStr.replace(
-			escapedCwdRegExp,
-			(_, g) => `<cwd>${g.replace(/\\\\/g, "/")}`
-		);
-	}
-
-	normalizedStr = normalizedStr.replace(
-		/@@ -\d+,\d+ \+\d+,\d+ @@/g,
-		"@@ ... @@"
-	);
-	return normalizedStr;
-};
-
-class Diff {
+class RspackTestDiff {
 	constructor(public value: string) {}
 }
 
@@ -55,7 +20,7 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
 	cwd?: string;
 	name: string;
 	diff: (
-		diff: jest.JestMatchers<Diff>,
+		diff: jest.JestMatchers<RspackTestDiff>,
 		defaults: jest.JestMatchers<TCompilerOptions<T>>
 	) => Promise<void>;
 	compilerType: T;
@@ -104,7 +69,7 @@ export class DefaultsConfigProcessor<
 			jestDiff(this.defaultConfig, config, { expand: false, contextLines: 0 })!
 		);
 		await this._defaultsConfigOptions.diff(
-			env.expect(new Diff(diff)),
+			env.expect(new RspackTestDiff(diff)),
 			env.expect(this.defaultConfig)
 		);
 	}
@@ -132,25 +97,5 @@ export class DefaultsConfigProcessor<
 			"$version$";
 		process.chdir(CURRENT_CWD);
 		return normalizedConfig;
-	}
-
-	static addSnapshotSerializer(expectImpl: jest.Expect) {
-		expectImpl.addSnapshotSerializer({
-			test(value) {
-				return value instanceof Diff;
-			},
-			print(received) {
-				return normalize((received as Diff).value);
-			}
-		});
-
-		expectImpl.addSnapshotSerializer({
-			test(value) {
-				return typeof value === "string";
-			},
-			print(received) {
-				return JSON.stringify(normalize(received as string));
-			}
-		});
 	}
 }

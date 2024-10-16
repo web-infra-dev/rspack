@@ -18,9 +18,13 @@ class MyPlugin {
 					);
 				} catch (err) {
 					mockFn();
-					expect(err).toMatchInlineSnapshot(
-						`[Error: Called Compilation.updateAsset for not existing filename something-else.js]`
-					);
+					expect(err).toMatchInlineSnapshot(`
+				Object {
+				  "code": "GenericFailure",
+				  "message": "Called Compilation.updateAsset for not existing filename something-else.js",
+				  "stack": "Error: Called Compilation.updateAsset for not existing filename something-else.js/n    at _Compilation.updateAsset (<WORKSPACE>/rspack/dist/index.js<LINE_COL>)/n    at Object.fn (<ROOT>/tests/compilerCases/assets-not-exist.js<LINE_COL>)/n    at next (<HOME>/rspack-dev/rspack/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at AsyncSeriesHook.callAsyncStageRange (<HOME>/rspack-dev/rspack/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at <HOME>/rspack-dev/rspack/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>/n    at new Promise (<anonymous>)/n    at AsyncSeriesHook.promiseStageRange (<HOME>/rspack-dev/rspack/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at QueriedHook.promise (<HOME>/rspack-dev/rspack/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at <WORKSPACE>/rspack/dist/index.js<LINE_COL>/n    at last.function (<WORKSPACE>/rspack/dist/index.js<LINE_COL>)",
+				}
+			`);
 				}
 			});
 		});
