@@ -9,6 +9,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
+#[derive(Debug)]
 pub struct OverwriteTask {
   pub origin_task: Box<dyn Task<MakeTaskContext>>,
   pub event_sender: UnboundedSender<Event>,

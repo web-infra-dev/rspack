@@ -1,12 +1,15 @@
 mod ctrl;
 mod entry;
 mod execute;
+mod load;
 mod overwrite;
 
 use dashmap::DashMap;
 use dashmap::{mapref::entry::Entry, DashSet};
+use entry::EntryTask;
 pub use execute::ExecuteModuleId;
 pub use execute::ExecutedRuntimeModule;
+use load::{LoadModuleResult, LoadTask};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use tokio::sync::{
@@ -21,9 +24,10 @@ use self::{
   overwrite::OverwriteTask,
 };
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
+use crate::LoaderImportDependency;
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, LoaderImportDependency, PublicPath,
+  DependencyId, LoaderDependency, PublicPath,
 };
 
 #[derive(Debug, Default)]
@@ -195,15 +199,15 @@ impl ModuleExecutor {
 
     let (tx, rx) = oneshot::channel();
     sender
-      .send(Event::ExecuteModule(
-        param,
-        ExecuteTask {
+      .send(Event::EnterModule(
+        Box::new(EntryTask { param }),
+        Box::new(ExecuteTask {
           entry_dep_id: dep_id,
           layer,
           public_path,
           base_uri,
           result_sender: tx,
-        },
+        }),
       ))
       .expect("should success");
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
@@ -241,5 +245,43 @@ impl ModuleExecutor {
     }
 
     execute_result
+  }
+
+  pub async fn load_module(
+    &self,
+    request: String,
+    original_module_context: Option<Context>,
+  ) -> LoadModuleResult {
+    let sender = self
+      .event_sender
+      .as_ref()
+      .expect("should have event sender");
+    let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
+      Entry::Vacant(v) => {
+        let dep = LoaderDependency::new(
+          request.clone(),
+          original_module_context.unwrap_or(Context::from("")),
+        );
+        let dep_id = *dep.id();
+        v.insert(dep_id);
+        (EntryParam::Entry(Box::new(dep)), dep_id)
+      }
+      Entry::Occupied(v) => {
+        let dep_id = *v.get();
+        (EntryParam::DependencyId(dep_id, sender.clone()), dep_id)
+      }
+    };
+
+    let (tx, rx) = oneshot::channel();
+    sender
+      .send(Event::EnterModule(
+        Box::new(EntryTask { param }),
+        Box::new(LoadTask {
+          entry_dep_id: dep_id,
+          result_sender: tx,
+        }),
+      ))
+      .expect("should success");
+    rx.await.expect("should receiver success")
   }
 }
