@@ -1,7 +1,11 @@
 const { SummaryReporter } = require("@jest/reporters");
 const chalk = require.cache[require.resolve('@jest/reporters')].require("chalk");
 
-if (!process.argv.includes("--verbose") && (process.argv.includes("-t") || process.argv.some(i => i.includes("--testNamePattern")))) {
+const isUpdate = process.argv.includes("-u") || process.argv.includes("--updateSnapshot");
+const isFiltering = process.argv.includes("-t") || process.argv.includes("--testNamePattern");
+const isVerbose = process.argv.includes("--verbose");
+
+if (!isVerbose && !isUpdate && isFiltering) {
   class IgnoreSnapshotSummaryReporter extends SummaryReporter {
     _printSnapshotSummary(snapshots, globalConfig) {
       if (
