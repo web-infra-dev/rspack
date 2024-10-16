@@ -51,7 +51,7 @@
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "5.0.2"
+    "typescript": "5.6.3"
   },
   "peerDependencies": {
     "@rspack/core": "^1.0.0-alpha || ^1.x"

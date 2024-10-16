@@ -62,7 +62,7 @@
     "prebundle": "^1.1.0",
     "tsc-alias": "^1.8.8",
     "tsup": "^8.3.0",
-    "typescript": "5.0.2",
+    "typescript": "5.6.3",
     "watchpack": "^2.4.0",
     "webpack-dev-server": "5.0.4",
     "webpack-sources": "3.2.3",
