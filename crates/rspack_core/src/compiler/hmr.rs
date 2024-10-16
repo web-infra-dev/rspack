@@ -12,6 +12,7 @@ use crate::{
 };
 
 impl Compiler {
+  // #[tracing::instrument("Compiler:rebuild")]
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,

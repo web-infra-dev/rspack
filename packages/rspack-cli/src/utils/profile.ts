@@ -122,6 +122,11 @@ function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
 	return { output: value || defaultJSCPUProfileOutput };
 }
 
+function isSupportedLayer(layer: string): layer is RustTraceOptionsLayer {
+	const SUPPORTED_LAYERS = ["chrome", "logger", "otel", "console"];
+	return SUPPORTED_LAYERS.some(l => l === layer);
+}
+
 // TRACE=value
 function resolveRustTraceOptions(value: string): RustTraceOptions {
 	// filter=trace&output=stdout&layer=logger
@@ -133,7 +138,8 @@ function resolveRustTraceOptions(value: string): RustTraceOptions {
 			layer === "chrome"
 				? parsed.get("output") || defaultRustTraceChromeOutput
 				: parsed.get("output") || defaultRustTraceLoggerOutput;
-		if (layer !== "chrome" && layer !== "logger" && layer !== "console") {
+
+		if (!isSupportedLayer(layer)) {
 			throw new Error(
 				`${layer} is not a valid layer, should be chrome or logger`
 			);

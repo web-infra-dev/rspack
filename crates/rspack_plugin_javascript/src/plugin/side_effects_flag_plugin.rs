@@ -703,7 +703,7 @@ impl Plugin for SideEffectsFlagPlugin {
   }
 }
 
-#[tracing::instrument(skip_all, fields(module = ?module_identifier))]
+// #[tracing::instrument(skip_all, fields(module = ?module_identifier))]
 fn optimize_incoming_connections(
   module_identifier: ModuleIdentifier,
   to_be_optimized: &mut IdentifierSet,
@@ -809,7 +809,7 @@ fn optimize_incoming_connection(
   );
 }
 
-#[tracing::instrument(skip_all, fields(origin = ?origin_module, module = ?module_identifier))]
+// #[tracing::instrument(skip_all, fields(origin = ?origin_module, module = ?module_identifier))]
 fn do_optimize_incoming_connection(
   dependency_id: DependencyId,
   module_identifier: ModuleIdentifier,

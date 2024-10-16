@@ -252,7 +252,7 @@ impl Combinator {
 }
 
 impl SplitChunksPlugin {
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(crate) fn find_best_module_group(
     &self,
     module_group_map: &mut ModuleGroupMap,
@@ -276,7 +276,7 @@ impl SplitChunksPlugin {
     (best_entry_key, best_module_group)
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(crate) fn prepare_module_group_map(
     &self,
     compilation: &mut Compilation,
@@ -502,7 +502,7 @@ impl SplitChunksPlugin {
     Ok(module_group_map.into_iter().collect())
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
     current_module_group: &ModuleGroup,

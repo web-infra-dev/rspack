@@ -203,7 +203,7 @@ struct ChunkWithSizeInfo<'a> {
 
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.minSize`/`splitChunks.cacheGroups.{cacheGroup}.minSize`
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(super) fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,

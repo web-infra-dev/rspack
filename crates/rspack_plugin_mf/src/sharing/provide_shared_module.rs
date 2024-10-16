@@ -164,7 +164,7 @@ impl Module for ProvideSharedModule {
     })
   }
 
-  #[tracing::instrument(name = "ProvideSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("ProvideSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

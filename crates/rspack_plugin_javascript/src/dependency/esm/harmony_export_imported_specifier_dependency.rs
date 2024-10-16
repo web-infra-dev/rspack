@@ -1243,7 +1243,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     Some(self.source_order)
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;

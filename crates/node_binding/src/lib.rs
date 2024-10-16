@@ -26,7 +26,6 @@ use plugins::*;
 use resolver_factory::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
-use rspack_tracing::chrome::FlushGuard;
 
 #[napi]
 pub struct Rspack {
@@ -194,6 +193,24 @@ fn concurrent_compiler_error() -> Error {
   )
 }
 
+enum FlushGuard {
+  Chrome(Option<rspack_tracing::chrome::FlushGuard>),
+  Otel(Option<rspack_tracing::OtelGuard>),
+}
+
+impl Drop for FlushGuard {
+  fn drop(&mut self) {
+    match self {
+      FlushGuard::Chrome(flush_guard) => {
+        flush_guard.take().map(|g| {
+          g.flush();
+        });
+      }
+      FlushGuard::Otel(otel_guard) => drop(otel_guard.take()),
+    }
+  }
+}
+
 #[derive(Default)]
 enum TraceState {
   On(Option<FlushGuard>),
@@ -224,7 +241,7 @@ static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\" | \"otel\"")] layer: String,
   output: String,
 ) {
   let mut state = GLOBAL_TRACE_STATE
@@ -232,7 +249,12 @@ pub fn register_global_trace(
     .expect("Failed to lock GLOBAL_TRACE_STATE");
   if matches!(&*state, TraceState::Off) {
     let guard = match layer.as_str() {
-      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      "chrome" => Some(FlushGuard::Chrome(
+        rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      )),
+      "otel" => Some(FlushGuard::Otel(
+        rspack_tracing::enable_tracing_by_env_with_otel(&filter),
+      )),
       "console" => {
         rspack_tracing::enable_tracing_by_env_with_tokio_console();
         None
@@ -256,7 +278,7 @@ pub fn cleanup_global_trace() {
   if let TraceState::On(guard) = &mut *state
     && let Some(g) = guard.take()
   {
-    g.flush();
+    // g.flush();
     drop(g);
     let new_state = TraceState::Off;
     *state = new_state;

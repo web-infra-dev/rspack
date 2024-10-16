@@ -44,17 +44,17 @@ impl UnaffectedModulesCache {
     self.module_to_cache.par_iter()
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?key))]
+  // #[tracing::instrument(skip_all, fields(module = ?key))]
   fn remove_cache(&self, key: &ModuleIdentifier) {
     self.module_to_cache.remove(key);
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?key))]
+  // #[tracing::instrument(skip_all, fields(module = ?key))]
   fn insert_cache(&self, key: ModuleIdentifier, value: UnaffectedModuleCache) {
     self.module_to_cache.insert(key, value);
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?key))]
+  // #[tracing::instrument(skip_all, fields(module = ?key))]
   fn affect_cache(&self, key: &ModuleIdentifier) -> Option<()> {
     let mut cache = self.module_to_cache.get_mut(key)?;
     cache.with_chunk_graph_cache = None;
@@ -62,7 +62,7 @@ impl UnaffectedModulesCache {
     Some(())
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?key))]
+  // #[tracing::instrument(skip_all, fields(module = ?key))]
   fn insert_chunk_graph_cache(
     &self,
     key: &ModuleIdentifier,
@@ -73,7 +73,7 @@ impl UnaffectedModulesCache {
     Some(())
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub fn compute_affected_modules_with_module_graph(&self, compilation: &Compilation) {
     let mg = compilation.get_module_graph();
     let modules = mg.modules().keys().copied().collect();
@@ -84,12 +84,12 @@ impl UnaffectedModulesCache {
     *affected_modules = compute_affected_modules_with_module_graph(compilation, modules);
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub fn get_affected_modules_with_module_graph(&self) -> &Mutex<IdentifierSet> {
     &self.affected_modules_with_module_graph
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub fn compute_affected_modules_with_chunk_graph(&self, compilation: &Compilation) {
     let mut affected_modules = self
       .affected_modules_with_chunk_graph
@@ -98,7 +98,7 @@ impl UnaffectedModulesCache {
     *affected_modules = compute_affected_modules_with_chunk_graph(compilation);
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub fn get_affected_modules_with_chunk_graph(&self) -> &Mutex<IdentifierSet> {
     &self.affected_modules_with_chunk_graph
   }
@@ -112,7 +112,7 @@ impl UnaffectedModuleCache {
     }
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
+  // #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
   fn create_module_graph_invalidate_key(module_graph: &ModuleGraph, module: &dyn Module) -> u64 {
     let mut hasher = FxHasher::default();
     module
@@ -132,7 +132,7 @@ impl UnaffectedModuleCache {
 }
 
 impl UnaffectedModuleWithChunkGraphCache {
-  #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
+  // #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
   fn create_chunk_graph_invalidate_key(
     chunk_graph: &ChunkGraph,
     module_graph: &ModuleGraph,

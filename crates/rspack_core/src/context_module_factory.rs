@@ -95,7 +95,7 @@ pub struct ContextModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
-  #[instrument(name = "context_module_factory:create", skip_all)]
+  #[instrument("context_module_factory:create", skip_all)]
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     match self.before_resolve(data).await? {
       BeforeResolveResult::Ignored => return Ok(ModuleFactoryResult::default()),

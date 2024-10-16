@@ -63,10 +63,10 @@ impl SplitChunksPlugin {
         module_group_key,
         module_group_map.len(),
       );
-      let process_span = tracing::trace_span!("Process ModuleGroup({})", module_group_key);
+      // let process_span = tracing::trace_span!("Process ModuleGroup");
 
-      process_span.in_scope(|| {
-        let cache_group = module_group.get_cache_group(&self.cache_groups);
+      // process_span.in_scope(|| {
+      let cache_group = module_group.get_cache_group(&self.cache_groups);
 
       let mut is_reuse_existing_chunk = false;
       let mut is_reuse_existing_chunk_with_all_modules = false;
@@ -113,7 +113,8 @@ impl SplitChunksPlugin {
         if used_chunks_len < cache_group.min_chunks as usize {
           // `min_size` is not satisfied, ignore this invalid `ModuleGroup`
           tracing::trace!("ModuleGroup({module_group_key}) is skipped. Reason: used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})", cache_group.min_chunks);
-          return;
+          continue;
+          // return;
         }
       }
 
@@ -144,7 +145,7 @@ impl SplitChunksPlugin {
         &used_chunks,
         compilation,
       );
-      })
+      // })
     }
     logger.time_end(start);
 

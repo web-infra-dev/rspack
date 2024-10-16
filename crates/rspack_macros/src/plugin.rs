@@ -188,7 +188,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     .unwrap_or(true)
     .then(|| {
       quote! {
-        #[tracing::instrument(name = #tracing_name, skip_all)]
+        // #[tracing::instrument(name = #tracing_name, skip_all)]
       }
     });
 

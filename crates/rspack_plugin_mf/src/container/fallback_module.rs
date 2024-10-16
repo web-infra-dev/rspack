@@ -139,7 +139,7 @@ impl Module for FallbackModule {
     })
   }
 
-  #[tracing::instrument(name = "FallbackModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("FallbackModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

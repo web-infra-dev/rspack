@@ -160,7 +160,7 @@ impl Module for RemoteModule {
     })
   }
 
-  #[tracing::instrument(name = "RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

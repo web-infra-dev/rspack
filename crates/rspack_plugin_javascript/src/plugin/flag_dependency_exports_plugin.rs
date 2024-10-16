@@ -92,7 +92,7 @@ impl<'a> FlagDependencyExportsState<'a> {
     }
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?self.current_module_id))]
+  // #[tracing::instrument(skip_all, fields(module = ?self.current_module_id))]
   pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {

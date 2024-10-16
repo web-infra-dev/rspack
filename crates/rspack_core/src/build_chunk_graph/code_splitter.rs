@@ -684,7 +684,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     Ok(input_entrypoints_and_modules)
   }
 
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub fn split(mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.buildChunkGraph");
     let start = logger.time("prepare entrypoints");

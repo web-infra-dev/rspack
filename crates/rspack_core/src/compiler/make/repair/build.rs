@@ -30,6 +30,7 @@ impl Task<MakeTaskContext> for BuildTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
+  // #[tracing::instrument("run build task", skip_all)]
   async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
       compiler_options,

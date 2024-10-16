@@ -602,7 +602,7 @@ impl Module for ConcatenatedModule {
     Ok(BuildResult::default())
   }
 
-  #[tracing::instrument(name = "ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

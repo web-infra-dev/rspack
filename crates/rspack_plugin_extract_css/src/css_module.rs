@@ -184,7 +184,7 @@ impl Module for CssModule {
     })
   }
 
-  #[tracing::instrument(name = "ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     _compilation: &Compilation,

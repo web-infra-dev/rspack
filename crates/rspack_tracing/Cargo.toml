@@ -9,7 +9,11 @@ version     = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-console-subscriber = { version = "0.4.0" }
-tracing            = { workspace = true }
-tracing-chrome     = "0.7.2"
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
+console-subscriber    = { version = "0.4.0" }
+opentelemetry         = "0.26.0"
+opentelemetry-otlp    = "0.26.0"
+opentelemetry_sdk     = { version = "0.26.0", features = ["rt-tokio"] }
+tracing               = { workspace = true }
+tracing-chrome        = "0.7.2"
+tracing-opentelemetry = "0.27.0"
+tracing-subscriber    = { workspace = true, features = ["env-filter"] }

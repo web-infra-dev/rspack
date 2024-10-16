@@ -973,7 +973,7 @@ impl Module for ContextModule {
     })
   }
 
-  #[tracing::instrument(name = "ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

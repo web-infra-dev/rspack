@@ -147,7 +147,7 @@ impl SplitChunksPlugin {
   }
 
   /// This de-duplicated each module fro other chunks, make sure there's only one copy of each module.
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
     &self,
     item: &ModuleGroup,
@@ -176,7 +176,7 @@ impl SplitChunksPlugin {
   /// create a connection between the `new_chunk` and `original_chunks`.
   /// Thus, if `original_chunks` want to know which chunk contains moved modules,
   /// it could easily find out.
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(crate) fn split_from_original_chunks(
     &self,
     _item: &ModuleGroup,

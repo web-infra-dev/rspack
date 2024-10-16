@@ -167,7 +167,7 @@ impl ChunkGraph {
       .set_hashes(module_identifier, hashes);
   }
 
-  #[instrument(name = "chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]
+  #[instrument("chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]
   pub fn get_module_graph_hash(
     &self,
     module: &dyn Module,

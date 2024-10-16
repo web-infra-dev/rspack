@@ -13,6 +13,7 @@ use tokio::{
   runtime::Handle,
   sync::mpsc::{self, error::TryRecvError},
 };
+use tracing::Instrument;
 
 /// Result returned by task
 ///
@@ -90,7 +91,7 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
             if !is_expected_shutdown.load(Ordering::Relaxed) {
               tx.send(r).expect("failed to send error message");
             }
-          });
+          }.in_current_span());
         }
         TaskType::Sync => {
           // merge sync task result directly

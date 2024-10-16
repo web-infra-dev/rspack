@@ -177,7 +177,7 @@ impl Module for LazyCompilationProxyModule {
     })
   }
 
-  #[tracing::instrument(name = "LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
