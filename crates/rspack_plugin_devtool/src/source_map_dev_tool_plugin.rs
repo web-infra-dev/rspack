@@ -46,7 +46,7 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Box<dyn Fn(String) -> Result<bool> + Sync + Send>;
+pub type TestFn = Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -173,11 +173,11 @@ impl SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
 
-    let mut mapped_sources = raw_assets
+    let futures = raw_assets
       .into_par_iter()
-      .filter_map(|(file, asset)| {
+      .map(|(file, asset)| async {
         let is_match = match &self.test {
-          Some(test) => match test(file.to_owned()) {
+          Some(test) => match test(file.to_owned()).await {
             Ok(val) => val,
             Err(e) => return Some(Err(e)),
           },
@@ -193,6 +193,12 @@ impl SourceMapDevToolPlugin {
         };
         source.map(Ok)
       })
+      .collect::<Vec<_>>();
+
+    let mut mapped_sources = join_all(futures)
+      .await
+      .into_iter()
+      .flatten()
       .collect::<Result<Vec<_>>>()?;
 
     let source_map_modules = mapped_sources
