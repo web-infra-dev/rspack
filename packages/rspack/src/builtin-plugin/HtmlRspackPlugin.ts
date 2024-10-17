@@ -378,6 +378,10 @@ const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
 	new WeakMap();
 
 const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
+	/**
+	 * @deprecated Use `getCompilationHooks` instead.
+	 */
+	getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
 	getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
 	getCompilationOptions: (
 		compilation: Compilation
@@ -387,6 +391,7 @@ const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
 		attributes?: Record<string, string | boolean>,
 		innerHTML?: string | undefined
 	) => JsHtmlPluginTag;
+	version: number;
 };
 
 const voidTags = [
@@ -429,7 +434,9 @@ HtmlRspackPlugin.getCompilationOptions = (compilation: Compilation) => {
 	return compilationOptionsMap.get(compilation);
 };
 
-HtmlRspackPlugin.getCompilationHooks = (compilation: Compilation) => {
+HtmlRspackPlugin.getHooks = HtmlRspackPlugin.getCompilationHooks = (
+	compilation: Compilation
+) => {
 	if (!(compilation instanceof Compilation)) {
 		throw new TypeError(
 			"The 'compilation' argument must be an instance of Compilation"
@@ -453,5 +460,7 @@ HtmlRspackPlugin.getCompilationHooks = (compilation: Compilation) => {
 	}
 	return hooks;
 };
+
+HtmlRspackPlugin.version = 5;
 
 export { HtmlRspackPlugin };
