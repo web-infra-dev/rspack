@@ -66,7 +66,7 @@ exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print cor
 ERROR in ./index.ts
   × Module build failed:
   ├─▶   ×   x Expected '{', got 'error'
-  │     │    ,-[<ROOT>/tests/statsOutputCases/builtin-swc-loader-parse-error/index.ts<LINE_COL>]
+  │     │    ,-[<TEST_TOOLS_ROOT>/tests/statsOutputCases/builtin-swc-loader-parse-error/index.ts<LINE_COL>]
   │     │  1 | export error;
   │     │    :        ^^^^^
   │     │    \`----
@@ -115,7 +115,7 @@ Rspack x.x.x compiled successfully in X s
 exports[`statsOutput statsOutput/ignore-plugin should print correct stats for 1`] = `
 runtime modules 107 bytes 1 module
 ./index.js 103 bytes [built] [code generated]
-<ROOT>/tests/statsOutputCases/ignore-plugin/locals|sync|/^/.//.*$/ 160 bytes [built] [code generated]
+<TEST_TOOLS_ROOT>/tests/statsOutputCases/ignore-plugin/locals|sync|/^\\.\\/.*$/ 160 bytes [built] [code generated]
 ./locals/en.js 30 bytes [built] [code generated]
 `;
 
@@ -191,7 +191,7 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
 `;
 
 exports[`statsOutput statsOutput/logging-loader should print correct stats for 1`] = `
-DEBUG LOG from TestLoader|<ROOT>/tests/statsOutputCases/logging-loader/index.js
+DEBUG LOG from TestLoader|<TEST_TOOLS_ROOT>/tests/statsOutputCases/logging-loader/index.js
 <-> group
   <i> info something
       log something
@@ -223,7 +223,7 @@ Chunk Group cimanyd 337 bytes = cimanyd.js
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
 ERROR in ./index.js 1:0-19
-  × Module not found: Can't resolve 'not-exist' in '<ROOT>/tests/statsOutputCases/nonexistent-import-source-error'
+  × Module not found: Can't resolve 'not-exist' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";
    ·        ───────────
@@ -381,7 +381,7 @@ assets by status 348 bytes [cached] 1 asset
 ./index.js 51 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-34
-  × Module not found: Can't resolve 'cycle-alias/a' in '<ROOT>/tests/statsOutputCases/resolve-overflow-error'
+  × Module not found: Can't resolve 'cycle-alias/a' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/resolve-overflow-error'
    ╭─[1:18]
  1 │ import { a } from "cycle-alias/a";
    ·                   ───────────────
@@ -398,7 +398,7 @@ runtime modules 280 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-22
-  × Invalid "exports" target "../../index.js" defined for '.' in the package config <ROOT>/tests/statsOutputCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
+  × Invalid "exports" target "../../index.js" defined for '.' in the package config <TEST_TOOLS_ROOT>/tests/statsOutputCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
 Rspack x.x.x compiled with 1 error in X s
 `;
@@ -461,7 +461,7 @@ Rspack compiled successfully
 
 exports[`statsOutput statsOutput/try-require-module should print correct stats for 1`] = `
 WARNING in ./index.js
-  ⚠ Module not found: Can't resolve './missing-module' in '<ROOT>/tests/statsOutputCases/try-require-module'
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-module'
    ╭─[2:4]
  1 │ try {
  2 │     require('./missing-module')
@@ -475,7 +475,7 @@ Rspack compiled with 1 warning
 
 exports[`statsOutput statsOutput/try-require-resolve-module should print correct stats for 1`] = `
 WARNING in ./index.js
-  ⚠ Module not found: Can't resolve './missing-module' in '<ROOT>/tests/statsOutputCases/try-require-resolve-module'
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-module'
    ╭─[2:20]
  1 │ try {
  2 │     require.resolve('./missing-module')
@@ -489,7 +489,7 @@ Rspack compiled with 1 warning
 
 exports[`statsOutput statsOutput/try-require-resolve-weak-module should print correct stats for 1`] = `
 WARNING in ./index.js
-  ⚠ Module not found: Can't resolve './missing-module' in '<ROOT>/tests/statsOutputCases/try-require-resolve-weak-module'
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-weak-module'
    ╭─[2:24]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')

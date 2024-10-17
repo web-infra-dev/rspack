@@ -1,4 +1,4 @@
-import { normalizeCLR, normalizeCRLF, normalizeSlash } from "./expect/char";
+import { normalizeCLR } from "./expect/char";
 import { normalizeDiff } from "./expect/diff";
 import { normalizeDignostics, normalizeError } from "./expect/error";
 import { normalizePlaceholder } from "./expect/placeholder";
@@ -6,7 +6,6 @@ import { normalizeStats } from "./expect/rspack";
 import { toBeTypeOf } from "./expect/to-be-typeof";
 import { toEndWith } from "./expect/to-end-with";
 import { toMatchFileSnapshot } from "./expect/to-match-file-snapshot";
-const { normalizePaths } = require("jest-serializer-path");
 
 expect.extend({
 	// CHANGE: new test matcher for `rspack-test-tools`
@@ -16,13 +15,7 @@ expect.extend({
 	toEndWith
 });
 
-const pipes = [
-	normalizeSlash,
-	normalizeCLR,
-	normalizeCRLF,
-	normalizePlaceholder,
-	normalizePaths
-];
+const pipes = [normalizeCLR, normalizePlaceholder];
 
 const serialize = (
 	str: string,

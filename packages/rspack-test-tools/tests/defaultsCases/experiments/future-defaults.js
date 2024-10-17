@@ -31,7 +31,7 @@ module.exports = {
 		+             },
 		+           },
 		+         ],
-		+         "test": //.wasm$/i,
+		+         "test": /\\.wasm$/i,
 		+         "type": "webassembly/async",
 		@@ ... @@
 		+       Object {
@@ -53,7 +53,7 @@ module.exports = {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
 		+         },
-		+         "test": //.css$/i,
+		+         "test": /\\.css$/i,
 		+         "type": "css/auto",
 		+       },
 		+       Object {

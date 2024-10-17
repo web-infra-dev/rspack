@@ -1,16 +1,16 @@
 import path from "node:path";
-const { createSnapshotSerializer } = require("path-serializer");
+import { createSnapshotSerializer } from "path-serializer";
 
 const placeholderSerializer = createSnapshotSerializer({
-	workspace: path.resolve(__dirname, "../../../../../"),
+	root: path.resolve(__dirname, "../../../../../"),
 	replace: [
 		{
-			match: path.resolve(__dirname, "../../../rspack"),
-			mark: "rspack"
+			match: path.resolve(__dirname, "../../../"),
+			mark: "test_tools_root"
 		},
 		{
-			match: path.resolve(__dirname, "../../"),
-			mark: "test_tools"
+			match: path.resolve(__dirname, "../../../../rspack"),
+			mark: "rspack_root"
 		},
 		{
 			match: /:\d+:\d+-\d+:\d+/g,
@@ -22,8 +22,9 @@ const placeholderSerializer = createSnapshotSerializer({
 		}
 	],
 	features: {
+		replaceWorkspace: false,
 		addDoubleQuotes: false,
-		ansiDoubleQuotes: false
+		escapeDoubleQuotes: false
 	}
 });
 
