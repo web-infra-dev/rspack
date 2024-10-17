@@ -173,15 +173,24 @@ impl SourceMapDevToolPlugin {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
 
-    let futures = raw_assets
+    let matches = if let Some(test) = &self.test {
+      let features = raw_assets.iter().map(|(file, _)| test(file.to_owned()));
+      join_all(features)
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?
+    } else {
+      vec![]
+    };
+
+    let mut mapped_sources = raw_assets
       .into_par_iter()
-      .map(|(file, asset)| async {
-        let is_match = match &self.test {
-          Some(test) => match test(file.to_owned()).await {
-            Ok(val) => val,
-            Err(e) => return Some(Err(e)),
-          },
-          None => true,
+      .enumerate()
+      .filter_map(|(index, (file, asset))| {
+        let is_match = if matches.is_empty() {
+          true
+        } else {
+          matches[index]
         };
         let source = if is_match {
           asset.get_source().map(|source| {
@@ -191,15 +200,9 @@ impl SourceMapDevToolPlugin {
         } else {
           None
         };
-        source.map(Ok)
+        source
       })
       .collect::<Vec<_>>();
-
-    let mut mapped_sources = join_all(futures)
-      .await
-      .into_iter()
-      .flatten()
-      .collect::<Result<Vec<_>>>()?;
 
     let source_map_modules = mapped_sources
       .par_iter()
