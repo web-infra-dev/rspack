@@ -1,4 +1,3 @@
-use super::Incremental;
 use crate::{
   CacheOptions, Context, Experiments, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
   Resolve, SnapshotOptions, StatsOptions,
@@ -24,9 +23,3 @@ pub struct CompilerOptions {
 }
 
 pub type References = serde_json::Map<String, serde_json::Value>;
-
-impl CompilerOptions {
-  pub fn incremental(&self) -> &Incremental {
-    &self.experiments.incremental
-  }
-}
