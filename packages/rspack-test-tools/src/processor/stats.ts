@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Compiler, Stats } from "@rspack/core";
 
-import { escapeEOL } from "../helper";
+import { normalizePlaceholder } from "../helper/expect/placeholder";
 import captureStdio from "../helper/legacy/captureStdio";
 import type {
 	ECompilerType,
@@ -63,7 +63,7 @@ export class StatsProcessor<
 							if (err) return callback(err);
 							if (!/\.(js|json|txt)$/.test(args[0]))
 								return callback(null, result);
-							callback(null, escapeEOL(result.toString("utf-8")));
+							callback(null, normalizePlaceholder(result.toString("utf-8")));
 						}
 					]) as Parameters<typeof ifs.readFile>
 				);

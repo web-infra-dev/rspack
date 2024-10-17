@@ -353,9 +353,6 @@ export class ErrorProcessor<T extends ECompilerType> extends SimpleTaskProcessor
 }
 
 // @public (undocumented)
-export function escapeEOL(str: string): string;
-
-// @public (undocumented)
 export function escapeSep(str: string): string;
 
 // @public (undocumented)
@@ -1131,9 +1128,6 @@ export function readConfigFile<T extends ECompilerType>(files: string[], functio
 export function replaceModuleArgument(raw: string): string;
 
 // @public (undocumented)
-export function replacePaths(input: string): any;
-
-// @public (undocumented)
 export function replaceRuntimeModuleName(name: string): string;
 
 // @public (undocumented)
@@ -1193,6 +1187,8 @@ export class SnapshotProcessor<T extends ECompilerType> extends BasicProcessor<T
     constructor(_snapshotOptions: ISnapshotProcessorOptions<T>);
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
+    // (undocumented)
+    serializeEachFile(content: string): string;
     // (undocumented)
     protected _snapshotOptions: ISnapshotProcessorOptions<T>;
 }

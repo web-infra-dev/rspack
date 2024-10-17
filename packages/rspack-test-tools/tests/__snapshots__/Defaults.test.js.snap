@@ -5,7 +5,7 @@ Object {
   amd: undefined,
   bail: false,
   cache: false,
-  context: <ROOT>,
+  context: <TEST_TOOLS_ROOT>,
   dependencies: undefined,
   devServer: undefined,
   devtool: false,
@@ -312,7 +312,7 @@ Object {
     importMetaName: import.meta,
     library: undefined,
     module: false,
-    path: <ROOT>/dist,
+    path: <TEST_TOOLS_ROOT>/dist,
     pathinfo: false,
     publicPath: auto,
     scriptType: false,
@@ -459,7 +459,7 @@ Object {
       node_modules,
     ],
     roots: Array [
-      <ROOT>,
+      <TEST_TOOLS_ROOT>,
     ],
   },
   resolveLoader: Object {

@@ -1,8 +1,8 @@
 ERROR in ./index.js
-  × Module not found: Can't resolve './not-exists' in '<PROJECT_ROOT>/tests/diagnosticsCases/module-parse-failed/import-meta-context-error'
+  × Module not found: Can't resolve './not-exists' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/import-meta-context-error'
    ╭─[1:0]
  1 │ ╭─▶ import.meta.webpackContext('./not-exists', {
  2 │ │     recursive: false,
- 3 │ │     regExp: //.js$/,
+ 3 │ │     regExp: /\.js$/,
  4 │ ╰─▶ });
    ╰────

@@ -5,7 +5,6 @@ import type {
 	Compiler as WebpackCompiler
 } from "webpack";
 
-import { escapeEOL } from "../helper";
 import type { ECompilerType, ITestContext, ITestEnv } from "../type";
 import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
@@ -56,12 +55,12 @@ export class SnapshotProcessor<
 			.filter(([file]) => snapshotFileFilter(file))
 			.map(([file, source]) => {
 				const tag = path.extname(file).slice(1) || "txt";
-				return `\`\`\`${tag} title=${file}\n${source
-					.source()
-					.toString()}\n\`\`\``;
+				const content = this.serializeEachFile(source.source().toString());
+
+				return `\`\`\`${tag} title=${file}\n${content}\n\`\`\``;
 			});
 		fileContents.sort();
-		const content = escapeEOL(fileContents.join("\n\n"));
+		const content = fileContents.join("\n\n");
 		const snapshotPath = path.isAbsolute(this._snapshotOptions.snapshot)
 			? this._snapshotOptions.snapshot
 			: path.resolve(
@@ -70,5 +69,9 @@ export class SnapshotProcessor<
 				);
 
 		env.expect(content).toMatchFileSnapshot(snapshotPath);
+	}
+
+	serializeEachFile(content: string): string {
+		return content;
 	}
 }

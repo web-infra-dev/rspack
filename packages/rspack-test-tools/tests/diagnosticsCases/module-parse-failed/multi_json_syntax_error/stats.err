@@ -15,7 +15,7 @@ ERROR in ./b.json
   × Module parse failed:
   ╰─▶   × Json parsing error: Unexpected end of JSON
          ╭────
-       1 │ "测试utf8/"
+       1 │ "测试utf8\"
          ·           ▲
          ╰────
       

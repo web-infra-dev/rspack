@@ -8,7 +8,7 @@ body {
 }
 `;
 
-exports[`config config/builtin-lightningcss-loader/minify exported tests css content minifyed 1`] = `.foo{-webkit-transition:all Xs;transition:all Xs}.bar{padding:0}`;
+exports[`config config/builtin-lightningcss-loader/minify exported tests css content minifyed 1`] = `.foo{-webkit-transition:all .Xs;transition:all .Xs}.bar{padding:0}`;
 
 exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
@@ -82,12 +82,12 @@ Object {
   f*o*o: ee490440b4d27dd,
   f+o+o: b2f2e8203ab92e0,
   f/o/o: e8e6467eba546855,
-  f/o/o: ac4b388a402f1b,
+  f\\o\\o: ac4b388a402f1b,
   foo.bar: bf09604a510669,
   foo/bar: f06b4ed00041408a,
   foo/bar/baz: b62901907350b529,
-  foo/bar: cf1721b3e29,
-  foo/bar/baz: db46f3e1d8ecc82b,
+  foo\\bar: cf1721b3e29,
+  foo\\bar\\baz: db46f3e1d8ecc82b,
   f~o~o: e22953bae58b7,
   m_x_@: eede355cc6b0366,
   someId: f39bfe4a4606a57c,
@@ -135,12 +135,12 @@ Object {
   f*o*o: ./src/index__f*o*o,
   f+o+o: ./src/index__f+o+o,
   f/o/o: ./src/index__f/o/o,
-  f/o/o: ./src/index__f/o/o,
+  f\\o\\o: ./src/index__f\\o\\o,
   foo.bar: ./src/index__foo.bar,
   foo/bar: ./src/index__foo/bar,
   foo/bar/baz: ./src/index__foo/bar/baz,
-  foo/bar: ./src/index__foo/bar,
-  foo/bar/baz: ./src/index__foo/bar/baz,
+  foo\\bar: ./src/index__foo\\bar,
+  foo\\bar\\baz: ./src/index__foo\\bar\\baz,
   f~o~o: ./src/index__f~o~o,
   m_x_@: ./src/index__m_x_@,
   someId: ./src/index__someId,
@@ -511,7 +511,7 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
 "441": (function (module, __unused_webpack_exports, __webpack_require__) {
 const path = __webpack_require__(17)
 
-module.exports = pathXsep
+module.exports = path.sep
 
 
 }),
@@ -751,8 +751,8 @@ exports[`config config/schemes/data-imports exported tests data imports 1`] = `
 
 
 .class {
-  a: url(7159cadb6967ca3cXsvg);
-  b: url(7159cadb6967ca3cXsvg);
+  a: url(7159cadb6967ca3c.svg);
+  b: url(7159cadb6967ca3c.svg);
   c: url(7159cadb6967ca3c);
   d: url(7159cadb6967ca3c);
 }

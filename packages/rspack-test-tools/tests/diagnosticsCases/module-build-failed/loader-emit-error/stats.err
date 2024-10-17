@@ -1,5 +1,5 @@
 ERROR in ./lib.js
-  × ModuleError: Failed to load (from: <PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-error/my-loader.js)
+  × ModuleError: Failed to load (from: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-error/my-loader.js)
   │     at xxx
   │     at xxx
   │     at xxx
