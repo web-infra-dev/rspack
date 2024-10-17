@@ -168,6 +168,7 @@ pub struct Compilation {
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
   pub async_modules: IdentifierSet,
+  pub modules_diagnostics: IdentifierMap<Vec<Diagnostic>>,
   pub code_generation_results: CodeGenerationResults,
   pub cgm_hash_results: CgmHashResults,
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
@@ -266,6 +267,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
 
       async_modules: Default::default(),
+      modules_diagnostics: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),
@@ -1071,8 +1073,17 @@ impl Compilation {
       )],
     )?;
 
+    if let Some(mutations) = &mut self.mutations
+      && let Some(make_mutations) = self.make_artifact.take_mutations()
+    {
+      mutations.extend(make_mutations);
+    }
+
     let incremental = self.options.incremental();
-    if incremental.infer_async_modules_enabled() || incremental.provided_exports_enabled() {
+    if incremental.infer_async_modules_enabled()
+      || incremental.provided_exports_enabled()
+      || incremental.collect_modules_diagnostics_enabled()
+    {
       self
         .unaffected_modules_cache
         .compute_affected_modules_with_module_graph(self);
@@ -1087,7 +1098,7 @@ impl Compilation {
     logger.time_end(start);
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
-    // 2. before optimize dependencies: side effects free module hasn't been skipped (move_target)
+    // 2. before optimize dependencies: side effects free module hasn't been skipped
     self.collect_dependencies_diagnostics();
 
     // take make diagnostics
@@ -1110,16 +1121,54 @@ impl Compilation {
 
   #[tracing::instrument(skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
+    let incremental = self
+      .options
+      .incremental()
+      .collect_modules_diagnostics_enabled();
+    let modules = if incremental {
+      if let Some(mutations) = &self.mutations {
+        let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ModuleRevoke { module } => Some(*module),
+          _ => None,
+        });
+        for revoked_module in revoked_modules {
+          self.modules_diagnostics.remove(&revoked_module);
+        }
+      }
+      self
+        .unaffected_modules_cache
+        .get_affected_modules_with_module_graph()
+        .lock()
+        .expect("should lock")
+        .clone()
+    } else {
+      let module_graph = self.get_module_graph();
+      module_graph.modules().keys().copied().collect()
+    };
     let module_graph = self.get_module_graph();
-    let diagnostics: Vec<_> = module_graph
-      .module_graph_modules()
+    let modules_diagnostics: IdentifierMap<Vec<Diagnostic>> = modules
       .par_iter()
-      .flat_map(|(_, mgm)| &mgm.all_dependencies)
-      .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-      .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
-      .flat_map(|ds| ds)
+      .map(|module_identifier| {
+        let mgm = module_graph
+          .module_graph_module_by_identifier(module_identifier)
+          .expect("should have mgm");
+        let diagnostics = mgm
+          .all_dependencies
+          .iter()
+          .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
+          .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+          .flatten()
+          .collect::<Vec<_>>();
+        (*module_identifier, diagnostics)
+      })
       .collect();
-    self.extend_diagnostics(diagnostics);
+    let all_modules_diagnostics = if incremental {
+      self.modules_diagnostics.extend(modules_diagnostics);
+      self.modules_diagnostics.clone()
+    } else {
+      modules_diagnostics
+    };
+    self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
   }
 
   #[instrument(name = "compilation:seal", skip_all)]

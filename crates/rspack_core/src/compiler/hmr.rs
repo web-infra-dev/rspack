@@ -97,6 +97,10 @@ impl Compiler {
       if incremental.infer_async_modules_enabled() {
         new_compilation.async_modules = std::mem::take(&mut self.compilation.async_modules);
       }
+      if incremental.collect_modules_diagnostics_enabled() {
+        new_compilation.modules_diagnostics =
+          std::mem::take(&mut self.compilation.modules_diagnostics);
+      }
       if incremental.module_hashes_enabled() {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
       }

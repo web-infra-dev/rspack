@@ -18,6 +18,7 @@ pub enum Incremental {
     emit_assets: bool,
     infer_async_modules: bool,
     provided_exports: bool,
+    collect_modules_diagnostics: bool,
     module_hashes: bool,
     module_codegen: bool,
     module_runtime_requirements: bool,
@@ -43,6 +44,10 @@ impl Incremental {
 
   pub fn provided_exports_enabled(&self) -> bool {
     matches!(self, Incremental::Enabled { provided_exports, .. } if *provided_exports)
+  }
+
+  pub fn collect_modules_diagnostics_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { collect_modules_diagnostics, .. } if *collect_modules_diagnostics)
   }
 
   pub fn module_hashes_enabled(&self) -> bool {
