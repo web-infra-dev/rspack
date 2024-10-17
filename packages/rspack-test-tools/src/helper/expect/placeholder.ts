@@ -2,7 +2,7 @@ import path from "node:path";
 const { createSnapshotSerializer } = require("path-serializer");
 
 const placeholderSerializer = createSnapshotSerializer({
-	workspace: path.resolve(__dirname, "../../../../"),
+	workspace: path.resolve(__dirname, "../../../../../"),
 	replace: [
 		{
 			match: path.resolve(__dirname, "../../../rspack"),
