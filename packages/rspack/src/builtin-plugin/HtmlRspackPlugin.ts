@@ -378,6 +378,9 @@ const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
 	new WeakMap();
 
 const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
+	/**
+	 * @deprecated Use `getCompilationHooks` instead.
+	 */
 	getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
 	getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
 	getCompilationOptions: (
