@@ -711,7 +711,7 @@ fn optimize_incoming_connections(
   compilation: &mut Compilation,
   cache: Rc<RefCell<IdentifierMap<ConnectionState>>>,
 ) {
-  if !to_be_optimized.remove(&module_identifier) {
+  if !to_be_optimized.insert(module_identifier) {
     return;
   }
   let module_graph = compilation.get_module_graph();
