@@ -82,13 +82,14 @@ impl ModernModuleLibraryPlugin {
           .module_graph_module_by_identifier(id)
           .expect("should have module");
         let reasons = &mgm.optimization_bailout;
-        reasons
+
+        // A module with "Module is an entry point" bail reason indicates that it is an eligible root for concatenation.
+        // TODO: use constant variable to identify the reason.
+        let can_be_root = reasons
           .iter()
-          // We did want force concatenate entry point here.
-          // TODO: use constant variable to identify the reason.
-          .filter(|r| !r.contains("Module is an entry point"))
-          .collect::<Vec<_>>()
-          .is_empty()
+          .any(|r| r.contains("Module is an entry point"));
+
+        can_be_root
       })
       .collect::<HashSet<_>>();
 
