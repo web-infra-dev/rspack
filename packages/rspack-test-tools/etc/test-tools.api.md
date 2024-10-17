@@ -4,6 +4,10 @@
 
 ```ts
 
+/// <reference types="../jest.d.ts" />
+/// <reference types="jest" />
+/// <reference types="node" />
+
 import type { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
