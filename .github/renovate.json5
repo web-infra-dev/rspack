@@ -163,6 +163,15 @@
       "matchPackagePrefixes": [
         "@playwright/test"
       ]
+    },
+    {
+      "groupName": "typescript",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ]
     }
   ]
 }
