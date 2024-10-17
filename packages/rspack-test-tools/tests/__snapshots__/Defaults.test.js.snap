@@ -1,4 +1,4 @@
-// Jest Snapshot v1, <https://goo.gl/fbAQLP>
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Base Defaults Snapshot should have the correct base config 1`] = `
 Object {
@@ -15,19 +15,19 @@ Object {
       ],
     },
   },
-  "experiments": Object {
-    "asyncWebAssembly": false,
-    "css": undefined,
-    "futureDefaults": false,
-    "incremental": Object {
-      "collectModulesDiagnostics": false,
-      "emitAssets": true,
-      "inferAsyncModules": false,
-      "make": true,
-      "moduleCodegen": false,
-      "moduleHashes": false,
-      "moduleRuntimeRequirements": false,
-      "providedExports": false,
+  experiments: Object {
+    asyncWebAssembly: false,
+    css: undefined,
+    futureDefaults: false,
+    incremental: Object {
+      collectModulesDiagnostics: false,
+      emitAssets: true,
+      inferAsyncModules: false,
+      make: true,
+      moduleCodegen: false,
+      moduleHashes: false,
+      moduleRuntimeRequirements: false,
+      providedExports: false,
     },
     layers: false,
     lazyCompilation: false,
