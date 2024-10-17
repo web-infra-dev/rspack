@@ -1,4 +1,4 @@
-// getDefaultExport function for compatibility with non-harmony modules
+// getDefaultExport function for compatibility with non-ESM modules
 __webpack_require__.n = function (module) {
 	var getter = module && module.__esModule ?
 		function () { return module['default']; } :

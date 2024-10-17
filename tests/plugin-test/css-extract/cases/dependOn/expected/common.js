@@ -148,7 +148,7 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css");
+/* ESM import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css");
 
 
 __webpack_exports__ = __webpack_require__.O(__webpack_exports__);

@@ -151,7 +151,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   let module_key = ref_module
     .map(|i| i.as_str())
     .unwrap_or(module_dependency.request());
-  let key = format!("harmony import {}", module_key);
+  let key = format!("ESM import {}", module_key);
 
   // The import emitted map is consumed by HarmonyAcceptDependency which enabled by HotModuleReplacementPlugin
   if let Some(import_emitted_map) = import_emitted_runtime::get_map() {

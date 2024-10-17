@@ -75,14 +75,14 @@ console.log("side effect");
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "a": () => (/* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.a),
-/* harmony export */   "b": () => (/* reexport safe */ _b__WEBPACK_IMPORTED_MODULE_1__.b),
-/* harmony export */   "c": () => (/* reexport safe */ _c__WEBPACK_IMPORTED_MODULE_2__.c)
-/* harmony export */ });
-/* harmony import */ var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */ 2);
-/* harmony import */ var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */ 3);
-/* harmony import */ var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./c */ 4);
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "a": () => (/* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.a),
+/* ESM export */   "b": () => (/* reexport safe */ _b__WEBPACK_IMPORTED_MODULE_1__.b),
+/* ESM export */   "c": () => (/* reexport safe */ _c__WEBPACK_IMPORTED_MODULE_2__.c)
+/* ESM export */ });
+/* ESM import */ var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */ 2);
+/* ESM import */ var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */ 3);
+/* ESM import */ var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./c */ 4);
 
 
 
@@ -102,9 +102,9 @@ console.log("side effect");
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "a": () => (/* binding */ a)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "a": () => (/* binding */ a)
+/* ESM export */ });
 const a = "a";
 
 
@@ -120,9 +120,9 @@ const a = "a";
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "b": () => (/* binding */ b)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "b": () => (/* binding */ b)
+/* ESM export */ });
 const b = "b";
 
 
@@ -138,9 +138,9 @@ const b = "b";
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "c": () => (/* binding */ c)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "c": () => (/* binding */ c)
+/* ESM export */ });
 const c = "c";
 
 
@@ -156,9 +156,9 @@ const c = "c";
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "a": () => (/* binding */ a)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "a": () => (/* binding */ a)
+/* ESM export */ });
 const a = "a";
 
 
@@ -174,9 +174,9 @@ const a = "a";
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "b": () => (/* binding */ b)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "b": () => (/* binding */ b)
+/* ESM export */ });
 const b = "b";
 
 
@@ -215,7 +215,7 @@ const b = "b";
 /************************************************************************/
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
+/******/ 		// define getter functions for ESM exports
 /******/ 		__webpack_require__.d = (exports, definition) => {
 /******/ 			for(var key in definition) {
 /******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -258,9 +258,9 @@ var __webpack_exports__ = {};
 /*! runtime requirements: __webpack_require__, __webpack_require__.r, __webpack_exports__, __webpack_require__.* */
 /*! Statement (ExpressionStatement) with side effects in source code at 4:0-9:2 */
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var big_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! big-module */ 1);
-/* harmony import */ var big_module_with_flag__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! big-module-with-flag */ 5);
-/* harmony import */ var big_module_with_flag__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! big-module-with-flag */ 6);
+/* ESM import */ var big_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! big-module */ 1);
+/* ESM import */ var big_module_with_flag__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! big-module-with-flag */ 5);
+/* ESM import */ var big_module_with_flag__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! big-module-with-flag */ 6);
 
 
 

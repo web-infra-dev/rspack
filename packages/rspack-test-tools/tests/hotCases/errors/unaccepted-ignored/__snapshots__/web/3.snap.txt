@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 845
+- Update: main.LAST_HASH.hot-update.js, size: 837
 
 ## Manifest
 
@@ -39,7 +39,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (4);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (4);
 
 
 }),
@@ -48,7 +48,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
 
 
 }),

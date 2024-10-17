@@ -14,14 +14,14 @@ __webpack_require__.r(__webpack_exports__);
 }),
 "./entryA.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleA.css");
+/* ESM import */var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleA.css");
 
 
 
 }),
 "./entryB.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css");
+/* ESM import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css");
 
 
 

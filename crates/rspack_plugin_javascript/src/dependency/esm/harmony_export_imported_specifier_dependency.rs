@@ -482,7 +482,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ExportModeType::Missing | ExportModeType::EmptyStar => {
         fragments.push(
           NormalInitFragment::new(
-            "/* empty/unused harmony star reexport */\n".to_string(),
+            "/* empty/unused ESM star reexport */\n".to_string(),
             InitFragmentStage::StageHarmonyExports,
             1,
             InitFragmentKey::unique(),
@@ -494,7 +494,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ExportModeType::Unused => fragments.push(
         NormalInitFragment::new(
           Template::to_comment(&format!(
-            "unused harmony reexport {}",
+            "unused ESM reexport {}",
             mode.name.unwrap_or_default()
           )),
           InitFragmentStage::StageHarmonyExports,
@@ -614,9 +614,8 @@ impl HarmonyExportImportedSpecifierDependency {
           let key = string_of_used_name(used_name.as_ref());
 
           if checked {
-            let key = InitFragmentKey::HarmonyImport(format!(
-              "harmony reexport (checked) {import_var} {name}"
-            ));
+            let key =
+              InitFragmentKey::HarmonyImport(format!("ESM reexport (checked) {import_var} {name}"));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
@@ -665,8 +664,8 @@ impl HarmonyExportImportedSpecifierDependency {
         // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
         let mut content = format!(
           r"
-/* harmony reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};
-/* harmony reexport (unknown) */ for( var __WEBPACK_IMPORT_KEY__ in {import_var}) "
+/* ESM reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};
+/* ESM reexport (unknown) */ for( var __WEBPACK_IMPORT_KEY__ in {import_var}) "
         );
 
         if ignored.len() > 1 {
@@ -695,7 +694,7 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(
           NormalInitFragment::new(
             format!(
-              "{content}\n/* harmony reexport (unknown) */ {}({}, __WEBPACK_REEXPORT_OBJECT__);\n",
+              "{content}\n/* ESM reexport (unknown) */ {}({}, __WEBPACK_REEXPORT_OBJECT__);\n",
               RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
               exports_name
             ),
@@ -766,7 +765,7 @@ impl HarmonyExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let mut export_map = vec![];
     let value = format!(
-      r"/* reexport fake namespace object from non-harmony */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
+      r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
       RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
       if fake_type == 0 {
         "".to_string()
@@ -1019,7 +1018,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       if matches!(mode.ty, ExportModeType::ReexportUndefined) {
         scope.register_raw_export(
           mode.name.clone().expect("should have name"),
-          String::from("/* reexport non-default export from non-harmony */ undefined"),
+          String::from("/* reexport non-default export from non-ESM */ undefined"),
         );
       }
       return;

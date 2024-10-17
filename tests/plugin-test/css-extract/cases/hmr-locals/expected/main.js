@@ -232,7 +232,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 // extracted by css-extract-rspack-plugin
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"x":"VoofDB21D_QzDbRdwMiY"});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"x":"VoofDB21D_QzDbRdwMiY"});
     if(true) {
       (function() {
         var localsJsonString = "{\"x\":\"VoofDB21D_QzDbRdwMiY\"}";

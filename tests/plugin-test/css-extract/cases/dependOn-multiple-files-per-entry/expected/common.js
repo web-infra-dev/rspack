@@ -157,7 +157,7 @@ var __webpack_exports__ = {};
 (() => {
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleC_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleC.css");
+/* ESM import */var _styleC_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleC.css");
 
 
 })();
@@ -165,7 +165,7 @@ __webpack_require__.r(__webpack_exports__);
 // This entry need to be wrapped in an IIFE because it need to be isolated against other entry modules.
 (() => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _styleD_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleD.css");
+/* ESM import */var _styleD_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleD.css");
 
 
 })();

@@ -132,10 +132,10 @@ When compiling for other targets like node.js, electron or WebWorkers, it may be
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "CreateUserAction": () => (/* binding */ CreateUserAction),
-/* harmony export */   "AlternativeCreateUserAction": () => (/* binding */ AlternativeCreateUserAction)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "CreateUserAction": () => (/* binding */ CreateUserAction),
+/* ESM export */   "AlternativeCreateUserAction": () => (/* binding */ AlternativeCreateUserAction)
+/* ESM export */ });
 // import() doesn't care about whether a module is an async module or not
 const UserApi = __webpack_require__.e(/*! import() */ 497).then(__webpack_require__.bind(__webpack_require__, /*! ./UserApi.js */ 2));
 
@@ -277,7 +277,7 @@ const AlternativeCreateUserAction = async name => {
 /******/ 	
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
+/******/ 		// define getter functions for ESM exports
 /******/ 		__webpack_require__.d = (exports, definition) => {
 /******/ 			for(var key in definition) {
 /******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -482,7 +482,7 @@ var __webpack_exports__ = {};
 /*! exports [not provided] [no usage info] */
 /*! runtime requirements: __webpack_require__, __webpack_require__.r, __webpack_exports__, __webpack_require__.* */
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _Actions_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Actions.js */ 1);
+/* ESM import */ var _Actions_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Actions.js */ 1);
 
 
 (async ()=> {
@@ -514,10 +514,10 @@ __webpack_require__.r(__webpack_exports__);
 
 __webpack_require__.a(module, async (__webpack_handle_async_dependencies__) => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "createUser": () => (/* binding */ createUser)
-/* harmony export */ });
-/* harmony import */ var _db_connection_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./db-connection.js */ 3);
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "createUser": () => (/* binding */ createUser)
+/* ESM export */ });
+/* ESM import */ var _db_connection_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./db-connection.js */ 3);
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_db_connection_js__WEBPACK_IMPORTED_MODULE_0__]);
 _db_connection_js__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? await __webpack_async_dependencies__ : __webpack_async_dependencies__)[0];
 
@@ -544,10 +544,10 @@ const createUser = async name => {
 
 __webpack_require__.a(module, async (__webpack_handle_async_dependencies__) => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "dbCall": () => (/* binding */ dbCall),
-/* harmony export */   "close": () => (/* binding */ close)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "dbCall": () => (/* binding */ dbCall),
+/* ESM export */   "close": () => (/* binding */ close)
+/* ESM export */ });
 const connectToDB = async url => {
 	await new Promise(r => setTimeout(r, 1000));
 };
