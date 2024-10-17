@@ -149,10 +149,10 @@ vendors:
   vendors (Rspack x.x.x) compiled successfully
 
 multiple-vendors:
-  Entrypoint main 11.2 KiB = multiple-vendors/libs.js 6.19 KiB multiple-vendors/main.js 4.99 KiB
-  Entrypoint a 11.2 KiB = multiple-vendors/libs.js 6.19 KiB multiple-vendors/a.js 4.99 KiB
-  Entrypoint b 11.2 KiB = multiple-vendors/libs.js 6.19 KiB multiple-vendors/b.js 4.99 KiB
-  Entrypoint c 11.2 KiB = multiple-vendors/libs.js 6.19 KiB multiple-vendors/c.js 4.99 KiB
+  Entrypoint main 11.1 KiB = multiple-vendors/libs.js 6.1 KiB multiple-vendors/main.js 4.99 KiB
+  Entrypoint a 11.1 KiB = multiple-vendors/libs.js 6.1 KiB multiple-vendors/a.js 4.99 KiB
+  Entrypoint b 11.1 KiB = multiple-vendors/libs.js 6.1 KiB multiple-vendors/b.js 4.99 KiB
+  Entrypoint c 11.1 KiB = multiple-vendors/libs.js 6.1 KiB multiple-vendors/c.js 4.99 KiB
   chunk (runtime: a, b, c, main) multiple-vendors/libs.js (libs) (id hint: libs) 709 bytes [initial] [rendered] split chunk (cache group: libs)
     > ./a ./index.js 1:0-47
     > ./b ./index.js 2:0-47
@@ -176,9 +176,9 @@ multiple-vendors:
 
 all:
   Entrypoint main 10.9 KiB = all/605.js 762 bytes all/main.js 10.1 KiB
-  Entrypoint a 10.6 KiB = all/272.js 501 bytes all/a.js 10.1 KiB
-  Entrypoint b 4.25 KiB = all/726.js 262 bytes all/b.js 3.99 KiB
-  Entrypoint c 4.24 KiB = all/29.js 261 bytes all/c.js 3.99 KiB
+  Entrypoint a 10.6 KiB = all/272.js 497 bytes all/a.js 10.1 KiB
+  Entrypoint b 4.24 KiB = all/726.js 258 bytes all/b.js 3.99 KiB
+  Entrypoint c 4.24 KiB = all/29.js 257 bytes all/c.js 3.99 KiB
   chunk (runtime: main) all/199.js (id hint: vendors) 116 bytes [rendered] split chunk (cache group: vendors)
     > ./b ./index.js 2:0-47
     ./b.js 116 bytes [built] [code generated]
@@ -341,7 +341,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for exclude-with-loader 1`] = `
 "hidden assets 34 bytes 1 asset
-asset bundle.js 4.53 KiB [emitted] (name: main)
+asset bundle.js 4.52 KiB [emitted] (name: main)
 runtime modules 2.27 KiB 5 modules
 hidden modules 99 bytes 2 modules
 cacheable modules 119 bytes
@@ -462,9 +462,9 @@ asset 9ec5fb56454bddf305ec.js 167 bytes [emitted] [immutable]"
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
 "asset entry.js 9.97 KiB [emitted] (name: entry)
-asset 228.js 426 bytes [emitted]
-asset 271.js 426 bytes [emitted]
-asset 536.js 426 bytes [emitted]
+asset 228.js 422 bytes [emitted]
+asset 271.js 422 bytes [emitted]
+asset 536.js 422 bytes [emitted]
 runtime modules 7.27 KiB 9 modules
 cacheable modules 724 bytes
   modules by path ./templates/*.js 114 bytes
@@ -548,24 +548,24 @@ runtime modules 2.59 KiB 3 modules
 ./a.js 18 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset b-runtime~main-eb1e55e9714495b68bff.js 4.39 KiB [emitted] [immutable] (name: runtime~main)
-asset b-all-b_js-468c0f551eefc9f96f0b.js 461 bytes [emitted] [immutable] (id hint: all)
+asset b-runtime~main-3bbad335677954f1bf62.js 4.38 KiB [emitted] [immutable] (name: runtime~main)
+asset b-all-b_js-b874698f7ffdd5f2d025.js 453 bytes [emitted] [immutable] (id hint: all)
 asset b-main-72ac2a7c5326395bcc89.js 420 bytes [emitted] [immutable] (name: main)
 asset b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 5.42 KiB = b-runtime~main-eb1e55e9714495b68bff.js 4.39 KiB b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes b-all-b_js-468c0f551eefc9f96f0b.js 461 bytes b-main-72ac2a7c5326395bcc89.js 420 bytes
+Entrypoint main 5.41 KiB = b-runtime~main-3bbad335677954f1bf62.js 4.38 KiB b-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes b-all-b_js-b874698f7ffdd5f2d025.js 453 bytes b-main-72ac2a7c5326395bcc89.js 420 bytes
 runtime modules 3.17 KiB 5 modules
 cacheable modules 40 bytes
   ./b.js 17 bytes [built] [code generated]
   ./node_modules/vendor.js 23 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-assets by chunk 870 bytes (id hint: all)
-  asset c-all-b_js-80b9441ad56b464b76b4.js 488 bytes [emitted] [immutable] (id hint: all)
+assets by chunk 862 bytes (id hint: all)
+  asset c-all-b_js-8210bbfaaabe707db80c.js 480 bytes [emitted] [immutable] (id hint: all)
   asset c-all-c_js-3551be145d84dbf7a4c1.js 382 bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-b468871c1537d8398851.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
+asset c-runtime~main-b6f6ef51aad0cfae157a.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-4bdbd2cfa296de1ab23e.js 643 bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-97d43f84c65cc0e25938.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 12.1 KiB = c-runtime~main-b468871c1537d8398851.js 11.1 KiB c-all-c_js-3551be145d84dbf7a4c1.js 382 bytes c-main-4bdbd2cfa296de1ab23e.js 643 bytes
+Entrypoint main 12.1 KiB = c-runtime~main-b6f6ef51aad0cfae157a.js 11.1 KiB c-all-c_js-3551be145d84dbf7a4c1.js 382 bytes c-main-4bdbd2cfa296de1ab23e.js 643 bytes
 runtime modules 9.71 KiB 13 modules
 cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
@@ -653,15 +653,15 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication 1`] = `
-"asset e1.js 9.9 KiB [emitted] (name: e1)
-asset e2.js 9.9 KiB [emitted] (name: e2)
-asset e3.js 9.9 KiB [emitted] (name: e3)
-asset 106.js 780 bytes [emitted]
-asset 511.js 780 bytes [emitted]
-asset 637.js 780 bytes [emitted]
-asset 263.js 512 bytes [emitted]
-asset 400.js 512 bytes [emitted]
-asset 806.js 512 bytes [emitted]
+"asset e1.js 9.88 KiB [emitted] (name: e1)
+asset e2.js 9.88 KiB [emitted] (name: e2)
+asset e3.js 9.88 KiB [emitted] (name: e3)
+asset 106.js 768 bytes [emitted]
+asset 511.js 768 bytes [emitted]
+asset 637.js 768 bytes [emitted]
+asset 263.js 504 bytes [emitted]
+asset 400.js 504 bytes [emitted]
+asset 806.js 504 bytes [emitted]
 chunk (runtime: e1, e2) 106.js 81 bytes [rendered]
   ./async3.js 61 bytes [built] [code generated]
   ./h.js 20 bytes [dependent] [built] [code generated]
@@ -693,12 +693,12 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication-named 1`] = `
-"asset e1.js 9.76 KiB [emitted] (name: e1)
-asset e2.js 9.76 KiB [emitted] (name: e2)
-asset e3.js 9.76 KiB [emitted] (name: e3)
-asset async1.js 892 bytes [emitted] (name: async1)
-asset async2.js 891 bytes [emitted] (name: async2)
-asset async3.js 891 bytes [emitted] (name: async3)
+"asset e1.js 9.74 KiB [emitted] (name: e1)
+asset e2.js 9.74 KiB [emitted] (name: e2)
+asset e3.js 9.74 KiB [emitted] (name: e3)
+asset async1.js 880 bytes [emitted] (name: async1)
+asset async2.js 879 bytes [emitted] (name: async2)
+asset async3.js 879 bytes [emitted] (name: async3)
 chunk (runtime: e1, e2, e3) async3.js (async3) 135 bytes [rendered]
   ./async3.js 115 bytes [built] [code generated]
   ./h.js 20 bytes [dependent] [built] [code generated]
@@ -826,10 +826,10 @@ Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-groups 1`] = `
-"Chunk Group async-a 1 KiB = a-727.js 250 bytes a-async-a.js 778 bytes
-Chunk Group async-b 1 KiB = a-727.js 250 bytes a-async-b.js 778 bytes
-Chunk Group async-c 1.27 KiB = a-vendors.js 624 bytes a-async-c.js 681 bytes
-Chunk Group main 9.6 KiB = a-main.js
+"Chunk Group async-a 1020 bytes = a-727.js 250 bytes a-async-a.js 766 bytes
+Chunk Group async-b 1020 bytes = a-727.js 250 bytes a-async-b.js 766 bytes
+Chunk Group async-c 1.25 KiB = a-vendors.js 616 bytes a-async-c.js 669 bytes
+Chunk Group main 9.59 KiB = a-main.js
 chunk (runtime: main) a-async-c.js (async-c) 67 bytes [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 67 bytes [built] [code generated]
@@ -852,10 +852,10 @@ chunk (runtime: main) a-main.js (main) 146 bytes (javascript) 7.65 KiB (runtime)
   ./index.js 146 bytes [built] [code generated]
 Rspack x.x.x compiled successfully
 
-Entrypoint main 9.6 KiB = b-main.js
-Chunk Group async-a 1 KiB = b-727.js 250 bytes b-async-a.js 778 bytes
-Chunk Group async-b 1 KiB = b-727.js 250 bytes b-async-b.js 778 bytes
-Chunk Group async-c 1.27 KiB = b-vendors.js 624 bytes b-async-c.js 681 bytes
+Entrypoint main 9.59 KiB = b-main.js
+Chunk Group async-a 1020 bytes = b-727.js 250 bytes b-async-a.js 766 bytes
+Chunk Group async-b 1020 bytes = b-727.js 250 bytes b-async-b.js 766 bytes
+Chunk Group async-c 1.25 KiB = b-vendors.js 616 bytes b-async-c.js 669 bytes
 chunk (runtime: main) b-async-c.js (async-c) 67 bytes [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 67 bytes [built] [code generated]
@@ -1104,7 +1104,7 @@ chunk (runtime: main) preloaded3.js (preloaded3) 1 bytes [rendered]
 chunk (runtime: main) preloaded2.js (preloaded2) 1 bytes [rendered]
 chunk (runtime: main) normal.js (normal) 1 bytes [rendered]
 chunk (runtime: main) inner2.js (inner2) 2 bytes [rendered]
-chunk (runtime: main) main.js (main) 424 bytes (javascript) 9.79 KiB (runtime) (preload: {154}) [entry] [rendered]"
+chunk (runtime: main) main.js (main) 424 bytes (javascript) 9.78 KiB (runtime) (preload: {154}) [entry] [rendered]"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-errors-only 1`] = `""`;
@@ -1181,11 +1181,11 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
   assets by path *.gz 13.9 KiB
     asset default-main.js.gz 11.9 KiB [emitted]
     asset default-main.js.map.gz 673 bytes [emitted]
-    asset default-chunk_js.js.gz 615 bytes [emitted]
+    asset default-chunk_js.js.gz 611 bytes [emitted]
     + 5 assets
   assets by path *.js 12.5 KiB
     asset default-main.js 11.9 KiB [emitted] (name: main)
-    asset default-chunk_js.js 615 bytes [emitted]
+    asset default-chunk_js.js 611 bytes [emitted]
   assets by path *.css 142 bytes
     asset default-chunk_js.css 73 bytes [emitted]
     asset default-main.css 69 bytes [emitted] (name: main)
@@ -1198,11 +1198,11 @@ relatedAssets:
   assets by path *.gz 13.9 KiB
     asset relatedAssets-main.js.gz 11.9 KiB [emitted]
     asset relatedAssets-main.js.map.gz 679 bytes [emitted]
-    asset relatedAssets-chunk_js.js.gz 621 bytes [emitted]
+    asset relatedAssets-chunk_js.js.gz 617 bytes [emitted]
     + 5 assets
   assets by path *.js 12.5 KiB
     asset relatedAssets-main.js 11.9 KiB [emitted] (name: main)
-    asset relatedAssets-chunk_js.js 621 bytes [emitted]
+    asset relatedAssets-chunk_js.js 617 bytes [emitted]
   assets by path *.css 154 bytes
     asset relatedAssets-chunk_js.css 79 bytes [emitted]
     asset relatedAssets-main.css 75 bytes [emitted] (name: main)
@@ -1212,7 +1212,7 @@ exclude1:
   assets by status 12.6 KiB [emitted]
     assets by path *.js 12.5 KiB
       asset exclude1-main.js 11.9 KiB [emitted] (name: main)
-      asset exclude1-chunk_js.js 616 bytes [emitted]
+      asset exclude1-chunk_js.js 612 bytes [emitted]
     assets by path *.css 144 bytes
       asset exclude1-chunk_js.css 74 bytes [emitted]
       asset exclude1-main.css 70 bytes [emitted] (name: main)
@@ -1225,18 +1225,18 @@ exclude2:
   assets by path *.gz 13.9 KiB
     asset exclude2-main.js.gz 11.9 KiB [emitted]
     asset exclude2-main.js.map.gz 674 bytes [emitted]
-    asset exclude2-chunk_js.js.gz 616 bytes [emitted]
+    asset exclude2-chunk_js.js.gz 612 bytes [emitted]
     + 5 assets
   assets by path *.js 12.5 KiB
     asset exclude2-main.js 11.9 KiB [emitted] (name: main)
-    asset exclude2-chunk_js.js 616 bytes [emitted]
+    asset exclude2-chunk_js.js 612 bytes [emitted]
   assets by path *.css 144 bytes
     asset exclude2-chunk_js.css 74 bytes [emitted]
     asset exclude2-main.css 70 bytes [emitted] (name: main)
 
 exclude3:
-  hidden assets 2.9 KiB 10 assets
-  assets by status 37.5 KiB [emitted]
+  hidden assets 2.89 KiB 10 assets
+  assets by status 37.4 KiB [emitted]
     assets by path *.br 12.8 KiB
       asset exclude3-main.js.br 11.9 KiB [emitted]
       asset exclude3-main.js.map.br 674 bytes [emitted]
@@ -1310,11 +1310,11 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
 "production:
   asset production-a.js 10.6 KiB [emitted] (name: a)
   asset production-b.js 10.6 KiB [emitted] (name: b)
-  asset production-dx_js.js 956 bytes [emitted]
-  asset production-dw_js-_5cba0.js 932 bytes [emitted]
-  asset production-dw_js-_5cba1.js 932 bytes [emitted]
-  asset production-dy_js.js 925 bytes [emitted]
-  asset production-dz_js.js 925 bytes [emitted]
+  asset production-dx_js.js 952 bytes [emitted]
+  asset production-dw_js-_5cba0.js 928 bytes [emitted]
+  asset production-dw_js-_5cba1.js 928 bytes [emitted]
+  asset production-dy_js.js 921 bytes [emitted]
+  asset production-dz_js.js 921 bytes [emitted]
   asset production-c.js 45 bytes [emitted] (name: c)
   chunk (runtime: a) production-a.js (a) 605 bytes (javascript) 7.27 KiB (runtime) [entry] [rendered]
     ./a.js 261 bytes [built] [code generated]
@@ -1388,10 +1388,10 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
 development:
   asset development-a.js 12.3 KiB [emitted] (name: a)
   asset development-b.js 12.3 KiB [emitted] (name: b)
-  asset development-dw_js.js 1.18 KiB [emitted]
-  asset development-dx_js.js 1.18 KiB [emitted]
-  asset development-dy_js.js 1.18 KiB [emitted]
-  asset development-dz_js.js 1.18 KiB [emitted]
+  asset development-dw_js.js 1.17 KiB [emitted]
+  asset development-dx_js.js 1.17 KiB [emitted]
+  asset development-dy_js.js 1.17 KiB [emitted]
+  asset development-dz_js.js 1.17 KiB [emitted]
   asset development-c.js 419 bytes [emitted] (name: c)
   chunk (runtime: a) development-a.js (a) 605 bytes (javascript) 7.28 KiB (runtime) [entry] [rendered]
     ./a.js 261 bytes [built] [code generated]
@@ -1469,10 +1469,10 @@ development:
 global:
   asset global-a.js 10.7 KiB [emitted] (name: a)
   asset global-b.js 10.7 KiB [emitted] (name: b)
-  asset global-dw_js.js 956 bytes [emitted]
-  asset global-dx_js.js 956 bytes [emitted]
-  asset global-dy_js.js 956 bytes [emitted]
-  asset global-dz_js.js 956 bytes [emitted]
+  asset global-dw_js.js 952 bytes [emitted]
+  asset global-dx_js.js 952 bytes [emitted]
+  asset global-dy_js.js 952 bytes [emitted]
+  asset global-dz_js.js 952 bytes [emitted]
   asset global-c.js 45 bytes [emitted] (name: c)
   chunk (runtime: a) global-a.js (a) 605 bytes (javascript) 7.27 KiB (runtime) [entry] [rendered]
     ./a.js 261 bytes [built] [code generated]
@@ -1578,8 +1578,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
-"asset main.js 9.99 KiB [emitted] (name: main)
-asset 0.js 586 bytes [emitted]
+"asset main.js 9.98 KiB [emitted] (name: main)
+asset 0.js 578 bytes [emitted]
 runtime modules 7.27 KiB 9 modules
 cacheable modules 967 bytes
   modules by path ./components/src/ 501 bytes
@@ -1623,7 +1623,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-simple-unused 1`] = `
-"asset main.js 297 bytes [emitted] (name: main)
+"asset main.js 293 bytes [emitted] (name: main)
 modules by path ./node_modules/pmodule/*.js 232 bytes
   ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     [only some exports used: default]
@@ -1668,8 +1668,8 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
 "default:
   Entrypoint main 9.49 KiB = default/main.js
   Entrypoint a 9.05 KiB = default/a.js
-  Entrypoint b 196 bytes = default/b.js
-  Entrypoint c 196 bytes = default/c.js
+  Entrypoint b 192 bytes = default/b.js
+  Entrypoint c 192 bytes = default/c.js
   chunk (runtime: main) default/async-c.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= [rendered]
     > ./c ./index.js 3:0-47
     ./c.js 116 bytes [built] [code generated]
@@ -1722,8 +1722,8 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
 all-chunks:
   Entrypoint main 9.49 KiB = all-chunks/main.js
   Entrypoint a 9.05 KiB = all-chunks/a.js
-  Entrypoint b 196 bytes = all-chunks/b.js
-  Entrypoint c 196 bytes = all-chunks/c.js
+  Entrypoint b 192 bytes = all-chunks/b.js
+  Entrypoint c 192 bytes = all-chunks/c.js
   chunk (runtime: main) all-chunks/async-c.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= [rendered]
     > ./c ./index.js 3:0-47
     ./c.js 116 bytes [built] [code generated]
@@ -1775,9 +1775,9 @@ all-chunks:
 
 manual:
   Entrypoint main 9.25 KiB = manual/main.js
-  Entrypoint a 11.6 KiB = manual/vendors.js 892 bytes manual/a.js 10.8 KiB
-  Entrypoint b 5.65 KiB = manual/vendors.js 892 bytes manual/b.js 4.78 KiB
-  Entrypoint c 5.65 KiB = manual/vendors.js 892 bytes manual/c.js 4.77 KiB
+  Entrypoint a 11.6 KiB = manual/vendors.js 880 bytes manual/a.js 10.8 KiB
+  Entrypoint b 5.63 KiB = manual/vendors.js 880 bytes manual/b.js 4.77 KiB
+  Entrypoint c 5.63 KiB = manual/vendors.js 880 bytes manual/c.js 4.77 KiB
   chunk (runtime: main) manual/async-c.js (async-c) 156 bytes <{909}> ={192}= [rendered]
     > ./c ./index.js 3:0-47
     dependent modules 40 bytes [dependent] 2 modules
@@ -1838,9 +1838,9 @@ manual:
 
 name-too-long:
   Entrypoint main 9.49 KiB = name-too-long/main.js
-  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 9.06 KiB = name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js
-  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 196 bytes = name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js
-  Entrypoint cccccccccccccccccccccccccccccc 196 bytes = name-too-long/cccccccccccccccccccccccccccccc.js
+  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 9.05 KiB = name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js
+  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 192 bytes = name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js
+  Entrypoint cccccccccccccccccccccccccccccc 192 bytes = name-too-long/cccccccccccccccccccccccccccccc.js
   chunk (runtime: main) name-too-long/async-c.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= [rendered]
     > ./c ./index.js 3:0-47
     ./c.js 116 bytes [built] [code generated]
@@ -1893,8 +1893,8 @@ name-too-long:
 custom-chunks-filter:
   Entrypoint main 9.5 KiB = custom-chunks-filter/main.js
   Entrypoint a 9.06 KiB = custom-chunks-filter/a.js
-  Entrypoint b 196 bytes = custom-chunks-filter/b.js
-  Entrypoint c 196 bytes = custom-chunks-filter/c.js
+  Entrypoint b 192 bytes = custom-chunks-filter/b.js
+  Entrypoint c 192 bytes = custom-chunks-filter/c.js
   chunk (runtime: main) custom-chunks-filter/async-c.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= [rendered]
     > ./c ./index.js 3:0-47
     ./c.js 116 bytes [built] [code generated]
@@ -1946,9 +1946,9 @@ custom-chunks-filter:
 
 custom-chunks-filter-in-cache-groups:
   Entrypoint main 9.28 KiB = custom-chunks-filter-in-cache-groups/main.js
-  Entrypoint a 11.2 KiB = custom-chunks-filter-in-cache-groups/598.js 400 bytes custom-chunks-filter-in-cache-groups/a.js 10.8 KiB
-  Entrypoint b 5.65 KiB = custom-chunks-filter-in-cache-groups/vendors.js 892 bytes custom-chunks-filter-in-cache-groups/b.js 4.78 KiB
-  Entrypoint c 5.65 KiB = custom-chunks-filter-in-cache-groups/vendors.js 892 bytes custom-chunks-filter-in-cache-groups/c.js 4.77 KiB
+  Entrypoint a 11.2 KiB = custom-chunks-filter-in-cache-groups/598.js 388 bytes custom-chunks-filter-in-cache-groups/a.js 10.8 KiB
+  Entrypoint b 5.63 KiB = custom-chunks-filter-in-cache-groups/vendors.js 880 bytes custom-chunks-filter-in-cache-groups/b.js 4.77 KiB
+  Entrypoint c 5.63 KiB = custom-chunks-filter-in-cache-groups/vendors.js 880 bytes custom-chunks-filter-in-cache-groups/c.js 4.77 KiB
   chunk (runtime: main) custom-chunks-filter-in-cache-groups/async-c.js (async-c) 156 bytes <{909}> ={192}= [rendered]
     > ./c ./index.js 3:0-47
     dependent modules 40 bytes [dependent] 2 modules
@@ -2135,7 +2135,7 @@ default (Rspack x.x.x) compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-issue-6696 1`] = `
-"Entrypoint main 11 KiB = vendors.js 356 bytes main.js 10.6 KiB
+"Entrypoint main 11 KiB = vendors.js 352 bytes main.js 10.6 KiB
 chunk (runtime: main) vendors.js (vendors) (id hint: vendors) 20 bytes ={909}= >{250}< >{262}< [initial] [rendered] split chunk (cache group: vendors)
   > ./ main
   ./node_modules/y.js 20 bytes [built] [code generated]
@@ -2154,9 +2154,9 @@ default (Rspack x.x.x) compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-issue-7401 1`] = `
-"Entrypoint a 4.93 KiB = 418.js 356 bytes a.js 4.58 KiB
+"Entrypoint a 4.92 KiB = 418.js 352 bytes a.js 4.58 KiB
 Entrypoint b 8.87 KiB = b.js
-Chunk Group c 728 bytes = 418.js 356 bytes c.js 372 bytes
+Chunk Group c 720 bytes = 418.js 352 bytes c.js 368 bytes
 chunk (runtime: a, b) 418.js (id hint: vendors) 20 bytes <{751}> ={74}= ={76}= [initial] [rendered] split chunk (cache group: defaultVendors)
   > ./c ./b.js 1:0-41
   > ./a a
@@ -2263,11 +2263,11 @@ Rspack x.x.x compiled successfully"
 exports[`StatsTestCases should print correct stats for split-chunks-runtime-specific 1`] = `
 "used-exports:
   asset used-exports-c.js 4.6 KiB [emitted] (name: c)
-  asset used-exports-b.js 4.6 KiB [emitted] (name: b)
+  asset used-exports-b.js 4.59 KiB [emitted] (name: b)
   asset used-exports-572.js 370 bytes [emitted]
   asset used-exports-a.js 249 bytes [emitted] (name: a)
   Entrypoint a 249 bytes = used-exports-a.js
-  Entrypoint b 4.96 KiB = used-exports-572.js 370 bytes used-exports-b.js 4.6 KiB
+  Entrypoint b 4.96 KiB = used-exports-572.js 370 bytes used-exports-b.js 4.59 KiB
   Entrypoint c 4.96 KiB = used-exports-572.js 370 bytes used-exports-c.js 4.6 KiB
   chunk (runtime: b, c) used-exports-572.js (id hint: ) 72 bytes [initial] [rendered] split chunk (cache group: default)
     ./objects.js 72 bytes [built] [code generated]
@@ -2286,7 +2286,7 @@ no-used-exports:
   asset no-used-exports-572.js 533 bytes [emitted]
   Entrypoint a 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-a.js 4.67 KiB
   Entrypoint b 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-b.js 4.67 KiB
-  Entrypoint c 5.2 KiB = no-used-exports-572.js 533 bytes no-used-exports-c.js 4.67 KiB
+  Entrypoint c 5.19 KiB = no-used-exports-572.js 533 bytes no-used-exports-c.js 4.67 KiB
   chunk (runtime: a, b, c) no-used-exports-572.js (id hint: ) 72 bytes [initial] [rendered] split chunk (cache group: default)
     ./objects.js 72 bytes [built] [code generated]
   chunk (runtime: a) no-used-exports-a.js (a) 54 bytes (javascript) 2.89 KiB (runtime) [entry] [rendered]
@@ -2299,12 +2299,12 @@ no-used-exports:
 
 global:
   asset global-c.js 4.6 KiB [emitted] (name: c)
-  asset global-b.js 4.6 KiB [emitted] (name: b)
-  asset global-a.js 4.6 KiB [emitted] (name: a)
+  asset global-b.js 4.59 KiB [emitted] (name: b)
+  asset global-a.js 4.59 KiB [emitted] (name: a)
   asset global-572.js 353 bytes [emitted]
-  Entrypoint a 4.94 KiB = global-572.js 353 bytes global-a.js 4.6 KiB
-  Entrypoint b 4.94 KiB = global-572.js 353 bytes global-b.js 4.6 KiB
-  Entrypoint c 4.95 KiB = global-572.js 353 bytes global-c.js 4.6 KiB
+  Entrypoint a 4.94 KiB = global-572.js 353 bytes global-a.js 4.59 KiB
+  Entrypoint b 4.94 KiB = global-572.js 353 bytes global-b.js 4.59 KiB
+  Entrypoint c 4.94 KiB = global-572.js 353 bytes global-c.js 4.6 KiB
   chunk (runtime: a, b, c) global-572.js (id hint: ) 72 bytes [initial] [rendered] split chunk (cache group: default)
     ./objects.js 72 bytes [built] [code generated]
   chunk (runtime: a) global-a.js (a) 54 bytes (javascript) 2.86 KiB (runtime) [entry] [rendered]
