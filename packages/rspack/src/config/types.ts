@@ -1220,6 +1220,48 @@ export type ModuleOptions = {
 
 //#endregion
 
+//#region Target
+type AllowTarget =
+	| "web"
+	| "webworker"
+	| "es3"
+	| "es5"
+	| "es2015"
+	| "es2016"
+	| "es2017"
+	| "es2018"
+	| "es2019"
+	| "es2020"
+	| "es2021"
+	| "es2022"
+	| "node"
+	| "async-node"
+	| `node${number}`
+	| `async-node${number}`
+	| `node${number}.${number}`
+	| `async-node${number}.${number}`
+	| "electron-main"
+	| `electron${number}-main`
+	| `electron${number}.${number}-main`
+	| "electron-renderer"
+	| `electron${number}-renderer`
+	| `electron${number}.${number}-renderer`
+	| "electron-preload"
+	| `electron${number}-preload`
+	| `electron${number}.${number}-preload`
+	| "nwjs"
+	| `nwjs${number}`
+	| `nwjs${number}.${number}`
+	| "node-webkit"
+	| `node-webkit${number}`
+	| `node-webkit${number}.${number}`
+	| "browserslist"
+	| `browserslist:${string}`;
+
+/** Used to configure the target environment of Rspack output and the ECMAScript version of Rspack runtime code. */
+export type Target = false | AllowTarget | AllowTarget[];
+//#endregion
+
 //#region ExternalsType
 /**
  * Specify the default type of externals.
@@ -1322,6 +1364,188 @@ export type ExternalItem =
  * */
 export type Externals = ExternalItem | ExternalItem[];
 //#endregion
+
+//#region ExternalsPresets
+/** Enable presets of externals for specific targets. */
+export type ExternalsPresets = {
+	/** Treat node.js built-in modules like `fs`, `path` or `vm` as external and load them via `require()` when used. */
+	node?: boolean;
+
+	/** Treat references to `http(s)://...` and `std:...` as external and load them via import when used. */
+	web?: boolean;
+
+	/** Treat references to `http(s)://...` and `std:...` as external and load them via async import() when used  */
+	webAsync?: boolean;
+
+	/** Treat common electron built-in modules in main and preload context like `electron`, `ipc` or `shell` as external and load them via `require()` when used. */
+	electron?: boolean;
+
+	/** Treat electron built-in modules in the main context like `app`, `ipc-main` or `shell` as external and load them via `require()` when used. */
+	electronMain?: boolean;
+
+	/** Treat electron built-in modules in the preload context like `web-frame`, `ipc-renderer` or `shell` as external and load them via require() when used. */
+	electronPreload?: boolean;
+
+	/** Treat electron built-in modules in the preload context like `web-frame`, `ipc-renderer` or `shell` as external and load them via require() when used. */
+	electronRenderer?: boolean;
+
+	/** Treat `NW.js` legacy `nw.gui` module as external and load it via `require()` when used. */
+	nwjs?: boolean;
+};
+
+//#endregion
+
+//#region InfrastructureLogging
+/**
+ * Represents a filter item type for infrastructure logging.
+ * Can be a RegExp, a string, or a function that takes a string and returns a boolean.
+ */
+export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
+
+/**
+ * Represents filter types for infrastructure logging.
+ * Can be a single FilterItemTypes or an array of FilterItemTypes.
+ */
+export type FilterTypes = FilterItemTypes | FilterItemTypes[];
+
+/**
+ * Options for infrastructure level logging.
+ */
+export type InfrastructureLogging = {
+	/**
+	 * Append lines to the output instead of updating existing output, useful for status messages.
+	 */
+	appendOnly?: boolean;
+
+	/**
+	 * Enable colorful output for infrastructure level logging.
+	 */
+	colors?: boolean;
+
+	/**
+	 * Customize the console used for infrastructure level logging.
+	 */
+	console?: Console;
+
+	/**
+	 * Enable debug information of specified loggers such as plugins or loaders.
+	 */
+	debug?: boolean | FilterTypes;
+
+	/**
+	 * Enable infrastructure logging output.
+	 * @type {"none" | "error" | "warn" | "info" | "log" | "verbose"}
+	 */
+	level?: "none" | "error" | "warn" | "info" | "log" | "verbose";
+
+	/**
+	 * Stream used for logging output.
+	 */
+	stream?: NodeJS.WritableStream;
+};
+//#endregion
+
+//#region DevTool
+/**
+ * Configuration used to control the behavior of the Source Map generation.
+ */
+export type DevTool =
+	| false
+	| "eval"
+	| "cheap-source-map"
+	| "cheap-module-source-map"
+	| "source-map"
+	| "inline-cheap-source-map"
+	| "inline-cheap-module-source-map"
+	| "inline-source-map"
+	| "inline-nosources-cheap-source-map"
+	| "inline-nosources-cheap-module-source-map"
+	| "inline-nosources-source-map"
+	| "nosources-cheap-source-map"
+	| "nosources-cheap-module-source-map"
+	| "nosources-source-map"
+	| "hidden-nosources-cheap-source-map"
+	| "hidden-nosources-cheap-module-source-map"
+	| "hidden-nosources-source-map"
+	| "hidden-cheap-source-map"
+	| "hidden-cheap-module-source-map"
+	| "hidden-source-map"
+	| "eval-cheap-source-map"
+	| "eval-cheap-module-source-map"
+	| "eval-source-map"
+	| "eval-nosources-cheap-source-map"
+	| "eval-nosources-cheap-module-source-map"
+	| "eval-nosources-source-map";
+//#endregion
+
+//#region Node
+/**
+ * Options for mocking Node.js globals and modules.
+ */
+export type NodeOptions = {
+	/**
+	 * Controls the behavior of `__dirname`.
+	 * @description
+	 * - `true`: The dirname of the input file relative to the context option.
+	 * - `false`: Regular Node.js `__dirname` behavior. The dirname of the output file when run in a Node.js environment.
+	 * - `"mock"`: The fixed value '/'.
+	 * - `"warn-mock"`: Use the fixed value of '/' but show a warning.
+	 * - `"node-module"`: Replace `__dirname` in CommonJS modules to `fileURLToPath(import.meta.url + "/..")` when `output.module` is enabled.
+	 * - `"eval-only"`: Equivalent to `false`.
+	 */
+	__dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
+
+	/**
+	 * Controls the behavior of `__filename`.
+	 * @description
+	 * - `true`: The filename of the input file relative to the context option.
+	 * - `false`: Regular Node.js `__filename` behavior. The filename of the output file when run in a Node.js environment.
+	 * - `"mock"`: The fixed value '/index.js'.
+	 * - `"warn-mock"`: Use the fixed value of '/index.js' but show a warning.
+	 * - `"node-module"`: Replace `__filename` in CommonJS modules to `fileURLToPath(import.meta.url)` when `output.module` is enabled.
+	 * - `"eval-only"`: Equivalent to `false`.
+	 */
+	__filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
+
+	/**
+	 * Controls the behavior of `global`.
+	 * @description
+	 * - `true`: Provide a polyfill.
+	 * - `false`: Don't provide a polyfill.
+	 * - `"warn"`: Provide a polyfill but show a warning.
+	 * @see {@link https://nodejs.org/api/globals.html#globals_global | Node.js documentation} for the exact behavior of this object.
+	 * @default "warn"
+	 */
+	global?: boolean | "warn";
+};
+
+/**
+ * Options for mocking Node.js globals and modules.
+ * @description Set to `false` to disable all mocking, or use `NodeOptions` to configure specific behaviors.
+ */
+export type Node = false | NodeOptions;
+
+export type Loader = Record<string, any>;
+//#endregion
+
+//#region Snapshot
+export type SnapshotOptions = {};
+//#endregion
+
+//#region Cache
+/**
+ * Options for caching snapshots and intermediate products during the build process.
+ * @description Controls whether caching is enabled or disabled.
+ * @default true in development mode, false in production mode
+ * @example
+ * // Enable caching
+ * cache: true
+ *
+ * // Disable caching
+ * cache: false
+ */
+export type CacheOptions = boolean;
+//#endreigon
 
 //#region Plugins
 export interface RspackPluginInstance {
