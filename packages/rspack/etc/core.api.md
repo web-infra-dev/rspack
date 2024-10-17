@@ -2839,6 +2839,7 @@ export type JavascriptParserOptions = {
     url?: "relative" | boolean;
     exprContextCritical?: boolean;
     wrappedContextCritical?: boolean;
+    wrappedContextRegExp?: RegExp;
     exportsPresence?: ExportsPresence;
     importExportsPresence?: ExportsPresence;
     reexportExportsPresence?: ExportsPresence;
@@ -7279,6 +7280,7 @@ export const rspackOptions: z.ZodObject<{
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextRegExp: z.ZodOptional<z.ZodType<RegExp, z.ZodTypeDef, RegExp>>;
                 exportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 importExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
@@ -7298,6 +7300,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7317,6 +7320,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7337,6 +7341,7 @@ export const rspackOptions: z.ZodObject<{
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextRegExp: z.ZodOptional<z.ZodType<RegExp, z.ZodTypeDef, RegExp>>;
                 exportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 importExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
@@ -7356,6 +7361,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7375,6 +7381,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7395,6 +7402,7 @@ export const rspackOptions: z.ZodObject<{
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextRegExp: z.ZodOptional<z.ZodType<RegExp, z.ZodTypeDef, RegExp>>;
                 exportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 importExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
@@ -7414,6 +7422,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7433,6 +7442,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7453,6 +7463,7 @@ export const rspackOptions: z.ZodObject<{
                 url: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"relative">, z.ZodBoolean]>>;
                 exprContextCritical: z.ZodOptional<z.ZodBoolean>;
                 wrappedContextCritical: z.ZodOptional<z.ZodBoolean>;
+                wrappedContextRegExp: z.ZodOptional<z.ZodType<RegExp, z.ZodTypeDef, RegExp>>;
                 exportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 importExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
                 reexportExportsPresence: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warn", "auto"]>, z.ZodLiteral<false>]>>;
@@ -7472,6 +7483,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7491,6 +7503,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7512,6 +7525,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7546,6 +7560,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7566,6 +7581,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7586,6 +7602,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7607,6 +7624,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7641,6 +7659,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7661,6 +7680,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7681,6 +7701,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7932,6 +7953,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7966,6 +7988,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -7986,6 +8009,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8006,6 +8030,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8076,6 +8101,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8110,6 +8136,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8130,6 +8157,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8150,6 +8178,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8242,6 +8271,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8276,6 +8306,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8296,6 +8327,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8316,6 +8348,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8841,6 +8874,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8875,6 +8909,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8895,6 +8930,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
@@ -8915,6 +8951,7 @@ export const rspackOptions: z.ZodObject<{
                 importMeta?: boolean | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
+                wrappedContextRegExp?: RegExp | undefined;
                 exportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 importExportsPresence?: false | "auto" | "error" | "warn" | undefined;
                 reexportExportsPresence?: false | "auto" | "error" | "warn" | undefined;
