@@ -2545,9 +2545,11 @@ export type HotUpdateMainFilename = FilenameTemplate;
 
 // @public (undocumented)
 export const HtmlRspackPlugin: typeof HtmlRspackPluginImpl & {
+    getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationOptions: (compilation: Compilation) => HtmlRspackPluginOptions | void;
     createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string | undefined) => JsHtmlPluginTag;
+    version: number;
 };
 
 // @public (undocumented)
