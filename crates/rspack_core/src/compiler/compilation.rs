@@ -36,7 +36,7 @@ use crate::{
   get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier,
-  unaffected_cache::{Mutation, Mutations, UnaffectedModulesCache},
+  unaffected_cache::{Incremental, IncrementalPasses, Mutation, UnaffectedModulesCache},
   BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationJob,
   CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
@@ -178,7 +178,7 @@ pub struct Compilation {
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
-  pub mutations: Option<Mutations>,
+  pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
@@ -237,7 +237,7 @@ impl Compilation {
     removed_files: HashSet<PathBuf>,
     input_filesystem: Arc<dyn ReadableFileSystem>,
   ) -> Self {
-    let mutations = options.incremental().enabled().then(Mutations::default);
+    let incremental = Incremental::new(options.experiments.incremental);
     Self {
       id: CompilationId::new(),
       hot_index: 0,
@@ -276,7 +276,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       old_cache,
       unaffected_modules_cache,
-      mutations,
+      incremental,
       code_splitting_cache: Default::default(),
       hash: None,
       used_chunk_ids: Default::default(),
@@ -1073,16 +1073,21 @@ impl Compilation {
       )],
     )?;
 
-    if let Some(mutations) = &mut self.mutations
+    if let Some(mutations) = self.incremental.mutations_write()
       && let Some(make_mutations) = self.make_artifact.take_mutations()
     {
       mutations.extend(make_mutations);
     }
 
-    let incremental = self.options.incremental();
-    if incremental.infer_async_modules_enabled()
-      || incremental.provided_exports_enabled()
-      || incremental.collect_modules_diagnostics_enabled()
+    if self
+      .incremental
+      .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+      || self
+        .incremental
+        .can_read_mutations(IncrementalPasses::PROVIDED_EXPORTS)
+      || self
+        .incremental
+        .can_read_mutations(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS)
     {
       self
         .unaffected_modules_cache
@@ -1121,19 +1126,16 @@ impl Compilation {
 
   #[tracing::instrument(skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
-    let incremental = self
-      .options
-      .incremental()
-      .collect_modules_diagnostics_enabled();
-    let modules = if incremental {
-      if let Some(mutations) = &self.mutations {
-        let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-          Mutation::ModuleRevoke { module } => Some(*module),
-          _ => None,
-        });
-        for revoked_module in revoked_modules {
-          self.modules_diagnostics.remove(&revoked_module);
-        }
+    let mutations = self
+      .incremental
+      .mutations_read(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS);
+    let modules = if let Some(mutations) = mutations {
+      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleRevoke { module } => Some(*module),
+        _ => None,
+      });
+      for revoked_module in revoked_modules {
+        self.modules_diagnostics.remove(&revoked_module);
       }
       self
         .unaffected_modules_cache
@@ -1162,7 +1164,7 @@ impl Compilation {
         (*module_identifier, diagnostics)
       })
       .collect();
-    let all_modules_diagnostics = if incremental {
+    let all_modules_diagnostics = if mutations.is_some() {
       self.modules_diagnostics.extend(modules_diagnostics);
       self.modules_diagnostics.clone()
     } else {
@@ -1243,22 +1245,26 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    let incremental = self.options.incremental();
+    let module_hashes_enabled = self
+      .incremental
+      .can_read_mutations(IncrementalPasses::MODULE_HASHES);
+    let module_codegen_enabled = self
+      .incremental
+      .can_read_mutations(IncrementalPasses::MODULE_CODEGEN);
+    let module_runtime_requirements_enabled = self
+      .incremental
+      .can_read_mutations(IncrementalPasses::MODULE_RUNTIME_REQUIREMENTS);
     let module_hashes_modules;
     let module_codegen_modules;
     let module_runtime_requirements_modules;
-    let all_modules: Option<IdentifierSet> = if incremental.module_hashes_enabled()
-      && incremental.module_codegen_enabled()
-      && incremental.module_runtime_requirements_enabled()
-    {
-      None
-    } else {
-      Some(self.get_module_graph().modules().keys().copied().collect())
-    };
-    if (incremental.module_hashes_enabled()
-      || incremental.module_codegen_enabled()
-      || incremental.module_runtime_requirements_enabled())
-      && let Some(mutations) = &self.mutations
+    let all_modules: Option<IdentifierSet> =
+      if module_hashes_enabled && module_codegen_enabled && module_runtime_requirements_enabled {
+        None
+      } else {
+        Some(self.get_module_graph().modules().keys().copied().collect())
+      };
+    if (module_hashes_enabled || module_codegen_enabled || module_runtime_requirements_enabled)
+      && let Some(mutations) = self.incremental.mutations_read(IncrementalPasses::empty())
     {
       self
         .unaffected_modules_cache
@@ -1278,10 +1284,10 @@ impl Compilation {
           .then(|| affected_modules.clone())
           .unwrap_or_else(|| all_modules.clone().expect("failed"))
       };
-      module_hashes_modules = create_task_modules(incremental.module_hashes_enabled());
-      module_codegen_modules = create_task_modules(incremental.module_codegen_enabled());
+      module_hashes_modules = create_task_modules(module_hashes_enabled);
+      module_codegen_modules = create_task_modules(module_codegen_enabled);
       module_runtime_requirements_modules =
-        create_task_modules(incremental.module_runtime_requirements_enabled());
+        create_task_modules(module_runtime_requirements_enabled);
     } else {
       module_hashes_modules = all_modules.clone().expect("failed");
       module_codegen_modules = all_modules.clone().expect("failed");
