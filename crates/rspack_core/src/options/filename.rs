@@ -235,13 +235,20 @@ fn render_template(
           .as_str(),
       )
       .map(|exts| exts[0]);
+
+      let replacer = options
+        .content_hash
+        // "XXXX" used for updateHash, so we don't need it here
+        .filter(|hash| !hash.contains('X'))
+        .unwrap_or("");
+
       t = t
         .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, ""))
         .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, ""))
         .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, ""))
         .map(|t| replace_all_placeholder(t, PATH_PLACEHOLDER, ""))
-        .map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, ""))
-        .map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, replacer))
+        .map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, replacer))
         .map(|t| {
           replace_all_placeholder(
             t,
