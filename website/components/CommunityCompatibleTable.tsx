@@ -220,7 +220,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'html-webpack-tags-plugin',
       url: 'https://github.com/jharris4/html-webpack-tags-plugin',
-      status: CompatibleStatus.PartiallyCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['html-webpack-tags-plugin-desc'],
     },
     {

@@ -25,7 +25,7 @@
   "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",
   "eslint-webpack-plugin-desc": "Use [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) instead",
   "circular-dependency-plugin-desc": "Use Eslint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) rule instead",
-  "html-webpack-tags-plugin-desc": "This plugin depends on webpack and html-webpack-plugin",
+  "html-webpack-tags-plugin-desc": "Use [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) instead",
   "needs-html-webpack-plugin": "This plugin depends on html-webpack-plugin",
   "webpack-assets-manifest-desc": "Only supports basic usage"
 }
