@@ -1,4 +1,4 @@
-import { normalizeCLR, normalizeCRLF } from "./expect/char";
+import { normalizeCLR, normalizeCRLF, normalizeSlash } from "./expect/char";
 import { normalizeDiff } from "./expect/diff";
 import { normalizeDignostics, normalizeError } from "./expect/error";
 import { normalizePlaceholder } from "./expect/placeholder";
@@ -17,6 +17,7 @@ expect.extend({
 });
 
 const pipes = [
+	normalizeSlash,
 	normalizeCLR,
 	normalizeCRLF,
 	normalizePlaceholder,
