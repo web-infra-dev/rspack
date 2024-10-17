@@ -164,7 +164,9 @@ impl Debug for SplitChunksPlugin {
 
 #[plugin_hook(CompilationOptimizeChunks for SplitChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
 fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let now = std::time::Instant::now();
   self.inner_impl(compilation)?;
+  dbg!(now.elapsed().as_millis());
   Ok(None)
 }
 

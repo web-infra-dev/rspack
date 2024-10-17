@@ -1,0 +1,22 @@
+[package]
+edition = "2021"
+name    = "rspack_plugin_split_shared_modules"
+version = "0.1.0"
+
+[lints]
+workspace = true
+
+[dependencies]
+dashmap            = { workspace = true }
+derivative         = { workspace = true }
+rayon              = { workspace = true }
+regex              = { workspace = true }
+rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core        = { version = "0.1.0", path = "../rspack_core" }
+rspack_error       = { version = "0.1.0", path = "../rspack_error" }
+rspack_hash        = { version = "0.1.0", path = "../rspack_hash" }
+rspack_hook        = { version = "0.1.0", path = "../rspack_hook" }
+rspack_regex       = { version = "0.1.0", path = "../rspack_regex" }
+rspack_util        = { version = "0.1.0", path = "../rspack_util" }
+rustc-hash         = { workspace = true }
+tracing            = { workspace = true }
