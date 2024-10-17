@@ -144,7 +144,7 @@ pub fn make_module_graph(
   // reset temporary data
   artifact.built_modules = Default::default();
   artifact.diagnostics = Default::default();
-  artifact.mutations = compilation.mutations.is_some().then(|| Default::default());
+  artifact.mutations = compilation.mutations.is_some().then(Default::default);
   artifact.has_module_graph_change = false;
 
   artifact = update_module_graph(compilation, artifact, params)?;

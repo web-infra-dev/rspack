@@ -60,7 +60,7 @@ impl ModuleExecutor {
       params.push(MakeParam::ForceBuildModules(modules));
     }
     make_artifact.diagnostics = Default::default();
-    make_artifact.mutations = compilation.mutations.is_some().then(|| Default::default());
+    make_artifact.mutations = compilation.mutations.is_some().then(Default::default);
     make_artifact.has_module_graph_change = false;
 
     make_artifact = update_module_graph(compilation, make_artifact, params).unwrap_or_default();

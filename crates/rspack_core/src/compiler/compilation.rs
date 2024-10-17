@@ -1157,7 +1157,7 @@ impl Compilation {
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
           .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
-          .flat_map(|ds| ds)
+          .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
       })
@@ -1168,7 +1168,7 @@ impl Compilation {
     } else {
       modules_diagnostics
     };
-    self.extend_diagnostics(all_modules_diagnostics.into_values().flat_map(|ds| ds));
+    self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
   }
 
   #[instrument(name = "compilation:seal", skip_all)]
