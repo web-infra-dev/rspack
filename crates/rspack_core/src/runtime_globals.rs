@@ -239,15 +239,17 @@ bitflags! {
 
     const PRELOAD_CHUNK_HANDLERS = 1 << 61;
 
-    // rspack only
-    const RSPACK_VERSION = 1 << 62;
-
-    const HAS_CSS_MODULES = 1 << 63;
+    const UNCAUGHT_ERROR_HANDLER = 1 << 62;
 
     // rspack only
-    const RSPACK_UNIQUE_ID = 1 << 64;
+    const RSPACK_VERSION = 1 << 63;
 
-    const HAS_FETCH_PRIORITY = 1 << 65;
+    const HAS_CSS_MODULES = 1 << 64;
+
+    // rspack only
+    const RSPACK_UNIQUE_ID = 1 << 65;
+
+    const HAS_FETCH_PRIORITY = 1 << 66;
   }
 }
 
@@ -328,6 +330,7 @@ impl RuntimeGlobals {
       R::PREFETCH_CHUNK_HANDLERS => "__webpack_require__.F",
       R::PRELOAD_CHUNK => "__webpack_require__.G",
       R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
+      R::UNCAUGHT_ERROR_HANDLER => "__webpack_require__.oe",
       // rspack only
       R::RSPACK_VERSION => "__webpack_require__.rv",
       R::RSPACK_UNIQUE_ID => "__webpack_require__.ruid",

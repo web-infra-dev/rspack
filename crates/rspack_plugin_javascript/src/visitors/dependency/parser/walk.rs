@@ -151,7 +151,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn walk_statement(&mut self, statement: Statement) {
+  pub(crate) fn walk_statement(&mut self, statement: Statement) {
     self.enter_statement(
       &statement,
       |parser, _| {

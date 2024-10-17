@@ -196,9 +196,9 @@ pub(crate) mod expr_matcher {
     is_module_require: "module.require",
     is_webpack_module_id: "__webpack_module__.id",
     is_object_define_property: "Object.defineProperty",
+    is_require_ensure: "require.ensure",
     // unsupported
     is_require_extensions: "require.extensions",
-    is_require_ensure: "require.ensure",
     is_require_config: "require.config",
     is_require_version: "require.version",
     is_require_amd: "require.amd",

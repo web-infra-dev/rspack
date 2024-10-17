@@ -325,7 +325,6 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       if s == "require" {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
-        not_supported_expr!(is_require_ensure, expr, "require.ensure");
         not_supported_expr!(is_require_config, expr, "require.config");
         not_supported_expr!(is_require_version, expr, "require.version");
         not_supported_expr!(is_require_amd, expr, "require.amd");
@@ -413,7 +412,6 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       if s == "require" {
         not_supported_call!(is_require_config, "require.config()");
-        not_supported_call!(is_require_ensure, "require.ensure()");
         not_supported_call!(is_require_include, "require.include()");
         not_supported_call!(is_require_onerror, "require.onError()");
         not_supported_call!(is_require_main_require, "require.main.require()");
