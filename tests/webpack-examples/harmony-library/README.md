@@ -40,7 +40,7 @@ return /******/ (() => { // webpackBootstrap
 /************************************************************************/
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
+/******/ 		// define getter functions for ESM exports
 /******/ 		__webpack_require__.d = (exports, definition) => {
 /******/ 			for(var key in definition) {
 /******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -83,16 +83,16 @@ var __webpack_exports__ = {};
 /*! other exports [not provided] [maybe used in main (runtime-defined)] */
 /*! runtime requirements: __webpack_exports__, __webpack_require__.r, __webpack_require__.d, __webpack_require__.* */
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "value": () => (/* binding */ value),
-/* harmony export */   "increment": () => (/* binding */ increment),
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "value": () => (/* binding */ value),
+/* ESM export */   "increment": () => (/* binding */ increment),
+/* ESM export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* ESM export */ });
 var value = 0;
 function increment() {
 	value++;
 }
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("MyLibrary");
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("MyLibrary");
 
 /******/ 	return __webpack_exports__;
 /******/ })()

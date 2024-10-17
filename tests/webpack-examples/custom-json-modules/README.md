@@ -220,9 +220,9 @@ var __webpack_exports__ = {};
 /*! exports [not provided] [no usage info] */
 /*! runtime requirements: __webpack_require__, __webpack_require__.r, __webpack_exports__, __webpack_require__.* */
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _data_toml__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./data.toml */ 1);
-/* harmony import */ var _data_yaml__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./data.yaml */ 2);
-/* harmony import */ var _data_json5__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./data.json5 */ 3);
+/* ESM import */ var _data_toml__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./data.toml */ 1);
+/* ESM import */ var _data_yaml__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./data.yaml */ 2);
+/* ESM import */ var _data_json5__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./data.json5 */ 3);
 
 
 

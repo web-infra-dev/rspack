@@ -42,7 +42,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 module.hot.data.store.error = false;
 module.hot.data.store.value = 4;
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (() => { throw new Error("should not happen") });
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (() => { throw new Error("should not happen") });
 const getError = () => { throw new Error("should not happen") };
 const id = module.id;
 

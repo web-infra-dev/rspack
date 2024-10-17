@@ -43,7 +43,7 @@ modules by path https:// 30 KiB
     [exports: default]
     [used exports unknown]
     harmony side effect evaluation https://unpkg.com/p-map-series?module ./example.js 4:0-58
-    harmony import specifier https://unpkg.com/p-map-series?module ./example.js 8:12-17
+    ESM import specifier https://unpkg.com/p-map-series?module ./example.js 8:12-17
 ./example.js 314 bytes [built] [code generated]
   [no exports]
   [used exports unknown]

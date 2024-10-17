@@ -17,22 +17,22 @@ module.exports = {
 		+ | ./node_modules/pmodule/index.js XX bytes [built]
 		+ |   [only some exports used: default]
 		+ |   [inactive] harmony side effect evaluation pmodule ./index.js XX:XX-XX
-		+ |   harmony import specifier pmodule ./index.js XX:XX-XX
-		+ |   [inactive] harmony import specifier pmodule ./index.js XX:XX-XX
+		+ |   ESM import specifier pmodule ./index.js XX:XX-XX
+		+ |   [inactive] ESM import specifier pmodule ./index.js XX:XX-XX
 		+ | ./node_modules/pmodule/c.js XX bytes [built]
 		+ |   [only some exports used: z]
 		+ |   [inactive] from origin ./node_modules/pmodule/b.js
 		+ |     [inactive] harmony side effect evaluation ./c ./node_modules/pmodule/b.js XX:XX-XX
 		+ |     [inactive] harmony export imported specifier ./c ./node_modules/pmodule/b.js XX:XX-XX
-		+ |   harmony import specifier pmodule ./index.js XX:XX-XX (skipped side-effect-free modules)
+		+ |   ESM import specifier pmodule ./index.js XX:XX-XX (skipped side-effect-free modules)
 		+ |   [inactive] harmony export imported specifier ./b ./node_modules/pmodule/index.js XX:XX-XX (skipped side-effect-free modules)
 		@@ -5,3 +21,3 @@
 		- esm import pmodule ./index.js
 		- esm import specifier pmodule ./index.js
 		- esm import specifier pmodule ./index.js
 		+ [inactive] harmony side effect evaluation pmodule ./index.js XX:XX-XX
-		+ harmony import specifier pmodule ./index.js XX:XX-XX
-		+ [inactive] harmony import specifier pmodule ./index.js XX:XX-XX
+		+ ESM import specifier pmodule ./index.js XX:XX-XX
+		+ [inactive] ESM import specifier pmodule ./index.js XX:XX-XX
 		@@ -10,3 +26,5 @@
 		- esm import specifier pmodule ./index.js
 		- esm export ./c ./node_modules/pmodule/b.js
@@ -40,7 +40,7 @@ module.exports = {
 		+ [inactive] from origin ./node_modules/pmodule/b.js
 		+ [inactive] harmony side effect evaluation ./c ./node_modules/pmodule/b.js XX:XX-XX
 		+ [inactive] harmony export imported specifier ./c ./node_modules/pmodule/b.js XX:XX-XX
-		+ harmony import specifier pmodule ./index.js XX:XX-XX (skipped side-effect-free modules)
+		+ ESM import specifier pmodule ./index.js XX:XX-XX (skipped side-effect-free modules)
 		+ [inactive] harmony export imported specifier ./b ./node_modules/pmodule/index.js XX:XX-XX (skipped side-effect-free modules)
 		@@ -15,4 +33,6 @@
 		- esm export ./a ./node_modules/pmodule/index.js

@@ -37,10 +37,10 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony import */var _logo_svg__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./logo.svg */ "./logo.svg");
+/* ESM import */var _logo_svg__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./logo.svg */ "./logo.svg");
 
 
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((typeof _logo_svg__WEBPACK_IMPORTED_MODULE_0__) + ' result');
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((typeof _logo_svg__WEBPACK_IMPORTED_MODULE_0__) + ' result');
 
 }),
 

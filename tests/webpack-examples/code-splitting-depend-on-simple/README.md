@@ -44,12 +44,12 @@ console.log(react, reactDOM, propTypes);
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ 0);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ 1);
-/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! prop-types */ 2);
-/* harmony import */ var prop_types__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(prop_types__WEBPACK_IMPORTED_MODULE_2__);
+/* ESM import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ 0);
+/* ESM import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* ESM import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ 1);
+/* ESM import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
+/* ESM import */ var prop_types__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! prop-types */ 2);
+/* ESM import */ var prop_types__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(prop_types__WEBPACK_IMPORTED_MODULE_2__);
 
 
 
@@ -180,7 +180,7 @@ module.exports = 'prop-types';
 /******/ 	
 /******/ 	/* webpack/runtime/compat get default export */
 /******/ 	(() => {
-/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		// getDefaultExport function for compatibility with non-ESM modules
 /******/ 		__webpack_require__.n = (module) => {
 /******/ 			var getter = module && module.__esModule ?
 /******/ 				() => (module['default']) :
@@ -192,7 +192,7 @@ module.exports = 'prop-types';
 /******/ 	
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
+/******/ 		// define getter functions for ESM exports
 /******/ 		__webpack_require__.d = (exports, definition) => {
 /******/ 			for(var key in definition) {
 /******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -313,21 +313,21 @@ chunk (runtime: react-vendors) react-vendors.js (react-vendors) 87 bytes (javasc
       [used exports unknown]
       from origin ./app.js
         harmony side effect evaluation prop-types ./app.js 3:0-35
-        harmony import specifier prop-types ./app.js 5:29-38
+        ESM import specifier prop-types ./app.js 5:29-38
       cjs self exports reference ./node_modules/prop-types.js 1:0-14
       entry prop-types react-vendors
     ./node_modules/react-dom.js 30 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
         harmony side effect evaluation react-dom ./app.js 2:0-33
-        harmony import specifier react-dom ./app.js 5:19-27
+        ESM import specifier react-dom ./app.js 5:19-27
       cjs self exports reference ./node_modules/react-dom.js 1:0-14
       entry react-dom react-vendors
     ./node_modules/react.js 26 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
         harmony side effect evaluation react ./app.js 1:0-26
-        harmony import specifier react ./app.js 5:12-17
+        ESM import specifier react ./app.js 5:12-17
       cjs self exports reference ./node_modules/react.js 1:0-14
       entry react react-vendors
 webpack 5.51.1 compiled successfully
@@ -354,21 +354,21 @@ chunk (runtime: react-vendors) react-vendors.js (react-vendors) 87 bytes (javasc
       [used exports unknown]
       from origin ./app.js
         harmony side effect evaluation prop-types ./app.js 3:0-35
-        harmony import specifier prop-types ./app.js 5:29-38
+        ESM import specifier prop-types ./app.js 5:29-38
       cjs self exports reference ./node_modules/prop-types.js 1:0-14
       entry prop-types react-vendors
     ./node_modules/react-dom.js 30 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
         harmony side effect evaluation react-dom ./app.js 2:0-33
-        harmony import specifier react-dom ./app.js 5:19-27
+        ESM import specifier react-dom ./app.js 5:19-27
       cjs self exports reference ./node_modules/react-dom.js 1:0-14
       entry react-dom react-vendors
     ./node_modules/react.js 26 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
         harmony side effect evaluation react ./app.js 1:0-26
-        harmony import specifier react ./app.js 5:12-17
+        ESM import specifier react ./app.js 5:12-17
       cjs self exports reference ./node_modules/react.js 1:0-14
       entry react react-vendors
 webpack 5.51.1 compiled successfully

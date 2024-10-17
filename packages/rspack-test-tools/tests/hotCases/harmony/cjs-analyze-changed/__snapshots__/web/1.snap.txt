@@ -44,9 +44,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony import */var _file__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./file */ "./file.js");
+/* ESM import */var _file__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./file */ "./file.js");
 
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_file__WEBPACK_IMPORTED_MODULE_0__["default"]);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_file__WEBPACK_IMPORTED_MODULE_0__["default"]);
 
 
 
