@@ -22,6 +22,7 @@ pub enum Incremental {
     module_hashes: bool,
     module_codegen: bool,
     module_runtime_requirements: bool,
+    code_splitting: bool,
   },
 }
 
@@ -60,5 +61,9 @@ impl Incremental {
 
   pub fn module_runtime_requirements_enabled(&self) -> bool {
     matches!(self, Incremental::Enabled { module_runtime_requirements, .. } if *module_runtime_requirements)
+  }
+
+  pub fn code_splitting_enabled(&self) -> bool {
+    matches!(self, Incremental::Enabled { code_splitting, .. } if *code_splitting)
   }
 }
