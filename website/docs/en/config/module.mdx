@@ -211,6 +211,15 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: /.*/ }]}
+/>
+
+Set a regular expression to match wrapped dynamic dependencies.
+
 #### module.parser.javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />

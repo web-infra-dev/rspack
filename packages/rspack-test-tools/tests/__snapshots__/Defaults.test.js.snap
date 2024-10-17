@@ -181,6 +181,7 @@ Object {
           "...",
         ],
         "wrappedContextCritical": false,
+        "wrappedContextRegExp": /\\.\\*/,
       },
     },
     "rules": Array [],
