@@ -47,8 +47,6 @@ function trimObjectPaths(obj, paths) {
 	return deleteObjectPaths(obj, fullPath => paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i])));
 }
 
-DefaultsConfigProcessor.addSnapshotSerializer(expect);
-
 const cwd = path.resolve(__dirname, "..");
 
 function assertWebpackConfig(config) {

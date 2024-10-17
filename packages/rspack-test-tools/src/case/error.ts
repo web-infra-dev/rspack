@@ -18,7 +18,6 @@ export function createErrorCase(
 	testConfig: string
 ) {
 	if (!addedSerializer) {
-		ErrorProcessor.addSnapshotSerializer(expect);
 		addedSerializer = true;
 	}
 	const caseConfig = require(testConfig);

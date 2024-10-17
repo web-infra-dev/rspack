@@ -36,16 +36,15 @@ module.exports = {
 	async check() {
 		expect(error).toBeTruthy();
 		expect(error.toString()).toMatchInlineSnapshot(`
-		"Error:   × Empty dependency: Expected a non-empty request
+		Error:   × Empty dependency: Expected a non-empty request
 		   ╭─[3:4]
 		 1 │ module.exports = function b() {
 		 2 │     /* eslint-disable node/no-missing-require */
-		 3 │     require(\\"\\");
+		 3 │     require("");
 		   ·     ───────────
-		 4 │     return \\"This is an empty dependency\\";
+		 4 │     return "This is an empty dependency";
 		 5 │ };
 		   ╰────
-		"
 	`);
 	}
 };

@@ -47,94 +47,94 @@ module.exports = {
 	async check(stats) {
 		expect(statsJson).toMatchInlineSnapshot(`
 		Object {
-		  "assets": Array [
+		  assets: Array [
 		    Object {
-		      "auxiliaryChunkIdHints": Array [],
-		      "auxiliaryChunkNames": Array [],
-		      "cached": false,
-		      "chunkIdHints": Array [],
-		      "chunkNames": Array [],
-		      "emitted": true,
-		      "info": Object {
-		        "chunkhash": Array [],
-		        "contenthash": Array [],
-		        "development": false,
-		        "fullhash": Array [],
-		        "hotModuleReplacement": false,
-		        "immutable": false,
-		        "isOverSizeLimit": false,
-		        "javascriptModule": false,
-		        "minimized": true,
-		        "related": Object {},
+		      auxiliaryChunkIdHints: Array [],
+		      auxiliaryChunkNames: Array [],
+		      cached: false,
+		      chunkIdHints: Array [],
+		      chunkNames: Array [],
+		      emitted: true,
+		      info: Object {
+		        chunkhash: Array [],
+		        contenthash: Array [],
+		        development: false,
+		        fullhash: Array [],
+		        hotModuleReplacement: false,
+		        immutable: false,
+		        isOverSizeLimit: false,
+		        javascriptModule: false,
+		        minimized: true,
+		        related: Object {},
 		      },
-		      "name": "TestChild.js",
-		      "size": 353,
-		      "type": "asset",
+		      name: TestChild.js,
+		      size: 353,
+		      type: asset,
 		    },
 		    Object {
-		      "auxiliaryChunkIdHints": Array [],
-		      "auxiliaryChunkNames": Array [],
-		      "cached": false,
-		      "chunkIdHints": Array [],
-		      "chunkNames": Array [
-		        "main",
+		      auxiliaryChunkIdHints: Array [],
+		      auxiliaryChunkNames: Array [],
+		      cached: false,
+		      chunkIdHints: Array [],
+		      chunkNames: Array [
+		        main,
 		      ],
-		      "emitted": true,
-		      "info": Object {
-		        "chunkhash": Array [],
-		        "contenthash": Array [],
-		        "fullhash": Array [],
-		        "isOverSizeLimit": false,
-		        "javascriptModule": false,
-		        "minimized": true,
-		        "related": Object {},
+		      emitted: true,
+		      info: Object {
+		        chunkhash: Array [],
+		        contenthash: Array [],
+		        fullhash: Array [],
+		        isOverSizeLimit: false,
+		        javascriptModule: false,
+		        minimized: true,
+		        related: Object {},
 		      },
-		      "name": "main.js",
-		      "size": 207,
-		      "type": "asset",
+		      name: main.js,
+		      size: 207,
+		      type: asset,
 		    },
 		  ],
-		  "assetsByChunkName": Object {
-		    "main": Array [
-		      "main.js",
+		  assetsByChunkName: Object {
+		    main: Array [
+		      main.js,
 		    ],
 		  },
-		  "children": Array [
+		  children: Array [
 		    Object {
-		      "assets": Array [
+		      assets: Array [
 		        Object {
-		          "auxiliaryChunkIdHints": Array [],
-		          "auxiliaryChunkNames": Array [],
-		          "cached": false,
-		          "chunkIdHints": Array [],
-		          "chunkNames": Array [
-		            "TestChild",
+		          auxiliaryChunkIdHints: Array [],
+		          auxiliaryChunkNames: Array [],
+		          cached: false,
+		          chunkIdHints: Array [],
+		          chunkNames: Array [
+		            TestChild,
 		          ],
-		          "emitted": true,
-		          "info": Object {
-		            "chunkhash": Array [],
-		            "contenthash": Array [],
-		            "fullhash": Array [],
-		            "javascriptModule": false,
-		            "minimized": true,
-		            "related": Object {},
+		          emitted: true,
+		          info: Object {
+		            chunkhash: Array [],
+		            contenthash: Array [],
+		            fullhash: Array [],
+		            javascriptModule: false,
+		            minimized: true,
+		            related: Object {},
 		          },
-		          "name": "TestChild.js",
-		          "size": 353,
-		          "type": "asset",
+		          name: TestChild.js,
+		          size: 353,
+		          type: asset,
 		        },
 		      ],
-		      "assetsByChunkName": Object {
-		        "TestChild": Array [
-		          "TestChild.js",
+		      assetsByChunkName: Object {
+		        TestChild: Array [
+		          TestChild.js,
 		        ],
 		      },
-		      "children": Array [],
-		      "filteredAssets": undefined,
-		      "name": "TestChild",
+		      children: Array [],
+		      filteredAssets: undefined,
+		      name: TestChild,
 		    },
 		  ],
-		  "filteredAssets": undefined,
+		  filteredAssets: undefined,
 		}
 	`);
 	}
