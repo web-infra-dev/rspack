@@ -20,7 +20,7 @@ use swc_core::ecma::ast;
 use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
 use swc_node_comments::SwcComments;
 
-use crate::dependency::HarmonyCompatibilityDependency;
+use crate::dependency::ESMCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, ScanDependenciesResult};
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
@@ -355,7 +355,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
         dep
           .as_any()
-          .downcast_ref::<HarmonyCompatibilityDependency>()
+          .downcast_ref::<ESMCompatibilityDependency>()
           .is_some()
       }) {
         return Some("Module is not an ECMAScript module".into());

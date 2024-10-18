@@ -24,9 +24,7 @@ use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use crate::dependency::{
-  HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
-};
+use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
 #[derive(Clone, Debug)]
 enum SideEffects {
@@ -778,10 +776,10 @@ fn optimize_incoming_connection(
     return;
   };
   let is_reexport = dep
-    .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+    .downcast_ref::<ESMExportImportedSpecifierDependency>()
     .is_some();
   let is_valid_import_specifier_dep = dep
-    .downcast_ref::<HarmonyImportSpecifierDependency>()
+    .downcast_ref::<ESMImportSpecifierDependency>()
     .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
     .unwrap_or_default();
   if !is_reexport && !is_valid_import_specifier_dep {
@@ -826,7 +824,7 @@ fn do_optimize_incoming_connection(
     .dependency_by_id(&dependency_id)
     .expect("should have dep");
   if let Some(name) = dep
-    .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+    .downcast_ref::<ESMExportImportedSpecifierDependency>()
     .and_then(|dep| dep.name.clone())
   {
     let export_info = module_graph.get_export_info(origin_module, &name);

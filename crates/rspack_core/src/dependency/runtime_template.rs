@@ -176,9 +176,9 @@ pub fn export_from_import(
       init_fragments.push(
         NormalInitFragment::new(
           name.clone(),
-          InitFragmentStage::StageHarmonyExports,
+          InitFragmentStage::StageESMExports,
           -1,
-          InitFragmentKey::HarmonyFakeNamespaceObjectFragment(name),
+          InitFragmentKey::ESMFakeNamespaceObjectFragment(name),
           None,
         )
         .boxed(),
@@ -258,7 +258,7 @@ pub fn get_exports_type(
   let strict = module_graph
     .module_by_identifier(parent_module)
     .expect("should have mgm")
-    .get_strict_harmony_module();
+    .get_strict_esm_module();
   get_exports_type_with_strict(module_graph, id, strict)
 }
 

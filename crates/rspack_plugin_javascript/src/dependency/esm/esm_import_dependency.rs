@@ -21,8 +21,8 @@ use swc_core::ecma::atoms::Atom;
 use super::create_resource_identifier_for_esm_dependency;
 
 // TODO: find a better way to implement this for performance
-// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
-// This map is used to save the runtime conditions of modules and used by HarmonyAcceptDependency in hot module replacement.
+// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/ESMImportDependency.js#L361-L365
+// This map is used to save the runtime conditions of modules and used by ESMAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
 pub mod import_emitted_runtime {
   use once_cell::sync::OnceCell;
@@ -55,9 +55,9 @@ pub mod import_emitted_runtime {
   }
 }
 
-// HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
+// ESMImportDependency is merged ESMImportSideEffectDependency.
 #[derive(Debug, Clone)]
-pub struct HarmonyImportSideEffectDependency {
+pub struct ESMImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
@@ -69,7 +69,7 @@ pub struct HarmonyImportSideEffectDependency {
   resource_identifier: String,
 }
 
-impl HarmonyImportSideEffectDependency {
+impl ESMImportSideEffectDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
@@ -96,7 +96,7 @@ impl HarmonyImportSideEffectDependency {
   }
 }
 
-pub fn harmony_import_dependency_apply<T: ModuleDependency>(
+pub fn esm_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
   code_generatable_context: &mut TemplateContext,
@@ -147,13 +147,13 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
   let import_var = compilation.get_import_var(module_dependency.id());
   //
-  // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
+  // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/ESMImportDependency.js#L282-L285
   let module_key = ref_module
     .map(|i| i.as_str())
     .unwrap_or(module_dependency.request());
   let key = format!("ESM import {}", module_key);
 
-  // The import emitted map is consumed by HarmonyAcceptDependency which enabled by HotModuleReplacementPlugin
+  // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
   if let Some(import_emitted_map) = import_emitted_runtime::get_map() {
     if let Some(ref_module) = ref_module {
       let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
@@ -187,34 +187,34 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
-      InitFragmentStage::StageHarmonyImports,
+      InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::HarmonyImport(key.to_string()),
+      InitFragmentKey::ESMImport(key.to_string()),
       None,
       runtime_condition.clone(),
     )));
     init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
-      InitFragmentStage::StageAsyncHarmonyImports,
+      InitFragmentStage::StageAsyncESMImports,
       source_order,
-      InitFragmentKey::HarmonyImport(format!("{} compat", key)),
+      InitFragmentKey::ESMImport(format!("{} compat", key)),
       None,
       runtime_condition,
     )));
   } else {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       format!("{}{}", content.0, content.1),
-      InitFragmentStage::StageHarmonyImports,
+      InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::HarmonyImport(key.to_string()),
+      InitFragmentKey::ESMImport(key.to_string()),
       None,
       runtime_condition,
     )));
   }
 }
 
-pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
+pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],
   module_graph: &ModuleGraph,
@@ -236,7 +236,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
     parent_module
       .build_meta()
       .expect("should have build_meta")
-      .strict_harmony_module,
+      .strict_esm_module,
   );
   let create_error = |message: String| {
     let (severity, title) = if should_error {
@@ -385,7 +385,7 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   None
 }
 
-impl Dependency for HarmonyImportSideEffectDependency {
+impl Dependency for ESMImportSideEffectDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -446,9 +446,9 @@ impl Dependency for HarmonyImportSideEffectDependency {
   }
 }
 
-struct HarmonyImportSideEffectDependencyCondition;
+struct ESMImportSideEffectDependencyCondition;
 
-impl DependencyConditionFn for HarmonyImportSideEffectDependencyCondition {
+impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
   fn get_connection_state(
     &self,
     conn: &rspack_core::ModuleGraphConnection,
@@ -464,7 +464,7 @@ impl DependencyConditionFn for HarmonyImportSideEffectDependencyCondition {
   }
 }
 
-impl ModuleDependency for HarmonyImportSideEffectDependency {
+impl ModuleDependency for ESMImportSideEffectDependency {
   fn is_export_all(&self) -> Option<bool> {
     Some(self.export_all)
   }
@@ -485,17 +485,17 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
     self.request = request.into();
   }
 
-  // TODO: It's from HarmonyImportSideEffectDependency.
+  // TODO: It's from ESMImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::Fn(Arc::new(
-      HarmonyImportSideEffectDependencyCondition,
+      ESMImportSideEffectDependencyCondition,
     )))
   }
 
-  // It's from HarmonyImportSideEffectDependency.
+  // It's from ESMImportSideEffectDependency.
 }
 
-impl DependencyTemplate for HarmonyImportSideEffectDependency {
+impl DependencyTemplate for ESMImportSideEffectDependency {
   fn apply(
     &self,
     _source: &mut TemplateReplaceSource,
@@ -513,7 +513,7 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
         return;
       }
     }
-    harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
+    esm_import_dependency_apply(self, self.source_order, code_generatable_context);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
@@ -529,4 +529,4 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
   }
 }
 
-impl AsContextDependency for HarmonyImportSideEffectDependency {}
+impl AsContextDependency for ESMImportSideEffectDependency {}

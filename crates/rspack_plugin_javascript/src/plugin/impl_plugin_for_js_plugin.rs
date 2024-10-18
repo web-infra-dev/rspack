@@ -24,7 +24,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
-  // HarmonyModulesPlugin
+  // ESMModulesPlugin
   compilation.set_dependency_factory(
     DependencyType::EsmImport,
     params.normal_module_factory.clone(),

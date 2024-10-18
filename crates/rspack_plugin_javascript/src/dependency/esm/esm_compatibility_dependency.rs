@@ -8,9 +8,9 @@ use swc_core::atoms::Atom;
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
 #[derive(Debug, Clone)]
-pub struct HarmonyCompatibilityDependency;
+pub struct ESMCompatibilityDependency;
 
-impl DependencyTemplate for HarmonyCompatibilityDependency {
+impl DependencyTemplate for ESMCompatibilityDependency {
   fn apply(
     &self,
     _source: &mut TemplateReplaceSource,
@@ -47,9 +47,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
           RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
           module.get_exports_argument()
         ),
-        InitFragmentStage::StageHarmonyExports,
+        InitFragmentStage::StageESMExports,
         0,
-        InitFragmentKey::HarmonyCompatibility,
+        InitFragmentKey::ESMCompatibility,
         None,
       )));
     }
@@ -86,4 +86,4 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
   ) {
   }
 }
-impl AsDependency for HarmonyCompatibilityDependency {}
+impl AsDependency for ESMCompatibilityDependency {}

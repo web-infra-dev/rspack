@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{CallExpr, Expr, Lit};
 use swc_core::ecma::atoms::Atom;
 
 use crate::dependency::{
-  import_emitted_runtime, HarmonyAcceptDependency, ImportMetaHotAcceptDependency,
+  import_emitted_runtime, ESMAcceptDependency, ImportMetaHotAcceptDependency,
   ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
   ModuleHotDeclineDependency,
 };
@@ -74,7 +74,7 @@ impl<'parser> JavascriptParser<'parser> {
       };
       self
         .presentational_dependencies
-        .push(Box::new(HarmonyAcceptDependency::new(
+        .push(Box::new(ESMAcceptDependency::new(
           range.with_source(self.source_map.clone()),
           callback_arg.is_some(),
           dependency_ids,

@@ -7,13 +7,13 @@ use rspack_core::{
 use crate::dependency::import_emitted_runtime;
 
 #[derive(Debug, Clone)]
-pub struct HarmonyAcceptDependency {
+pub struct ESMAcceptDependency {
   range: RealDependencyLocation,
   has_callback: bool,
   dependency_ids: Vec<DependencyId>,
 }
 
-impl HarmonyAcceptDependency {
+impl ESMAcceptDependency {
   pub fn new(
     range: RealDependencyLocation,
     has_callback: bool,
@@ -31,7 +31,7 @@ impl HarmonyAcceptDependency {
   }
 }
 
-impl DependencyTemplate for HarmonyAcceptDependency {
+impl DependencyTemplate for ESMAcceptDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -131,4 +131,4 @@ impl DependencyTemplate for HarmonyAcceptDependency {
   }
 }
 
-impl AsDependency for HarmonyAcceptDependency {}
+impl AsDependency for ESMAcceptDependency {}

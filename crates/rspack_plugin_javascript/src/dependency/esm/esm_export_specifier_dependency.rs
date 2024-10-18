@@ -1,22 +1,22 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExportsSpec, HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeSpec,
+  DependencyId, DependencyTemplate, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RealDependencyLocation, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[derive(Debug, Clone)]
-pub struct HarmonyExportSpecifierDependency {
+pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: RealDependencyLocation,
   pub name: Atom,
   pub value: Atom, // id
 }
 
-impl HarmonyExportSpecifierDependency {
+impl ESMExportSpecifierDependency {
   pub fn new(name: Atom, value: Atom, range: RealDependencyLocation) -> Self {
     Self {
       name,
@@ -27,7 +27,7 @@ impl HarmonyExportSpecifierDependency {
   }
 }
 
-impl Dependency for HarmonyExportSpecifierDependency {
+impl Dependency for ESMExportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -70,9 +70,9 @@ impl Dependency for HarmonyExportSpecifierDependency {
   }
 }
 
-impl AsModuleDependency for HarmonyExportSpecifierDependency {}
+impl AsModuleDependency for ESMExportSpecifierDependency {}
 
-impl DependencyTemplate for HarmonyExportSpecifierDependency {
+impl DependencyTemplate for ESMExportSpecifierDependency {
   fn apply(
     &self,
     _source: &mut TemplateReplaceSource,
@@ -109,7 +109,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       })
     };
     if let Some(used_name) = used_name {
-      init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+      init_fragments.push(Box::new(ESMExportInitFragment::new(
         module.get_exports_argument(),
         vec![(used_name, self.value.clone())],
       )));
@@ -129,4 +129,4 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
   }
 }
 
-impl AsContextDependency for HarmonyExportSpecifierDependency {}
+impl AsContextDependency for ESMExportSpecifierDependency {}

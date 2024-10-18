@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::dependency::{HarmonyImportSideEffectDependency, ImportDependency};
+use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
@@ -112,7 +112,7 @@ impl ExternalsPlugin {
           Some(ExternalTypeEnum::Import)
         } else if dependency
           .as_any()
-          .downcast_ref::<HarmonyImportSideEffectDependency>()
+          .downcast_ref::<ESMImportSideEffectDependency>()
           .is_some()
         {
           Some(ExternalTypeEnum::Module)

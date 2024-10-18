@@ -196,7 +196,7 @@ impl ExportPresenceMode {
       ExportPresenceMode::Auto => Some(
         module
           .build_meta()
-          .map(|m| m.strict_harmony_module)
+          .map(|m| m.strict_esm_module)
           .unwrap_or_default(),
       ),
     }

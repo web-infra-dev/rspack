@@ -23,7 +23,7 @@ pub fn create_import_dependency_referenced_exports(
           .get_parent_module(dependency_id)
           .and_then(|id| mg.module_by_identifier(id))
           .and_then(|m| m.build_meta())
-          .map(|bm| bm.strict_harmony_module)
+          .map(|bm| bm.strict_esm_module)
         else {
           return create_exports_object_referenced();
         };

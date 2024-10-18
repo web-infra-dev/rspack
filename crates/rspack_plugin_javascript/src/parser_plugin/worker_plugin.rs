@@ -16,7 +16,7 @@ use swc_core::{
 };
 
 use super::{
-  harmony_import_dependency_parser_plugin::{HarmonySpecifierData, HARMONY_SPECIFIER_TAG},
+  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
   url_plugin::get_url_request,
   JavascriptParserPlugin,
 };
@@ -351,11 +351,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == HARMONY_SPECIFIER_TAG {
+    if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
-      let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+      let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
         .from_call_syntax
@@ -391,11 +391,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
     new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == HARMONY_SPECIFIER_TAG {
+    if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
-      let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+      let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
         .from_new_syntax

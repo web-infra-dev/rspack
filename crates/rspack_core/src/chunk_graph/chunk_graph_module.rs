@@ -178,7 +178,7 @@ impl ChunkGraph {
     self
       .get_module_graph_hash_without_connections(module, compilation, runtime)
       .hash(&mut hasher);
-    let strict = module.get_strict_harmony_module();
+    let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
     let connections = mg
       .get_outgoing_connections(&module.identifier())

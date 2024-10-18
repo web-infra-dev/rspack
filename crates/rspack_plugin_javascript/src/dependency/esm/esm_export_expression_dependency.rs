@@ -3,9 +3,9 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::rspack_sources::ReplacementEnforce;
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  HarmonyExportInitFragment, ModuleGraph, RealDependencyLocation, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  DependencyTemplate, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RealDependencyLocation, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -35,14 +35,14 @@ impl DeclarationInfo {
 }
 
 #[derive(Debug, Clone)]
-pub struct HarmonyExportExpressionDependency {
+pub struct ESMExportExpressionDependency {
   id: DependencyId,
   range: RealDependencyLocation,
   range_stmt: RealDependencyLocation,
   declaration: Option<DeclarationId>,
 }
 
-impl HarmonyExportExpressionDependency {
+impl ESMExportExpressionDependency {
   pub fn new(
     range: RealDependencyLocation,
     range_stmt: RealDependencyLocation,
@@ -57,7 +57,7 @@ impl HarmonyExportExpressionDependency {
   }
 }
 
-impl Dependency for HarmonyExportExpressionDependency {
+impl Dependency for ESMExportExpressionDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportExpression
   }
@@ -98,10 +98,10 @@ impl Dependency for HarmonyExportExpressionDependency {
   }
 }
 
-impl AsModuleDependency for HarmonyExportExpressionDependency {}
-impl AsContextDependency for HarmonyExportExpressionDependency {}
+impl AsModuleDependency for ESMExportExpressionDependency {}
+impl AsContextDependency for ESMExportExpressionDependency {}
 
-impl DependencyTemplate for HarmonyExportExpressionDependency {
+impl DependencyTemplate for ESMExportExpressionDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -151,7 +151,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
         runtime,
         &module.identifier(),
       ) {
-        init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+        init_fragments.push(Box::new(ESMExportInitFragment::new(
           module.get_exports_argument(),
           vec![(
             match used {
@@ -191,7 +191,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       ) {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         if supports_const {
-          init_fragments.push(Box::new(HarmonyExportInitFragment::new(
+          init_fragments.push(Box::new(ESMExportInitFragment::new(
             module.get_exports_argument(),
             vec![(
               match used {

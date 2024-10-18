@@ -5,7 +5,7 @@ use swc_core::common::{BytePos, Span, Spanned};
 use swc_core::ecma::ast::{Ident, ModuleItem, Program, UnaryExpr};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::HarmonyCompatibilityDependency;
+use crate::dependency::ESMCompatibilityDependency;
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::{create_traceable_error, JavascriptParser};
 
@@ -33,35 +33,35 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-pub struct HarmonyDetectionParserPlugin {
+pub struct ESMDetectionParserPlugin {
   top_level_await: bool,
 }
 
-impl HarmonyDetectionParserPlugin {
+impl ESMDetectionParserPlugin {
   pub fn new(top_level_await: bool) -> Self {
     Self { top_level_await }
   }
 }
 
-// Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
-impl JavascriptParserPlugin for HarmonyDetectionParserPlugin {
+// Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ESMDetectionParserPlugin.js
+impl JavascriptParserPlugin for ESMDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
-    let is_strict_harmony = matches!(parser.module_type, ModuleType::JsEsm);
-    let is_harmony = is_strict_harmony
+    let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);
+    let is_esm = is_strict_esm
       || matches!(ast, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
 
-    if is_harmony {
+    if is_esm {
       parser
         .presentational_dependencies
-        .push(Box::new(HarmonyCompatibilityDependency));
+        .push(Box::new(ESMCompatibilityDependency));
       parser.build_meta.esm = true;
       parser.build_meta.exports_type = BuildMetaExportsType::Namespace;
       parser.build_info.strict = true;
       parser.build_meta.exports_argument = ExportsArgument::WebpackExports;
     }
 
-    if is_strict_harmony {
-      parser.build_meta.strict_harmony_module = true;
+    if is_strict_esm {
+      parser.build_meta.strict_esm_module = true;
       parser.build_meta.module_argument = ModuleArgument::WebpackModule;
     }
 

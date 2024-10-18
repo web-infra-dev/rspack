@@ -9,7 +9,7 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
-use crate::dependency::{HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency};
+use crate::dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency};
 use crate::utils::object_properties::get_attributes;
 use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
 
@@ -49,12 +49,12 @@ fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32
   get_non_optional_member_chain_from_expr(&member.obj, count)
 }
 
-pub struct HarmonyImportDependencyParserPlugin;
+pub struct ESMImportDependencyParserPlugin;
 
-pub const HARMONY_SPECIFIER_TAG: &str = "_identifier__harmony_specifier_tag__";
+pub const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";
 
 #[derive(Debug, Clone)]
-pub struct HarmonySpecifierData {
+pub struct ESMSpecifierData {
   pub name: Atom,
   pub source: Atom,
   pub ids: Vec<Atom>,
@@ -62,19 +62,19 @@ pub struct HarmonySpecifierData {
   pub attributes: Option<ImportAttributes>,
 }
 
-impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
+impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   fn import(
     &self,
     parser: &mut JavascriptParser,
     import_decl: &ImportDecl,
     source: &str,
   ) -> Option<bool> {
-    parser.last_harmony_import_order += 1;
+    parser.last_esm_import_order += 1;
     let range: RealDependencyLocation = import_decl.span.into();
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
-    let dependency = HarmonyImportSideEffectDependency::new(
+    let dependency = ESMImportSideEffectDependency::new(
       source.into(),
-      parser.last_harmony_import_order,
+      parser.last_esm_import_order,
       range.with_source(parser.source_map.clone()),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
@@ -107,14 +107,14 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     id: Option<&Atom>,
     name: &Atom,
   ) -> Option<bool> {
-    parser.tag_variable::<HarmonySpecifierData>(
+    parser.tag_variable::<ESMSpecifierData>(
       name.to_string(),
-      HARMONY_SPECIFIER_TAG,
-      Some(HarmonySpecifierData {
+      ESM_SPECIFIER_TAG,
+      Some(ESMSpecifierData {
         name: name.clone(),
         source: source.clone(),
         ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
-        source_order: parser.last_harmony_import_order,
+        source_order: parser.last_esm_import_order,
         attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
       }),
     );
@@ -127,15 +127,15 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != HARMONY_SPECIFIER_TAG {
+    if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
     let tag_info = parser
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
-    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
     let range: RealDependencyLocation = ident.span.into();
-    let dep = HarmonyImportSpecifierDependency::new(
+    let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
@@ -145,7 +145,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       settings.ids,
       parser.in_tagged_template_tag,
       true,
-      HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       parser.properties_in_destructuring.remove(&ident.sym),
       settings.attributes,
     );
@@ -180,13 +180,13 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let Callee::Expr(callee) = &call_expr.callee else {
       unreachable!()
     };
-    if for_name != HARMONY_SPECIFIER_TAG {
+    if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
     let tag_info = parser
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
-    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let span = if members.len() > non_optional_members.len() {
@@ -202,7 +202,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
     let range: RealDependencyLocation = span.into();
-    let dep = HarmonyImportSpecifierDependency::new(
+    let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
@@ -212,7 +212,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       ids,
       true,
       direct_import,
-      HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
       settings.attributes,
     );
@@ -245,13 +245,13 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    if for_name != HARMONY_SPECIFIER_TAG {
+    if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
     let tag_info = parser
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
-    let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let span = if members.len() > non_optional_members.len() {
@@ -266,7 +266,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let range: RealDependencyLocation = span.into();
-    let dep = HarmonyImportSpecifierDependency::new(
+    let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
@@ -276,7 +276,7 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
       ids,
       false,
       false, // x.xx()
-      HarmonyImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
       settings.attributes,
     );
@@ -306,8 +306,8 @@ impl JavascriptParserPlugin for HarmonyImportDependencyParserPlugin {
     if let AssignTarget::Pat(AssignTargetPat::Object(object_pat)) = &assign_expr.left
       && assign_expr.op == AssignOp::Assign
       && let box Expr::Ident(ident) = &assign_expr.right
-      && let Some(settings) = parser.get_tag_data(&ident.sym, HARMONY_SPECIFIER_TAG)
-      && let settings = HarmonySpecifierData::downcast(settings)
+      && let Some(settings) = parser.get_tag_data(&ident.sym, ESM_SPECIFIER_TAG)
+      && let settings = ESMSpecifierData::downcast(settings)
       // import namespace
       && settings.ids.is_empty()
     {
