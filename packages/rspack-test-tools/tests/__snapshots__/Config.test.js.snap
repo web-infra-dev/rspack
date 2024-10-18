@@ -459,6 +459,13 @@ exports[`config config/library/modern-module-force-concaten step  should pass: .
 const d = 'd'
 `;
 
+exports[`config config/library/modern-module-force-concaten step  should pass: ESM export should concat 1`] = `
+;// CONCATENATED MODULE: ./a.js
+const a = 'a'
+
+export { a };
+`;
+
 exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "module";
 var __webpack_modules__ = ({
@@ -549,13 +556,6 @@ const value = foo + (bar_default())
 
 
 export { value };
-`;
-
-exports[`config config/library/modern-module-force-concaten step  should pass: ESM export should concat 1`] = `
-;// CONCATENATED MODULE: ./a.js
-const a = 'a'
-
-export { a };
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: unambiguous should bail out 1`] = `const c = 'c'`;

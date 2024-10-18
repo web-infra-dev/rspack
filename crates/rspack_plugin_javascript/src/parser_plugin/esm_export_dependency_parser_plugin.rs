@@ -1,7 +1,9 @@
+use itertools::Itertools;
 use rspack_core::{
   BoxDependency, ConstDependency, DependencyType, RealDependencyLocation, SpanExt,
 };
 use swc_core::atoms::Atom;
+use swc_core::common::comments::CommentKind;
 use swc_core::common::Spanned;
 
 use super::esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG};
@@ -158,6 +160,20 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let dep: ESMExportExpressionDependency = ESMExportExpressionDependency::new(
       range.with_source(parser.source_map.clone()),
       statement_span.into(),
+      parser
+        .comments
+        .and_then(|c| c.get_leading(expr_span.lo))
+        .map(|c| {
+          c.iter()
+            .dedup()
+            .map(|c| match c.kind {
+              CommentKind::Block => format!("/*{}*/", c.text),
+              CommentKind::Line => format!("//{}\n", c.text),
+            })
+            .collect_vec()
+            .join("")
+        })
+        .unwrap_or_default(),
       match expr {
         ExportDefaultExpression::FnDecl(f) => {
           let start = f.span().real_lo();
