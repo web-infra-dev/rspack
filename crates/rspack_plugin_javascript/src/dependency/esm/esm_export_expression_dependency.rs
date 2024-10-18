@@ -174,7 +174,7 @@ impl DependencyTemplate for ESMExportExpressionDependency {
       source.replace(
         self.range_stmt.start,
         self.range.start,
-        "/* ESM default export */ ",
+        format!("/* ESM default export */ {}", self.prefix).as_str(),
         None,
       );
     } else {
