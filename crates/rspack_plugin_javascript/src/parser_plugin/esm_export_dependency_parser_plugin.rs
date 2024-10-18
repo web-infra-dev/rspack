@@ -4,15 +4,15 @@ use rspack_core::{
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 
-use super::harmony_import_dependency_parser_plugin::{HarmonySpecifierData, HARMONY_SPECIFIER_TAG};
+use super::esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG};
 use super::{
   InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
   JS_DEFAULT_KEYWORD,
 };
 use crate::dependency::{
-  DeclarationId, DeclarationInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency,
-  HarmonyImportSideEffectDependency,
+  DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
+  ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
+  ESMImportSideEffectDependency,
 };
 use crate::utils::object_properties::get_attributes;
 use crate::visitors::{
@@ -20,12 +20,12 @@ use crate::visitors::{
   TagInfoData,
 };
 
-pub struct HarmonyExportDependencyParserPlugin;
+pub struct ESMExportDependencyParserPlugin;
 
-impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
+impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
     let range: RealDependencyLocation = statement.span().into();
-    let dep = HarmonyExportHeaderDependency::new(
+    let dep = ESMExportHeaderDependency::new(
       range.with_source(parser.source_map.clone()),
       statement.declaration_span().map(|span| span.into()),
     );
@@ -39,14 +39,14 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     statement: ExportImport,
     source: &Atom,
   ) -> Option<bool> {
-    parser.last_harmony_import_order += 1;
+    parser.last_esm_import_order += 1;
     let span = statement.span();
     let range: RealDependencyLocation = span.into();
     let clean_dep = ConstDependency::new(span.real_lo(), span.real_hi(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
-    let side_effect_dep = HarmonyImportSideEffectDependency::new(
+    let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
-      parser.last_harmony_import_order,
+      parser.last_esm_import_order,
       range.with_source(parser.source_map.clone()),
       statement.source_span().into(),
       DependencyType::EsmExport,
@@ -71,12 +71,12 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     );
     parser
       .build_info
-      .harmony_named_exports
+      .esm_named_exports
       .insert(export_name.clone());
-    let dep = if let Some(settings) = parser.get_tag_data(local_id, HARMONY_SPECIFIER_TAG) {
-      let settings = HarmonySpecifierData::downcast(settings);
+    let dep = if let Some(settings) = parser.get_tag_data(local_id, ESM_SPECIFIER_TAG) {
+      let settings = ESMSpecifierData::downcast(settings);
       let range: RealDependencyLocation = statement.span().into();
-      Box::new(HarmonyExportImportedSpecifierDependency::new(
+      Box::new(ESMExportImportedSpecifierDependency::new(
         settings.source,
         settings.source_order,
         settings.ids,
@@ -84,14 +84,14 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
         false,
         None,
         range.with_source(parser.source_map.clone()),
-        HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
+        ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
         settings.attributes,
       )) as BoxDependency
     } else {
       let range: RealDependencyLocation = statement.span().into();
-      Box::new(HarmonyExportSpecifierDependency::new(
+      Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
         range.with_source(parser.source_map.clone()),
@@ -116,24 +116,22 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     let star_exports = if let Some(export_name) = export_name {
       parser
         .build_info
-        .harmony_named_exports
+        .esm_named_exports
         .insert(export_name.clone());
       None
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
     let range: RealDependencyLocation = statement.span().into();
-    let dep = HarmonyExportImportedSpecifierDependency::new(
+    let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
-      parser.last_harmony_import_order,
+      parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
       export_name.cloned(),
       local_id.is_some(),
       star_exports,
       range.with_source(parser.source_map.clone()),
-      HarmonyExportImportedSpecifierDependency::create_export_presence_mode(
-        parser.javascript_options,
-      ),
+      ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
     );
     if export_name.is_none() {
@@ -157,7 +155,7 @@ impl JavascriptParserPlugin for HarmonyExportDependencyParserPlugin {
     let statement_span = statement.span();
 
     let range: RealDependencyLocation = expr_span.into();
-    let dep: HarmonyExportExpressionDependency = HarmonyExportExpressionDependency::new(
+    let dep: ESMExportExpressionDependency = ESMExportExpressionDependency::new(
       range.with_source(parser.source_map.clone()),
       statement_span.into(),
       match expr {

@@ -12,11 +12,11 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
-use super::harmony_import_dependency::harmony_import_dependency_get_linking_error;
-use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
+use super::esm_import_dependency::esm_import_dependency_get_linking_error;
+use super::{create_resource_identifier_for_esm_dependency, esm_import_dependency_apply};
 
 #[derive(Debug, Clone)]
-pub struct HarmonyImportSpecifierDependency {
+pub struct ESMImportSpecifierDependency {
   id: DependencyId,
   request: Atom,
   name: Atom,
@@ -35,7 +35,7 @@ pub struct HarmonyImportSpecifierDependency {
   pub namespace_object_as_context: bool,
 }
 
-impl HarmonyImportSpecifierDependency {
+impl ESMImportSpecifierDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
@@ -110,7 +110,7 @@ impl HarmonyImportSpecifierDependency {
   }
 }
 
-impl DependencyTemplate for HarmonyImportSpecifierDependency {
+impl DependencyTemplate for ESMImportSpecifierDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -185,7 +185,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         )
       }
     } else {
-      harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
+      esm_import_dependency_apply(self, self.source_order, code_generatable_context);
       export_from_import(
         code_generatable_context,
         true,
@@ -219,7 +219,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
   }
 }
 
-impl Dependency for HarmonyImportSpecifierDependency {
+impl Dependency for ESMImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -277,7 +277,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
     if let Some(should_error) = self
       .export_presence_mode
       .get_effective_export_presence(&**module)
-      && let Some(diagnostic) = harmony_import_dependency_get_linking_error(
+      && let Some(diagnostic) = esm_import_dependency_get_linking_error(
         self,
         &self.get_ids(module_graph)[..],
         module_graph,
@@ -339,7 +339,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 }
 
-impl ModuleDependency for HarmonyImportSpecifierDependency {
+impl ModuleDependency for ESMImportSpecifierDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -358,4 +358,4 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 }
 
-impl AsContextDependency for HarmonyImportSpecifierDependency {}
+impl AsContextDependency for ESMImportSpecifierDependency {}

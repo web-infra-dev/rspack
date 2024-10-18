@@ -8,13 +8,13 @@ use rspack_core::{
 // Before: `export const a = 1`
 // After: `const a = 1`
 #[derive(Debug, Clone)]
-pub struct HarmonyExportHeaderDependency {
+pub struct ESMExportHeaderDependency {
   id: DependencyId,
   range: RealDependencyLocation,
   range_decl: Option<RealDependencyLocation>,
 }
 
-impl HarmonyExportHeaderDependency {
+impl ESMExportHeaderDependency {
   pub fn new(range: RealDependencyLocation, range_decl: Option<RealDependencyLocation>) -> Self {
     Self {
       range,
@@ -24,7 +24,7 @@ impl HarmonyExportHeaderDependency {
   }
 }
 
-impl Dependency for HarmonyExportHeaderDependency {
+impl Dependency for ESMExportHeaderDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }
@@ -42,7 +42,7 @@ impl Dependency for HarmonyExportHeaderDependency {
   }
 }
 
-impl DependencyTemplate for HarmonyExportHeaderDependency {
+impl DependencyTemplate for ESMExportHeaderDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -73,5 +73,5 @@ impl DependencyTemplate for HarmonyExportHeaderDependency {
   }
 }
 
-impl AsModuleDependency for HarmonyExportHeaderDependency {}
-impl AsContextDependency for HarmonyExportHeaderDependency {}
+impl AsModuleDependency for ESMExportHeaderDependency {}
+impl AsContextDependency for ESMExportHeaderDependency {}

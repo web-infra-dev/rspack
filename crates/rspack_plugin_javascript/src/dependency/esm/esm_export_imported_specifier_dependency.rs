@@ -8,9 +8,9 @@ use rspack_core::{
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyTemplate, DependencyType,
-  ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  HarmonyExportInitFragment, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode,
+  ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RealDependencyLocation, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
@@ -24,8 +24,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::{
   create_resource_identifier_for_esm_dependency,
-  harmony_import_dependency::harmony_import_dependency_get_linking_error,
-  harmony_import_dependency_apply,
+  esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
@@ -33,7 +32,7 @@ use super::{
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`
 #[derive(Debug, Clone)]
-pub struct HarmonyExportImportedSpecifierDependency {
+pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   pub ids: Vec<Atom>,
   pub name: Option<Atom>,
@@ -47,7 +46,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   export_presence_mode: ExportPresenceMode,
 }
 
-impl HarmonyExportImportedSpecifierDependency {
+impl ESMExportImportedSpecifierDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
@@ -77,7 +76,7 @@ impl HarmonyExportImportedSpecifierDependency {
     }
   }
 
-  // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
+  // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
     let build_info = module_graph
       .get_parent_module(&self.id)
@@ -85,10 +84,10 @@ impl HarmonyExportImportedSpecifierDependency {
       .expect("should have mgm")
       .build_info()
       .expect("should have build info");
-    &build_info.harmony_named_exports
+    &build_info.esm_named_exports
   }
 
-  // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
+  // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn all_star_exports<'a>(
     &self,
     module_graph: &'a ModuleGraph,
@@ -483,7 +482,7 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(
           NormalInitFragment::new(
             "/* empty/unused ESM star reexport */\n".to_string(),
-            InitFragmentStage::StageHarmonyExports,
+            InitFragmentStage::StageESMExports,
             1,
             InitFragmentKey::unique(),
             None,
@@ -497,7 +496,7 @@ impl HarmonyExportImportedSpecifierDependency {
             "unused ESM reexport {}",
             mode.name.unwrap_or_default()
           )),
-          InitFragmentStage::StageHarmonyExports,
+          InitFragmentStage::StageESMExports,
           1,
           InitFragmentKey::unique(),
           None,
@@ -581,7 +580,7 @@ impl HarmonyExportImportedSpecifierDependency {
         let init_fragment = self
           .get_reexport_fragment(
             ctxt,
-            "reexport non-default export from non-harmony",
+            "reexport non-default export from non-ESM",
             key,
             "undefined",
             ValueKey::Str("".into()),
@@ -615,7 +614,7 @@ impl HarmonyExportImportedSpecifierDependency {
 
           if checked {
             let key =
-              InitFragmentKey::HarmonyImport(format!("ESM reexport (checked) {import_var} {name}"));
+              InitFragmentKey::ESMImport(format!("ESM reexport (checked) {import_var} {name}"));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
@@ -634,9 +633,9 @@ impl HarmonyExportImportedSpecifierDependency {
             fragments.push(Box::new(ConditionalInitFragment::new(
               stmt,
               if is_async {
-                InitFragmentStage::StageAsyncHarmonyImports
+                InitFragmentStage::StageAsyncESMImports
               } else {
-                InitFragmentStage::StageHarmonyImports
+                InitFragmentStage::StageESMImports
               },
               self.source_order,
               key,
@@ -661,7 +660,7 @@ impl HarmonyExportImportedSpecifierDependency {
           (Some(hidden), None) => hidden,
           (Some(hidden), Some(ignore)) => hidden.union(&ignore).cloned().collect(),
         };
-        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
+        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/ESMExportImportedSpecifierDependency.js#L1104-L1106
         let mut content = format!(
           r"
 /* ESM reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};
@@ -699,9 +698,9 @@ impl HarmonyExportImportedSpecifierDependency {
               exports_name
             ),
             if is_async {
-              InitFragmentStage::StageAsyncHarmonyImports
+              InitFragmentStage::StageAsyncESMImports
             } else {
-              InitFragmentStage::StageHarmonyImports
+              InitFragmentStage::StageESMImports
             },
             self.source_order,
             InitFragmentKey::unique(),
@@ -721,7 +720,7 @@ impl HarmonyExportImportedSpecifierDependency {
     key: String,
     name: &str,
     value_key: ValueKey,
-  ) -> HarmonyExportInitFragment {
+  ) -> ESMExportInitFragment {
     let TemplateContext {
       runtime_requirements,
       module,
@@ -740,7 +739,7 @@ impl HarmonyExportImportedSpecifierDependency {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
-    HarmonyExportInitFragment::new(module.get_exports_argument(), export_map)
+    ESMExportInitFragment::new(module.get_exports_argument(), export_map)
   }
 
   fn get_reexport_fake_namespace_object_fragments(
@@ -781,12 +780,12 @@ impl HarmonyExportImportedSpecifierDependency {
           name.clone(),
           InitFragmentStage::StageConstants,
           -1,
-          InitFragmentKey::HarmonyFakeNamespaceObjectFragment(name),
+          InitFragmentKey::ESMFakeNamespaceObjectFragment(name),
           None,
         )
         .boxed()
       },
-      HarmonyExportInitFragment::new(module.get_exports_argument(), export_map).boxed(),
+      ESMExportInitFragment::new(module.get_exports_argument(), export_map).boxed(),
     ];
     ctxt.init_fragments.extend_from_slice(&frags);
   }
@@ -858,9 +857,9 @@ impl HarmonyExportImportedSpecifierDependency {
   ) -> Option<Vec<Diagnostic>> {
     let create_error = |message: String| {
       let (severity, title) = if should_error {
-        (Severity::Error, "HarmonyLinkingError")
+        (Severity::Error, "ESModulesLinkingError")
       } else {
-        (Severity::Warning, "HarmonyLinkingWarning")
+        (Severity::Warning, "ESModulesLinkingWarning")
       };
       let parent_module_identifier = module_graph
         .get_parent_module(&self.id)
@@ -998,7 +997,7 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
   pub dependency_index: usize,
 }
 
-impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
+impl DependencyTemplate for ESMExportImportedSpecifierDependency {
   fn apply(
     &self,
     _source: &mut TemplateReplaceSource,
@@ -1026,7 +1025,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 
     // dbg!(&mode, self.request());
     if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-      harmony_import_dependency_apply(self, self.source_order, code_generatable_context);
+      esm_import_dependency_apply(self, self.source_order, code_generatable_context);
       self.add_export_fragments(code_generatable_context, mode);
     }
   }
@@ -1044,7 +1043,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   }
 }
 
-impl Dependency for HarmonyExportImportedSpecifierDependency {
+impl Dependency for ESMExportImportedSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -1252,7 +1251,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       .get_effective_export_presence(&**module)
     {
       let mut diagnostics = Vec::new();
-      if let Some(error) = harmony_import_dependency_get_linking_error(
+      if let Some(error) = esm_import_dependency_get_linking_error(
         self,
         &ids,
         module_graph,
@@ -1343,9 +1342,9 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   }
 }
 
-struct HarmonyExportImportedSpecifierDependencyCondition(DependencyId);
+struct ESMExportImportedSpecifierDependencyCondition(DependencyId);
 
-impl DependencyConditionFn for HarmonyExportImportedSpecifierDependencyCondition {
+impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
   fn get_connection_state(
     &self,
     _conn: &rspack_core::ModuleGraphConnection,
@@ -1356,8 +1355,8 @@ impl DependencyConditionFn for HarmonyExportImportedSpecifierDependencyCondition
       .dependency_by_id(&self.0)
       .expect("should have dependency");
     let down_casted_dep = dep
-      .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
-      .expect("should be HarmonyExportImportedSpecifierDependency");
+      .downcast_ref::<ESMExportImportedSpecifierDependency>()
+      .expect("should be ESMExportImportedSpecifierDependency");
     let mode = down_casted_dep.get_mode(
       down_casted_dep.name.clone(),
       module_graph,
@@ -1371,7 +1370,7 @@ impl DependencyConditionFn for HarmonyExportImportedSpecifierDependencyCondition
   }
 }
 
-impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
+impl ModuleDependency for ESMExportImportedSpecifierDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -1395,7 +1394,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::Fn(Arc::new(
-      HarmonyExportImportedSpecifierDependencyCondition(id),
+      ESMExportImportedSpecifierDependencyCondition(id),
     )))
   }
 }
@@ -1417,7 +1416,7 @@ impl From<Option<UsedName>> for ValueKey {
   }
 }
 
-impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
+impl AsContextDependency for ESMExportImportedSpecifierDependency {}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ExportModeType {

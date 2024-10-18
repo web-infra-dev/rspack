@@ -33,7 +33,7 @@ module.exports = {
 			 */
 			const handler = compilation => {
 				compilation.hooks.afterProcessAssets.tap("testcase", assets => {
-					expect(assets['a.js']._value).toMatchSnapshot("harmony export should concat");
+					expect(assets['a.js']._value).toMatchSnapshot("ESM export should concat");
 					expect(assets['b.js']._value).toMatchSnapshot(".cjs should bail out");
 					expect(assets['c.js']._value).toMatchSnapshot("unambiguous should bail out");
 					expect(assets['d.js']._value).toMatchSnapshot(".mjs should concat");

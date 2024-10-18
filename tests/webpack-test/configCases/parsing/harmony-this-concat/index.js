@@ -6,7 +6,7 @@ import {bindThis, callThis, applyThis} from "./issue-7213";
 
 import * as abc from "./abc";
 
-it("should have this = undefined on harmony modules", () => {
+it("should have this = undefined on ES modules", () => {
 	expect((typeof that)).toBe("undefined");
 	expect((typeof abc.that)).toBe("undefined");
 	expect((typeof returnThisArrow())).toBe("undefined");

@@ -39,7 +39,7 @@ fn render_module_content(
     init_fragments.push(
       NormalInitFragment::new(
         "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n".to_string(),
-        InitFragmentStage::StageHarmonyImports,
+        InitFragmentStage::StageESMImports,
         0,
         InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
         None,

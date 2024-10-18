@@ -21,8 +21,8 @@ module.exports = {
 		- ./module-a.js XX bytes [built] [code generated]
 		- import() ./module-a ./eXX.js
 		- import() ./module-a ./module-c.js
-		+ harmony side effect evaluation ./module-x ./eXX.js XX:XX-XX
-		+ harmony side effect evaluation ./module-x ./eXX.js XX:XX-XX
+		+ ESM side effect evaluation ./module-x ./eXX.js XX:XX-XX
+		+ ESM side effect evaluation ./module-x ./eXX.js XX:XX-XX
 		+ import() ./module-x ./module-b.js XX:XX-XX
 		@@ -14,5 +12,1 @@
 		- import() ./module-b ./module-a.js
@@ -41,8 +41,8 @@ module.exports = {
 		- esm import ./module-x ./eXX.js
 		- esm import ./module-x ./eXX.js
 		- import() ./module-x ./module-b.js
-		+ harmony side effect evaluation ./module-x ./eXX.js XX:XX-XX
-		+ harmony side effect evaluation ./module-x ./eXX.js XX:XX-XX
+		+ ESM side effect evaluation ./module-x ./eXX.js XX:XX-XX
+		+ ESM side effect evaluation ./module-x ./eXX.js XX:XX-XX
 		+ import() ./module-x ./module-b.js XX:XX-XX
 		+ chunk (runtime: eXX, eXX) c.js (c) XX bytes <{XX}> <{XX}> >{XX}< [rendered]
 		+ ./module-c.js XX bytes [built] [code generated]

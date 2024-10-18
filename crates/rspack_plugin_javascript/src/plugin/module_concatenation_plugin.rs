@@ -7,7 +7,7 @@ use std::hash::Hasher;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::concatenated_module::{
-  is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
+  is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
@@ -162,8 +162,8 @@ impl ModuleConcatenationPlugin {
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
       let dep = mg.dependency_by_id(d).expect("should have dependency");
-      let is_harmony_import_like = is_harmony_dep_like(dep);
-      if !is_harmony_import_like {
+      let is_esm_import_like = is_esm_dep_like(dep);
+      if !is_esm_import_like {
         continue;
       }
       let Some(con) = mg.connection_by_dependency_id(d) else {
@@ -172,7 +172,7 @@ impl ModuleConcatenationPlugin {
       if !con.is_target_active(mg, runtime) {
         continue;
       }
-      // SAFETY: because it is extends harmony dep, we can ensure the dep has been
+      // SAFETY: because it is extends ESM dep, we can ensure the dep has been
       // implemented ModuleDependency Trait.
       let module_dep = dep.as_module_dependency().expect("should be module dep");
       let imported_names = module_dep.get_referenced_exports(mg, None);
@@ -383,13 +383,13 @@ impl ModuleConcatenationPlugin {
       return Some(problem);
     }
 
-    let mut non_harmony_connections = HashMap::default();
+    let mut non_esm_connections = HashMap::default();
     for (origin_module, connections) in incoming_connections_from_modules.iter() {
       let selected: Vec<_> = connections
         .iter()
         .filter(|&connection| {
           if let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) {
-            !is_harmony_dep_like(dep)
+            !is_esm_dep_like(dep)
           } else {
             false
           }
@@ -398,13 +398,13 @@ impl ModuleConcatenationPlugin {
         .collect();
 
       if !selected.is_empty() {
-        non_harmony_connections.insert(origin_module, connections);
+        non_esm_connections.insert(origin_module, connections);
       }
     }
 
-    if !non_harmony_connections.is_empty() {
+    if !non_esm_connections.is_empty() {
       let problem = {
-        let names: Vec<_> = non_harmony_connections
+        let names: Vec<_> = non_esm_connections
           .iter()
           .map(|(origin_module, connections)| {
             let module = module_graph
@@ -662,7 +662,7 @@ impl ModuleConcatenationPlugin {
       }
       module_graph.copy_outgoing_module_connections(m, &new_module.id(), |con, dep| {
         con.original_module_identifier.as_ref() == Some(m)
-          && !(is_harmony_dep_like(dep) && modules_set.contains(con.module_identifier()))
+          && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
       });
       // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
       for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
@@ -696,7 +696,7 @@ impl ModuleConcatenationPlugin {
       } else {
         Some(*c.module_identifier())
       };
-      let inner_connection = is_harmony_dep_like(dep)
+      let inner_connection = is_esm_dep_like(dep)
         && if let Some(other_module) = other_module {
           modules_set.contains(&other_module)
         } else {

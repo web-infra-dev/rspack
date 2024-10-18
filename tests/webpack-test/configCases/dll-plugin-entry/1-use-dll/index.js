@@ -4,11 +4,11 @@ it("should load a module from dll", function() {
 	expect(require("dll/index")).toEqual(nsObj({ bar: "bar", default: 42 }));
 });
 
-it("should load an harmony module from dll (default export)", function() {
+it("should load an ES module from dll (default export)", function() {
 	expect(Answer).toBe(42);
 });
 
-it("should load an harmony module from dll (star export)", function() {
+it("should load an ES module from dll (star export)", function() {
 	expect(bar).toBe("bar");
 });
 
