@@ -32,7 +32,7 @@ module.exports = {
 		+             },
 		+           },
 		+         ],
-		+         "test": //.wasm$/i,
+		+         "test": /\\.wasm$/i,
 		+         "type": "webassembly/async",
 		@@ ... @@
 		+         "mimetype": "application/wasm",

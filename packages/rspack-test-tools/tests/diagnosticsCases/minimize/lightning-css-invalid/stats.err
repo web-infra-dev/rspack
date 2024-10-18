@@ -1,7 +1,7 @@
-WARNING in ⚠ Unknown at rule: @apply at main.css:4:7
+WARNING in ⚠ Unknown at rule: @apply at main.css<LINE_COL>
 
-WARNING in ⚠ Unexpected end of input at main.css:12:8
+WARNING in ⚠ Unexpected end of input at main.css<LINE_COL>
 
-WARNING in ⚠ Unexpected end of input at main.css:12:14
+WARNING in ⚠ Unexpected end of input at main.css<LINE_COL>
 
-WARNING in ⚠ Unexpected token Delim('<') at main.css:15:3
+WARNING in ⚠ Unexpected token Delim('<') at main.css<LINE_COL>

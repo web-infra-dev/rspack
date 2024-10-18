@@ -1,7 +1,3 @@
-export const normalizeCRLF = (str: string): string => {
-	return str.replace(/\r\n?/g, "\n");
-};
-
 export const normalizeCLR = (str: string): string => {
 	return (
 		str
@@ -16,8 +12,4 @@ export const normalizeCLR = (str: string): string => {
 
 export const normalizeColor = (str: string): string => {
 	return str.replace(/\u001b\[[0-9;]*m/g, "");
-};
-
-export const normalizeSlash = (str: string): string => {
-	return str.replace(/(\\)+/g, "/");
 };

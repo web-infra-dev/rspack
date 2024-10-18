@@ -1,5 +1,5 @@
 WARNING in ./index.js
-  ⚠ Module not found: Can't resolve './missing-module' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/missing-module'
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/missing-module'
    ╭─[4:8]
  2 │     let errored = false;
  3 │     try {

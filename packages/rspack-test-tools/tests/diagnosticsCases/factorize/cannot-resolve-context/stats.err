@@ -1,9 +1,9 @@
 ERROR in ./index.js
-  × Module not found: Can't resolve './test' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-context'
+  × Module not found: Can't resolve './test' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-context'
    ╭─[3:0]
  1 │ // should not panic
  2 │ 
- 3 │ require.context("./test", false, //.test/.js$/);
+ 3 │ require.context("./test", false, /\.test\.js$/);
    · ───────────────────────────────────────────────
  4 │ 
    ╰────
