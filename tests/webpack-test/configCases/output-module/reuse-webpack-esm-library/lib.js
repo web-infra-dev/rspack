@@ -42,7 +42,7 @@ import * as __WEBPACK_EXTERNAL_MODULE_react__ from "react";
 /************************************************************************/
 /******/ /* webpack/runtime/define property getters */
 /******/ (() => {
-	/******/ 	// define getter functions for harmony exports
+	/******/ 	// define getter functions for ESM exports
 	/******/ 	__webpack_require__.d = (exports, definition) => {
 		/******/ 		for(var key in definition) {
 			/******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -76,11 +76,11 @@ var __webpack_exports__ = {};
 		!*** ./src/store/call.ts ***!
 		\***************************/
 	__webpack_require__.r(__webpack_exports__);
-	/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-		/* harmony export */   useCall: () => (/* binding */ useCall),
-		/* harmony export */   withCallManager: () => (/* binding */ withCallManager)
-		/* harmony export */ });
-	/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+	/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+		/* ESM export */   useCall: () => (/* binding */ useCall),
+		/* ESM export */   withCallManager: () => (/* binding */ withCallManager)
+		/* ESM export */ });
+	/* ESM import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
 
 	function withCallManager() {
 		return react__WEBPACK_IMPORTED_MODULE_0__.createElement(1);

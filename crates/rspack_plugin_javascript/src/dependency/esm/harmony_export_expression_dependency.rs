@@ -171,7 +171,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       source.replace(
         self.range_stmt.start,
         self.range.start,
-        "/* harmony default export */ ",
+        "/* ESM default export */ ",
         None,
       );
     } else {
@@ -180,7 +180,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
       let content = if let Some(ref mut scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         format!(
-          "/* harmony default export */ {} {DEFAULT_EXPORT} = ",
+          "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
       } else if let Some(used) = get_used_name(
@@ -206,10 +206,10 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
               DEFAULT_EXPORT.into(),
             )],
           )));
-          format!("/* harmony default export */ const {DEFAULT_EXPORT} = ")
+          format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
         } else {
           format!(
-            r#"/* harmony default export */ {}{} = "#,
+            r#"/* ESM default export */ {}{} = "#,
             module.get_exports_argument(),
             property_access(
               match used {
@@ -221,7 +221,7 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
           )
         }
       } else {
-        format!("/* unused harmony default export */ var {DEFAULT_EXPORT} = ")
+        format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
       };
 
       source.replace(

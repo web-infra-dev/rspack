@@ -77,7 +77,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = function () {
-	return "e5ef3d4d0186662699c5";
+	return "5246a448d9c24f5e21d4";
 };
 
 })();
@@ -398,7 +398,7 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css");
+/* ESM import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css");
 
 
 /* eslint-disable-next-line no-unused-expressions */
