@@ -22,6 +22,7 @@ base64                   = { version = "0.22" }
 dashmap                  = { workspace = true }
 either                   = "1"
 jsonc-parser             = { version = "0.23.0", features = ["serde"] }
+rayon                    = { workspace = true }
 rspack_ast               = { version = "0.1.0", path = "../rspack_ast" }
 rspack_core              = { version = "0.1.0", path = "../rspack_core" }
 rspack_error             = { version = "0.1.0", path = "../rspack_error" }
@@ -30,7 +31,6 @@ rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascr
 rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
-stacker                  = { workspace = true }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 swc_plugin_import        = { version = "0.1.5", path = "../swc_plugin_import" }
