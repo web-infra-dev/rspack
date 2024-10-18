@@ -858,9 +858,9 @@ impl HarmonyExportImportedSpecifierDependency {
   ) -> Option<Vec<Diagnostic>> {
     let create_error = |message: String| {
       let (severity, title) = if should_error {
-        (Severity::Error, "HarmonyLinkingError")
+        (Severity::Error, "ESModulesLinkingError")
       } else {
-        (Severity::Warning, "HarmonyLinkingWarning")
+        (Severity::Warning, "ESModulesLinkingWarning")
       };
       let parent_module_identifier = module_graph
         .get_parent_module(&self.id)

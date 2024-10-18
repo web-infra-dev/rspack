@@ -240,9 +240,9 @@ pub fn harmony_import_dependency_get_linking_error<T: ModuleDependency>(
   );
   let create_error = |message: String| {
     let (severity, title) = if should_error {
-      (Severity::Error, "HarmonyLinkingError")
+      (Severity::Error, "ESModulesLinkingError")
     } else {
-      (Severity::Warning, "HarmonyLinkingWarning")
+      (Severity::Warning, "ESModulesLinkingWarning")
     };
     let mut diagnostic = if let Some(span) = module_dependency.range()
       && let Some(source) = parent_module.original_source().map(|s| s.source())

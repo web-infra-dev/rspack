@@ -551,7 +551,7 @@ const value = foo + (bar_default())
 export { value };
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat 1`] = `
+exports[`config config/library/modern-module-force-concaten step  should pass: ESM export should concat 1`] = `
 ;// CONCATENATED MODULE: ./a.js
 const a = 'a'
 

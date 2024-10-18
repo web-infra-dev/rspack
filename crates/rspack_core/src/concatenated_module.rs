@@ -977,7 +977,7 @@ impl Module for ConcatenatedModule {
     let mut result = ConcatSource::default();
     let mut should_add_harmony_flag = false;
 
-    // Add harmony compatibility flag (must be first because of possible circular dependencies)
+    // Add ESM compatibility flag (must be first because of possible circular dependencies)
     if compilation
       .get_module_graph()
       .get_exports_info(&self.id())

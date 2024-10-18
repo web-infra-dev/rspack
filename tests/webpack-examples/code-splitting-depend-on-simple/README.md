@@ -312,21 +312,21 @@ chunk (runtime: react-vendors) react-vendors.js (react-vendors) 87 bytes (javasc
     ./node_modules/prop-types.js 31 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
-        harmony side effect evaluation prop-types ./app.js 3:0-35
+        ESM side effect evaluation prop-types ./app.js 3:0-35
         ESM import specifier prop-types ./app.js 5:29-38
       cjs self exports reference ./node_modules/prop-types.js 1:0-14
       entry prop-types react-vendors
     ./node_modules/react-dom.js 30 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
-        harmony side effect evaluation react-dom ./app.js 2:0-33
+        ESM side effect evaluation react-dom ./app.js 2:0-33
         ESM import specifier react-dom ./app.js 5:19-27
       cjs self exports reference ./node_modules/react-dom.js 1:0-14
       entry react-dom react-vendors
     ./node_modules/react.js 26 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
-        harmony side effect evaluation react ./app.js 1:0-26
+        ESM side effect evaluation react ./app.js 1:0-26
         ESM import specifier react ./app.js 5:12-17
       cjs self exports reference ./node_modules/react.js 1:0-14
       entry react react-vendors
@@ -353,21 +353,21 @@ chunk (runtime: react-vendors) react-vendors.js (react-vendors) 87 bytes (javasc
     ./node_modules/prop-types.js 31 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
-        harmony side effect evaluation prop-types ./app.js 3:0-35
+        ESM side effect evaluation prop-types ./app.js 3:0-35
         ESM import specifier prop-types ./app.js 5:29-38
       cjs self exports reference ./node_modules/prop-types.js 1:0-14
       entry prop-types react-vendors
     ./node_modules/react-dom.js 30 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
-        harmony side effect evaluation react-dom ./app.js 2:0-33
+        ESM side effect evaluation react-dom ./app.js 2:0-33
         ESM import specifier react-dom ./app.js 5:19-27
       cjs self exports reference ./node_modules/react-dom.js 1:0-14
       entry react-dom react-vendors
     ./node_modules/react.js 26 bytes [built] [code generated]
       [used exports unknown]
       from origin ./app.js
-        harmony side effect evaluation react ./app.js 1:0-26
+        ESM side effect evaluation react ./app.js 1:0-26
         ESM import specifier react ./app.js 5:12-17
       cjs self exports reference ./node_modules/react.js 1:0-14
       entry react react-vendors

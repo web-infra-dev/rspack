@@ -340,7 +340,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    // Only harmony modules are valid for optimization
+    // Only ES modules are valid for optimization
     if module.build_meta().is_none()
       || module
         .build_meta()
