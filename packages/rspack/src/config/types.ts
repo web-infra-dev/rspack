@@ -1434,7 +1434,6 @@ export type InfrastructureLogging = {
 
 	/**
 	 * Enable infrastructure logging output.
-	 * @type {"none" | "error" | "warn" | "info" | "log" | "verbose"}
 	 */
 	level?: "none" | "error" | "warn" | "info" | "log" | "verbose";
 
