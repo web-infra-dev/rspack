@@ -74,6 +74,7 @@ fn parse_new_worker_options_from_comments(
 fn add_dependencies(
   parser: &mut JavascriptParser,
   span: Span,
+  first_arg: &ExprOrSpread,
   parsed_path: ParsedNewWorkerPath,
   parsed_options: Option<ParsedNewWorkerOptions>,
 ) {
@@ -124,7 +125,7 @@ fn add_dependencies(
       .dependencies
       .push(Box::new(CreateScriptUrlDependency::new(
         span.into(),
-        parsed_path.range.into(),
+        first_arg.span().into(),
       )));
   }
 
@@ -156,11 +157,15 @@ fn add_dependencies(
   }
 }
 
-fn handle_worker(
+fn handle_worker<'a>(
   parser: &mut JavascriptParser,
-  args: &[ExprOrSpread],
+  args: &'a [ExprOrSpread],
   span: Span,
-) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
+) -> Option<(
+  ParsedNewWorkerPath,
+  Option<ParsedNewWorkerOptions>,
+  &'a ExprOrSpread,
+)> {
   if let Some(expr_or_spread) = args.first()
     && let ExprOrSpread {
       spread: None,
@@ -190,7 +195,7 @@ fn handle_worker(
         // new Worker(/* options */ new URL("worker.js"))
         parse_new_worker_options_from_comments(parser, expr_or_spread.span(), span)
       });
-    Some((path, options))
+    Some((path, options, expr_or_spread))
   } else {
     None
   }
@@ -333,8 +338,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
       && value.contains(&members.iter().map(|id| id.as_str()).join("."))
     {
       return handle_worker(parser, &call_expr.args, call_expr.span).map(
-        |(parsed_path, parsed_options)| {
-          add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+        |(parsed_path, parsed_options, first_arg)| {
+          add_dependencies(
+            parser,
+            call_expr.span,
+            first_arg,
+            parsed_path,
+            parsed_options,
+          );
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
           }
@@ -362,8 +373,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
         .contains(&(ids, settings.source.to_string()))
       {
         return handle_worker(parser, &call_expr.args, call_expr.span).map(
-          |(parsed_path, parsed_options)| {
-            add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+          |(parsed_path, parsed_options, first_arg)| {
+            add_dependencies(
+              parser,
+              call_expr.span,
+              first_arg,
+              parsed_path,
+              parsed_options,
+            );
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
             }
@@ -376,13 +393,21 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if !self.call_syntax.contains(for_name) {
       return None;
     }
-    handle_worker(parser, &call_expr.args, call_expr.span).map(|(parsed_path, parsed_options)| {
-      add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
-      if let Some(callee) = call_expr.callee.as_expr() {
-        parser.walk_expression(callee);
-      }
-      true
-    })
+    handle_worker(parser, &call_expr.args, call_expr.span).map(
+      |(parsed_path, parsed_options, first_arg)| {
+        add_dependencies(
+          parser,
+          call_expr.span,
+          first_arg,
+          parsed_path,
+          parsed_options,
+        );
+        if let Some(callee) = call_expr.callee.as_expr() {
+          parser.walk_expression(callee);
+        }
+        true
+      },
+    )
   }
 
   fn new_expression(
@@ -405,8 +430,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
           .args
           .as_ref()
           .and_then(|args| handle_worker(parser, args, new_expr.span))
-          .map(|(parsed_path, parsed_options)| {
-            add_dependencies(parser, new_expr.span, parsed_path, parsed_options);
+          .map(|(parsed_path, parsed_options, first_arg)| {
+            add_dependencies(
+              parser,
+              new_expr.span,
+              first_arg,
+              parsed_path,
+              parsed_options,
+            );
             parser.walk_expression(&new_expr.callee);
             true
           });
@@ -420,8 +451,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
       .args
       .as_ref()
       .and_then(|args| handle_worker(parser, args, new_expr.span))
-      .map(|(parsed_path, parsed_options)| {
-        add_dependencies(parser, new_expr.span, parsed_path, parsed_options);
+      .map(|(parsed_path, parsed_options, first_arg)| {
+        add_dependencies(
+          parser,
+          new_expr.span,
+          first_arg,
+          parsed_path,
+          parsed_options,
+        );
         parser.walk_expression(&new_expr.callee);
         true
       })
