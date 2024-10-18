@@ -21,6 +21,7 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_regex::RspackRegex;
 use tokio::runtime::Handle;
 
 use crate::RawResolveOptions;
@@ -110,7 +111,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
     let result = match x {
       RawRuleSetCondition::string(s) => Self::String(s),
       RawRuleSetCondition::regexp(r) => {
-        let reg = rspack_regex::RspackRegex::with_flags(&r.source, &r.flags)?;
+        let reg = RspackRegex::with_flags(&r.source, &r.flags)?;
         Self::Regexp(reg)
       }
       RawRuleSetCondition::logical(mut l) => {
@@ -265,6 +266,8 @@ pub struct RawJavascriptParserOptions {
   pub url: Option<String>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  #[napi(ts_type = "RegExp")]
+  pub wrapped_context_reg_exp: Option<JsRegExp>,
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
@@ -303,6 +306,9 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
       expr_context_critical: value.expr_context_critical,
+      wrapped_context_reg_exp: value
+        .wrapped_context_reg_exp
+        .map(|context_reg_exp| context_reg_exp.to_rspack_regex()),
       wrapped_context_critical: value.wrapped_context_critical,
       exports_presence: value
         .exports_presence
