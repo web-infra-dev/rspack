@@ -332,9 +332,9 @@ div {
 head{--webpack--120:&_13;}
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: .cjs should bail out 1`] = `
+exports[`config config/library/0-create-library step  should pass: .cjs should bail out 1`] = `
 var __webpack_modules__ = ({
-"851": (function (module) {
+"85": (function (module) {
 module.exports = 'b'
 
 }),
@@ -368,12 +368,12 @@ return module.exports;
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__("851");
+var __webpack_exports__ = __webpack_require__("85");
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: .cjs should bail out when bundling 1`] = `
+exports[`config config/library/0-create-library step  should pass: .cjs should bail out when bundling 1`] = `
 var __webpack_modules__ = ({
-"997": (function (module) {
+"367": (function (module) {
 module.exports = 'bar'
 
 }),
@@ -438,13 +438,13 @@ __webpack_require__.o = function (obj, prop) {
 })();
 /************************************************************************/
 
-;// CONCATENATED MODULE: ./e/foo.js
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/e/foo.js
 const foo = 'foo'
 
-// EXTERNAL MODULE: ./e/bar.cjs
-var bar = __webpack_require__("997");
+// EXTERNAL MODULE: ./modern-module-force-concatenation/e/bar.cjs
+var bar = __webpack_require__("367");
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
-;// CONCATENATED MODULE: ./e/index.js
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/e/index.js
 
 
 
@@ -454,19 +454,19 @@ var __webpack_exports__bar = (bar_default());
 export { foo, __webpack_exports__bar as bar };
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: .mjs should concat 1`] = `
-;// CONCATENATED MODULE: ./d.mjs
+exports[`config config/library/0-create-library step  should pass: .mjs should concat 1`] = `
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/d.mjs
 const d = 'd'
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
+exports[`config config/library/0-create-library step  should pass: external module should bail out when bundling 1`] = `
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "module";
 var __webpack_modules__ = ({
 "17": (function (module) {
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
 
 }),
-"441": (function (module, __unused_webpack_exports, __webpack_require__) {
+"238": (function (module, __unused_webpack_exports, __webpack_require__) {
 const path = __webpack_require__(17)
 
 module.exports = pathXsep
@@ -534,13 +534,13 @@ __webpack_require__.o = function (obj, prop) {
 })();
 /************************************************************************/
 
-// EXTERNAL MODULE: ./f/bar.cjs
-var bar = __webpack_require__("441");
+// EXTERNAL MODULE: ./modern-module-force-concatenation/f/bar.cjs
+var bar = __webpack_require__("238");
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
-;// CONCATENATED MODULE: ./f/foo.js
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/f/foo.js
 const foo = 'foo'
 
-;// CONCATENATED MODULE: ./f/index.js
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/f/index.js
 
 
 
@@ -551,14 +551,94 @@ const value = foo + (bar_default())
 export { value };
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat 1`] = `
-;// CONCATENATED MODULE: ./a.js
+exports[`config config/library/0-create-library step  should pass: harmony export should concat 1`] = `
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/a.js
 const a = 'a'
 
 export { a };
 `;
 
-exports[`config config/library/modern-module-force-concaten step  should pass: unambiguous should bail out 1`] = `const c = 'c'`;
+exports[`config config/library/0-create-library step  should pass: harmony export should concat, even with bailout reason 1`] = `
+var __webpack_modules__ = ({
+"372": (function (module) {
+module.exports = 'foo'
+
+
+}),
+
+});
+/************************************************************************/
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+/************************************************************************/
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = function (module) {
+	var getter = module && module.__esModule ?
+		function () { return module['default']; } :
+		function () { return module; };
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+
+
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
+/************************************************************************/
+
+// EXTERNAL MODULE: ./modern-module-force-concatenation/g/foo.js
+var foo = __webpack_require__("372");
+var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
+;// CONCATENATED MODULE: ./modern-module-force-concatenation/g/index.js
+
+
+
+
+var __webpack_exports__foo = (foo_default());
+export { __webpack_exports__foo as foo };
+`;
+
+exports[`config config/library/0-create-library step  should pass: unambiguous should bail out 1`] = `const c = 'c'`;
 
 exports[`config config/optimization/minimizer-esm-asset exported tests minimizing an asset file of esm type should success 1`] = `console.log(import.meta.url);export const a=1;`;
 
