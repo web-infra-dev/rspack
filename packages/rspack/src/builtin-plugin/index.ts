@@ -57,6 +57,7 @@ export * from "./SideEffectsFlagPlugin";
 export * from "./SizeLimitsPlugin";
 export * from "./SourceMapDevToolPlugin";
 export * from "./SplitChunksPlugin";
+export * from "./SplitSharedModulesPlugin";
 export * from "./LightningCssMiminizerRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
