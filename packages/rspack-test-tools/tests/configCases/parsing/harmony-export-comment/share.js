@@ -1,10 +1,9 @@
-function createRequest(initOptions, engine) {
-  console.log('request')
+function createRequest() {
 }
 function requestEngine() {
 
 }
 
-export default /* #__PURE__ */ createRequest({}, 2);
+export default /* #__PURE__ */ createRequest();
 
 export { requestEngine };
