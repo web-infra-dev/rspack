@@ -282,7 +282,7 @@ impl ESMExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let exports_info = exports_info.unwrap_or_else(|| {
-      // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/ESMExportImportedSpecifierDependency.js#L425
+      // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
       let parent_module = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module");
@@ -1075,7 +1075,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {
-        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/ESMExportImportedSpecifierDependency.js#L630-L742
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L630-L742
         unreachable!()
       }
       ExportModeType::EmptyStar => Some(ExportsSpec {
@@ -1481,7 +1481,7 @@ fn determine_export_assignments<'a>(
   dependencies: &[DependencyId],
   additional_dependency: Option<DependencyId>,
 ) -> (Vec<&'a Atom>, Vec<usize>) {
-  // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/ESMExportImportedSpecifierDependency.js#L109
+  // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
   let mut names: IndexSet<&Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices =
