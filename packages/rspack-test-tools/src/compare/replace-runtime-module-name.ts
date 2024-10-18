@@ -55,7 +55,7 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/remote": "webpack/runtime/remotes loading",
 	"webpack/runtime/share": "webpack/runtime/sharing",
 	"webpack/runtime/consume_shared": "webpack/runtime/consumes",
-	"webpack/runtime/esm_module_decorator":
+	"webpack/runtime/harmony_module_decorator":
 		"webpack/runtime/harmony module decorator",
 	"webpack/runtime/node_module_decorator":
 		"webpack/runtime/node module decorator",
