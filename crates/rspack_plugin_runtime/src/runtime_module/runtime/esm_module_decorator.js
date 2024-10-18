@@ -4,7 +4,7 @@ __webpack_require__.hmd = function (module) {
     Object.defineProperty(module, 'exports', {
         enumerable: true,
         set: function () {
-            throw new Error('ES modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+            throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
         }
     });
     return module;
