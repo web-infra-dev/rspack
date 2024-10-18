@@ -39,6 +39,7 @@ pub struct ESMExportExpressionDependency {
   id: DependencyId,
   range: RealDependencyLocation,
   range_stmt: RealDependencyLocation,
+  prefix: String,
   declaration: Option<DeclarationId>,
 }
 
@@ -46,12 +47,14 @@ impl ESMExportExpressionDependency {
   pub fn new(
     range: RealDependencyLocation,
     range_stmt: RealDependencyLocation,
+    prefix: String,
     declaration: Option<DeclarationId>,
   ) -> Self {
     Self {
       range,
       range_stmt,
       declaration,
+      prefix,
       id: DependencyId::default(),
     }
   }
@@ -227,7 +230,7 @@ impl DependencyTemplate for ESMExportExpressionDependency {
       source.replace(
         self.range_stmt.start,
         self.range.start,
-        &format!("{}(", content),
+        &format!("{}({}", content, self.prefix),
         None,
       );
       source.replace_with_enforce(
