@@ -69,6 +69,10 @@ pub enum DependencyType {
   RequireContext,
   // require.resolve
   RequireResolve,
+  // require.ensure
+  RequireEnsure,
+  // require.ensure item
+  RequireEnsureItem,
   /// wasm import
   WasmImport,
   /// wasm export import
@@ -140,6 +144,8 @@ impl DependencyType {
       DependencyType::CommonJSRequireContext => "commonjs require context",
       DependencyType::RequireContext => "require.context",
       DependencyType::RequireResolve => "require.resolve",
+      DependencyType::RequireEnsure => "require.ensure",
+      DependencyType::RequireEnsureItem => "require.ensure item",
       DependencyType::WasmImport => "wasm import",
       DependencyType::WasmExportImported => "wasm export imported",
       DependencyType::StaticExports => "static exports",
