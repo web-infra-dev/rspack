@@ -20,7 +20,7 @@ anyhow                   = { workspace = true }
 async-trait              = { workspace = true }
 base64                   = { version = "0.22" }
 dashmap                  = { workspace = true }
-either                   = "1"
+either                   = { workspace = true }
 jsonc-parser             = { version = "0.23.0", features = ["serde"] }
 rspack_ast               = { version = "0.1.0", path = "../rspack_ast" }
 rspack_core              = { version = "0.1.0", path = "../rspack_core" }
