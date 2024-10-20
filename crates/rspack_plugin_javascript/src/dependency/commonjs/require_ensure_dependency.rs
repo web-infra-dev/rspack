@@ -71,6 +71,9 @@ impl DependencyTemplate for RequireEnsureDependency {
       &format!("{}.then((", promise),
       None,
     );
+    code_generatable_context
+      .runtime_requirements
+      .insert(RuntimeGlobals::REQUIRE);
     if let Some(error_handler_range) = &self.error_handler_range {
       source.replace(
         self.content_range.end,
@@ -80,6 +83,9 @@ impl DependencyTemplate for RequireEnsureDependency {
       );
       source.replace(error_handler_range.end, self.range.end, ")", None);
     } else {
+      code_generatable_context
+        .runtime_requirements
+        .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(
         self.content_range.end,
         self.range.end,
