@@ -1,3 +1,4 @@
+mod amd;
 mod commonjs;
 mod context;
 mod esm;
@@ -9,6 +10,7 @@ mod pure_expression_dependency;
 mod url;
 mod worker;
 
+pub use self::amd::*;
 pub use self::commonjs::*;
 pub use self::context::*;
 pub use self::esm::*;
