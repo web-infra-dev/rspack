@@ -10,10 +10,10 @@ pub enum DependencyType {
   Unknown,
   ExportInfoApi,
   Entry,
-  // ESM import
+  // Harmony import
   EsmImport,
   EsmImportSpecifier,
-  // ESM export
+  // Harmony export
   EsmExport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
@@ -33,6 +33,12 @@ pub enum DependencyType {
   CjsExportRequire,
   // cjs self reference
   CjsSelfReference,
+  // AMD
+  AmdDefine,
+  AmdRequireArray,
+  AmdRequireContext,
+  AmdRequire,
+  AmdRequireItem,
   // new URL("./foo", import.meta.url)
   NewUrl,
   // new Worker()
@@ -126,6 +132,11 @@ impl DependencyType {
       DependencyType::CjsExports => "cjs exports",
       DependencyType::CjsExportRequire => "cjs export require",
       DependencyType::CjsSelfReference => "cjs self exports reference",
+      DependencyType::AmdDefine => "amd define",
+      DependencyType::AmdRequireArray => "amd require array",
+      DependencyType::AmdRequireContext => "amd require context",
+      DependencyType::AmdRequire => "amd",
+      DependencyType::AmdRequireItem => "amd require",
       DependencyType::NewUrl => "new URL()",
       DependencyType::NewWorker => "new Worker()",
       DependencyType::CreateScriptUrl => "create script url",
