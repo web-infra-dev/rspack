@@ -248,6 +248,15 @@ bitflags! {
     const RSPACK_UNIQUE_ID = 1 << 64;
 
     const HAS_FETCH_PRIORITY = 1 << 65;
+
+    // amd module support
+    const AMD_DEFINE = 1 << 66;
+    const AMD_OPTIONS = 1 << 67;
+
+    /**
+     * the uncaught error handler for the webpack runtime
+     */
+    const UNCAUGHT_ERROR_HANDLER = 1 << 68;
   }
 }
 
@@ -293,11 +302,14 @@ impl RuntimeGlobals {
       R::GET_CHUNK_UPDATE_CSS_FILENAME => "__webpack_require__.hk",
       R::HMR_MODULE_DATA => "__webpack_require__.hmrD",
       R::HMR_RUNTIME_STATE_PREFIX => "__webpack_require__.hmrS",
+      R::AMD_DEFINE => "__webpack_require__.amdD",
+      R::AMD_OPTIONS => "__webpack_require__.amdO",
       R::EXTERNAL_INSTALL_CHUNK => "__webpack_require__.C",
       R::GET_FULL_HASH => "__webpack_require__.h",
       R::GLOBAL => "__webpack_require__.g",
       R::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
       R::INSTANTIATE_WASM => "__webpack_require__.v",
+      R::UNCAUGHT_ERROR_HANDLER => "__webpack_require__.oe",
       R::ASYNC_MODULE => "__webpack_require__.a",
       R::BASE_URI => "__webpack_require__.b",
       R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
