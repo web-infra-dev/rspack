@@ -1,8 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -23,14 +21,8 @@ impl GetMainFilenameRuntimeModule {
       filename,
     )
   }
-}
 
-impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let filename = compilation.get_path(
@@ -40,19 +32,22 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
           .hash(format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH).as_str())
           .runtime(&chunk.runtime),
       )?;
-      Ok(
-        RawSource::from(format!(
-          "{} = function () {{
-            return \"{}\";
-         }};
-        ",
-          self.global, filename
-        ))
-        .boxed(),
-      )
+      Ok(format!(
+        "{} = function () {{
+          return \"{}\";
+       }};
+      ",
+        self.global, filename
+      ))
     } else {
       unreachable!("should attach chunk for get_main_filename")
     }
+  }
+}
+
+impl RuntimeModule for GetMainFilenameRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

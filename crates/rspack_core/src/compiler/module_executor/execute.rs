@@ -191,12 +191,14 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation)?;
+      let result = runtime_module.code_generation(&compilation, None, None)?;
+      #[allow(clippy::unwrap_used)]
+      let runtime_module_source = result.get(&SourceType::Runtime).unwrap();
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
+      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
       let result_id = result.id;
 
       compilation

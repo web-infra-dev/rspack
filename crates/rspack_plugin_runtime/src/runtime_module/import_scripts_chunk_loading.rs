@@ -1,9 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::{
@@ -36,7 +35,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
-  ) -> rspack_error::Result<BoxSource> {
+  ) -> rspack_error::Result<String> {
     let base_uri = if let Some(base_uri) = chunk
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
@@ -55,16 +54,10 @@ impl ImportScriptsChunkLoadingRuntimeModule {
         .expect("should able to be serde_json::to_string")
       )
     };
-    Ok(RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed())
-  }
-}
-
-impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
+    Ok(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri))
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -83,27 +76,27 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
 
-    let mut source = ConcatSource::default();
+    let mut generated_code = String::new();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation)?);
+      generated_code.push_str(&self.generate_base_uri(chunk, compilation)?);
     }
 
     // object to store loaded chunks
     // "1" means "already loaded"
     if with_hmr {
       let state_expression = format!("{}_importScripts", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-      source.add(RawSource::from(format!(
+      generated_code.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
-      )));
+      ));
     } else {
-      source.add(RawSource::from(format!(
+      generated_code.push_str(&format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
-      )));
+      ));
     }
 
     if with_loading {
@@ -144,12 +137,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       };
 
       // If chunkId not corresponding chunkName will skip load it.
-      source.add(RawSource::from(
-        include_str!("runtime/import_scripts_chunk_loading.js")
+      generated_code.push_str(
+        &include_str!("runtime/import_scripts_chunk_loading.js")
           .cow_replace("$BODY$", body.as_str())
-          .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-          .into_owned(),
-      ));
+          .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
+      );
     }
 
     if with_hmr {
@@ -167,30 +159,33 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
           RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
         )
       };
-      source.add(RawSource::from(
-        include_str!("runtime/import_scripts_chunk_loading_with_hmr.js")
+      generated_code.push_str(
+        &include_str!("runtime/import_scripts_chunk_loading_with_hmr.js")
           .cow_replace("$URL$", &url)
           .cow_replace("$globalObject$", &compilation.options.output.global_object)
           .cow_replace(
             "$hotUpdateGlobal$",
             &serde_json::to_string(&compilation.options.output.hot_update_global)
               .expect("failed to serde_json::to_string(hot_update_global)"),
-          )
-          .into_owned(),
-      ));
-      source.add(RawSource::from(generate_javascript_hmr_runtime(
-        "importScripts",
-      )));
+          ),
+      );
+      generated_code.push_str(&generate_javascript_hmr_runtime("importScripts"));
     }
 
     if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
-      source.add(RawSource::from(include_str!(
+      generated_code.push_str(&include_str!(
         "runtime/import_scripts_chunk_loading_with_hmr_manifest.js"
-      )));
+      ));
     }
 
-    Ok(source.boxed())
+    Ok(generated_code)
+  }
+}
+
+impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

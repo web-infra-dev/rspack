@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use rspack_collections::Identifier;
-use rspack_core::{rspack_sources::Source, Compilation, RuntimeModule};
+use rspack_collections::{Identifiable, Identifier};
+use rspack_core::{rspack_sources::Source, Compilation, CustomSourceRuntimeModule, RuntimeModule};
 use rspack_macros::impl_runtime_module;
 
 #[allow(dead_code)]
@@ -13,15 +13,17 @@ fn with_generic() {
     marker: PhantomData<T>,
   }
 
-  impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {
-    fn name(&self) -> Identifier {
-      todo!()
-    }
-
+  impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> Foo<T> {
     fn generate(
       &self,
       _: &Compilation,
     ) -> rspack_error::Result<rspack_core::rspack_sources::BoxSource> {
+      todo!()
+    }
+  }
+
+  impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {
+    fn name(&self) -> Identifier {
       todo!()
     }
   }

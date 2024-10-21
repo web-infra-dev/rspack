@@ -1,9 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  get_js_chunk_filename_template, impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType,
+  get_js_chunk_filename_template, impl_runtime_module, ChunkUkey, Compilation, OutputOptions,
+  PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceType,
 };
 
 use super::utils::get_undo_path;
@@ -13,6 +11,28 @@ use super::utils::get_undo_path;
 pub struct AutoPublicPathRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+}
+
+impl AutoPublicPathRuntimeModule {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let chunk = self.chunk.expect("The chunk should be attached");
+    let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+    let filename = get_js_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.chunk_group_by_ukey,
+    );
+    let filename = compilation.get_path(
+      filename,
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_type(SourceType::JavaScript),
+    )?;
+    Ok(auto_public_path_template(
+      &filename,
+      &compilation.options.output,
+    ))
+  }
 }
 
 impl Default for AutoPublicPathRuntimeModule {
@@ -32,29 +52,6 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    let chunk = self.chunk.expect("The chunk should be attached");
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-    let filename = get_js_chunk_filename_template(
-      chunk,
-      &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
-    );
-    let filename = compilation.get_path(
-      filename,
-      PathData::default()
-        .chunk(chunk)
-        .content_hash_type(SourceType::JavaScript),
-    )?;
-    Ok(
-      RawSource::from(auto_public_path_template(
-        &filename,
-        &compilation.options.output,
-      ))
-      .boxed(),
-    )
   }
 }
 

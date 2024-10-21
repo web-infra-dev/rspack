@@ -2,11 +2,7 @@ use std::sync::Arc;
 
 use derivative::Derivative;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule, RuntimeModuleStage,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage};
 
 type GenerateFn = Arc<dyn Fn() -> rspack_error::Result<String> + Send + Sync>;
 
@@ -22,14 +18,15 @@ pub struct RuntimeModuleFromJs {
   pub stage: RuntimeModuleStage,
 }
 
+impl RuntimeModuleFromJs {
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
+    (self.generator)()
+  }
+}
+
 impl RuntimeModule for RuntimeModuleFromJs {
   fn name(&self) -> Identifier {
     Identifier::from(format!("webpack/runtime/{}", self.name))
-  }
-
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    let res = (self.generator)()?;
-    Ok(RawSource::from(res).boxed())
   }
 
   fn cacheable(&self) -> bool {

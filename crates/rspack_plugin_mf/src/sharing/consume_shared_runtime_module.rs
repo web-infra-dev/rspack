@@ -1,9 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType,
+  impl_runtime_module, Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 
@@ -26,18 +24,8 @@ impl ConsumeSharedRuntimeModule {
       enhanced,
     )
   }
-}
 
-impl RuntimeModule for ConsumeSharedRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
@@ -108,14 +96,14 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
     }
     if module_id_to_consume_data_mapping.is_empty() {
-      return Ok(RawSource::from("").boxed());
+      return Ok("".to_string());
     }
     let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
       .into_iter()
       .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
       .collect::<Vec<_>>()
       .join(", ");
-    let mut source = format!(
+    let mut generated_code = format!(
       r#"
 __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumes: {initial_consumes} }};
 "#,
@@ -130,13 +118,13 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+        generated_code.push_str("__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }");
       }
-      return Ok(RawSource::from(source).boxed());
+      return Ok(generated_code);
     }
-    source += include_str!("./consumesCommon.js");
+    generated_code += include_str!("./consumesCommon.js");
     if !initial_consumes.is_empty() {
-      source += include_str!("./consumesInitial.js");
+      generated_code.push_str(include_str!("./consumesInitial.js"));
     }
     if compilation
       .chunk_graph
@@ -144,9 +132,20 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += include_str!("./consumesLoading.js");
+      generated_code.push_str(include_str!("./consumesLoading.js"));
     }
-    Ok(RawSource::from(source).boxed())
+
+    Ok(generated_code)
+  }
+}
+
+impl RuntimeModule for ConsumeSharedRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

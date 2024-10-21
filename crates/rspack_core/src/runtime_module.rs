@@ -1,13 +1,10 @@
-use std::sync::Arc;
-
 use rspack_collections::Identifier;
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::BoxSource;
 
-use crate::{ChunkUkey, Compilation, Module};
+use crate::{ChunkUkey, Module};
 
 pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn name(&self) -> Identifier;
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource>;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
@@ -19,17 +16,6 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   // if wrap iife
   fn should_isolate(&self) -> bool {
     true
-  }
-
-  fn generate_with_custom(
-    &self,
-    compilation: &Compilation,
-  ) -> rspack_error::Result<Arc<dyn Source>> {
-    if let Some(custom_source) = self.get_custom_source() {
-      Ok(custom_source as Arc<dyn Source>)
-    } else {
-      self.generate(compilation)
-    }
   }
 }
 

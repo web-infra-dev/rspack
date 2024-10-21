@@ -4,10 +4,8 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
-  RuntimeModule, SourceType,
+  get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module, Chunk, ChunkUkey,
+  Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
@@ -68,18 +66,8 @@ impl GetChunkFilenameRuntimeModule {
       Box::new(filename_for_chunk),
     )
   }
-}
 
-impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn cacheable(&self) -> bool {
-    false
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
@@ -318,25 +306,32 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
 
-    Ok(
-      RawSource::from(format!(
-        "// This function allow to reference chunks
-        {} = function (chunkId) {{
-          // return url for filenames not based on template
-          {}
-          // return url for filenames based on template
-          return {};
-        }};
-      ",
-        self.global,
-        static_urls
-          .iter()
-          .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-          .join("\n"),
-        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-      ))
-      .boxed(),
-    )
+    Ok(format!(
+      "// This function allow to reference chunks
+      {} = function (chunkId) {{
+        // return url for filenames not based on template
+        {}
+        // return url for filenames based on template
+        return {};
+      }};
+    ",
+      self.global,
+      static_urls
+        .iter()
+        .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
+        .join("\n"),
+      dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+    ))
+  }
+}
+
+impl RuntimeModule for GetChunkFilenameRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn cacheable(&self) -> bool {
+    false
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

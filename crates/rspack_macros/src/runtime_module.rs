@@ -24,8 +24,8 @@ pub fn impl_runtime_module(
     );
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub cached_generated_code: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>> })
-        .expect("Failed to parse new field for cached_generated_code"),
+        .parse2(quote! { pub cached_generated_source: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>> })
+        .expect("Failed to parse new field for cached_generated_source"),
     );
   }
 
@@ -40,7 +40,7 @@ pub fn impl_runtime_module(
       Self {
         source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
         custom_source: None,
-        cached_generated_code: Default::default(),
+        cached_generated_source: Default::default(),
         #(#field_names,)*
       }
     }
@@ -57,14 +57,28 @@ pub fn impl_runtime_module(
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
         {
-          let mut cached_generated_code = self.cached_generated_code.read().expect("Failed to acquire read lock on cached_generated_code");
-          if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
-            return Ok(cached_generated_code.clone());
+          let mut cached_generated_source = self.cached_generated_source.read().expect("Failed to acquire read lock on cached_generated_source");
+          if let Some(cached_generated_source) = (*cached_generated_source).as_ref() {
+            return Ok(cached_generated_source.clone());
           }
         }
-        let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
-        let source = self.generate_with_custom(compilation)?;
-        *cached_generated_code = Some(source.clone());
+
+        let mut cached_generated_source = self.cached_generated_source.write().expect("Failed to acquire write lock on cached_generated_source");
+        use ::rspack_core::CustomSourceRuntimeModule;
+        let source = if let Some(custom_source) = self.get_custom_source() {
+          custom_source
+        } else {
+          let generated_code = self.generate(compilation)?;
+
+          use ::rspack_core::rspack_sources::SourceExt;
+          if self.source_map_kind.enabled() {
+            use ::rspack_collections::Identifiable;
+            ::rspack_core::rspack_sources::OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+          } else {
+            ::rspack_core::rspack_sources::RawSource::from(generated_code).boxed()
+          }
+        };
+        *cached_generated_source = Some(source.clone());
         Ok(source)
       }
     }
@@ -81,8 +95,8 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl #impl_generics rspack_collections::Identifiable for #name #ty_generics #where_clause {
-      fn identifier(&self) -> rspack_collections::Identifier {
+    impl #impl_generics ::rspack_collections::Identifiable for #name #ty_generics #where_clause {
+      fn identifier(&self) -> ::rspack_collections::Identifier {
         self.name()
       }
     }

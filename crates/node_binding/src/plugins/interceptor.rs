@@ -53,7 +53,7 @@ use rspack_core::{
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme,
+  Scheme, SourceType,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -1199,11 +1199,14 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
       return Ok(());
     };
     let chunk = compilation.chunk_by_ukey.expect_get(c);
+    let result = module.code_generation(compilation, None, None)?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(
-          module
-            .generate(compilation)?
+          #[allow(clippy::unwrap_used)]
+          result
+            .get(&SourceType::Runtime)
+            .unwrap()
             .to_js_compat_source()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),

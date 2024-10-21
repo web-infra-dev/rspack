@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use cow_utils::CowUtils;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  impl_runtime_module, rspack_sources::RawSource, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_error::Result;
 use rustc_hash::FxHashMap;
@@ -57,21 +55,8 @@ impl CssLoadingRuntimeModule {
 
     set
   }
-}
 
-impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> rspack_collections::Identifier {
-    "webpack/runtime/css loading".into()
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-
-  fn generate(
-    &self,
-    compilation: &rspack_core::Compilation,
-  ) -> Result<rspack_core::rspack_sources::BoxSource> {
+  fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
     let runtime = RUNTIME_CODE;
 
     let mut attr = String::default();
@@ -183,6 +168,16 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       runtime.cow_replace("__WITH_HMT__", "// no hmr")
     };
 
-    Ok(Arc::new(RawSource::from(runtime.into_owned())))
+    Ok(runtime.to_string())
+  }
+}
+
+impl RuntimeModule for CssLoadingRuntimeModule {
+  fn name(&self) -> rspack_collections::Identifier {
+    "webpack/runtime/css loading".into()
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }
