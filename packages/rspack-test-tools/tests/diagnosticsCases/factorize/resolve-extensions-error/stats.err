@@ -1,5 +1,5 @@
 ERROR in ./err/index.js 1:0-21
-  × Module not found: Can't resolve '../a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error/err'
+  × Module not found: Can't resolve '../a' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error/err'
    ╭────
  1 │ import a from '../a';
    ·               ──────
@@ -11,7 +11,7 @@ ERROR in ./err/index.js 1:0-21
         2. use '../a.txt' instead of '../a'
 
 ERROR in ./index.js 2:0-16
-  × Module not found: Can't resolve './test' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
+  × Module not found: Can't resolve './test' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
    ╭─[2:7]
  1 │ import './err';
  2 │ import './test';
@@ -25,7 +25,7 @@ ERROR in ./index.js 2:0-16
         2. use './test/index.txt' instead of './test'
 
 ERROR in ./index.js 3:0-20
-  × Module not found: Can't resolve './a' in '<PROJECT_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
+  × Module not found: Can't resolve './a' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/resolve-extensions-error'
    ╭─[3:14]
  1 │ import './err';
  2 │ import './test';

@@ -1,5 +1,5 @@
 WARNING in ./lib.js
-  ⚠ ModuleWarning: Failed to load (from: <PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js)
+  ⚠ ModuleWarning: Failed to load (from: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js)
 
 ERROR in ./lib.js
-  × ModuleError: Failed to load (from: <PROJECT_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js)
+  × ModuleError: Failed to load (from: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js)

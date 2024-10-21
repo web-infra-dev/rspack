@@ -561,8 +561,8 @@ importers:
         specifier: 0.5.6
         version: 0.5.6
       path-serializer:
-        specifier: 0.1.2
-        version: 0.1.2
+        specifier: 0.2.1
+        version: 0.2.1
       pretty-format:
         specifier: 29.7.0
         version: 29.7.0
@@ -8676,8 +8676,8 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
-  path-serializer@0.1.2:
-    resolution: {integrity: sha512-gF11AVLnQlBmF8UH9mw+sZUd9v4TG24EtHy+sC062PlJ+fUkWGjkfSGdwPqK9JOsi8TxtnziE7gRAv4GEAH+sw==}
+  path-serializer@0.2.1:
+    resolution: {integrity: sha512-NEGJMzQZRGUzwsFhRNs81FtYT2rctIvEj+YHtPNaJWm/sDjr3F50ZJIqw4/SS245ikmKuwLAsNypEo54D8PH2A==}
 
   path-temp@2.1.0:
     resolution: {integrity: sha512-cMMJTAZlion/RWRRC48UbrDymEIt+/YSD/l8NqjneyDw2rDOBQcP5yRkMB4CYGn47KMhZvbblBP7Z79OsMw72w==}
@@ -20972,7 +20972,7 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
-  path-serializer@0.1.2: {}
+  path-serializer@0.2.1: {}
 
   path-temp@2.1.0:
     dependencies:

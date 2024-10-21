@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6903
+- Update: main.hot-update.js, size: 6905
 
 ## Manifest
 
@@ -67,7 +67,7 @@ function normalizeUrl(url) {
   }
   const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
   const components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-  const host = components[0].toLowerCase().replace(//.$/, "");
+  const host = components[0].toLowerCase().replace(/\.$/, "");
   components[0] = "";
   const path = components.reduce((accumulator, item) => {
     switch (item) {
@@ -117,13 +117,13 @@ function getCurrentScriptUrl(moduleId) {
     if (!src) {
       return null;
     }
-    const splitResult = src.match(/([^//]+)/.js$/);
+    const splitResult = src.match(/([^\\/]+)\.js$/);
     const filename = splitResult && splitResult[1];
     if (!filename || !fileMap) {
       return [src.replace(".js", ".css")];
     }
     return fileMap.split(",").map((mapRule) => {
-      const reg = new RegExp(`${filename}/.js$`, "g");
+      const reg = new RegExp(`${filename}\\.js$`, "g");
       return normalizeUrl(
         src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`)
       );
@@ -225,7 +225,7 @@ function reloadAll() {
   });
 }
 function isUrlRequest(url) {
-  if (!/^[a-zA-Z][a-zA-Z/d+/-.]*:/.test(url)) {
+  if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
     return false;
   }
   return true;
