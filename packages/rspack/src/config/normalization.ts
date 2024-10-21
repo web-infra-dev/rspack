@@ -312,7 +312,18 @@ export const getNormalizedRspackOptions = (
 				options => (options === true ? {} : options)
 			),
 			incremental: optionalNestedConfig(experiments.incremental, options =>
-				options === true ? {} : options
+				options === true
+					? ({
+							make: true,
+							emitAssets: true,
+							dependenciesDiagnostics: true,
+							inferAsyncModules: true,
+							providedExports: true,
+							modulesHashes: true,
+							modulesCodegen: true,
+							modulesRuntimeRequirements: true
+						} satisfies Incremental)
+					: options
 			)
 		})),
 		watch: config.watch,

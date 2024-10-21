@@ -168,7 +168,7 @@ pub struct Compilation {
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
   pub async_modules: IdentifierSet,
-  pub modules_diagnostics: IdentifierMap<Vec<Diagnostic>>,
+  pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
   pub code_generation_results: CodeGenerationResults,
   pub cgm_hash_results: CgmHashResults,
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
@@ -267,7 +267,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
 
       async_modules: Default::default(),
-      modules_diagnostics: Default::default(),
+      dependencies_diagnostics: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),
@@ -1087,7 +1087,7 @@ impl Compilation {
         .can_read_mutations(IncrementalPasses::PROVIDED_EXPORTS)
       || self
         .incremental
-        .can_read_mutations(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS)
+        .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
     {
       self
         .unaffected_modules_cache
@@ -1128,14 +1128,14 @@ impl Compilation {
   fn collect_dependencies_diagnostics(&mut self) {
     let mutations = self
       .incremental
-      .mutations_read(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS);
+      .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
     let modules = if let Some(mutations) = mutations {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRevoke { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
-        self.modules_diagnostics.remove(&revoked_module);
+        self.dependencies_diagnostics.remove(&revoked_module);
       }
       self
         .unaffected_modules_cache
@@ -1148,7 +1148,7 @@ impl Compilation {
       module_graph.modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
-    let modules_diagnostics: IdentifierMap<Vec<Diagnostic>> = modules
+    let dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>> = modules
       .par_iter()
       .map(|module_identifier| {
         let mgm = module_graph
@@ -1165,10 +1165,12 @@ impl Compilation {
       })
       .collect();
     let all_modules_diagnostics = if mutations.is_some() {
-      self.modules_diagnostics.extend(modules_diagnostics);
-      self.modules_diagnostics.clone()
+      self
+        .dependencies_diagnostics
+        .extend(dependencies_diagnostics);
+      self.dependencies_diagnostics.clone()
     } else {
-      modules_diagnostics
+      dependencies_diagnostics
     };
     self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
   }
@@ -1247,13 +1249,13 @@ impl Compilation {
 
     let module_hashes_enabled = self
       .incremental
-      .can_read_mutations(IncrementalPasses::MODULE_HASHES);
+      .can_read_mutations(IncrementalPasses::MODULES_HASHES);
     let module_codegen_enabled = self
       .incremental
-      .can_read_mutations(IncrementalPasses::MODULE_CODEGEN);
+      .can_read_mutations(IncrementalPasses::MODULES_CODEGEN);
     let module_runtime_requirements_enabled = self
       .incremental
-      .can_read_mutations(IncrementalPasses::MODULE_RUNTIME_REQUIREMENTS);
+      .can_read_mutations(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS);
     let module_hashes_modules;
     let module_codegen_modules;
     let module_runtime_requirements_modules;

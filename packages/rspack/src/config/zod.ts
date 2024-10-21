@@ -1246,10 +1246,10 @@ const incremental = z.strictObject({
 	emitAssets: z.boolean().optional(),
 	inferAsyncModules: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
-	collectModulesDiagnostics: z.boolean().optional(),
-	moduleHashes: z.boolean().optional(),
-	moduleCodegen: z.boolean().optional(),
-	moduleRuntimeRequirements: z.boolean().optional()
+	dependenciesDiagnostics: z.boolean().optional(),
+	modulesHashes: z.boolean().optional(),
+	modulesCodegen: z.boolean().optional(),
+	modulesRuntimeRequirements: z.boolean().optional()
 });
 export type Incremental = z.infer<typeof incremental>;
 

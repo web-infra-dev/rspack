@@ -8,10 +8,10 @@ bitflags! {
     const MAKE = 1 << 0;
     const INFER_ASYNC_MODULES = 1 << 1;
     const PROVIDED_EXPORTS = 1 << 2;
-    const COLLECT_MODULES_DIAGNOSTICS = 1 << 3;
-    const MODULE_HASHES = 1 << 4;
-    const MODULE_CODEGEN = 1 << 5;
-    const MODULE_RUNTIME_REQUIREMENTS = 1 << 6;
+    const DEPENDENCIES_DIAGNOSTICS = 1 << 3;
+    const MODULES_HASHES = 1 << 4;
+    const MODULES_CODEGEN = 1 << 5;
+    const MODULES_RUNTIME_REQUIREMENTS = 1 << 6;
     const EMIT_ASSETS = 1 << 7;
   }
 }

@@ -208,10 +208,10 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 		D(experiments.incremental, "emitAssets", true);
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);
-		D(experiments.incremental, "collectModulesDiagnostics", false);
-		D(experiments.incremental, "moduleHashes", false);
-		D(experiments.incremental, "moduleCodegen", false);
-		D(experiments.incremental, "moduleRuntimeRequirements", false);
+		D(experiments.incremental, "dependenciesDiagnostics", false);
+		D(experiments.incremental, "modulesHashes", false);
+		D(experiments.incremental, "modulesCodegen", false);
+		D(experiments.incremental, "modulesRuntimeRequirements", false);
 	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});

@@ -1851,28 +1851,28 @@ const experiments_2: z.ZodObject<{
         emitAssets: z.ZodOptional<z.ZodBoolean>;
         inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
         providedExports: z.ZodOptional<z.ZodBoolean>;
-        collectModulesDiagnostics: z.ZodOptional<z.ZodBoolean>;
-        moduleHashes: z.ZodOptional<z.ZodBoolean>;
-        moduleCodegen: z.ZodOptional<z.ZodBoolean>;
-        moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+        dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
+        modulesHashes: z.ZodOptional<z.ZodBoolean>;
+        modulesCodegen: z.ZodOptional<z.ZodBoolean>;
+        modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         make?: boolean | undefined;
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModulesDiagnostics?: boolean | undefined;
-        moduleHashes?: boolean | undefined;
-        moduleCodegen?: boolean | undefined;
-        moduleRuntimeRequirements?: boolean | undefined;
+        dependenciesDiagnostics?: boolean | undefined;
+        modulesHashes?: boolean | undefined;
+        modulesCodegen?: boolean | undefined;
+        modulesRuntimeRequirements?: boolean | undefined;
     }, {
         make?: boolean | undefined;
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModulesDiagnostics?: boolean | undefined;
-        moduleHashes?: boolean | undefined;
-        moduleCodegen?: boolean | undefined;
-        moduleRuntimeRequirements?: boolean | undefined;
+        dependenciesDiagnostics?: boolean | undefined;
+        modulesHashes?: boolean | undefined;
+        modulesCodegen?: boolean | undefined;
+        modulesRuntimeRequirements?: boolean | undefined;
     }>]>>;
     futureDefaults: z.ZodOptional<z.ZodBoolean>;
     rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -1932,10 +1932,10 @@ const experiments_2: z.ZodObject<{
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModulesDiagnostics?: boolean | undefined;
-        moduleHashes?: boolean | undefined;
-        moduleCodegen?: boolean | undefined;
-        moduleRuntimeRequirements?: boolean | undefined;
+        dependenciesDiagnostics?: boolean | undefined;
+        modulesHashes?: boolean | undefined;
+        modulesCodegen?: boolean | undefined;
+        modulesRuntimeRequirements?: boolean | undefined;
     } | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
@@ -1975,10 +1975,10 @@ const experiments_2: z.ZodObject<{
         providedExports?: boolean | undefined;
         emitAssets?: boolean | undefined;
         inferAsyncModules?: boolean | undefined;
-        collectModulesDiagnostics?: boolean | undefined;
-        moduleHashes?: boolean | undefined;
-        moduleCodegen?: boolean | undefined;
-        moduleRuntimeRequirements?: boolean | undefined;
+        dependenciesDiagnostics?: boolean | undefined;
+        modulesHashes?: boolean | undefined;
+        modulesCodegen?: boolean | undefined;
+        modulesRuntimeRequirements?: boolean | undefined;
     } | undefined;
     futureDefaults?: boolean | undefined;
     rspackFuture?: {
@@ -2656,28 +2656,28 @@ const incremental: z.ZodObject<{
     emitAssets: z.ZodOptional<z.ZodBoolean>;
     inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
     providedExports: z.ZodOptional<z.ZodBoolean>;
-    collectModulesDiagnostics: z.ZodOptional<z.ZodBoolean>;
-    moduleHashes: z.ZodOptional<z.ZodBoolean>;
-    moduleCodegen: z.ZodOptional<z.ZodBoolean>;
-    moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+    dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
+    modulesHashes: z.ZodOptional<z.ZodBoolean>;
+    modulesCodegen: z.ZodOptional<z.ZodBoolean>;
+    modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
 }, "strict", z.ZodTypeAny, {
     make?: boolean | undefined;
     providedExports?: boolean | undefined;
     emitAssets?: boolean | undefined;
     inferAsyncModules?: boolean | undefined;
-    collectModulesDiagnostics?: boolean | undefined;
-    moduleHashes?: boolean | undefined;
-    moduleCodegen?: boolean | undefined;
-    moduleRuntimeRequirements?: boolean | undefined;
+    dependenciesDiagnostics?: boolean | undefined;
+    modulesHashes?: boolean | undefined;
+    modulesCodegen?: boolean | undefined;
+    modulesRuntimeRequirements?: boolean | undefined;
 }, {
     make?: boolean | undefined;
     providedExports?: boolean | undefined;
     emitAssets?: boolean | undefined;
     inferAsyncModules?: boolean | undefined;
-    collectModulesDiagnostics?: boolean | undefined;
-    moduleHashes?: boolean | undefined;
-    moduleCodegen?: boolean | undefined;
-    moduleRuntimeRequirements?: boolean | undefined;
+    dependenciesDiagnostics?: boolean | undefined;
+    modulesHashes?: boolean | undefined;
+    modulesCodegen?: boolean | undefined;
+    modulesRuntimeRequirements?: boolean | undefined;
 }>;
 
 // @public
@@ -6244,28 +6244,28 @@ export const rspackOptions: z.ZodObject<{
             emitAssets: z.ZodOptional<z.ZodBoolean>;
             inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
             providedExports: z.ZodOptional<z.ZodBoolean>;
-            collectModulesDiagnostics: z.ZodOptional<z.ZodBoolean>;
-            moduleHashes: z.ZodOptional<z.ZodBoolean>;
-            moduleCodegen: z.ZodOptional<z.ZodBoolean>;
-            moduleRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+            dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
+            modulesHashes: z.ZodOptional<z.ZodBoolean>;
+            modulesCodegen: z.ZodOptional<z.ZodBoolean>;
+            modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModulesDiagnostics?: boolean | undefined;
-            moduleHashes?: boolean | undefined;
-            moduleCodegen?: boolean | undefined;
-            moduleRuntimeRequirements?: boolean | undefined;
+            dependenciesDiagnostics?: boolean | undefined;
+            modulesHashes?: boolean | undefined;
+            modulesCodegen?: boolean | undefined;
+            modulesRuntimeRequirements?: boolean | undefined;
         }, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModulesDiagnostics?: boolean | undefined;
-            moduleHashes?: boolean | undefined;
-            moduleCodegen?: boolean | undefined;
-            moduleRuntimeRequirements?: boolean | undefined;
+            dependenciesDiagnostics?: boolean | undefined;
+            modulesHashes?: boolean | undefined;
+            modulesCodegen?: boolean | undefined;
+            modulesRuntimeRequirements?: boolean | undefined;
         }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -6325,10 +6325,10 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModulesDiagnostics?: boolean | undefined;
-            moduleHashes?: boolean | undefined;
-            moduleCodegen?: boolean | undefined;
-            moduleRuntimeRequirements?: boolean | undefined;
+            dependenciesDiagnostics?: boolean | undefined;
+            modulesHashes?: boolean | undefined;
+            modulesCodegen?: boolean | undefined;
+            modulesRuntimeRequirements?: boolean | undefined;
         } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
@@ -6368,10 +6368,10 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModulesDiagnostics?: boolean | undefined;
-            moduleHashes?: boolean | undefined;
-            moduleCodegen?: boolean | undefined;
-            moduleRuntimeRequirements?: boolean | undefined;
+            dependenciesDiagnostics?: boolean | undefined;
+            modulesHashes?: boolean | undefined;
+            modulesCodegen?: boolean | undefined;
+            modulesRuntimeRequirements?: boolean | undefined;
         } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
@@ -8537,10 +8537,10 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModulesDiagnostics?: boolean | undefined;
-            moduleHashes?: boolean | undefined;
-            moduleCodegen?: boolean | undefined;
-            moduleRuntimeRequirements?: boolean | undefined;
+            dependenciesDiagnostics?: boolean | undefined;
+            modulesHashes?: boolean | undefined;
+            modulesCodegen?: boolean | undefined;
+            modulesRuntimeRequirements?: boolean | undefined;
         } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {
@@ -9136,10 +9136,10 @@ export const rspackOptions: z.ZodObject<{
             providedExports?: boolean | undefined;
             emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
-            collectModulesDiagnostics?: boolean | undefined;
-            moduleHashes?: boolean | undefined;
-            moduleCodegen?: boolean | undefined;
-            moduleRuntimeRequirements?: boolean | undefined;
+            dependenciesDiagnostics?: boolean | undefined;
+            modulesHashes?: boolean | undefined;
+            modulesCodegen?: boolean | undefined;
+            modulesRuntimeRequirements?: boolean | undefined;
         } | undefined;
         futureDefaults?: boolean | undefined;
         rspackFuture?: {

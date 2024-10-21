@@ -86,17 +86,17 @@ impl TryFrom<RawOptions> for CompilerOptions {
           if value.provided_exports {
             passes.insert(IncrementalPasses::PROVIDED_EXPORTS);
           }
-          if value.collect_modules_diagnostics {
-            passes.insert(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS);
+          if value.dependencies_diagnostics {
+            passes.insert(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
           }
-          if value.module_hashes {
-            passes.insert(IncrementalPasses::MODULE_HASHES);
+          if value.modules_hashes {
+            passes.insert(IncrementalPasses::MODULES_HASHES);
           }
-          if value.module_codegen {
-            passes.insert(IncrementalPasses::MODULE_CODEGEN);
+          if value.modules_codegen {
+            passes.insert(IncrementalPasses::MODULES_CODEGEN);
           }
-          if value.module_runtime_requirements {
-            passes.insert(IncrementalPasses::MODULE_RUNTIME_REQUIREMENTS);
+          if value.modules_runtime_requirements {
+            passes.insert(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS);
           }
           passes
         }

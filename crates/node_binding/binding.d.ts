@@ -1412,10 +1412,10 @@ export interface RawIncremental {
   emitAssets: boolean
   inferAsyncModules: boolean
   providedExports: boolean
-  collectModulesDiagnostics: boolean
-  moduleHashes: boolean
-  moduleCodegen: boolean
-  moduleRuntimeRequirements: boolean
+  dependenciesDiagnostics: boolean
+  modulesHashes: boolean
+  modulesCodegen: boolean
+  modulesRuntimeRequirements: boolean
 }
 
 export interface RawInfo {
