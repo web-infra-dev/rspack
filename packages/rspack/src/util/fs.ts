@@ -11,6 +11,7 @@
 import assert from "node:assert";
 import type { Abortable } from "node:events";
 import path from "node:path";
+import type { RmOptions } from "node:fs";
 
 import type { WatchOptions } from "../config";
 
@@ -96,9 +97,10 @@ export interface OutputFileSystem {
 			arg1?: (string | Buffer)[] | IDirent[]
 		) => void
 	) => void;
-	rmdir: (
+	rm: (
 		arg0: string,
-		arg1: (arg0?: null | NodeJS.ErrnoException) => void
+		arg1: RmOptions,
+		arg2: (arg0?: null | NodeJS.ErrnoException) => void
 	) => void;
 	unlink: (
 		arg0: string,
@@ -499,7 +501,7 @@ export function rmrf(
 				}
 				let count = files!.length;
 				if (count === 0) {
-					fs.rmdir(p, callback);
+					fs.rm(p, { recursive: true }, callback);
 				} else {
 					for (const file of files!) {
 						assert(typeof file === "string");
@@ -510,7 +512,7 @@ export function rmrf(
 							}
 							count--;
 							if (count === 0) {
-								fs.rmdir(p, callback);
+								fs.rm(p, { recursive: true }, callback);
 							}
 						});
 					}
