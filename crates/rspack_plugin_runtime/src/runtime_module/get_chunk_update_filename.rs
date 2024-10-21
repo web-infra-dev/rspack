@@ -29,9 +29,9 @@ impl GetChunkUpdateFilenameRuntimeModule {
         .always_ok();
       Ok(format!(
         "{} = function (chunkId) {{
-          return '{}';
-       }};
-      ",
+            return '{}';
+         }};
+        ",
         RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME,
         filename
       ))

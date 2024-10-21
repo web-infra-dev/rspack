@@ -11,10 +11,10 @@ impl CreateScriptUrlRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let generated_code = format!(
       r#"
-  {} = function(url){{
-    return {};
-  }};
-  "#,
+    {} = function(url){{
+      return {};
+    }};
+    "#,
       RuntimeGlobals::CREATE_SCRIPT_URL,
       if compilation.options.output.trusted_types.is_some() {
         format!(
