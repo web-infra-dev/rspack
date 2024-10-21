@@ -308,13 +308,13 @@ impl GetChunkFilenameRuntimeModule {
 
     Ok(format!(
       "// This function allow to reference chunks
-      {} = function (chunkId) {{
-        // return url for filenames not based on template
-        {}
-        // return url for filenames based on template
-        return {};
-      }};
-    ",
+        {} = function (chunkId) {{
+          // return url for filenames not based on template
+          {}
+          // return url for filenames based on template
+          return {};
+        }};
+      ",
       self.global,
       static_urls
         .iter()

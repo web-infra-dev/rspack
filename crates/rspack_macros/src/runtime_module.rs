@@ -22,11 +22,6 @@ pub fn impl_runtime_module(
         .parse2(quote! { pub custom_source: Option<::rspack_core::rspack_sources::BoxSource> })
         .expect("Failed to parse new field for custom_source"),
     );
-    fields.named.push(
-      syn::Field::parse_named
-        .parse2(quote! { pub cached_generated_source: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>> })
-        .expect("Failed to parse new field for cached_generated_source"),
-    );
   }
 
   let field_names = origin_fields
@@ -40,7 +35,6 @@ pub fn impl_runtime_module(
       Self {
         source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
         custom_source: None,
-        cached_generated_source: Default::default(),
         #(#field_names,)*
       }
     }
@@ -56,14 +50,6 @@ pub fn impl_runtime_module(
         &self,
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
-        {
-          let mut cached_generated_source = self.cached_generated_source.read().expect("Failed to acquire read lock on cached_generated_source");
-          if let Some(cached_generated_source) = (*cached_generated_source).as_ref() {
-            return Ok(cached_generated_source.clone());
-          }
-        }
-
-        let mut cached_generated_source = self.cached_generated_source.write().expect("Failed to acquire write lock on cached_generated_source");
         use ::rspack_core::CustomSourceRuntimeModule;
         let source = if let Some(custom_source) = self.get_custom_source() {
           custom_source
@@ -78,7 +64,6 @@ pub fn impl_runtime_module(
             ::rspack_core::rspack_sources::RawSource::from(generated_code).boxed()
           }
         };
-        *cached_generated_source = Some(source.clone());
         Ok(source)
       }
     }
@@ -187,7 +172,7 @@ pub fn impl_runtime_module(
         use rspack_util::ext::DynHash;
         self.name().dyn_hash(hasher);
         self.stage().dyn_hash(hasher);
-        self.get_generated_code(compilation)?.dyn_hash(hasher);
+        self.generate(compilation)?.dyn_hash(hasher);
         Ok(())
       }
     }

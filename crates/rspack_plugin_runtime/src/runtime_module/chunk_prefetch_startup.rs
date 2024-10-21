@@ -65,10 +65,10 @@ impl ChunkPrefetchStartupRuntimeModule {
 
         format!(
           r#"
-      {}(0, {}, function() {{
-        {}
-      }}, 5);
-      "#,
+            {}(0, {}, function() {{
+              {}
+            }}, 5);
+            "#,
           RuntimeGlobals::ON_CHUNKS_LOADED,
           serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
           body

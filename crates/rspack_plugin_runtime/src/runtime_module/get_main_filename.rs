@@ -34,9 +34,9 @@ impl GetMainFilenameRuntimeModule {
       )?;
       Ok(format!(
         "{} = function () {{
-          return \"{}\";
-       }};
-      ",
+            return \"{}\";
+         }};
+        ",
         self.global, filename
       ))
     } else {

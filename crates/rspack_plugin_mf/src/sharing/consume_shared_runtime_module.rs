@@ -122,7 +122,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       }
       return Ok(generated_code);
     }
-    generated_code += include_str!("./consumesCommon.js");
+    generated_code.push_str(include_str!("./consumesCommon.js"));
     if !initial_consumes.is_empty() {
       generated_code.push_str(include_str!("./consumesInitial.js"));
     }
