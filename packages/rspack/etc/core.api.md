@@ -4583,7 +4583,7 @@ type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?
 type ResolveContext = {};
 
 // @public (undocumented)
-type ResolveData = {
+export type ResolveData = {
     contextInfo: ContextInfo;
     context: string;
     request: string;
@@ -4735,6 +4735,7 @@ declare namespace rspackExports {
         Chunk,
         ChunkGroup,
         Module,
+        ResolveData,
         MultiStats,
         NormalModule,
         NormalModuleFactory,
