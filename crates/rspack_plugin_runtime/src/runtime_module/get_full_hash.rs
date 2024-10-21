@@ -31,4 +31,8 @@ impl RuntimeModule for GetFullHashRuntimeModule {
   fn cacheable(&self) -> bool {
     false
   }
+
+  fn full_hash(&self) -> bool {
+    true
+  }
 }

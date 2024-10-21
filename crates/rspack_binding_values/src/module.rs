@@ -484,6 +484,7 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
       generator: Arc::new(move || value.generator.blocking_call_with_sync(())),
       source_map_kind: SourceMapKind::empty(),
       custom_source: None,
+      cached_generated_code: Default::default(),
     }
   }
 }

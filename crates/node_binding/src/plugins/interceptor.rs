@@ -1198,6 +1198,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
+
     let chunk = compilation.chunk_by_ukey.expect_get(c);
     let result = module.code_generation(compilation, None, None)?;
     let arg = JsRuntimeModuleArg {

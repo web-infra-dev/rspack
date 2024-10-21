@@ -41,4 +41,8 @@ impl RuntimeModule for PublicPathRuntimeModule {
       false
     }
   }
+
+  fn dependent_hash(&self) -> bool {
+    true
+  }
 }

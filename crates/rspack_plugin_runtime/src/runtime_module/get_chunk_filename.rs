@@ -337,4 +337,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+
+  fn dependent_hash(&self) -> bool {
+    true
+  }
 }

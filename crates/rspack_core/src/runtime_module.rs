@@ -17,6 +17,14 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn should_isolate(&self) -> bool {
     true
   }
+
+  fn full_hash(&self) -> bool {
+    false
+  }
+
+  fn dependent_hash(&self) -> bool {
+    false
+  }
 }
 
 pub trait CustomSourceRuntimeModule {
