@@ -148,7 +148,7 @@ impl ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_external_install_chunk {
-      generated_code.push_str(&include_str!(
+      generated_code.push_str(include_str!(
         "runtime/readfile_chunk_loading_with_external_install_chunk.js"
       ));
     }

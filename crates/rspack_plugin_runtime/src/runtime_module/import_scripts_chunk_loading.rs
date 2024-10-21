@@ -174,7 +174,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
 
     if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
-      generated_code.push_str(&include_str!(
+      generated_code.push_str(include_str!(
         "runtime/import_scripts_chunk_loading_with_hmr_manifest.js"
       ));
     }
