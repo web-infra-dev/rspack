@@ -1,3 +1,3 @@
 module.exports = () => {
-	return "support require.ensure()";
+	return "https://github.com/web-infra-dev/rspack/issues/4313";
 };

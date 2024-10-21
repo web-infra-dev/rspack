@@ -51,7 +51,7 @@ static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
     RuntimeGlobals::BASE_URI,
     RuntimeGlobals::RELATIVE_URL,
     RuntimeGlobals::SCRIPT_NONCE,
-    // RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
+    RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
     RuntimeGlobals::ASYNC_MODULE,
     // RuntimeGlobals::WASM_INSTANCES,
     RuntimeGlobals::INSTANTIATE_WASM,

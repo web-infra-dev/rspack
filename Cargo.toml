@@ -26,6 +26,7 @@ cow-utils          = { version = "0.1.3" }
 css-module-lexer   = { version = "0.0.14" }
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
+either             = { version = "1.10.0" }
 futures            = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
