@@ -1,10 +1,6 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
 
 use crate::get_chunk_runtime_requirements;
 
@@ -15,21 +11,8 @@ pub struct GetTrustedTypesPolicyRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for GetTrustedTypesPolicyRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(
-      Identifier::from("webpack/runtime/get_trusted_types_policy"),
-      None,
-    )
-  }
-}
-
-impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+impl GetTrustedTypesPolicyRuntimeModule {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let trusted_types = compilation
       .options
       .output
@@ -67,13 +50,25 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       );
     }
     Ok(
-      RawSource::from(
-        result
-          .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
-          .into_owned(),
-      )
-      .boxed(),
+      result
+        .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
+        .to_string(),
     )
+  }
+}
+
+impl Default for GetTrustedTypesPolicyRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      None,
+    )
+  }
+}
+
+impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

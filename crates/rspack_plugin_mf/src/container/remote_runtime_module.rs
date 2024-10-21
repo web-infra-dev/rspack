@@ -1,8 +1,7 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
+  impl_runtime_module, ChunkUkey, Compilation, DependenciesBlock, RuntimeModule,
+  RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -26,18 +25,8 @@ impl RemoteRuntimeModule {
       enhanced,
     )
   }
-}
 
-impl RuntimeModule for RemoteRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
@@ -96,7 +85,8 @@ impl RuntimeModule for RemoteRuntimeModule {
     } else {
       include_str!("./remotesLoading.js")
     };
-    Ok(RawSource::from(format!(
+
+    let generated_code = format!(
       r#"
 __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
@@ -104,8 +94,18 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
-    ))
-    .boxed())
+    );
+    Ok(generated_code)
+  }
+}
+
+impl RuntimeModule for RemoteRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

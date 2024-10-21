@@ -1,9 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -34,7 +33,7 @@ impl ModuleChunkLoadingRuntimeModule {
     chunk: &Chunk,
     compilation: &Compilation,
     root_output_dir: &str,
-  ) -> BoxSource {
+  ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
@@ -46,16 +45,10 @@ impl ModuleChunkLoadingRuntimeModule {
           compilation.options.output.import_meta_name
         )
       });
-    RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
-  }
-}
-
-impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
+    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -77,13 +70,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     let root_output_dir = get_output_dir(chunk, compilation, true)?;
 
-    let mut source = ConcatSource::default();
+    let mut generated_code = String::new();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
+      generated_code.push_str(&self.generate_base_uri(chunk, compilation, &root_output_dir));
     }
 
-    source.add(RawSource::from(format!(
+    generated_code.push_str(&format!(
       r#"
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
@@ -98,20 +91,18 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         false => "".to_string(),
       },
       &stringify_chunks(&initial_chunks, 0)
-    )));
+    ));
 
     if with_loading || with_external_install_chunk {
-      source.add(RawSource::from(
-        include_str!("runtime/module_chunk_loading.js")
-          .cow_replace(
-            "$WITH_ON_CHUNK_LOAD$",
-            match with_on_chunk_load {
-              true => "__webpack_require__.O();",
-              false => "",
-            },
-          )
-          .into_owned(),
-      ));
+      generated_code.push_str(
+        &include_str!("runtime/module_chunk_loading.js").cow_replace(
+          "$WITH_ON_CHUNK_LOAD$",
+          match with_on_chunk_load {
+            true => "__webpack_require__.O();",
+            false => "",
+          },
+        ),
+      );
     }
 
     if with_loading {
@@ -136,37 +127,43 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           .into_owned()
       };
 
-      source.add(RawSource::from(format!(
+      generated_code.push_str(&format!(
         r#"
         {}.j = function (chunkId, promises) {{
           {body}
         }}
         "#,
         RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-      )));
+      ));
     }
 
     if with_external_install_chunk {
-      source.add(RawSource::from(format!(
+      generated_code.push_str(&format!(
         r#"
         {} = installChunk;
         "#,
         RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
-      )));
+      ));
     }
 
     if with_on_chunk_load {
-      source.add(RawSource::from(format!(
+      generated_code.push_str(&format!(
         r#"
         {}.j = function(chunkId) {{
             return installedChunks[chunkId] === 0;
         }}
         "#,
         RuntimeGlobals::ON_CHUNKS_LOADED
-      )));
+      ));
     }
 
-    Ok(source.boxed())
+    Ok(generated_code)
+  }
+}
+
+impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

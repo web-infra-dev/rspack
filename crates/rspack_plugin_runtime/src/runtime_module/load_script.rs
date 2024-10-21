@@ -1,9 +1,7 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -18,22 +16,7 @@ pub struct LoadScriptRuntimeModule {
 }
 
 impl LoadScriptRuntimeModule {
-  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
-    Self::with_default(
-      Identifier::from("webpack/runtime/load_script"),
-      unique_name,
-      with_create_script_url,
-      chunk_ukey,
-    )
-  }
-}
-
-impl RuntimeModule for LoadScriptRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
@@ -83,7 +66,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       "".to_string()
     };
 
-    Ok(RawSource::from(
+    Ok(
       include_str!("runtime/load_script.js")
         .cow_replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
@@ -125,8 +108,24 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         .cow_replace(
           "$UNIQUE_PREFIX$",
           unique_prefix.unwrap_or_default().as_str(),
-        ).into_owned(),
+        ).to_string(),
     )
-    .boxed())
+  }
+}
+
+impl LoadScriptRuntimeModule {
+  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/load_script"),
+      unique_name,
+      with_create_script_url,
+      chunk_ukey,
+    )
+  }
+}
+
+impl RuntimeModule for LoadScriptRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 }

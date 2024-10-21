@@ -3,10 +3,8 @@ use std::borrow::Cow;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  basic_function, compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkUkey,
+  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;
@@ -18,18 +16,8 @@ pub struct CssLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for CssLoadingRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
-  }
-}
-
-impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+impl CssLoadingRuntimeModule {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -64,20 +52,20 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if !with_hmr && !with_loading && initial_chunk_ids_with_css.is_empty() {
-        return Ok(RawSource::from("").boxed());
+        return Ok("".to_string());
       }
 
-      let mut source = ConcatSource::default();
+      let mut generated_code = String::new();
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 
       // One entry initial chunk maybe is other entry dynamic chunk, so here
       // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
-      source.add(RawSource::from(format!(
+      generated_code.push_str(&format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunk_ids_without_css, 0)
-      )));
+      ));
 
       let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
         &compilation.options.output.cross_origin_loading
@@ -197,8 +185,8 @@ for(i = 0; cc; i++) {{
         Cow::Borrowed("// no initial css")
       };
 
-      source.add(RawSource::from(
-        include_str!("./css_loading.js")
+      generated_code.push_str(
+        &include_str!("./css_loading.js")
           .cow_replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
@@ -206,9 +194,8 @@ for(i = 0; cc; i++) {{
           .cow_replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
           .cow_replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
           .cow_replace("__UNIQUE_NAME__", unique_name)
-          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data)
-          .into_owned(),
-      ));
+          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data),
+      );
 
       if with_loading {
         let chunk_loading_global_expr = format!(
@@ -216,8 +203,8 @@ for(i = 0; cc; i++) {{
           &compilation.options.output.global_object,
           &compilation.options.output.chunk_loading_global
         );
-        source.add(RawSource::from(
-          include_str!("./css_loading_with_loading.js")
+        generated_code.push_str(
+          &include_str!("./css_loading_with_loading.js")
             .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
             .cow_replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
             .cow_replace(
@@ -227,19 +214,30 @@ for(i = 0; cc; i++) {{
               } else {
                 ""
               },
-            )
-            .into_owned(),
-        ));
+            ),
+        );
       }
 
       if with_hmr {
-        source.add(RawSource::from(include_str!("./css_loading_with_hmr.js")));
+        generated_code.push_str(include_str!("./css_loading_with_hmr.js"));
       }
 
-      Ok(source.boxed())
+      Ok(generated_code)
     } else {
       unreachable!("should attach chunk for css_loading")
     }
+  }
+}
+
+impl Default for CssLoadingRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
+  }
+}
+
+impl RuntimeModule for CssLoadingRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

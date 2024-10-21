@@ -1,11 +1,9 @@
 use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ApplyContext, BooleanMatcher, Chunk, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin, PluginContext,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, ApplyContext, BooleanMatcher, Chunk, ChunkUkey,
+  Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin,
+  PluginContext, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -16,6 +14,16 @@ use rspack_plugin_runtime::chunk_has_js;
 pub struct FederationRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+}
+
+impl FederationRuntimeModule {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let chunk = compilation
+      .chunk_by_ukey
+      .expect_get(&self.chunk.expect("The chunk should be attached."));
+    let generated_code = federation_runtime_template(chunk, compilation);
+    Ok(generated_code)
+  }
 }
 
 impl Default for FederationRuntimeModule {
@@ -35,13 +43,6 @@ impl RuntimeModule for FederationRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    let chunk = compilation
-      .chunk_by_ukey
-      .expect_get(&self.chunk.expect("The chunk should be attached."));
-    Ok(RawSource::from(federation_runtime_template(chunk, compilation)).boxed())
   }
 }
 

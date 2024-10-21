@@ -1,10 +1,6 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
 
 use crate::get_chunk_runtime_requirements;
 
@@ -13,6 +9,28 @@ use crate::get_chunk_runtime_requirements;
 pub struct EnsureChunkRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+}
+
+impl EnsureChunkRuntimeModule {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let chunk_ukey = self.chunk.expect("should have chunk");
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    let generated_code = match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    {
+      true => include_str!("runtime/ensure_chunk.js")
+        .cow_replace(
+          "$FETCH_PRIORITY$",
+          if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
+            ", fetchPriority"
+          } else {
+            ""
+          },
+        )
+        .into_owned(),
+      false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
+    };
+    Ok(generated_code)
+  }
 }
 
 impl Default for EnsureChunkRuntimeModule {
@@ -24,29 +42,6 @@ impl Default for EnsureChunkRuntimeModule {
 impl RuntimeModule for EnsureChunkRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    let chunk_ukey = self.chunk.expect("should have chunk");
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    Ok(
-      RawSource::from(
-        match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-          true => include_str!("runtime/ensure_chunk.js")
-            .cow_replace(
-              "$FETCH_PRIORITY$",
-              if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
-                ", fetchPriority"
-              } else {
-                ""
-              },
-            )
-            .into_owned(),
-          false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
-        },
-      )
-      .boxed(),
-    )
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

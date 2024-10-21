@@ -1,14 +1,19 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct SystemContextRuntimeModule {
   id: Identifier,
+}
+
+impl SystemContextRuntimeModule {
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = __system_context__",
+      RuntimeGlobals::SYSTEM_CONTEXT
+    ))
+  }
 }
 
 impl Default for SystemContextRuntimeModule {
@@ -20,15 +25,5 @@ impl Default for SystemContextRuntimeModule {
 impl RuntimeModule for SystemContextRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
-  }
-
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawSource::from(format!(
-        "{} = __system_context__",
-        RuntimeGlobals::SYSTEM_CONTEXT
-      ))
-      .boxed(),
-    )
   }
 }

@@ -2,11 +2,7 @@ use std::iter;
 
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -24,14 +20,8 @@ impl StartupChunkDependenciesRuntimeModule {
       None,
     )
   }
-}
 
-impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .chunk_graph
@@ -78,21 +68,24 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .join("\n")
       };
 
-      Ok(
-        RawSource::from(format!(
-          r#"var next = {};
-        {} = function() {{
-          {}
-        }};"#,
-          RuntimeGlobals::STARTUP,
-          RuntimeGlobals::STARTUP,
-          body
-        ))
-        .boxed(),
-      )
+      Ok(format!(
+        r#"var next = {};
+      {} = function() {{
+        {}
+      }};"#,
+        RuntimeGlobals::STARTUP,
+        RuntimeGlobals::STARTUP,
+        body
+      ))
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
+  }
+}
+
+impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

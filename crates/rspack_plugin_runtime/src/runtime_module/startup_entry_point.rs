@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -19,19 +15,19 @@ impl StartupEntrypointRuntimeModule {
       async_chunk_loading,
     )
   }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    let generated_code = if self.async_chunk_loading {
+      include_str!("runtime/startup_entrypoint_with_async.js")
+    } else {
+      include_str!("runtime/startup_entrypoint.js")
+    };
+    Ok(generated_code.to_string())
+  }
 }
 
 impl RuntimeModule for StartupEntrypointRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
-  }
-
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    let source = if self.async_chunk_loading {
-      include_str!("runtime/startup_entrypoint_with_async.js")
-    } else {
-      include_str!("runtime/startup_entrypoint.js")
-    };
-    Ok(RawSource::from(source).boxed())
   }
 }
