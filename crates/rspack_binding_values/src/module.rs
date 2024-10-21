@@ -1,4 +1,4 @@
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, sync::Arc, thread};
 
 use napi_derive::napi;
 use rspack_collections::Identifier;
@@ -223,9 +223,25 @@ impl ModuleDTO {
 
   #[napi]
   pub fn size(&self, ty: Option<String>) -> f64 {
-    let module = self.module();
-    let ty = ty.map(|s| SourceType::from(s.as_str()));
-    module.size(ty.as_ref(), self.compilation)
+    // TODO: The `module.size()` method may internally call a `filename` method
+    // that is passed from the JavaScript side.
+    //
+    // The `filename` method is currently converted into a `ThreadsafeFunction`
+    // and is called from the Rust side. However, exposing this `size()` method
+    // to JavaScript and then invoking it within this call chain causes a deadlock.
+    //
+    // When `filename` is invoked as a `ThreadsafeFunction`, it waits on the main
+    // thread, which in turn needs to invoke the `filename` method. This circular
+    // waiting results in a deadlock.
+    let mut result = 0f64;
+    thread::scope(|s| {
+      s.spawn(|| {
+        let module = self.module();
+        let ty = ty.map(|s| SourceType::from(s.as_str()));
+        result = module.size(ty.as_ref(), self.compilation);
+      });
+    });
+    result
   }
 }
 
