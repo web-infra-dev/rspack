@@ -1,7 +1,7 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  unaffected_cache::{Mutation, Mutations},
+  unaffected_cache::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType,
   ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
@@ -16,9 +16,8 @@ pub struct InferAsyncModulesPlugin;
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let modules: IdentifierSet = if compilation
-    .options
-    .incremental()
-    .infer_async_modules_enabled()
+    .incremental
+    .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
   {
     compilation
       .unaffected_modules_cache
@@ -45,15 +44,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let mut mutations = compilation
-    .options
-    .incremental()
-    .enabled()
+    .incremental
+    .can_write_mutations()
     .then(Mutations::default);
 
   set_sync_modules(compilation, sync_modules, &mut mutations);
   set_async_modules(compilation, async_modules, &mut mutations);
 
-  if let Some(compilation_mutations) = &mut compilation.mutations
+  if let Some(compilation_mutations) = compilation.incremental.mutations_write()
     && let Some(mutations) = mutations
   {
     compilation_mutations.extend(mutations);

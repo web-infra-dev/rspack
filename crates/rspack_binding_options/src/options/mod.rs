@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  CacheOptions, CompilerOptions, Context, Experiments, Incremental, ModuleOptions, OutputOptions,
-  References,
+  unaffected_cache::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
+  ModuleOptions, OutputOptions, References,
 };
 
 mod raw_builtins;
@@ -72,20 +72,35 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let cache = value.cache.into();
     let experiments = Experiments {
       incremental: match value.experiments.incremental {
-        Some(value) => Incremental::Enabled {
-          make: if matches!(cache, CacheOptions::Disabled) {
-            false
-          } else {
-            value.make
-          },
-          emit_assets: value.emit_assets,
-          infer_async_modules: value.infer_async_modules,
-          provided_exports: value.provided_exports,
-          module_hashes: value.module_hashes,
-          module_codegen: value.module_codegen,
-          module_runtime_requirements: value.module_runtime_requirements,
-        },
-        None => Incremental::Disabled,
+        Some(value) => {
+          let mut passes = IncrementalPasses::empty();
+          if !matches!(cache, CacheOptions::Disabled) && value.make {
+            passes.insert(IncrementalPasses::MAKE);
+          }
+          if value.emit_assets {
+            passes.insert(IncrementalPasses::EMIT_ASSETS);
+          }
+          if value.infer_async_modules {
+            passes.insert(IncrementalPasses::INFER_ASYNC_MODULES);
+          }
+          if value.provided_exports {
+            passes.insert(IncrementalPasses::PROVIDED_EXPORTS);
+          }
+          if value.collect_modules_diagnostics {
+            passes.insert(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS);
+          }
+          if value.module_hashes {
+            passes.insert(IncrementalPasses::MODULE_HASHES);
+          }
+          if value.module_codegen {
+            passes.insert(IncrementalPasses::MODULE_CODEGEN);
+          }
+          if value.module_runtime_requirements {
+            passes.insert(IncrementalPasses::MODULE_RUNTIME_REQUIREMENTS);
+          }
+          passes
+        }
+        None => IncrementalPasses::empty(),
       },
       layers: value.experiments.layers,
       top_level_await: value.experiments.top_level_await,

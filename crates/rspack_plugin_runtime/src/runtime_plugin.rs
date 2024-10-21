@@ -19,9 +19,9 @@ use crate::runtime_module::{
   AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkNameRuntimeModule,
   ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
   CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule,
-  DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
-  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
-  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule,
+  DefinePropertyGettersRuntimeModule, ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule,
+  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
   HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
   NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
   PublicPathRuntimeModule, RelativeUrlRuntimeModule, RuntimeIdRuntimeModule,
@@ -51,7 +51,7 @@ static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
     RuntimeGlobals::BASE_URI,
     RuntimeGlobals::RELATIVE_URL,
     RuntimeGlobals::SCRIPT_NONCE,
-    // RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
+    RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
     RuntimeGlobals::ASYNC_MODULE,
     // RuntimeGlobals::WASM_INSTANCES,
     RuntimeGlobals::INSTANTIATE_WASM,
@@ -69,7 +69,7 @@ static MODULE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>>
       (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
       (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
       (
-        RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+        RuntimeGlobals::ESM_MODULE_DECORATOR,
         vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
       ),
       (
@@ -107,7 +107,7 @@ static TREE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> =
         vec![RuntimeGlobals::HAS_OWN_PROPERTY],
       ),
       (
-        RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+        RuntimeGlobals::ESM_MODULE_DECORATOR,
         vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
       ),
       (
@@ -447,10 +447,10 @@ fn runtime_requirements_in_tree(
           CompatGetDefaultExportRuntimeModule::default().boxed(),
         )?;
       }
-      RuntimeGlobals::HARMONY_MODULE_DECORATOR => {
+      RuntimeGlobals::ESM_MODULE_DECORATOR => {
         compilation.add_runtime_module(
           chunk_ukey,
-          HarmonyModuleDecoratorRuntimeModule::default().boxed(),
+          ESMModuleDecoratorRuntimeModule::default().boxed(),
         )?;
       }
       RuntimeGlobals::NODE_MODULE_DECORATOR => {

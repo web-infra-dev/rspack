@@ -5,7 +5,10 @@ use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-use crate::{Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation};
+use crate::{
+  unaffected_cache::IncrementalPasses, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey,
+  Compilation,
+};
 
 #[derive(Debug, Default)]
 pub struct CodeSplittingCache {
@@ -27,8 +30,10 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  let is_incremental_rebuild = compilation.options.incremental().make_enabled();
-  if !is_incremental_rebuild {
+  if !compilation
+    .incremental
+    .can_read_mutations(IncrementalPasses::MAKE)
+  {
     task(compilation).await?;
     return Ok(());
   }

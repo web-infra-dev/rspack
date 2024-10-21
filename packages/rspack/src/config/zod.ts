@@ -606,9 +606,6 @@ const assetGeneratorDataUrl = assetGeneratorDataUrlOptions.or(
 const assetInlineGeneratorOptions = z.strictObject({
 	dataUrl: assetGeneratorDataUrl.optional()
 }) satisfies z.ZodType<t.AssetInlineGeneratorOptions>;
-export type AssetInlineGeneratorOptions = z.infer<
-	typeof assetInlineGeneratorOptions
->;
 
 const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
@@ -664,9 +661,6 @@ const generatorOptionsByModuleTypeKnown = z.strictObject({
 	"css/auto": cssAutoGeneratorOptions.optional(),
 	"css/module": cssModuleGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
-export type GeneratorOptionsByModuleTypeKnown = z.infer<
-	typeof generatorOptionsByModuleTypeKnown
->;
 
 const generatorOptionsByModuleTypeUnknown = z.record(
 	z.record(z.any())
@@ -766,8 +760,11 @@ const allowTarget = z.union([
 	)
 ]);
 
-const target = z.union([z.literal(false), allowTarget, allowTarget.array()]);
-export type Target = z.infer<typeof target>;
+const target = z.union([
+	z.literal(false),
+	allowTarget,
+	allowTarget.array()
+]) satisfies z.ZodType<t.Target>;
 //#endregion
 
 //#region ExternalsType
@@ -862,19 +859,20 @@ const externalsPresets = z.strictObject({
 	electronPreload: z.boolean().optional(),
 	electronRenderer: z.boolean().optional(),
 	nwjs: z.boolean().optional()
-});
-export type ExternalsPresets = z.infer<typeof externalsPresets>;
+}) satisfies z.ZodType<t.ExternalsPresets>;
 //#endregion
 
 //#region InfrastructureLogging
 const filterItemTypes = z
 	.instanceof(RegExp)
 	.or(z.string())
-	.or(z.function().args(z.string()).returns(z.boolean()));
-export type FilterItemTypes = z.infer<typeof filterItemTypes>;
+	.or(
+		z.function().args(z.string()).returns(z.boolean())
+	) satisfies z.ZodType<t.FilterItemTypes>;
 
-const filterTypes = filterItemTypes.array().or(filterItemTypes);
-export type FilterTypes = z.infer<typeof filterTypes>;
+const filterTypes = filterItemTypes
+	.array()
+	.or(filterItemTypes) satisfies z.ZodType<t.FilterTypes>;
 
 const infrastructureLogging = z.strictObject({
 	appendOnly: z.boolean().optional(),
@@ -883,8 +881,7 @@ const infrastructureLogging = z.strictObject({
 	debug: z.boolean().or(filterTypes).optional(),
 	level: z.enum(["none", "error", "warn", "info", "log", "verbose"]).optional(),
 	stream: z.custom<NodeJS.WritableStream>().optional()
-});
-export type InfrastructureLogging = z.infer<typeof infrastructureLogging>;
+}) satisfies z.ZodType<t.InfrastructureLogging>;
 //#endregion
 
 //#region DevTool
@@ -918,8 +915,7 @@ const devTool = z
 			"eval-nosources-cheap-module-source-map",
 			"eval-nosources-source-map"
 		])
-	);
-export type DevTool = z.infer<typeof devTool>;
+	) satisfies z.ZodType<t.DevTool>;
 //#endregion
 
 //#region Node
@@ -933,24 +929,21 @@ const nodeOptions = z.strictObject({
 		.or(z.enum(["warn-mock", "mock", "eval-only", "node-module"]))
 		.optional(),
 	global: z.boolean().or(z.literal("warn")).optional()
-});
-export type NodeOptions = z.infer<typeof nodeOptions>;
+}) satisfies z.ZodType<t.NodeOptions>;
 
-const node = z.literal(false).or(nodeOptions);
-export type Node = z.infer<typeof node>;
+const node = z.literal(false).or(nodeOptions) satisfies z.ZodType<t.Node>;
 
-const loader = z.record(z.string(), z.any());
-export type Loader = z.infer<typeof loader>;
+const loader = z.record(z.string(), z.any()) satisfies z.ZodType<t.Loader>;
 //#endregion
 
 //#region Snapshot
-const snapshotOptions = z.strictObject({});
-export type SnapshotOptions = z.infer<typeof snapshotOptions>;
+const snapshotOptions = z.strictObject(
+	{}
+) satisfies z.ZodType<t.SnapshotOptions>;
 //#endregion
 
 //#region Cache
-const cacheOptions = z.boolean();
-export type CacheOptions = z.infer<typeof cacheOptions>;
+const cacheOptions = z.boolean() satisfies z.ZodType<t.CacheOptions>;
 //#endregion
 
 //#region Stats
@@ -1065,11 +1058,12 @@ const statsOptions = z.strictObject({
 	cached: z.boolean().optional(),
 	errorsSpace: z.number().optional(),
 	warningsSpace: z.number().optional()
-});
-export type StatsOptions = z.infer<typeof statsOptions>;
+}) satisfies z.ZodType<t.StatsOptions>;
 
-const statsValue = z.boolean().or(statsPresets).or(statsOptions);
-export type StatsValue = z.infer<typeof statsValue>;
+const statsValue = z
+	.boolean()
+	.or(statsPresets)
+	.or(statsOptions) satisfies z.ZodType<t.StatsValue>;
 //#endregion
 
 //#region Plugins
@@ -1246,6 +1240,7 @@ const incremental = z.strictObject({
 	emitAssets: z.boolean().optional(),
 	inferAsyncModules: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
+	collectModulesDiagnostics: z.boolean().optional(),
 	moduleHashes: z.boolean().optional(),
 	moduleCodegen: z.boolean().optional(),
 	moduleRuntimeRequirements: z.boolean().optional()

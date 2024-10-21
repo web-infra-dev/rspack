@@ -842,7 +842,7 @@ Treat references to `http(s)://...` and `std:...` as external and load them via 
 
 Treat references to `http(s)://...` and `std:...` as external and load them via `async import()` when used **(Note that this external type is an `async` module, which has various effects on the execution)**.
 
-Note that if you're going to output ES Modules with those node.js-related presets, Rspack will set the default `externalsType` to [`node-commonjs`](#externalstypenode-commonjs) which would use `createRequire` to construct a require function instead of using `require()`.
+Note that if you're going to output ES modules with those node.js-related presets, Rspack will set the default `externalsType` to [`node-commonjs`](#externalstypenode-commonjs) which would use `createRequire` to construct a require function instead of using `require()`.
 
 **Example**
 

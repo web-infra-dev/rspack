@@ -14,6 +14,7 @@ import bytedanceLogo from './assets/bytedance.svg';
 import discordLogo from './assets/discord.svg';
 import getaroundLogo from './assets/getaround.svg';
 import intuitLogo from './assets/intuit.svg';
+import kuaishouLogo from './assets/kuaishou.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
@@ -107,6 +108,12 @@ const companyList: Company[] = [
     logo: trellisLogo,
     url: 'https://trellis.org',
     width: 100,
+  },
+  {
+    name: 'Kuaishou',
+    logo: kuaishouLogo,
+    url: 'https://ir.kuaishou.com/',
+    width: 160,
   },
 ];
 

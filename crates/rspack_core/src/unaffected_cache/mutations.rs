@@ -7,8 +7,8 @@ pub struct Mutations {
 
 #[derive(Debug)]
 pub enum Mutation {
+  ModuleRevoke { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
-  PlaceholderForExtendable,
 }
 
 impl Mutations {

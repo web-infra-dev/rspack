@@ -86,8 +86,8 @@ pub trait Dependency:
     None
   }
 
-  // For now only `HarmonyImportSpecifierDependency` and
-  // `HarmonyExportImportedSpecifierDependency` can use this method
+  // For now only `ESMImportSpecifierDependency` and
+  // `ESMExportImportedSpecifierDependency` can use this method
   fn get_ids(&self, _mg: &ModuleGraph) -> Vec<Atom> {
     unreachable!()
   }

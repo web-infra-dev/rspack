@@ -269,7 +269,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser.append_module_runtime();
       // matches!( self.build_meta.exports_type, BuildMetaExportsType::Namespace)
       let decorator = if parser.is_esm {
-        RuntimeGlobals::HARMONY_MODULE_DECORATOR
+        RuntimeGlobals::ESM_MODULE_DECORATOR
       } else {
         RuntimeGlobals::NODE_MODULE_DECORATOR
       };

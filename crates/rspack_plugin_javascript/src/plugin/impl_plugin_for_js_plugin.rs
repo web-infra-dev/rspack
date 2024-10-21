@@ -24,7 +24,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
-  // HarmonyModulesPlugin
+  // ESMModulesPlugin
   compilation.set_dependency_factory(
     DependencyType::EsmImport,
     params.normal_module_factory.clone(),
@@ -70,6 +70,11 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::RequireContext,
     params.context_module_factory.clone(),
+  );
+  // RequireEnsurePlugin
+  compilation.set_dependency_factory(
+    DependencyType::RequireEnsureItem,
+    params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
     DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import),

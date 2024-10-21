@@ -55,6 +55,7 @@ export class HotNewIncrementalProcessor<
 				emitAssets: true,
 				inferAsyncModules: true,
 				providedExports: true,
+				collectModulesDiagnostics: true,
 				moduleHashes: true,
 				moduleCodegen: true,
 				moduleRuntimeRequirements: true

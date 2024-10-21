@@ -18,8 +18,8 @@ class MyPlugin {
 					);
 				} catch (err) {
 					mockFn();
-					expect(err).toMatchInlineSnapshot(
-						`[Error: Called Compilation.updateAsset for not existing filename something-else.js]`
+					expect(err.toString()).toMatchInlineSnapshot(
+						`Error: Called Compilation.updateAsset for not existing filename something-else.js`
 					);
 				}
 			});

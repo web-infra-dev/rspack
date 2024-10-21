@@ -257,7 +257,7 @@ impl ExternalModule {
             NormalInitFragment::new(
               "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from \"module\";\n"
                 .to_string(),
-              InitFragmentStage::StageHarmonyImports,
+              InitFragmentStage::StageESMImports,
               0,
               InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
@@ -310,7 +310,7 @@ impl ExternalModule {
                 id.clone(),
                 json_stringify(request.primary())
               ),
-              InitFragmentStage::StageHarmonyImports,
+              InitFragmentStage::StageESMImports,
               0,
               InitFragmentKey::ModuleExternal(request.primary().into()),
               None,

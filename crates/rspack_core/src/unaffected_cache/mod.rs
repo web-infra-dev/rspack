@@ -1,3 +1,4 @@
+mod incremental;
 mod mutations;
 
 use std::{
@@ -5,6 +6,7 @@ use std::{
   sync::Mutex,
 };
 
+pub use incremental::{Incremental, IncrementalPasses};
 pub use mutations::{Mutation, Mutations};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierDashMap, IdentifierHasher, IdentifierMap, IdentifierSet};

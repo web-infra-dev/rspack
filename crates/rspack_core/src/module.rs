@@ -50,7 +50,7 @@ pub struct BuildInfo {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
-  pub harmony_named_exports: HashSet<Atom>,
+  pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
@@ -68,7 +68,7 @@ impl Default for BuildInfo {
       context_dependencies: HashSet::default(),
       missing_dependencies: HashSet::default(),
       build_dependencies: HashSet::default(),
-      harmony_named_exports: HashSet::default(),
+      esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
@@ -144,7 +144,7 @@ impl Display for ExportsArgument {
 
 #[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
-  pub strict_harmony_module: bool,
+  pub strict_esm_module: bool,
   pub has_top_level_await: bool,
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
@@ -248,11 +248,11 @@ pub trait Module:
     get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
   }
 
-  fn get_strict_harmony_module(&self) -> bool {
+  fn get_strict_esm_module(&self) -> bool {
     self
       .build_meta()
       .as_ref()
-      .is_some_and(|m| m.strict_harmony_module)
+      .is_some_and(|m| m.strict_esm_module)
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.

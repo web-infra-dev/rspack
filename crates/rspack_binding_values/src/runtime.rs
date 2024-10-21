@@ -71,7 +71,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<(
   declare_runtime_global!(COMPAT_GET_DEFAULT_EXPORT);
   declare_runtime_global!(CREATE_FAKE_NAMESPACE_OBJECT);
   declare_runtime_global!(NODE_MODULE_DECORATOR);
-  declare_runtime_global!(HARMONY_MODULE_DECORATOR);
+  declare_runtime_global!(ESM_MODULE_DECORATOR);
   declare_runtime_global!(SYSTEM_CONTEXT);
   declare_runtime_global!(THIS_AS_EXPORTS);
   declare_runtime_global!(CURRENT_REMOTE_GET_SCOPE);

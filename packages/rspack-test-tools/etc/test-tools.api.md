@@ -202,8 +202,6 @@ export function createWatchNewIncrementalCase(name: string, src: string, dist: s
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
     constructor(_defaultsConfigOptions: IDefaultsConfigProcessorOptions<T>);
     // (undocumented)
-    static addSnapshotSerializer(expectImpl: jest.Expect): void;
-    // (undocumented)
     after(context: ITestContext): Promise<void>;
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
@@ -247,13 +245,6 @@ export class DiagnosticProcessor<T extends ECompilerType> extends BasicProcessor
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _diagnosticOptions: IDiagnosticProcessorOptions<T>;
-}
-
-// @public (undocumented)
-class Diff {
-    constructor(value: string);
-    // (undocumented)
-    value: string;
 }
 
 // @public (undocumented)
@@ -345,8 +336,6 @@ export enum EEsmMode {
 // @public (undocumented)
 export class ErrorProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
     constructor(_errorOptions: IErrorProcessorOptions<T>);
-    // (undocumented)
-    static addSnapshotSerializer(expectImpl: jest.Expect): void;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
@@ -605,7 +594,7 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     cwd?: string;
     // (undocumented)
-    diff: (diff: jest.JestMatchers<Diff>, defaults: jest.JestMatchers<TCompilerOptions<T>>) => Promise<void>;
+    diff: (diff: jest.JestMatchers<RspackTestDiff>, defaults: jest.JestMatchers<TCompilerOptions<T>>) => Promise<void>;
     // (undocumented)
     name: string;
     // (undocumented)
@@ -695,7 +684,7 @@ export interface IErrorProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
-    check?: (stats: TStatsDiagnostics) => Promise<void>;
+    check?: (stats: RspackStatsDiagnostics) => Promise<void>;
     // (undocumented)
     compilerType: T;
     // (undocumented)
@@ -1151,6 +1140,22 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 }
 
 // @public (undocumented)
+class RspackStatsDiagnostics {
+    constructor(errors: StatsError[], warnings: StatsError[]);
+    // (undocumented)
+    errors: StatsError[];
+    // (undocumented)
+    warnings: StatsError[];
+}
+
+// @public (undocumented)
+class RspackTestDiff {
+    constructor(value: string);
+    // (undocumented)
+    value: string;
+}
+
+// @public (undocumented)
 export class SimpleTaskProcessor<T extends ECompilerType> implements ITestProcessor {
     constructor(_options: ISimpleProcessorOptions<T>);
     // (undocumented)
@@ -1189,8 +1194,6 @@ export class SnapshotProcessor<T extends ECompilerType> extends BasicProcessor<T
 // @public (undocumented)
 export class StatsAPIProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
     constructor(_statsAPIOptions: IStatsAPIProcessorOptions<T>);
-    // (undocumented)
-    static addSnapshotSerializer(expectImpl: jest.Expect): void;
     // (undocumented)
     check(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
@@ -1443,12 +1446,6 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
 // @public (undocumented)
 export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
     description: string;
-};
-
-// @public (undocumented)
-type TStatsDiagnostics = {
-    errors: StatsError[];
-    warnings: StatsError[];
 };
 
 // @public (undocumented)

@@ -7,8 +7,8 @@ use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  fast_set, get_chunk_from_ukey, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
-  SourceType,
+  fast_set, get_chunk_from_ukey, unaffected_cache::IncrementalPasses, ChunkKind, Compilation,
+  Compiler, ModuleExecutor, RuntimeSpec, SourceType,
 };
 
 impl Compiler {
@@ -79,8 +79,10 @@ impl Compiler {
 
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
-      let incremental = self.options.incremental();
-      if incremental.make_enabled() {
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::MAKE)
+      {
         // copy field from old compilation
         // make stage used
         self
@@ -94,17 +96,36 @@ impl Compiler {
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-      if incremental.infer_async_modules_enabled() {
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+      {
         new_compilation.async_modules = std::mem::take(&mut self.compilation.async_modules);
       }
-      if incremental.module_hashes_enabled() {
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS)
+      {
+        new_compilation.modules_diagnostics =
+          std::mem::take(&mut self.compilation.modules_diagnostics);
+      }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::MODULE_HASHES)
+      {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
       }
-      if incremental.module_codegen_enabled() {
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::MODULE_CODEGEN)
+      {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
       }
-      if incremental.module_runtime_requirements_enabled() {
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::MODULE_RUNTIME_REQUIREMENTS)
+      {
         new_compilation.cgm_runtime_requirements_results =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
       }

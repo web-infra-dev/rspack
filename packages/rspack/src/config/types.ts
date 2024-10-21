@@ -1220,6 +1220,48 @@ export type ModuleOptions = {
 
 //#endregion
 
+//#region Target
+type AllowTarget =
+	| "web"
+	| "webworker"
+	| "es3"
+	| "es5"
+	| "es2015"
+	| "es2016"
+	| "es2017"
+	| "es2018"
+	| "es2019"
+	| "es2020"
+	| "es2021"
+	| "es2022"
+	| "node"
+	| "async-node"
+	| `node${number}`
+	| `async-node${number}`
+	| `node${number}.${number}`
+	| `async-node${number}.${number}`
+	| "electron-main"
+	| `electron${number}-main`
+	| `electron${number}.${number}-main`
+	| "electron-renderer"
+	| `electron${number}-renderer`
+	| `electron${number}.${number}-renderer`
+	| "electron-preload"
+	| `electron${number}-preload`
+	| `electron${number}.${number}-preload`
+	| "nwjs"
+	| `nwjs${number}`
+	| `nwjs${number}.${number}`
+	| "node-webkit"
+	| `node-webkit${number}`
+	| `node-webkit${number}.${number}`
+	| "browserslist"
+	| `browserslist:${string}`;
+
+/** Used to configure the target environment of Rspack output and the ECMAScript version of Rspack runtime code. */
+export type Target = false | AllowTarget | AllowTarget[];
+//#endregion
+
 //#region ExternalsType
 /**
  * Specify the default type of externals.
@@ -1321,6 +1363,588 @@ export type ExternalItem =
  * ```
  * */
 export type Externals = ExternalItem | ExternalItem[];
+//#endregion
+
+//#region ExternalsPresets
+/** Enable presets of externals for specific targets. */
+export type ExternalsPresets = {
+	/** Treat node.js built-in modules like `fs`, `path` or `vm` as external and load them via `require()` when used. */
+	node?: boolean;
+
+	/** Treat references to `http(s)://...` and `std:...` as external and load them via import when used. */
+	web?: boolean;
+
+	/** Treat references to `http(s)://...` and `std:...` as external and load them via async import() when used  */
+	webAsync?: boolean;
+
+	/** Treat common electron built-in modules in main and preload context like `electron`, `ipc` or `shell` as external and load them via `require()` when used. */
+	electron?: boolean;
+
+	/** Treat electron built-in modules in the main context like `app`, `ipc-main` or `shell` as external and load them via `require()` when used. */
+	electronMain?: boolean;
+
+	/** Treat electron built-in modules in the preload context like `web-frame`, `ipc-renderer` or `shell` as external and load them via require() when used. */
+	electronPreload?: boolean;
+
+	/** Treat electron built-in modules in the preload context like `web-frame`, `ipc-renderer` or `shell` as external and load them via require() when used. */
+	electronRenderer?: boolean;
+
+	/** Treat `NW.js` legacy `nw.gui` module as external and load it via `require()` when used. */
+	nwjs?: boolean;
+};
+
+//#endregion
+
+//#region InfrastructureLogging
+/**
+ * Represents a filter item type for infrastructure logging.
+ * Can be a RegExp, a string, or a function that takes a string and returns a boolean.
+ */
+export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
+
+/**
+ * Represents filter types for infrastructure logging.
+ * Can be a single FilterItemTypes or an array of FilterItemTypes.
+ */
+export type FilterTypes = FilterItemTypes | FilterItemTypes[];
+
+/**
+ * Options for infrastructure level logging.
+ */
+export type InfrastructureLogging = {
+	/**
+	 * Append lines to the output instead of updating existing output, useful for status messages.
+	 */
+	appendOnly?: boolean;
+
+	/**
+	 * Enable colorful output for infrastructure level logging.
+	 */
+	colors?: boolean;
+
+	/**
+	 * Customize the console used for infrastructure level logging.
+	 */
+	console?: Console;
+
+	/**
+	 * Enable debug information of specified loggers such as plugins or loaders.
+	 */
+	debug?: boolean | FilterTypes;
+
+	/**
+	 * Enable infrastructure logging output.
+	 */
+	level?: "none" | "error" | "warn" | "info" | "log" | "verbose";
+
+	/**
+	 * Stream used for logging output.
+	 */
+	stream?: NodeJS.WritableStream;
+};
+//#endregion
+
+//#region DevTool
+/**
+ * Configuration used to control the behavior of the Source Map generation.
+ */
+export type DevTool =
+	| false
+	| "eval"
+	| "cheap-source-map"
+	| "cheap-module-source-map"
+	| "source-map"
+	| "inline-cheap-source-map"
+	| "inline-cheap-module-source-map"
+	| "inline-source-map"
+	| "inline-nosources-cheap-source-map"
+	| "inline-nosources-cheap-module-source-map"
+	| "inline-nosources-source-map"
+	| "nosources-cheap-source-map"
+	| "nosources-cheap-module-source-map"
+	| "nosources-source-map"
+	| "hidden-nosources-cheap-source-map"
+	| "hidden-nosources-cheap-module-source-map"
+	| "hidden-nosources-source-map"
+	| "hidden-cheap-source-map"
+	| "hidden-cheap-module-source-map"
+	| "hidden-source-map"
+	| "eval-cheap-source-map"
+	| "eval-cheap-module-source-map"
+	| "eval-source-map"
+	| "eval-nosources-cheap-source-map"
+	| "eval-nosources-cheap-module-source-map"
+	| "eval-nosources-source-map";
+//#endregion
+
+//#region Node
+/**
+ * Options for mocking Node.js globals and modules.
+ */
+export type NodeOptions = {
+	/**
+	 * Controls the behavior of `__dirname`.
+	 * @description
+	 * - `true`: The dirname of the input file relative to the context option.
+	 * - `false`: Regular Node.js `__dirname` behavior. The dirname of the output file when run in a Node.js environment.
+	 * - `"mock"`: The fixed value '/'.
+	 * - `"warn-mock"`: Use the fixed value of '/' but show a warning.
+	 * - `"node-module"`: Replace `__dirname` in CommonJS modules to `fileURLToPath(import.meta.url + "/..")` when `output.module` is enabled.
+	 * - `"eval-only"`: Equivalent to `false`.
+	 */
+	__dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
+
+	/**
+	 * Controls the behavior of `__filename`.
+	 * @description
+	 * - `true`: The filename of the input file relative to the context option.
+	 * - `false`: Regular Node.js `__filename` behavior. The filename of the output file when run in a Node.js environment.
+	 * - `"mock"`: The fixed value '/index.js'.
+	 * - `"warn-mock"`: Use the fixed value of '/index.js' but show a warning.
+	 * - `"node-module"`: Replace `__filename` in CommonJS modules to `fileURLToPath(import.meta.url)` when `output.module` is enabled.
+	 * - `"eval-only"`: Equivalent to `false`.
+	 */
+	__filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
+
+	/**
+	 * Controls the behavior of `global`.
+	 * @description
+	 * - `true`: Provide a polyfill.
+	 * - `false`: Don't provide a polyfill.
+	 * - `"warn"`: Provide a polyfill but show a warning.
+	 * @see {@link https://nodejs.org/api/globals.html#globals_global | Node.js documentation} for the exact behavior of this object.
+	 * @default "warn"
+	 */
+	global?: boolean | "warn";
+};
+
+/**
+ * Options for mocking Node.js globals and modules.
+ * @description Set to `false` to disable all mocking, or use `NodeOptions` to configure specific behaviors.
+ */
+export type Node = false | NodeOptions;
+
+export type Loader = Record<string, any>;
+//#endregion
+
+//#region Snapshot
+export type SnapshotOptions = {};
+//#endregion
+
+//#region Cache
+/**
+ * Options for caching snapshots and intermediate products during the build process.
+ * @description Controls whether caching is enabled or disabled.
+ * @default true in development mode, false in production mode
+ * @example
+ * // Enable caching
+ * cache: true
+ *
+ * // Disable caching
+ * cache: false
+ */
+export type CacheOptions = boolean;
+//#endregion
+
+//#region Stats
+
+type StatsPresets =
+	| "normal"
+	| "none"
+	| "verbose"
+	| "errors-only"
+	| "errors-warnings"
+	| "minimal"
+	| "detailed"
+	| "summary";
+
+type ModuleFilterItemTypes =
+	| RegExp
+	| string
+	| ((name: string, module: any, type: any) => boolean);
+
+type ModuleFilterTypes =
+	| boolean
+	| ModuleFilterItemTypes
+	| ModuleFilterItemTypes[];
+
+/** Options for stats */
+export type StatsOptions = {
+	/**
+	 * Enables or disables the display of all stats.
+	 */
+	all?: boolean;
+	/**
+	 * Sets the preset for stats or enables/disables them.
+	 */
+	preset?: boolean | StatsPresets;
+	/**
+	 * Enables or disables the display of asset stats.
+	 * @default true
+	 */
+	assets?: boolean;
+	/**
+	 * Enables or disables the display of chunk stats.
+	 * @default true
+	 */
+	chunks?: boolean;
+	/**
+	 * Enables or disables the display of module stats.
+	 * @default true
+	 */
+	modules?: boolean;
+	/**
+	 * Enables or disables the display of entrypoint stats or sets it to 'auto'.
+	 * @default false
+	 */
+	entrypoints?: boolean | "auto";
+	/**
+	 * Enables or disables the display of chunk group stats.
+	 * @default true
+	 */
+	chunkGroups?: boolean;
+	/**
+	 * Enables or disables the display of warning stats.
+	 * @default true
+	 */
+	warnings?: boolean;
+	/**
+	 * Enables or disables the display of warning counts.
+	 * @default true
+	 */
+	warningsCount?: boolean;
+	/**
+	 * Enables or disables the display of error stats.
+	 * @default true
+	 */
+	errors?: boolean;
+	/**
+	 * Enables or disables the display of error counts.
+	 * @default true
+	 */
+	errorsCount?: boolean;
+	/**
+	 * Enables or disables the use of colors in the output.
+	 * @default false
+	 */
+	colors?: boolean;
+	/**
+	 * Enables or disables the display of the hash.
+	 * @default true
+	 */
+	hash?: boolean;
+	/**
+	 * Enables or disables the display of the version.
+	 * @default true
+	 */
+	version?: boolean;
+	/**
+	 * Enables or disables the display of reasons.
+	 * @default true
+	 */
+	reasons?: boolean;
+	/**
+	 * Enables or disables the display of the public path.
+	 * @default true
+	 */
+	publicPath?: boolean;
+	/**
+	 * Enables or disables the display of the output path.
+	 * @default true
+	 */
+	outputPath?: boolean;
+	/**
+	 * Enables or disables the display of chunk module stats.
+	 * @default true
+	 */
+	chunkModules?: boolean;
+	/**
+	 * Enables or disables the display of chunk relations.
+	 * @default false
+	 */
+	chunkRelations?: boolean;
+	/**
+	 * Enables or disables the display of module IDs.
+	 * @default false
+	 */
+	ids?: boolean;
+	/**
+	 * Enables or disables the display of build timings.
+	 * @default true
+	 */
+	timings?: boolean;
+	/**
+	 * Enables or disables the display of the build date.
+	 * @default true
+	 */
+	builtAt?: boolean;
+	/**
+	 * Enables or disables the display of module assets.
+	 * @default true
+	 */
+	moduleAssets?: boolean;
+	/**
+	 * Enables or disables the display of nested modules.
+	 * @default true
+	 */
+	nestedModules?: boolean;
+	/**
+	 * Enables or disables the display of source code.
+	 * @default false
+	 */
+	source?: boolean;
+	/**
+	 * Configures the level of logging output.
+	 * Can be set to a string value of "none", "error", "warn", "info", "log", "verbose", or a boolean value.
+	 *
+	 * @description
+	 * - `'none'`, false: Logging is disabled.
+	 * - `'error'`: Only errors are logged.
+	 * - `'warn'`: Errors and warnings are logged.
+	 * - `'info'`: Errors, warnings, and info messages are logged.
+	 * - `'log'`, true: Errors, warnings, info messages, log messages, groups, and clears are logged. Collapsed groups are initially collapsed.
+	 * - `'verbose'`: All log levels except debug and trace are logged. Collapsed groups are initially expanded.
+	 */
+	logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | boolean;
+	/**
+	 * Enables or disables debug logging, or specifies a filter for debug logging.
+	 */
+	loggingDebug?: boolean | FilterTypes;
+	/**
+	 * Enables or disables trace logging.
+	 * @default true
+	 */
+	loggingTrace?: boolean;
+	/**
+	 * Enables or disables the display of runtime modules.
+	 * @default true
+	 */
+	runtimeModules?: boolean;
+	/**
+	 * Enables or disables the display of children modules.
+	 * @default true
+	 */
+	children?: boolean;
+	/**
+	 * Enables or disables the display of used exports.
+	 * @default false
+	 */
+	usedExports?: boolean;
+	/**
+	 * Enables or disables the display of provided exports.
+	 * @default false
+	 */
+	providedExports?: boolean;
+	/**
+	 * Enables or disables optimization bailout.
+	 * @default false
+	 */
+	optimizationBailout?: boolean;
+	/**
+	 * Enables or disables grouping of modules by type.
+	 */
+	groupModulesByType?: boolean;
+	/**
+	 * Enables or disables grouping of modules by cache status.
+	 */
+	groupModulesByCacheStatus?: boolean;
+	/**
+	 * Enables or disables grouping of modules by layer.
+	 */
+	groupModulesByLayer?: boolean;
+	/**
+	 * Enables or disables grouping of modules by attributes.
+	 */
+	groupModulesByAttributes?: boolean;
+	/**
+	 * Enables or disables grouping of modules by path.
+	 */
+	groupModulesByPath?: boolean;
+	/**
+	 * Enables or disables grouping of modules by extension.
+	 */
+	groupModulesByExtension?: boolean;
+	/**
+	 * Specifies the space to use for displaying modules.
+	 * @default 15
+	 */
+	modulesSpace?: number;
+	/**
+	 * Specifies the space to use for displaying chunk modules.
+	 * @default 10
+	 */
+	chunkModulesSpace?: number;
+	/**
+	 * Specifies the space to use for displaying nested modules.
+	 * @default 10
+	 */
+	nestedModulesSpace?: number;
+	/**
+	 * Enables or disables the display of related assets.
+	 * @default false
+	 */
+	relatedAssets?: boolean;
+	/**
+	 * Enables or disables grouping of assets by emit status.
+	 */
+	groupAssetsByEmitStatus?: boolean;
+	/**
+	 * Enables or disables grouping of assets by info.
+	 */
+	groupAssetsByInfo?: boolean;
+	/**
+	 * Enables or disables grouping of assets by path.
+	 */
+	groupAssetsByPath?: boolean;
+	/**
+	 * Enables or disables grouping of assets by extension.
+	 */
+	groupAssetsByExtension?: boolean;
+	/**
+	 * Enables or disables grouping of assets by chunk.
+	 */
+	groupAssetsByChunk?: boolean;
+	/**
+	 * Specifies the space to use for displaying assets.
+	 * @default 15
+	 */
+	assetsSpace?: number;
+	/**
+	 * Enables or disables the display of orphan modules.
+	 * @default false
+	 */
+	orphanModules?: boolean;
+	/**
+	 * Specifies modules to exclude from the bundle.
+	 * @default false
+	 */
+	excludeModules?: ModuleFilterTypes;
+	/**
+	 * Exclude the matching assets information.
+	 * @default false
+	 */
+	excludeAssets?: ModuleFilterTypes;
+	/**
+	 * Specifies the sorting order for modules.
+	 * @default 'id'
+	 */
+	modulesSort?: string;
+	/**
+	 * Specifies the sorting order for chunk modules.
+	 */
+	chunkModulesSort?: string;
+	/**
+	 * Specifies the sorting order for nested modules.
+	 */
+	nestedModulesSort?: string;
+	/**
+	 * Specifies the sorting order for chunks.
+	 * @default 'id'
+	 */
+	chunksSort?: string;
+	/**
+	 * Specifies the sorting order for assets.
+	 * @default 'id'
+	 */
+	assetsSort?: string;
+	/**
+	 * Enables or disables performance optimization.
+	 * @default true
+	 */
+	performance?: boolean;
+	/**
+	 * Enables or disables environment variables.
+	 * @default false
+	 */
+	env?: boolean;
+	/**
+	 * Enables or disables auxiliary chunk grouping.
+	 * @default true
+	 */
+	chunkGroupAuxiliary?: boolean;
+	/**
+	 * Enables or disables child chunk grouping.
+	 * @default true
+	 */
+	chunkGroupChildren?: boolean;
+	/**
+	 * Specifies the maximum number of assets per chunk group.
+	 * @default 5
+	 */
+	chunkGroupMaxAssets?: number;
+	/**
+	 * Enables or disables the display of dependent modules.
+	 * @default false
+	 */
+	dependentModules?: boolean;
+	/**
+	 * Enables or disables the display of chunk origins.
+	 * @default true
+	 */
+	chunkOrigins?: boolean;
+	/**
+	 * Enables or disables the display of runtime information.
+	 */
+	runtime?: boolean;
+	/**
+	 * Enables or disables the display of depth information.
+	 * @default false
+	 */
+	depth?: boolean;
+	/**
+	 * Specifies the space to use for displaying reasons.
+	 * @default 100
+	 */
+	reasonsSpace?: number;
+	/**
+	 * Enables or disables grouping of reasons by origin.
+	 */
+	groupReasonsByOrigin?: boolean;
+	/**
+	 * Enables or disables the display of error details.
+	 * @default false
+	 */
+	errorDetails?: boolean;
+	/**
+	 * Enables or disables the display of error stack traces.
+	 * @default true
+	 */
+	errorStack?: boolean;
+	/**
+	 * Enables or disables the display of module trace information.
+	 * @default true
+	 */
+	moduleTrace?: boolean;
+	/**
+	 * Enables or disables the display of cached modules.
+	 * @default true
+	 */
+	cachedModules?: boolean;
+	/**
+	 * Enables or disables the display of cached assets.
+	 * @default true
+	 */
+	cachedAssets?: boolean;
+	/**
+	 * Enables or disables the display of cached information.
+	 */
+	cached?: boolean;
+	/**
+	 * Specifies the space to use for displaying errors.
+	 * @default 5
+	 */
+	errorsSpace?: number;
+	/**
+	 * Specifies the space to use for displaying warnings.
+	 * @default 5
+	 */
+	warningsSpace?: number;
+};
+
+/**
+ * Represents the value for stats configuration.
+ */
+export type StatsValue = boolean | StatsOptions | StatsPresets;
 //#endregion
 
 //#region Plugins

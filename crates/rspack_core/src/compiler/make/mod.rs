@@ -9,8 +9,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use crate::{
-  utils::FileCounter, BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier,
+  unaffected_cache::{Mutation, Mutations},
+  utils::FileCounter,
+  BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -19,6 +20,7 @@ pub struct MakeArtifact {
   // should be reset when rebuild
   pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
+  pub mutations: Option<Mutations>,
 
   // data
   pub built_modules: IdentifierSet,
@@ -48,6 +50,10 @@ impl MakeArtifact {
     &mut self.module_graph_partial
   }
 
+  pub fn take_mutations(&mut self) -> Option<Mutations> {
+    std::mem::take(&mut self.mutations)
+  }
+
   pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
     std::mem::take(&mut self.diagnostics)
   }
@@ -74,6 +80,11 @@ impl MakeArtifact {
       self
         .build_dependencies
         .remove_batch_file(&build_info.build_dependencies);
+    }
+    if let Some(mutations) = &mut self.mutations {
+      mutations.add(Mutation::ModuleRevoke {
+        module: *module_identifier,
+      });
     }
     module_graph.revoke_module(module_identifier)
   }
@@ -133,6 +144,10 @@ pub fn make_module_graph(
   // reset temporary data
   artifact.built_modules = Default::default();
   artifact.diagnostics = Default::default();
+  artifact.mutations = compilation
+    .incremental
+    .can_write_mutations()
+    .then(Default::default);
   artifact.has_module_graph_change = false;
 
   artifact = update_module_graph(compilation, artifact, params)?;

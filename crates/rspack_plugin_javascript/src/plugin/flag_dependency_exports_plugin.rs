@@ -3,10 +3,10 @@ use std::collections::hash_map::Entry;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
-  PluginContext,
+  unaffected_cache::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
+  CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
+  ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -353,7 +353,10 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let modules: IdentifierSet = if compilation.options.incremental().provided_exports_enabled() {
+  let modules: IdentifierSet = if compilation
+    .incremental
+    .can_read_mutations(IncrementalPasses::PROVIDED_EXPORTS)
+  {
     compilation
       .unaffected_modules_cache
       .get_affected_modules_with_module_graph()

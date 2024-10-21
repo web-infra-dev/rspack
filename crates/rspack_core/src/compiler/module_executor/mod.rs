@@ -60,6 +60,10 @@ impl ModuleExecutor {
       params.push(MakeParam::ForceBuildModules(modules));
     }
     make_artifact.diagnostics = Default::default();
+    make_artifact.mutations = compilation
+      .incremental
+      .can_write_mutations()
+      .then(Default::default);
     make_artifact.has_module_graph_change = false;
 
     make_artifact = update_module_graph(compilation, make_artifact, params).unwrap_or_default();
@@ -133,6 +137,12 @@ impl ModuleExecutor {
 
     let diagnostics = self.make_artifact.take_diagnostics();
     compilation.extend_diagnostics(diagnostics);
+
+    if let Some(mutations) = compilation.incremental.mutations_write()
+      && let Some(make_mutations) = self.make_artifact.take_mutations()
+    {
+      mutations.extend(make_mutations);
+    }
 
     let built_modules = self.make_artifact.take_built_modules();
     for id in built_modules {
