@@ -105,27 +105,27 @@ impl Compiler {
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::COLLECT_MODULES_DIAGNOSTICS)
+        .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
       {
-        new_compilation.modules_diagnostics =
-          std::mem::take(&mut self.compilation.modules_diagnostics);
+        new_compilation.dependencies_diagnostics =
+          std::mem::take(&mut self.compilation.dependencies_diagnostics);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULE_HASHES)
+        .can_read_mutations(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULE_CODEGEN)
+        .can_read_mutations(IncrementalPasses::MODULES_CODEGEN)
       {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULE_RUNTIME_REQUIREMENTS)
+        .can_read_mutations(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
       {
         new_compilation.cgm_runtime_requirements_results =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);

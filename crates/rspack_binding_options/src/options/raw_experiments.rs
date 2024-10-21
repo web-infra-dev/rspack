@@ -17,10 +17,10 @@ pub struct RawIncremental {
   pub emit_assets: bool,
   pub infer_async_modules: bool,
   pub provided_exports: bool,
-  pub collect_modules_diagnostics: bool,
-  pub module_hashes: bool,
-  pub module_codegen: bool,
-  pub module_runtime_requirements: bool,
+  pub dependencies_diagnostics: bool,
+  pub modules_hashes: bool,
+  pub modules_codegen: bool,
+  pub modules_runtime_requirements: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]

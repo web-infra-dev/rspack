@@ -907,10 +907,10 @@ function getRawIncremental(
 		emitAssets: incremental.emitAssets!,
 		inferAsyncModules: incremental.inferAsyncModules!,
 		providedExports: incremental.providedExports!,
-		collectModulesDiagnostics: incremental.collectModulesDiagnostics!,
-		moduleHashes: incremental.moduleHashes!,
-		moduleCodegen: incremental.moduleCodegen!,
-		moduleRuntimeRequirements: incremental.moduleRuntimeRequirements!
+		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
+		modulesHashes: incremental.modulesHashes!,
+		modulesCodegen: incremental.modulesCodegen!,
+		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!
 	};
 }
 
