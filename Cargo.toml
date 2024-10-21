@@ -73,8 +73,11 @@ napi        = { package = "napi-h", version = "=2.16.1" }
 napi-build  = { version = "2" }
 napi-derive = { version = "2" }
 
+# Serialize and Deserialize
+inventory = { version = "0.1" }
+rkyv      = { version = "=0.8.8" }
+
 # Must be pinned with the same swc versions
-#rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
 swc_config          = { version = "=1.0.0" }
 swc_core            = { version = "=1.0.0", default-features = false }
 swc_ecma_minifier   = { version = "=1.0.0", default-features = false }
