@@ -606,9 +606,6 @@ const assetGeneratorDataUrl = assetGeneratorDataUrlOptions.or(
 const assetInlineGeneratorOptions = z.strictObject({
 	dataUrl: assetGeneratorDataUrl.optional()
 }) satisfies z.ZodType<t.AssetInlineGeneratorOptions>;
-export type AssetInlineGeneratorOptions = z.infer<
-	typeof assetInlineGeneratorOptions
->;
 
 const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
@@ -664,9 +661,6 @@ const generatorOptionsByModuleTypeKnown = z.strictObject({
 	"css/auto": cssAutoGeneratorOptions.optional(),
 	"css/module": cssModuleGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
-export type GeneratorOptionsByModuleTypeKnown = z.infer<
-	typeof generatorOptionsByModuleTypeKnown
->;
 
 const generatorOptionsByModuleTypeUnknown = z.record(
 	z.record(z.any())
@@ -922,7 +916,6 @@ const devTool = z
 			"eval-nosources-source-map"
 		])
 	) satisfies z.ZodType<t.DevTool>;
-export type DevTool = z.infer<typeof devTool>;
 //#endregion
 
 //#region Node
@@ -1065,11 +1058,12 @@ const statsOptions = z.strictObject({
 	cached: z.boolean().optional(),
 	errorsSpace: z.number().optional(),
 	warningsSpace: z.number().optional()
-});
-export type StatsOptions = z.infer<typeof statsOptions>;
+}) satisfies z.ZodType<t.StatsOptions>;
 
-const statsValue = z.boolean().or(statsPresets).or(statsOptions);
-export type StatsValue = z.infer<typeof statsValue>;
+const statsValue = z
+	.boolean()
+	.or(statsPresets)
+	.or(statsOptions) satisfies z.ZodType<t.StatsValue>;
 //#endregion
 
 //#region Plugins

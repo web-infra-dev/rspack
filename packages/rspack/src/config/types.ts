@@ -1544,7 +1544,408 @@ export type SnapshotOptions = {};
  * cache: false
  */
 export type CacheOptions = boolean;
-//#endreigon
+//#endregion
+
+//#region Stats
+
+type StatsPresets =
+	| "normal"
+	| "none"
+	| "verbose"
+	| "errors-only"
+	| "errors-warnings"
+	| "minimal"
+	| "detailed"
+	| "summary";
+
+type ModuleFilterItemTypes =
+	| RegExp
+	| string
+	| ((name: string, module: any, type: any) => boolean);
+
+type ModuleFilterTypes =
+	| boolean
+	| ModuleFilterItemTypes
+	| ModuleFilterItemTypes[];
+
+/** Options for stats */
+export type StatsOptions = {
+	/**
+	 * Enables or disables the display of all stats.
+	 */
+	all?: boolean;
+	/**
+	 * Sets the preset for stats or enables/disables them.
+	 */
+	preset?: boolean | StatsPresets;
+	/**
+	 * Enables or disables the display of asset stats.
+	 * @default true
+	 */
+	assets?: boolean;
+	/**
+	 * Enables or disables the display of chunk stats.
+	 * @default true
+	 */
+	chunks?: boolean;
+	/**
+	 * Enables or disables the display of module stats.
+	 * @default true
+	 */
+	modules?: boolean;
+	/**
+	 * Enables or disables the display of entrypoint stats or sets it to 'auto'.
+	 * @default false
+	 */
+	entrypoints?: boolean | "auto";
+	/**
+	 * Enables or disables the display of chunk group stats.
+	 * @default true
+	 */
+	chunkGroups?: boolean;
+	/**
+	 * Enables or disables the display of warning stats.
+	 * @default true
+	 */
+	warnings?: boolean;
+	/**
+	 * Enables or disables the display of warning counts.
+	 * @default true
+	 */
+	warningsCount?: boolean;
+	/**
+	 * Enables or disables the display of error stats.
+	 * @default true
+	 */
+	errors?: boolean;
+	/**
+	 * Enables or disables the display of error counts.
+	 * @default true
+	 */
+	errorsCount?: boolean;
+	/**
+	 * Enables or disables the use of colors in the output.
+	 * @default false
+	 */
+	colors?: boolean;
+	/**
+	 * Enables or disables the display of the hash.
+	 * @default true
+	 */
+	hash?: boolean;
+	/**
+	 * Enables or disables the display of the version.
+	 * @default true
+	 */
+	version?: boolean;
+	/**
+	 * Enables or disables the display of reasons.
+	 * @default true
+	 */
+	reasons?: boolean;
+	/**
+	 * Enables or disables the display of the public path.
+	 * @default true
+	 */
+	publicPath?: boolean;
+	/**
+	 * Enables or disables the display of the output path.
+	 * @default true
+	 */
+	outputPath?: boolean;
+	/**
+	 * Enables or disables the display of chunk module stats.
+	 * @default true
+	 */
+	chunkModules?: boolean;
+	/**
+	 * Enables or disables the display of chunk relations.
+	 * @default false
+	 */
+	chunkRelations?: boolean;
+	/**
+	 * Enables or disables the display of module IDs.
+	 * @default false
+	 */
+	ids?: boolean;
+	/**
+	 * Enables or disables the display of build timings.
+	 * @default true
+	 */
+	timings?: boolean;
+	/**
+	 * Enables or disables the display of the build date.
+	 * @default true
+	 */
+	builtAt?: boolean;
+	/**
+	 * Enables or disables the display of module assets.
+	 * @default true
+	 */
+	moduleAssets?: boolean;
+	/**
+	 * Enables or disables the display of nested modules.
+	 * @default true
+	 */
+	nestedModules?: boolean;
+	/**
+	 * Enables or disables the display of source code.
+	 * @default false
+	 */
+	source?: boolean;
+	/**
+	 * Configures the level of logging output.
+	 * Can be set to a string value of "none", "error", "warn", "info", "log", "verbose", or a boolean value.
+	 *
+	 * @description
+	 * - `'none'`, false: Logging is disabled.
+	 * - `'error'`: Only errors are logged.
+	 * - `'warn'`: Errors and warnings are logged.
+	 * - `'info'`: Errors, warnings, and info messages are logged.
+	 * - `'log'`, true: Errors, warnings, info messages, log messages, groups, and clears are logged. Collapsed groups are initially collapsed.
+	 * - `'verbose'`: All log levels except debug and trace are logged. Collapsed groups are initially expanded.
+	 */
+	logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | boolean;
+	/**
+	 * Enables or disables debug logging, or specifies a filter for debug logging.
+	 */
+	loggingDebug?: boolean | FilterTypes;
+	/**
+	 * Enables or disables trace logging.
+	 * @default true
+	 */
+	loggingTrace?: boolean;
+	/**
+	 * Enables or disables the display of runtime modules.
+	 * @default true
+	 */
+	runtimeModules?: boolean;
+	/**
+	 * Enables or disables the display of children modules.
+	 * @default true
+	 */
+	children?: boolean;
+	/**
+	 * Enables or disables the display of used exports.
+	 * @default false
+	 */
+	usedExports?: boolean;
+	/**
+	 * Enables or disables the display of provided exports.
+	 * @default false
+	 */
+	providedExports?: boolean;
+	/**
+	 * Enables or disables optimization bailout.
+	 * @default false
+	 */
+	optimizationBailout?: boolean;
+	/**
+	 * Enables or disables grouping of modules by type.
+	 */
+	groupModulesByType?: boolean;
+	/**
+	 * Enables or disables grouping of modules by cache status.
+	 */
+	groupModulesByCacheStatus?: boolean;
+	/**
+	 * Enables or disables grouping of modules by layer.
+	 */
+	groupModulesByLayer?: boolean;
+	/**
+	 * Enables or disables grouping of modules by attributes.
+	 */
+	groupModulesByAttributes?: boolean;
+	/**
+	 * Enables or disables grouping of modules by path.
+	 */
+	groupModulesByPath?: boolean;
+	/**
+	 * Enables or disables grouping of modules by extension.
+	 */
+	groupModulesByExtension?: boolean;
+	/**
+	 * Specifies the space to use for displaying modules.
+	 * @default 15
+	 */
+	modulesSpace?: number;
+	/**
+	 * Specifies the space to use for displaying chunk modules.
+	 * @default 10
+	 */
+	chunkModulesSpace?: number;
+	/**
+	 * Specifies the space to use for displaying nested modules.
+	 * @default 10
+	 */
+	nestedModulesSpace?: number;
+	/**
+	 * Enables or disables the display of related assets.
+	 * @default false
+	 */
+	relatedAssets?: boolean;
+	/**
+	 * Enables or disables grouping of assets by emit status.
+	 */
+	groupAssetsByEmitStatus?: boolean;
+	/**
+	 * Enables or disables grouping of assets by info.
+	 */
+	groupAssetsByInfo?: boolean;
+	/**
+	 * Enables or disables grouping of assets by path.
+	 */
+	groupAssetsByPath?: boolean;
+	/**
+	 * Enables or disables grouping of assets by extension.
+	 */
+	groupAssetsByExtension?: boolean;
+	/**
+	 * Enables or disables grouping of assets by chunk.
+	 */
+	groupAssetsByChunk?: boolean;
+	/**
+	 * Specifies the space to use for displaying assets.
+	 * @default 15
+	 */
+	assetsSpace?: number;
+	/**
+	 * Enables or disables the display of orphan modules.
+	 * @default false
+	 */
+	orphanModules?: boolean;
+	/**
+	 * Specifies modules to exclude from the bundle.
+	 * @default false
+	 */
+	excludeModules?: ModuleFilterTypes;
+	/**
+	 * Exclude the matching assets information.
+	 * @default false
+	 */
+	excludeAssets?: ModuleFilterTypes;
+	/**
+	 * Specifies the sorting order for modules.
+	 * @default 'id'
+	 */
+	modulesSort?: string;
+	/**
+	 * Specifies the sorting order for chunk modules.
+	 */
+	chunkModulesSort?: string;
+	/**
+	 * Specifies the sorting order for nested modules.
+	 */
+	nestedModulesSort?: string;
+	/**
+	 * Specifies the sorting order for chunks.
+	 * @default 'id'
+	 */
+	chunksSort?: string;
+	/**
+	 * Specifies the sorting order for assets.
+	 * @default 'id'
+	 */
+	assetsSort?: string;
+	/**
+	 * Enables or disables performance optimization.
+	 * @default true
+	 */
+	performance?: boolean;
+	/**
+	 * Enables or disables environment variables.
+	 * @default false
+	 */
+	env?: boolean;
+	/**
+	 * Enables or disables auxiliary chunk grouping.
+	 * @default true
+	 */
+	chunkGroupAuxiliary?: boolean;
+	/**
+	 * Enables or disables child chunk grouping.
+	 * @default true
+	 */
+	chunkGroupChildren?: boolean;
+	/**
+	 * Specifies the maximum number of assets per chunk group.
+	 * @default 5
+	 */
+	chunkGroupMaxAssets?: number;
+	/**
+	 * Enables or disables the display of dependent modules.
+	 * @default false
+	 */
+	dependentModules?: boolean;
+	/**
+	 * Enables or disables the display of chunk origins.
+	 * @default true
+	 */
+	chunkOrigins?: boolean;
+	/**
+	 * Enables or disables the display of runtime information.
+	 */
+	runtime?: boolean;
+	/**
+	 * Enables or disables the display of depth information.
+	 * @default false
+	 */
+	depth?: boolean;
+	/**
+	 * Specifies the space to use for displaying reasons.
+	 * @default 100
+	 */
+	reasonsSpace?: number;
+	/**
+	 * Enables or disables grouping of reasons by origin.
+	 */
+	groupReasonsByOrigin?: boolean;
+	/**
+	 * Enables or disables the display of error details.
+	 * @default false
+	 */
+	errorDetails?: boolean;
+	/**
+	 * Enables or disables the display of error stack traces.
+	 * @default true
+	 */
+	errorStack?: boolean;
+	/**
+	 * Enables or disables the display of module trace information.
+	 * @default true
+	 */
+	moduleTrace?: boolean;
+	/**
+	 * Enables or disables the display of cached modules.
+	 * @default true
+	 */
+	cachedModules?: boolean;
+	/**
+	 * Enables or disables the display of cached assets.
+	 * @default true
+	 */
+	cachedAssets?: boolean;
+	/**
+	 * Enables or disables the display of cached information.
+	 */
+	cached?: boolean;
+	/**
+	 * Specifies the space to use for displaying errors.
+	 * @default 5
+	 */
+	errorsSpace?: number;
+	/**
+	 * Specifies the space to use for displaying warnings.
+	 * @default 5
+	 */
+	warningsSpace?: number;
+};
+
+/**
+ * Represents the value for stats configuration.
+ */
+export type StatsValue = boolean | StatsOptions | StatsPresets;
+//#endregion
 
 //#region Plugins
 export interface RspackPluginInstance {
