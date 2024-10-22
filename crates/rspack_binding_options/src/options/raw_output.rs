@@ -4,6 +4,7 @@ use rspack_binding_values::library::JsLibraryOptions;
 use rspack_binding_values::JsFilename;
 use rspack_core::{CrossOriginLoading, Environment, PathInfo};
 use rspack_core::{OutputOptions, TrustedTypes};
+use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -58,13 +59,20 @@ impl From<RawEnvironment> for Environment {
   }
 }
 
+#[derive(Debug, Clone)]
+#[napi(object)]
+pub struct RawClean {
+  pub keep: Option<JsRegExp>,
+}
+
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawOutputOptions {
   pub path: String,
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
-  pub clean: bool,
+  #[napi(ts_type = "boolean | object")]
+  pub clean: Either<bool, RawClean>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,
@@ -118,10 +126,23 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       Either::B(s) => PathInfo::String(s),
     };
 
+    let clean = match value.clean {
+      Either::A(a) => {
+        if a {
+          Some(None)
+        } else {
+          None
+        }
+      }
+      Either::B(b) => Some(CleanOutput {
+        keep: s.keep.map(|keep| keep.to_rspack_regex()),
+      }),
+    };
+
     Ok(OutputOptions {
       path: value.path.into(),
       pathinfo,
-      clean: value.clean,
+      clean,
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.as_str().into(),
