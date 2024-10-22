@@ -1,3 +1,0 @@
-#!/usr/bin/env node
-const runCLI = require("../dist/bootstrap").runCLI;
-runCLI(process.argv);

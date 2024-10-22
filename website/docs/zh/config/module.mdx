@@ -617,20 +617,21 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `true`
 
-是否为 CSS 的导出添加 `__esModule`，如果添加则会在 esm-cjs interop 时当作 ES Module，否则当作 CommonJS Module。
+是否为 CSS 的导出添加 `__esModule`，如果添加则会在 esm-cjs interop 时当作 ES modules，否则当作 CommonJS modules。
 
-比如在使用第三方组件库的 cjs 产物时，有时需要添加该配置确保 esm-cjs interop 正确，以拿到正确的导出（可配合 [Rule.test](#ruletest) 等匹配条件只为该组件库添加）。
+比如在使用第三方组件库的 CommonJS 产物时，有时需要添加该配置确保 esm-cjs interop 正确，以拿到正确的导出（可配合 [Rule.test](#ruletest) 等匹配条件只为该组件库添加）。
 
 组件库源码：
 
 ```js
 import style from './style.css';
+
 export function Button() {
   return <button className={style.btn}></button>;
 }
 ```
 
-组件库发布的 cjs 产物：
+组件库发布的 CommonJS 产物：
 
 ```js
 'use strict';
@@ -992,7 +993,7 @@ module.exports = {
 用于标记匹配的模块的类型，这会影响 Rspack 内置对于该模块的处理方式。例如：当模块被标记为 `'typescript'` 则会使用 TS parser/generator 对模块进行处理。
 
 - `'javascript/auto'`：JavaScript 模块，支持的模块系统：CommonJS、ESM，暂没有对 AMD 模块支持的计划。
-- `'javascript/esm'`：JavaScript 模块，当作严格 ES Module 处理。
+- `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'css'`：CSS 模块。
 - `'css/module'`：CSS Modules 模块。

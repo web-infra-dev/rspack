@@ -16,16 +16,16 @@ module.exports = {
 };
 ```
 
-### Supported configuration file formats
+### Configuration file formats
 
 Rspack supports four types of configuration files, `.js`, `.ts`, `.cjs` and `.mjs` formats.
 
-- `rspack.config.js`: defaults to `CommonJS` format, or `ES Module` format if the type of the package.json is module.
+- `rspack.config.js`: defaults to `CommonJS` format, or `ES modules` format if the type of the package.json is module.
 - `rspack.config.ts`: `TypeScript` format, which is compiled internally to `.js` format using `ts-node`.
 - `rspack.config.cjs`: Forced to `CommonJS` format.
-- `rspack.config.mjs`: Forced to `ES module` format.
+- `rspack.config.mjs`: Forced to `ES modules` format.
 
-See [ES Module](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES Module`
+> See [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES modules`.
 
 ### Type Checking
 

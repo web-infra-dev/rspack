@@ -1,3 +1,3 @@
 export default function foo() {
-	return esm;
+	return str;
 }

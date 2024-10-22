@@ -2085,10 +2085,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "lightningcss"
-version = "1.0.0-alpha.58"
+name = "lightningcss-derive"
+version = "1.0.0-alpha.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec380ca49dc7f6a1cafbdd2de5e587958eac0f67ab26b1e56727fcc60a0c3d4d"
+checksum = "84c12744d1279367caed41739ef094c325d53fb0ffcd4f9b84a368796f870252"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "lightningcss_rs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbdc3e38585310266a8e8c9e9e7c216fe710fdcee84cd154a6655f58fa77ffe2"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.5.0",
@@ -2110,18 +2122,6 @@ dependencies = [
  "serde",
  "smallvec",
  "static-self",
-]
-
-[[package]]
-name = "lightningcss-derive"
-version = "1.0.0-alpha.43"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84c12744d1279367caed41739ef094c325d53fb0ffcd4f9b84a368796f870252"
-dependencies = [
- "convert_case",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -2625,9 +2625,9 @@ checksum = "caff54706df99d2a78a5a4e3455ff45448d81ef1bb63c22cd14052ca0e993a3f"
 
 [[package]]
 name = "parcel_selectors"
-version = "0.26.6"
+version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "512215cb1d3814e276ace4ec2dbc2cac16726ea3fcac20c22ae1197e16fdd72d"
+checksum = "1f4d26c18a8377a64728c04bf3b2e48ec43b0c77e687a18e03eb837d65e08a14"
 dependencies = [
  "bitflags 2.5.0",
  "cssparser",
@@ -3587,7 +3587,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "derivative",
- "lightningcss",
+ "lightningcss_rs",
  "parcel_sourcemap",
  "rspack_core",
  "rspack_error",
@@ -4103,7 +4103,7 @@ dependencies = [
 name = "rspack_plugin_lightning_css_minimizer"
 version = "0.1.0"
 dependencies = [
- "lightningcss",
+ "lightningcss_rs",
  "parcel_sourcemap",
  "rayon",
  "regex",
@@ -4384,9 +4384,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.3.3"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51106b568dee8123f549ed5163818d4efa74fbca567a4bb88222b4f45e8b074d"
+checksum = "44786dd48374dc4b43cff0306e417c1d11016c3dffda5685bb272b6eb4f7ff85"
 dependencies = [
  "cfg-if",
  "dashmap 6.0.1",
@@ -4397,6 +4397,7 @@ dependencies = [
  "rustc-hash 2.0.0",
  "serde",
  "serde_json",
+ "simdutf8",
  "thiserror",
  "tracing",
 ]

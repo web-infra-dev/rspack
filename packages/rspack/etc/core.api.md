@@ -594,6 +594,7 @@ export class Compilation {
     get entrypoints(): ReadonlyMap<string, Entrypoint>;
     // (undocumented)
     get errors(): RspackError[];
+    set errors(errors: RspackError[]);
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
@@ -741,6 +742,7 @@ export class Compilation {
     updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void;
     // (undocumented)
     get warnings(): RspackError[];
+    set warnings(warnings: RspackError[]);
 }
 
 // @public (undocumented)
@@ -1677,8 +1679,18 @@ interface ExecuteModuleContext {
     __webpack_require__: (id: string) => any;
 }
 
-// @public (undocumented)
-export type Experiments = z.infer<typeof experiments_2>;
+// @public
+export type Experiments = {
+    lazyCompilation?: boolean | LazyCompilationOptions;
+    asyncWebAssembly?: boolean;
+    outputModule?: boolean;
+    topLevelAwait?: boolean;
+    css?: boolean;
+    layers?: boolean;
+    incremental?: boolean | Incremental;
+    futureDefaults?: boolean;
+    rspackFuture?: RspackFutureOptions;
+};
 
 // @public (undocumented)
 export const experiments: Experiments_2;
@@ -1691,256 +1703,6 @@ interface Experiments_2 {
         cleanup: typeof cleanupGlobalTrace;
     };
 }
-
-// @public (undocumented)
-const experiments_2: z.ZodObject<{
-    lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
-        backend: z.ZodOptional<z.ZodObject<{
-            client: z.ZodOptional<z.ZodString>;
-            listen: z.ZodUnion<[z.ZodOptional<z.ZodNumber>, z.ZodObject<{
-                port: z.ZodOptional<z.ZodNumber>;
-                host: z.ZodOptional<z.ZodString>;
-                backlog: z.ZodOptional<z.ZodNumber>;
-                path: z.ZodOptional<z.ZodString>;
-                exclusive: z.ZodOptional<z.ZodBoolean>;
-                readableAll: z.ZodOptional<z.ZodBoolean>;
-                writableAll: z.ZodOptional<z.ZodBoolean>;
-                ipv6Only: z.ZodOptional<z.ZodBoolean>;
-            }, "strip", z.ZodTypeAny, {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            }, {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            }>]>;
-            protocol: z.ZodOptional<z.ZodEnum<["http", "https"]>>;
-        }, "strip", z.ZodTypeAny, {
-            client?: string | undefined;
-            listen?: number | {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            } | undefined;
-            protocol?: "http" | "https" | undefined;
-        }, {
-            client?: string | undefined;
-            listen?: number | {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            } | undefined;
-            protocol?: "http" | "https" | undefined;
-        }>>;
-        imports: z.ZodOptional<z.ZodBoolean>;
-        entries: z.ZodOptional<z.ZodBoolean>;
-        test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
-    }, "strip", z.ZodTypeAny, {
-        entries?: boolean | undefined;
-        test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-        backend?: {
-            client?: string | undefined;
-            listen?: number | {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            } | undefined;
-            protocol?: "http" | "https" | undefined;
-        } | undefined;
-        imports?: boolean | undefined;
-    }, {
-        entries?: boolean | undefined;
-        test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-        backend?: {
-            client?: string | undefined;
-            listen?: number | {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            } | undefined;
-            protocol?: "http" | "https" | undefined;
-        } | undefined;
-        imports?: boolean | undefined;
-    }>]>;
-    asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
-    outputModule: z.ZodOptional<z.ZodBoolean>;
-    topLevelAwait: z.ZodOptional<z.ZodBoolean>;
-    css: z.ZodOptional<z.ZodBoolean>;
-    layers: z.ZodOptional<z.ZodBoolean>;
-    incremental: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
-        make: z.ZodOptional<z.ZodBoolean>;
-        emitAssets: z.ZodOptional<z.ZodBoolean>;
-        inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
-        providedExports: z.ZodOptional<z.ZodBoolean>;
-        dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
-        modulesHashes: z.ZodOptional<z.ZodBoolean>;
-        modulesCodegen: z.ZodOptional<z.ZodBoolean>;
-        modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
-    }, "strict", z.ZodTypeAny, {
-        make?: boolean | undefined;
-        providedExports?: boolean | undefined;
-        emitAssets?: boolean | undefined;
-        inferAsyncModules?: boolean | undefined;
-        dependenciesDiagnostics?: boolean | undefined;
-        modulesHashes?: boolean | undefined;
-        modulesCodegen?: boolean | undefined;
-        modulesRuntimeRequirements?: boolean | undefined;
-    }, {
-        make?: boolean | undefined;
-        providedExports?: boolean | undefined;
-        emitAssets?: boolean | undefined;
-        inferAsyncModules?: boolean | undefined;
-        dependenciesDiagnostics?: boolean | undefined;
-        modulesHashes?: boolean | undefined;
-        modulesCodegen?: boolean | undefined;
-        modulesRuntimeRequirements?: boolean | undefined;
-    }>]>>;
-    futureDefaults: z.ZodOptional<z.ZodBoolean>;
-    rspackFuture: z.ZodOptional<z.ZodObject<{
-        bundlerInfo: z.ZodOptional<z.ZodObject<{
-            version: z.ZodOptional<z.ZodString>;
-            bundler: z.ZodOptional<z.ZodString>;
-            force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version", "uniqueId"]>, "many">]>>;
-        }, "strict", z.ZodTypeAny, {
-            force?: boolean | ("version" | "uniqueId")[] | undefined;
-            version?: string | undefined;
-            bundler?: string | undefined;
-        }, {
-            force?: boolean | ("version" | "uniqueId")[] | undefined;
-            version?: string | undefined;
-            bundler?: string | undefined;
-        }>>;
-    }, "strict", z.ZodTypeAny, {
-        bundlerInfo?: {
-            force?: boolean | ("version" | "uniqueId")[] | undefined;
-            version?: string | undefined;
-            bundler?: string | undefined;
-        } | undefined;
-    }, {
-        bundlerInfo?: {
-            force?: boolean | ("version" | "uniqueId")[] | undefined;
-            version?: string | undefined;
-            bundler?: string | undefined;
-        } | undefined;
-    }>>;
-}, "strict", z.ZodTypeAny, {
-    css?: boolean | undefined;
-    lazyCompilation?: boolean | {
-        entries?: boolean | undefined;
-        test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-        backend?: {
-            client?: string | undefined;
-            listen?: number | {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            } | undefined;
-            protocol?: "http" | "https" | undefined;
-        } | undefined;
-        imports?: boolean | undefined;
-    } | undefined;
-    asyncWebAssembly?: boolean | undefined;
-    outputModule?: boolean | undefined;
-    topLevelAwait?: boolean | undefined;
-    layers?: boolean | undefined;
-    incremental?: boolean | {
-        make?: boolean | undefined;
-        providedExports?: boolean | undefined;
-        emitAssets?: boolean | undefined;
-        inferAsyncModules?: boolean | undefined;
-        dependenciesDiagnostics?: boolean | undefined;
-        modulesHashes?: boolean | undefined;
-        modulesCodegen?: boolean | undefined;
-        modulesRuntimeRequirements?: boolean | undefined;
-    } | undefined;
-    futureDefaults?: boolean | undefined;
-    rspackFuture?: {
-        bundlerInfo?: {
-            force?: boolean | ("version" | "uniqueId")[] | undefined;
-            version?: string | undefined;
-            bundler?: string | undefined;
-        } | undefined;
-    } | undefined;
-}, {
-    css?: boolean | undefined;
-    lazyCompilation?: boolean | {
-        entries?: boolean | undefined;
-        test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-        backend?: {
-            client?: string | undefined;
-            listen?: number | {
-                path?: string | undefined;
-                port?: number | undefined;
-                host?: string | undefined;
-                backlog?: number | undefined;
-                exclusive?: boolean | undefined;
-                readableAll?: boolean | undefined;
-                writableAll?: boolean | undefined;
-                ipv6Only?: boolean | undefined;
-            } | undefined;
-            protocol?: "http" | "https" | undefined;
-        } | undefined;
-        imports?: boolean | undefined;
-    } | undefined;
-    asyncWebAssembly?: boolean | undefined;
-    outputModule?: boolean | undefined;
-    topLevelAwait?: boolean | undefined;
-    layers?: boolean | undefined;
-    incremental?: boolean | {
-        make?: boolean | undefined;
-        providedExports?: boolean | undefined;
-        emitAssets?: boolean | undefined;
-        inferAsyncModules?: boolean | undefined;
-        dependenciesDiagnostics?: boolean | undefined;
-        modulesHashes?: boolean | undefined;
-        modulesCodegen?: boolean | undefined;
-        modulesRuntimeRequirements?: boolean | undefined;
-    } | undefined;
-    futureDefaults?: boolean | undefined;
-    rspackFuture?: {
-        bundlerInfo?: {
-            force?: boolean | ("version" | "uniqueId")[] | undefined;
-            version?: string | undefined;
-            bundler?: string | undefined;
-        } | undefined;
-    } | undefined;
-}>;
 
 // @public (undocumented)
 export interface ExperimentsNormalized {
@@ -2367,38 +2129,17 @@ export type ImportFunctionName = string;
 // @public
 export type ImportMetaName = string;
 
-// @public (undocumented)
-export type Incremental = z.infer<typeof incremental>;
-
-// @public (undocumented)
-const incremental: z.ZodObject<{
-    make: z.ZodOptional<z.ZodBoolean>;
-    emitAssets: z.ZodOptional<z.ZodBoolean>;
-    inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
-    providedExports: z.ZodOptional<z.ZodBoolean>;
-    dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
-    modulesHashes: z.ZodOptional<z.ZodBoolean>;
-    modulesCodegen: z.ZodOptional<z.ZodBoolean>;
-    modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
-}, "strict", z.ZodTypeAny, {
-    make?: boolean | undefined;
-    providedExports?: boolean | undefined;
-    emitAssets?: boolean | undefined;
-    inferAsyncModules?: boolean | undefined;
-    dependenciesDiagnostics?: boolean | undefined;
-    modulesHashes?: boolean | undefined;
-    modulesCodegen?: boolean | undefined;
-    modulesRuntimeRequirements?: boolean | undefined;
-}, {
-    make?: boolean | undefined;
-    providedExports?: boolean | undefined;
-    emitAssets?: boolean | undefined;
-    inferAsyncModules?: boolean | undefined;
-    dependenciesDiagnostics?: boolean | undefined;
-    modulesHashes?: boolean | undefined;
-    modulesCodegen?: boolean | undefined;
-    modulesRuntimeRequirements?: boolean | undefined;
-}>;
+// @public
+export type Incremental = {
+    make?: boolean;
+    emitAssets?: boolean;
+    inferAsyncModules?: boolean;
+    providedExports?: boolean;
+    dependenciesDiagnostics?: boolean;
+    modulesHashes?: boolean;
+    modulesCodegen?: boolean;
+    modulesRuntimeRequirements?: boolean;
+};
 
 // @public
 export type InfrastructureLogging = {
@@ -2960,109 +2701,17 @@ type KnownStatsProfile = {
 // @public
 export type Layer = string | null;
 
-// @public (undocumented)
-export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
-
-// @public (undocumented)
-const lazyCompilationOptions: z.ZodObject<{
-    backend: z.ZodOptional<z.ZodObject<{
-        client: z.ZodOptional<z.ZodString>;
-        listen: z.ZodUnion<[z.ZodOptional<z.ZodNumber>, z.ZodObject<{
-            port: z.ZodOptional<z.ZodNumber>;
-            host: z.ZodOptional<z.ZodString>;
-            backlog: z.ZodOptional<z.ZodNumber>;
-            path: z.ZodOptional<z.ZodString>;
-            exclusive: z.ZodOptional<z.ZodBoolean>;
-            readableAll: z.ZodOptional<z.ZodBoolean>;
-            writableAll: z.ZodOptional<z.ZodBoolean>;
-            ipv6Only: z.ZodOptional<z.ZodBoolean>;
-        }, "strip", z.ZodTypeAny, {
-            path?: string | undefined;
-            port?: number | undefined;
-            host?: string | undefined;
-            backlog?: number | undefined;
-            exclusive?: boolean | undefined;
-            readableAll?: boolean | undefined;
-            writableAll?: boolean | undefined;
-            ipv6Only?: boolean | undefined;
-        }, {
-            path?: string | undefined;
-            port?: number | undefined;
-            host?: string | undefined;
-            backlog?: number | undefined;
-            exclusive?: boolean | undefined;
-            readableAll?: boolean | undefined;
-            writableAll?: boolean | undefined;
-            ipv6Only?: boolean | undefined;
-        }>]>;
-        protocol: z.ZodOptional<z.ZodEnum<["http", "https"]>>;
-    }, "strip", z.ZodTypeAny, {
-        client?: string | undefined;
-        listen?: number | {
-            path?: string | undefined;
-            port?: number | undefined;
-            host?: string | undefined;
-            backlog?: number | undefined;
-            exclusive?: boolean | undefined;
-            readableAll?: boolean | undefined;
-            writableAll?: boolean | undefined;
-            ipv6Only?: boolean | undefined;
-        } | undefined;
-        protocol?: "http" | "https" | undefined;
-    }, {
-        client?: string | undefined;
-        listen?: number | {
-            path?: string | undefined;
-            port?: number | undefined;
-            host?: string | undefined;
-            backlog?: number | undefined;
-            exclusive?: boolean | undefined;
-            readableAll?: boolean | undefined;
-            writableAll?: boolean | undefined;
-            ipv6Only?: boolean | undefined;
-        } | undefined;
-        protocol?: "http" | "https" | undefined;
-    }>>;
-    imports: z.ZodOptional<z.ZodBoolean>;
-    entries: z.ZodOptional<z.ZodBoolean>;
-    test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
-}, "strip", z.ZodTypeAny, {
-    entries?: boolean | undefined;
-    test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+// @public
+export type LazyCompilationOptions = {
     backend?: {
-        client?: string | undefined;
-        listen?: number | {
-            path?: string | undefined;
-            port?: number | undefined;
-            host?: string | undefined;
-            backlog?: number | undefined;
-            exclusive?: boolean | undefined;
-            readableAll?: boolean | undefined;
-            writableAll?: boolean | undefined;
-            ipv6Only?: boolean | undefined;
-        } | undefined;
-        protocol?: "http" | "https" | undefined;
-    } | undefined;
-    imports?: boolean | undefined;
-}, {
-    entries?: boolean | undefined;
-    test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-    backend?: {
-        client?: string | undefined;
-        listen?: number | {
-            path?: string | undefined;
-            port?: number | undefined;
-            host?: string | undefined;
-            backlog?: number | undefined;
-            exclusive?: boolean | undefined;
-            readableAll?: boolean | undefined;
-            writableAll?: boolean | undefined;
-            ipv6Only?: boolean | undefined;
-        } | undefined;
-        protocol?: "http" | "https" | undefined;
-    } | undefined;
-    imports?: boolean | undefined;
-}>;
+        client?: string;
+        listen?: number | ListenOptions;
+        protocol?: "http" | "https";
+    };
+    imports?: boolean;
+    entries?: boolean;
+    test?: RegExp | ((module: any) => boolean);
+};
 
 // @public
 export type Library = LibraryName | LibraryOptions | undefined;
@@ -3195,6 +2844,18 @@ const LimitChunkCountPlugin: {
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
+};
+
+// @public
+type ListenOptions = {
+    port?: number;
+    host?: string;
+    backlog?: number;
+    path?: string;
+    exclusive?: boolean;
+    readableAll?: boolean;
+    writableAll?: boolean;
+    ipv6Only?: boolean;
 };
 
 // @public (undocumented)
@@ -4583,7 +4244,7 @@ type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?
 type ResolveContext = {};
 
 // @public (undocumented)
-type ResolveData = {
+export type ResolveData = {
     contextInfo: ContextInfo;
     context: string;
     request: string;
@@ -4735,6 +4396,7 @@ declare namespace rspackExports {
         Chunk,
         ChunkGroup,
         Module,
+        ResolveData,
         MultiStats,
         NormalModule,
         NormalModuleFactory,
@@ -4864,10 +4526,6 @@ declare namespace rspackExports {
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
         externalsType,
-        RspackFutureOptions,
-        LazyCompilationOptions,
-        Incremental,
-        Experiments,
         Watch,
         WatchOptions,
         DevServer,
@@ -5024,41 +4682,22 @@ declare namespace rspackExports {
         OptimizationSplitChunksNameFunction,
         OptimizationSplitChunksCacheGroup,
         OptimizationSplitChunksOptions,
-        Optimization
+        Optimization,
+        RspackFutureOptions,
+        LazyCompilationOptions,
+        Incremental,
+        Experiments
     }
 }
 
-// @public (undocumented)
-export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
-
-// @public (undocumented)
-const rspackFutureOptions: z.ZodObject<{
-    bundlerInfo: z.ZodOptional<z.ZodObject<{
-        version: z.ZodOptional<z.ZodString>;
-        bundler: z.ZodOptional<z.ZodString>;
-        force: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodArray<z.ZodEnum<["version", "uniqueId"]>, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        force?: boolean | ("version" | "uniqueId")[] | undefined;
-        version?: string | undefined;
-        bundler?: string | undefined;
-    }, {
-        force?: boolean | ("version" | "uniqueId")[] | undefined;
-        version?: string | undefined;
-        bundler?: string | undefined;
-    }>>;
-}, "strict", z.ZodTypeAny, {
+// @public
+export type RspackFutureOptions = {
     bundlerInfo?: {
-        force?: boolean | ("version" | "uniqueId")[] | undefined;
-        version?: string | undefined;
-        bundler?: string | undefined;
-    } | undefined;
-}, {
-    bundlerInfo?: {
-        force?: boolean | ("version" | "uniqueId")[] | undefined;
-        version?: string | undefined;
-        bundler?: string | undefined;
-    } | undefined;
-}>;
+        version?: string;
+        bundler?: string;
+        force?: boolean | ("version" | "uniqueId")[];
+    };
+};
 
 // @public (undocumented)
 export type RspackOptions = z.infer<typeof rspackOptions>;
@@ -10126,7 +9765,11 @@ declare namespace t {
         OptimizationSplitChunksNameFunction,
         OptimizationSplitChunksCacheGroup,
         OptimizationSplitChunksOptions,
-        Optimization
+        Optimization,
+        RspackFutureOptions,
+        LazyCompilationOptions,
+        Incremental,
+        Experiments
     }
 }
 
