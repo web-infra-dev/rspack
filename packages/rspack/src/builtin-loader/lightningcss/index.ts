@@ -254,7 +254,7 @@ export type LoaderOptions = {
 	targets?: Targets | string[] | string;
 	include?: FeatureOptions;
 	exclude?: FeatureOptions;
-	draft?: Drafts;
+	drafts?: Drafts;
 	nonStandard?: NonStandard;
 	pseudoClasses?: PseudoClasses;
 	unusedSymbols?: string[];
