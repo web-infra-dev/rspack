@@ -452,8 +452,8 @@ importers:
         specifier: 2.0.19
         version: 2.0.19
       exit-hook:
-        specifier: ^3.2.0
-        version: 3.2.0
+        specifier: ^2.2.1
+        version: 2.2.1
       interpret:
         specifier: ^3.1.1
         version: 3.1.1
@@ -470,6 +470,9 @@ importers:
         specifier: 17.6.2
         version: 17.6.2
     devDependencies:
+      '@rslib/core':
+        specifier: 0.0.12
+        version: 0.0.12(@microsoft/api-extractor@7.47.10(@types/node@20.12.7))(typescript@5.6.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -6312,9 +6315,9 @@ packages:
     resolution: {integrity: sha512-VyhnebXciFV2DESc+p6B+y0LjSm0krU4OgJN44qFAhBY0TJ+1V61tYD2+wHusZ6F9n5K+vl8k0sTy7PEfV4qpg==}
     engines: {node: '>=16.17'}
 
-  exit-hook@3.2.0:
-    resolution: {integrity: sha512-aIQN7Q04HGAV/I5BszisuHTZHXNoC23WtLkxdCLuYZMdWviRD0TMIt2bnUBi9MrHaF/hH8b3gwG9iaAUHKnJGA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+  exit-hook@2.2.1:
+    resolution: {integrity: sha512-eNTPlAD67BmP31LDINZ3U7HSF8l57TxOY2PmBJ1shpCvpnxBF93mWCE8YHBnXs8qiUZJc9WDcWIeC3a2HIAMfw==}
+    engines: {node: '>=6'}
 
   exit@0.1.2:
     resolution: {integrity: sha512-Zk/eNKV2zbjpKzrsQ+n1G6poVbErQxJ0LBOJXaKZ1EViLzH+hrLu9cdXI4zw9dBQJslwBEpbQ2P1oS7nDxs6jQ==}
@@ -13848,7 +13851,7 @@ snapshots:
 
   '@rsbuild/core@1.0.14':
     dependencies:
-      '@rspack/core': 1.0.10(@swc/helpers@0.5.13)
+      '@rspack/core': 1.0.13(@swc/helpers@0.5.13)
       '@rspack/lite-tapable': 1.0.1
       '@swc/helpers': 0.5.13
       core-js: 3.38.1
@@ -13961,7 +13964,6 @@ snapshots:
       '@rspack/binding-win32-arm64-msvc': 1.0.13
       '@rspack/binding-win32-ia32-msvc': 1.0.13
       '@rspack/binding-win32-x64-msvc': 1.0.13
-    optional: true
 
   '@rspack/core@1.0.10(@swc/helpers@0.5.13)':
     dependencies:
@@ -13980,7 +13982,6 @@ snapshots:
       caniuse-lite: 1.0.30001669
     optionalDependencies:
       '@swc/helpers': 0.5.13
-    optional: true
 
   '@rspack/dev-server@1.0.5(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack-cli@5.1.4(webpack@5.94.0))(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))':
     dependencies:
@@ -17974,7 +17975,7 @@ snapshots:
       signal-exit: 4.1.0
       strip-final-newline: 3.0.0
 
-  exit-hook@3.2.0: {}
+  exit-hook@2.2.1: {}
 
   exit@0.1.2: {}
 

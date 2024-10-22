@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 import isEsmFile from "./isEsmFile";
 
 /**
- * Dynamically import files. It will make sure it's not being compiled away by TS/Rollup.
+ * Dynamically import files. It will make sure it's not being compiled away by TS/Rslib.
  */
 export const dynamicImport = new Function("path", "return import(path)");
 
