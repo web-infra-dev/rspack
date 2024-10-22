@@ -381,6 +381,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "borsh"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6362ed55def622cddc70a4746a68554d7b687713770de539e59a739b249f8ed"
+dependencies = [
+ "cfg_aliases",
+]
+
+[[package]]
 name = "browserslist-rs"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -531,6 +540,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "cfg_aliases"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
+
+[[package]]
 name = "chrono"
 version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -594,7 +609,7 @@ dependencies = [
  "encode_unicode",
  "lazy_static",
  "libc",
- "unicode-width",
+ "unicode-width 0.1.12",
  "windows-sys 0.52.0",
 ]
 
@@ -1678,6 +1693,7 @@ checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
  "ahash 0.8.11",
  "allocator-api2",
+ "serde",
 ]
 
 [[package]]
@@ -1971,7 +1987,7 @@ dependencies = [
  "instant",
  "number_prefix",
  "portable-atomic",
- "unicode-width",
+ "unicode-width 0.1.12",
 ]
 
 [[package]]
@@ -2096,9 +2112,9 @@ dependencies = [
 
 [[package]]
 name = "jsonc-parser"
-version = "0.23.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7725c320caac8c21d8228c1d055af27a995d371f78cc763073d3e068323641b5"
+checksum = "57c78ad024523b61a2f20b1cad47413dd24db744a15d3d1b7276e69d1bee106c"
 dependencies = [
  "serde_json",
 ]
@@ -2361,7 +2377,7 @@ dependencies = [
  "terminal_size 0.1.17",
  "textwrap 0.15.2",
  "thiserror",
- "unicode-width",
+ "unicode-width 0.1.12",
 ]
 
 [[package]]
@@ -2375,7 +2391,7 @@ dependencies = [
  "owo-colors 4.0.0",
  "textwrap 0.16.1",
  "thiserror",
- "unicode-width",
+ "unicode-width 0.1.12",
 ]
 
 [[package]]
@@ -3704,7 +3720,7 @@ dependencies = [
  "termcolor",
  "textwrap 0.15.2",
  "thiserror",
- "unicode-width",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]
@@ -3837,7 +3853,7 @@ dependencies = [
  "base64 0.22.1",
  "dashmap 5.5.3",
  "either",
- "jsonc-parser 0.23.0",
+ "jsonc-parser 0.26.1",
  "rspack_ast",
  "rspack_core",
  "rspack_error",
@@ -4542,7 +4558,7 @@ dependencies = [
  "serde_json",
  "swc_core",
  "tracing",
- "wasmparser 0.207.0",
+ "wasmparser 0.219.1",
 ]
 
 [[package]]
@@ -4994,10 +5010,11 @@ checksum = "f67ad224767faa3c7d8b6d91985b78e70a1324408abcb1cfcc2be4c06bc06043"
 
 [[package]]
 name = "smol_str"
-version = "0.2.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd538fb6910ac1099850255cf94a94df6551fbdd602454387d0adb2d1ca6dead"
+checksum = "66eaf762c5af19db3108300515c8aa7a50efc90ff745f4c62288052ebf9fdd25"
 dependencies = [
+ "borsh",
  "serde",
 ]
 
@@ -5314,7 +5331,7 @@ dependencies = [
  "swc_eq_ignore_macros",
  "swc_visit",
  "tracing",
- "unicode-width",
+ "unicode-width 0.1.12",
  "url",
 ]
 
@@ -6470,7 +6487,7 @@ checksum = "b7b3e525a49ec206798b40326a44121291b530c963cfb01018f63e135bac543d"
 dependencies = [
  "smawk",
  "unicode-linebreak",
- "unicode-width",
+ "unicode-width 0.1.12",
 ]
 
 [[package]]
@@ -6481,7 +6498,7 @@ checksum = "23d434d3f8967a09480fb04132ebe0a3e088c173e6d0ee7897abbdf4eab0f8b9"
 dependencies = [
  "smawk",
  "unicode-linebreak",
- "unicode-width",
+ "unicode-width 0.1.12",
 ]
 
 [[package]]
@@ -6933,6 +6950,12 @@ name = "unicode-width"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68f5e5f3158ecfd4b8ff6fe086db7c8467a2dfdac97fe420f2b7c4aa97af66d6"
+
+[[package]]
+name = "unicode-width"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd"
 
 [[package]]
 name = "unicode-xid"
@@ -7583,15 +7606,16 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.207.0"
+version = "0.219.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e19bb9f8ab07616da582ef8adb24c54f1424c7ec876720b7da9db8ec0626c92c"
+checksum = "5c771866898879073c53b565a6c7b49953795159836714ac56a5befb581227c5"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.5.0",
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
  "semver 1.0.20",
+ "serde",
 ]
 
 [[package]]
@@ -7602,7 +7626,7 @@ checksum = "a259b226fd6910225aa7baeba82f9d9933b6d00f2ce1b49b80fa4214328237cc"
 dependencies = [
  "leb128",
  "memchr",
- "unicode-width",
+ "unicode-width 0.1.12",
  "wasm-encoder",
 ]
 
