@@ -1,4 +1,4 @@
-use crate::unaffected_cache::IncrementalPasses;
+use crate::incremental::IncrementalPasses;
 
 #[derive(Debug)]
 pub struct Experiments {

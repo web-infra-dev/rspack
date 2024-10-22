@@ -19,8 +19,8 @@ use tracing::instrument;
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
+use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
-use crate::unaffected_cache::{IncrementalPasses, UnaffectedModulesCache};
 use crate::{
   fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
 };
@@ -68,7 +68,6 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
-  unaffected_modules_cache: Arc<UnaffectedModulesCache>,
 }
 
 impl Compiler {
@@ -110,7 +109,6 @@ impl Compiler {
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
-    let unaffected_modules_cache = Arc::new(UnaffectedModulesCache::default());
     let module_executor = ModuleExecutor::default();
     let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(AsyncNativeFileSystem {}));
 
@@ -124,7 +122,6 @@ impl Compiler {
         loader_resolver_factory.clone(),
         None,
         old_cache.clone(),
-        unaffected_modules_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -137,7 +134,6 @@ impl Compiler {
       loader_resolver_factory,
       old_cache,
       emitted_asset_versions: Default::default(),
-      unaffected_modules_cache,
       input_filesystem,
     }
   }
@@ -165,7 +161,6 @@ impl Compiler {
         self.loader_resolver_factory.clone(),
         None,
         self.old_cache.clone(),
-        self.unaffected_modules_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
