@@ -1236,7 +1236,7 @@ impl Compilation {
         .incremental
         .mutations_read(IncrementalPasses::MODULES_HASHES)
       {
-        mutations.get_affected_modules_with_chunk_graph(&self)
+        mutations.get_affected_modules_with_chunk_graph(self)
       } else {
         self.get_module_graph().modules().keys().copied().collect()
       },
@@ -1255,7 +1255,7 @@ impl Compilation {
         .incremental
         .mutations_read(IncrementalPasses::MODULES_CODEGEN)
       {
-        mutations.get_affected_modules_with_chunk_graph(&self)
+        mutations.get_affected_modules_with_chunk_graph(self)
       } else {
         self.get_module_graph().modules().keys().copied().collect()
       },
@@ -1269,7 +1269,7 @@ impl Compilation {
           .incremental
           .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
         {
-          mutations.get_affected_modules_with_chunk_graph(&self)
+          mutations.get_affected_modules_with_chunk_graph(self)
         } else {
           self.get_module_graph().modules().keys().copied().collect()
         },

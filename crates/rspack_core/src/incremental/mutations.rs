@@ -148,7 +148,7 @@ fn compute_affected_modules_with_module_graph(
         if all_affected_modules.contains(&referencing_module) {
           return None;
         }
-        match reduce_affect_type(&module_graph, &connections) {
+        match reduce_affect_type(module_graph, &connections) {
           AffectType::False => None,
           AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
           AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
@@ -183,7 +183,7 @@ fn compute_affected_modules_with_module_graph(
         if all_affected_modules.contains(&referencing_module) {
           continue;
         }
-        match reduce_affect_type(&module_graph, &connections) {
+        match reduce_affect_type(module_graph, &connections) {
           AffectType::False => continue,
           AffectType::True => {
             direct_affected_modules.insert(referencing_module);
