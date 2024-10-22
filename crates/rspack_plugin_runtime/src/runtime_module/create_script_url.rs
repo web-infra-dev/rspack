@@ -7,7 +7,17 @@ pub struct CreateScriptUrlRuntimeModule {
   id: Identifier,
 }
 
-impl CreateScriptUrlRuntimeModule {
+impl Default for CreateScriptUrlRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/create_script_url"))
+  }
+}
+
+impl RuntimeModule for CreateScriptUrlRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let generated_code = format!(
       r#"
@@ -26,17 +36,5 @@ impl CreateScriptUrlRuntimeModule {
       }
     );
     Ok(generated_code)
-  }
-}
-
-impl Default for CreateScriptUrlRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/create_script_url"))
-  }
-}
-
-impl RuntimeModule for CreateScriptUrlRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

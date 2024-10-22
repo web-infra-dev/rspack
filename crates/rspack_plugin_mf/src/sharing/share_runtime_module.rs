@@ -21,6 +21,16 @@ impl ShareRuntimeModule {
   pub fn new(enhanced: bool) -> Self {
     Self::with_default(Identifier::from("webpack/runtime/sharing"), None, enhanced)
   }
+}
+
+impl RuntimeModule for ShareRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
@@ -116,16 +126,6 @@ __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {sc
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
-  }
-}
-
-impl RuntimeModule for ShareRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }
 

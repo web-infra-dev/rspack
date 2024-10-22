@@ -17,30 +17,6 @@ impl ExposeRuntimeModule {
   pub fn new() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/initialize_exposes"), None)
   }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let chunk_ukey = self
-      .chunk
-      .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
-    let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
-      return Ok("".to_string());
-    };
-    let module_map = data.module_map.render(compilation);
-    let mut generated_code = format!(
-      r#"
-__webpack_require__.initializeExposesData = {{
-  moduleMap: {},
-  shareScope: {},
-}};
-"#,
-      module_map,
-      json_stringify(&data.share_scope)
-    );
-    generated_code.push_str("__webpack_require__.getContainer = __webpack_require__.getContainer || function() { throw new Error(\"should have __webpack_require__.getContainer\") };");
-    generated_code.push_str("__webpack_require__.initContainer = __webpack_require__.initContainer || function() { throw new Error(\"should have __webpack_require__.initContainer\") };");
-
-    Ok(generated_code)
-  }
 }
 
 impl ExposeRuntimeModule {
@@ -80,5 +56,29 @@ impl RuntimeModule for ExposeRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let chunk_ukey = self
+      .chunk
+      .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
+    let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
+      return Ok("".to_string());
+    };
+    let module_map = data.module_map.render(compilation);
+    let mut generated_code = format!(
+      r#"
+__webpack_require__.initializeExposesData = {{
+  moduleMap: {},
+  shareScope: {},
+}};
+"#,
+      module_map,
+      json_stringify(&data.share_scope)
+    );
+    generated_code.push_str("__webpack_require__.getContainer = __webpack_require__.getContainer || function() { throw new Error(\"should have __webpack_require__.getContainer\") };");
+    generated_code.push_str("__webpack_require__.initContainer = __webpack_require__.initContainer || function() { throw new Error(\"should have __webpack_require__.initContainer\") };");
+
+    Ok(generated_code)
   }
 }

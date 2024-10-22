@@ -7,12 +7,6 @@ pub struct NodeModuleDecoratorRuntimeModule {
   id: Identifier,
 }
 
-impl NodeModuleDecoratorRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/node_module_decorator.js").to_string())
-  }
-}
-
 impl Default for NodeModuleDecoratorRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/node_module_decorator"))
@@ -22,5 +16,9 @@ impl Default for NodeModuleDecoratorRuntimeModule {
 impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/node_module_decorator.js").to_string())
   }
 }

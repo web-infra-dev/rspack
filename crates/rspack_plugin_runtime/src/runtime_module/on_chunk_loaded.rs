@@ -7,12 +7,6 @@ pub struct OnChunkLoadedRuntimeModule {
   id: Identifier,
 }
 
-impl OnChunkLoadedRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/on_chunk_loaded.js").to_string())
-  }
-}
-
 impl Default for OnChunkLoadedRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/on_chunk_loaded"))
@@ -22,5 +16,9 @@ impl Default for OnChunkLoadedRuntimeModule {
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/on_chunk_loaded.js").to_string())
   }
 }

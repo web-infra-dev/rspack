@@ -13,14 +13,12 @@ fn with_generic() {
     marker: PhantomData<T>,
   }
 
-  impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> Foo<T> {
-    fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-      todo!()
-    }
-  }
-
   impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {
     fn name(&self) -> Identifier {
+      todo!()
+    }
+
+    fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
       todo!()
     }
   }

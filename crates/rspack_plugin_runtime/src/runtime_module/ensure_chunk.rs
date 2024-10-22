@@ -11,7 +11,21 @@ pub struct EnsureChunkRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl EnsureChunkRuntimeModule {
+impl Default for EnsureChunkRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/ensure_chunk"), None)
+  }
+}
+
+impl RuntimeModule for EnsureChunkRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -30,21 +44,5 @@ impl EnsureChunkRuntimeModule {
       false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
     };
     Ok(generated_code)
-  }
-}
-
-impl Default for EnsureChunkRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/ensure_chunk"), None)
-  }
-}
-
-impl RuntimeModule for EnsureChunkRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

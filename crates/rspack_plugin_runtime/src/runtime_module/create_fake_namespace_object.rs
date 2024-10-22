@@ -7,12 +7,6 @@ pub struct CreateFakeNamespaceObjectRuntimeModule {
   id: Identifier,
 }
 
-impl CreateFakeNamespaceObjectRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/create_fake_namespace_object.js").to_string())
-  }
-}
-
 impl Default for CreateFakeNamespaceObjectRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from(
@@ -24,5 +18,9 @@ impl Default for CreateFakeNamespaceObjectRuntimeModule {
 impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/create_fake_namespace_object.js").to_string())
   }
 }

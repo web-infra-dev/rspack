@@ -28,6 +28,16 @@ impl AsyncWasmLoadingRuntimeModule {
       chunk,
     )
   }
+}
+
+impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let (fake_filename, hash_len_map) =
@@ -64,16 +74,6 @@ impl AsyncWasmLoadingRuntimeModule {
         ),
       self.supports_streaming,
     ))
-  }
-}
-
-impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
   }
 }
 

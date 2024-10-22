@@ -7,15 +7,6 @@ pub struct SystemContextRuntimeModule {
   id: Identifier,
 }
 
-impl SystemContextRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
-    ))
-  }
-}
-
 impl Default for SystemContextRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/start_entry_point"))
@@ -25,5 +16,12 @@ impl Default for SystemContextRuntimeModule {
 impl RuntimeModule for SystemContextRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = __system_context__",
+      RuntimeGlobals::SYSTEM_CONTEXT
+    ))
   }
 }

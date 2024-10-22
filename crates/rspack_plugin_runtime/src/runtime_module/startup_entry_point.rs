@@ -15,6 +15,12 @@ impl StartupEntrypointRuntimeModule {
       async_chunk_loading,
     )
   }
+}
+
+impl RuntimeModule for StartupEntrypointRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
     let generated_code = if self.async_chunk_loading {
@@ -23,11 +29,5 @@ impl StartupEntrypointRuntimeModule {
       include_str!("runtime/startup_entrypoint.js")
     };
     Ok(generated_code.to_string())
-  }
-}
-
-impl RuntimeModule for StartupEntrypointRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

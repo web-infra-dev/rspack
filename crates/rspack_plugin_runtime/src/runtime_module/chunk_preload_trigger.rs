@@ -20,16 +20,6 @@ impl ChunkPreloadTriggerRuntimeModule {
       chunk_map,
     )
   }
-
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    let generated_code = include_str!("runtime/chunk_preload_trigger.js")
-      .cow_replace(
-        "$CHUNK_MAP$",
-        &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
-      )
-      .to_string();
-    Ok(generated_code)
-  }
 }
 
 impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
@@ -39,5 +29,15 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger
+  }
+
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
+    let generated_code = include_str!("runtime/chunk_preload_trigger.js")
+      .cow_replace(
+        "$CHUNK_MAP$",
+        &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
+      )
+      .to_string();
+    Ok(generated_code)
   }
 }

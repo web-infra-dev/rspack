@@ -18,6 +18,16 @@ impl RspackUniqueIdRuntimeModule {
       bundler_version,
     )
   }
+}
+
+impl RuntimeModule for RspackUniqueIdRuntimeModule {
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+
+  fn name(&self) -> Identifier {
+    self.id
+  }
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
     Ok(
@@ -26,14 +36,5 @@ impl RspackUniqueIdRuntimeModule {
         .cow_replace("$BUNDLER_VERSION$", &self.bundler_version)
         .to_string(),
     )
-  }
-}
-
-impl RuntimeModule for RspackUniqueIdRuntimeModule {
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

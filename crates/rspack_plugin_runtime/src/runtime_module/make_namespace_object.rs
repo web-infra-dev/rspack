@@ -7,12 +7,6 @@ pub struct MakeNamespaceObjectRuntimeModule {
   id: Identifier,
 }
 
-impl MakeNamespaceObjectRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/make_namespace_object.js").to_string())
-  }
-}
-
 impl Default for MakeNamespaceObjectRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/make_namespace_object"))
@@ -22,5 +16,9 @@ impl Default for MakeNamespaceObjectRuntimeModule {
 impl RuntimeModule for MakeNamespaceObjectRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/make_namespace_object.js").to_string())
   }
 }

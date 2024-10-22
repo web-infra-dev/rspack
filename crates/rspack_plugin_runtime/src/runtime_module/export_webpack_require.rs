@@ -11,10 +11,6 @@ impl ExportWebpackRequireRuntimeModule {
   pub fn new() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/export_webpack_runtime"))
   }
-
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok("export default __webpack_require__;".to_string())
-  }
 }
 
 impl RuntimeModule for ExportWebpackRequireRuntimeModule {
@@ -24,5 +20,9 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
 
   fn should_isolate(&self) -> bool {
     false
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok("export default __webpack_require__;".to_string())
   }
 }

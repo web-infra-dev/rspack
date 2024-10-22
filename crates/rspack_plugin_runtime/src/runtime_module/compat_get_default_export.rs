@@ -7,12 +7,6 @@ pub struct CompatGetDefaultExportRuntimeModule {
   id: Identifier,
 }
 
-impl CompatGetDefaultExportRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/compat_get_default_export.js").to_string())
-  }
-}
-
 impl Default for CompatGetDefaultExportRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from(
@@ -24,5 +18,9 @@ impl Default for CompatGetDefaultExportRuntimeModule {
 impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/compat_get_default_export.js").to_string())
   }
 }

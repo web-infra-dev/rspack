@@ -15,17 +15,6 @@ impl PublicPathRuntimeModule {
   pub fn new(public_path: Box<Filename>) -> Self {
     Self::with_default(Identifier::from("webpack/runtime/public_path"), public_path)
   }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(
-      include_str!("runtime/public_path.js")
-        .cow_replace(
-          "__PUBLIC_PATH_PLACEHOLDER__",
-          &PublicPath::render_filename(compilation, &self.public_path),
-        )
-        .to_string(),
-    )
-  }
 }
 
 impl RuntimeModule for PublicPathRuntimeModule {
@@ -44,5 +33,16 @@ impl RuntimeModule for PublicPathRuntimeModule {
 
   fn dependent_hash(&self) -> bool {
     true
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(
+      include_str!("runtime/public_path.js")
+        .cow_replace(
+          "__PUBLIC_PATH_PLACEHOLDER__",
+          &PublicPath::render_filename(compilation, &self.public_path),
+        )
+        .to_string(),
+    )
   }
 }

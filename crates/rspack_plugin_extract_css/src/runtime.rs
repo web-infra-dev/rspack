@@ -55,6 +55,16 @@ impl CssLoadingRuntimeModule {
 
     set
   }
+}
+
+impl RuntimeModule for CssLoadingRuntimeModule {
+  fn name(&self) -> rspack_collections::Identifier {
+    "webpack/runtime/css loading".into()
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
 
   fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
     let runtime = RUNTIME_CODE;
@@ -169,15 +179,5 @@ impl CssLoadingRuntimeModule {
     };
 
     Ok(runtime.to_string())
-  }
-}
-
-impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> rspack_collections::Identifier {
-    "webpack/runtime/css loading".into()
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
   }
 }

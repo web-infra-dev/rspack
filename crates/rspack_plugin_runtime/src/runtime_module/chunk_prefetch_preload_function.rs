@@ -25,6 +25,12 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
       runtime_handlers,
     )
   }
+}
+
+impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
     Ok(
@@ -33,11 +39,5 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
         .cow_replace("$RUNTIME_HANDLERS$", &self.runtime_handlers.to_string())
         .to_string(),
     )
-  }
-}
-
-impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

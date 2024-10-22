@@ -1,10 +1,11 @@
 use rspack_collections::Identifier;
 use rspack_sources::BoxSource;
 
-use crate::{ChunkUkey, Module};
+use crate::{ChunkUkey, Compilation, Module};
 
 pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn name(&self) -> Identifier;
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String>;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal

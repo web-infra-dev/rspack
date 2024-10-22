@@ -11,7 +11,24 @@ pub struct GetTrustedTypesPolicyRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl GetTrustedTypesPolicyRuntimeModule {
+impl Default for GetTrustedTypesPolicyRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      None,
+    )
+  }
+}
+
+impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let trusted_types = compilation
       .options
@@ -54,24 +71,5 @@ impl GetTrustedTypesPolicyRuntimeModule {
         .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
         .to_string(),
     )
-  }
-}
-
-impl Default for GetTrustedTypesPolicyRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(
-      Identifier::from("webpack/runtime/get_trusted_types_policy"),
-      None,
-    )
-  }
-}
-
-impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

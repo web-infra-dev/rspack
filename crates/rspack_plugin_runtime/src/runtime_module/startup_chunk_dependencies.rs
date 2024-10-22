@@ -20,6 +20,16 @@ impl StartupChunkDependenciesRuntimeModule {
       None,
     )
   }
+}
+
+impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
@@ -80,15 +90,5 @@ impl StartupChunkDependenciesRuntimeModule {
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
-  }
-}
-
-impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

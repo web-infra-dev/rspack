@@ -7,12 +7,6 @@ pub struct NonceRuntimeModule {
   id: Identifier,
 }
 
-impl NonceRuntimeModule {
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    Ok(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE).to_string())
-  }
-}
-
 impl Default for NonceRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/nonce"))
@@ -22,5 +16,9 @@ impl Default for NonceRuntimeModule {
 impl RuntimeModule for NonceRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE).to_string())
   }
 }

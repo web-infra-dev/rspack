@@ -21,6 +21,16 @@ impl GetMainFilenameRuntimeModule {
       filename,
     )
   }
+}
+
+impl RuntimeModule for GetMainFilenameRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
@@ -42,15 +52,5 @@ impl GetMainFilenameRuntimeModule {
     } else {
       unreachable!("should attach chunk for get_main_filename")
     }
-  }
-}
-
-impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

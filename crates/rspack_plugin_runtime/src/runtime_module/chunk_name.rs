@@ -8,21 +8,6 @@ pub struct ChunkNameRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl ChunkNameRuntimeModule {
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-      Ok(format!(
-        "{} = {};",
-        RuntimeGlobals::CHUNK_NAME,
-        serde_json::to_string(&chunk.name).expect("Invalid json string")
-      ))
-    } else {
-      unreachable!("should attach chunk for css_loading")
-    }
-  }
-}
-
 impl Default for ChunkNameRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/chunk_name"), None)
@@ -36,5 +21,18 @@ impl RuntimeModule for ChunkNameRuntimeModule {
 
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    if let Some(chunk_ukey) = self.chunk {
+      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      Ok(format!(
+        "{} = {};",
+        RuntimeGlobals::CHUNK_NAME,
+        serde_json::to_string(&chunk.name).expect("Invalid json string")
+      ))
+    } else {
+      unreachable!("should attach chunk for css_loading")
+    }
   }
 }

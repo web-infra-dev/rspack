@@ -18,12 +18,6 @@ pub struct RuntimeModuleFromJs {
   pub stage: RuntimeModuleStage,
 }
 
-impl RuntimeModuleFromJs {
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    (self.generator)()
-  }
-}
-
 impl RuntimeModule for RuntimeModuleFromJs {
   fn name(&self) -> Identifier {
     Identifier::from(format!("webpack/runtime/{}", self.name))
@@ -39,5 +33,9 @@ impl RuntimeModule for RuntimeModuleFromJs {
 
   fn stage(&self) -> RuntimeModuleStage {
     self.stage.clone()
+  }
+
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
+    (self.generator)()
   }
 }

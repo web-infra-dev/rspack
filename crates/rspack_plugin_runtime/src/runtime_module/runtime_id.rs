@@ -9,7 +9,21 @@ pub struct RuntimeIdRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl RuntimeIdRuntimeModule {
+impl Default for RuntimeIdRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/runtime_id"), None)
+  }
+}
+
+impl RuntimeModule for RuntimeIdRuntimeModule {
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -37,21 +51,5 @@ impl RuntimeIdRuntimeModule {
     } else {
       unreachable!("should attach chunk for css_loading")
     }
-  }
-}
-
-impl Default for RuntimeIdRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/runtime_id"), None)
-  }
-}
-
-impl RuntimeModule for RuntimeIdRuntimeModule {
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

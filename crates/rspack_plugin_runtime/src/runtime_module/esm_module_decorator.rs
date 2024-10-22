@@ -7,12 +7,6 @@ pub struct ESMModuleDecoratorRuntimeModule {
   id: Identifier,
 }
 
-impl ESMModuleDecoratorRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/esm_module_decorator.js").to_string())
-  }
-}
-
 impl Default for ESMModuleDecoratorRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/esm_module_decorator"))
@@ -22,5 +16,9 @@ impl Default for ESMModuleDecoratorRuntimeModule {
 impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/esm_module_decorator.js").to_string())
   }
 }

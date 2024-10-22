@@ -16,6 +16,21 @@ pub struct LoadScriptRuntimeModule {
 }
 
 impl LoadScriptRuntimeModule {
+  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
+    Self::with_default(
+      Identifier::from("webpack/runtime/load_script"),
+      unique_name,
+      with_create_script_url,
+      chunk_ukey,
+    )
+  }
+}
+
+impl RuntimeModule for LoadScriptRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
@@ -110,22 +125,5 @@ impl LoadScriptRuntimeModule {
           unique_prefix.unwrap_or_default().as_str(),
         ).to_string(),
     )
-  }
-}
-
-impl LoadScriptRuntimeModule {
-  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
-    Self::with_default(
-      Identifier::from("webpack/runtime/load_script"),
-      unique_name,
-      with_create_script_url,
-      chunk_ukey,
-    )
-  }
-}
-
-impl RuntimeModule for LoadScriptRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

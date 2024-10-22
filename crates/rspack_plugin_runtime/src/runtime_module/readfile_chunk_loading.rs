@@ -57,6 +57,20 @@ impl ReadFileChunkLoadingRuntimeModule {
       });
     format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
   }
+}
+
+impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk)
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
@@ -166,19 +180,5 @@ impl ReadFileChunkLoadingRuntimeModule {
     }
 
     Ok(generated_code)
-  }
-}
-
-impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk)
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
   }
 }

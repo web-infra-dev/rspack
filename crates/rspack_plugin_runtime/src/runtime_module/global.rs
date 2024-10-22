@@ -7,12 +7,6 @@ pub struct GlobalRuntimeModule {
   id: Identifier,
 }
 
-impl GlobalRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(include_str!("runtime/global.js").to_string())
-  }
-}
-
 impl Default for GlobalRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/global"))
@@ -22,5 +16,9 @@ impl Default for GlobalRuntimeModule {
 impl RuntimeModule for GlobalRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(include_str!("runtime/global.js").to_string())
   }
 }

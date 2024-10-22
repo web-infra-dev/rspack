@@ -66,6 +66,24 @@ impl GetChunkFilenameRuntimeModule {
       Box::new(filename_for_chunk),
     )
   }
+}
+
+impl RuntimeModule for GetChunkFilenameRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn cacheable(&self) -> bool {
+    false
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
+  fn dependent_hash(&self) -> bool {
+    true
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunks = self
@@ -322,23 +340,5 @@ impl GetChunkFilenameRuntimeModule {
         .join("\n"),
       dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
     ))
-  }
-}
-
-impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn cacheable(&self) -> bool {
-    false
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
-  fn dependent_hash(&self) -> bool {
-    true
   }
 }

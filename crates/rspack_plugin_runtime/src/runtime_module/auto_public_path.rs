@@ -13,7 +13,25 @@ pub struct AutoPublicPathRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl AutoPublicPathRuntimeModule {
+impl Default for AutoPublicPathRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
+  }
+}
+
+impl RuntimeModule for AutoPublicPathRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = self.chunk.expect("The chunk should be attached");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
@@ -32,26 +50,6 @@ impl AutoPublicPathRuntimeModule {
       &filename,
       &compilation.options.output,
     ))
-  }
-}
-
-impl Default for AutoPublicPathRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
-  }
-}
-
-impl RuntimeModule for AutoPublicPathRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
   }
 }
 

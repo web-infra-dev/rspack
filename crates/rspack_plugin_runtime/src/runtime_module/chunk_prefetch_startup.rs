@@ -20,6 +20,20 @@ impl ChunkPrefetchStartupRuntimeModule {
       None,
     )
   }
+}
+
+impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Trigger
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self.chunk.expect("chunk do not attached");
@@ -76,19 +90,5 @@ impl ChunkPrefetchStartupRuntimeModule {
       })
       .join("\n");
     Ok(generated_code)
-  }
-}
-
-impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Trigger
   }
 }

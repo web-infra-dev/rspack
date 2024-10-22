@@ -16,7 +16,25 @@ pub struct CssLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl CssLoadingRuntimeModule {
+impl Default for CssLoadingRuntimeModule {
+  fn default() -> Self {
+    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
+  }
+}
+
+impl RuntimeModule for CssLoadingRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -226,25 +244,5 @@ for(i = 0; cc; i++) {{
     } else {
       unreachable!("should attach chunk for css_loading")
     }
-  }
-}
-
-impl Default for CssLoadingRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
-  }
-}
-
-impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
   }
 }

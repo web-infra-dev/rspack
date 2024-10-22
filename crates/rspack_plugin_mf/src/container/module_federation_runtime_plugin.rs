@@ -16,16 +16,6 @@ pub struct FederationRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl FederationRuntimeModule {
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let chunk = compilation
-      .chunk_by_ukey
-      .expect_get(&self.chunk.expect("The chunk should be attached."));
-    let generated_code = federation_runtime_template(chunk, compilation);
-    Ok(generated_code)
-  }
-}
-
 impl Default for FederationRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("module_federation/runtime"), None)
@@ -43,6 +33,14 @@ impl RuntimeModule for FederationRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let chunk = compilation
+      .chunk_by_ukey
+      .expect_get(&self.chunk.expect("The chunk should be attached."));
+    let generated_code = federation_runtime_template(chunk, compilation);
+    Ok(generated_code)
   }
 }
 

@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   fast_set, get_chunk_from_ukey, unaffected_cache::IncrementalPasses, ChunkKind, Compilation,
-  Compiler, ModuleExecutor, RuntimeSpec, SourceType,
+  Compiler, ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -182,10 +182,8 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
     .runtime_modules
     .iter()
     .map(|(identifier, module)| -> Result<(Identifier, String)> {
-      let result = module.code_generation(compilation, None, None)?;
-      #[allow(clippy::unwrap_used)]
-      let source = result.get(&SourceType::Runtime).unwrap();
-      Ok((*identifier, source.source().to_string()))
+      let generated_code = module.generate(compilation)?;
+      Ok((*identifier, generated_code))
     })
     .collect::<Result<IdentifierMap<String>>>()?;
 

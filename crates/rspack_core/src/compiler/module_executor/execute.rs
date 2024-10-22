@@ -4,6 +4,7 @@ use std::{iter::once, sync::atomic::AtomicU32};
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
+use rspack_sources::{OriginalSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};
@@ -191,14 +192,17 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let result = runtime_module.code_generation(&compilation, None, None)?;
-      #[allow(clippy::unwrap_used)]
-      let runtime_module_source = result.get(&SourceType::Runtime).unwrap();
+      let generated_code = runtime_module.generate(&compilation)?;
+      let runtime_module_source = if runtime_module.get_source_map_kind().enabled() {
+        OriginalSource::new(generated_code, runtime_module.identifier().to_string()).boxed()
+      } else {
+        RawSource::from(generated_code).boxed()
+      };
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
+      let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
       let result_id = result.id;
 
       compilation

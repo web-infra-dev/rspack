@@ -24,6 +24,20 @@ impl ConsumeSharedRuntimeModule {
       enhanced,
     )
   }
+}
+
+impl RuntimeModule for ConsumeSharedRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
@@ -136,20 +150,6 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     }
 
     Ok(generated_code)
-  }
-}
-
-impl RuntimeModule for ConsumeSharedRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }
 

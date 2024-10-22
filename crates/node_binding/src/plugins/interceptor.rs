@@ -25,13 +25,13 @@ use rspack_binding_values::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, Chunk,
-  ChunkUkey, CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  parse_resource, rspack_sources::RawSource, AfterResolveResult, AssetEmittedInfo,
+  BeforeResolveResult, BoxModule, Chunk, ChunkUkey, CodeGenerationResults, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -53,7 +53,7 @@ use rspack_core::{
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, SourceType,
+  Scheme,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -1200,14 +1200,11 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     };
 
     let chunk = compilation.chunk_by_ukey.expect_get(c);
-    let result = module.code_generation(compilation, None, None)?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(
           #[allow(clippy::unwrap_used)]
-          result
-            .get(&SourceType::Runtime)
-            .unwrap()
+          RawSource::from(module.generate(compilation)?)
             .to_js_compat_source()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),

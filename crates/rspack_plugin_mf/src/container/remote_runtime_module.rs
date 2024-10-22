@@ -25,6 +25,20 @@ impl RemoteRuntimeModule {
       enhanced,
     )
   }
+}
+
+impl RuntimeModule for RemoteRuntimeModule {
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = Some(chunk);
+  }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
@@ -96,20 +110,6 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
       remotes_loading_impl = remotes_loading_impl,
     );
     Ok(generated_code)
-  }
-}
-
-impl RuntimeModule for RemoteRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }
 
