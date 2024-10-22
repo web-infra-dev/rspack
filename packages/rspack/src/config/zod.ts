@@ -1204,8 +1204,7 @@ const rspackFutureOptions = z.strictObject({
 				.optional()
 		})
 		.optional()
-});
-export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
+}) satisfies z.ZodType<t.RspackFutureOptions>;
 
 const listenOptions = z.object({
 	port: z.number().optional(),
@@ -1232,8 +1231,7 @@ const lazyCompilationOptions = z.object({
 		.instanceof(RegExp)
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
 		.optional()
-});
-export type LazyCompilationOptions = z.infer<typeof lazyCompilationOptions>;
+}) satisfies z.ZodType<t.LazyCompilationOptions>;
 
 const incremental = z.strictObject({
 	make: z.boolean().optional(),
@@ -1244,8 +1242,7 @@ const incremental = z.strictObject({
 	modulesHashes: z.boolean().optional(),
 	modulesCodegen: z.boolean().optional(),
 	modulesRuntimeRequirements: z.boolean().optional()
-});
-export type Incremental = z.infer<typeof incremental>;
+}) satisfies z.ZodType<t.Incremental>;
 
 const experiments = z.strictObject({
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
@@ -1257,8 +1254,7 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
-});
-export type Experiments = z.infer<typeof experiments>;
+}) satisfies z.ZodType<t.Experiments>;
 //#endregion
 
 //#region Watch

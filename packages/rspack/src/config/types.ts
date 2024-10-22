@@ -2256,3 +2256,199 @@ export type Optimization = {
 	emitOnErrors?: boolean;
 };
 //#endregion
+
+//#region Experiments
+/**
+ * Options for future Rspack features.
+ */
+export type RspackFutureOptions = {
+	/**
+	 * Information about the bundler.
+	 */
+	bundlerInfo?: {
+		/**
+		 * Version of the bundler.
+		 */
+		version?: string;
+		/**
+		 * Name of the bundler.
+		 */
+		bundler?: string;
+		/**
+		 * Force specific features.
+		 */
+		force?: boolean | ("version" | "uniqueId")[];
+	};
+};
+
+/**
+ * Options for server listening.
+ */
+type ListenOptions = {
+	/**
+	 * The port to listen on.
+	 */
+	port?: number;
+	/**
+	 * The host to listen on.
+	 */
+	host?: string;
+	/**
+	 * The backlog of connections.
+	 */
+	backlog?: number;
+	/**
+	 * The path for Unix socket.
+	 */
+	path?: string;
+	/**
+	 * Whether the server is exclusive.
+	 */
+	exclusive?: boolean;
+	/**
+	 * Whether the socket is readable by all users.
+	 */
+	readableAll?: boolean;
+	/**
+	 * Whether the socket is writable by all users.
+	 */
+	writableAll?: boolean;
+	/**
+	 * Whether to use IPv6 only.
+	 */
+	ipv6Only?: boolean;
+};
+
+/**
+ * Options for lazy compilation.
+ */
+export type LazyCompilationOptions = {
+	/**
+	 * Backend configuration for lazy compilation.
+	 */
+	backend?: {
+		/**
+		 * Client script path.
+		 */
+		client?: string;
+		/**
+		 * Listening options.
+		 */
+		listen?: number | ListenOptions;
+		/**
+		 * Protocol to use.
+		 */
+		protocol?: "http" | "https";
+	};
+	/**
+	 * Enable lazy compilation for imports.
+	 */
+	imports?: boolean;
+	/**
+	 * Enable lazy compilation for entries.
+	 */
+	entries?: boolean;
+	/**
+	 * Test function or regex to determine which modules to include.
+	 */
+	test?: RegExp | ((module: any) => boolean);
+};
+
+/**
+ * Options for incremental builds.
+ */
+export type Incremental = {
+	/**
+	 * Enable incremental make.
+	 */
+	make?: boolean;
+
+	/**
+	 * Enable incremental asset emission.
+	 */
+	emitAssets?: boolean;
+
+	/**
+	 * Enable inference of async modules.
+	 */
+	inferAsyncModules?: boolean;
+
+	/**
+	 * Enable incremental provided exports.
+	 */
+	providedExports?: boolean;
+
+	/**
+	 * Enables diagnostics for dependencies.
+	 */
+	dependenciesDiagnostics?: boolean;
+
+	/**
+	 * Enable incremental module hashes.
+	 */
+	modulesHashes?: boolean;
+
+	/**
+	 * Enable incremental module code generation.
+	 */
+	modulesCodegen?: boolean;
+
+	/**
+	 * Enable incremental module runtime requirements.
+	 */
+	modulesRuntimeRequirements?: boolean;
+};
+
+/**
+ * Experimental features configuration.
+ */
+export type Experiments = {
+	/**
+	 * Enable lazy compilation.
+	 */
+	lazyCompilation?: boolean | LazyCompilationOptions;
+	/**
+	 * Enable async WebAssembly.
+	 * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+	 */
+	asyncWebAssembly?: boolean;
+	/**
+	 * Enable output as ES module.
+	 */
+	outputModule?: boolean;
+	/**
+	 * Enable top-level await.
+	 */
+	topLevelAwait?: boolean;
+	/**
+	 * Enable CSS support.
+	 *
+	 * @description
+	 * Once enabled, Rspack will enable native CSS support, and CSS related parser and generator options.
+	 * - `module.parser["css/auto"]`
+	 * - `module.parser.css`
+	 * - `module.parser["css/module"]`
+	 * - `module.generator["css/auto"]`
+	 * - `module.generator.css`
+	 * - `module.generator["css/module"]`
+	 */
+	css?: boolean;
+	/**
+	 * Enable module layers feature.
+	 * @default false
+	 */
+	layers?: boolean;
+	/**
+	 * Enable incremental builds.
+	 */
+	incremental?: boolean | Incremental;
+	/**
+	 * Enable future default options.
+	 */
+	futureDefaults?: boolean;
+	/**
+	 * Enable future Rspack features default options.
+	 */
+	rspackFuture?: RspackFutureOptions;
+};
+//#endregion
