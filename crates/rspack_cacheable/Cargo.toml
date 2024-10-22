@@ -4,6 +4,9 @@ license = "MIT"
 name    = "rspack_cacheable"
 version = "0.1.0"
 
+[features]
+noop = []
+
 [dependencies]
 camino          = { workspace = true }
 dashmap         = { workspace = true }

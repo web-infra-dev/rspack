@@ -78,6 +78,14 @@ pub fn cacheable(
 }
 
 #[proc_macro_attribute]
+pub fn disable_cacheable(
+  _args: proc_macro::TokenStream,
+  tokens: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+  cacheable::disable_cacheable(tokens)
+}
+
+#[proc_macro_attribute]
 pub fn cacheable_dyn(
   _args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
@@ -89,4 +97,12 @@ pub fn cacheable_dyn(
     syn::Item::Impl(input) => cacheable_dyn::impl_impl(input),
     _ => panic!("expect Trait or Impl"),
   }
+}
+
+#[proc_macro_attribute]
+pub fn disable_cacheable_dyn(
+  _args: proc_macro::TokenStream,
+  tokens: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+  cacheable_dyn::disable_cacheable_dyn(tokens)
 }

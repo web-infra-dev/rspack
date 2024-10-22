@@ -239,3 +239,19 @@ pub fn impl_cacheable_with(tokens: TokenStream, args: CacheableArgs) -> TokenStr
   }
   .into()
 }
+
+/// impl cacheable when disable
+pub fn disable_cacheable(tokens: TokenStream) -> TokenStream {
+  let mut input = parse_macro_input!(tokens as Item);
+
+  let mut visitor = FieldAttrVisitor {
+    clean: true,
+    ..Default::default()
+  };
+  visitor.visit_item_mut(&mut input);
+
+  quote! {
+      #input
+  }
+  .into()
+}

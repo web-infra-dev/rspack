@@ -232,3 +232,8 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
   }
   .into()
 }
+
+/// impl cacheable dyn when disable
+pub fn disable_cacheable_dyn(input: TokenStream) -> TokenStream {
+  input
+}
