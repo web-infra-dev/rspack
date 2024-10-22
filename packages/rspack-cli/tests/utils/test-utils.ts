@@ -13,7 +13,7 @@ const { node: execaNode } = execa;
 const { Writable } = require("readable-stream");
 const concat = require("concat-stream");
 
-const RSPACK_PATH = path.resolve(__dirname, "../../bin/rspack");
+const RSPACK_PATH = path.resolve(__dirname, "../../bin/rspack.js");
 const ENABLE_LOG_COMPILATION = process.env.ENABLE_PIPE || false;
 const isWindows = process.platform === "win32";
 

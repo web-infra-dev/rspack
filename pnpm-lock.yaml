@@ -470,6 +470,9 @@ importers:
         specifier: 17.6.2
         version: 17.6.2
     devDependencies:
+      '@rslib/core':
+        specifier: 0.0.12
+        version: 0.0.12(@microsoft/api-extractor@7.47.10(@types/node@20.12.7))(typescript@5.6.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -13848,7 +13851,7 @@ snapshots:
 
   '@rsbuild/core@1.0.14':
     dependencies:
-      '@rspack/core': 1.0.10(@swc/helpers@0.5.13)
+      '@rspack/core': 1.0.13(@swc/helpers@0.5.13)
       '@rspack/lite-tapable': 1.0.1
       '@swc/helpers': 0.5.13
       core-js: 3.38.1
@@ -13961,7 +13964,6 @@ snapshots:
       '@rspack/binding-win32-arm64-msvc': 1.0.13
       '@rspack/binding-win32-ia32-msvc': 1.0.13
       '@rspack/binding-win32-x64-msvc': 1.0.13
-    optional: true
 
   '@rspack/core@1.0.10(@swc/helpers@0.5.13)':
     dependencies:
@@ -13980,7 +13982,6 @@ snapshots:
       caniuse-lite: 1.0.30001669
     optionalDependencies:
       '@swc/helpers': 0.5.13
-    optional: true
 
   '@rspack/dev-server@1.0.5(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack-cli@5.1.4(webpack@5.94.0))(webpack@5.94.0(@swc/core@1.4.0(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))':
     dependencies:
