@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkUkey,
-  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  basic_function, compile_boolean_matcher, impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;
@@ -35,7 +37,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -70,7 +72,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if !with_hmr && !with_loading && initial_chunk_ids_with_css.is_empty() {
-        return Ok("".to_string());
+        let generated_code = "";
+        let source = if self.source_map_kind.enabled() {
+          OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+        } else {
+          RawSource::from(generated_code).boxed()
+        };
+        return Ok(source);
       }
 
       let mut generated_code = String::new();
@@ -240,7 +248,12 @@ for(i = 0; cc; i++) {{
         generated_code.push_str(include_str!("./css_loading_with_hmr.js"));
       }
 
-      Ok(generated_code)
+      let source = if self.source_map_kind.enabled() {
+        OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+      } else {
+        RawSource::from(generated_code).boxed()
+      };
+      Ok(source)
     } else {
       unreachable!("should attach chunk for css_loading")
     }

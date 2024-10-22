@@ -1,8 +1,9 @@
 use cow_utils::CowUtils;
-use rspack_collections::UkeySet;
+use rspack_collections::{Identifiable, UkeySet};
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
 use rustc_hash::FxHashMap;
@@ -66,7 +67,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
+  fn generate(&self, compilation: &rspack_core::Compilation) -> Result<BoxSource> {
     let runtime = RUNTIME_CODE;
 
     let mut attr = String::default();
@@ -178,6 +179,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       runtime.cow_replace("__WITH_HMT__", "// no hmr")
     };
 
-    Ok(runtime.to_string())
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(runtime, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(runtime.to_string()).boxed()
+    };
+    Ok(source)
   }
 }

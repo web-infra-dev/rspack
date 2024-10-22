@@ -1,6 +1,10 @@
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
+use rspack_collections::{Identifiable, Identifier};
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+};
 
 use crate::get_chunk_runtime_requirements;
 
@@ -29,7 +33,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let trusted_types = compilation
       .options
       .output
@@ -66,10 +70,15 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
         .to_string(),
       );
     }
-    Ok(
-      result
-        .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
-        .to_string(),
-    )
+    let generated_code = result
+      .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
+      .to_string();
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

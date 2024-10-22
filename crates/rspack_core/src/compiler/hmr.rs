@@ -182,8 +182,13 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
     .runtime_modules
     .iter()
     .map(|(identifier, module)| -> Result<(Identifier, String)> {
-      let generated_code = module.generate(compilation)?;
-      Ok((*identifier, generated_code))
+      Ok((
+        *identifier,
+        module
+          .generate_with_custom(compilation)?
+          .source()
+          .to_string(),
+      ))
     })
     .collect::<Result<IdentifierMap<String>>>()?;
 

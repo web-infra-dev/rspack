@@ -1,7 +1,8 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, DependenciesBlock, RuntimeModule,
-  RuntimeModuleStage, SourceType,
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -40,7 +41,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
@@ -109,7 +110,12 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     );
-    Ok(generated_code)
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
 

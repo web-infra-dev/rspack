@@ -1,7 +1,9 @@
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -31,7 +33,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
@@ -81,7 +83,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       "".to_string()
     };
 
-    Ok(
+    let generated_code =
       include_str!("runtime/load_script.js")
         .cow_replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
@@ -123,7 +125,13 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         .cow_replace(
           "$UNIQUE_PREFIX$",
           unique_prefix.unwrap_or_default().as_str(),
-        ).to_string(),
-    )
+        ).to_string();
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

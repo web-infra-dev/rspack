@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use derivative::Derivative;
-use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage};
+use rspack_collections::{Identifiable, Identifier};
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  Compilation, RuntimeModule, RuntimeModuleStage,
+};
 
 type GenerateFn = Arc<dyn Fn() -> rspack_error::Result<String> + Send + Sync>;
 
@@ -35,7 +39,14 @@ impl RuntimeModule for RuntimeModuleFromJs {
     self.stage.clone()
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    (self.generator)()
+  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+    let generated_code = (self.generator)()?;
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

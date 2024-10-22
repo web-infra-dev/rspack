@@ -1,7 +1,10 @@
 use std::marker::PhantomData;
 
 use rspack_collections::Identifier;
-use rspack_core::{rspack_sources::Source, Compilation, RuntimeModule};
+use rspack_core::{
+  rspack_sources::{BoxSource, Source},
+  Compilation, RuntimeModule,
+};
 use rspack_macros::impl_runtime_module;
 
 #[allow(dead_code)]
@@ -18,7 +21,7 @@ fn with_generic() {
       todo!()
     }
 
-    fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
+    fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
       todo!()
     }
   }

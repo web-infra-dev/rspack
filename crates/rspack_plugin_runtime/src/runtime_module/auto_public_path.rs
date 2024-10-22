@@ -1,7 +1,9 @@
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  get_js_chunk_filename_template, impl_runtime_module, ChunkUkey, Compilation, OutputOptions,
-  PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceType,
+  get_js_chunk_filename_template, impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, SourceType,
 };
 
 use super::utils::get_undo_path;
@@ -32,7 +34,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = self.chunk.expect("The chunk should be attached");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
@@ -46,10 +48,14 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
         .chunk(chunk)
         .content_hash_type(SourceType::JavaScript),
     )?;
-    Ok(auto_public_path_template(
-      &filename,
-      &compilation.options.output,
-    ))
+    let generated_code = auto_public_path_template(&filename, &compilation.options.output);
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
 

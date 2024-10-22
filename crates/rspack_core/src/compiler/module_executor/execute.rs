@@ -4,7 +4,6 @@ use std::{iter::once, sync::atomic::AtomicU32};
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
-use rspack_sources::{OriginalSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::{runtime::Handle, sync::oneshot::Sender};
@@ -192,12 +191,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let generated_code = runtime_module.generate(&compilation)?;
-      let runtime_module_source = if runtime_module.get_source_map_kind().enabled() {
-        OriginalSource::new(generated_code, runtime_module.identifier().to_string()).boxed()
-      } else {
-        RawSource::from(generated_code).boxed()
-      };
+      let runtime_module_source = runtime_module.generate(&compilation)?;
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,

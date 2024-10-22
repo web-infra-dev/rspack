@@ -1,8 +1,9 @@
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
-  RuntimeModule, RuntimeModuleStage,
+  get_filename_without_hash_length, impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, PathData, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 
@@ -39,7 +40,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let (fake_filename, hash_len_map) =
       get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
 
@@ -64,7 +65,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       )
       .always_ok();
 
-    Ok(get_async_wasm_loading(
+    let generated_code = get_async_wasm_loading(
       &self
         .generate_load_binary_code
         .cow_replace("$PATH", &format!("\"{}\"", path))
@@ -73,7 +74,14 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           compilation.options.output.import_meta_name.as_str(),
         ),
       self.supports_streaming,
-    ))
+    );
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
 

@@ -1,5 +1,9 @@
-use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeGlobals, RuntimeModule};
+use rspack_collections::{Identifiable, Identifier};
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  Compilation, RuntimeGlobals, RuntimeModule,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -18,7 +22,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let generated_code = format!(
       r#"
     {} = function(url){{
@@ -35,6 +39,12 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
         "url".to_string()
       }
     );
-    Ok(generated_code)
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

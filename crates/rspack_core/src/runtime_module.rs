@@ -5,7 +5,7 @@ use crate::{ChunkUkey, Compilation, Module};
 
 pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn name(&self) -> Identifier;
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String>;
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource>;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
@@ -19,12 +19,12 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
     true
   }
 
-  fn full_hash(&self) -> bool {
-    false
-  }
-
-  fn dependent_hash(&self) -> bool {
-    false
+  fn generate_with_custom(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    if let Some(custom_source) = self.get_custom_source() {
+      Ok(custom_source)
+    } else {
+      self.generate(compilation)
+    }
   }
 }
 

@@ -1,9 +1,11 @@
 use async_trait::async_trait;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module, ApplyContext, BooleanMatcher, Chunk, ChunkUkey,
-  Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin,
-  PluginContext, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ApplyContext, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin, PluginContext,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -35,12 +37,18 @@ impl RuntimeModule for FederationRuntimeModule {
     RuntimeModuleStage::Normal
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
     let generated_code = federation_runtime_template(chunk, compilation);
-    Ok(generated_code)
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
 

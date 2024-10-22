@@ -1,5 +1,9 @@
-use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
+use rspack_collections::{Identifiable, Identifier};
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  Compilation, RuntimeModule,
+};
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
@@ -22,7 +26,14 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
     false
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok("export default __webpack_require__;".to_string())
+  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let generated_code = "export default __webpack_require__;".to_string();
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

@@ -1,8 +1,10 @@
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rustc_hash::FxHashMap;
 
@@ -32,7 +34,7 @@ impl RuntimeModule for ShareRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
@@ -115,7 +117,7 @@ impl RuntimeModule for ShareRuntimeModule {
       include_str!("./initializeSharing.js")
     };
 
-    Ok(format!(
+    let generated_code = format!(
       r#"
 {share_scope_map} = {{}};
 __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
@@ -125,7 +127,14 @@ __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {sc
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
-    ))
+    );
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
 

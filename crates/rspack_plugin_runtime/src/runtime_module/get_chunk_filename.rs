@@ -2,7 +2,8 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::{Identifiable, Identifier, UkeyIndexMap, UkeyIndexSet};
+use rspack_core::rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt};
 use rspack_core::{
   get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module, Chunk, ChunkUkey,
   Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule, SourceType,
@@ -81,11 +82,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn dependent_hash(&self) -> bool {
-    true
-  }
-
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
@@ -324,7 +321,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
 
-    Ok(format!(
+    let generated_code = format!(
       "// This function allow to reference chunks
         {} = function (chunkId) {{
           // return url for filenames not based on template
@@ -339,6 +336,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
         .join("\n"),
       dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-    ))
+    );
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

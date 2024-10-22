@@ -1,6 +1,10 @@
 use itertools::Itertools;
-use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
+use rspack_collections::{Identifiable, Identifier};
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -24,7 +28,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
 
@@ -43,11 +47,18 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
           .to_string(),
       );
 
-      Ok(format!(
+      let generated_code = format!(
         "{} = {};",
         RuntimeGlobals::RUNTIME_ID,
         serde_json::to_string(&id).expect("Invalid json string")
-      ))
+      );
+
+      let source = if self.source_map_kind.enabled() {
+        OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+      } else {
+        RawSource::from(generated_code).boxed()
+      };
+      Ok(source)
     } else {
       unreachable!("should attach chunk for css_loading")
     }

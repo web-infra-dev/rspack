@@ -1,7 +1,9 @@
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module, Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage, SourceType,
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 
@@ -39,7 +41,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
@@ -110,7 +112,13 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
     }
     if module_id_to_consume_data_mapping.is_empty() {
-      return Ok("".to_string());
+      let generated_code = "";
+      let source = if self.source_map_kind.enabled() {
+        OriginalSource::new("generated_code", self.identifier().to_string()).boxed()
+      } else {
+        RawSource::from(generated_code).boxed()
+      };
+      return Ok(source);
     }
     let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
       .into_iter()
@@ -134,7 +142,13 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       {
         generated_code.push_str("__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }");
       }
-      return Ok(generated_code);
+
+      let source = if self.source_map_kind.enabled() {
+        OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+      } else {
+        RawSource::from(generated_code).boxed()
+      };
+      return Ok(source);
     }
     generated_code.push_str(include_str!("./consumesCommon.js"));
     if !initial_consumes.is_empty() {
@@ -149,7 +163,12 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       generated_code.push_str(include_str!("./consumesLoading.js"));
     }
 
-    Ok(generated_code)
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
 

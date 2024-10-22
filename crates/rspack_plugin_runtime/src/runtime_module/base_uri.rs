@@ -1,6 +1,8 @@
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  get_chunk_from_ukey, impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  get_chunk_from_ukey, impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -25,7 +27,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let base_uri = self
       .chunk
       .and_then(|ukey| get_chunk_from_ukey(&ukey, &compilation.chunk_by_ukey))
@@ -33,6 +35,13 @@ impl RuntimeModule for BaseUriRuntimeModule {
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "undefined".to_string());
-    Ok(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri))
+    let generated_code = format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri);
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

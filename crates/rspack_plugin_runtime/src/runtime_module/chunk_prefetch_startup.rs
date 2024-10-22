@@ -1,7 +1,9 @@
 use itertools::Itertools;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 #[impl_runtime_module]
@@ -35,7 +37,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     RuntimeModuleStage::Trigger
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self.chunk.expect("chunk do not attached");
     let generated_code = self
       .startup_chunks
@@ -89,6 +91,12 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
         )
       })
       .join("\n");
-    Ok(generated_code)
+
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }

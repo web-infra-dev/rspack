@@ -1,7 +1,9 @@
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  has_hash_placeholder, impl_runtime_module, Compilation, Filename, PublicPath, RuntimeModule,
+  has_hash_placeholder, impl_runtime_module,
+  rspack_sources::{BoxSource, OriginalSource, RawSource, SourceExt},
+  Compilation, Filename, PublicPath, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -31,18 +33,19 @@ impl RuntimeModule for PublicPathRuntimeModule {
     }
   }
 
-  fn dependent_hash(&self) -> bool {
-    true
-  }
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let generated_code = include_str!("runtime/public_path.js")
+      .cow_replace(
+        "__PUBLIC_PATH_PLACEHOLDER__",
+        &PublicPath::render_filename(compilation, &self.public_path),
+      )
+      .to_string();
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(
-      include_str!("runtime/public_path.js")
-        .cow_replace(
-          "__PUBLIC_PATH_PLACEHOLDER__",
-          &PublicPath::render_filename(compilation, &self.public_path),
-        )
-        .to_string(),
-    )
+    let source = if self.source_map_kind.enabled() {
+      OriginalSource::new(generated_code, self.identifier().to_string()).boxed()
+    } else {
+      RawSource::from(generated_code).boxed()
+    };
+    Ok(source)
   }
 }
