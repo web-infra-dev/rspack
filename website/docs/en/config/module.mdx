@@ -619,20 +619,21 @@ Customize the format of the local class names generated for CSS modules, besides
 
 This configuration is available for improved ESM-CJS interoperability purposes.
 
-Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES Module during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES modules during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
 
-For example, a common use case, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
 
 The original source code of the third-party component library:
 
 ```js
 import style from './style.css';
+
 export function Button() {
   return <button className={style.btn}></button>;
 }
 ```
 
-The cjs format output published by the third-party component library:
+The CommonJS format output published by the third-party component library:
 
 ```js
 'use strict';
@@ -993,7 +994,7 @@ When specified as 'post', the loader will execute after all other loaders.
 Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing. For example, when a module is marked as `'typescript'` then the module is processed using the TS parser/generator.
 
 - `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ESM, no plans for AMD module support at this time.
-- `'javascript/esm'`：JavaScript modules, treated as ES Module.
+- `'javascript/esm'`：JavaScript modules, treated as ES modules.
 - `'javascript/dynamic'`：JavaScript modules, treated as Script.
 - `'css'`: CSS module
 - `'css/module'`: CSS Modules module
