@@ -57,7 +57,8 @@
         "styled_components",
         "owo-colors",
         "miette",
-        "rkyv"
+        "rkyv",
+        "rspack_resolver"
       ]
     },
     {
@@ -95,6 +96,15 @@
         "rkyv"
       ],
       "enabled": false
+    },
+    {
+      "groupName": "ignore crate rspack_resolver",
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackageNames": [
+        "rspack_resolver"
+      ],
     },
     {
       "groupName": "ignored indexmap",
