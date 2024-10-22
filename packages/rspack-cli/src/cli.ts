@@ -12,10 +12,10 @@ import {
 	rspack
 } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
+import { createColors, isColorSupported } from "colorette";
 import semver from "semver";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-
 import { BuildCommand } from "./commands/build";
 import { PreviewCommand } from "./commands/preview";
 import { ServeCommand } from "./commands/serve";
@@ -78,10 +78,7 @@ export class RspackCLI {
 		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
-		const { createColors, isColorSupported } = require("colorette");
-
 		const shouldUseColor = useColor || isColorSupported;
-
 		return {
 			...createColors({ useColor: shouldUseColor }),
 			isColorSupported: shouldUseColor
