@@ -61,16 +61,16 @@ it("should tree-shake unused exports", function () {
 
 it("should provide ES2015 modules", function () {
 	expect(es2015.default).toBe("ECMAScript 2015");
-	expect(es2015.alias).toBe("ECMAScript Harmony");
+	expect(es2015.alias).toBe("ECMAScript modules");
 	expect(es2015.year).toBe(2015);
 	expect(es2015_name).toBe("ECMAScript 2015");
-	expect(es2015_alias).toBe("ECMAScript Harmony");
+	expect(es2015_alias).toBe("ECMAScript modules");
 	expect(es2015_year).toBe(2015);
 });
 
 it("should not provide for mjs", function () {
 	var foo = require("./foo.mjs").default;
-	expect(foo()).toBe("esm");
+	expect(foo()).toBe("str");
 });
 
 it("should variable coverage", function () {

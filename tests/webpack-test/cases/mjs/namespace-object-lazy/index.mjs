@@ -51,7 +51,7 @@ function contextCJS(name) {
 	});
 }
 
-function contextHarmony(name) {
+function contextESM(name) {
 	return Promise.all([
 		import(`./dir-harmony/${name}.js`),
 		import(/* webpackMode: "lazy-once" */ `./dir-harmony?1/${name}.js`),
@@ -111,15 +111,15 @@ it("should receive a namespace object when importing commonjs via context", func
 it("should receive a namespace object when importing harmony via context", function () {
 	return Promise.all([
 		promiseTest(
-			contextHarmony("one"),
+			contextESM("one"),
 			nsObj({ named: "named", default: "default" })
 		),
 		promiseTest(
-			contextHarmony("two"),
+			contextESM("two"),
 			nsObj({ named: "named", default: "default" })
 		),
 		promiseTest(
-			contextHarmony("three"),
+			contextESM("three"),
 			nsObj({ named: "named", default: "default" })
 		)
 	]);

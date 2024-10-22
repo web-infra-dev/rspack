@@ -14,11 +14,11 @@
 const PARTIALLY_PASSED = [
 	"cases/chunks/context",
 	"cases/chunks/weak-dependencies",
-	"cases/parsing/harmony-deep-exports",
+	"cases/parsing/esm-deep-exports",
 	"cases/esm/import-meta",
 	"cases/mjs/type-module",
-	"cases/parsing/harmony-export-import-specifier",
-	"cases/parsing/harmony-reexport",
+	"cases/parsing/esm-export-import-specifier",
+	"cases/parsing/esm-reexport",
 	"cases/parsing/renaming",
 	"cases/parsing/typeof",
 
