@@ -228,7 +228,7 @@ impl ModuleDTO {
     module.size(ty.as_ref(), self.compilation)
   }
 
-  #[napi(getter)]
+  #[napi(getter, ts_return_type = "ModuleDTO | undefined")]
   pub fn modules(&self) -> Either<Vec<ModuleDTOWrapper>, ()> {
     let module = self.module();
     match module.try_as_concatenated_module() {
