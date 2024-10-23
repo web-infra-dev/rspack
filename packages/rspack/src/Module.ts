@@ -237,6 +237,8 @@ export class Module {
 	 */
 	buildMeta: Record<string, any>;
 
+	declare readonly modules: Module[] | undefined;
+
 	static __from_binding(
 		module: JsModule | ModuleDto,
 		compilation?: Compilation
