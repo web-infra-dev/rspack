@@ -4526,8 +4526,6 @@ declare namespace rspackExports {
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
         externalsType,
-        Watch,
-        WatchOptions,
         DevServer,
         IgnoreWarnings,
         Profile,
@@ -4686,7 +4684,9 @@ declare namespace rspackExports {
         RspackFutureOptions,
         LazyCompilationOptions,
         Incremental,
-        Experiments
+        Experiments,
+        Watch,
+        WatchOptions
     }
 }
 
@@ -9769,7 +9769,9 @@ declare namespace t {
         RspackFutureOptions,
         LazyCompilationOptions,
         Incremental,
-        Experiments
+        Experiments,
+        Watch,
+        WatchOptions
     }
 }
 
@@ -10039,10 +10041,7 @@ export type WasmLoading = false | WasmLoadingType;
 export type WasmLoadingType = string | "fetch-streaming" | "fetch" | "async-node";
 
 // @public (undocumented)
-export type Watch = z.infer<typeof watch>;
-
-// @public (undocumented)
-const watch: z.ZodBoolean;
+export type Watch = boolean;
 
 // @public (undocumented)
 interface Watcher {
@@ -10144,29 +10143,14 @@ export class Watching {
     watchOptions: WatchOptions;
 }
 
-// @public (undocumented)
-export type WatchOptions = z.infer<typeof watchOptions>;
-
-// @public (undocumented)
-const watchOptions: z.ZodObject<{
-    aggregateTimeout: z.ZodOptional<z.ZodNumber>;
-    followSymlinks: z.ZodOptional<z.ZodBoolean>;
-    ignored: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodArray<z.ZodString, "many">, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodString]>>;
-    poll: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodBoolean]>>;
-    stdin: z.ZodOptional<z.ZodBoolean>;
-}, "strict", z.ZodTypeAny, {
-    aggregateTimeout?: number | undefined;
-    followSymlinks?: boolean | undefined;
-    ignored?: string | RegExp | string[] | undefined;
-    poll?: number | boolean | undefined;
-    stdin?: boolean | undefined;
-}, {
-    aggregateTimeout?: number | undefined;
-    followSymlinks?: boolean | undefined;
-    ignored?: string | RegExp | string[] | undefined;
-    poll?: number | boolean | undefined;
-    stdin?: boolean | undefined;
-}>;
+// @public
+export type WatchOptions = {
+    aggregateTimeout?: number;
+    followSymlinks?: boolean;
+    ignored?: string | RegExp | string[];
+    poll?: number | boolean;
+    stdin?: boolean;
+};
 
 // @public (undocumented)
 class Watchpack extends EventEmitter {

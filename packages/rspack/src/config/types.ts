@@ -2452,3 +2452,42 @@ export type Experiments = {
 	rspackFuture?: RspackFutureOptions;
 };
 //#endregion
+
+//#region Watch
+export type Watch = boolean;
+//#endregion
+
+//#region WatchOptions
+
+/** Options for watch mode. */
+export type WatchOptions = {
+	/**
+	 * Add a delay before rebuilding once the first file changed.
+	 * This allows webpack to aggregate any other changes made during this time period into one rebuild.
+	 * @default 5
+	 */
+	aggregateTimeout?: number;
+
+	/**
+	 * Follow symlinks while looking for files.
+	 * This is usually not needed as webpack already resolves symlinks ('resolve.symlinks' and 'resolve.alias').
+	 */
+	followSymlinks?: boolean;
+
+	/**
+	 * Ignore some files from being watched.
+	 */
+	ignored?: string | RegExp | string[];
+
+	/**
+	 * Turn on polling by passing true, or specifying a poll interval in milliseconds.
+	 * @default false
+	 */
+	poll?: number | boolean;
+
+	/**
+	 * Stop watching when stdin stream has ended.
+	 */
+	stdin?: boolean;
+};
+//#endregion

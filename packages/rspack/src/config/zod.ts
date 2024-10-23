@@ -1258,8 +1258,7 @@ const experiments = z.strictObject({
 //#endregion
 
 //#region Watch
-const watch = z.boolean();
-export type Watch = z.infer<typeof watch>;
+const watch = z.boolean() satisfies z.ZodType<t.Watch>;
 //#endregion
 
 //#region WatchOptions
@@ -1274,8 +1273,7 @@ const watchOptions = z.strictObject({
 		.optional(),
 	poll: z.number().or(z.boolean()).optional(),
 	stdin: z.boolean().optional()
-});
-export type WatchOptions = z.infer<typeof watchOptions>;
+}) satisfies z.ZodType<t.WatchOptions>;
 //#endregion
 
 //#region DevServer
