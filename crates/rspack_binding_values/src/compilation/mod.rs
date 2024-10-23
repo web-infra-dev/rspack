@@ -136,7 +136,7 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Array<ModuleDTO>")]
-  pub fn modules(&'static self) -> Vec<ModuleDTOWrapper> {
+  pub fn modules(&self) -> Vec<ModuleDTOWrapper> {
     self
       .0
       .get_module_graph()
@@ -148,7 +148,7 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Array<ModuleDTO>")]
-  pub fn built_modules(&'static self) -> Vec<ModuleDTOWrapper> {
+  pub fn built_modules(&self) -> Vec<ModuleDTOWrapper> {
     self
       .0
       .built_modules
