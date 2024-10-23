@@ -10,5 +10,4 @@ const rspack: Rspack = fn;
 
 export * from "./exports";
 export { rspack };
-export default rspack;
 module.exports = rspack;

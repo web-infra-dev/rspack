@@ -4342,9 +4342,7 @@ type Rspack = typeof rspack_2 & typeof rspackExports & {
 };
 
 // @public (undocumented)
-const rspack: Rspack;
-export default rspack;
-export { rspack }
+export const rspack: Rspack;
 
 // @public (undocumented)
 function rspack_2(options: MultiRspackOptions): MultiCompiler;

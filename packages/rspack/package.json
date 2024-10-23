@@ -5,14 +5,21 @@
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "main": "./dist/index.js",
-  "types": "./dist/cjsType.d.ts",
+  "types": "./dist/cjsIndex.d.ts",
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjsIndex.d.ts",
+        "default": "./dist/index.js"
+      },
       "default": "./dist/index.js"
     },
     "./hot/*": "./hot/*.js",
