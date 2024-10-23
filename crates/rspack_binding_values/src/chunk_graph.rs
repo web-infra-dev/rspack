@@ -4,7 +4,10 @@ use rspack_napi::napi::Result;
 
 use crate::{JsChunk, JsCompilation, JsModule, ModuleDTOWrapper, ToJsModule};
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_modules")]
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_modules",
+  ts_return_type = "ModuleDTO[]"
+)]
 pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<ModuleDTOWrapper> {
   let compilation = &compilation.0;
   let module_graph = compilation.get_module_graph();
