@@ -7,11 +7,10 @@ use rspack_core::{
   CompilerModuleContext, DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
   RuntimeModuleStage, SourceType,
 };
-use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, Ref};
+use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
-use sys::napi_env;
 
 use super::{JsCompatSource, ToJsCompatSource};
 use crate::{JsChunk, JsCodegenerationResults, JsDependency};
@@ -245,24 +244,7 @@ impl ModuleDTO {
   }
 }
 
-struct ModuleInstanceRef {
-  env: napi_env,
-  inner: Ref,
-}
-
-impl ModuleInstanceRef {
-  pub fn new(env: napi_env, inner: Ref) -> Self {
-    Self { env, inner }
-  }
-}
-
-impl Drop for ModuleInstanceRef {
-  fn drop(&mut self) {
-    let _ = self.inner.unref(self.env);
-  }
-}
-
-type ModuleInstanceRefs = IdentifierMap<ModuleInstanceRef>;
+type ModuleInstanceRefs = IdentifierMap<OneShotRef>;
 
 #[derive(Default)]
 struct ModuleInstanceRefsByCompilationId(RefCell<HashMap<CompilationId, ModuleInstanceRefs>>);
@@ -320,15 +302,14 @@ impl ToNapiValue for ModuleDTOWrapper {
       match refs.entry(val.module_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          ToNapiValue::to_napi_value(env, &r.inner)
+          ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           let instance =
             ModuleDTO::new(val.module_id, val.compilation).into_instance(Env::from_raw(env))?;
           let napi_value = ToNapiValue::to_napi_value(env, instance)?;
-          let r = Ref::new(env, napi_value, 1)?;
-          let r = entry.insert(ModuleInstanceRef::new(env, r));
-          ToNapiValue::to_napi_value(env, &r.inner)
+          let r = entry.insert(OneShotRef::new(env, napi_value)?);
+          ToNapiValue::to_napi_value(env, r)
         }
       }
     })

@@ -20,9 +20,8 @@ use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
-use rspack_napi::Ref;
+use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use sys::napi_env;
 
 use super::module::ToJsModule;
 use super::{JsFilename, PathWithInfo};
@@ -569,15 +568,13 @@ impl JsCompilation {
 }
 
 #[derive(Default)]
-struct CompilationInstanceRefs(RefCell<HashMap<CompilationId, (Ref, napi_env)>>);
+struct CompilationInstanceRefs(RefCell<HashMap<CompilationId, OneShotRef>>);
 
 impl Drop for CompilationInstanceRefs {
   fn drop(&mut self) {
     // cleanup references to be executed in cases of panic or unexpected termination
     let mut refs = self.0.borrow_mut();
-    for (_, (mut r, env)) in refs.drain() {
-      let _ = r.unref(env);
-    }
+    refs.drain();
   }
 }
 
@@ -607,9 +604,7 @@ impl JsCompilationWrapper {
   pub fn cleanup(compilation_id: CompilationId) {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
       let mut refs = ref_cell.0.borrow_mut();
-      if let Some((mut r, env)) = refs.remove(&compilation_id) {
-        let _ = r.unref(env);
-      }
+      refs.remove(&compilation_id);
     });
     ModuleDTOWrapper::cleanup(compilation_id);
   }
@@ -625,15 +620,15 @@ impl ToNapiValue for JsCompilationWrapper {
       let napi_value = match refs.entry(compilation_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          ToNapiValue::to_napi_value(env, &r.0)
+          ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           vacant = true;
           let instance = JsCompilation(val.0).into_instance(env_wrapper)?;
           let napi_value = ToNapiValue::to_napi_value(env, instance)?;
-          let r = Ref::new(env, napi_value, 1)?;
-          let r = entry.insert((r, env));
-          ToNapiValue::to_napi_value(env, &r.0)
+          let r = OneShotRef::new(env, napi_value)?;
+          let r = entry.insert(r);
+          ToNapiValue::to_napi_value(env, r)
         }
       };
       if vacant {
