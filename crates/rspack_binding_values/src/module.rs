@@ -236,7 +236,7 @@ impl ModuleDTO {
         let inner_modules = concatenated_module
           .get_modules()
           .iter()
-          .map(|inner_module| ModuleDTOWrapper::new(inner_module.id, &self.compilation))
+          .map(|inner_module| ModuleDTOWrapper::new(inner_module.id, self.compilation))
           .collect::<Vec<_>>();
         Either::A(inner_modules)
       }
