@@ -11,13 +11,16 @@ describe("js-api-type should be correct when importing from @rspack/core", () =>
 		type Falsy = IsFunction<typeof rspackEsmDefaultImport>;
 		const falsy: Falsy = false;
 		falsy;
-		assert(rspackEsmDefaultImport["BannerPlugin"]);
+		assert(rspackEsmDefaultImport.BannerPlugin);
 	});
 
 	it("esm named import", async () => {
 		type Truthy = IsFunction<typeof rspackEsmNamedImport>;
 		const truthy: Truthy = true;
 		truthy;
-		assert(rspackEsmNamedImport["BannerPlugin"]);
+		assert(rspackEsmNamedImport.BannerPlugin);
+		assert(typeof rspackEsmNamedImport === "function");
+		const compiler = rspackEsmNamedImport({});
+		assert(compiler);
 	});
 });
