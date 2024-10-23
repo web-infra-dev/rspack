@@ -196,15 +196,29 @@ module.exports = {
 <ApiMeta addedVersion={'1.0.0-beta.1'} />
 
 <PropertyType
-  type="string | null"
+  type="string | null | undefined"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-设置当前入口的 Layer，以在 SplitChunks、Rules、Stats、Externals 中通过 Layer 匹配使对应配置生效。
+设置当前入口的 Layer，以在 split chunks, [rules](/config/module#ruleissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
 
 :::warning
 只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
 :::
+
+```js title=rspack.config.js
+module.exports = {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'layer-name',
+    },
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
 
 ## 动态入口
 
