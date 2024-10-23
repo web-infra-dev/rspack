@@ -196,15 +196,29 @@ The default value can be affected by different [target](/config/target):
 <ApiMeta addedVersion={'1.0.0-beta.1'} />
 
 <PropertyType
-  type="string | null"
+  type="string | null | undefined"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-The layer of this entry, make the corresponding configuration take effect through layer matching in SplitChunks, Rules, Stats, and Externals.
+The layer of this entry, make the corresponding configuration take effect through layer matching in split chunks, [rules](/config/module#ruleissuerlayer), stats, and externals.
 
 :::warning
 This configuration will only take effect when [experiments.layers](/config/experiments#experimentslayers) is `true`.
 :::
+
+```js title=rspack.config.js
+module.exports = {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'layer-name',
+    },
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
 
 ## Dynamic entry
 
