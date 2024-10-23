@@ -19,8 +19,7 @@
       "require": {
         "types": "./dist/cjsIndex.d.ts",
         "default": "./dist/index.js"
-      },
-      "default": "./dist/index.js"
+      }
     },
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
