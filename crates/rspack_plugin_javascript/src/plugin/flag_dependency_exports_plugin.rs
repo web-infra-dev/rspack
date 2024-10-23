@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  unaffected_cache::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
+  incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
   CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
   ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
@@ -152,7 +152,6 @@ impl<'a> FlagDependencyExportsState<'a> {
     exports_info: ExportsInfo,
   ) {
     let exports = &export_desc.exports;
-    // dbg!(&exports);
     let global_can_mangle = &export_desc.can_mangle;
     let global_from = export_desc.from.as_ref();
     let global_priority = &export_desc.priority;
@@ -353,16 +352,11 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let modules: IdentifierSet = if compilation
+  let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::PROVIDED_EXPORTS)
+    .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
-    compilation
-      .unaffected_modules_cache
-      .get_affected_modules_with_module_graph()
-      .lock()
-      .expect("should lock")
-      .clone()
+    mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph())
   } else {
     compilation
       .get_module_graph()

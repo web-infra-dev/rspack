@@ -550,7 +550,6 @@ impl ModuleConcatenationPlugin {
   ) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 
-    // dbg!(&config);
     let root_module_id = config.root_module;
     if used_modules.contains(&root_module_id) {
       return Ok(());

@@ -727,7 +727,6 @@ impl Module for ConcatenatedModule {
             if all_used_names.contains(name) {
               // Find a new name and update references
               let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
-              // dbg!(&name, &new_name);
               all_used_names.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
               top_level_declarations.insert(new_name.clone());
@@ -786,7 +785,6 @@ impl Module for ConcatenatedModule {
             info.namespace_object_name = Some(namespace_object_name.clone());
             top_level_declarations.insert(namespace_object_name);
           }
-          // dbg!(info.module, &info.internal_names);
         }
 
         // Handle external type
@@ -993,7 +991,6 @@ impl Module for ConcatenatedModule {
     // Define exports
     if !exports_map.is_empty() {
       let mut definitions = Vec::new();
-      // dbg!(&exports_map);
       for (key, value) in exports_map.iter() {
         definitions.push(format!(
           "\n  {}: {}",
@@ -2071,7 +2068,6 @@ impl ConcatenatedModule {
             comment: None,
           });
         }
-        // dbg!(&export_id, &info.export_map);
 
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))

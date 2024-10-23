@@ -33,17 +33,18 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
-  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey,
+  incremental::{Incremental, IncrementalPasses, Mutation},
+  is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier,
-  unaffected_cache::{Incremental, IncrementalPasses, Mutation, UnaffectedModulesCache},
-  BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationJob,
-  CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
-  CompilerOptions, DependencyId, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime,
-  Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory,
-  ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType, Stats,
+  to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
+  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey,
+  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
+  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn,
+  Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
+  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType,
+  Stats,
 };
 
 pub type BuildDependency = (
@@ -177,7 +178,6 @@ pub struct Compilation {
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
-  pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -231,7 +231,6 @@ impl Compilation {
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
     old_cache: Arc<OldCache>,
-    unaffected_modules_cache: Arc<UnaffectedModulesCache>,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
@@ -275,7 +274,6 @@ impl Compilation {
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       old_cache,
-      unaffected_modules_cache,
       incremental,
       code_splitting_cache: Default::default(),
       hash: None,
@@ -1073,26 +1071,29 @@ impl Compilation {
       )],
     )?;
 
-    if let Some(mutations) = self.incremental.mutations_write()
-      && let Some(make_mutations) = self.make_artifact.take_mutations()
-    {
-      mutations.extend(make_mutations);
+    // sync assets to compilation from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await;
+      self.module_executor = Some(module_executor);
     }
 
-    if self
-      .incremental
-      .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
-      || self
-        .incremental
-        .can_read_mutations(IncrementalPasses::PROVIDED_EXPORTS)
-      || self
-        .incremental
-        .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
-    {
-      self
-        .unaffected_modules_cache
-        .compute_affected_modules_with_module_graph(self);
+    // take built_modules
+    let revoked_modules = self.make_artifact.take_revoked_modules();
+    let built_modules = self.make_artifact.take_built_modules();
+    if let Some(mutations) = self.incremental.mutations_write() {
+      mutations.extend(
+        revoked_modules
+          .iter()
+          .map(|&module| Mutation::ModuleRevoke { module }),
+      );
+      mutations.extend(
+        built_modules
+          .iter()
+          .map(|&module| Mutation::ModuleBuild { module }),
+      );
     }
+    self.built_modules.extend(built_modules);
 
     let start = logger.time("finish modules");
     plugin_driver
@@ -1110,17 +1111,6 @@ impl Compilation {
     let diagnostics = self.make_artifact.take_diagnostics();
     self.extend_diagnostics(diagnostics);
 
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await;
-      self.module_executor = Some(module_executor);
-    }
-
-    // take built_modules
-    self
-      .built_modules
-      .extend(self.make_artifact.take_built_modules());
     Ok(())
   }
 
@@ -1137,15 +1127,9 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.dependencies_diagnostics.remove(&revoked_module);
       }
-      self
-        .unaffected_modules_cache
-        .get_affected_modules_with_module_graph()
-        .lock()
-        .expect("should lock")
-        .clone()
+      mutations.get_affected_modules_with_module_graph(&self.get_module_graph())
     } else {
-      let module_graph = self.get_module_graph();
-      module_graph.modules().keys().copied().collect()
+      self.get_module_graph().modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
     let dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>> = modules
@@ -1247,56 +1231,16 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    let module_hashes_enabled = self
-      .incremental
-      .can_read_mutations(IncrementalPasses::MODULES_HASHES);
-    let module_codegen_enabled = self
-      .incremental
-      .can_read_mutations(IncrementalPasses::MODULES_CODEGEN);
-    let module_runtime_requirements_enabled = self
-      .incremental
-      .can_read_mutations(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS);
-    let module_hashes_modules;
-    let module_codegen_modules;
-    let module_runtime_requirements_modules;
-    let all_modules: Option<IdentifierSet> =
-      if module_hashes_enabled && module_codegen_enabled && module_runtime_requirements_enabled {
-        None
+    self.create_module_hashes(
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::MODULES_HASHES)
+      {
+        mutations.get_affected_modules_with_chunk_graph(self)
       } else {
-        Some(self.get_module_graph().modules().keys().copied().collect())
-      };
-    if (module_hashes_enabled || module_codegen_enabled || module_runtime_requirements_enabled)
-      && let Some(mutations) = self.incremental.mutations_read(IncrementalPasses::empty())
-    {
-      self
-        .unaffected_modules_cache
-        .compute_affected_modules_with_chunk_graph(self);
-      let mut affected_modules: IdentifierSet = self
-        .unaffected_modules_cache
-        .get_affected_modules_with_chunk_graph()
-        .lock()
-        .expect("should lock")
-        .clone();
-      affected_modules.extend(mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleSetAsync { module } => Some(module),
-        _ => None,
-      }));
-      let create_task_modules = |enabled: bool| {
-        enabled
-          .then(|| affected_modules.clone())
-          .unwrap_or_else(|| all_modules.clone().expect("failed"))
-      };
-      module_hashes_modules = create_task_modules(module_hashes_enabled);
-      module_codegen_modules = create_task_modules(module_codegen_enabled);
-      module_runtime_requirements_modules =
-        create_task_modules(module_runtime_requirements_enabled);
-    } else {
-      module_hashes_modules = all_modules.clone().expect("failed");
-      module_codegen_modules = all_modules.clone().expect("failed");
-      module_runtime_requirements_modules = all_modules.clone().expect("failed");
-    };
-
-    self.create_module_hashes(module_hashes_modules)?;
+        self.get_module_graph().modules().keys().copied().collect()
+      },
+    )?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1306,13 +1250,29 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("code generation");
-    self.code_generation(module_codegen_modules)?;
+    self.code_generation(
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::MODULES_CODEGEN)
+      {
+        mutations.get_affected_modules_with_chunk_graph(self)
+      } else {
+        self.get_module_graph().modules().keys().copied().collect()
+      },
+    )?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(
-        module_runtime_requirements_modules,
+        if let Some(mutations) = self
+          .incremental
+          .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+        {
+          mutations.get_affected_modules_with_chunk_graph(self)
+        } else {
+          self.get_module_graph().modules().keys().copied().collect()
+        },
         self
           .chunk_by_ukey
           .keys()
