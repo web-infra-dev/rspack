@@ -4,9 +4,9 @@ import type {
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
 	JsFactoryMeta,
-	JsModule,
-	ModuleDTO
+	JsModule
 } from "@rspack/binding";
+import { ModuleDto } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
@@ -211,7 +211,7 @@ export type ContextModuleFactoryAfterResolveResult =
 	| ContextModuleFactoryAfterResolveData;
 
 export class Module {
-	#inner: JsModule | ModuleDTO;
+	#inner: JsModule | ModuleDto;
 	#originalSource?: Source;
 
 	context?: Readonly<string>;
@@ -238,13 +238,13 @@ export class Module {
 	buildMeta: Record<string, any>;
 
 	static __from_binding(
-		module: JsModule | ModuleDTO,
+		module: JsModule | ModuleDto,
 		compilation?: Compilation
 	) {
 		return new Module(module, compilation);
 	}
 
-	constructor(module: JsModule | ModuleDTO, compilation?: Compilation) {
+	constructor(module: JsModule | ModuleDto, compilation?: Compilation) {
 		this.#inner = module;
 		this.type = module.type;
 		this.layer = module.layer ?? null;
@@ -260,6 +260,20 @@ export class Module {
 		);
 		this.buildInfo = customModule?.buildInfo || {};
 		this.buildMeta = customModule?.buildMeta || {};
+
+		Object.defineProperties(this, {
+			modules: {
+				enumerable: true,
+				get(): Module[] | undefined {
+					if (module instanceof ModuleDto) {
+						return module.modules
+							? module.modules.map(m => Module.__from_binding(m))
+							: undefined;
+					}
+					return undefined;
+				}
+			}
+		});
 	}
 
 	originalSource(): Source | null {
