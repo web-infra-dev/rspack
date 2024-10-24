@@ -17,7 +17,6 @@ import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
-import type { DependenciesBlockDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -42,6 +41,7 @@ import { JsCompilation } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
+import type { JsDependenciesBlock } from '@rspack/binding';
 import { JsDependency } from '@rspack/binding';
 import { JsDependencyMut } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
@@ -1253,11 +1253,14 @@ export type Dependencies = Name[];
 
 // @public (undocumented)
 class DependenciesBlock {
-    constructor(binding: DependenciesBlockDTO);
     // (undocumented)
-    get blocks(): DependenciesBlock[];
+    static __from_binding(binding: JsDependenciesBlock): DependenciesBlock;
     // (undocumented)
-    get dependencies(): Dependency[];
+    static __to_binding(block: DependenciesBlock): JsDependenciesBlock;
+    // (undocumented)
+    readonly blocks: DependenciesBlock[];
+    // (undocumented)
+    readonly dependencies: Dependency[];
 }
 
 // @public (undocumented)
@@ -7528,8 +7531,8 @@ export const rspackOptions: z.ZodObject<{
         maxEntrypointSize?: number | undefined;
     }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
     dependencies?: string[] | undefined;
+    context?: string | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -8127,8 +8130,8 @@ export const rspackOptions: z.ZodObject<{
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }, {
-    context?: string | undefined;
     dependencies?: string[] | undefined;
+    context?: string | undefined;
     module?: {
         parser?: {
             javascript?: {

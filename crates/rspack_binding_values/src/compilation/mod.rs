@@ -142,8 +142,12 @@ impl JsCompilation {
       .get_module_graph()
       .modules()
       .keys()
-      .cloned()
-      .map(|module_id| ModuleDTOWrapper::new(module_id, self.0))
+      .filter_map(|module_id| {
+        self
+          .0
+          .module_by_identifier(module_id)
+          .map(|module| ModuleDTOWrapper::new(module.as_ref(), self.0))
+      })
       .collect::<Vec<_>>()
   }
 
@@ -153,7 +157,12 @@ impl JsCompilation {
       .0
       .built_modules
       .iter()
-      .map(|module_id| ModuleDTOWrapper::new(*module_id, self.0))
+      .filter_map(|module_id| {
+        self
+          .0
+          .module_by_identifier(module_id)
+          .map(|module| ModuleDTOWrapper::new(module.as_ref(), self.0))
+      })
       .collect::<Vec<_>>()
   }
 
@@ -567,19 +576,8 @@ impl JsCompilation {
   }
 }
 
-#[derive(Default)]
-struct CompilationInstanceRefs(RefCell<HashMap<CompilationId, OneShotRef>>);
-
-impl Drop for CompilationInstanceRefs {
-  fn drop(&mut self) {
-    // cleanup references to be executed in cases of panic or unexpected termination
-    let mut refs = self.0.borrow_mut();
-    refs.drain();
-  }
-}
-
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: CompilationInstanceRefs = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -601,42 +599,34 @@ impl JsCompilationWrapper {
     })
   }
 
-  pub fn cleanup(compilation_id: CompilationId) {
+  pub fn cleanup_last_compilation(compilation_id: CompilationId) {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-      let mut refs = ref_cell.0.borrow_mut();
+      let mut refs = ref_cell.borrow_mut();
       refs.remove(&compilation_id);
     });
-    ModuleDTOWrapper::cleanup(compilation_id);
+    ModuleDTOWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 
 impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-      let mut env_wrapper = Env::from_raw(env);
-      let mut refs = ref_cell.0.borrow_mut();
+      let mut refs = ref_cell.borrow_mut();
       let compilation_id = val.0.id();
-      let mut vacant = false;
-      let napi_value = match refs.entry(compilation_id) {
+      match refs.entry(compilation_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          vacant = true;
+          let env_wrapper = Env::from_raw(env);
           let instance = JsCompilation(val.0).into_instance(env_wrapper)?;
           let napi_value = ToNapiValue::to_napi_value(env, instance)?;
           let r = OneShotRef::new(env, napi_value)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }
-      };
-      if vacant {
-        // cleanup references to be executed when the JS thread exits normally
-        let _ = env_wrapper
-          .add_env_cleanup_hook((), move |_| JsCompilationWrapper::cleanup(compilation_id));
       }
-      napi_value
     })
   }
 }

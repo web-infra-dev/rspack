@@ -17,7 +17,7 @@ pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec
 
   return modules
     .iter()
-    .map(|module| ModuleDTOWrapper::new(module.identifier(), compilation))
+    .map(|module| ModuleDTOWrapper::new(module.as_ref(), compilation))
     .collect::<Vec<_>>();
 }
 

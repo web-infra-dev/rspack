@@ -19,12 +19,6 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export class DependenciesBlockDto {
-  get dependencies(): Array<JsDependency>
-  get blocks(): Array<DependenciesBlockDto>
-}
-export type DependenciesBlockDTO = DependenciesBlockDto
-
 export class DependenciesDto {
   get fileDependencies(): Array<string>
   get addedFileDependencies(): Array<string>
@@ -139,6 +133,11 @@ export class JsContextModuleFactoryBeforeResolveData {
   set recursive(recursive: boolean)
 }
 
+export class JsDependenciesBlock {
+  get dependencies(): Array<JsDependency>
+  get blocks(): Array<JsDependenciesBlock>
+}
+
 export class JsDependency {
   get type(): string
   get category(): string
@@ -194,7 +193,7 @@ export class ModuleDto {
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
-  get blocks(): Array<DependenciesBlockDto>
+  get blocks(): Array<JsDependenciesBlock>
   size(ty?: string | undefined | null): number
   get modules(): ModuleDTO[] | undefined
 }

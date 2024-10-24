@@ -302,7 +302,7 @@ export class Module {
 
 	get blocks(): DependenciesBlock[] {
 		if ("blocks" in this.#inner) {
-			return this.#inner.blocks.map(b => new DependenciesBlock(b));
+			return this.#inner.blocks.map(b => DependenciesBlock.__from_binding(b));
 		}
 		return [];
 	}

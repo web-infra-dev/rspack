@@ -53,9 +53,12 @@ impl JsChunkGroup {
         .origins()
         .iter()
         .map(|origin| JsChunkGroupOrigin {
-          module: origin
-            .module_id
-            .map(|module_id| ModuleDTOWrapper::new(module_id, compilation)),
+          module: origin.module_id.map(|module_id| {
+            let module = compilation
+              .module_by_identifier(&module_id)
+              .unwrap_or_else(|| panic!("failed to retrieve module by id: {}", module_id));
+            ModuleDTOWrapper::new(module.as_ref(), compilation)
+          }),
           request: origin.request.clone(),
         })
         .collect::<Vec<_>>(),
