@@ -3939,7 +3939,6 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_plugin_import",
- "tokio",
  "url",
 ]
 
