@@ -12,6 +12,7 @@ derivative  = { workspace = true }
 rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
 
+blocking           = { version = "1.6.1" }
 once_cell          = { workspace = true }
 regex              = { workspace = true }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }

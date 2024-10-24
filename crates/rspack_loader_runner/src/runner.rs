@@ -43,10 +43,9 @@ async fn process_resource<Context: Send>(
       && !resource_path.as_str().is_empty()
     {
       let resource_path_owned = resource_path.to_owned();
+      use blocking::unblock;
       // use spawn_blocking to avoid block,see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
-      let result = spawn_blocking(move || fs.read(resource_path_owned.as_std_path()))
-        .await
-        .map_err(|e| error!("{e}, spawn task failed"))?;
+      let result = unblock(move || fs.read(resource_path_owned.as_std_path())).await;
       let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {

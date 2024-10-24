@@ -8,6 +8,7 @@ version     = "0.1.0"
 [dependencies]
 anymap = { workspace = true }
 async-recursion = { workspace = true }
+async-std = { version = "1.13.0" }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
@@ -16,6 +17,7 @@ derivative = { workspace = true }
 dyn-clone = "1.0.17"
 either = { workspace = true }
 futures = { workspace = true }
+futures-task = { version = "0.3.31" }
 hashlink = { workspace = true }
 hex = { workspace = true }
 indexmap = { workspace = true, features = ["rayon"] }
