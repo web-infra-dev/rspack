@@ -15,8 +15,7 @@ use tokio::sync::{
 };
 
 use self::{
-  ctrl::{CtrlTask, Event},
-  entry::EntryParam,
+  ctrl::{CtrlTask, Event, ExecuteParam},
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
@@ -29,7 +28,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
-  request_dep_map: DashMap<String, DependencyId>,
+  request_dep_map: DashMap<(String, Option<String>), DependencyId>,
   pub make_artifact: MakeArtifact,
 
   event_sender: Option<UnboundedSender<Event>>,
@@ -192,7 +191,7 @@ impl ModuleExecutor {
       .event_sender
       .as_ref()
       .expect("should have event sender");
-    let (param, dep_id) = match self.request_dep_map.entry(request.clone()) {
+    let (param, dep_id) = match self.request_dep_map.entry((request.clone(), layer.clone())) {
       Entry::Vacant(v) => {
         let dep = LoaderImportDependency::new(
           request.clone(),
@@ -200,11 +199,11 @@ impl ModuleExecutor {
         );
         let dep_id = *dep.id();
         v.insert(dep_id);
-        (EntryParam::Entry(Box::new(dep)), dep_id)
+        (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
       }
       Entry::Occupied(v) => {
         let dep_id = *v.get();
-        (EntryParam::DependencyId(dep_id, sender.clone()), dep_id)
+        (ExecuteParam::DependencyId(dep_id), dep_id)
       }
     };
 

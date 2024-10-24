@@ -76,6 +76,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mg = compilation.get_module_graph_mut();
+    // TODO remove expect and return Err
     let entry_module_identifier = mg
       .get_module_by_dependency_id(&entry_dep_id)
       .expect("should have module")
@@ -93,7 +94,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       }
     }
 
-    tracing::info!("modules: {:?}", &modules.iter().collect::<Vec<_>>());
+    tracing::info!("modules: {:?}", &modules);
 
     let mut chunk_graph = ChunkGraph::default();
 
