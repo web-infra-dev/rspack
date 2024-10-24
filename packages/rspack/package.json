@@ -12,6 +12,7 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./hot/*": "./hot/*.js",
@@ -29,7 +30,7 @@
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
   "files": [
     "dist",
