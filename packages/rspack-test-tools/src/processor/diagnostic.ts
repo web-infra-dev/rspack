@@ -2,7 +2,6 @@ import assert from "node:assert";
 import path from "node:path";
 
 import { escapeEOL } from "../helper";
-import { replacePaths } from "../helper/replace-paths";
 import type {
 	ECompilerType,
 	ITestContext,
@@ -10,6 +9,7 @@ import type {
 	TCompilerOptions
 } from "../type";
 import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
+import { normalizePlaceholder } from "../helper/expect/placeholder";
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;
@@ -34,7 +34,7 @@ export class DiagnosticProcessor<
 			throw new Error("Stats should exists");
 		}
 		assert(stats.hasErrors() || stats.hasWarnings());
-		let output = replacePaths(
+		let output = normalizePlaceholder(
 			stats.toString({
 				all: false,
 				errors: true,
