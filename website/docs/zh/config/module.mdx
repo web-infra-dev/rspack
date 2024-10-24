@@ -211,6 +211,15 @@ module.exports = {
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
 
+#### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: /.*/ }]}
+/>
+
+设置正则表达式，用于匹配包裹的动态依赖。
+
 #### module.parser.javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />

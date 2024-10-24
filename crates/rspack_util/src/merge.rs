@@ -1,3 +1,5 @@
+use rspack_regex::RspackRegex;
+
 use crate::atom::Atom;
 
 pub trait MergeFrom: Clone {
@@ -42,6 +44,7 @@ impl_merge_from!(u8, u16, u32, u64, u128);
 impl_merge_from!(bool);
 impl_merge_from!(String);
 impl_merge_from!(Atom);
+impl_merge_from!(RspackRegex);
 
 pub fn merge_from_optional_with<T: MergeFrom>(
   base: Option<T>,
