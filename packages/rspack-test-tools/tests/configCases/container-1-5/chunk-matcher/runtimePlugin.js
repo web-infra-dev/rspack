@@ -44,6 +44,7 @@ const runtimePlugin = function () {
                                             if (err) return reject(err);
                                             var chunk = {};
                                             content = content.replace('__HANDLER__', 'PASS')
+																						console.log(content);
                                              __non_webpack_require__('vm').runInThisContext(
                                                 '(function(exports, require, __dirname, __filename) {' +
                                                 content + '\n})',

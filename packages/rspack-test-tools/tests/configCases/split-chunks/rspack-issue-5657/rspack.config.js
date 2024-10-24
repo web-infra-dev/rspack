@@ -5,6 +5,7 @@ module.exports = {
 		main: "./src/index.js"
 	},
 	optimization: {
+		// splitChunks: false,
 		splitChunks: {
 			chunks: "all",
 			cacheGroups: {
@@ -16,5 +17,5 @@ module.exports = {
 				}
 			}
 		}
-	}
+	},
 };
