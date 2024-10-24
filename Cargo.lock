@@ -3553,6 +3553,7 @@ dependencies = [
  "rspack_plugin_schemes",
  "rspack_plugin_size_limits",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_split_shared_modules",
  "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_warn_sensitive_module",
  "rspack_plugin_wasm",
@@ -4490,6 +4491,25 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_split_chunks"
+version = "0.1.0"
+dependencies = [
+ "dashmap 5.5.3",
+ "derivative",
+ "rayon",
+ "regex",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_regex",
+ "rspack_util",
+ "rustc-hash 1.1.0",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_split_shared_modules"
 version = "0.1.0"
 dependencies = [
  "dashmap 5.5.3",

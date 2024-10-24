@@ -170,15 +170,19 @@ export const webworker: Webworker = { WebWorkerTemplatePlugin };
 import { LimitChunkCountPlugin } from "./builtin-plugin";
 import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
+import { SplitSharedModulesPlugin } from "./builtin-plugin";
+
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
 	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
 	SplitChunksPlugin: typeof SplitChunksPlugin;
+	SplitSharedModulesPlugin: typeof SplitSharedModulesPlugin;
 }
 export const optimize: Optimize = {
 	LimitChunkCountPlugin,
 	RuntimeChunkPlugin,
-	SplitChunksPlugin
+	SplitChunksPlugin,
+	SplitSharedModulesPlugin
 };
 
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
