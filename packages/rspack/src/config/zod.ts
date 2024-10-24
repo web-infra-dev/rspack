@@ -1,6 +1,5 @@
 import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 import { Chunk } from "../Chunk";
 import type { Compilation, PathData } from "../Compilation";
@@ -1277,8 +1276,7 @@ const watchOptions = z.strictObject({
 //#endregion
 
 //#region DevServer
-export interface DevServer extends webpackDevServer.Configuration {}
-const devServer = z.custom<DevServer>();
+const devServer = z.custom<t.DevServer>();
 //#endregion
 
 //#region IgnoreWarnings

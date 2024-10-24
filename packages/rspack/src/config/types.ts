@@ -1,4 +1,5 @@
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type * as webpackDevServer from "webpack-dev-server";
 import type { PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
@@ -2490,4 +2491,8 @@ export type WatchOptions = {
 	 */
 	stdin?: boolean;
 };
+//#endregion
+
+//#region DevServer
+export interface DevServer extends webpackDevServer.Configuration {}
 //#endregion

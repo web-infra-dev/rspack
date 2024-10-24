@@ -4528,7 +4528,6 @@ declare namespace rspackExports {
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
         externalsType,
-        DevServer,
         IgnoreWarnings,
         Profile,
         Bail,
@@ -4688,7 +4687,8 @@ declare namespace rspackExports {
         Incremental,
         Experiments,
         Watch,
-        WatchOptions
+        WatchOptions,
+        DevServer
     }
 }
 
@@ -6526,7 +6526,7 @@ export const rspackOptions: z.ZodObject<{
     resolve: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
     resolveLoader: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction, z.ZodTypeDef, t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
-    devServer: z.ZodOptional<z.ZodType<DevServer, z.ZodTypeDef, DevServer>>;
+    devServer: z.ZodOptional<z.ZodType<t.DevServer, z.ZodTypeDef, t.DevServer>>;
     module: z.ZodOptional<z.ZodObject<{
         defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
         rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
@@ -8124,7 +8124,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
-    devServer?: DevServer | undefined;
+    devServer?: t.DevServer | undefined;
     bail?: boolean | undefined;
 }, {
     context?: string | undefined;
@@ -8723,7 +8723,7 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
-    devServer?: DevServer | undefined;
+    devServer?: t.DevServer | undefined;
     bail?: boolean | undefined;
 }>;
 
@@ -9773,7 +9773,8 @@ declare namespace t {
         Incremental,
         Experiments,
         Watch,
-        WatchOptions
+        WatchOptions,
+        DevServer
     }
 }
 
