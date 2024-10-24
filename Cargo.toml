@@ -24,7 +24,7 @@ camino             = { version = "1.1.8" }
 concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }
 css-module-lexer   = { version = "0.0.14" }
-dashmap            = { version = "5.5.3" }
+dashmap            = { version = "6.0.0" }
 derivative         = { version = "2.2.0" }
 either             = { version = "1.10.0" }
 futures            = { version = "0.3.30" }
@@ -52,7 +52,7 @@ regex              = { version = "1.10.4" }
 ropey              = "1.6.1"
 rspack_resolver    = { version = "0.3.5", features = ["package_json_raw_json_api"] }
 rspack_sources     = { version = "=0.3.3" }
-rustc-hash         = { version = "1.1.0" }
+rustc-hash         = { version = "2.0.0" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
 simd-json          = { version = "0.14.0-rc.2" }
