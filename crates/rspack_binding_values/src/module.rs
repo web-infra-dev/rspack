@@ -83,14 +83,20 @@ impl JsDependenciesBlock {
 #[napi]
 pub struct ModuleDTO {
   pub(crate) module: &'static dyn Module,
-  pub(crate) compilation: &'static Compilation,
+  pub(crate) compilation: Option<&'static Compilation>,
 }
 
 impl ModuleDTO {
-  pub fn new(module: &'static dyn Module, compilation: &'static Compilation) -> Self {
+  pub fn new(module: &'static dyn Module, compilation: Option<&'static Compilation>) -> Self {
     Self {
       module,
       compilation,
+    }
+  }
+
+  fn attach(&mut self, compilation: &'static Compilation) {
+    if self.compilation.is_none() {
+      self.compilation = Some(compilation);
     }
   }
 }
@@ -189,47 +195,63 @@ impl ModuleDTO {
 
   #[napi(getter)]
   pub fn blocks(&self) -> Vec<JsDependenciesBlock> {
-    let blocks = self.module.get_blocks();
-    blocks
-      .iter()
-      .cloned()
-      .map(|block_id| JsDependenciesBlock::new(block_id, self.compilation))
-      .collect::<Vec<_>>()
+    match self.compilation {
+      Some(compilation) => {
+        let blocks = self.module.get_blocks();
+        blocks
+          .iter()
+          .cloned()
+          .map(|block_id| JsDependenciesBlock::new(block_id, compilation))
+          .collect::<Vec<_>>()
+      }
+      None => {
+        vec![]
+      }
+    }
   }
 
   #[napi]
   pub fn size(&self, ty: Option<String>) -> f64 {
-    let ty = ty.map(|s| SourceType::from(s.as_str()));
-    self.module.size(ty.as_ref(), self.compilation)
+    match self.compilation {
+      Some(compilation) => {
+        let ty = ty.map(|s| SourceType::from(s.as_str()));
+        self.module.size(ty.as_ref(), compilation)
+      }
+      None => 0f64, // TODO fix
+    }
   }
 
   #[napi(getter, ts_return_type = "ModuleDTO[] | undefined")]
   pub fn modules(&self) -> Either<Vec<ModuleDTOWrapper>, ()> {
     match self.module.try_as_concatenated_module() {
-      Ok(concatenated_module) => {
-        let inner_modules = concatenated_module
-          .get_modules()
-          .iter()
-          .filter_map(|inner_module_info| {
-            self
-              .compilation
-              .module_by_identifier(&inner_module_info.id)
-              .map(|module| ModuleDTOWrapper::new(module.as_ref(), self.compilation))
-          })
-          .collect::<Vec<_>>();
-        Either::A(inner_modules)
-      }
+      Ok(concatenated_module) => match self.compilation {
+        Some(compilation) => {
+          let inner_modules = concatenated_module
+            .get_modules()
+            .iter()
+            .filter_map(|inner_module_info| {
+              compilation
+                .module_by_identifier(&inner_module_info.id)
+                .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(compilation)))
+            })
+            .collect::<Vec<_>>();
+          Either::A(inner_modules)
+        }
+        None => Either::A(vec![]),
+      },
       Err(_) => Either::B(()),
     }
   }
 }
 
-type ModuleInstanceRefs = IdentifierMap<OneShotRef>;
+type ModuleInstanceRefs = IdentifierMap<OneShotRef<ClassInstance<ModuleDTO>>>;
 
 type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleInstanceRefs>>;
 
 thread_local! {
   static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilationId = Default::default();
+
+  static UNASSOCIATED_MODULE_INSTANCE_REFS: RefCell<ModuleInstanceRefs> = Default::default();
 }
 
 // The difference between ModuleDTOWrapper and ModuleDTO is:
@@ -238,11 +260,11 @@ thread_local! {
 // This means that when transferring a ModuleDTO from Rust to JS, you must use ModuleDTOWrapper instead.
 pub struct ModuleDTOWrapper {
   pub module: &'static dyn Module,
-  pub compilation: &'static Compilation,
+  pub compilation: Option<&'static Compilation>,
 }
 
 impl ModuleDTOWrapper {
-  pub fn new(module: &dyn Module, compilation: &Compilation) -> Self {
+  pub fn new(module: &dyn Module, compilation: Option<&Compilation>) -> Self {
     let module = unsafe { std::mem::transmute::<&dyn Module, &'static dyn Module>(module) };
 
     // SAFETY:
@@ -250,10 +272,12 @@ impl ModuleDTOWrapper {
     // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
     // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
     let compilation = unsafe {
-      std::mem::transmute::<&rspack_core::Compilation, &'static rspack_core::Compilation>(
-        compilation,
-      )
+      std::mem::transmute::<
+        Option<&rspack_core::Compilation>,
+        Option<&'static rspack_core::Compilation>,
+      >(compilation)
     };
+
     Self {
       module,
       compilation,
@@ -270,30 +294,59 @@ impl ModuleDTOWrapper {
 
 impl ToNapiValue for ModuleDTOWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation.id());
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = IdentifierMap::default();
-          entry.insert(refs)
+    match val.compilation {
+      Some(compilation) => MODULE_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        let entry = refs_by_compilation_id.entry(compilation.id());
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = IdentifierMap::default();
+            entry.insert(refs)
+          }
+        };
+
+        UNASSOCIATED_MODULE_INSTANCE_REFS.with(|ref_cell| {
+          let mut unassociated_refs = ref_cell.borrow_mut();
+          if let Some(unassociated_ref) = unassociated_refs.remove(&val.module.identifier()) {
+            let mut instance = unassociated_ref.from_napi_value()?;
+            instance.as_mut().attach(compilation);
+
+            let napi_value = ToNapiValue::to_napi_value(env, &unassociated_ref);
+            refs.insert(val.module.identifier(), unassociated_ref);
+            napi_value
+          } else {
+            match refs.entry(val.module.identifier()) {
+              std::collections::hash_map::Entry::Occupied(entry) => {
+                let r = entry.get();
+                ToNapiValue::to_napi_value(env, r)
+              }
+              std::collections::hash_map::Entry::Vacant(entry) => {
+                let instance: ClassInstance<ModuleDTO> =
+                  ModuleDTO::new(val.module, Some(compilation))
+                    .into_instance(Env::from_raw(env))?;
+                let r = entry.insert(OneShotRef::new(env, instance)?);
+                ToNapiValue::to_napi_value(env, r)
+              }
+            }
+          }
+        })
+      }),
+      None => UNASSOCIATED_MODULE_INSTANCE_REFS.with(|ref_cell| {
+        let mut refs = ref_cell.borrow_mut();
+        match refs.entry(val.module.identifier()) {
+          std::collections::hash_map::Entry::Occupied(entry) => {
+            let r = entry.get();
+            ToNapiValue::to_napi_value(env, r)
+          }
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let instance = ModuleDTO::new(val.module, None).into_instance(Env::from_raw(env))?;
+            let r = entry.insert(OneShotRef::new(env, instance)?);
+            ToNapiValue::to_napi_value(env, r)
+          }
         }
-      };
-      match refs.entry(val.module.identifier()) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
-        }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let instance =
-            ModuleDTO::new(val.module, val.compilation).into_instance(Env::from_raw(env))?;
-          let napi_value = ToNapiValue::to_napi_value(env, instance)?;
-          let r = entry.insert(OneShotRef::new(env, napi_value)?);
-          ToNapiValue::to_napi_value(env, r)
-        }
-      }
-    })
+      }),
+    }
   }
 }
 

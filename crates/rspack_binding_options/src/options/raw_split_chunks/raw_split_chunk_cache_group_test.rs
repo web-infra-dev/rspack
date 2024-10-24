@@ -29,7 +29,7 @@ impl FromNapiValue for JsCacheGroupTestCtx {
 impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   fn from(value: CacheGroupTestFnCtx<'a>) -> Self {
     JsCacheGroupTestCtx {
-      module: ModuleDTOWrapper::new(value.module, value.compilation),
+      module: ModuleDTOWrapper::new(value.module, Some(value.compilation)),
     }
   }
 }

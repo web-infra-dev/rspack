@@ -146,7 +146,7 @@ impl JsCompilation {
         self
           .0
           .module_by_identifier(module_id)
-          .map(|module| ModuleDTOWrapper::new(module.as_ref(), self.0))
+          .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(self.0)))
       })
       .collect::<Vec<_>>()
   }
@@ -161,7 +161,7 @@ impl JsCompilation {
         self
           .0
           .module_by_identifier(module_id)
-          .map(|module| ModuleDTOWrapper::new(module.as_ref(), self.0))
+          .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(self.0)))
       })
       .collect::<Vec<_>>()
   }
@@ -577,7 +577,7 @@ impl JsCompilation {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<ClassInstance<JsCompilation>>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -621,8 +621,7 @@ impl ToNapiValue for JsCompilationWrapper {
         std::collections::hash_map::Entry::Vacant(entry) => {
           let env_wrapper = Env::from_raw(env);
           let instance = JsCompilation(val.0).into_instance(env_wrapper)?;
-          let napi_value = ToNapiValue::to_napi_value(env, instance)?;
-          let r = OneShotRef::new(env, napi_value)?;
+          let r = OneShotRef::new(env, instance)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }

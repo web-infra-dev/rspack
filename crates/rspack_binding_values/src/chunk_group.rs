@@ -57,7 +57,7 @@ impl JsChunkGroup {
             let module = compilation
               .module_by_identifier(&module_id)
               .unwrap_or_else(|| panic!("failed to retrieve module by id: {}", module_id));
-            ModuleDTOWrapper::new(module.as_ref(), compilation)
+            ModuleDTOWrapper::new(module.as_ref(), Some(compilation))
           }),
           request: origin.request.clone(),
         })
