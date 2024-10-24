@@ -1,21 +1,20 @@
 use std::{
   any::Any,
   collections::VecDeque,
-  os::unix::thread,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
   },
 };
 
-use async_std::task;
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
 use tokio::{
-  runtime::{Handle, Runtime},
   sync::mpsc::{self, error::TryRecvError},
   task::block_in_place,
 };
+
+use crate::block_on;
 
 /// Result returned by task
 ///
@@ -90,38 +89,6 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
             let is_expected_shutdown = is_expected_shutdown.clone();
             active_task_count += 1;
             rayon::spawn(move || {
-              // futures block_on doesn't support recursively call, so make a naive one
-              fn block_on<F>(future: F) -> F::Output
-              where
-                F: std::future::Future,
-              {
-                use std::{
-                  task::{Context, Poll},
-                  thread::{self, Thread},
-                };
-
-                use futures_task::{waker_ref, ArcWake};
-                struct ThreadWaker(Thread);
-
-                impl ArcWake for ThreadWaker {
-                  fn wake_by_ref(arc_self: &Arc<Self>) {
-                    arc_self.0.unpark();
-                  }
-                }
-
-                let waker = Arc::new(ThreadWaker(thread::current()));
-                let waker = waker_ref(&waker);
-                let mut cx = Context::from_waker(&waker);
-
-                tokio::pin!(future);
-
-                loop {
-                  match future.as_mut().poll(&mut cx) {
-                    Poll::Ready(ret) => return ret,
-                    Poll::Pending => thread::park(),
-                  }
-                }
-              }
               let r = block_on(task.async_run());
               if !is_expected_shutdown.load(Ordering::Relaxed) {
                 tx.send(r).expect("failed to send error message");

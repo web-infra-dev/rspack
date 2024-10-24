@@ -4,7 +4,6 @@ use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::task::spawn_blocking;
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
