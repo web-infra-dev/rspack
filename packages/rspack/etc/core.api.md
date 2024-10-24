@@ -17,7 +17,6 @@ import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
-import type { DependenciesBlockDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -42,6 +41,7 @@ import { JsCompilation } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
+import type { JsDependenciesBlock } from '@rspack/binding';
 import { JsDependency } from '@rspack/binding';
 import { JsDependencyMut } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
@@ -57,7 +57,7 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
-import type { ModuleDTO } from '@rspack/binding';
+import { ModuleDto } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -1253,11 +1253,14 @@ export type Dependencies = Name[];
 
 // @public (undocumented)
 class DependenciesBlock {
-    constructor(binding: DependenciesBlockDTO);
     // (undocumented)
-    get blocks(): DependenciesBlock[];
+    static __from_binding(binding: JsDependenciesBlock): DependenciesBlock;
     // (undocumented)
-    get dependencies(): Dependency[];
+    static __to_binding(block: DependenciesBlock): JsDependenciesBlock;
+    // (undocumented)
+    readonly blocks: DependenciesBlock[];
+    // (undocumented)
+    readonly dependencies: Dependency[];
 }
 
 // @public (undocumented)
@@ -3196,9 +3199,9 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule | ModuleDTO, compilation?: Compilation);
+    constructor(module: JsModule | ModuleDto, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule | ModuleDTO, compilation?: Compilation): Module;
+    static __from_binding(module: JsModule | ModuleDto, compilation?: Compilation): Module;
     // (undocumented)
     get blocks(): DependenciesBlock[];
     buildInfo: Record<string, any>;
@@ -3211,6 +3214,8 @@ export class Module {
     identifier(): string;
     // (undocumented)
     layer: null | string;
+    // (undocumented)
+    readonly modules: Module[] | undefined;
     // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
@@ -6017,13 +6022,13 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace: z.ZodOptional<z.ZodNumber>;
         warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -6094,13 +6099,13 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace?: number | undefined;
         warningsSpace?: number | undefined;
     }, {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -7528,8 +7533,8 @@ export const rspackOptions: z.ZodObject<{
         maxEntrypointSize?: number | undefined;
     }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
     dependencies?: string[] | undefined;
+    context?: string | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -7977,13 +7982,13 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -8127,8 +8132,8 @@ export const rspackOptions: z.ZodObject<{
     devServer?: DevServer | undefined;
     bail?: boolean | undefined;
 }, {
-    context?: string | undefined;
     dependencies?: string[] | undefined;
+    context?: string | undefined;
     module?: {
         parser?: {
             javascript?: {
@@ -8576,13 +8581,13 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;

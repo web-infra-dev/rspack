@@ -11,7 +11,7 @@ use rspack_napi::{
     bindgen_prelude::{Buffer, FromNapiValue, Result, SharedReference, ToNapiValue},
     Either,
   },
-  Ref,
+  OneShotRef,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
@@ -19,8 +19,8 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
-  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
-  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
+  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
 }
 
 #[napi(object, object_from_js = false)]
@@ -60,7 +60,7 @@ impl ToNapiValue for JsModuleDescriptorWrapper {
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
-          let r = Ref::new(env, napi_value, 1)?;
+          let r = OneShotRef::new(env, napi_value)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }
@@ -566,7 +566,7 @@ impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
             }
             std::collections::hash_map::Entry::Vacant(entry) => {
               let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
-              let r = Ref::new(env, napi_value, 1)?;
+              let r = OneShotRef::new(env, napi_value)?;
               let r = entry.insert(r);
               ToNapiValue::to_napi_value(env, r)
             }
@@ -1229,16 +1229,12 @@ impl ToNapiValue for JsStatsCompilationWrapper {
 
     MODULE_DESCRIPTOR_REFS.with(|refs| {
       let mut refs = refs.borrow_mut();
-      for (_, mut r) in refs.drain() {
-        let _ = r.unref(env);
-      }
+      refs.drain();
     });
 
     MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
       let mut refs = refs.borrow_mut();
-      for (_, mut r) in refs.drain() {
-        let _ = r.unref(env);
-      }
+      refs.drain();
     });
 
     napi_value

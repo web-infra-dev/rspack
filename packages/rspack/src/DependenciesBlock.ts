@@ -1,18 +1,36 @@
-import type { DependenciesBlockDTO } from "@rspack/binding";
+import type { JsDependenciesBlock } from "@rspack/binding";
 import { Dependency } from "./Dependency";
 
 export class DependenciesBlock {
-	#binding: DependenciesBlockDTO;
+	#binding: JsDependenciesBlock;
 
-	constructor(binding: DependenciesBlockDTO) {
+	declare readonly dependencies: Dependency[];
+	declare readonly blocks: DependenciesBlock[];
+
+	static __from_binding(binding: JsDependenciesBlock): DependenciesBlock {
+		return new DependenciesBlock(binding);
+	}
+
+	static __to_binding(block: DependenciesBlock): JsDependenciesBlock {
+		return block.#binding;
+	}
+
+	private constructor(binding: JsDependenciesBlock) {
 		this.#binding = binding;
-	}
 
-	get dependencies(): Dependency[] {
-		return this.#binding.dependencies.map(d => Dependency.__from_binding(d));
-	}
-
-	get blocks(): DependenciesBlock[] {
-		return this.#binding.blocks.map(b => new DependenciesBlock(b));
+		Object.defineProperties(this, {
+			dependencies: {
+				enumerable: true,
+				get(): Dependency[] {
+					return binding.dependencies.map(d => Dependency.__from_binding(d));
+				}
+			},
+			blocks: {
+				enumerable: true,
+				get(): DependenciesBlock[] {
+					return binding.blocks.map(b => DependenciesBlock.__from_binding(b));
+				}
+			}
+		});
 	}
 }
