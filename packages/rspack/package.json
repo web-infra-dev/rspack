@@ -50,6 +50,7 @@
   },
   "devDependencies": {
     "@swc/core": "1.4.0",
+    "@swc/types": "0.1.12",
     "@types/graceful-fs": "4.1.9",
     "@types/neo-async": "^2.6.6",
     "@types/watchpack": "^2.4.0",

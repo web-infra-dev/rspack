@@ -12,6 +12,9 @@
       "watchpack": [
         "../compiled/watchpack"
       ],
+      "@swc/types": [
+        "../compiled/@swc/types"
+      ],
       "graceful-fs": [
         "../compiled/graceful-fs"
       ],
