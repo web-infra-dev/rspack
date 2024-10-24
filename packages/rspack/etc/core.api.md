@@ -57,7 +57,7 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
-import type { ModuleDTO } from '@rspack/binding';
+import { ModuleDto } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -3196,9 +3196,9 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule | ModuleDTO, compilation?: Compilation);
+    constructor(module: JsModule | ModuleDto, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule | ModuleDTO, compilation?: Compilation): Module;
+    static __from_binding(module: JsModule | ModuleDto, compilation?: Compilation): Module;
     // (undocumented)
     get blocks(): DependenciesBlock[];
     buildInfo: Record<string, any>;
@@ -3211,6 +3211,8 @@ export class Module {
     identifier(): string;
     // (undocumented)
     layer: null | string;
+    // (undocumented)
+    readonly modules: Module[] | undefined;
     // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
@@ -6017,13 +6019,13 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace: z.ZodOptional<z.ZodNumber>;
         warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -6094,13 +6096,13 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace?: number | undefined;
         warningsSpace?: number | undefined;
     }, {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -7977,13 +7979,13 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;
@@ -8576,13 +8578,13 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     watch?: boolean | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
+        modules?: boolean | undefined;
         source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
         chunks?: boolean | undefined;
-        modules?: boolean | undefined;
         entrypoints?: boolean | "auto" | undefined;
         chunkGroups?: boolean | undefined;
         warnings?: boolean | undefined;

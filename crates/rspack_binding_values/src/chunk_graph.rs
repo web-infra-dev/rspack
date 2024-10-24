@@ -2,10 +2,13 @@ use napi_derive::napi;
 use rspack_core::{ChunkUkey, SourceType};
 use rspack_napi::napi::Result;
 
-use crate::{JsChunk, JsCompilation, JsModule, ToJsModule};
+use crate::{JsChunk, JsCompilation, JsModule, ModuleDTOWrapper, ToJsModule};
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_modules")]
-pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_modules",
+  ts_return_type = "ModuleDTO[]"
+)]
+pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<ModuleDTOWrapper> {
   let compilation = &compilation.0;
   let module_graph = compilation.get_module_graph();
   let modules = compilation
@@ -14,7 +17,7 @@ pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec
 
   return modules
     .iter()
-    .filter_map(|module| module.to_js_module().ok())
+    .map(|module| ModuleDTOWrapper::new(module.identifier(), compilation))
     .collect::<Vec<_>>();
 }
 
