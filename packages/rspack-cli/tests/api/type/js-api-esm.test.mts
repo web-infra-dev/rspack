@@ -24,4 +24,9 @@ describe("js-api-type should be correct when importing from @rspack/core", () =>
 		const compiler = rspackEsmNamedImport({});
 		assert(compiler);
 	});
+
+	it("rspack.default should not exist in esm import", async () => {
+		assert(!(rspackEsmNamedImport as any).default);
+		assert(!(rspackEsmDefaultImport as any).default);
+	});
 });

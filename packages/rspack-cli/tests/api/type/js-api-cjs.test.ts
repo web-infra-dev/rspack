@@ -28,4 +28,9 @@ describe("js-api-type should be correct when requiring from @rspack/core", () =>
 		const compiler = rspackCjsNamedRequire({});
 		assert(compiler);
 	});
+
+	it("rspack.default should not exist in cjs require", async () => {
+		assert(!(rspackCjsNamedRequire as any).default);
+		assert(!(rspackCjsRequire as any).default);
+	});
 });
