@@ -27,16 +27,14 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::ModuleDTOWrapper;
 use crate::ToJsCompatSource;
 use crate::{
   chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
 };
 use crate::{JsRspackDiagnostic, JsRspackError};
-
-// unsafe impl Send for *const Compilation {}
 
 #[napi]
 pub struct JsCompilation(pub(crate) *const rspack_core::Compilation);
@@ -143,8 +141,8 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter, ts_return_type = "Array<ModuleDTO>")]
-  pub fn modules(&self) -> Vec<ModuleDTOWrapper> {
+  #[napi(getter, ts_return_type = "Array<JsModule>")]
+  pub fn modules(&self) -> Vec<JsModuleWrapper> {
     let compilation = unsafe { &*self.0 };
 
     compilation
@@ -154,13 +152,13 @@ impl JsCompilation {
       .filter_map(|module_id| {
         compilation
           .module_by_identifier(module_id)
-          .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(self.0)))
+          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(self.0)))
       })
       .collect::<Vec<_>>()
   }
 
-  #[napi(getter, ts_return_type = "Array<ModuleDTO>")]
-  pub fn built_modules(&self) -> Vec<ModuleDTOWrapper> {
+  #[napi(getter, ts_return_type = "Array<JsModule>")]
+  pub fn built_modules(&self) -> Vec<JsModuleWrapper> {
     let compilation = unsafe { &*self.0 };
 
     compilation
@@ -169,7 +167,7 @@ impl JsCompilation {
       .filter_map(|module_id| {
         compilation
           .module_by_identifier(module_id)
-          .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(self.0)))
+          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(self.0)))
       })
       .collect::<Vec<_>>()
   }
@@ -534,7 +532,7 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| ModuleDTOWrapper::new(module.as_ref(), None))
+              .map(|module| JsModuleWrapper::new(module.as_ref(), None))
               .collect::<Vec<_>>()
           },
         )
@@ -654,7 +652,7 @@ impl JsCompilationWrapper {
       let mut refs = ref_cell.borrow_mut();
       refs.remove(&compilation_id);
     });
-    ModuleDTOWrapper::cleanup_last_compilation(compilation_id);
+    JsModuleWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

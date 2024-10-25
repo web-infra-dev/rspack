@@ -2,7 +2,7 @@ use napi::bindgen_prelude::FromNapiValue;
 use napi_derive::napi;
 use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation};
 
-use crate::{JsChunk, JsCompilation, ModuleDTOWrapper};
+use crate::{JsChunk, JsCompilation, JsModuleWrapper};
 
 #[napi(object)]
 pub struct JsChunkGroup {
@@ -19,8 +19,8 @@ pub struct JsChunkGroup {
 
 #[napi(object, object_from_js = false)]
 pub struct JsChunkGroupOrigin {
-  #[napi(ts_type = "ModuleDTO")]
-  pub module: Option<ModuleDTOWrapper>,
+  #[napi(ts_type = "JsModule | undefined")]
+  pub module: Option<JsModuleWrapper>,
   pub request: Option<String>,
 }
 
@@ -57,7 +57,7 @@ impl JsChunkGroup {
             let module = compilation
               .module_by_identifier(&module_id)
               .unwrap_or_else(|| panic!("failed to retrieve module by id: {}", module_id));
-            ModuleDTOWrapper::new(module.as_ref(), Some(compilation as *const Compilation))
+            JsModuleWrapper::new(module.as_ref(), Some(compilation as *const Compilation))
           }),
           request: origin.request.clone(),
         })

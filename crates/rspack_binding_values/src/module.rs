@@ -79,19 +79,12 @@ impl JsDependenciesBlock {
 }
 
 #[napi]
-pub struct ModuleDTO {
-  pub(crate) module: &'static dyn Module,
-  pub(crate) compilation: Option<*const Compilation>,
+pub struct JsModule {
+  module: &'static dyn Module,
+  compilation: Option<*const Compilation>,
 }
 
-impl ModuleDTO {
-  pub fn new(module: &'static dyn Module, compilation: Option<*const Compilation>) -> Self {
-    Self {
-      module,
-      compilation,
-    }
-  }
-
+impl JsModule {
   fn attach(&mut self, compilation: *const Compilation) {
     if self.compilation.is_none() {
       self.compilation = Some(compilation);
@@ -100,7 +93,7 @@ impl ModuleDTO {
 }
 
 #[napi]
-impl ModuleDTO {
+impl JsModule {
   #[napi(getter)]
   pub fn context(&self) -> Either<String, ()> {
     match self.module.get_context() {
@@ -221,8 +214,8 @@ impl ModuleDTO {
     }
   }
 
-  #[napi(getter, ts_return_type = "ModuleDTO[] | undefined")]
-  pub fn modules(&self) -> Either<Vec<ModuleDTOWrapper>, ()> {
+  #[napi(getter, ts_return_type = "JsModule[] | undefined")]
+  pub fn modules(&self) -> Either<Vec<JsModuleWrapper>, ()> {
     match self.module.try_as_concatenated_module() {
       Ok(concatenated_module) => match self.compilation {
         Some(compilation_ptr) => {
@@ -234,7 +227,7 @@ impl ModuleDTO {
             .filter_map(|inner_module_info| {
               compilation
                 .module_by_identifier(&inner_module_info.id)
-                .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(compilation_ptr)))
+                .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation_ptr)))
             })
             .collect::<Vec<_>>();
           Either::A(inner_modules)
@@ -246,7 +239,7 @@ impl ModuleDTO {
   }
 }
 
-type ModuleInstanceRefs = IdentifierMap<OneShotRef<ClassInstance<ModuleDTO>>>;
+type ModuleInstanceRefs = IdentifierMap<OneShotRef<ClassInstance<JsModule>>>;
 
 type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleInstanceRefs>>;
 
@@ -256,18 +249,18 @@ thread_local! {
   static UNASSOCIATED_MODULE_INSTANCE_REFS: RefCell<ModuleInstanceRefs> = Default::default();
 }
 
-// The difference between ModuleDTOWrapper and ModuleDTO is:
-// ModuleDTOWrapper maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
+// The difference between JsModuleWrapper and JsModule is:
+// JsModuleWrapper maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
 //
-// This means that when transferring a ModuleDTO from Rust to JS, you must use ModuleDTOWrapper instead.
-pub struct ModuleDTOWrapper {
+// This means that when transferring a JsModule from Rust to JS, you must use JsModuleWrapper instead.
+pub struct JsModuleWrapper {
   pub module: &'static dyn Module,
   pub compilation: Option<*const Compilation>,
 }
 
-unsafe impl Send for ModuleDTOWrapper {}
+unsafe impl Send for JsModuleWrapper {}
 
-impl ModuleDTOWrapper {
+impl JsModuleWrapper {
   pub fn new(module: &dyn Module, compilation: Option<*const Compilation>) -> Self {
     let module = unsafe { std::mem::transmute::<&dyn Module, &'static dyn Module>(module) };
 
@@ -285,7 +278,7 @@ impl ModuleDTOWrapper {
   }
 }
 
-impl ToNapiValue for ModuleDTOWrapper {
+impl ToNapiValue for JsModuleWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     match val.compilation {
       Some(compilation_ptr) => MODULE_INSTANCE_REFS.with(|refs| {
@@ -317,9 +310,11 @@ impl ToNapiValue for ModuleDTOWrapper {
                 ToNapiValue::to_napi_value(env, r)
               }
               std::collections::hash_map::Entry::Vacant(entry) => {
-                let instance: ClassInstance<ModuleDTO> =
-                  ModuleDTO::new(val.module, Some(compilation_ptr))
-                    .into_instance(Env::from_raw(env))?;
+                let instance: ClassInstance<JsModule> = JsModule {
+                  module: val.module,
+                  compilation: Some(compilation_ptr),
+                }
+                .into_instance(Env::from_raw(env))?;
                 let r = entry.insert(OneShotRef::new(env, instance)?);
                 ToNapiValue::to_napi_value(env, r)
               }
@@ -335,7 +330,11 @@ impl ToNapiValue for ModuleDTOWrapper {
             ToNapiValue::to_napi_value(env, r)
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let instance = ModuleDTO::new(val.module, None).into_instance(Env::from_raw(env))?;
+            let instance = JsModule {
+              module: val.module,
+              compilation: None,
+            }
+            .into_instance(Env::from_raw(env))?;
             let r = entry.insert(OneShotRef::new(env, instance)?);
             ToNapiValue::to_napi_value(env, r)
           }

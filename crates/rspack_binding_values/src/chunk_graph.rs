@@ -2,16 +2,16 @@ use napi_derive::napi;
 use rspack_core::{ChunkUkey, SourceType};
 use rspack_napi::napi::Result;
 
-use crate::{JsChunk, JsCompilation, ModuleDTOWrapper};
+use crate::{JsChunk, JsCompilation, JsModuleWrapper};
 
 #[napi(
   js_name = "__chunk_graph_inner_get_chunk_modules",
-  ts_return_type = "ModuleDTO[]"
+  ts_return_type = "JsModule[]"
 )]
 pub fn get_chunk_modules(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
-) -> Vec<ModuleDTOWrapper> {
+) -> Vec<JsModuleWrapper> {
   let compilation = unsafe { &*js_compilation.0 };
 
   let module_graph = compilation.get_module_graph();
@@ -21,15 +21,18 @@ pub fn get_chunk_modules(
 
   return modules
     .iter()
-    .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(js_compilation.0)))
+    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(js_compilation.0)))
     .collect::<Vec<_>>();
 }
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_entry_modules")]
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_entry_modules",
+  ts_return_type = "JsModule[]"
+)]
 pub fn get_chunk_entry_modules(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
-) -> Vec<ModuleDTOWrapper> {
+) -> Vec<JsModuleWrapper> {
   let compilation = unsafe { &*js_compilation.0 };
 
   let modules = compilation
@@ -39,7 +42,7 @@ pub fn get_chunk_entry_modules(
   return modules
     .iter()
     .filter_map(|module| module_graph.module_by_identifier(module))
-    .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(js_compilation.0)))
+    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(js_compilation.0)))
     .collect::<Vec<_>>();
 }
 
@@ -64,12 +67,15 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
     .collect::<Vec<_>>();
 }
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_modules_iterable_by_source_type")]
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_modules_iterable_by_source_type",
+  ts_return_type = "JsModule[]"
+)]
 pub fn get_chunk_modules_iterable_by_source_type(
   js_chunk_ukey: u32,
   source_type: String,
   js_compilation: &JsCompilation,
-) -> Result<Vec<ModuleDTOWrapper>> {
+) -> Result<Vec<JsModuleWrapper>> {
   let compilation = unsafe { &*js_compilation.0 };
 
   Ok(
@@ -80,7 +86,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
         SourceType::from(source_type.as_str()),
         &compilation.get_module_graph(),
       )
-      .map(|module| ModuleDTOWrapper::new(module, Some(js_compilation.0)))
+      .map(|module| JsModuleWrapper::new(module, Some(js_compilation.0)))
       .collect(),
   )
 }

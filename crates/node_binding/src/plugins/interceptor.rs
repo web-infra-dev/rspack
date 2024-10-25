@@ -18,10 +18,10 @@ use rspack_binding_values::{
   JsChunk, JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
   JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
   JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
-  JsFactorizeOutput, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleDTOWrapper,
-  ToJsCompatSource,
+  JsFactorizeOutput, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
+  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
+  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
+  JsRuntimeRequirementInTreeResult, ToJsCompatSource,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -400,15 +400,15 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_build_module_taps: RegisterFunction<ModuleDTOWrapper, ()>,
+  pub register_compilation_build_module_taps: RegisterFunction<JsModuleWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_still_valid_module_taps: RegisterFunction<ModuleDTOWrapper, ()>,
+  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModuleWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_succeed_module_taps: RegisterFunction<ModuleDTOWrapper, ()>,
+  pub register_compilation_succeed_module_taps: RegisterFunction<JsModuleWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
@@ -620,7 +620,7 @@ define_register!(
 /* Compilation Hooks */
 define_register!(
   RegisterCompilationBuildModuleTaps,
-  tap = CompilationBuildModuleTap<ModuleDTOWrapper, ()> @ CompilationBuildModuleHook,
+  tap = CompilationBuildModuleTap<JsModuleWrapper, ()> @ CompilationBuildModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
@@ -628,7 +628,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<ModuleDTOWrapper, ()> @ CompilationStillValidModuleHook,
+  tap = CompilationStillValidModuleTap<JsModuleWrapper, ()> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
@@ -636,7 +636,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
-  tap = CompilationSucceedModuleTap<ModuleDTOWrapper, ()> @ CompilationSucceedModuleHook,
+  tap = CompilationSucceedModuleTap<JsModuleWrapper, ()> @ CompilationSucceedModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
@@ -1015,7 +1015,7 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     // TODO: need mut module
     self
       .function
-      .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
+      .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
       .await
   }
 
@@ -1030,7 +1030,7 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     // TODO: need mut module
     self
       .function
-      .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
+      .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
       .await
   }
 
@@ -1045,7 +1045,7 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     // TODO: need mut module
     self
       .function
-      .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
+      .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
       .await
   }
 

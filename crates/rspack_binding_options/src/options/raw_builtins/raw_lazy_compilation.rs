@@ -3,7 +3,7 @@ use napi::{
   Either,
 };
 use napi_derive::napi;
-use rspack_binding_values::{ModuleDTOWrapper, RawRegex};
+use rspack_binding_values::{JsModuleWrapper, RawRegex};
 use rspack_core::ModuleIdentifier;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{
@@ -13,7 +13,7 @@ use rspack_plugin_lazy_compilation::{
 use rspack_regex::RspackRegex;
 
 #[derive(Debug)]
-pub struct RawLazyCompilationTest<F = ThreadsafeFunction<ModuleDTOWrapper, Option<bool>>>(
+pub struct RawLazyCompilationTest<F = ThreadsafeFunction<JsModuleWrapper, Option<bool>>>(
   pub Either<RawRegex, F>,
 );
 
@@ -37,14 +37,14 @@ impl<F: ToNapiValue> ToNapiValue for RawLazyCompilationTest<F> {
 
 #[derive(Debug)]
 pub struct LazyCompilationTestFn {
-  tsfn: ThreadsafeFunction<ModuleDTOWrapper, Option<bool>>,
+  tsfn: ThreadsafeFunction<JsModuleWrapper, Option<bool>>,
 }
 
 impl LazyCompilationTestCheck for LazyCompilationTestFn {
   fn test(&self, m: &dyn rspack_core::Module) -> bool {
     let res = self
       .tsfn
-      .blocking_call_with_sync(ModuleDTOWrapper::new(m, None))
+      .blocking_call_with_sync(JsModuleWrapper::new(m, None))
       .expect("failed to invoke lazyCompilation.test");
 
     res.unwrap_or(false)
