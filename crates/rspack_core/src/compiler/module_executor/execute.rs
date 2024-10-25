@@ -6,8 +6,9 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
-use tokio::{runtime::Handle, sync::oneshot::Sender};
+use tokio::sync::oneshot::Sender;
 
+use crate::block_on;
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -162,7 +163,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     compilation.code_generation_modules(&mut None, modules.clone())?;
 
-    Handle::current().block_on(async {
+    block_on(async {
       compilation
         .process_runtime_requirements(
           modules.clone(),

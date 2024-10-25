@@ -10,9 +10,11 @@ use std::{
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
 use tokio::{
-  runtime::Handle,
   sync::mpsc::{self, error::TryRecvError},
+  task::block_in_place,
 };
+
+use crate::block_on;
 
 /// Result returned by task
 ///
@@ -72,29 +74,52 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
   let is_expected_shutdown: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
   let mut queue: VecDeque<Box<dyn Task<Ctx>>> = VecDeque::from(init_tasks);
   let mut active_task_count = 0;
-  tokio::task::block_in_place(|| loop {
-    let task = queue.pop_front();
-    if task.is_none() && active_task_count == 0 {
-      return Ok(());
-    }
+  block_in_place(|| {
+    loop {
+      let task = queue.pop_front();
+      if task.is_none() && active_task_count == 0 {
+        return Ok(());
+      }
 
-    if let Some(task) = task {
-      let task = before_task_run(ctx, task);
-      match task.get_task_type() {
-        TaskType::Async => {
-          let tx = tx.clone();
-          let is_expected_shutdown = is_expected_shutdown.clone();
-          active_task_count += 1;
-          tokio::spawn(async move {
-            let r = task.async_run().await;
-            if !is_expected_shutdown.load(Ordering::Relaxed) {
-              tx.send(r).expect("failed to send error message");
+      if let Some(task) = task {
+        let task = before_task_run(ctx, task);
+        match task.get_task_type() {
+          TaskType::Async => {
+            let tx = tx.clone();
+            let is_expected_shutdown = is_expected_shutdown.clone();
+            active_task_count += 1;
+            rayon::spawn(move || {
+              let r = block_on(task.async_run());
+              if !is_expected_shutdown.load(Ordering::Relaxed) {
+                tx.send(r).expect("failed to send error message");
+              }
+            });
+          }
+          TaskType::Sync => {
+            // merge sync task result directly
+            match task.sync_run(ctx) {
+              Ok(r) => queue.extend(r),
+              Err(e) => {
+                is_expected_shutdown.store(true, Ordering::Relaxed);
+                return Err(e);
+              }
             }
-          });
+          }
         }
-        TaskType::Sync => {
-          // merge sync task result directly
-          match task.sync_run(ctx) {
+      }
+
+      let data = if queue.is_empty() && active_task_count != 0 {
+        let res = rx.blocking_recv().expect("recv failed");
+        Ok(res)
+      } else {
+        rx.try_recv()
+      };
+
+      match data {
+        Ok(r) => {
+          active_task_count -= 1;
+          // merge async task result
+          match r {
             Ok(r) => queue.extend(r),
             Err(e) => {
               is_expected_shutdown.store(true, Ordering::Relaxed);
@@ -102,33 +127,10 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
             }
           }
         }
-      }
-    }
-
-    let data = if queue.is_empty() && active_task_count != 0 {
-      Handle::current().block_on(async {
-        let res = rx.recv().await.expect("should recv success");
-        Ok(res)
-      })
-    } else {
-      rx.try_recv()
-    };
-
-    match data {
-      Ok(r) => {
-        active_task_count -= 1;
-        // merge async task result
-        match r {
-          Ok(r) => queue.extend(r),
-          Err(e) => {
-            is_expected_shutdown.store(true, Ordering::Relaxed);
-            return Err(e);
-          }
+        Err(TryRecvError::Empty) => {}
+        _ => {
+          panic!("unexpected recv error")
         }
-      }
-      Err(TryRecvError::Empty) => {}
-      _ => {
-        panic!("unexpected recv error")
       }
     }
   })

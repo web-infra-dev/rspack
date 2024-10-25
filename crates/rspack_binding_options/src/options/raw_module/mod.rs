@@ -6,6 +6,7 @@ use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::{JsFilename, RawRegex};
+use rspack_core::block_on;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -21,7 +22,6 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use tokio::runtime::Handle;
 
 use crate::RawResolveOptions;
 
@@ -581,10 +581,9 @@ impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
 
 impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
   fn from(value: RawAssetGeneratorDataUrlWrapper) -> Self {
-    let handle = Handle::current();
     match value.0 {
       Either::A(a) => Self::Options(a.into()),
-      Either::B(b) => Self::Func(Arc::new(move |ctx| handle.block_on(b.call(ctx.into())))),
+      Either::B(b) => Self::Func(Arc::new(move |ctx| block_on(b.call(ctx.into())))),
     }
   }
 }
