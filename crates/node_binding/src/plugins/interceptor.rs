@@ -21,7 +21,7 @@ use rspack_binding_values::{
   JsFactorizeOutput, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
   JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
   JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ToJsCompatSource, ToJsModule,
+  JsRuntimeRequirementInTreeResult, ModuleDTOWrapper, ToJsCompatSource,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -620,7 +620,7 @@ define_register!(
 /* Compilation Hooks */
 define_register!(
   RegisterCompilationBuildModuleTaps,
-  tap = CompilationBuildModuleTap<JsModule, ()> @ CompilationBuildModuleHook,
+  tap = CompilationBuildModuleTap<ModuleDTOWrapper, ()> @ CompilationBuildModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
@@ -628,7 +628,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<JsModule, ()> @ CompilationStillValidModuleHook,
+  tap = CompilationStillValidModuleTap<ModuleDTOWrapper, ()> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
@@ -636,7 +636,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
-  tap = CompilationSucceedModuleTap<JsModule, ()> @ CompilationSucceedModuleHook,
+  tap = CompilationSucceedModuleTap<ModuleDTOWrapper, ()> @ CompilationSucceedModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
@@ -1012,9 +1012,10 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 #[async_trait]
 impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+    // TODO: need mut module
     self
       .function
-      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
+      .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
       .await
   }
 
@@ -1028,7 +1029,7 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
+      .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
       .await
   }
 
@@ -1042,7 +1043,7 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(module.to_js_module().expect("Convert to js_module failed."))
+      .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
       .await
   }
 
