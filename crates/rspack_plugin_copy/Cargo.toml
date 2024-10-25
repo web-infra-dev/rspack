@@ -22,7 +22,6 @@ rspack_paths   = { version = "0.1.0", path = "../rspack_paths" }
 rspack_util    = { version = "0.1.0", path = "../rspack_util" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
-tokio          = { workspace = true, features = ["fs"] }
 tracing        = { workspace = true }
 
 [package.metadata.cargo-shear]

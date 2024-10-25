@@ -53,35 +53,35 @@ pub struct AsyncNativeFileSystem;
 impl AsyncWritableFileSystem for AsyncNativeFileSystem {
   fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
     let dir = dir.to_path_buf();
-    let fut = async move { tokio::fs::create_dir(dir).await.map_err(Error::from) };
+    let fut = async move { std::fs::create_dir(dir).map_err(Error::from) };
     Box::pin(fut)
   }
 
   fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { tokio::fs::create_dir_all(dir).await.map_err(Error::from) };
+    let fut = async move { std::fs::create_dir_all(dir).map_err(Error::from) };
     Box::pin(fut)
   }
 
   fn write<'a>(&'a self, file: &'a Utf8Path, data: &'a [u8]) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { tokio::fs::write(file, data).await.map_err(Error::from) };
+    let fut = async move { std::fs::write(file, data).map_err(Error::from) };
     Box::pin(fut)
   }
 
   fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { tokio::fs::remove_file(file).await.map_err(Error::from) };
+    let fut = async move { std::fs::remove_file(file).map_err(Error::from) };
     Box::pin(fut)
   }
 
   fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
     let dir = dir.to_path_buf();
-    let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
+    let fut = async move { std::fs::remove_dir_all(dir).map_err(Error::from) };
     Box::pin(fut)
   }
 }
 
 impl AsyncReadableFileSystem for AsyncNativeFileSystem {
   fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
+    let fut = async move { std::fs::read(file).map_err(Error::from) };
     Box::pin(fut)
   }
 }

@@ -3803,7 +3803,6 @@ dependencies = [
  "futures",
  "rspack_error",
  "rspack_paths",
- "tokio",
 ]
 
 [[package]]
@@ -4104,7 +4103,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash 1.1.0",
  "sugar_path",
- "tokio",
  "tracing",
 ]
 

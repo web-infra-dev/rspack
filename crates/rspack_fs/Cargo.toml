@@ -18,7 +18,3 @@ version = "0.1.0"
 
 [dependencies.futures]
 workspace = true
-
-[dependencies.tokio]
-features  = ["fs"]
-workspace = true

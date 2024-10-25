@@ -102,7 +102,7 @@ async fn get_description_file(mut dir: &Path) -> Option<(PathBuf, serde_json::Va
   let description_filename = "package.json";
   loop {
     let description_file = dir.join(description_filename);
-    if let Ok(data) = tokio::fs::read(&description_file).await
+    if let Ok(data) = std::fs::read(&description_file)
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
     {
       return Some((description_file, data));

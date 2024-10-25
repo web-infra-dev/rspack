@@ -181,7 +181,6 @@ mod test {
       TaskType::Async
     }
     async fn async_run(self: Box<Self>) -> TaskResult<Context> {
-      tokio::time::sleep(std::time::Duration::from_millis(10)).await;
       if self.async_return_error {
         Err(miette!("throw async error"))
       } else {
