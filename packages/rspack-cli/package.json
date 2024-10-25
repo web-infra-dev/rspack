@@ -32,15 +32,15 @@
     "test": "cross-env jest --colors"
   },
   "dependencies": {
-    "@discoveryjs/json-ext": "^0.5.7",
-    "@rspack/dev-server": "1.0.5",
-    "colorette": "2.0.19",
+    "@discoveryjs/json-ext": "^0.6.0",
+    "@rspack/dev-server": "1.0.9",
+    "colorette": "2.0.20",
     "exit-hook": "^4.0.0",
     "interpret": "^3.1.1",
     "rechoir": "^0.8.0",
     "semver": "^7.6.2",
     "webpack-bundle-analyzer": "4.6.1",
-    "yargs": "17.6.2"
+    "yargs": "17.7.2"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
