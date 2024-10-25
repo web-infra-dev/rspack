@@ -4,9 +4,9 @@ import type {
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
 	JsFactoryMeta,
-	JsModule
+	JsCompilerModuleContext
 } from "@rspack/binding";
-import { ModuleDto } from "@rspack/binding";
+import { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
@@ -211,7 +211,7 @@ export type ContextModuleFactoryAfterResolveResult =
 	| ContextModuleFactoryAfterResolveData;
 
 export class Module {
-	#inner: JsModule | ModuleDto;
+	#inner: JsModule | JsCompilerModuleContext;
 	#originalSource?: Source;
 
 	context?: Readonly<string>;
@@ -240,13 +240,16 @@ export class Module {
 	declare readonly modules: Module[] | undefined;
 
 	static __from_binding(
-		module: JsModule | ModuleDto,
+		module: JsModule | JsCompilerModuleContext,
 		compilation?: Compilation
 	) {
 		return new Module(module, compilation);
 	}
 
-	constructor(module: JsModule | ModuleDto, compilation?: Compilation) {
+	constructor(
+		module: JsModule | JsCompilerModuleContext,
+		compilation?: Compilation
+	) {
 		this.#inner = module;
 		this.type = module.type;
 		this.layer = module.layer ?? null;
@@ -267,7 +270,7 @@ export class Module {
 			modules: {
 				enumerable: true,
 				get(): Module[] | undefined {
-					if (module instanceof ModuleDto) {
+					if (module instanceof JsModule) {
 						return module.modules
 							? module.modules.map(m => Module.__from_binding(m))
 							: undefined;
