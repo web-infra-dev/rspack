@@ -39,10 +39,12 @@ impl<'a> FlagDependencyExportsState<'a> {
         .module_graph_module_by_identifier(&module_id)
         .expect("mgm should exist");
       let exports_info = mgm.exports;
+      // Reset exports provide info back to initial
+      exports_info.reset_provide_info(self.mg);
 
       let module = self
         .mg
-        .module_by_identifier(&mgm.module_identifier)
+        .module_by_identifier(&module_id)
         .expect("should have module");
       let is_module_without_exports = if let Some(build_meta) = module.build_meta() {
         build_meta.exports_type == BuildMetaExportsType::Unset
