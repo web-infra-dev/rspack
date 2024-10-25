@@ -57,7 +57,7 @@ impl JsChunkGroup {
             let module = compilation
               .module_by_identifier(&module_id)
               .unwrap_or_else(|| panic!("failed to retrieve module by id: {}", module_id));
-            ModuleDTOWrapper::new(module.as_ref(), Some(compilation))
+            ModuleDTOWrapper::new(module.as_ref(), Some(compilation as *const Compilation))
           }),
           request: origin.request.clone(),
         })
@@ -72,15 +72,17 @@ fn chunk_group(ukey: u32, compilation: &Compilation) -> &ChunkGroup {
 }
 
 #[napi(js_name = "__chunk_group_inner_get_chunk_group")]
-pub fn get_chunk_group(ukey: u32, compilation: &JsCompilation) -> JsChunkGroup {
-  let compilation = &compilation.0;
+pub fn get_chunk_group(ukey: u32, js_compilation: &JsCompilation) -> JsChunkGroup {
+  let compilation = unsafe { &*js_compilation.0 };
+
   let cg = chunk_group(ukey, compilation);
   JsChunkGroup::from_chunk_group(cg, compilation)
 }
 
 #[napi(js_name = "__entrypoint_inner_get_runtime_chunk")]
-pub fn get_runtime_chunk(ukey: u32, compilation: &JsCompilation) -> JsChunk {
-  let compilation = &compilation.0;
+pub fn get_runtime_chunk(ukey: u32, js_compilation: &JsCompilation) -> JsChunk {
+  let compilation = unsafe { &*js_compilation.0 };
+
   let entrypoint = chunk_group(ukey, compilation);
   let chunk_ukey = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
   let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);

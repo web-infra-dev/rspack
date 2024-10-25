@@ -18,10 +18,10 @@ use rspack_binding_values::{
   JsChunk, JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
   JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
   JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
-  JsFactorizeOutput, JsModule, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
-  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ModuleDTOWrapper, ToJsCompatSource,
+  JsFactorizeOutput, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleDTOWrapper,
+  ToJsCompatSource,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -400,15 +400,15 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_build_module_taps: RegisterFunction<JsModule, ()>,
+  pub register_compilation_build_module_taps: RegisterFunction<ModuleDTOWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModule, ()>,
+  pub register_compilation_still_valid_module_taps: RegisterFunction<ModuleDTOWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_succeed_module_taps: RegisterFunction<JsModule, ()>,
+  pub register_compilation_succeed_module_taps: RegisterFunction<ModuleDTOWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
@@ -903,7 +903,7 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
+    let compilation = JsCompilationWrapper::new(compilation as *const Compilation);
     self.function.call_with_sync(compilation).await
   }
 
@@ -1027,6 +1027,7 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
 #[async_trait]
 impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+    // TODO: need mut module
     self
       .function
       .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))
@@ -1041,6 +1042,7 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
 #[async_trait]
 impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+    // TODO: need mut module
     self
       .function
       .call_with_sync(ModuleDTOWrapper::new(module.as_ref(), None))

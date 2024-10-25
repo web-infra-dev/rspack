@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::Either3;
+use napi::bindgen_prelude::{Either3, FromNapiValue};
 use napi_derive::napi;
-use rspack_binding_values::{JsChunk, JsModule, ToJsModule};
+use rspack_binding_values::{JsChunk, ModuleDTOWrapper};
 use rspack_core::Chunk;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
@@ -16,20 +16,26 @@ pub(super) fn default_chunk_option_name() -> ChunkNameGetter {
   ChunkNameGetter::Disabled
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawChunkOptionNameCtx {
-  pub module: JsModule,
+  pub module: ModuleDTOWrapper,
   pub chunks: Vec<JsChunk>,
   pub cache_group_key: String,
+}
+
+impl FromNapiValue for RawChunkOptionNameCtx {
+  unsafe fn from_napi_value(
+    _env: napi::sys::napi_env,
+    _napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    unreachable!()
+  }
 }
 
 impl<'a> From<ChunkNameGetterFnCtx<'a>> for RawChunkOptionNameCtx {
   fn from(value: ChunkNameGetterFnCtx<'a>) -> Self {
     RawChunkOptionNameCtx {
-      module: value
-        .module
-        .to_js_module()
-        .expect("should convert js success"),
+      module: ModuleDTOWrapper::new(value.module, Some(value.compilation)),
       chunks: value
         .chunks
         .iter()

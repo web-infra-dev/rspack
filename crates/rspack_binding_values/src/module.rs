@@ -23,17 +23,11 @@ pub struct JsFactoryMeta {
 #[napi]
 pub struct JsDependenciesBlock {
   block_id: AsyncDependenciesBlockIdentifier,
-  compilation: &'static Compilation,
+  compilation: *const Compilation,
 }
 
 impl JsDependenciesBlock {
-  pub fn new(block_id: AsyncDependenciesBlockIdentifier, compilation: &Compilation) -> Self {
-    let compilation = unsafe {
-      std::mem::transmute::<&rspack_core::Compilation, &'static rspack_core::Compilation>(
-        compilation,
-      )
-    };
-
+  pub fn new(block_id: AsyncDependenciesBlockIdentifier, compilation: *const Compilation) -> Self {
     Self {
       block_id,
       compilation,
@@ -54,7 +48,9 @@ impl JsDependenciesBlock {
 impl JsDependenciesBlock {
   #[napi(getter)]
   pub fn dependencies(&self) -> Vec<JsDependency> {
-    let module_graph = self.compilation.get_module_graph();
+    let compilation = unsafe { &*self.compilation };
+
+    let module_graph = compilation.get_module_graph();
     let block = self.block(&module_graph);
     block
       .get_dependencies()
@@ -69,7 +65,9 @@ impl JsDependenciesBlock {
 
   #[napi(getter)]
   pub fn blocks(&self) -> Vec<JsDependenciesBlock> {
-    let module_graph = self.compilation.get_module_graph();
+    let compilation = unsafe { &*self.compilation };
+
+    let module_graph = compilation.get_module_graph();
     let block = self.block(&module_graph);
     let blocks = block.get_blocks();
     blocks
@@ -83,18 +81,18 @@ impl JsDependenciesBlock {
 #[napi]
 pub struct ModuleDTO {
   pub(crate) module: &'static dyn Module,
-  pub(crate) compilation: Option<&'static Compilation>,
+  pub(crate) compilation: Option<*const Compilation>,
 }
 
 impl ModuleDTO {
-  pub fn new(module: &'static dyn Module, compilation: Option<&'static Compilation>) -> Self {
+  pub fn new(module: &'static dyn Module, compilation: Option<*const Compilation>) -> Self {
     Self {
       module,
       compilation,
     }
   }
 
-  fn attach(&mut self, compilation: &'static Compilation) {
+  fn attach(&mut self, compilation: *const Compilation) {
     if self.compilation.is_none() {
       self.compilation = Some(compilation);
     }
@@ -214,6 +212,8 @@ impl ModuleDTO {
   pub fn size(&self, ty: Option<String>) -> f64 {
     match self.compilation {
       Some(compilation) => {
+        let compilation = unsafe { &*compilation };
+
         let ty = ty.map(|s| SourceType::from(s.as_str()));
         self.module.size(ty.as_ref(), compilation)
       }
@@ -225,14 +225,16 @@ impl ModuleDTO {
   pub fn modules(&self) -> Either<Vec<ModuleDTOWrapper>, ()> {
     match self.module.try_as_concatenated_module() {
       Ok(concatenated_module) => match self.compilation {
-        Some(compilation) => {
+        Some(compilation_ptr) => {
+          let compilation = unsafe { &*compilation_ptr };
+
           let inner_modules = concatenated_module
             .get_modules()
             .iter()
             .filter_map(|inner_module_info| {
               compilation
                 .module_by_identifier(&inner_module_info.id)
-                .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(compilation)))
+                .map(|module| ModuleDTOWrapper::new(module.as_ref(), Some(compilation_ptr)))
             })
             .collect::<Vec<_>>();
           Either::A(inner_modules)
@@ -260,23 +262,14 @@ thread_local! {
 // This means that when transferring a ModuleDTO from Rust to JS, you must use ModuleDTOWrapper instead.
 pub struct ModuleDTOWrapper {
   pub module: &'static dyn Module,
-  pub compilation: Option<&'static Compilation>,
+  pub compilation: Option<*const Compilation>,
 }
 
-impl ModuleDTOWrapper {
-  pub fn new(module: &dyn Module, compilation: Option<&Compilation>) -> Self {
-    let module = unsafe { std::mem::transmute::<&dyn Module, &'static dyn Module>(module) };
+unsafe impl Send for ModuleDTOWrapper {}
 
-    // SAFETY:
-    // 1. `Compiler` is stored on the heap and pinned in binding crate.
-    // 2. `Compilation` outlives `JsCompilation` and `Compiler` outlives `Compilation`.
-    // 3. `JsCompilation` was replaced everytime a new `Compilation` was created before getting accessed.
-    let compilation = unsafe {
-      std::mem::transmute::<
-        Option<&rspack_core::Compilation>,
-        Option<&'static rspack_core::Compilation>,
-      >(compilation)
-    };
+impl ModuleDTOWrapper {
+  pub fn new(module: &dyn Module, compilation: Option<*const Compilation>) -> Self {
+    let module = unsafe { std::mem::transmute::<&dyn Module, &'static dyn Module>(module) };
 
     Self {
       module,
@@ -295,7 +288,9 @@ impl ModuleDTOWrapper {
 impl ToNapiValue for ModuleDTOWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     match val.compilation {
-      Some(compilation) => MODULE_INSTANCE_REFS.with(|refs| {
+      Some(compilation_ptr) => MODULE_INSTANCE_REFS.with(|refs| {
+        let compilation = unsafe { &*compilation_ptr };
+
         let mut refs_by_compilation_id = refs.borrow_mut();
         let entry = refs_by_compilation_id.entry(compilation.id());
         let refs = match entry {
@@ -310,7 +305,7 @@ impl ToNapiValue for ModuleDTOWrapper {
           let mut unassociated_refs = ref_cell.borrow_mut();
           if let Some(unassociated_ref) = unassociated_refs.remove(&val.module.identifier()) {
             let mut instance = unassociated_ref.from_napi_value()?;
-            instance.as_mut().attach(compilation);
+            instance.as_mut().attach(compilation_ptr);
 
             let napi_value = ToNapiValue::to_napi_value(env, &unassociated_ref);
             refs.insert(val.module.identifier(), unassociated_ref);
@@ -323,7 +318,7 @@ impl ToNapiValue for ModuleDTOWrapper {
               }
               std::collections::hash_map::Entry::Vacant(entry) => {
                 let instance: ClassInstance<ModuleDTO> =
-                  ModuleDTO::new(val.module, Some(compilation))
+                  ModuleDTO::new(val.module, Some(compilation_ptr))
                     .into_instance(Env::from_raw(env))?;
                 let r = entry.insert(OneShotRef::new(env, instance)?);
                 ToNapiValue::to_napi_value(env, r)
