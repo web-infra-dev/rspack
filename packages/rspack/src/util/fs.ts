@@ -10,8 +10,8 @@
 
 import assert from "node:assert";
 import type { Abortable } from "node:events";
-import path from "node:path";
 import type { RmOptions } from "node:fs";
+import path from "node:path";
 
 import type { WatchOptions } from "../config";
 
