@@ -1277,7 +1277,7 @@ class Dependency {
 // @public (undocumented)
 type DependencyLocation = any;
 
-// @public (undocumented)
+// @public
 export interface DevServer extends webpackDevServer.Configuration {
 }
 
