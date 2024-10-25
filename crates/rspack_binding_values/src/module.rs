@@ -347,7 +347,7 @@ impl ToNapiValue for ModuleDTOWrapper {
 
 #[derive(Default)]
 #[napi(object)]
-pub struct JsModule {
+pub struct JsCompilerModuleContext {
   pub context: Option<String>,
   pub original_source: Option<JsCompatSource>,
   pub resource: Option<String>,
@@ -363,91 +363,12 @@ pub struct JsModule {
 }
 
 pub trait ToJsModule {
-  fn to_js_module(&self) -> Result<JsModule>;
-}
-
-impl ToJsModule for dyn Module {
-  fn to_js_module(&self) -> Result<JsModule> {
-    let original_source = || {
-      self
-        .original_source()
-        .and_then(|source| source.to_js_compat_source().ok())
-    };
-    let name_for_condition = || self.name_for_condition().map(|s| s.to_string());
-    let module_identifier = || self.identifier().to_string();
-    let context = || self.get_context().map(|c| c.to_string());
-    let module_type = || self.module_type().to_string();
-    let module_layer = || self.get_layer().cloned();
-
-    self
-      .try_as_normal_module()
-      .map(|normal_module| JsModule {
-        context: context(),
-        original_source: original_source(),
-        resource: Some(normal_module.resource_resolved_data().resource.to_string()),
-        r#type: module_type(),
-        layer: module_layer(),
-        module_identifier: module_identifier(),
-        name_for_condition: name_for_condition(),
-        request: Some(normal_module.request().to_string()),
-        user_request: Some(normal_module.user_request().to_string()),
-        raw_request: Some(normal_module.raw_request().to_string()),
-        factory_meta: normal_module
-          .factory_meta()
-          .map(|factory_meta| JsFactoryMeta {
-            side_effect_free: factory_meta.side_effect_free,
-          }),
-        ..Default::default()
-      })
-      .or_else(|_| {
-        self.try_as_raw_module().map(|_| JsModule {
-          context: context(),
-          r#type: module_type(),
-          layer: module_layer(),
-          original_source: original_source(),
-          module_identifier: module_identifier(),
-          name_for_condition: name_for_condition(),
-          ..Default::default()
-        })
-      })
-      .or_else(|_| {
-        self.try_as_context_module().map(|_| JsModule {
-          context: context(),
-          original_source: original_source(),
-          r#type: module_type(),
-          layer: module_layer(),
-          module_identifier: module_identifier(),
-          name_for_condition: name_for_condition(),
-          ..Default::default()
-        })
-      })
-      .or_else(|_| {
-        self.try_as_external_module().map(|_| JsModule {
-          context: context(),
-          original_source: original_source(),
-          r#type: module_type(),
-          layer: module_layer(),
-          module_identifier: module_identifier(),
-          name_for_condition: name_for_condition(),
-          ..Default::default()
-        })
-      })
-      .or_else(|_| {
-        Ok(JsModule {
-          context: context(),
-          module_identifier: module_identifier(),
-          name_for_condition: name_for_condition(),
-          layer: module_layer(),
-          r#type: module_type(),
-          ..Default::default()
-        })
-      })
-  }
+  fn to_js_module(&self) -> Result<JsCompilerModuleContext>;
 }
 
 impl ToJsModule for CompilerModuleContext {
-  fn to_js_module(&self) -> Result<JsModule> {
-    let module = JsModule {
+  fn to_js_module(&self) -> Result<JsCompilerModuleContext> {
+    let module = JsCompilerModuleContext {
       context: self.context.as_ref().map(|c| c.to_string()),
       module_identifier: self.module_identifier.to_string(),
       name_for_condition: self.name_for_condition.clone(),
