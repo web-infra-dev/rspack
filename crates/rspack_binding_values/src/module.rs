@@ -80,7 +80,7 @@ impl JsDependenciesBlock {
 
 #[napi]
 pub struct JsModule {
-  module: &'static dyn Module,
+  module: *const dyn Module,
   compilation: Option<*const Compilation>,
 }
 
@@ -96,7 +96,9 @@ impl JsModule {
 impl JsModule {
   #[napi(getter)]
   pub fn context(&self) -> Either<String, ()> {
-    match self.module.get_context() {
+    let module = unsafe { &*self.module };
+
+    match module.get_context() {
       Some(ctx) => Either::A(ctx.to_string()),
       None => Either::B(()),
     }
@@ -104,7 +106,9 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn original_source(&self) -> Either<JsCompatSource, ()> {
-    match self.module.original_source() {
+    let module = unsafe { &*self.module };
+
+    match module.original_source() {
       Some(source) => match source.to_js_compat_source().ok() {
         Some(s) => Either::A(s),
         None => Either::B(()),
@@ -115,7 +119,9 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn resource(&self) -> Either<String, ()> {
-    match self.module.try_as_normal_module() {
+    let module = unsafe { &*self.module };
+
+    match module.try_as_normal_module() {
       Ok(normal_module) => Either::A(normal_module.resource_resolved_data().resource.to_string()),
       Err(_) => Either::B(()),
     }
@@ -123,12 +129,16 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn module_identifier(&self) -> &str {
-    self.module.identifier().as_str()
+    let module = unsafe { &*self.module };
+
+    module.identifier().as_str()
   }
 
   #[napi(getter)]
   pub fn name_for_condition(&self) -> Either<String, ()> {
-    match self.module.name_for_condition() {
+    let module = unsafe { &*self.module };
+
+    match module.name_for_condition() {
       Some(s) => Either::A(s.to_string()),
       None => Either::B(()),
     }
@@ -136,7 +146,9 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn request(&self) -> Either<&str, ()> {
-    match self.module.try_as_normal_module() {
+    let module = unsafe { &*self.module };
+
+    match module.try_as_normal_module() {
       Ok(normal_module) => Either::A(normal_module.request()),
       Err(_) => Either::B(()),
     }
@@ -144,7 +156,9 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn user_request(&self) -> Either<&str, ()> {
-    match self.module.try_as_normal_module() {
+    let module = unsafe { &*self.module };
+
+    match module.try_as_normal_module() {
       Ok(normal_module) => Either::A(normal_module.user_request()),
       Err(_) => Either::B(()),
     }
@@ -152,7 +166,9 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn raw_request(&self) -> Either<&str, ()> {
-    match self.module.try_as_normal_module() {
+    let module = unsafe { &*self.module };
+
+    match module.try_as_normal_module() {
       Ok(normal_module) => Either::A(normal_module.raw_request()),
       Err(_) => Either::B(()),
     }
@@ -160,7 +176,9 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn factory_meta(&self) -> Either<JsFactoryMeta, ()> {
-    match self.module.try_as_normal_module() {
+    let module = unsafe { &*self.module };
+
+    match module.try_as_normal_module() {
       Ok(normal_module) => match normal_module.factory_meta() {
         Some(meta) => Either::A(JsFactoryMeta {
           side_effect_free: meta.side_effect_free,
@@ -173,12 +191,16 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn get_type(&self) -> &str {
-    self.module.module_type().as_str()
+    let module = unsafe { &*self.module };
+
+    module.module_type().as_str()
   }
 
   #[napi(getter)]
   pub fn layer(&self) -> Either<&String, ()> {
-    match self.module.get_layer() {
+    let module = unsafe { &*self.module };
+
+    match module.get_layer() {
       Some(layer) => Either::A(layer),
       None => Either::B(()),
     }
@@ -186,9 +208,11 @@ impl JsModule {
 
   #[napi(getter)]
   pub fn blocks(&self) -> Vec<JsDependenciesBlock> {
+    let module = unsafe { &*self.module };
+
     match self.compilation {
       Some(compilation) => {
-        let blocks = self.module.get_blocks();
+        let blocks = module.get_blocks();
         blocks
           .iter()
           .cloned()
@@ -203,12 +227,14 @@ impl JsModule {
 
   #[napi]
   pub fn size(&self, ty: Option<String>) -> f64 {
+    let module = unsafe { &*self.module };
+
     match self.compilation {
       Some(compilation) => {
         let compilation = unsafe { &*compilation };
 
         let ty = ty.map(|s| SourceType::from(s.as_str()));
-        self.module.size(ty.as_ref(), compilation)
+        module.size(ty.as_ref(), compilation)
       }
       None => 0f64, // TODO fix
     }
@@ -216,7 +242,9 @@ impl JsModule {
 
   #[napi(getter, ts_return_type = "JsModule[] | undefined")]
   pub fn modules(&self) -> Either<Vec<JsModuleWrapper>, ()> {
-    match self.module.try_as_concatenated_module() {
+    let module = unsafe { &*self.module };
+
+    match module.try_as_concatenated_module() {
       Ok(concatenated_module) => match self.compilation {
         Some(compilation_ptr) => {
           let compilation = unsafe { &*compilation_ptr };
@@ -254,16 +282,14 @@ thread_local! {
 //
 // This means that when transferring a JsModule from Rust to JS, you must use JsModuleWrapper instead.
 pub struct JsModuleWrapper {
-  pub module: &'static dyn Module,
+  pub module: *const dyn Module,
   pub compilation: Option<*const Compilation>,
 }
 
 unsafe impl Send for JsModuleWrapper {}
 
 impl JsModuleWrapper {
-  pub fn new(module: &dyn Module, compilation: Option<*const Compilation>) -> Self {
-    let module = unsafe { std::mem::transmute::<&dyn Module, &'static dyn Module>(module) };
-
+  pub fn new(module: *const dyn Module, compilation: Option<*const Compilation>) -> Self {
     Self {
       module,
       compilation,
@@ -280,6 +306,8 @@ impl JsModuleWrapper {
 
 impl ToNapiValue for JsModuleWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    let module = unsafe { &*val.module };
+
     match val.compilation {
       Some(compilation_ptr) => MODULE_INSTANCE_REFS.with(|refs| {
         let compilation = unsafe { &*compilation_ptr };
@@ -296,17 +324,26 @@ impl ToNapiValue for JsModuleWrapper {
 
         UNASSOCIATED_MODULE_INSTANCE_REFS.with(|ref_cell| {
           let mut unassociated_refs = ref_cell.borrow_mut();
-          if let Some(unassociated_ref) = unassociated_refs.remove(&val.module.identifier()) {
+          if let Some(unassociated_ref) = unassociated_refs.remove(&module.identifier()) {
             let mut instance = unassociated_ref.from_napi_value()?;
             instance.as_mut().attach(compilation_ptr);
 
+            let mut instance: ClassInstance<JsModule> = unassociated_ref.from_napi_value()?;
+            if !std::ptr::addr_eq(instance.module, val.module) {
+              instance.module = val.module
+            }
             let napi_value = ToNapiValue::to_napi_value(env, &unassociated_ref);
-            refs.insert(val.module.identifier(), unassociated_ref);
+            refs.insert(module.identifier(), unassociated_ref);
             napi_value
           } else {
-            match refs.entry(val.module.identifier()) {
+            match refs.entry(module.identifier()) {
               std::collections::hash_map::Entry::Occupied(entry) => {
                 let r = entry.get();
+
+                let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
+                if !std::ptr::addr_eq(instance.module, val.module) {
+                  instance.module = val.module
+                }
                 ToNapiValue::to_napi_value(env, r)
               }
               std::collections::hash_map::Entry::Vacant(entry) => {
@@ -316,6 +353,11 @@ impl ToNapiValue for JsModuleWrapper {
                 }
                 .into_instance(Env::from_raw(env))?;
                 let r = entry.insert(OneShotRef::new(env, instance)?);
+
+                let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
+                if !std::ptr::addr_eq(instance.module, val.module) {
+                  instance.module = val.module
+                }
                 ToNapiValue::to_napi_value(env, r)
               }
             }
@@ -324,9 +366,14 @@ impl ToNapiValue for JsModuleWrapper {
       }),
       None => UNASSOCIATED_MODULE_INSTANCE_REFS.with(|ref_cell| {
         let mut refs = ref_cell.borrow_mut();
-        match refs.entry(val.module.identifier()) {
+        match refs.entry(module.identifier()) {
           std::collections::hash_map::Entry::Occupied(entry) => {
             let r = entry.get();
+
+            let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
+            if !std::ptr::addr_eq(instance.module, val.module) {
+              instance.module = val.module
+            }
             ToNapiValue::to_napi_value(env, r)
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
@@ -336,6 +383,11 @@ impl ToNapiValue for JsModuleWrapper {
             }
             .into_instance(Env::from_raw(env))?;
             let r = entry.insert(OneShotRef::new(env, instance)?);
+
+            let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
+            if !std::ptr::addr_eq(instance.module, val.module) {
+              instance.module = val.module
+            }
             ToNapiValue::to_napi_value(env, r)
           }
         }
