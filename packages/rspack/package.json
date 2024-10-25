@@ -71,7 +71,7 @@
     "zod-validation-error": "3.3.1"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.5.1",
+    "@module-federation/runtime-tools": "0.6.13",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
     "caniuse-lite": "^1.0.30001616"
