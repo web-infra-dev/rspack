@@ -251,6 +251,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "url", true);
 	D(parserOptions, "exprContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
+	D(parserOptions, "wrappedContextRegExp", /.*/);
 	D(parserOptions, "strictExportPresence", false);
 	D(parserOptions, "requireAsExpression", true);
 	D(parserOptions, "requireDynamic", true);

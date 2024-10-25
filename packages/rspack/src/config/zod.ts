@@ -526,6 +526,7 @@ const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
 const wrappedContextCritical = z.boolean();
+const wrappedContextRegExp = z.instanceof(RegExp);
 const exportsPresence = z.enum(["error", "warn", "auto"]).or(z.literal(false));
 const importExportsPresence = z
 	.enum(["error", "warn", "auto"])
@@ -550,6 +551,7 @@ const javascriptParserOptions = z.strictObject({
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
 	wrappedContextCritical: wrappedContextCritical.optional(),
+	wrappedContextRegExp: wrappedContextRegExp.optional(),
 	exportsPresence: exportsPresence.optional(),
 	importExportsPresence: importExportsPresence.optional(),
 	reexportExportsPresence: reexportExportsPresence.optional(),

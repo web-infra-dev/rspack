@@ -1003,6 +1003,11 @@ export type JavascriptParserOptions = {
 	wrappedContextCritical?: boolean;
 
 	/**
+	 * Set the inner regular expression for partial dynamic dependencies
+	 * */
+	wrappedContextRegExp?: RegExp;
+
+	/**
 	 * Warn or error for using non-existent exports and conflicting re-exports.
 	 * @default 'auto'
 	 */
