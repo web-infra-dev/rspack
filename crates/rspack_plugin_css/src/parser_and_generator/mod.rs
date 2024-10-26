@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -19,11 +20,14 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
-use rspack_util::ext::DynHash;
+use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::FxHashSet;
 
-use crate::utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions};
 use crate::utils::{export_locals_convention, unescape};
+use crate::{
+  dependency::CssUseLocalIdentDependency,
+  utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions},
+};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
@@ -232,8 +236,41 @@ impl ParserAndGenerator for CssParserAndGenerator {
             range.end,
           )));
         }
-        css_module_lexer::Dependency::LocalKeyframes { name, range, .. }
-        | css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
+        css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
+          let local_ident = LocalIdentOptions::new(
+            resource_data,
+            self
+              .local_ident_name
+              .as_ref()
+              .expect("should have local_ident_name for module_type css/auto or css/module"),
+            compiler_options,
+          )
+          .get_local_ident(name);
+          let exports = self.exports.get_or_insert_default();
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let convention_names = export_locals_convention(name, convention);
+          for name in convention_names.iter() {
+            update_css_exports(
+              exports,
+              name.to_owned(),
+              CssExport {
+                ident: local_ident.clone(),
+                from: None,
+                id: None,
+              },
+            );
+          }
+          dependencies.push(Box::new(CssUseLocalIdentDependency::new(
+            local_ident.clone(),
+            convention_names,
+            range.start,
+            range.end,
+          )));
+        }
+        css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
           let local_ident = LocalIdentOptions::new(
             resource_data,
             self
@@ -280,6 +317,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             let from = from.trim_matches(|c| c == '\'' || c == '"');
             let dep = CssComposeDependency::new(
               from.to_string(),
+              names.iter().map(|s| (*s).into()).collect::<Vec<Atom>>(),
               DependencyRange::new(range.start, range.end),
             );
             dep_id = Some(*dep.id());
@@ -404,10 +442,32 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         if let Some(exports) = &self.exports {
           let mg = compilation.get_module_graph();
-          let unused = get_unused_local_ident(exports, identifier, generate_context.runtime, &mg);
-          context.data.insert(unused);
 
           let used = get_used_exports(exports, identifier, generate_context.runtime, &mg);
+
+          let mut deps = HashSet::new();
+          let mut todo: Vec<_> = used.values().map(|v| *v).collect();
+
+          let mut idx = 0;
+
+          while idx < todo.len() {
+            let next = todo[idx];
+
+            for exp in next {
+              if deps.insert(exp.ident.clone()) {
+                if let Some(new) = exports.get(&exp.ident) {
+                  todo.push(new)
+                }
+              }
+            }
+
+            idx += 1;
+          }
+
+          let unused =
+            get_unused_local_ident(exports, identifier, generate_context.runtime, &mg, deps);
+
+          context.data.insert(unused);
 
           static RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#"\\"#).expect("should compile"));
@@ -600,11 +660,16 @@ fn get_unused_local_ident(
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
+  deps: HashSet<String>,
 ) -> CodeGenerationDataUnusedLocalIdent {
   CodeGenerationDataUnusedLocalIdent {
     idents: exports
       .iter()
       .filter(|(name, _)| {
+        if deps.contains(*name) {
+          return false;
+        }
+
         let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
         if let Some(export_info) = export_info {

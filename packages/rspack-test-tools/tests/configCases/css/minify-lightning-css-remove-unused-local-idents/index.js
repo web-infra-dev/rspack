@@ -5,6 +5,6 @@ it("should remove unused local idents", async () => {
 	const path = __non_webpack_require__("path");
 	expect(styles.a).toBe("./style.module-a");
 
-	const css = await fs.promises.readFile(path.resolve(__dirname, "./bundle0.css"));
-	expect(css).not.toContain("./style.module-b")
+	const css = await fs.promises.readFile(path.resolve(__dirname, "./bundle0.css"), "utf-8");
+	expect(css).not.toContain(".module-b")
 })
