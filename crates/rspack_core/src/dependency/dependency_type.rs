@@ -101,6 +101,7 @@ pub enum DependencyType {
   LoaderImport,
   LazyImport,
   ModuleDecorator,
+  DllEntry,
   Custom(&'static str),
 }
 
@@ -156,6 +157,7 @@ impl DependencyType {
       DependencyType::ImportMetaContext => "import.meta context",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
+      DependencyType::DllEntry => "dll entry",
       DependencyType::RemoteToExternal => "remote to external",
       DependencyType::RemoteToFallback => "fallback",
       DependencyType::RemoteToFallbackItem => "fallback item",

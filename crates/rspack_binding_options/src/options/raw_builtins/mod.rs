@@ -2,6 +2,7 @@ mod raw_banner;
 mod raw_bundle_info;
 mod raw_copy;
 mod raw_css_extract;
+mod raw_dll;
 mod raw_html;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -34,6 +35,7 @@ use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
   SourceMapDevToolPluginOptions,
 };
+use rspack_plugin_dll::{DllEntryPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin};
 use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
@@ -77,9 +79,13 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
-  raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_ignore::RawIgnorePluginOptions,
-  raw_limit_chunk_count::RawLimitChunkCountPluginOptions, raw_mf::RawContainerPluginOptions,
+  raw_banner::RawBannerPluginOptions,
+  raw_copy::RawCopyRspackPluginOptions,
+  raw_dll::{RawDllEntyPluginOptions, RawLibManifestPluginOptions},
+  raw_html::RawHtmlRspackPluginOptions,
+  raw_ignore::RawIgnorePluginOptions,
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
+  raw_mf::RawContainerPluginOptions,
   raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
@@ -164,6 +170,9 @@ pub enum BuiltinPluginName {
   SizeLimitsPlugin,
   NoEmitOnErrorsPlugin,
   ContextReplacementPlugin,
+  DllEntryPlugin,
+  LibManifestPlugin,
+  FlagAllModulesAsUsedPlugin,
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
@@ -511,6 +520,19 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)?;
         let options = raw_options.try_into()?;
         plugins.push(ContextReplacementPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::DllEntryPlugin => {
+        let raw_options = downcast_into::<RawDllEntyPluginOptions>(self.options)?;
+        let options = raw_options.into();
+        plugins.push(DllEntryPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::LibManifestPlugin => {
+        let raw_options = downcast_into::<RawLibManifestPluginOptions>(self.options)?;
+        let options = raw_options.into();
+        plugins.push(LibManifestPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::FlagAllModulesAsUsedPlugin => {
+        plugins.push(FlagAllModulesAsUsedPlugin::default().boxed())
       }
     }
     Ok(())

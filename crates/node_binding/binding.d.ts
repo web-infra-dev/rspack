@@ -301,6 +301,9 @@ export enum BuiltinPluginName {
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
   ContextReplacementPlugin = 'ContextReplacementPlugin',
+  DllEntryPlugin = 'DllEntryPlugin',
+  LibManifestPlugin = 'LibManifestPlugin',
+  FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -1270,6 +1273,12 @@ export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
+export interface RawDllEntyPluginOptions {
+  context: string
+  entries: Array<string>
+  name: string
+}
+
 export interface RawDraft {
   customMedia: boolean
 }
@@ -1472,6 +1481,15 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   cacheable: boolean
+}
+
+export interface RawLibManifestPluginOptions {
+  context?: string
+  entryOnly?: boolean
+  name?: JsFilename
+  path: JsFilename
+  format?: boolean
+  ty?: string
 }
 
 export interface RawLightningCssBrowsers {

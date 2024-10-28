@@ -1378,6 +1378,23 @@ class DirectoryWatcher extends EventEmitter {
 }
 
 // @public (undocumented)
+export class DllPlugin {
+    constructor(options: DllPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
+type DllPluginOptions = {
+    context?: string;
+    entryOnly?: boolean;
+    format?: boolean;
+    name?: string;
+    path: string;
+    type?: string;
+};
+
+// @public (undocumented)
 interface Drafts {
     customMedia?: boolean;
 }
@@ -4434,6 +4451,7 @@ declare namespace rspackExports {
         ExternalsPlugin,
         HotModuleReplacementPlugin,
         NoEmitOnErrorsPlugin,
+        DllPlugin,
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,

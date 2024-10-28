@@ -65,3 +65,5 @@ export * from "./WorkerPlugin";
 export * from "./FetchCompileAsyncWasmPlugin";
 export * from "./NoEmitOnErrorsPlugin";
 export * from "./ContextReplacementPlugin";
+export * from "./LibManifestPlugin";
+export * from "./DllEntryPlugin";

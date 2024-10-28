@@ -40,6 +40,7 @@ rspack_plugin_context_replacement     = { version = "0.1.0", path = "../rspack_p
 rspack_plugin_copy                    = { version = "0.1.0", path = "../rspack_plugin_copy" }
 rspack_plugin_css                     = { version = "0.1.0", path = "../rspack_plugin_css" }
 rspack_plugin_devtool                 = { version = "0.1.0", path = "../rspack_plugin_devtool" }
+rspack_plugin_dll                     = { version = "0.1.0", path = "../rspack_plugin_dll" }
 rspack_plugin_dynamic_entry           = { version = "0.1.0", path = "../rspack_plugin_dynamic_entry" }
 rspack_plugin_ensure_chunk_conditions = { version = "0.1.0", path = "../rspack_plugin_ensure_chunk_conditions" }
 rspack_plugin_entry                   = { version = "0.1.0", path = "../rspack_plugin_entry" }
