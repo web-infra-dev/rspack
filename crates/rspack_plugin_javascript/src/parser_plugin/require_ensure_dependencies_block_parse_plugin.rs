@@ -2,23 +2,58 @@ use std::borrow::Cow;
 
 use either::Either;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, DependencyLocation, GroupOptions,
-  RealDependencyLocation,
+  AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyLocation,
+  GroupOptions, RealDependencyLocation, SpanExt,
 };
 use swc_core::{
   common::Spanned,
-  ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr},
+  ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, UnaryExpr},
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{RequireEnsureDependency, RequireEnsureItemDependency},
+  utils::eval::{self, BasicEvaluatedExpression},
   visitors::{expr_matcher::is_require_ensure, JavascriptParser, Statement},
 };
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
 
 impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
+  fn evaluate_typeof(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<BasicEvaluatedExpression> {
+    (for_name == "require.ensure").then(|| {
+      eval::evaluate_to_string(
+        "function".to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )
+    })
+  }
+
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    (for_name == "require.ensure").then(|| {
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span.real_hi(),
+          "'function'".into(),
+          None,
+        )));
+      true
+    })
+  }
+
   fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, _for_name: &str) -> Option<bool> {
     if expr
       .callee
