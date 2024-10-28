@@ -2555,3 +2555,129 @@ export type Performance =
 			maxEntrypointSize?: number;
 	  };
 //#endregion
+
+export type RspackOptions = {
+	/**
+	 * The name of the Rspack configuration.
+	 */
+	name?: Name;
+	/**
+	 * An array of dependencies required by the project.
+	 */
+	dependencies?: Dependencies;
+	/**
+	 * The entry point of the application.
+	 */
+	entry?: Entry;
+	/**
+	 * Configuration for the output of the compilation.
+	 */
+	output?: Output;
+	/**
+	 * The environment in which the code should run.
+	 */
+	target?: Target;
+	/**
+	 * The mode in which Rspack should operate.
+	 */
+	mode?: Mode;
+	/**
+	 * Options for experimental features.
+	 */
+	experiments?: Experiments;
+	/**
+	 * External libraries that should not be bundled.
+	 */
+	externals?: Externals;
+	/**
+	 * The type of externals.
+	 */
+	externalsType?: ExternalsType;
+	/**
+	 * Presets for external libraries.
+	 */
+	externalsPresets?: ExternalsPresets;
+	/**
+	 * Logging options for infrastructure.
+	 */
+	infrastructureLogging?: InfrastructureLogging;
+	/**
+	 * Options for caching.
+	 */
+	cache?: CacheOptions;
+	/**
+	 * The context in which the compilation should occur.
+	 */
+	context?: Context;
+	/**
+	 * The source map configuration.
+	 */
+	devtool?: DevTool;
+	/**
+	 * Options for Node.js environment.
+	 */
+	node?: Node;
+	/**
+	 * Configuration for loaders.
+	 */
+	loader?: Loader;
+	/**
+	 * Warnings to ignore during compilation.
+	 */
+	ignoreWarnings?: IgnoreWarnings;
+	/**
+	 * Options for watch mode.
+	 */
+	watchOptions?: WatchOptions;
+	/**
+	 * Whether to enable watch mode.
+	 */
+	watch?: Watch;
+	/**
+	 * Options for the stats output.
+	 */
+	stats?: StatsValue;
+	/**
+	 * Options for snapshotting.
+	 */
+	snapshot?: SnapshotOptions;
+	/**
+	 * Optimization options.
+	 */
+	optimization?: Optimization;
+	/**
+	 * Options for resolving modules.
+	 */
+	resolve?: ResolveOptions;
+	/**
+	 * Options for resolving loader modules.
+	 */
+	resolveLoader?: ResolveOptions;
+	/**
+	 * Plugins to use during compilation.
+	 */
+	plugins?: Plugins;
+	/**
+	 * Configuration for the development server.
+	 */
+	devServer?: DevServer;
+	/**
+	 * Options for module configuration.
+	 */
+	module?: ModuleOptions;
+	/**
+	 * Whether to capture a profile of the application.
+	 */
+	profile?: Profile;
+	/**
+	 * Whether to fail on the first error.
+	 */
+	bail?: Bail;
+	/**
+	 * Performance optimization options.
+	 */
+	performance?: Performance;
+};
+
+/** Configuration for Rspack */
+export type Configuration = RspackOptions;
