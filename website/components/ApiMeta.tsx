@@ -1,4 +1,3 @@
-import semver from 'semver';
 import styles from './ApiMeta.module.scss';
 
 /**
@@ -24,7 +23,7 @@ export function ApiMeta(props: ApiMetaProps) {
   const wrapperStyle = props.inline ? styles.wrapperInline : styles.wrapper;
 
   const getGitTagHref = (version: string) =>
-    `https://github.com/web-infra-dev/rspack/releases/tag/v${semver.clean(version)}`;
+    `https://github.com/web-infra-dev/rspack/releases/tag/v${version.replace('v', '')}`;
 
   return (
     <div className={wrapperStyle}>
