@@ -20,8 +20,6 @@ export interface ApiMetaProps {
 }
 
 export function ApiMeta(props: ApiMetaProps) {
-  const lang = useLang();
-  const href = `/${lang}/misc/planning/future`;
   const tagStyle = props.inline ? styles.tagInline : styles.tag;
   const wrapperStyle = props.inline ? styles.wrapperInline : styles.wrapper;
   return (
@@ -39,12 +37,24 @@ export function ApiMeta(props: ApiMetaProps) {
       )}
       {props.deprecatedVersion && (
         <span className={`${tagStyle} ${styles.deprecated}`}>
-          <a href={href}>Deprecated in v{props.deprecatedVersion}</a>
+          <a
+            href={`https://github.com/web-infra-dev/rspack/releases/tag/v${props.deprecatedVersion}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Deprecated in v{props.deprecatedVersion}
+          </a>
         </span>
       )}
       {props.removedVersion && (
         <span className={`${tagStyle} ${styles.removed}`}>
-          <a href={href}>Removed in v{props.removedVersion}</a>
+          <a
+            href={`https://github.com/web-infra-dev/rspack/releases/tag/v${props.removedVersion}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Removed in v{props.removedVersion}
+          </a>
         </span>
       )}
       {props.stability && (
