@@ -2124,7 +2124,7 @@ const HtmlRspackPluginImpl: {
 // @public (undocumented)
 export type HtmlRspackPluginOptions = {
     title?: string;
-    filename?: string;
+    filename?: string | ((entry: string) => string);
     template?: string;
     templateContent?: string | TemplateRenderFunction;
     templateParameters?: Record<string, string> | boolean | TemplateParamFunction;

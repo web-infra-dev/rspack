@@ -57,7 +57,7 @@ export type HtmlRspackPluginOptions = {
 	 * The file to write the HTML to. You can specify a subdirectory here too (eg: pages/index.html).
 	 * @default 'index.html'
 	 */
-	filename?: string;
+	filename?: string | ((entry: string) => string);
 
 	/** The template file path. */
 	template?: string;
