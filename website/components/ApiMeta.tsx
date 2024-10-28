@@ -28,7 +28,13 @@ export function ApiMeta(props: ApiMetaProps) {
     <div className={wrapperStyle}>
       {props.addedVersion && (
         <span className={`${tagStyle} ${styles.added}`}>
-          <a href={href}>Added in v{props.addedVersion}</a>
+          <a
+            href={`https://github.com/web-infra-dev/rspack/releases/tag/v${props.addedVersion}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Added in v{props.addedVersion}
+          </a>
         </span>
       )}
       {props.deprecatedVersion && (
