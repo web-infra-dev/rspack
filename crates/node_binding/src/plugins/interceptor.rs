@@ -903,7 +903,7 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
     compilation: &mut Compilation,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation as *const Compilation);
+    let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_sync(compilation).await
   }
 

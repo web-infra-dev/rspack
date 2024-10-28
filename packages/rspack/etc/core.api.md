@@ -38,6 +38,7 @@ import { JsChunkGroupOrigin } from '@rspack/binding';
 import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
+import type { JsCompilerModuleContext } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
@@ -48,7 +49,7 @@ import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
-import type { JsModule } from '@rspack/binding';
+import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
@@ -57,7 +58,6 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
-import { ModuleDto } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -3199,21 +3199,21 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule | ModuleDto, compilation?: Compilation);
+    constructor(module: JsModule | JsCompilerModuleContext, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule | ModuleDto, compilation?: Compilation): Module;
+    static __from_binding(binding: JsModule | JsCompilerModuleContext, compilation?: Compilation): Module;
     // (undocumented)
-    get blocks(): DependenciesBlock[];
-    buildInfo: Record<string, any>;
-    buildMeta: Record<string, any>;
+    readonly blocks: DependenciesBlock[];
+    readonly buildInfo: Record<string, any>;
+    readonly buildMeta: Record<string, any>;
     // (undocumented)
-    context?: Readonly<string>;
+    readonly context?: string;
     // (undocumented)
-    factoryMeta?: Readonly<JsFactoryMeta>;
+    readonly factoryMeta?: JsFactoryMeta;
     // (undocumented)
     identifier(): string;
     // (undocumented)
-    layer: null | string;
+    readonly layer: null | string;
     // (undocumented)
     readonly modules: Module[] | undefined;
     // (undocumented)
@@ -3221,17 +3221,17 @@ export class Module {
     // (undocumented)
     originalSource(): Source | null;
     // (undocumented)
-    rawRequest?: Readonly<string>;
+    readonly rawRequest?: string;
     // (undocumented)
-    request?: Readonly<string>;
+    readonly request?: string;
     // (undocumented)
-    resource?: Readonly<string>;
+    readonly resource?: string;
     // (undocumented)
     size(type?: string): number;
     // (undocumented)
-    type: string;
+    readonly type: string;
     // (undocumented)
-    userRequest?: Readonly<string>;
+    readonly userRequest?: string;
 }
 
 // @public (undocumented)
@@ -4791,9 +4791,9 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -4819,9 +4819,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -4925,9 +4925,9 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -4953,9 +4953,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -5059,9 +5059,9 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -5087,9 +5087,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -7687,9 +7687,9 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -7715,9 +7715,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -7743,9 +7743,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -8286,9 +8286,9 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -8314,9 +8314,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
@@ -8342,9 +8342,9 @@ export const rspackOptions: z.ZodObject<{
         dependOn?: string | string[] | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         baseUri?: string | undefined;
         chunkLoading?: string | false | undefined;
