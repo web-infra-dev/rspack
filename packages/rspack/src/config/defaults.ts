@@ -212,6 +212,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 		D(experiments.incremental, "modulesHashes", false);
 		D(experiments.incremental, "modulesCodegen", false);
 		D(experiments.incremental, "modulesRuntimeRequirements", false);
+		D(experiments.incremental, "buildChunkGraph", false);
 	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});

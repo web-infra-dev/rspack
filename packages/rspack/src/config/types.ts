@@ -2403,6 +2403,11 @@ export type Incremental = {
 	 * Enable incremental module runtime requirements.
 	 */
 	modulesRuntimeRequirements?: boolean;
+
+	/**
+	 * Enable incremental build chunk graph.
+	 */
+	buildChunkGraph?: boolean;
 };
 
 /**
