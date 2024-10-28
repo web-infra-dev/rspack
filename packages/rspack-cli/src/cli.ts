@@ -70,8 +70,8 @@ export class RspackCLI {
 				this.getLogger().error(e.message);
 				process.exit(2);
 			} else if (e instanceof Error) {
-				if (callback) {
-					callback?.(e);
+				if (typeof callback === "function") {
+					callback(e);
 				} else {
 					this.getLogger().error(e);
 				}
