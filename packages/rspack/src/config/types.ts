@@ -2529,3 +2529,29 @@ export type Profile = boolean;
  * */
 export type Bail = boolean;
 //#endregion
+
+//#region Performance
+/** Options to control how Rspack notifies you of assets and entry points that exceed a specific file limit.   */
+export type Performance =
+	| false
+	| {
+			/**
+			 * Filter function to select assets that are checked.
+			 */
+			assetFilter?: (assetFilename: string) => boolean;
+			/**
+			 * Sets the format of the hints: warnings, errors or nothing at all.
+			 */
+			hints?: false | "warning" | "error";
+			/**
+			 * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
+			 * @default 250000
+			 */
+			maxAssetSize?: number;
+			/**
+			 * Total size of an entry point (in bytes).
+			 * @default 250000
+			 */
+			maxEntrypointSize?: number;
+	  };
+//#endregion

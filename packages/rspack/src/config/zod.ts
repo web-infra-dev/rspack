@@ -1309,8 +1309,7 @@ const performance = z
 		maxAssetSize: z.number().optional(),
 		maxEntrypointSize: z.number().optional()
 	})
-	.or(z.literal(false));
-export type Performance = z.infer<typeof performance>;
+	.or(z.literal(false)) satisfies z.ZodType<t.Performance>;
 //#endregion
 
 export const rspackOptions = z.strictObject({
