@@ -5,7 +5,7 @@ pub use mutations::{Mutation, Mutations};
 
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-  pub struct IncrementalPasses: u8 {
+  pub struct IncrementalPasses: u16 {
     const MAKE = 1 << 0;
     const INFER_ASYNC_MODULES = 1 << 1;
     const PROVIDED_EXPORTS = 1 << 2;
@@ -14,6 +14,7 @@ bitflags! {
     const MODULES_CODEGEN = 1 << 5;
     const MODULES_RUNTIME_REQUIREMENTS = 1 << 6;
     const EMIT_ASSETS = 1 << 7;
+    const BUILD_CHUNK_GRAPH = 1 << 8;
   }
 }
 

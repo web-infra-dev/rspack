@@ -126,7 +126,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     if self.enhanced {
       if compilation
         .chunk_graph
-        .get_chunk_graph_chunk(&chunk_ukey)
+        .expect_chunk_graph_chunk(&chunk_ukey)
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
@@ -140,7 +140,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     }
     if compilation
       .chunk_graph
-      .get_chunk_graph_chunk(&chunk_ukey)
+      .expect_chunk_graph_chunk(&chunk_ukey)
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
