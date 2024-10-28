@@ -1,10 +1,10 @@
 import type {
 	JsCodegenerationResult,
+	JsCompilerModuleContext,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
-	JsFactoryMeta,
-	JsCompilerModuleContext
+	JsFactoryMeta
 } from "@rspack/binding";
 import { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
