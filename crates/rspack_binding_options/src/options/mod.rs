@@ -98,6 +98,9 @@ impl TryFrom<RawOptions> for CompilerOptions {
           if value.modules_runtime_requirements {
             passes.insert(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS);
           }
+          if value.build_chunk_graph {
+            passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
+          }
           passes
         }
         None => IncrementalPasses::empty(),

@@ -2218,6 +2218,7 @@ export type Incremental = {
     modulesHashes?: boolean;
     modulesCodegen?: boolean;
     modulesRuntimeRequirements?: boolean;
+    buildChunkGraph?: boolean;
 };
 
 // @public
@@ -5811,6 +5812,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes: z.ZodOptional<z.ZodBoolean>;
             modulesCodegen: z.ZodOptional<z.ZodBoolean>;
             modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+            buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
@@ -5820,6 +5822,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         }, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
@@ -5829,6 +5832,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -5871,6 +5875,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -5914,6 +5919,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8017,6 +8023,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8620,6 +8627,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {

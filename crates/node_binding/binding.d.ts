@@ -1417,6 +1417,7 @@ export interface RawIncremental {
   modulesHashes: boolean
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean
+  buildChunkGraph: boolean
 }
 
 export interface RawInfo {
