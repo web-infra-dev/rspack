@@ -1782,6 +1782,8 @@ interface Experiments_2 {
         register: typeof registerGlobalTrace;
         cleanup: typeof cleanupGlobalTrace;
     };
+    // (undocumented)
+    RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 }
 
 // @public (undocumented)
@@ -4379,6 +4381,17 @@ export type RemotesItems = RemotesItem[];
 // @public (undocumented)
 export type RemotesObject = {
     [k: string]: RemotesConfig | RemotesItem | RemotesItems;
+};
+
+// @public (undocumented)
+const RemoveDuplicateModulesPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _args: [];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
 };
 
 // @public

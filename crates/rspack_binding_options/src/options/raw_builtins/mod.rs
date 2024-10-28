@@ -60,6 +60,7 @@ use rspack_plugin_mf::{
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
+use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
@@ -126,6 +127,7 @@ pub enum BuiltinPluginName {
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
+  RemoveDuplicateModulesPlugin,
   ShareRuntimePlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
@@ -299,6 +301,9 @@ impl BuiltinPlugin {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::RemoveDuplicateModulesPlugin => {
+        plugins.push(RemoveDuplicateModulesPlugin::default().boxed());
       }
       BuiltinPluginName::ShareRuntimePlugin => {
         plugins.push(ShareRuntimePlugin::new(downcast_into::<bool>(self.options)?).boxed())

@@ -170,6 +170,8 @@ export const webworker: Webworker = { WebWorkerTemplatePlugin };
 import { LimitChunkCountPlugin } from "./builtin-plugin";
 import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
+import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
+
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
 	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
@@ -285,11 +287,13 @@ interface Experiments {
 		register: typeof registerGlobalTrace;
 		cleanup: typeof cleanupGlobalTrace;
 	};
+	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 }
 
 export const experiments: Experiments = {
 	globalTrace: {
 		register: registerGlobalTrace,
 		cleanup: cleanupGlobalTrace
-	}
+	},
+	RemoveDuplicateModulesPlugin
 };
