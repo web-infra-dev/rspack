@@ -49,7 +49,7 @@ import type {
 	RspackFutureOptions,
 	RuleSetRules,
 	SnapshotOptions
-} from "./zod";
+} from "./types";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized

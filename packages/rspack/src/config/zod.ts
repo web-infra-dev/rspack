@@ -6,8 +6,6 @@ import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import type * as t from "./types";
 
-export type * from "./types";
-
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
 const filename = filenameTemplate.or(
@@ -1343,6 +1341,4 @@ export const rspackOptions = z.strictObject({
 	profile: profile.optional(),
 	bail: bail.optional(),
 	performance: performance.optional()
-});
-export type RspackOptions = z.infer<typeof rspackOptions>;
-export type Configuration = RspackOptions;
+}) satisfies z.ZodType<t.RspackOptions>;
