@@ -1,6 +1,6 @@
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
-import type { PathData } from "../Compilation";
+import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type { Chunk } from "../exports";
@@ -2503,4 +2503,29 @@ export type WatchOptions = {
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
 export interface DevServer extends webpackDevServer.Configuration {}
+//#endregion
+
+//#region IgnoreWarnings
+/**
+ * An array of either regular expressions or functions that determine if a warning should be ignored.
+ */
+export type IgnoreWarnings = (
+	| RegExp
+	| ((error: Error, compilation: Compilation) => boolean)
+)[];
+//#endregion
+
+//#region Profile
+/**
+ * Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool.
+ * */
+export type Profile = boolean;
+//#endregion
+
+//#region Bail
+/**
+ * Fail out on the first error instead of tolerating it.
+ * @default false
+ * */
+export type Bail = boolean;
 //#endregion
