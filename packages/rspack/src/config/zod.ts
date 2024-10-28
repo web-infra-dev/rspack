@@ -1290,18 +1290,15 @@ const ignoreWarnings = z
 			.args(z.instanceof(Error), z.custom<Compilation>())
 			.returns(z.boolean())
 	)
-	.array();
-export type IgnoreWarnings = z.infer<typeof ignoreWarnings>;
+	.array() satisfies z.ZodType<t.IgnoreWarnings>;
 //#endregion
 
 //#region Profile
-const profile = z.boolean();
-export type Profile = z.infer<typeof profile>;
+const profile = z.boolean() satisfies z.ZodType<t.Profile>;
 //#endregion
 
 //#region Bail
-const bail = z.boolean();
-export type Bail = z.infer<typeof bail>;
+const bail = z.boolean() satisfies z.ZodType<t.Bail>;
 //#endregion
 
 //#region Performance

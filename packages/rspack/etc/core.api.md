@@ -198,11 +198,8 @@ export type AsyncChunks = boolean;
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 
-// @public (undocumented)
-export type Bail = z.infer<typeof bail>;
-
-// @public (undocumented)
-const bail: z.ZodBoolean;
+// @public
+export type Bail = boolean;
 
 // @public (undocumented)
 type BannerContent = string | BannerFunction;
@@ -2194,11 +2191,8 @@ export type IgnorePluginOptions = {
     checkResource: NonNullable<RawIgnorePluginOptions["checkResource"]>;
 };
 
-// @public (undocumented)
-export type IgnoreWarnings = z.infer<typeof ignoreWarnings>;
-
-// @public (undocumented)
-const ignoreWarnings: z.ZodArray<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Error, z.ZodTypeDef, Error>, z.ZodType<Compilation, z.ZodTypeDef, Compilation>], z.ZodUnknown>, z.ZodBoolean>]>, "many">;
+// @public
+export type IgnoreWarnings = (RegExp | ((error: Error, compilation: Compilation) => boolean))[];
 
 // @public (undocumented)
 export type IgnoreWarningsNormalized = ((warning: Error, compilation: Compilation) => boolean)[];
@@ -4121,11 +4115,8 @@ type PrintedElement = {
     content: string;
 };
 
-// @public (undocumented)
-export type Profile = z.infer<typeof profile>;
-
-// @public (undocumented)
-const profile: z.ZodBoolean;
+// @public
+export type Profile = boolean;
 
 // @public (undocumented)
 export const ProgressPlugin: {
@@ -4702,9 +4693,6 @@ declare namespace rspackExports {
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
         externalsType,
-        IgnoreWarnings,
-        Profile,
-        Bail,
         Performance_2 as Performance,
         rspackOptions,
         RspackOptions,
@@ -4862,7 +4850,10 @@ declare namespace rspackExports {
         Experiments,
         Watch,
         WatchOptions,
-        DevServer
+        DevServer,
+        IgnoreWarnings,
+        Profile,
+        Bail
     }
 }
 
@@ -9901,7 +9892,10 @@ declare namespace t {
         Experiments,
         Watch,
         WatchOptions,
-        DevServer
+        DevServer,
+        IgnoreWarnings,
+        Profile,
+        Bail
     }
 }
 
