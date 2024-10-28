@@ -24,7 +24,7 @@ import type {
 	RuleSetLoaderWithOptions,
 	RuleSetUseItem,
 	Target
-} from "./zod";
+} from "./types";
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 

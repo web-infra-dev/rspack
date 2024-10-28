@@ -340,7 +340,6 @@ fn is_pure_call_expr(
   let pure_flag = comments
     .and_then(|comments| {
       paren_spans.push(callee.span());
-      // dbg!(&comments.leading, &paren_spans);
       while let Some(span) = paren_spans.pop() {
         if let Some(comment_list) = comments.get_leading(span.lo)
           && let Some(last_comment) = comment_list.last()

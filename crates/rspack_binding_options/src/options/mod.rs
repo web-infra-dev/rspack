@@ -1,6 +1,6 @@
 use napi_derive::napi;
 use rspack_core::{
-  unaffected_cache::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
+  incremental::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
   ModuleOptions, OutputOptions, References,
 };
 

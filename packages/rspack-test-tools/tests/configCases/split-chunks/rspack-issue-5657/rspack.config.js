@@ -9,10 +9,10 @@ module.exports = {
 			chunks: "all",
 			cacheGroups: {
 				lib: {
-					test: /lib/,
+					test: /[\/\\]src\/lib[\/\\]/,
 					minSize: 0,
 					maxSize: 50,
-					minChunks: 1
+					minChunks: 1,
 				}
 			}
 		}

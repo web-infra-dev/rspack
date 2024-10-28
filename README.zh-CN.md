@@ -44,16 +44,17 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 
 | 名称                                                                                 | 描述                                                                         |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [Rspack 最新文档](https://rspack.dev/zh/)                                            | Rspack 最新版本的文档                                                        |
+| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | 与 Rspack 相关的精彩内容列表                                                 |
+| [Rspack 1.x 文档](https://rspack.dev/zh/)                                            | Rspack 1.x 版本的文档（最新）                                                |
 | [Rspack 0.x 文档](https://v0.rspack.dev/zh/)                                         | Rspack 0.x 版本的文档                                                        |
 | [Rsbuild](https://github.com/web-infra-dev/rsbuild)                                  | 基于 Rspack 的构建工具                                                       |
 | [Rspress](https://github.com/web-infra-dev/rspress)                                  | 基于 Rsbuild 的静态站点生成器                                                |
-| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | 针对 Rspack 和 webpack 的一站式构建分析工具                                  |
+| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | 针对 Rspack 的一站式构建分析工具                                             |
 | [Rslib](https://github.com/web-infra-dev/rslib)                                      | 基于 Rsbuild 的 library 构建工具                                             |
-| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | 与 Rspack 相关的精彩内容列表                                                 |
+| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Rspack 的开发服务器                                                          |
 | [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                 | 丰富的 Rspack 示例项目                                                       |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rstack 的设计资源                                                            |
+| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rspack Stack 的设计资源                                                      |
 
 ## 致谢
 

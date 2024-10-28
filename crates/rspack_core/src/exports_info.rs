@@ -61,6 +61,14 @@ impl ExportsInfo {
     info.other_exports_info
   }
 
+  pub fn redirect_to(&self, mg: &ModuleGraph) -> Option<ExportsInfo> {
+    self.as_exports_info(mg).redirect_to
+  }
+
+  pub fn side_effects_only_info(&self, mg: &ModuleGraph) -> ExportInfo {
+    self.as_exports_info(mg).side_effects_only_info
+  }
+
   pub fn as_exports_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfoData {
     mg.get_exports_info_by_id(self)
   }
@@ -103,6 +111,21 @@ impl ExportsInfo {
       return true;
     }
     false
+  }
+
+  // TODO: remove this, we should refactor ExportInfo into ExportName and ExportProvideInfo and ExportUsedInfo
+  // ExportProvideInfo is created by FlagDependencyExportsPlugin, and should not mutate after create
+  // ExportUsedInfo is created by FlagDependencyUsagePlugin or Plugin::finish_modules, and should not mutate after create
+  pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
+    let exports: Vec<_> = self.exports(mg).collect();
+    for export_info in exports {
+      export_info.reset_provide_info(mg);
+    }
+    self.side_effects_only_info(mg).reset_provide_info(mg);
+    if let Some(redirect_to) = self.redirect_to(mg) {
+      redirect_to.reset_provide_info(mg);
+    }
+    self.other_exports_info(mg).reset_provide_info(mg);
   }
 
   /// # Panic
@@ -812,6 +835,17 @@ impl_item_ukey!(ExportInfo);
 impl ExportInfo {
   fn new() -> Self {
     Self(NEXT_EXPORT_INFO_UKEY.fetch_add(1, Relaxed).into())
+  }
+
+  pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
+    let data = self.as_export_info_mut(mg);
+    data.provided = None;
+    data.can_mangle_provide = None;
+    data.exports_info_owned = false;
+    data.exports_info = None;
+    data.target_is_set = false;
+    data.target.clear();
+    data.terminal_binding = false;
   }
 
   pub fn name<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a Atom> {

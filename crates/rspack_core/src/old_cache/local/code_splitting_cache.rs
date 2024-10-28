@@ -6,7 +6,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  unaffected_cache::IncrementalPasses, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey,
+  incremental::IncrementalPasses, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey,
   Compilation,
 };
 

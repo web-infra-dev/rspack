@@ -72,7 +72,7 @@ import type {
 	SnapshotOptions,
 	StatsValue,
 	Target
-} from "./zod";
+} from "./types";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -665,6 +665,7 @@ function getRawJavascriptParserOptions(
 		url: parser.url?.toString(),
 		exprContextCritical: parser.exprContextCritical,
 		wrappedContextCritical: parser.wrappedContextCritical,
+		wrappedContextRegExp: parser.wrappedContextRegExp,
 		exportsPresence:
 			parser.exportsPresence === false ? "false" : parser.exportsPresence,
 		importExportsPresence:

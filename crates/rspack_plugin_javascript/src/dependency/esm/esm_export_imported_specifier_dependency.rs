@@ -222,21 +222,12 @@ impl ESMExportImportedSpecifierDependency {
       Some(exports_info),
       imported_module_identifier,
     );
-    // dbg!(
-    //   self.request(),
-    //   &ignored_exports,
-    //   &exports,
-    //   &imported_module_identifier,
-    //   &checked,
-    //   &hidden
-    // );
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
         export_mode.hidden = hidden;
         return export_mode;
       }
-      // dbg!(&exports, &checked);
 
       let mut items = exports
         .into_iter()
@@ -1023,7 +1014,6 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependency {
       return;
     }
 
-    // dbg!(&mode, self.request());
     if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
       esm_import_dependency_apply(self, self.source_order, code_generatable_context);
       self.add_export_fragments(code_generatable_context, mode);
@@ -1071,7 +1061,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
-    // dbg!(&self.request(), &mode);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {
@@ -1280,7 +1269,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
-    // dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused

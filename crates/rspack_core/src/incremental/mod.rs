@@ -1,6 +1,7 @@
-use bitflags::bitflags;
+mod mutations;
 
-use super::Mutations;
+use bitflags::bitflags;
+pub use mutations::{Mutation, Mutations};
 
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
