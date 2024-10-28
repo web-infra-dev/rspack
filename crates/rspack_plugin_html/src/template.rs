@@ -108,6 +108,7 @@ impl HtmlTemplate {
 
   pub async fn create_parameters(
     &mut self,
+    filename: &str,
     config: &HtmlRspackPluginOptions,
     head_tags: &Vec<HtmlPluginTag>,
     body_tags: &Vec<HtmlPluginTag>,
@@ -145,7 +146,7 @@ impl HtmlTemplate {
               Mode::None => "none",
             },
             "output": {
-              "publicPath": config.get_public_path(compilation, &config.filename),
+              "publicPath": config.get_public_path(compilation, filename),
             "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
                 CrossOriginLoading::Disable => "false",
                 CrossOriginLoading::Enable(value) => value,
