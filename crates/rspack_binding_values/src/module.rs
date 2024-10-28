@@ -328,7 +328,6 @@ impl ToNapiValue for JsModuleWrapper {
             let mut instance = unassociated_ref.from_napi_value()?;
             instance.as_mut().attach(compilation_ptr);
 
-            let mut instance: ClassInstance<JsModule> = unassociated_ref.from_napi_value()?;
             if !std::ptr::addr_eq(instance.module, val.module) {
               instance.module = val.module
             }

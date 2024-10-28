@@ -14,7 +14,6 @@ use napi::{Env, Result};
 // count and automatically cleans up when it is dropped.
 pub struct OneShotRef<T: 'static> {
   env: napi_env,
-  napi_value: sys::napi_value,
   napi_ref: sys::napi_ref,
   cleanup_flag: Rc<RefCell<bool>>,
   ty: PhantomData<T>,
@@ -39,7 +38,6 @@ impl<T: ToNapiValue + 'static> OneShotRef<T> {
 
     Ok(Self {
       env,
-      napi_value,
       napi_ref,
       cleanup_flag,
       ty: PhantomData,
@@ -49,7 +47,14 @@ impl<T: ToNapiValue + 'static> OneShotRef<T> {
 
 impl<T: FromNapiValue + ToNapiValue + 'static> OneShotRef<T> {
   pub fn from_napi_value(&self) -> Result<T> {
-    let r = unsafe { T::from_napi_value(self.env, self.napi_value)? };
+    let r = unsafe {
+      let mut result = ptr::null_mut();
+      check_status!(
+        sys::napi_get_reference_value(self.env, self.napi_ref, &mut result),
+        "Failed to get reference value"
+      )?;
+      T::from_napi_value(self.env, result)?
+    };
     Ok(r)
   }
 }
