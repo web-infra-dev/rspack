@@ -4060,27 +4060,14 @@ type PathLike = string | Buffer | URL;
 // @public (undocumented)
 type PathOrFileDescriptor = PathLike | number;
 
-// @public (undocumented)
-type Performance_2 = z.infer<typeof performance_2>;
+// @public
+type Performance_2 = false | {
+    assetFilter?: (assetFilename: string) => boolean;
+    hints?: false | "warning" | "error";
+    maxAssetSize?: number;
+    maxEntrypointSize?: number;
+};
 export { Performance_2 as Performance }
-
-// @public (undocumented)
-const performance_2: z.ZodUnion<[z.ZodObject<{
-    assetFilter: z.ZodOptional<z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>>;
-    hints: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["error", "warning"]>, z.ZodLiteral<false>]>>;
-    maxAssetSize: z.ZodOptional<z.ZodNumber>;
-    maxEntrypointSize: z.ZodOptional<z.ZodNumber>;
-}, "strict", z.ZodTypeAny, {
-    assetFilter?: ((args_0: string, ...args: unknown[]) => boolean) | undefined;
-    hints?: false | "error" | "warning" | undefined;
-    maxAssetSize?: number | undefined;
-    maxEntrypointSize?: number | undefined;
-}, {
-    assetFilter?: ((args_0: string, ...args: unknown[]) => boolean) | undefined;
-    hints?: false | "error" | "warning" | undefined;
-    maxAssetSize?: number | undefined;
-    maxEntrypointSize?: number | undefined;
-}>, z.ZodLiteral<false>]>;
 
 // @public (undocumented)
 type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
@@ -4693,7 +4680,6 @@ declare namespace rspackExports {
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
         externalsType,
-        Performance_2 as Performance,
         rspackOptions,
         RspackOptions,
         Configuration,
@@ -4853,7 +4839,8 @@ declare namespace rspackExports {
         DevServer,
         IgnoreWarnings,
         Profile,
-        Bail
+        Bail,
+        Performance_2 as Performance
     }
 }
 
@@ -9895,7 +9882,8 @@ declare namespace t {
         DevServer,
         IgnoreWarnings,
         Profile,
-        Bail
+        Bail,
+        Performance_2 as Performance
     }
 }
 
