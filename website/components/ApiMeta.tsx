@@ -1,4 +1,4 @@
-import { useLang } from 'rspress/runtime';
+import semver from 'semver';
 import styles from './ApiMeta.module.scss';
 
 /**
@@ -22,12 +22,16 @@ export interface ApiMetaProps {
 export function ApiMeta(props: ApiMetaProps) {
   const tagStyle = props.inline ? styles.tagInline : styles.tag;
   const wrapperStyle = props.inline ? styles.wrapperInline : styles.wrapper;
+
+  const getGitTagHref = (version: string) =>
+    `https://github.com/web-infra-dev/rspack/releases/tag/v${semver.clean(version)}`;
+
   return (
     <div className={wrapperStyle}>
       {props.addedVersion && (
         <span className={`${tagStyle} ${styles.added}`}>
           <a
-            href={`https://github.com/web-infra-dev/rspack/releases/tag/v${props.addedVersion}`}
+            href={getGitTagHref(props.addedVersion)}
             target="_blank"
             rel="noreferrer"
           >
@@ -38,7 +42,7 @@ export function ApiMeta(props: ApiMetaProps) {
       {props.deprecatedVersion && (
         <span className={`${tagStyle} ${styles.deprecated}`}>
           <a
-            href={`https://github.com/web-infra-dev/rspack/releases/tag/v${props.deprecatedVersion}`}
+            href={getGitTagHref(props.deprecatedVersion)}
             target="_blank"
             rel="noreferrer"
           >
@@ -49,7 +53,7 @@ export function ApiMeta(props: ApiMetaProps) {
       {props.removedVersion && (
         <span className={`${tagStyle} ${styles.removed}`}>
           <a
-            href={`https://github.com/web-infra-dev/rspack/releases/tag/v${props.removedVersion}`}
+            href={getGitTagHref(props.removedVersion)}
             target="_blank"
             rel="noreferrer"
           >
