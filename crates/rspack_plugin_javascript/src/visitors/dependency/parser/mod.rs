@@ -29,6 +29,7 @@ use swc_core::ecma::ast::{
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
 use swc_core::ecma::utils::ExprFactory;
 
+use crate::dependency::local_module::LocalModule;
 use crate::parser_plugin::InnerGraphState;
 use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
 use crate::utils::eval::{self, BasicEvaluatedExpression};
@@ -240,6 +241,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub(crate) current_tag_info: Option<TagInfoId>,
+  pub(crate) local_modules: Vec<LocalModule>,
   // ===== scope info =======
   pub(crate) in_try: bool,
   pub(crate) in_short_hand: bool,
@@ -388,7 +390,24 @@ impl<'parser> JavascriptParser<'parser> {
       inner_graph: InnerGraphState::new(),
       additional_data,
       parse_meta,
+      local_modules: Default::default(),
     }
+  }
+
+  pub fn add_local_module(&mut self, name: &str) -> LocalModule {
+    let mut m = LocalModule::new(name.into(), self.local_modules.len());
+    m.flag_used(); // TODO: LocalModule should be shared
+    self.local_modules.push(m.clone());
+    m
+  }
+
+  pub fn get_local_module(&self, name: &str) -> Option<LocalModule> {
+    for m in self.local_modules.iter() {
+      if m.get_name() == name {
+        return Some(m.clone());
+      }
+    }
+    None
   }
 
   pub fn is_asi_position(&self, pos: BytePos) -> bool {
@@ -482,7 +501,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(definitions, name, info);
   }
 
-  fn set_variable(&mut self, name: String, variable: String) {
+  pub fn set_variable(&mut self, name: String, variable: String) {
     let id = self.definitions;
     if name == variable {
       self.definitions_db.delete(id, &name);
@@ -881,7 +900,7 @@ impl<'parser> JavascriptParser<'parser> {
     current_scope.is_strict = value;
   }
 
-  fn detect_mode(&mut self, stmts: &[Stmt]) {
+  pub fn detect_mode(&mut self, stmts: &[Stmt]) {
     let Some(Lit::Str(str)) = stmts
       .first()
       .and_then(|stmt| stmt.as_expr())

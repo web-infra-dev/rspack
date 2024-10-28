@@ -64,8 +64,7 @@ impl DependencyTemplate for AMDRequireItemDependency {
       &self.request,
       self.weak(),
     );
-    // TODO: should it be `self.range.1` or `self.range.1 - 1`?
-    source.replace(self.range.0, self.range.1 - 1, &content, None);
+    source.replace(self.range.0, self.range.1, &content, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

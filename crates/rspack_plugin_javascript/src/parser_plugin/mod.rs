@@ -27,9 +27,11 @@ mod use_strict_plugin;
 mod webpack_included_plugin;
 mod worker_plugin;
 
+pub mod amd_define_dependency_parser_plugin;
 pub mod define_plugin;
 pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
+pub mod require_js_stuff_plugin;
 
 pub(crate) use self::api_plugin::APIPlugin;
 pub(crate) use self::check_var_decl::CheckVarDeclaratorIdent;
