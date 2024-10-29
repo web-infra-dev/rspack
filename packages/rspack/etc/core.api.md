@@ -3878,6 +3878,7 @@ export type Output = {
     chunkLoadTimeout?: number;
     charset?: boolean;
     environment?: Environment;
+    compareBeforeEmit?: boolean;
 };
 
 // @public (undocumented)
@@ -3929,6 +3930,8 @@ export interface OutputNormalized {
     chunkLoadTimeout?: number;
     // (undocumented)
     clean?: Clean;
+    // (undocumented)
+    compareBeforeEmit?: boolean;
     // (undocumented)
     crossOriginLoading?: CrossOriginLoading;
     // (undocumented)
@@ -5507,6 +5510,7 @@ export const rspackOptions: z.ZodObject<{
             templateLiteral?: boolean | undefined;
             asyncFunction?: boolean | undefined;
         }>>;
+        compareBeforeEmit: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         module?: boolean | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -5599,6 +5603,7 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
         cssHeadDataCompression?: boolean | undefined;
+        compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         strictModuleExceptionHandling?: boolean | undefined;
@@ -5694,6 +5699,7 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
         cssHeadDataCompression?: boolean | undefined;
+        compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         strictModuleExceptionHandling?: boolean | undefined;
@@ -8151,6 +8157,7 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
         cssHeadDataCompression?: boolean | undefined;
+        compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         strictModuleExceptionHandling?: boolean | undefined;
@@ -8755,6 +8762,7 @@ export const rspackOptions: z.ZodObject<{
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
         cssHeadDataCompression?: boolean | undefined;
+        compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
         strictModuleExceptionHandling?: boolean | undefined;

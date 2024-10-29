@@ -164,6 +164,28 @@ module.exports = {
 };
 ```
 
+## output.compareBeforeEmit
+
+<ApiMeta addedVersion={'1.1.0'} />
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+告知 Rspack 在写入产物文件时检查文件是否已经存在并且拥有相同内容。
+
+:::warning
+当在文件系统中已经存在有相同内容的文件时，Rspack 将不会写入产物文件。
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    compareBeforeEmit: false,
+  },
+};
+```
+
 ## output.crossOriginLoading
 
 - **类型：** `false | 'anonymous' | 'use-credentials'`

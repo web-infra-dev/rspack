@@ -262,6 +262,7 @@ Object {
     chunkLoading: jsonp,
     chunkLoadingGlobal: webpackChunk_rspack_test_tools,
     clean: false,
+    compareBeforeEmit: true,
     crossOriginLoading: false,
     cssChunkFilename: [name].css,
     cssFilename: [name].css,

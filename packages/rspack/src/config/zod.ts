@@ -364,7 +364,8 @@ const output = z.strictObject({
 		devtoolFallbackModuleFilenameTemplate.optional(),
 	chunkLoadTimeout: z.number().optional(),
 	charset: z.boolean().optional(),
-	environment: environment.optional()
+	environment: environment.optional(),
+	compareBeforeEmit: z.boolean().optional()
 }) satisfies z.ZodType<t.Output>;
 //#endregion
 

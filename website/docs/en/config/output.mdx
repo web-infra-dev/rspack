@@ -168,6 +168,28 @@ module.exports = {
 };
 ```
 
+## output.compareBeforeEmit
+
+<ApiMeta addedVersion={'1.1.0'} />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Tells Rspack to check if to be emitted file already exists and has the same content before writing to the output file system.
+
+:::warning
+Rspack will not write output file when file already exists on disk with the same content.
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    compareBeforeEmit: false,
+  },
+};
+```
+
 ## output.crossOriginLoading
 
 - **Type:** `false | 'anonymous' | 'use-credentials'`

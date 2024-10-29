@@ -633,6 +633,11 @@ export type Output = {
 
 	/** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
 	environment?: Environment;
+
+	/**
+	 * Check if to be emitted file already exists and have the same content before writing to output filesystem.
+	 */
+	compareBeforeEmit?: boolean;
 };
 
 //#endregion
