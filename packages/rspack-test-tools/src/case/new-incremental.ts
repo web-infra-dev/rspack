@@ -60,7 +60,7 @@ const watchCreator = new BasicCaseCreator({
 	description: (name, index) => {
 		return index === 0
 			? `${name} should compile`
-			: "should compile the next step";
+			: `should compile the next step ${index}`;
 	},
 	describe: false,
 	steps: ({ name, src, temp }) => {
