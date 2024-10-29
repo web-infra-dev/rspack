@@ -570,7 +570,7 @@ export type Output = {
 
 	/**
 	 * The prefix length of the hash digest to use.
-	 * @default 20
+	 * @default 16
 	 * */
 	hashDigestLength?: HashDigestLength;
 
