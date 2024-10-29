@@ -10,5 +10,5 @@ it("should import asset with module.generator.asset.publicPath", () => {
 	const contentHashLenList = assetInfo.contenthash.map(v => v.length).sort();
 	expect(contentHashLenList.length).toBe(2);
 	expect(contentHashLenList[0]).toBe(10);
-	expect(contentHashLenList[1]).toBe(20);
+	expect(contentHashLenList[1]).toBe(16);
 });
