@@ -100,6 +100,10 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
+      fn remove_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
+        unreachable!()
+      }
+
       fn get_dependencies(&self) -> &[::rspack_core::DependencyId] {
         unreachable!()
       }
