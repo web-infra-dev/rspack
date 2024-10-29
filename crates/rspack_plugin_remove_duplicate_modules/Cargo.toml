@@ -1,0 +1,17 @@
+[package]
+edition = "2021"
+name    = "rspack_plugin_remove_duplicate_modules"
+version = "0.1.0"
+
+[lints]
+workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
+[dependencies]
+rspack_core  = { version = "0.1.0", path = "../rspack_core" }
+rspack_error = { version = "0.1.0", path = "../rspack_error" }
+rspack_hook  = { version = "0.1.0", path = "../rspack_hook" }
+rustc-hash   = { workspace = true }
+tracing      = { workspace = true }

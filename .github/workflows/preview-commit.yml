@@ -9,7 +9,7 @@ jobs:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
     with:
-      force-use-github-runner: true
+      force-use-github-runner: false
 
   check-changed:
     runs-on: ubuntu-latest

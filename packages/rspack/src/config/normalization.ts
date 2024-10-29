@@ -321,7 +321,8 @@ export const getNormalizedRspackOptions = (
 							providedExports: true,
 							modulesHashes: true,
 							modulesCodegen: true,
-							modulesRuntimeRequirements: true
+							modulesRuntimeRequirements: true,
+							buildChunkGraph: true
 						} satisfies Incremental)
 					: options
 			)

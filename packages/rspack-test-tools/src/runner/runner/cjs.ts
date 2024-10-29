@@ -97,6 +97,9 @@ export class CommonJsRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
+			if (modulePath === "@rspack/test-tools") {
+				return require("@rspack/test-tools");
+			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);

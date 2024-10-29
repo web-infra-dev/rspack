@@ -911,7 +911,8 @@ function getRawIncremental(
 		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
 		modulesHashes: incremental.modulesHashes!,
 		modulesCodegen: incremental.modulesCodegen!,
-		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!
+		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,
+		buildChunkGraph: incremental.buildChunkGraph!
 	};
 }
 

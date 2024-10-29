@@ -21,6 +21,7 @@ pub struct RawIncremental {
   pub modules_hashes: bool,
   pub modules_codegen: bool,
   pub modules_runtime_requirements: bool,
+  pub build_chunk_graph: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]

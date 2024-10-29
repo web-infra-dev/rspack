@@ -261,6 +261,7 @@ export enum BuiltinPluginName {
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
+  RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
   ShareRuntimePlugin = 'ShareRuntimePlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
@@ -1370,7 +1371,7 @@ export interface RawHtmlRspackPluginBaseOptions {
 
 export interface RawHtmlRspackPluginOptions {
   /** emitted file name in output path */
-  filename?: string
+  filename?: string[]
   /** template html file */
   template?: string
   templateFn?: (data: string) => Promise<string>
@@ -1414,6 +1415,7 @@ export interface RawIncremental {
   modulesHashes: boolean
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean
+  buildChunkGraph: boolean
 }
 
 export interface RawInfo {

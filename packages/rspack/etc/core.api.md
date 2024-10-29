@@ -1785,6 +1785,8 @@ interface Experiments_2 {
         register: typeof registerGlobalTrace;
         cleanup: typeof cleanupGlobalTrace;
     };
+    // (undocumented)
+    RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 }
 
 // @public (undocumented)
@@ -2127,7 +2129,7 @@ const HtmlRspackPluginImpl: {
 // @public (undocumented)
 export type HtmlRspackPluginOptions = {
     title?: string;
-    filename?: string;
+    filename?: string | ((entry: string) => string);
     template?: string;
     templateContent?: string | TemplateRenderFunction;
     templateParameters?: Record<string, string> | boolean | TemplateParamFunction;
@@ -2219,6 +2221,7 @@ export type Incremental = {
     modulesHashes?: boolean;
     modulesCodegen?: boolean;
     modulesRuntimeRequirements?: boolean;
+    buildChunkGraph?: boolean;
 };
 
 // @public
@@ -4386,6 +4389,17 @@ export type RemotesObject = {
     [k: string]: RemotesConfig | RemotesItem | RemotesItems;
 };
 
+// @public (undocumented)
+const RemoveDuplicateModulesPlugin: {
+    new (): {
+        name: BuiltinPluginName;
+        _args: [];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
 // @public
 export type Resolve = ResolveOptions;
 
@@ -5803,6 +5817,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes: z.ZodOptional<z.ZodBoolean>;
             modulesCodegen: z.ZodOptional<z.ZodBoolean>;
             modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+            buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
@@ -5812,6 +5827,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         }, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
@@ -5821,6 +5837,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -5863,6 +5880,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -5906,6 +5924,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8009,6 +8028,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8612,6 +8632,7 @@ export const rspackOptions: z.ZodObject<{
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {

@@ -3547,6 +3547,7 @@ dependencies = [
  "rspack_plugin_no_emit_on_errors",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
+ "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
@@ -4403,6 +4404,17 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hash",
+ "rspack_hook",
+ "rustc-hash 1.1.0",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_remove_duplicate_modules"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
  "rspack_hook",
  "rustc-hash 1.1.0",
  "tracing",

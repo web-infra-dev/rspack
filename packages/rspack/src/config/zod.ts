@@ -1240,7 +1240,8 @@ const incremental = z.strictObject({
 	dependenciesDiagnostics: z.boolean().optional(),
 	modulesHashes: z.boolean().optional(),
 	modulesCodegen: z.boolean().optional(),
-	modulesRuntimeRequirements: z.boolean().optional()
+	modulesRuntimeRequirements: z.boolean().optional(),
+	buildChunkGraph: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
 const experiments = z.strictObject({
