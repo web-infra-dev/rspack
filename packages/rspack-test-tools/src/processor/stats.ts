@@ -171,6 +171,9 @@ export class StatsProcessor<
 	): TCompilerOptions<T> {
 		if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
 			return {
+				output: {
+					compareBeforeEmit: false
+				},
 				experiments: {
 					css: true,
 					rspackFuture: {
@@ -187,7 +190,8 @@ export class StatsProcessor<
 			entry: "./index.js",
 			output: {
 				filename: "bundle.js",
-				path: context.getDist()
+				path: context.getDist(),
+				compareBeforeEmit: false
 			},
 			optimization: {
 				minimize: false
