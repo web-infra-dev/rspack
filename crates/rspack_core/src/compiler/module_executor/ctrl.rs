@@ -42,7 +42,7 @@ impl UnfinishCounter {
   }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct ExecuteTaskList(Vec<Box<dyn Task<MakeTaskContext>>>);
 
 impl ExecuteTaskList {
@@ -81,6 +81,7 @@ pub enum Event {
   Stop(),
 }
 
+#[derive(Debug)]
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
   execute_task_map: HashMap<DependencyId, ExecuteTaskList>,
@@ -190,6 +191,7 @@ impl Task<MakeTaskContext> for CtrlTask {
   }
 }
 
+#[derive(Debug)]
 struct FinishModuleTask {
   ctrl_task: Box<CtrlTask>,
   module_identifier: ModuleIdentifier,
