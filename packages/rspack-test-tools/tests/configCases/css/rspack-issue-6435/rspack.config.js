@@ -6,6 +6,7 @@ module.exports = {
   entry: "./index.js",
   output: {
     hashFunction: "md4",
+    hashDigestLength: 20,
   },
   module: {
     parser: {

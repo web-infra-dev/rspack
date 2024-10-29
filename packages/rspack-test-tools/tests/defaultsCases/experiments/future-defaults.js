@@ -19,10 +19,9 @@ module.exports = {
 		+     "css": true,
 		+     "futureDefaults": true,
 		@@ ... @@
-		+       },
 		+       Object {
 		+         "rules": Array [
-		+           Object {
+		@@ ... @@
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -40,7 +39,7 @@ module.exports = {
 		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
-		@@ ... @@
+		+             },
 		+             "resolve": Object {
 		+               "fullySpecified": true,
 		+             },
@@ -48,7 +47,7 @@ module.exports = {
 		+         ],
 		+         "type": "webassembly/async",
 		+       },
-		@@ ... @@
+		+       Object {
 		+         "resolve": Object {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
@@ -94,16 +93,15 @@ module.exports = {
 		+       },
 		+     },
 		@@ ... @@
-		+         },
-		+       },
 		+       "css": Object {
 		+         "namedExports": true,
 		+       },
 		+       "css/auto": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+       },
 		+       "css/module": Object {
 		+         "namedExports": true,
+		+       },
 		@@ ... @@
 		+         "css",
 		@@ ... @@

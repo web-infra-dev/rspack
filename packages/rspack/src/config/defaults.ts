@@ -588,8 +588,10 @@ const applyOutputDefaults = (
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 
+	// IGNORE(output.hashFunction): Rspack uses faster xxhash64 by default
 	D(output, "hashFunction", "xxhash64");
 	D(output, "hashDigest", "hex");
+	// IGNORE(output.hashDigestLength): xxhash64 uses 16-bit hash
 	D(output, "hashDigestLength", 16);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
