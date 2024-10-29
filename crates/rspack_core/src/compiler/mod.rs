@@ -2,7 +2,6 @@ mod compilation;
 mod hmr;
 mod make;
 mod module_executor;
-use std::fs;
 use std::sync::Arc;
 
 use derivative::Derivative;
@@ -375,8 +374,12 @@ impl Compiler {
         // do not write when asset is immutable and the file exists
         false
       } else {
-        let metadata =
-          fs::metadata(&file_path).map_err(|e| error!("failed to read metadata: {e}"))?;
+        // TODO: webpack use outputFileSystem to get metadata and file content
+        // should also use outputFileSystem after aligning with webpack
+        let metadata = self
+          .input_filesystem
+          .metadata(file_path.as_path().as_ref())
+          .map_err(|e| error!("failed to read metadata: {e}"))?;
         if (content.len() as u64) == metadata.len() {
           match self.input_filesystem.read(file_path.as_path().as_ref()) {
             // write when content is different
