@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
-use rspack_util::atom::Atom;
+use rspack_util::{atom::Atom, json_stringify};
 
 use super::local_module::LocalModule;
 
@@ -128,7 +128,7 @@ impl Branch {
         format!(
           "!({}module = {{ id: {}, exports: {{}}, loaded: false }}, {} = (#).call({}module.exports, {}, {}module.exports, {}module), {}module.loaded = true, {} === undefined && ({} = {}module.exports))",
           local_module_var,
-          named_module,
+          json_stringify(named_module),
           local_module_var,
           local_module_var,
           RuntimeGlobals::REQUIRE.name(),
@@ -147,7 +147,7 @@ impl Branch {
           local_module_var,
           local_module_var,
           local_module_var,
-          named_module,
+          json_stringify(named_module),
           local_module_var,
           local_module_var,
           local_module_var,
