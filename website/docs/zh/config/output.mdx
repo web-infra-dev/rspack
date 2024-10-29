@@ -525,7 +525,7 @@ module.exports = {
 
 :::
 
-Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:16]` 来指定（默认为 20）。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
+Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16）。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
 
 当你想在实际文件名中使用占位符时，可以过滤掉占位符替换。例如，要输出一个文件 `[name].js`，你必须通过在括号之间添加反斜杠来转义 `[name]` 占位符。这样 `[\name\]` 会生成 `[name]` 而不是被替换为资源的名称。
 
@@ -595,13 +595,9 @@ module.exports = {
 ## output.hashDigestLength
 
 - **类型：** `number`
-- **默认值：** `20`
+- **默认值：** `16`
 
 要使用的哈希摘要的长度。
-
-:::tip
-`hashDigestLength` 默认值为 `20`，当启用 [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) 时将使用 `16` 作为默认值。
-:::
 
 ## output.hashFunction
 

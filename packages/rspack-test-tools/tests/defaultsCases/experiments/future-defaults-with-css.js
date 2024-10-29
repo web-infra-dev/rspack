@@ -50,8 +50,5 @@ module.exports = {
 		+         "type": "webassembly/async",
 		+       },
 		+       Object {
-		@@ ... @@
-		-     "hashDigestLength": 20,
-		+     "hashDigestLength": 16,
 	`)
 };

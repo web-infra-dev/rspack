@@ -107,9 +107,6 @@ module.exports = {
 		@@ ... @@
 		+         "css",
 		@@ ... @@
-		-     "hashDigestLength": 20,
-		+     "hashDigestLength": 16,
-		@@ ... @@
 		+       },
 		+       "css-import": Object {
 		+         "conditionNames": Array [

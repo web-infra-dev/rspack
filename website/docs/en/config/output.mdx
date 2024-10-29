@@ -529,7 +529,7 @@ Substitutions available on URL-level:
 
 :::
 
-The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:16]` (defaults to 20). Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
+The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:12]` (defaults to 16). Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
 
 It is possible to filter out placeholder replacement when you want to use one of the placeholders in the actual file name. For example, to output a file `[name].js`, you have to escape the `[name]` placeholder by adding backslashes between the brackets. So that `[\name\]` generates `[name]` instead of getting replaced with the `name` of the asset.
 
@@ -601,13 +601,9 @@ The encoding to use when generating the hash. Using `'base64'` for filenames mig
 ## output.hashDigestLength
 
 - **Type:** `number`
-- **Default:** `20`
+- **Default:** `16`
 
 The prefix length of the hash digest to use.
-
-:::tip
-The default value for `hashDigestLength` is `20`. When the feature [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) is enabled, it will use `16` as the default value.
-:::
 
 ## output.hashFunction
 

@@ -590,7 +590,7 @@ const applyOutputDefaults = (
 
 	D(output, "hashFunction", "xxhash64");
 	D(output, "hashDigest", "hex");
-	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
+	D(output, "hashDigestLength", 16);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
