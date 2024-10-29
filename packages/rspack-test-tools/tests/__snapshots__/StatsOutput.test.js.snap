@@ -96,8 +96,7 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
-asset 909.xxxx.js 9.14 KiB [emitted] (name: main)
-asset 521.xxxx.js 337 bytes [emitted]
+assets by status 9.47 KiB [cached] 2 assets
 runtime modules 7.54 KiB 11 modules
 cacheable modules 70 bytes
   ./index.js 38 bytes [built] [code generated]

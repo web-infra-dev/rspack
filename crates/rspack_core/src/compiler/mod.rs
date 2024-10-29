@@ -24,7 +24,8 @@ pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleEx
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
+  fast_set, include_hash, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
@@ -343,9 +344,7 @@ impl Compiler {
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
-      let filename = filename
-        .split_once('?')
-        .map_or(filename, |(filename, _query)| filename);
+      let (filename, query) = filename.split_once('?').unwrap_or((filename, ""));
       let file_path = output_path.join(filename);
       self
         .output_filesystem
@@ -358,13 +357,21 @@ impl Compiler {
 
       let content = source.buffer();
 
+      let mut immutable = asset.info.immutable.unwrap_or(false);
+      if !query.is_empty() {
+        immutable = immutable
+          && (include_hash(&filename, &asset.info.content_hash)
+            || include_hash(&filename, &asset.info.chunk_hash)
+            || include_hash(&filename, &asset.info.full_hash));
+      }
+
       let need_write = if !self.options.output.compare_before_emit {
         // write when compare_before_emit is false
         true
       } else if !file_path.exists() {
         // write when file not exist
         true
-      } else if asset.info.immutable.is_some_and(|v| v) {
+      } else if immutable {
         // do not write when asset is immutable and the file exists
         false
       } else {
