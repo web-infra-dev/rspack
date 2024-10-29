@@ -4,8 +4,6 @@ mod make;
 mod module_executor;
 use std::sync::Arc;
 
-use derivative::Derivative;
-use rspack_error::Result;
 use rspack_error::{error, Result};
 use rspack_fs::{
   AsyncNativeFileSystem, AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem,
