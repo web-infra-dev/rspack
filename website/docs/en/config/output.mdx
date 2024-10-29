@@ -612,7 +612,7 @@ The default value for `hashDigestLength` is `20`. When the feature [`experiments
 ## output.hashFunction
 
 - **Type:** `'md4' | 'xxhash64'`
-- **Default:** `'md4'`
+- **Default:** `'xxhash64'`
 
 The hashing algorithm to use.
 
@@ -626,7 +626,7 @@ module.exports = {
 ```
 
 :::tip
-`hashFunction` supports `xxhash64` as a faster algorithm, which will be used as default when [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) is enabled.
+Rspack uses the faster `xxhash64` algorithm by default since v1.1.
 :::
 
 ## output.hashSalt

@@ -33,14 +33,14 @@ module.exports = {
 		+         ],
 		+         "test": //.wasm$/i,
 		+         "type": "webassembly/async",
-		@@ ... @@
+		+       },
 		+       Object {
 		+         "mimetype": "application/wasm",
 		+         "rules": Array [
-		@@ ... @@
+		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
-		+             },
+		@@ ... @@
 		+             "resolve": Object {
 		+               "fullySpecified": true,
 		+             },
@@ -48,7 +48,7 @@ module.exports = {
 		+         ],
 		+         "type": "webassembly/async",
 		+       },
-		+       Object {
+		@@ ... @@
 		+         "resolve": Object {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
@@ -94,26 +94,22 @@ module.exports = {
 		+       },
 		+     },
 		@@ ... @@
+		+         },
 		+       },
 		+       "css": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+       },
 		+       "css/auto": Object {
 		+         "namedExports": true,
-		+       },
+		@@ ... @@
 		+       "css/module": Object {
 		+         "namedExports": true,
-		+       },
 		@@ ... @@
 		+         "css",
 		@@ ... @@
 		-     "hashDigestLength": 20,
-		-     "hashFunction": "md4",
 		+     "hashDigestLength": 16,
-		+     "hashFunction": "xxhash64",
 		@@ ... @@
-		+           "...",
-		+         ],
 		+       },
 		+       "css-import": Object {
 		+         "conditionNames": Array [
@@ -126,7 +122,8 @@ module.exports = {
 		+         ],
 		+         "mainFields": Array [
 		+           "style",
-		@@ ... @@
+		+           "...",
+		+         ],
 		+         "mainFiles": Array [],
 		+         "preferRelative": true,
 	`)

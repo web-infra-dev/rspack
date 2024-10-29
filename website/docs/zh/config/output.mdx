@@ -606,9 +606,9 @@ module.exports = {
 ## output.hashFunction
 
 - **类型：** `'md4' | 'xxhash64'`
-- **默认值：** `'md4'`
+- **默认值：** `'xxhash64'`
 
-要使用的哈希算法。
+指定要使用的哈希算法。
 
 ```javascript title=rspack.config.js
 module.exports = {
@@ -620,7 +620,7 @@ module.exports = {
 ```
 
 :::tip
-`hashFunction` 支持更快的 `xxhash64` 算法，当启用 [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) 时将使用它作为默认值。
+Rspack 从 1.1 版本开始默认使用更快的 `xxhash64` 算法。
 :::
 
 ## output.hashSalt

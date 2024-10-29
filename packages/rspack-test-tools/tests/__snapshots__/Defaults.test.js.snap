@@ -297,7 +297,7 @@ Object {
     globalObject: self,
     hashDigest: hex,
     hashDigestLength: 20,
-    hashFunction: md4,
+    hashFunction: xxhash64,
     hashSalt: undefined,
     hotUpdateChunkFilename: [id].[fullhash].hot-update.js,
     hotUpdateGlobal: webpackHotUpdate_rspack_test_tools,

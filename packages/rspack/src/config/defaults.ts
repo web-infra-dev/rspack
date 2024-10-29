@@ -588,7 +588,7 @@ const applyOutputDefaults = (
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 
-	D(output, "hashFunction", futureDefaults ? "xxhash64" : "md4");
+	D(output, "hashFunction", "xxhash64");
 	D(output, "hashDigest", "hex");
 	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
 	D(output, "strictModuleErrorHandling", false);

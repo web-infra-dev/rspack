@@ -576,7 +576,7 @@ export type Output = {
 
 	/**
 	 * The hashing algorithm to use.
-	 * @default 'md4'
+	 * @default 'xxhash64'
 	 * */
 	hashFunction?: HashFunction;
 

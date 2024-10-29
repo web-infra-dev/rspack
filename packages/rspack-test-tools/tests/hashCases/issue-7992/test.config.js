@@ -4,8 +4,8 @@ module.exports = {
 		const assets = stats.stats[0].toJson().assets.map(i => i.name);
 		assets.sort();
 		expect(assets).toEqual([
-			"file1.afc10c70ed4ce2b33593.svg",
-			"file2.afc10c70ed4ce2b33593.svg",
+			"file1.c30068f3cc748ce3.svg",
+			"file2.c30068f3cc748ce3.svg",
 			"main.js"
 		]);
 	}
