@@ -19,10 +19,9 @@ module.exports = {
 		+     "css": true,
 		+     "futureDefaults": true,
 		@@ ... @@
-		+       },
 		+       Object {
 		+         "rules": Array [
-		+           Object {
+		@@ ... @@
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -33,11 +32,11 @@ module.exports = {
 		+         ],
 		+         "test": //.wasm$/i,
 		+         "type": "webassembly/async",
-		@@ ... @@
+		+       },
 		+       Object {
 		+         "mimetype": "application/wasm",
 		+         "rules": Array [
-		@@ ... @@
+		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -94,10 +93,9 @@ module.exports = {
 		+       },
 		+     },
 		@@ ... @@
-		+       },
 		+       "css": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+       },
 		+       "css/auto": Object {
 		+         "namedExports": true,
 		+       },
@@ -107,13 +105,6 @@ module.exports = {
 		@@ ... @@
 		+         "css",
 		@@ ... @@
-		-     "hashDigestLength": 20,
-		-     "hashFunction": "md4",
-		+     "hashDigestLength": 16,
-		+     "hashFunction": "xxhash64",
-		@@ ... @@
-		+           "...",
-		+         ],
 		+       },
 		+       "css-import": Object {
 		+         "conditionNames": Array [
@@ -126,7 +117,8 @@ module.exports = {
 		+         ],
 		+         "mainFields": Array [
 		+           "style",
-		@@ ... @@
+		+           "...",
+		+         ],
 		+         "mainFiles": Array [],
 		+         "preferRelative": true,
 	`)

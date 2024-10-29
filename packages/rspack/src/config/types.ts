@@ -570,13 +570,13 @@ export type Output = {
 
 	/**
 	 * The prefix length of the hash digest to use.
-	 * @default 20
+	 * @default 16
 	 * */
 	hashDigestLength?: HashDigestLength;
 
 	/**
 	 * The hashing algorithm to use.
-	 * @default 'md4'
+	 * @default 'xxhash64'
 	 * */
 	hashFunction?: HashFunction;
 
