@@ -232,10 +232,10 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 // extracted by css-extract-rspack-plugin
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"x":"uKUN7__BVSobrm9KOCe_"});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"x":"uKUN7__BVSobrm9K"});
     if(true) {
       (function() {
-        var localsJsonString = "{\"x\":\"uKUN7__BVSobrm9KOCe_\"}";
+        var localsJsonString = "{\"x\":\"uKUN7__BVSobrm9K\"}";
         // 
         var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
         // only invalidate when locals change
