@@ -4003,7 +4003,6 @@ dependencies = [
 name = "rspack_plugin_context_replacement"
 version = "0.1.0"
 dependencies = [
- "derivative",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4469,7 +4468,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "cow-utils",
- "derivative",
  "once_cell",
  "regex",
  "rspack_base64",
