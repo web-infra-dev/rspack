@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use derivative::Derivative;
 use rspack_fs::AsyncFileSystem;
 use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -150,12 +149,10 @@ impl LockfileAsync for Lockfile {
   }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct LockfileCache {
   lockfile: Arc<Mutex<Lockfile>>,
   lockfile_path: Option<PathBuf>,
-  #[derivative(Debug = "ignore")]
   filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
 }
 

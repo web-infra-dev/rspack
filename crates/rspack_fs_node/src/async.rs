@@ -6,6 +6,12 @@ use crate::node::ThreadsafeNodeFS;
 
 pub struct AsyncNodeWritableFileSystem(ThreadsafeNodeFS);
 
+impl std::fmt::Debug for AsyncNodeWritableFileSystem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AsyncNodeWritableFileSystem").finish()
+  }
+}
+
 impl AsyncNodeWritableFileSystem {
   pub fn new(tsfs: ThreadsafeNodeFS) -> napi::Result<Self> {
     Ok(Self(tsfs))
