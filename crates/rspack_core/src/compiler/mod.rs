@@ -360,9 +360,9 @@ impl Compiler {
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
         immutable = immutable
-          && (include_hash(&filename, &asset.info.content_hash)
-            || include_hash(&filename, &asset.info.chunk_hash)
-            || include_hash(&filename, &asset.info.full_hash));
+          && (include_hash(filename, &asset.info.content_hash)
+            || include_hash(filename, &asset.info.chunk_hash)
+            || include_hash(filename, &asset.info.full_hash));
       }
 
       let need_write = if !self.options.output.compare_before_emit {
