@@ -2,9 +2,12 @@ mod compilation;
 mod hmr;
 mod make;
 mod module_executor;
+use std::fs;
 use std::sync::Arc;
 
+use derivative::Derivative;
 use rspack_error::Result;
+use rspack_error::{error, Result};
 use rspack_fs::{
   AsyncNativeFileSystem, AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem,
 };
@@ -353,12 +356,37 @@ impl Compiler {
         )
         .await?;
 
-      self
-        .output_filesystem
-        .write(&file_path, source.buffer().as_ref())
-        .await?;
+      let content = source.buffer();
 
-      self.compilation.emitted_assets.insert(filename.to_string());
+      let need_write = if !self.options.output.compare_before_emit {
+        // write when compare_before_emit is false
+        true
+      } else if !file_path.exists() {
+        // write when file not exist
+        true
+      } else if asset.info.immutable.is_some_and(|v| v) {
+        // do not write when asset is immutable and the file exists
+        false
+      } else {
+        let metadata =
+          fs::metadata(&file_path).map_err(|e| error!("failed to read metadata: {e}"))?;
+        if (content.len() as u64) == metadata.len() {
+          match self.input_filesystem.read(file_path.as_path().as_ref()) {
+            // write when content is different
+            Ok(c) => content != c,
+            // write when file can not be read
+            Err(_) => true,
+          }
+        } else {
+          // write if content length is different
+          true
+        }
+      };
+
+      if need_write {
+        self.output_filesystem.write(&file_path, &content).await?;
+        self.compilation.emitted_assets.insert(filename.to_string());
+      }
 
       let info = AssetEmittedInfo {
         output_path: output_path.to_owned(),

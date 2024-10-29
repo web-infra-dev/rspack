@@ -580,6 +580,7 @@ const applyOutputDefaults = (
 	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
+	D(output, "compareBeforeEmit", true);
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	F(output, "pathinfo", () => development);
 	D(

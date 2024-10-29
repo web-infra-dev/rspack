@@ -1690,6 +1690,7 @@ export interface RawOutputOptions {
   workerPublicPath: string
   scriptType: "module" | "text/javascript" | "false"
   environment: RawEnvironment
+  compareBeforeEmit: boolean
 }
 
 export interface RawParserOptions {
