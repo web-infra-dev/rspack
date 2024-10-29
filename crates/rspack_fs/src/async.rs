@@ -1,9 +1,11 @@
+use std::fmt::Debug;
+
 use futures::future::BoxFuture;
 use rspack_paths::Utf8Path;
 
 use crate::Result;
 
-pub trait AsyncWritableFileSystem {
+pub trait AsyncWritableFileSystem: Debug {
   /// Creates a new, empty directory at the provided path.
   ///
   /// NOTE: If a parent of the given path doesn’t exist, this function is supposed to return an error.
@@ -30,7 +32,7 @@ pub trait AsyncWritableFileSystem {
   fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
 }
 
-pub trait AsyncReadableFileSystem {
+pub trait AsyncReadableFileSystem: Debug {
   /// Read the entire contents of a file into a bytes vector.
   ///
   /// Error: This function will return an error if path does not already exist.

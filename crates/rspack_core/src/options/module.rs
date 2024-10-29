@@ -645,8 +645,7 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:

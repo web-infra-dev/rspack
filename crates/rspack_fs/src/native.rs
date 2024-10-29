@@ -11,6 +11,7 @@ use super::{
   Error, Result,
 };
 
+#[derive(Debug)]
 pub struct NativeFileSystem;
 
 impl WritableFileSystem for NativeFileSystem {
@@ -48,6 +49,8 @@ impl ReadableFileSystem for NativeFileSystem {
 use futures::future::BoxFuture;
 
 use crate::{AsyncReadableFileSystem, AsyncWritableFileSystem};
+
+#[derive(Debug)]
 pub struct AsyncNativeFileSystem;
 
 impl AsyncWritableFileSystem for AsyncNativeFileSystem {

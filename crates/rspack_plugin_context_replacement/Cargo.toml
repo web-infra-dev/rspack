@@ -7,7 +7,6 @@ repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 
 [dependencies]
-derivative   = { workspace = true }
 rspack_core  = { version = "0.1.0", path = "../rspack_core" }
 rspack_error = { version = "0.1.0", path = "../rspack_error" }
 rspack_hook  = { version = "0.1.0", path = "../rspack_hook" }

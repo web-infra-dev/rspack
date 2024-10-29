@@ -7,7 +7,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use derivative::Derivative;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -132,8 +131,7 @@ impl Default for CompilationId {
 type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct Compilation {
   /// get_compilation_hooks(compilation.id)
   id: CompilationId,
@@ -197,7 +195,6 @@ pub struct Compilation {
   pub modified_files: HashSet<PathBuf>,
   pub removed_files: HashSet<PathBuf>,
   make_artifact: MakeArtifact,
-  #[derivative(Debug = "ignore")]
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
