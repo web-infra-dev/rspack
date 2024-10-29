@@ -1,17 +1,16 @@
 use std::{cell::RefCell, sync::Arc};
 
 use napi_derive::napi;
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
   CompilerModuleContext, DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
   RuntimeModuleStage, SourceType,
 };
-use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, Ref};
+use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
-use sys::napi_env;
 
 use super::{JsCompatSource, ToJsCompatSource};
 use crate::{JsChunk, JsCodegenerationResults, JsDependency};
@@ -99,7 +98,7 @@ impl ModuleDTO {
       .module_by_identifier(&self.module_id)
       .unwrap_or_else(|| {
         panic!(
-          "Cannot find module with id = {}. It might have been removed on the Rust side.",
+          "Cannot access module with id = {}. It might have been dropped on the Rust side.",
           self.module_id
         )
       })
@@ -227,23 +226,28 @@ impl ModuleDTO {
     let ty = ty.map(|s| SourceType::from(s.as_str()));
     module.size(ty.as_ref(), self.compilation)
   }
-}
 
-type ModuleInstanceRefs = HashMap<Identifier, (Ref, napi_env)>;
-
-#[derive(Default)]
-struct ModuleInstanceRefsByCompilationId(RefCell<HashMap<CompilationId, ModuleInstanceRefs>>);
-
-impl Drop for ModuleInstanceRefsByCompilationId {
-  fn drop(&mut self) {
-    let mut refs_by_compilation_id = self.0.borrow_mut();
-    for (_, mut refs) in refs_by_compilation_id.drain() {
-      for (_, (mut r, env)) in refs.drain() {
-        let _ = r.unref(env);
+  #[napi(getter, ts_return_type = "ModuleDTO[] | undefined")]
+  pub fn modules(&self) -> Either<Vec<ModuleDTOWrapper>, ()> {
+    let module = self.module();
+    match module.try_as_concatenated_module() {
+      Ok(concatenated_module) => {
+        let inner_modules = concatenated_module
+          .get_modules()
+          .iter()
+          .map(|inner_module| ModuleDTOWrapper::new(inner_module.id, self.compilation))
+          .collect::<Vec<_>>();
+        Either::A(inner_modules)
       }
+      Err(_) => Either::B(()),
     }
   }
 }
+
+type ModuleInstanceRefs = IdentifierMap<OneShotRef>;
+
+#[derive(Default)]
+struct ModuleInstanceRefsByCompilationId(RefCell<HashMap<CompilationId, ModuleInstanceRefs>>);
 
 thread_local! {
   static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilationId = Default::default();
@@ -278,11 +282,7 @@ impl ModuleDTOWrapper {
   pub fn cleanup(compilation_id: CompilationId) {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compilation_id = refs.0.borrow_mut();
-      if let Some(mut refs) = refs_by_compilation_id.remove(&compilation_id) {
-        for (_, (mut r, env)) in refs.drain() {
-          let _ = r.unref(env);
-        }
-      }
+      refs_by_compilation_id.remove(&compilation_id)
     });
   }
 }
@@ -295,22 +295,21 @@ impl ToNapiValue for ModuleDTOWrapper {
       let refs = match entry {
         std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = HashMap::default();
+          let refs = IdentifierMap::default();
           entry.insert(refs)
         }
       };
       match refs.entry(val.module_id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          ToNapiValue::to_napi_value(env, &r.0)
+          ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           let instance =
             ModuleDTO::new(val.module_id, val.compilation).into_instance(Env::from_raw(env))?;
           let napi_value = ToNapiValue::to_napi_value(env, instance)?;
-          let r = Ref::new(env, napi_value, 1)?;
-          let r = entry.insert((r, env));
-          ToNapiValue::to_napi_value(env, &r.0)
+          let r = entry.insert(OneShotRef::new(env, napi_value)?);
+          ToNapiValue::to_napi_value(env, r)
         }
       }
     })

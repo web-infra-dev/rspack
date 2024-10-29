@@ -196,6 +196,7 @@ export class ModuleDto {
   get layer(): string | undefined
   get blocks(): Array<DependenciesBlockDto>
   size(ty?: string | undefined | null): number
+  get modules(): ModuleDTO[] | undefined
 }
 export type ModuleDTO = ModuleDto
 
@@ -212,7 +213,7 @@ export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(js
 
 export function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
 
-export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): ModuleDTO[]
 
 export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, compilation: JsCompilation): Array<JsModule>
 
