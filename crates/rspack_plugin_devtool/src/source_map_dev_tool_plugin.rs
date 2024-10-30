@@ -5,7 +5,6 @@ use cow_utils::CowUtils;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
-use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
@@ -416,13 +415,17 @@ impl SourceMapDevToolPlugin {
 
           if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
             let source_map_url = if let Some(public_path) = &self.public_path {
-              Cow::Owned(format!("{public_path}{source_map_filename}"))
-            } else if let Some(dirname) = Path::new(filename.as_ref()).parent()
-              && let Some(relative) = diff_paths(&source_map_filename, dirname)
-            {
-              Cow::Owned(relative.to_string_lossy().to_string())
+              format!("{public_path}{source_map_filename}")
             } else {
-              Cow::Borrowed(source_map_filename.as_str())
+              relative(
+                #[allow(clippy::unwrap_used)]
+                &Path::new(&format!("/{}", filename.as_ref()))
+                  .parent()
+                  .unwrap(),
+                &Path::new(&format!("/{}", &source_map_filename)),
+              )
+              .to_string_lossy()
+              .to_string()
             };
             let data = data.url(&source_map_url);
             let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
