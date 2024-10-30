@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, Function, TypeName, ValidateNapiValue},
-  sys, Env, Error, JsObject, JsUnknown, NapiRaw, NapiValue, Result, Status,
+  bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
+  sys, Env, Error, JsFunction, JsObject, NapiRaw, NapiValue, Result, Status,
 };
 
 pub struct JsRegExp(JsObject);
@@ -53,16 +53,25 @@ impl FromNapiValue for JsRegExp {
 
     let env = Env::from(env);
     let global = env.get_global()?;
-    let regexp_constructor = global.get_named_property::<Function<JsUnknown, ()>>("RegExp")?;
+    let object_prototype_to_string = global
+      .get_named_property_unchecked::<JsObject>("Object")?
+      .get_named_property::<JsObject>("prototype")?
+      .get_named_property::<JsFunction>("toString")?;
 
-    if js_object.instanceof(regexp_constructor)? {
+    let js_string = object_prototype_to_string
+      .call_without_args(Some(&js_object))?
+      .coerce_to_string()?
+      .into_utf8()?;
+    let js_object_type = js_string.as_str()?;
+
+    if js_object_type == "[object RegExp]" {
       Ok(Self(js_object))
     } else {
       Err(Error::new(
         Status::ObjectExpected,
         format!(
           "Expect value to be '[object RegExp]', but received {}",
-          js_object.coerce_to_string()?.into_utf8()?.as_str()?
+          js_object_type
         ),
       ))
     }
