@@ -104,7 +104,7 @@ jobs:
           github-token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           script: |
             const result = await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
+              owner: 'rspack-contrib',
               repo: 'rspack-ecosystem-ci',
               workflow_id: 'ecosystem-ci-selected.yml',
               ref: 'main',
