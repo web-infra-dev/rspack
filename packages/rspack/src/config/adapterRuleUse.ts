@@ -253,10 +253,19 @@ type GetLoaderOptions = (
 ) => RuleSetLoaderWithOptions["options"];
 
 const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
-	if (o && typeof o === "object" && o.rspackExperiments) {
-		const expr = o.rspackExperiments;
-		if (expr.import || expr.pluginImport) {
-			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
+	if (o && typeof o === "object") {
+		// enable `disableAllLints` by default to reduce performance overhead
+		o.jsc ??= {};
+		o.jsc.experimental ??= {};
+		o.jsc.experimental.disableAllLints ??= true;
+
+		// resolve `rspackExperiments.import` options
+		const { rspackExperiments } = o;
+		if (rspackExperiments) {
+			const expr = rspackExperiments;
+			if (expr.import || expr.pluginImport) {
+				expr.import = resolvePluginImport(expr.import || expr.pluginImport);
+			}
 		}
 	}
 	return o;

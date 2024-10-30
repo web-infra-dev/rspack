@@ -25,5 +25,9 @@ export type SwcLoaderOptions = Config & {
 	 */
 	rspackExperiments?: {
 		import?: PluginImportOptions;
+		/**
+		 * @deprecated use `import` instead
+		 */
+		pluginImport?: PluginImportOptions;
 	};
 };
