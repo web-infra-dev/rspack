@@ -1,3 +1,4 @@
+use std::path::{Component, PathBuf};
 use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
@@ -5,7 +6,6 @@ use cow_utils::CowUtils;
 use derivative::Derivative;
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
-use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
@@ -416,13 +416,23 @@ impl SourceMapDevToolPlugin {
 
           if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
             let source_map_url = if let Some(public_path) = &self.public_path {
-              Cow::Owned(format!("{public_path}{source_map_filename}"))
-            } else if let Some(dirname) = Path::new(filename.as_ref()).parent()
-              && let Some(relative) = diff_paths(&source_map_filename, dirname)
-            {
-              Cow::Owned(relative.to_string_lossy().to_string())
+              format!("{public_path}{source_map_filename}")
             } else {
-              Cow::Borrowed(source_map_filename.as_str())
+              let mut file_path = PathBuf::new();
+              file_path.push(Component::RootDir);
+              file_path.extend(Path::new(filename.as_ref()).components());
+
+              let mut source_map_path = PathBuf::new();
+              source_map_path.push(Component::RootDir);
+              source_map_path.extend(Path::new(&source_map_filename).components());
+
+              relative(
+                #[allow(clippy::unwrap_used)]
+                file_path.parent().unwrap(),
+                &source_map_path,
+              )
+              .to_string_lossy()
+              .to_string()
             };
             let data = data.url(&source_map_url);
             let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
