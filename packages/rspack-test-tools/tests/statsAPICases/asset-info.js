@@ -49,7 +49,7 @@ module.exports = {
 		      chunkhash: Array [],
 		      contenthash: Array [],
 		      fullhash: Array [
-		        89a353e9c515885abd8e,
+		        c560fa876f51d750,
 		      ],
 		      immutable: true,
 		      isOverSizeLimit: false,
@@ -57,7 +57,7 @@ module.exports = {
 		      sourceFilename: fixtures/asset/image.png,
 		    },
 		    isOverSizeLimit: false,
-		    name: 89a353e9c515885abd8e.png,
+		    name: c560fa876f51d750.png,
 		    related: Array [],
 		    size: 14910,
 		    type: asset,
@@ -91,7 +91,7 @@ module.exports = {
 		    isOverSizeLimit: false,
 		    name: main.js,
 		    related: Array [],
-		    size: 2763,
+		    size: 2759,
 		    type: asset,
 		  },
 		]

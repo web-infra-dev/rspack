@@ -246,6 +246,8 @@ export class Module {
 
 	declare readonly blocks: DependenciesBlock[];
 
+	declare readonly modules: Module[] | undefined;
+
 	static __from_binding(
 		binding: JsModule | JsCompilerModuleContext,
 		compilation?: Compilation

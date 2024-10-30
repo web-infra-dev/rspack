@@ -63,6 +63,7 @@ pub struct OutputOptions {
   pub worker_public_path: String,
   pub script_type: String,
   pub environment: Environment,
+  pub compare_before_emit: bool,
 }
 
 impl From<&OutputOptions> for RspackHash {

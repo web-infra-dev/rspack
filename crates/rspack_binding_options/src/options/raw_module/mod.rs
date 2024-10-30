@@ -141,8 +141,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 
 type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 
-#[derive(Derivative)]
-#[derivative(Debug, Default)]
+#[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
   /// A conditional match matching an absolute path + query + fragment.

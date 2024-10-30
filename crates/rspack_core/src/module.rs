@@ -646,6 +646,10 @@ mod test {
           unreachable!()
         }
 
+        fn remove_dependency_id(&mut self, _: DependencyId) {
+          unreachable!()
+        }
+
         fn get_dependencies(&self) -> &[DependencyId] {
           unreachable!()
         }

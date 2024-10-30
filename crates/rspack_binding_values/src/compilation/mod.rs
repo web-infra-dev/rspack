@@ -161,15 +161,7 @@ impl JsCompilation {
   pub fn built_modules(&self) -> Vec<JsModuleWrapper> {
     let compilation = unsafe { &*self.0 };
 
-    compilation
-      .built_modules
-      .iter()
-      .filter_map(|module_id| {
-        compilation
-          .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(self.0)))
-      })
-      .collect::<Vec<_>>()
+    compilation.built_modules.collect::<Vec<_>>()
   }
 
   #[napi]

@@ -570,13 +570,13 @@ export type Output = {
 
 	/**
 	 * The prefix length of the hash digest to use.
-	 * @default 20
+	 * @default 16
 	 * */
 	hashDigestLength?: HashDigestLength;
 
 	/**
 	 * The hashing algorithm to use.
-	 * @default 'md4'
+	 * @default 'xxhash64'
 	 * */
 	hashFunction?: HashFunction;
 
@@ -633,6 +633,11 @@ export type Output = {
 
 	/** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
 	environment?: Environment;
+
+	/**
+	 * Check if to be emitted file already exists and have the same content before writing to output filesystem.
+	 */
+	compareBeforeEmit?: boolean;
 };
 
 //#endregion

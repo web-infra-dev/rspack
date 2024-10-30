@@ -257,7 +257,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
 		charset: output.charset!,
 		chunkLoadTimeout: output.chunkLoadTimeout!,
-		environment: output.environment!
+		environment: output.environment!,
+		compareBeforeEmit: output.compareBeforeEmit!
 	};
 }
 

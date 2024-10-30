@@ -6,12 +6,14 @@ use rspack_core::{
   CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  LibraryOptions, ModuleIdentifier, Plugin, PluginContext,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::dependency::ImportDependency;
+use rspack_plugin_javascript::dependency::{
+  ESMExportImportedSpecifierDependency, ImportDependency,
+};
 use rspack_plugin_javascript::ModuleConcatenationPlugin;
 use rspack_plugin_javascript::{
   ConcatConfiguration, JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin,
@@ -19,7 +21,8 @@ use rspack_plugin_javascript::{
 };
 use rustc_hash::FxHashSet as HashSet;
 
-use super::modern_module::ModernModuleImportDependency;
+use super::modern_module::ModernModuleReexportStarExternalDependency;
+use crate::modern_module::ModernModuleImportDependency;
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
 const PLUGIN_NAME: &str = "rspack.ModernModuleLibraryPlugin";
@@ -34,6 +37,23 @@ impl ModernModuleLibraryPlugin {
       error_bail!("Library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
     }
     Ok(())
+  }
+
+  pub fn reexport_star_from_external_module(
+    &self,
+    dep: &ESMExportImportedSpecifierDependency,
+    mg: &ModuleGraph,
+  ) -> bool {
+    if let Some(m) = mg.get_module_by_dependency_id(&dep.id) {
+      if let Some(m) = m.as_external_module() {
+        if m.get_external_type() == "module" || m.get_external_type() == "module-import" {
+          // Star reexport will meet the condition.
+          return dep.name.is_none() && dep.other_star_exports.is_some();
+        }
+      }
+    }
+
+    false
   }
 
   fn get_options_for_chunk(
@@ -191,18 +211,18 @@ fn render_startup(
   Ok(())
 }
 
-#[plugin_hook(CompilationFinishModules for ModernModuleLibraryPlugin)]
+#[plugin_hook(CompilationFinishModules for ModernModuleLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONS)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
   let module_ids = modules.keys().cloned().collect::<Vec<_>>();
 
-  for module_id in module_ids {
+  // Remove `import()` runtime.
+  for module_id in &module_ids {
     let mut deps_to_replace = Vec::new();
-    let module = mg
-      .module_by_identifier(&module_id)
-      .expect("should have mgm");
-    let connections = mg.get_outgoing_connections(&module_id);
+    let module = mg.module_by_identifier(module_id).expect("should have mgm");
+
+    let connections = mg.get_outgoing_connections(module_id);
     let block_ids = module.get_blocks();
 
     for block_id in block_ids {
@@ -253,6 +273,67 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       block.add_dependency_id(*new_dep.id());
       mg.add_dependency(boxed_dep);
       mg.revoke_connection(connection_id, true);
+    }
+  }
+
+  // Reexport star from external module.
+  for module_id in &module_ids {
+    // Only preserve star reexports for module graph entry, nested reexports are not supported.
+    if let Some(mgm) = mg.module_graph_module_by_identifier(module_id) {
+      let is_mg_entry = mgm.issuer().get_module(&mg).is_none();
+      if !is_mg_entry {
+        continue;
+      }
+    }
+
+    let mut deps_to_replace = Vec::new();
+    let module = mg.module_by_identifier(module_id).expect("should have mgm");
+    let connections = mg.get_outgoing_connections(module_id);
+    let dep_ids = module.get_dependencies();
+
+    for dep_id in dep_ids {
+      if let Some(export_dep) = mg.dependency_by_id(dep_id) {
+        if let Some(reexport_dep) = export_dep
+          .as_any()
+          .downcast_ref::<ESMExportImportedSpecifierDependency>()
+        {
+          if self.reexport_star_from_external_module(reexport_dep, &mg) {
+            let reexport_connection = connections
+              .iter()
+              .find(|c| c.dependency_id == reexport_dep.id);
+
+            if let Some(reexport_connection) = reexport_connection {
+              let import_module_id = reexport_connection.module_identifier();
+              let import_module = mg
+                .module_by_identifier(import_module_id)
+                .expect("should have mgm");
+
+              if let Some(external_module) = import_module.as_external_module() {
+                if reexport_dep.request == external_module.user_request {
+                  let new_dep = ModernModuleReexportStarExternalDependency::new(
+                    reexport_dep.request.as_str().into(),
+                    external_module.request.clone(),
+                    external_module.external_type.clone(),
+                  );
+
+                  deps_to_replace.push((module_id, *dep_id, new_dep.clone()));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (module_id, dep, new_dep) in deps_to_replace.iter() {
+      let importer = mg
+        .module_by_identifier_mut(module_id)
+        .expect("should have module");
+
+      let boxed_dep = Box::new(new_dep.clone()) as BoxDependency;
+      importer.remove_dependency_id(*dep);
+      importer.add_dependency_id(*new_dep.id());
+      mg.add_dependency(boxed_dep);
     }
   }
 

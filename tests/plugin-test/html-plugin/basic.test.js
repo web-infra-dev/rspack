@@ -2780,7 +2780,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link href="\/[a-z0-9]{20}\/favicon\.ico" rel="icon">/],
+      [/<link href="\/[a-z0-9]{16}\/favicon\.ico" rel="icon">/],
       null,
       done,
     );
@@ -2802,7 +2802,7 @@ describe("HtmlWebpackPlugin", () => {
           }),
         ],
       },
-      [/<link href="[a-z0-9]{20}\/favicon\.ico" rel="icon">/],
+      [/<link href="[a-z0-9]{16}\/favicon\.ico" rel="icon">/],
       null,
       done,
     );

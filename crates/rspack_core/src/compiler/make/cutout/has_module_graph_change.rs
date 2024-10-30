@@ -232,6 +232,10 @@ mod t {
       self.deps.push(dependency);
     }
 
+    fn remove_dependency_id(&mut self, dependency: DependencyId) {
+      self.deps.retain(|dep| dep != &dependency);
+    }
+
     fn get_dependencies(&self) -> &[DependencyId] {
       &self.deps
     }
