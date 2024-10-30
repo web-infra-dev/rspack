@@ -253,6 +253,7 @@ program
 program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
+	.option("--pre <string>", "pre-release tag")
 	.description("bump version")
 	.action(version_handler);
 
