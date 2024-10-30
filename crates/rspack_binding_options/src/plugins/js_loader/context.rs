@@ -89,12 +89,12 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
+    let module = unsafe { &*cx.context.module };
+
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
-      module_identifier: cx.context.module.module_identifier.to_string(),
-      module: cx
-        .context
-        .module
+      module_identifier: module.identifier().to_string(),
+      module: module
         .to_js_module()
         .expect("CompilerModuleContext::to_js_module should not fail."),
       hot: cx.hot,

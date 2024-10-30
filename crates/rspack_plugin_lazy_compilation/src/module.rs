@@ -134,7 +134,7 @@ impl Module for LazyCompilationProxyModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let client_dep = CommonJsRequireDependency::new(

@@ -50,8 +50,10 @@ impl CompilerModuleContext {
 pub struct RunnerContext {
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub module: CompilerModuleContext,
+  pub module: *const dyn Module,
   pub module_source_map_kind: SourceMapKind,
 }
 
-pub type BoxLoader = Arc<dyn Loader<RunnerContext>>;
+unsafe impl Send for RunnerContext {}
+
+pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;

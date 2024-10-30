@@ -22,14 +22,14 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ModuleDependency,
-  ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, RunnerContext,
+  ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, ResolverFactory,
   RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
-pub struct BuildContext<'a> {
-  pub runner_context: RunnerContext,
+pub struct BuildContext {
+  pub compiler_options: Arc<CompilerOptions>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
-  pub compiler_options: &'a CompilerOptions,
   pub fs: Arc<dyn ReadableFileSystem>,
 }
 
@@ -204,7 +204,7 @@ pub trait Module:
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
@@ -501,7 +501,7 @@ pub trait ModuleExt {
   fn boxed(self) -> Box<dyn Module>;
 }
 
-impl<T: Module + 'static> ModuleExt for T {
+impl<T: Module> ModuleExt for T {
   fn boxed(self) -> Box<dyn Module> {
     Box::new(self)
   }
@@ -675,7 +675,7 @@ mod test {
 
         async fn build(
           &mut self,
-          _build_context: BuildContext<'_>,
+          _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {
           unreachable!()

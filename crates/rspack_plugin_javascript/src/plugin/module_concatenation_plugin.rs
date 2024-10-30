@@ -11,10 +11,9 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
-  CompilationOptimizeChunkModules, CompilerModuleContext, CompilerOptions, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RunnerContext,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  CompilationOptimizeChunkModules, CompilerOptions, ExportInfoProvided, ExtendedReferencedExport,
+  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  Plugin, PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -630,14 +629,9 @@ impl ModuleConcatenationPlugin {
     new_module
       .build(
         rspack_core::BuildContext {
-          runner_context: RunnerContext {
-            options: compilation.options.clone(),
-            resolver_factory: compilation.resolver_factory.clone(),
-            module: CompilerModuleContext::from_module(&new_module),
-            module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-          },
+          resolver_factory: compilation.resolver_factory.clone(),
           plugin_driver: compilation.plugin_driver.clone(),
-          compiler_options: &compilation.options,
+          compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
         },
         Some(compilation),
