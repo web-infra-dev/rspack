@@ -8,7 +8,6 @@ module.exports = (config = {}) => {
 		context: path.resolve(__dirname, "../fixtures"),
 		entry: path.resolve(__dirname, "../helpers/enter.js"),
 		output: {
-			compareBeforeEmit: false,
 			path: path.resolve(__dirname, "../build")
 		},
 		module: {

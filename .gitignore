@@ -223,6 +223,8 @@ tests/plugin-test/css-extract/js
 
 tests/plugin-test/html-plugin/js
 
+tests/plugin-test/copy-plugin/build
+
 /webpack-examples/**/dist
 
 smoke-example
