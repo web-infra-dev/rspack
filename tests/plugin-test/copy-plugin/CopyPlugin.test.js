@@ -11,7 +11,7 @@ const rimraf = require("rimraf");
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
 
 describe("CopyPlugin", () => {
-	beforeAll(() => {
+	beforeEach(() => {
 		rimraf.sync(path.join(__dirname, "build"));
 	});
 	describe("basic", () => {
