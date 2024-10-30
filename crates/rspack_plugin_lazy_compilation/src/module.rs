@@ -325,6 +325,10 @@ impl DependenciesBlock for LazyCompilationProxyModule {
     self.dependencies.push(dependency);
   }
 
+  fn remove_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
+    self.dependencies.retain(|d| d != &dependency);
+  }
+
   fn get_dependencies(&self) -> &[rspack_core::DependencyId] {
     &self.dependencies
   }
