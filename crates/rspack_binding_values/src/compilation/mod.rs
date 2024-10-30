@@ -630,7 +630,8 @@ unsafe impl Send for JsCompilationWrapper {}
 
 impl JsCompilationWrapper {
   pub fn new(compilation: *const Compilation) -> Self {
-    Self(NonNull::new(compilation as *mut Compilation).expect("compilation pointer should not be null, but it was. This likely indicates an incorrect initialization or data corruption."))
+    #[allow(clippy::unwrap_used)]
+    Self(NonNull::new(compilation as *mut Compilation).unwrap())
   }
 
   pub fn cleanup_last_compilation(compilation_id: CompilationId) {

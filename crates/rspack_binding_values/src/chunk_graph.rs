@@ -12,7 +12,7 @@ pub fn get_chunk_modules(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
 ) -> Vec<JsModuleWrapper> {
-  let compilation = unsafe { &*js_compilation.0 };
+  let compilation = unsafe { js_compilation.0.as_ref() };
 
   let module_graph = compilation.get_module_graph();
   let modules = compilation
@@ -21,7 +21,7 @@ pub fn get_chunk_modules(
 
   return modules
     .iter()
-    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(js_compilation.0)))
+    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(js_compilation.0.as_ptr())))
     .collect::<Vec<_>>();
 }
 
@@ -33,7 +33,7 @@ pub fn get_chunk_entry_modules(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
 ) -> Vec<JsModuleWrapper> {
-  let compilation = unsafe { &*js_compilation.0 };
+  let compilation = unsafe { js_compilation.0.as_ref() };
 
   let modules = compilation
     .chunk_graph
@@ -42,7 +42,7 @@ pub fn get_chunk_entry_modules(
   return modules
     .iter()
     .filter_map(|module| module_graph.module_by_identifier(module))
-    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(js_compilation.0)))
+    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(js_compilation.0.as_ptr())))
     .collect::<Vec<_>>();
 }
 
@@ -51,7 +51,7 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
 ) -> Vec<JsChunk> {
-  let compilation = unsafe { &*js_compilation.0 };
+  let compilation = unsafe { js_compilation.0.as_ref() };
 
   let chunks = compilation
     .chunk_graph
@@ -76,7 +76,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
   source_type: String,
   js_compilation: &JsCompilation,
 ) -> Result<Vec<JsModuleWrapper>> {
-  let compilation = unsafe { &*js_compilation.0 };
+  let compilation = unsafe { js_compilation.0.as_ref() };
 
   Ok(
     compilation
@@ -86,7 +86,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
         SourceType::from(source_type.as_str()),
         &compilation.get_module_graph(),
       )
-      .map(|module| JsModuleWrapper::new(module, Some(js_compilation.0)))
+      .map(|module| JsModuleWrapper::new(module, Some(js_compilation.0.as_ptr())))
       .collect(),
   )
 }

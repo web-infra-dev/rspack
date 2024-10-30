@@ -73,7 +73,7 @@ fn chunk_group(ukey: u32, compilation: &Compilation) -> &ChunkGroup {
 
 #[napi(js_name = "__chunk_group_inner_get_chunk_group")]
 pub fn get_chunk_group(ukey: u32, js_compilation: &JsCompilation) -> JsChunkGroup {
-  let compilation = unsafe { &*js_compilation.0 };
+  let compilation = unsafe { js_compilation.0.as_ref() };
 
   let cg = chunk_group(ukey, compilation);
   JsChunkGroup::from_chunk_group(cg, compilation)
@@ -81,7 +81,7 @@ pub fn get_chunk_group(ukey: u32, js_compilation: &JsCompilation) -> JsChunkGrou
 
 #[napi(js_name = "__entrypoint_inner_get_runtime_chunk")]
 pub fn get_runtime_chunk(ukey: u32, js_compilation: &JsCompilation) -> JsChunk {
-  let compilation = unsafe { &*js_compilation.0 };
+  let compilation = unsafe { js_compilation.0.as_ref() };
 
   let entrypoint = chunk_group(ukey, compilation);
   let chunk_ukey = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
