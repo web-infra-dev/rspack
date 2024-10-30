@@ -55,10 +55,10 @@ impl JsDependenciesBlock {
     block
       .get_dependencies()
       .iter()
-      .map(|dependency_id| {
-        #[allow(clippy::unwrap_used)]
-        let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependency::new(dep)
+      .filter_map(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .map(|dep| JsDependency::new(dep))
       })
       .collect::<Vec<_>>()
   }
