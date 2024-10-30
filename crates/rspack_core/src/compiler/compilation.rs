@@ -1227,16 +1227,22 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
-    self.create_module_hashes(
-      if let Some(mutations) = self
-        .incremental
-        .mutations_read(IncrementalPasses::MODULES_HASHES)
-      {
-        mutations.get_affected_modules_with_chunk_graph(self)
-      } else {
-        self.get_module_graph().modules().keys().copied().collect()
-      },
-    )?;
+    let create_module_hashes_modules = if let Some(mutations) = self
+      .incremental
+      .mutations_read(IncrementalPasses::MODULES_HASHES)
+    {
+      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleRevoke { module } => Some(*module),
+        _ => None,
+      });
+      for revoked_module in revoked_modules {
+        self.cgm_hash_results.remove(&revoked_module);
+      }
+      mutations.get_affected_modules_with_chunk_graph(self)
+    } else {
+      self.get_module_graph().modules().keys().copied().collect()
+    };
+    self.create_module_hashes(create_module_hashes_modules)?;
 
     let start = logger.time("optimize code generation");
     plugin_driver
@@ -1246,29 +1252,45 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("code generation");
-    self.code_generation(
-      if let Some(mutations) = self
-        .incremental
-        .mutations_read(IncrementalPasses::MODULES_CODEGEN)
-      {
-        mutations.get_affected_modules_with_chunk_graph(self)
-      } else {
-        self.get_module_graph().modules().keys().copied().collect()
-      },
-    )?;
+    let code_generation_modules = if let Some(mutations) = self
+      .incremental
+      .mutations_read(IncrementalPasses::MODULES_CODEGEN)
+    {
+      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleRevoke { module } => Some(*module),
+        _ => None,
+      });
+      for revoked_module in revoked_modules {
+        self.code_generation_results.remove(&revoked_module);
+      }
+      mutations.get_affected_modules_with_chunk_graph(self)
+    } else {
+      self.get_module_graph().modules().keys().copied().collect()
+    };
+    self.code_generation(code_generation_modules)?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
+    let process_runtime_requirements_modules = if let Some(mutations) = self
+      .incremental
+      .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+    {
+      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ModuleRevoke { module } => Some(*module),
+        _ => None,
+      });
+      for revoked_module in revoked_modules {
+        self
+          .runtime_module_code_generation_results
+          .remove(&revoked_module);
+      }
+      mutations.get_affected_modules_with_chunk_graph(self)
+    } else {
+      self.get_module_graph().modules().keys().copied().collect()
+    };
     self
       .process_runtime_requirements(
-        if let Some(mutations) = self
-          .incremental
-          .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
-        {
-          mutations.get_affected_modules_with_chunk_graph(self)
-        } else {
-          self.get_module_graph().modules().keys().copied().collect()
-        },
+        process_runtime_requirements_modules,
         self
           .chunk_by_ukey
           .keys()

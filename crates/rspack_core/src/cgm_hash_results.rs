@@ -14,15 +14,11 @@ impl CgmHashResults {
     hashes.get(runtime)
   }
 
-  pub fn set(&mut self, module: ModuleIdentifier, runtime: RuntimeSpec, hash: RspackHashDigest) {
-    let hashes = self
-      .module_to_hashes
-      .entry(module)
-      .or_insert_with(RuntimeSpecMap::new);
-    hashes.set(runtime, hash);
-  }
-
   pub fn set_hashes(&mut self, module: ModuleIdentifier, hashes: RuntimeSpecMap<RspackHashDigest>) {
     self.module_to_hashes.insert(module, hashes);
+  }
+
+  pub fn remove(&mut self, module: &ModuleIdentifier) -> Option<RuntimeSpecMap<RspackHashDigest>> {
+    self.module_to_hashes.remove(module)
   }
 }
