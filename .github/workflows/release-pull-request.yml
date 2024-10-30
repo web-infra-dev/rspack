@@ -16,8 +16,10 @@ on:
       prerelease:
         type: choice
         description: "Pre Release Tag (alpha|beta|rc)"
-        required: false
+        required: true
+        default: "none"
         options:
+          - none
           - alpha
           - beta
           - rc

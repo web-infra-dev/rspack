@@ -42,7 +42,9 @@ export async function version_handler(version, options) {
 		);
 	}
 
-	if (pre && !allowPretags.includes(pre)) {
+	const hasPre = pre && pre !== "none";
+
+	if (hasPre && !allowPretags.includes(pre)) {
 		throw new Error(
 			`pre tag must be one of ${allowPretags}, but you passed ${pre}`
 		);
@@ -54,7 +56,7 @@ export async function version_handler(version, options) {
 	if (version === "snapshot") {
 		nextVersion = await getSnapshotVersion(semver.inc(lastVersion, "patch"));
 	} else {
-		if (pre) {
+		if (hasPre) {
 			const existsPreTag = allowPretags.find(i => lastVersion.includes(i));
 			if (existsPreTag) {
 				// has pre tag
