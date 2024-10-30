@@ -1,3 +1,4 @@
+use std::path::{Component, PathBuf};
 use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
@@ -417,12 +418,18 @@ impl SourceMapDevToolPlugin {
             let source_map_url = if let Some(public_path) = &self.public_path {
               format!("{public_path}{source_map_filename}")
             } else {
+              let mut file_path = PathBuf::new();
+              file_path.push(Component::RootDir);
+              file_path.extend(Path::new(filename.as_ref()).components());
+
+              let mut source_map_path = PathBuf::new();
+              source_map_path.push(Component::RootDir);
+              source_map_path.extend(Path::new(&source_map_filename).components());
+
               relative(
                 #[allow(clippy::unwrap_used)]
-                &Path::new(&format!("/{}", filename.as_ref()))
-                  .parent()
-                  .unwrap(),
-                &Path::new(&format!("/{}", &source_map_filename)),
+                file_path.parent().unwrap(),
+                &source_map_path,
               )
               .to_string_lossy()
               .to_string()

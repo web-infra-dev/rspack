@@ -8,5 +8,5 @@ it("source-map-filename/name should same", async function () {
 
 	const outputCode = await fs.readFile(__filename, 'utf-8');
 	const sourceMapPath = outputCode.match(/\/\/# sourceMappingURL=(.*)/)?.[1];
-	expect(sourceMapPath).toBe("maps/main.js.map");
+	expect(path.normalize(sourceMapPath)).toBe("maps/main.js.map");
 });
