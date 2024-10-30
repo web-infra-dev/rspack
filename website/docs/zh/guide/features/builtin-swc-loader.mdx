@@ -6,9 +6,11 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 ## 示例
 
-如果需要在项目中使用 `builtin:swc-loader`，需进行如下配置。
+如果需要在项目中使用 `builtin:swc-loader`，可以参考下面的示例进行配置。
 
-比如对 `ts` 文件进行转译：
+### TypeScript 转译
+
+比如对 `.ts` 文件进行转译：
 
 ```js
 module.exports = {
@@ -32,7 +34,9 @@ module.exports = {
 };
 ```
 
-或是对 `jsx` 文件进行转译：
+### JSX 转译
+
+对 React 的 `.jsx` 文件进行转译：
 
 ```js
 module.exports = {
@@ -67,7 +71,102 @@ module.exports = {
 };
 ```
 
-另外，你也可以直接参考 [`example-builtin-swc-loader`](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) 查看更多使用指南。
+### 语法降级
+
+SWC 提供了 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 和 [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) 来指定 JavaScript 语法降级的目标。
+
+#### jsc.target
+
+[jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 用于指定 ECMA 版本，例如 `es5`，`es2015`，`es2016` 等。
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              target: 'es2015',
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+#### env.targets
+
+[env.targets](https://swc.rs/docs/configuration/compilation#envtargets) 使用 [browserslist](https://github.com/browserslist/browserslist) 的语法来指定浏览器范围，例如：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+:::tip
+`jsc.target` 和 `env.targets` 不能同时配置，使用时根据需求选择其中一个即可。
+:::
+
+### Polyfill 注入
+
+当你在项目中使用高版本的 JavaScript 语法和 API 时，为了让编译后的代码能稳定运行在低版本的浏览器中，通常需要完成两部分降级：语法降级和 polyfill 注入。
+
+SWC 支持注入 [core-js](https://github.com/zloirock/core-js) 作为 API polyfill，可以通过 [env.mode](https://swc.rs/docs/configuration/compilation#envmode) 和 [env.coreJs](https://swc.rs/docs/configuration/compilation#envcorejs) 来配置：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              mode: 'usage',
+              coreJs: '3.26.1',
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## 类型声明
 
