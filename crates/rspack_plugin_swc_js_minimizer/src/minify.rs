@@ -165,7 +165,7 @@ pub fn minify(
 
           let comments = SingleThreadedComments::default();
 
-          let mut program = parse_js(
+          let program = parse_js(
             fm.clone(),
             target,
             Syntax::Es(EsSyntax {
@@ -214,10 +214,9 @@ pub fn minify(
 
           let program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
-              program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, false));
-
-              program.visit_mut_with(&mut paren_remover(Some(&comments as &dyn Comments)));
-
+              let program = program
+                .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+                .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
               let mut program = swc_ecma_minifier::optimize(
                 program,
                 cm.clone(),
@@ -234,8 +233,7 @@ pub fn minify(
               if !is_mangler_enabled {
                 program.visit_mut_with(&mut hygiene())
               }
-              program.visit_mut_with(&mut fixer(Some(&comments as &dyn Comments)));
-              program
+              program.apply(&mut fixer(Some(&comments as &dyn Comments)))
             })
           });
 

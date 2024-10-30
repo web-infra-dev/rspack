@@ -387,10 +387,7 @@ impl SwcCompiler {
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
         try_with_handler(self.cm.clone(), Default::default(), |handler| {
-          HANDLER.set(handler, || {
-            let program = program.apply(&mut pass);
-            Ok(program)
-          })
+          HANDLER.set(handler, || Ok(program.apply(&mut pass)))
         })
       })
     });
