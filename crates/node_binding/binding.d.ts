@@ -1043,6 +1043,16 @@ export interface NodeFS {
   mkdirp: (...args: any[]) => any
 }
 
+export interface NodeFsStats {
+  isFile: boolean
+  isDirectory: boolean
+  atimeMs: number
+  mtimeMs: number
+  ctimeMs: number
+  birthtimeMs: number
+  size: number
+}
+
 export interface PathWithInfo {
   path: string
   info: JsAssetInfo
@@ -2017,5 +2027,9 @@ export interface ThreadsafeNodeFS {
   mkdir: (name: string) => Promise<void> | void
   mkdirp: (name: string) => Promise<string | void> | string | void
   removeDirAll: (name: string) => Promise<string | void> | string | void
+  readDir: (name: string) => Promise<string[] | void> | string[] | void
+  readFile: (name: string, options: NodeFsReadFileOptions) => Promise<Buffer | string | void> | Buffer | string | void
+  stat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
+  lstat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
 }
 
