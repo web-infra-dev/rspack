@@ -2028,7 +2028,7 @@ export interface ThreadsafeNodeFS {
   mkdirp: (name: string) => Promise<string | void> | string | void
   removeDirAll: (name: string) => Promise<string | void> | string | void
   readDir: (name: string) => Promise<string[] | void> | string[] | void
-  readFile: (name: string, options: NodeFsReadFileOptions) => Promise<Buffer | string | void> | Buffer | string | void
+  readFile: (name: string) => Promise<Buffer | string | void> | Buffer | string | void
   stat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
   lstat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
 }

@@ -75,9 +75,7 @@ pub struct ThreadsafeNodeFS {
   pub remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
   #[napi(ts_type = "(name: string) => Promise<string[] | void> | string[] | void")]
   pub read_dir: ThreadsafeFunction<String, Either<Vec<String>, ()>>,
-  #[napi(
-    ts_type = "(name: string, options: NodeFsReadFileOptions) => Promise<Buffer | string | void> | Buffer | string | void"
-  )]
+  #[napi(ts_type = "(name: string) => Promise<Buffer | string | void> | Buffer | string | void")]
   pub read_file: ThreadsafeFunction<String, Either3<Buffer, String, ()>>,
   #[napi(ts_type = "(name: string) => Promise<NodeFsStats | void> | NodeFsStats | void")]
   pub stat: ThreadsafeFunction<String, Either<NodeFsStats, ()>>,

@@ -380,22 +380,20 @@ impl Compiler {
       } else if immutable {
         // do not write when asset is immutable and the file exists
         false
-      } else {
-        if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
-          match self
-            .output_filesystem
-            .read_file(file_path.as_path().as_ref())
-            .await
-          {
-            // write when content is different
-            Ok(c) => content != c,
-            // write when file can not be read
-            Err(_) => true,
-          }
-        } else {
-          // write if content length is different
-          true
+      } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
+        match self
+          .output_filesystem
+          .read_file(file_path.as_path().as_ref())
+          .await
+        {
+          // write when content is different
+          Ok(c) => content != c,
+          // write when file can not be read
+          Err(_) => true,
         }
+      } else {
+        // write if content length is different
+        true
       };
 
       if need_write {

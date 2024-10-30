@@ -86,12 +86,8 @@ impl AsyncWritableFileSystem for AsyncNativeFileSystem {
     let fut = async move {
       let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
       let mut res = vec![];
-      loop {
-        if let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
-          res.push(entry.file_name().to_string_lossy().to_string());
-        } else {
-          break;
-        }
+      while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
+        res.push(entry.file_name().to_string_lossy().to_string());
       }
       Ok(res)
     };
