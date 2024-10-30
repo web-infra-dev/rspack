@@ -29,6 +29,7 @@
   "files": [
     "client",
     "dist",
+    "template",
     "jest.d.ts"
   ],
   "publishConfig": {
