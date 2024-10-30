@@ -26,12 +26,15 @@ pub fn relative(from: &Path, to: &Path) -> PathBuf {
     return PathBuf::new();
   }
 
+  let is_from_absolute = matches!(from.components().next(), Some(Component::RootDir));
+  let is_to_absolute = matches!(to.components().next(), Some(Component::RootDir));
+
   // At this point the path should be resolved to a full absolute path, but
   // handle relative paths to be safe
 
   // Normalize the path
-  let from = normalize(from.components(), !from.is_absolute());
-  let to = normalize(to.components(), !to.is_absolute());
+  let from = normalize(from.components(), !is_from_absolute);
+  let to = normalize(to.components(), !is_to_absolute);
 
   let mut from_iter = from.iter();
   let mut to_iter = to.iter();
