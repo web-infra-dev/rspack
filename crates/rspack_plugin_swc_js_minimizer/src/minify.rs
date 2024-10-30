@@ -35,7 +35,7 @@ use swc_core::{
       hygiene::hygiene,
       resolver,
     },
-    visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith},
+    visit::{noop_visit_type, Visit, VisitMutWith, VisitWith},
   },
 };
 use swc_ecma_minifier::{
@@ -165,7 +165,7 @@ pub fn minify(
 
           let comments = SingleThreadedComments::default();
 
-          let program = parse_js(
+          let mut program = parse_js(
             fm.clone(),
             target,
             Syntax::Es(EsSyntax {
@@ -214,9 +214,9 @@ pub fn minify(
 
           let program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
-              let program = program
-                .fold_with(&mut resolver(unresolved_mark, top_level_mark, false))
-                .fold_with(&mut paren_remover(Some(&comments as &dyn Comments)));
+              program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, false));
+
+              program.visit_mut_with(&mut paren_remover(Some(&comments as &dyn Comments)));
 
               let mut program = swc_ecma_minifier::optimize(
                 program,
@@ -234,7 +234,8 @@ pub fn minify(
               if !is_mangler_enabled {
                 program.visit_mut_with(&mut hygiene())
               }
-              program.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+              program.visit_mut_with(&mut fixer(Some(&comments as &dyn Comments)));
+              program
             })
           });
 

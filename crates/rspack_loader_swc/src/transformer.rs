@@ -2,9 +2,9 @@ use either::Either;
 use swc_core::atoms::Atom;
 use swc_core::common::collections::AHashMap;
 use swc_core::common::BytePos;
-use swc_core::ecma::ast::Ident;
+use swc_core::ecma::ast::Pass;
+use swc_core::ecma::ast::{noop_pass, Ident};
 use swc_core::ecma::visit::{noop_visit_type, Visit};
-use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
 
 use crate::options::RspackExperiments;
 
@@ -14,7 +14,7 @@ macro_rules! either {
       #[allow(clippy::redundant_closure_call)]
       Either::Left($f(config))
     } else {
-      Either::Right(noop())
+      Either::Right(noop_pass())
     }
   };
   ($config:expr, $f:expr, $enabled:expr) => {
@@ -27,7 +27,7 @@ macro_rules! either {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Fold + '_ {
+pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Pass + '_ {
   either!(rspack_experiments.import, |options| {
     swc_plugin_import::plugin_import(options)
   })
