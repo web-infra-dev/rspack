@@ -41,7 +41,7 @@ impl std::fmt::Debug for ProgressPluginOptions {
   }
 }
 
-static MULTI_PROGRESS: LazyLock<MultiProgress> = LazyLock::new(|| MultiProgress::new());
+static MULTI_PROGRESS: LazyLock<MultiProgress> = LazyLock::new(MultiProgress::new);
 #[derive(Debug, Default)]
 pub struct ProgressPluginDisplayOptions {
   // the prefix name of progress bar
