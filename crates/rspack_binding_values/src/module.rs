@@ -128,33 +128,33 @@ impl JsModule {
   pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
     let module = self.as_ref()?;
 
-    match module.get_context() {
-      Some(ctx) => Ok(Either::A(ctx.to_string())),
-      None => Ok(Either::B(())),
-    }
+    Ok(match module.get_context() {
+      Some(ctx) => Either::A(ctx.to_string()),
+      None => Either::B(()),
+    })
   }
 
   #[napi(getter)]
   pub fn original_source(&mut self) -> napi::Result<Either<JsCompatSource, ()>> {
     let module = self.as_ref()?;
 
-    match module.original_source() {
+    Ok(match module.original_source() {
       Some(source) => match source.to_js_compat_source().ok() {
-        Some(s) => Ok(Either::A(s)),
-        None => Ok(Either::B(())),
+        Some(s) => Either::A(s),
+        None => Either::B(()),
       },
-      None => Ok(Either::B(())),
-    }
+      None => Either::B(()),
+    })
   }
 
   #[napi(getter)]
   pub fn resource(&mut self) -> napi::Result<Either<&String, ()>> {
     let module = self.as_ref()?;
 
-    match module.try_as_normal_module() {
-      Ok(normal_module) => Ok(Either::A(&normal_module.resource_resolved_data().resource)),
-      Err(_) => Ok(Either::B(())),
-    }
+    Ok(match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(&normal_module.resource_resolved_data().resource),
+      Err(_) => Either::B(()),
+    })
   }
 
   #[napi(getter)]
@@ -168,55 +168,55 @@ impl JsModule {
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
     let module = self.as_ref()?;
 
-    match module.name_for_condition() {
-      Some(s) => Ok(Either::A(s.to_string())),
-      None => Ok(Either::B(())),
-    }
+    Ok(match module.name_for_condition() {
+      Some(s) => Either::A(s.to_string()),
+      None => Either::B(()),
+    })
   }
 
   #[napi(getter)]
   pub fn request(&mut self) -> napi::Result<Either<&str, ()>> {
     let module = self.as_ref()?;
 
-    match module.try_as_normal_module() {
-      Ok(normal_module) => Ok(Either::A(normal_module.request())),
-      Err(_) => Ok(Either::B(())),
-    }
+    Ok(match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.request()),
+      Err(_) => Either::B(()),
+    })
   }
 
   #[napi(getter)]
   pub fn user_request(&mut self) -> napi::Result<Either<&str, ()>> {
     let module = self.as_ref()?;
 
-    match module.try_as_normal_module() {
-      Ok(normal_module) => Ok(Either::A(normal_module.user_request())),
-      Err(_) => Ok(Either::B(())),
-    }
+    Ok(match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.user_request()),
+      Err(_) => Either::B(()),
+    })
   }
 
   #[napi(getter)]
   pub fn raw_request(&mut self) -> napi::Result<Either<&str, ()>> {
     let module = self.as_ref()?;
 
-    match module.try_as_normal_module() {
-      Ok(normal_module) => Ok(Either::A(normal_module.raw_request())),
-      Err(_) => Ok(Either::B(())),
-    }
+    Ok(match module.try_as_normal_module() {
+      Ok(normal_module) => Either::A(normal_module.raw_request()),
+      Err(_) => Either::B(()),
+    })
   }
 
   #[napi(getter)]
   pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
     let module = self.as_ref()?;
 
-    match module.try_as_normal_module() {
+    Ok(match module.try_as_normal_module() {
       Ok(normal_module) => match normal_module.factory_meta() {
-        Some(meta) => Ok(Either::A(JsFactoryMeta {
+        Some(meta) => Either::A(JsFactoryMeta {
           side_effect_free: meta.side_effect_free,
-        })),
-        None => Ok(Either::B(())),
+        }),
+        None => Either::B(()),
       },
-      Err(_) => Ok(Either::B(())),
-    }
+      Err(_) => Either::B(()),
+    })
   }
 
   #[napi(getter)]
@@ -230,10 +230,10 @@ impl JsModule {
   pub fn layer(&mut self) -> napi::Result<Either<&String, ()>> {
     let module = self.as_ref()?;
 
-    match module.get_layer() {
-      Some(layer) => Ok(Either::A(layer)),
-      None => Ok(Either::B(())),
-    }
+    Ok(match module.get_layer() {
+      Some(layer) => Either::A(layer),
+      None => Either::B(()),
+    })
   }
 
   #[napi(getter)]
@@ -258,16 +258,10 @@ impl JsModule {
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
     let module = self.as_ref()?;
+    let compilation = compilation.map(|c| unsafe { c.as_ref() });
 
-    Ok(match self.compilation {
-      Some(compilation) => {
-        let compilation = unsafe { compilation.as_ref() };
-
-        let ty = ty.map(|s| SourceType::from(s.as_str()));
-        module.size(ty.as_ref(), Some(compilation))
-      }
-      None => 0f64, // TODO fix
-    })
+    let ty = ty.map(|s| SourceType::from(s.as_str()));
+    Ok(module.size(ty.as_ref(), Some(compilation)))
   }
 
   #[napi(getter, ts_return_type = "JsModule[] | undefined")]
