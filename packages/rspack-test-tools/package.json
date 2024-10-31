@@ -119,6 +119,6 @@
     "wast-loader": "^1.12.1"
   },
   "peerDependencies": {
-    "@rspack/core": ">=0.7.0"
+    "@rspack/core": ">=1.0.14"
   }
 }
