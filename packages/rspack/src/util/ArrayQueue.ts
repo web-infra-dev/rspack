@@ -77,35 +77,11 @@ class ArrayQueue<T> {
 		}
 	}
 
-	[Symbol.iterator]() {
-		let i = -1;
-		let reversed = false;
-		return {
-			next: () => {
-				if (!reversed) {
-					i++;
-					if (i < this._list.length) {
-						return {
-							done: false,
-							value: this._list[i]
-						};
-					}
-					reversed = true;
-					i = this._listReversed.length;
-				}
-				i--;
-				if (i < 0) {
-					return {
-						done: true,
-						value: undefined
-					};
-				}
-				return {
-					done: false,
-					value: this._listReversed[i]
-				};
-			}
-		};
+	*[Symbol.iterator]() {
+		yield* this._list;
+		for (let i = this._listReversed.length - 1; i >= 0; i--) {
+			yield this._listReversed[i];
+		}
 	}
 }
 
