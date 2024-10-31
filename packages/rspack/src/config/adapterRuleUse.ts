@@ -252,23 +252,24 @@ type GetLoaderOptions = (
 	options: ComposeJsUseOptions
 ) => RuleSetLoaderWithOptions["options"];
 
-const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
-	if (o && typeof o === "object") {
+const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
+	if (options && typeof options === "object") {
 		// enable `disableAllLints` by default to reduce performance overhead
-		o.jsc ??= {};
-		o.jsc.experimental ??= {};
-		o.jsc.experimental.disableAllLints ??= true;
+		options.jsc ??= {};
+		options.jsc.experimental ??= {};
+		options.jsc.experimental.disableAllLints ??= true;
 
 		// resolve `rspackExperiments.import` options
-		const { rspackExperiments } = o;
+		const { rspackExperiments } = options;
 		if (rspackExperiments) {
-			const expr = rspackExperiments;
-			if (expr.import || expr.pluginImport) {
-				expr.import = resolvePluginImport(expr.import || expr.pluginImport);
+			if (rspackExperiments.import || rspackExperiments.pluginImport) {
+				rspackExperiments.import = resolvePluginImport(
+					rspackExperiments.import || rspackExperiments.pluginImport
+				);
 			}
 		}
 	}
-	return o;
+	return options;
 };
 
 const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
