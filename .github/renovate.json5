@@ -109,13 +109,13 @@
 			"groupName": "npm dependencies",
 			"matchManagers": ["npm"],
 			"matchDepTypes": ["dependencies"],
-			// bump major in a separate PR
-			"matchUpdateTypes": ["patch", "minor"],
 			"excludePackageNames": [
 				"@rspack/dev-server",
 				"@rspack/plugin-react-refresh",
 				"@rspack/plugin-preact-refresh"
-			]
+			],
+			// bump major in a separate PR
+			"matchUpdateTypes": ["patch", "minor"]
 		},
 		{
 			"groupName": "webpack",
