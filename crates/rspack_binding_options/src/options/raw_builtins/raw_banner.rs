@@ -3,10 +3,7 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::JsChunk;
 use rspack_error::Result;
-use rspack_napi::{
-  regexp::{JsRegExp, JsRegExpExt},
-  threadsafe_function::ThreadsafeFunction,
-};
+use rspack_napi::{threadsafe_function::ThreadsafeFunction, JsRegExp};
 use rspack_plugin_banner::{
   BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
 };
@@ -75,7 +72,7 @@ impl From<RawBannerRuleWrapper> for BannerRule {
   fn from(x: RawBannerRuleWrapper) -> Self {
     match x.0 {
       Either::A(s) => BannerRule::String(s),
-      Either::B(r) => BannerRule::Regexp(r.to_rspack_regex()),
+      Either::B(r) => BannerRule::Regexp(r.into()),
     }
   }
 }

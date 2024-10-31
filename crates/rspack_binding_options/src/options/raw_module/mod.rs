@@ -19,8 +19,8 @@ use rspack_core::{
   ParserOptionsMap,
 };
 use rspack_error::error;
-use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_napi::JsRegExp;
 use rspack_regex::RspackRegex;
 
 use crate::RawResolveOptions;
@@ -306,7 +306,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       expr_context_critical: value.expr_context_critical,
       wrapped_context_reg_exp: value
         .wrapped_context_reg_exp
-        .map(|context_reg_exp| context_reg_exp.to_rspack_regex()),
+        .map(|context_reg_exp| context_reg_exp.into()),
       wrapped_context_critical: value.wrapped_context_critical,
       exports_presence: value
         .exports_presence
@@ -888,7 +888,7 @@ impl From<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
   fn from(x: RawModuleNoParseRuleWrapper) -> Self {
     match x.0 {
       Either3::A(v) => Self::AbsPathPrefix(v),
-      Either3::B(v) => Self::Regexp(v.to_rspack_regex()),
+      Either3::B(v) => Self::Regexp(v.into()),
       Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(v)),
     }
   }

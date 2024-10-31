@@ -5,8 +5,8 @@ use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_napi::JsRegExp;
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
@@ -97,7 +97,7 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
   fn try_from(value: RawExternalItemWrapper) -> rspack_error::Result<Self> {
     match value.0 {
       Either4::A(v) => Ok(Self::String(v)),
-      Either4::B(v) => Ok(Self::RegExp(v.to_rspack_regex())),
+      Either4::B(v) => Ok(Self::RegExp(v.into())),
       Either4::C(v) => Ok(Self::Object(
         v.into_iter()
           .map(|(k, v)| (k, RawExternalItemValueWrapper(v).into()))

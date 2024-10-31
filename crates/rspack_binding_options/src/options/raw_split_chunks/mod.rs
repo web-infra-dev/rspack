@@ -13,9 +13,10 @@ use raw_split_chunk_name::RawChunkOptionName;
 use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
-use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::string::JsStringExt;
+use rspack_napi::JsRegExp;
 use rspack_plugin_split_chunks::ChunkNameGetter;
+use rspack_regex::RspackRegex;
 
 use self::raw_split_chunk_cache_group_test::default_cache_group_test;
 use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
@@ -287,7 +288,7 @@ fn create_module_type_filter(
 ) -> rspack_plugin_split_chunks::ModuleTypeFilter {
   match raw {
     Either::A(js_reg) => {
-      let regex = js_reg.to_rspack_regex();
+      let regex: RspackRegex = js_reg.into();
       Arc::new(move |m| regex.test(m.module_type().as_str()))
     }
     Either::B(js_str) => {
@@ -302,7 +303,7 @@ fn create_module_layer_filter(
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
     Either::A(js_reg) => {
-      let regex = js_reg.to_rspack_regex();
+      let regex: RspackRegex = js_reg.into();
       Arc::new(move |m| {
         m.get_layer()
           .map(|layer| regex.test(layer))

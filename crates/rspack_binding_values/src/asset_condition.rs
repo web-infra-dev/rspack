@@ -1,5 +1,5 @@
 use napi::Either;
-use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
+use rspack_napi::JsRegExp;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 
 pub type RawAssetCondition = Either<String, JsRegExp>;
@@ -12,7 +12,7 @@ impl From<RawAssetConditionWrapper> for AssetCondition {
   fn from(x: RawAssetConditionWrapper) -> Self {
     match x.0 {
       Either::A(v) => Self::String(v),
-      Either::B(v) => Self::Regexp(v.to_rspack_regex()),
+      Either::B(v) => Self::Regexp(v.into()),
     }
   }
 }

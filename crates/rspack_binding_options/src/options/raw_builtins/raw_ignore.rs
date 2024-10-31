@@ -1,8 +1,5 @@
 use napi_derive::napi;
-use rspack_napi::{
-  regexp::{JsRegExp, JsRegExpExt},
-  threadsafe_function::ThreadsafeFunction,
-};
+use rspack_napi::{threadsafe_function::ThreadsafeFunction, JsRegExp};
 use rspack_plugin_ignore::{CheckResourceContent, IgnorePluginOptions};
 
 type RawCheckResource = ThreadsafeFunction<(String, String), bool>;
@@ -23,10 +20,10 @@ impl From<RawIgnorePluginOptions> for IgnorePluginOptions {
     Self {
       resource_reg_exp: value
         .resource_reg_exp
-        .map(|resource_reg_exp| resource_reg_exp.to_rspack_regex()),
+        .map(|resource_reg_exp| resource_reg_exp.into()),
       context_reg_exp: value
         .context_reg_exp
-        .map(|context_reg_exp| context_reg_exp.to_rspack_regex()),
+        .map(|context_reg_exp| context_reg_exp.into()),
 
       check_resource: value.check_resource.map(|check_resource| {
         CheckResourceContent::Fn(Box::new(move |resource, context| {

@@ -4,6 +4,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
   sys, Env, Error, JsFunction, JsObject, NapiRaw, NapiValue, Result, Status,
 };
+use rspack_regex::RspackRegex;
 
 pub struct JsRegExp(JsObject);
 
@@ -75,5 +76,19 @@ impl FromNapiValue for JsRegExp {
         ),
       ))
     }
+  }
+}
+
+impl From<JsRegExp> for RspackRegex {
+  fn from(value: JsRegExp) -> Self {
+    let pat = value.source();
+    let flags = value.flags();
+
+    Self::with_flags(&pat, &flags).unwrap_or_else(|_| {
+      panic!(
+        "Try convert {:?} to RspackRegex with flags: {:?} failed",
+        pat, flags
+      )
+    })
   }
 }
