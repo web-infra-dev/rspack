@@ -1314,7 +1314,7 @@ export type ExternalItemValue =
 	| string[]
 	| {
 			/**
-			 * only available when libraryTarget or externalsType is 'umd'
+			 * only available when libraryTarget and externalsType is 'umd'
 			 */
 			root: string | string[];
 			commonjs: string | string[];
