@@ -218,6 +218,10 @@ impl AmdDefineDependency {
       local_module,
     }
   }
+
+  pub fn get_local_module_mut(&mut self) -> Option<&mut LocalModule> {
+    self.local_module.as_mut()
+  }
 }
 
 impl Dependency for AmdDefineDependency {

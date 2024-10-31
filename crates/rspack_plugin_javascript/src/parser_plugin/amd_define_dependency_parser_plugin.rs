@@ -191,10 +191,11 @@ impl AMDDefineDependencyParserPlugin {
           Some(RuntimeGlobals::MODULE),
         ))
       } else if let Some(local_module) =
-        parser.get_local_module(&resolve_mod_name(named_module, param_str))
+        parser.get_local_module_mut(&resolve_mod_name(named_module, param_str))
       {
+        local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(
-          local_module,
+          local_module.clone(),
           Some((range.0, range.1)),
           false,
         ));
@@ -578,5 +579,25 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
     } else {
       None
     }
+  }
+
+  /**
+   * unlike js, it's hard to share the LocalModule instance in Rust.
+   * so the AmdDefineDependency will get a clone of LocalModule in parser.local_modules.
+   * synchronize the used flag to the AmdDefineDependency's local_module at the end of the parse.
+   */
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+    for dep in parser.presentational_dependencies.iter_mut() {
+      if let Some(define_dep) = dep.as_any_mut().downcast_mut::<AmdDefineDependency>()
+        && let Some(local_module) = define_dep.get_local_module_mut()
+        && parser
+          .local_modules
+          .get(local_module.get_idx())
+          .is_some_and(|m| m.is_used())
+      {
+        local_module.flag_used();
+      }
+    }
+    None
   }
 }

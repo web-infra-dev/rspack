@@ -31,4 +31,8 @@ impl LocalModule {
   pub fn get_name(&self) -> &Atom {
     &self.name
   }
+
+  pub fn get_idx(&self) -> usize {
+    self.idx
+  }
 }

@@ -395,8 +395,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn add_local_module(&mut self, name: &str) -> LocalModule {
-    let mut m = LocalModule::new(name.into(), self.local_modules.len());
-    m.flag_used(); // TODO: LocalModule should be shared
+    let m = LocalModule::new(name.into(), self.local_modules.len());
     self.local_modules.push(m.clone());
     m
   }
@@ -405,6 +404,15 @@ impl<'parser> JavascriptParser<'parser> {
     for m in self.local_modules.iter() {
       if m.get_name() == name {
         return Some(m.clone());
+      }
+    }
+    None
+  }
+
+  pub fn get_local_module_mut(&mut self, name: &str) -> Option<&mut LocalModule> {
+    for m in self.local_modules.iter_mut() {
+      if m.get_name() == name {
+        return Some(m);
       }
     }
     None
