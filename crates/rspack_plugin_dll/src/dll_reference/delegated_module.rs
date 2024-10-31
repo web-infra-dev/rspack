@@ -44,7 +44,6 @@ impl DelegatedModule {
   ) -> Self {
     Self {
       source_request,
-      // TODO: remove the clone
       request: data.id.clone(),
       delegation_type,
       user_request,
@@ -147,8 +146,10 @@ impl Module for DelegatedModule {
           )
         );
 
-        // TODO: get request
-        let request = self.request.as_ref().expect("TODO: it should have request");
+        let request = self
+          .request
+          .as_ref()
+          .expect("manifest content should have `id`.");
 
         match self.delegation_type.as_ref() {
           "require" => {
