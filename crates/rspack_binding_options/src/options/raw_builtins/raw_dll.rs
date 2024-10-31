@@ -1,6 +1,8 @@
 use napi_derive::napi;
 use rspack_binding_values::JsFilename;
-use rspack_plugin_dll::{DllEntryPluginOptions, LibManifestPluginOptions};
+use rspack_plugin_dll::{
+  DllEntryPluginOptions, DllReferencePluginAgencyOptions, LibManifestPluginOptions,
+};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -34,7 +36,7 @@ pub struct RawLibManifestPluginOptions {
   pub name: Option<JsFilename>,
   pub path: JsFilename,
   pub format: Option<bool>,
-  pub ty: Option<String>,
+  pub r#type: Option<String>,
 }
 
 impl From<RawLibManifestPluginOptions> for LibManifestPluginOptions {
@@ -44,7 +46,7 @@ impl From<RawLibManifestPluginOptions> for LibManifestPluginOptions {
       entry_only,
       name,
       path,
-      ty,
+      r#type,
       format,
     } = value;
 
@@ -54,7 +56,46 @@ impl From<RawLibManifestPluginOptions> for LibManifestPluginOptions {
       entry_only,
       name: name.map(|n| n.into()),
       path: path.into(),
-      ty,
+      r#type,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawDllReferencePluginAgencyOptions {
+  pub context: Option<String>,
+  pub name: Option<String>,
+  pub extensions: Vec<String>,
+  pub scope: Option<String>,
+  pub source_type: Option<String>,
+  pub r#type: String,
+  pub content: Option<String>,
+  pub manifest: Option<String>,
+}
+
+impl From<RawDllReferencePluginAgencyOptions> for DllReferencePluginAgencyOptions {
+  fn from(value: RawDllReferencePluginAgencyOptions) -> Self {
+    let RawDllReferencePluginAgencyOptions {
+      context,
+      name,
+      extensions,
+      scope,
+      source_type,
+      r#type,
+      content,
+      manifest,
+    } = value;
+
+    Self {
+      context: context.map(|ctx| ctx.into()),
+      name,
+      extensions,
+      scope,
+      source_type,
+      r#type,
+      content,
+      manifest,
     }
   }
 }

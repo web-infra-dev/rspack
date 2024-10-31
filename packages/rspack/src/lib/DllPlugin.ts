@@ -83,6 +83,8 @@ export class DllPlugin {
 
 				new DllEntryPlugin(context, entries, options).apply(compiler);
 			}
+
+			return true;
 		});
 
 		new LibManifestPlugin(this.options).apply(compiler);

@@ -1,7 +1,7 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   get_entry_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeDependencies,
-  CompilerOptions, FactoryMeta, Plugin, PluginContext, RuntimeSpec,
+  CompilerOptions, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -20,14 +20,14 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
       .context
       .compilation_hooks
       .optimize_dependencies
-      .tap(optimze_dependencies::new(self));
+      .tap(optimize_dependencies::new(self));
 
     Ok(())
   }
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagAllModulesAsUsedPlugin)]
-fn optimze_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let entries = &compilation.entries;
 
   let runtime = compilation
@@ -37,17 +37,20 @@ fn optimze_dependencies(&self, compilation: &mut Compilation) -> Result<Option<b
     .fold(RuntimeSpec::default(), |a, b| merge_runtime(&a, &b));
 
   let mut mg = compilation.get_module_graph_mut();
-  let modules_id: IdentifierSet = mg.modules().keys().cloned().collect();
 
-  for module_id in modules_id {
+  let module_id_list: IdentifierSet = mg.modules().keys().cloned().collect();
+
+  for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);
     exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
+
     // TODO: module_graph add extra reason
-    if let Some(module) = mg.module_by_identifier_mut(&module_id) {
-      module.set_factory_meta(FactoryMeta {
-        side_effect_free: Some(false),
-      })
-    };
+    // FIXME Panic: we can not find module in active_partial
+    // if let Some(module) = mg.module_by_identifier_mut(&module_id) {
+    //   module.set_factory_meta(FactoryMeta {
+    //     side_effect_free: Some(false),
+    //   })
+    // };
   }
 
   Ok(None)

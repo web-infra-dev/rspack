@@ -16,6 +16,7 @@ mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
+use raw_dll::RawDllReferencePluginAgencyOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use rspack_binding_values::entry::JsEntryPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
@@ -35,7 +36,9 @@ use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
   SourceMapDevToolPluginOptions,
 };
-use rspack_plugin_dll::{DllEntryPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin};
+use rspack_plugin_dll::{
+  DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin,
+};
 use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
@@ -171,6 +174,7 @@ pub enum BuiltinPluginName {
   NoEmitOnErrorsPlugin,
   ContextReplacementPlugin,
   DllEntryPlugin,
+  DllReferenceAgencyPlugin,
   LibManifestPlugin,
   FlagAllModulesAsUsedPlugin,
 
@@ -533,6 +537,11 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::FlagAllModulesAsUsedPlugin => {
         plugins.push(FlagAllModulesAsUsedPlugin::default().boxed())
+      }
+      BuiltinPluginName::DllReferenceAgencyPlugin => {
+        let raw_options = downcast_into::<RawDllReferencePluginAgencyOptions>(self.options)?;
+        let options = raw_options.into();
+        plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
       }
     }
     Ok(())

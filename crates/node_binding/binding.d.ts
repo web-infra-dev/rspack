@@ -302,6 +302,7 @@ export enum BuiltinPluginName {
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
   ContextReplacementPlugin = 'ContextReplacementPlugin',
   DllEntryPlugin = 'DllEntryPlugin',
+  DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
   LibManifestPlugin = 'LibManifestPlugin',
   FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
@@ -1037,13 +1038,6 @@ export interface JsTap {
   stage: number
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface PathWithInfo {
   path: string
   info: JsAssetInfo
@@ -1279,6 +1273,17 @@ export interface RawDllEntyPluginOptions {
   name: string
 }
 
+export interface RawDllReferencePluginAgencyOptions {
+  context?: string
+  name?: string
+  extensions: Array<string>
+  scope?: string
+  sourceType?: string
+  type: string
+  content?: string
+  manifest?: string
+}
+
 export interface RawDraft {
   customMedia: boolean
 }
@@ -1489,7 +1494,7 @@ export interface RawLibManifestPluginOptions {
   name?: JsFilename
   path: JsFilename
   format?: boolean
-  ty?: string
+  type?: string
 }
 
 export interface RawLightningCssBrowsers {

@@ -15,7 +15,7 @@ use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::concatenated_module::ConcatenatedModule;
 use crate::dependencies_block::dependencies_block_update_hash;
@@ -79,7 +79,7 @@ impl Default for BuildInfo {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -89,7 +89,7 @@ pub enum BuildMetaExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy, Hash, Deserialize)]
 pub enum ExportsType {
   DefaultOnly,
   Namespace,
@@ -97,7 +97,7 @@ pub enum ExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize, Deserialize)]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -111,7 +111,7 @@ pub enum BuildMetaDefaultObject {
   },
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize, Deserialize)]
 pub enum ModuleArgument {
   #[default]
   Module,
@@ -127,7 +127,7 @@ impl Display for ModuleArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExportsArgument {
   #[default]
   Exports,
@@ -143,7 +143,7 @@ impl Display for ExportsArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Hash, Serialize)]
+#[derive(Debug, Default, Clone, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BuildMeta {
   pub strict_esm_module: bool,

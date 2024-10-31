@@ -1,6 +1,6 @@
 use rspack_core::{
-  AffectType, AsContextDependency, AsDependencyTemplate, AsModuleDependency, Context, Dependency,
-  DependencyId, DependencyType,
+  AffectType, AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyId,
+  DependencyType, ModuleDependency,
 };
 
 use crate::DllEntryPluginOptions;
@@ -11,7 +11,7 @@ pub struct DllEntryDependency {
 
   pub entries: Vec<String>,
 
-  // TODO: pass by serialize & deserialize.
+  // TODO: The fiedls `name` for serialize & deserialize.
   pub name: String,
 
   id: DependencyId,
@@ -34,6 +34,14 @@ impl DllEntryDependency {
   }
 }
 
+// It would not create module by rspack,if depdency is not ModuleDependency.
+// So we impl ModuleDepedency for [DllEntryDependency]
+impl ModuleDependency for DllEntryDependency {
+  fn request(&self) -> &str {
+    "dll main"
+  }
+}
+
 impl Dependency for DllEntryDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -48,7 +56,7 @@ impl Dependency for DllEntryDependency {
   }
 }
 
-impl AsModuleDependency for DllEntryDependency {}
+// impl AsModuleDependency for DllEntryDependency {}
 
 impl AsContextDependency for DllEntryDependency {}
 

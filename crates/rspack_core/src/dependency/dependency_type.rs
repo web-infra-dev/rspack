@@ -102,6 +102,7 @@ pub enum DependencyType {
   LazyImport,
   ModuleDecorator,
   DllEntry,
+  DelegatedSource,
   Custom(&'static str),
 }
 
@@ -168,6 +169,7 @@ impl DependencyType {
       DependencyType::WebpackIsIncluded => "__webpack_is_included__",
       DependencyType::LazyImport => "lazy import()",
       DependencyType::ModuleDecorator => "module decorator",
+      DependencyType::DelegatedSource => "delegated source",
     }
   }
 }

@@ -1385,7 +1385,7 @@ export class DllPlugin {
 }
 
 // @public (undocumented)
-type DllPluginOptions = {
+export type DllPluginOptions = {
     context?: string;
     entryOnly?: boolean;
     format?: boolean;
@@ -1393,6 +1393,53 @@ type DllPluginOptions = {
     path: string;
     type?: string;
 };
+
+// @public (undocumented)
+export class DllReferencePlugin {
+    constructor(options: DllReferencePluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
+export type DllReferencePluginOptions = {
+    context?: string;
+    extensions?: string[];
+    manifest: string | DllReferencePluginOptionsManifest;
+    name?: string;
+    scope?: string;
+    sourceType?: DllReferencePluginOptionsSourceType;
+    type?: "require" | "object";
+} | {
+    content: DllReferencePluginOptionsContent;
+    context?: string;
+    extensions?: string[];
+    name: string;
+    scope?: string;
+    sourceType?: DllReferencePluginOptionsSourceType;
+    type?: "require" | "object";
+};
+
+// @public
+export interface DllReferencePluginOptionsContent {
+    [k: string]: {
+        buildMeta?: {
+            [k: string]: any;
+        };
+        exports?: string[] | true;
+        id: number | string;
+    };
+}
+
+// @public
+export interface DllReferencePluginOptionsManifest {
+    content: DllReferencePluginOptionsContent;
+    name?: string;
+    type?: DllReferencePluginOptionsSourceType;
+}
+
+// @public
+export type DllReferencePluginOptionsSourceType = "var" | "assign" | "this" | "window" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
 
 // @public (undocumented)
 interface Drafts {
@@ -4452,6 +4499,12 @@ declare namespace rspackExports {
         HotModuleReplacementPlugin,
         NoEmitOnErrorsPlugin,
         DllPlugin,
+        DllPluginOptions,
+        DllReferencePlugin,
+        DllReferencePluginOptions,
+        DllReferencePluginOptionsSourceType,
+        DllReferencePluginOptionsContent,
+        DllReferencePluginOptionsManifest,
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,

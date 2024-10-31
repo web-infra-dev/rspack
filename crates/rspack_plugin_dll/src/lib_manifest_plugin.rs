@@ -1,16 +1,17 @@
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource},
-  ApplyContext, BuildMeta, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
-  Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports, SourceType,
+  ApplyContext, Compilation, CompilationAssets, CompilerEmit, CompilerOptions, Context,
+  EntryDependency, Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports,
+  SourceType,
 };
 use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::atom::Atom;
-use serde::Serialize;
+use rustc_hash::FxHashMap as HashMap;
+
+use crate::{DllManifest, DllManifestContent, DllManifestContentItem};
 
 #[derive(Debug, Clone)]
 pub struct LibManifestPluginOptions {
@@ -24,7 +25,7 @@ pub struct LibManifestPluginOptions {
 
   pub path: Filename,
 
-  pub ty: Option<String>,
+  pub r#type: Option<String>,
 }
 
 #[plugin]
@@ -56,13 +57,13 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let chunk_graph = &compilation.chunk_graph;
 
-  let mut manifest_files = vec![];
+  let mut manifests: CompilationAssets = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
 
   for (_, chunk) in compilation.chunk_by_ukey.iter() {
     if !chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-      return Ok(());
+      continue;
     }
 
     let target_path = compilation.get_path(
@@ -79,10 +80,10 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     use_paths.insert(target_path.clone());
 
-    let name = self.options.name.as_ref().and_then(|filename| {
+    let name = self.options.name.as_ref().and_then(|name| {
       compilation
         .get_path(
-          filename,
+          name,
           PathData {
             chunk: Some(chunk),
             content_hash_type: Some(SourceType::JavaScript),
@@ -92,7 +93,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         .ok()
     });
 
-    let mut manifest_contents = HashMap::<Cow<str>, ManifestContent>::new();
+    let mut manifest_content: DllManifestContent = HashMap::default();
 
     for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey, &module_graph) {
       if self.options.entry_only.unwrap_or_default()
@@ -123,7 +124,13 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         let exports_info = module_graph.get_exports_info(&module.identifier());
 
         let provided_exports = match exports_info.get_provided_exports(&module_graph) {
-          ProvidedExports::Vec(vec) => Some(vec),
+          ProvidedExports::Vec(vec) => {
+            if vec.is_empty() {
+              None
+            } else {
+              Some(vec)
+            }
+          }
           _ => None,
         };
 
@@ -131,21 +138,21 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         let build_meta = module.build_meta();
 
-        manifest_contents.insert(
-          ident,
-          ManifestContent {
-            id,
-            build_meta,
-            provided_exports,
+        manifest_content.insert(
+          ident.into_owned(),
+          DllManifestContentItem {
+            id: id.map(|id| id.to_string()),
+            build_meta: build_meta.map(|meta| meta.clone()),
+            exports: provided_exports,
           },
         );
       }
     }
 
-    let manifest = Manifest {
-      name: name.as_deref(),
-      content: manifest_contents,
-      ty: self.options.ty.clone(),
+    let manifest = DllManifest {
+      name,
+      content: manifest_content,
+      r#type: self.options.r#type.clone(),
     };
 
     let format = self.options.format.unwrap_or_default();
@@ -156,53 +163,16 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{}", e)))?
     };
 
-    manifest_files.push(ManifestFile {
-      filename: target_path.clone(),
-      content: manifest_json.clone(),
-    });
+    let asset = Arc::new(RawSource::from(manifest_json)) as BoxSource;
+
+    manifests.insert(target_path, asset.into());
   }
 
-  for file in manifest_files {
-    let filename = file.filename;
-    let manifest_content = file.content;
-    let manifest_asset = Arc::new(RawSource::from(manifest_content)) as BoxSource;
-
-    compilation.emit_asset(filename, manifest_asset.into());
+  for (filename, asset) in manifests {
+    compilation.emit_asset(filename, asset);
   }
 
   Ok(())
-}
-
-#[derive(Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct ManifestContent<'i> {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  id: Option<&'i str>,
-
-  #[serde(skip_serializing_if = "Option::is_none")]
-  build_meta: Option<&'i BuildMeta>,
-
-  #[serde(skip_serializing_if = "Option::is_none")]
-  provided_exports: Option<Vec<Atom>>,
-}
-
-#[derive(Serialize, Debug)]
-struct Manifest<'i> {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  name: Option<&'i str>,
-
-  content: HashMap<Cow<'i, str>, ManifestContent<'i>>,
-
-  #[serde(rename = "type")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  ty: Option<String>,
-}
-
-#[derive(Debug)]
-struct ManifestFile {
-  filename: String,
-
-  content: String,
 }
 
 fn some_in_iterable<I: Iterator, F>(iterable: I, filter: F) -> bool

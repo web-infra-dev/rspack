@@ -29,7 +29,7 @@ export const LibManifestPlugin = create(
 			format,
 			name,
 			path,
-			ty: type
+			type
 		};
 	}
 );
