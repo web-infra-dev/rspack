@@ -4,7 +4,7 @@ mod make;
 mod module_executor;
 use std::sync::Arc;
 
-use rspack_error::{error, Result};
+use rspack_error::Result;
 use rspack_fs::{
   AsyncNativeFileSystem, AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem,
 };
@@ -362,33 +362,38 @@ impl Compiler {
             || include_hash(filename, &asset.info.full_hash));
       }
 
+      let stat = match self
+        .output_filesystem
+        .stat(file_path.as_path().as_ref())
+        .await
+      {
+        Ok(stat) => Some(stat),
+        Err(_) => None,
+      };
+
       let need_write = if !self.options.output.compare_before_emit {
         // write when compare_before_emit is false
         true
-      } else if !file_path.exists() {
-        // write when file not exist
+      } else if !stat.as_ref().is_some_and(|stat| stat.is_file) {
+        // write when not exists or not a file
         true
       } else if immutable {
         // do not write when asset is immutable and the file exists
         false
-      } else {
-        // TODO: webpack use outputFileSystem to get metadata and file content
-        // should also use outputFileSystem after aligning with webpack
-        let metadata = self
-          .input_filesystem
-          .metadata(file_path.as_path().as_ref())
-          .map_err(|e| error!("failed to read metadata: {e}"))?;
-        if (content.len() as u64) == metadata.len() {
-          match self.input_filesystem.read(file_path.as_path().as_ref()) {
-            // write when content is different
-            Ok(c) => content != c,
-            // write when file can not be read
-            Err(_) => true,
-          }
-        } else {
-          // write if content length is different
-          true
+      } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
+        match self
+          .output_filesystem
+          .read_file(file_path.as_path().as_ref())
+          .await
+        {
+          // write when content is different
+          Ok(c) => content != c,
+          // write when file can not be read
+          Err(_) => true,
         }
+      } else {
+        // write if content length is different
+        true
       };
 
       if need_write {

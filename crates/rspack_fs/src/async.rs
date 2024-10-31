@@ -5,6 +5,16 @@ use rspack_paths::Utf8Path;
 
 use crate::Result;
 
+#[derive(Debug)]
+pub struct FileStat {
+  pub is_file: bool,
+  pub is_directory: bool,
+  pub atime_ms: u64,
+  pub mtime_ms: u64,
+  pub ctime_ms: u64,
+  pub size: u64,
+}
+
 pub trait AsyncWritableFileSystem: Debug {
   /// Creates a new, empty directory at the provided path.
   ///
@@ -30,6 +40,14 @@ pub trait AsyncWritableFileSystem: Debug {
 
   /// Removes a directory at this path, after removing all its contents. Use carefully.
   fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
+
+  /// Returns a list of all files in a directory.
+  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>>;
+
+  /// Read the entire contents of a file into a bytes vector.
+  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>>;
+
+  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileStat>>;
 }
 
 pub trait AsyncReadableFileSystem: Debug {
