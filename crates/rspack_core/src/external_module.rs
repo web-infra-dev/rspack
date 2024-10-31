@@ -464,7 +464,7 @@ impl Module for ExternalModule {
     ))
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0

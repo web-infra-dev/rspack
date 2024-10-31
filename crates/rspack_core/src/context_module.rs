@@ -850,7 +850,11 @@ impl Module for ContextModule {
     self.identifier.as_str().into()
   }
 
-  fn size(&self, _source_type: Option<&crate::SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&crate::SourceType>,
+    _compilation: Option<&Compilation>,
+  ) -> f64 {
     160.0
   }
 

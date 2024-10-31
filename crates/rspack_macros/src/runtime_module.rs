@@ -118,8 +118,11 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: &::rspack_core::Compilation) -> f64 {
-        self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64)
+      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
+        match compilation {
+          Some(compilation) => self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64),
+          None => 0f64
+        }
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
