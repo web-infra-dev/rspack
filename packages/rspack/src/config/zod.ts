@@ -489,7 +489,7 @@ const ruleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule.extend({
 });
 
 const ruleSetRules = z.array(
-	z.literal("...").or(ruleSetRule).or(falsy)
+	z.literal("...").or(ruleSetRule)
 ) satisfies z.ZodType<t.RuleSetRules>;
 
 const assetParserDataUrlOptions = z.strictObject({

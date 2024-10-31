@@ -268,15 +268,7 @@ interface BaseModuleConfig {
 // @public (undocumented)
 interface BaseResolveRequest {
     	// (undocumented)
-    __innerRequest?: string;
-    	// (undocumented)
-    __innerRequest_relativePath?: string;
-    	// (undocumented)
-    __innerRequest_request?: string;
-    	// (undocumented)
-    context?: object;
-    	// (undocumented)
-    descriptionFileData?: JsonObject;
+    descriptionFileData?: object;
     	// (undocumented)
     descriptionFilePath?: string;
     	// (undocumented)
@@ -2484,35 +2476,20 @@ interface JsMinifyOptions {
 }
 
 // @public (undocumented)
-type JsonArray = JsonValue_2[];
+type JsonArray = JsonValue[];
 
 // @public (undocumented)
-type JsonObject = { [index: string]: JsonValue } & {
-    	[index: string]:
-    		| undefined
-    		| null
-    		| string
-    		| number
-    		| boolean
-    		| JsonObject
-    		| JsonValue[];
-};
-
-// @public (undocumented)
-type JsonObject_2 = {
-    [Key in string]: JsonValue_2;
+type JsonObject = {
+    [Key in string]: JsonValue;
 } & {
-    [Key in string]?: JsonValue_2 | undefined;
+    [Key in string]?: JsonValue | undefined;
 };
 
 // @public (undocumented)
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
-type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
-
-// @public (undocumented)
-type JsonValue_2 = JsonPrimitive | JsonObject_2 | JsonArray;
+type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -4360,10 +4337,10 @@ type ReadFileSync = {
 type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
 
 // @public (undocumented)
-type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject_2) => void;
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
 
 // @public (undocumented)
-type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject_2;
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
 
 // @public (undocumented)
 type Readlink = {
@@ -6859,8 +6836,8 @@ export const rspackOptions: z.ZodObject<{
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction, z.ZodTypeDef, t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<t.DevServer, z.ZodTypeDef, t.DevServer>>;
     module: z.ZodOptional<z.ZodObject<{
-        defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
-        rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
+        defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, "many">>;
+        rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, "many">>;
         parser: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
             asset: z.ZodOptional<z.ZodObject<{
                 dataUrlCondition: z.ZodOptional<z.ZodObject<{
@@ -7616,8 +7593,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
-        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
+        rules?: ("..." | t.RuleSetRule)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -7764,8 +7741,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
-        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
+        rules?: ("..." | t.RuleSetRule)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -7934,8 +7911,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
-        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
+        rules?: ("..." | t.RuleSetRule)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -8569,8 +8546,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
-        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
+        rules?: ("..." | t.RuleSetRule)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
