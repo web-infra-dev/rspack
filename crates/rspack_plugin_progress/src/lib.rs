@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
 use async_trait::async_trait;
-use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use lazy_static::lazy_static;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
@@ -41,6 +42,9 @@ impl std::fmt::Debug for ProgressPluginOptions {
   }
 }
 
+lazy_static! {
+  static ref MULTI_PROGRESS: Arc<Mutex<MultiProgress>> = Arc::new(Mutex::new(MultiProgress::new()));
+}
 #[derive(Debug, Default)]
 pub struct ProgressPluginDisplayOptions {
   // the prefix name of progress bar
@@ -101,7 +105,7 @@ impl ProgressPlugin {
         Some(progress_bar)
       }
     };
-
+    let progress_bar = progress_bar.map(|x| MULTI_PROGRESS.lock().unwrap().add(x));
     Self::new_inner(
       options,
       progress_bar,
