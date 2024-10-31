@@ -105,7 +105,12 @@ impl ProgressPlugin {
         Some(progress_bar)
       }
     };
-    let progress_bar = progress_bar.map(|x| MULTI_PROGRESS.lock().unwrap().add(x));
+    let progress_bar = progress_bar.map(|x| {
+      MULTI_PROGRESS
+        .lock()
+        .expect("multi progress lock failed")
+        .add(x)
+    });
     Self::new_inner(
       options,
       progress_bar,
