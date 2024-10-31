@@ -258,10 +258,10 @@ impl JsModule {
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
     let module = self.as_ref()?;
-    let compilation = compilation.map(|c| unsafe { c.as_ref() });
+    let compilation = self.compilation.map(|c| unsafe { c.as_ref() });
 
     let ty = ty.map(|s| SourceType::from(s.as_str()));
-    Ok(module.size(ty.as_ref(), Some(compilation)))
+    Ok(module.size(ty.as_ref(), compilation))
   }
 
   #[napi(getter, ts_return_type = "JsModule[] | undefined")]

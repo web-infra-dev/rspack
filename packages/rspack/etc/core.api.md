@@ -3382,8 +3382,6 @@ export class Module {
     // (undocumented)
     readonly modules: Module[] | undefined;
     // (undocumented)
-    readonly modules: Module[] | undefined;
-    // (undocumented)
     nameForCondition(): string | null;
     // (undocumented)
     originalSource(): Source | null;

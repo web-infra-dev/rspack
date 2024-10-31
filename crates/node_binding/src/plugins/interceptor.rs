@@ -1012,7 +1012,6 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 #[async_trait]
 impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
-    // TODO: need mut module
     self
       .function
       .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
@@ -1027,7 +1026,6 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
 #[async_trait]
 impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
-    // TODO: need mut module
     self
       .function
       .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
@@ -1042,7 +1040,6 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
 #[async_trait]
 impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
-    // TODO: need mut module
     self
       .function
       .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
