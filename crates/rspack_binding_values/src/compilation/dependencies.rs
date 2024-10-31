@@ -2,18 +2,18 @@ use napi_derive::napi;
 use rspack_core::Compilation;
 
 #[napi]
-pub struct DependenciesDTO {
+pub struct JsDependencies {
   pub(crate) compilation: &'static Compilation,
 }
 
-impl DependenciesDTO {
+impl JsDependencies {
   pub(crate) fn new(compilation: &'static Compilation) -> Self {
     Self { compilation }
   }
 }
 
 #[napi]
-impl DependenciesDTO {
+impl JsDependencies {
   #[napi(getter)]
   pub fn file_dependencies(&self) -> Vec<String> {
     self

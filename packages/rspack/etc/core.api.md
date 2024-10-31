@@ -17,7 +17,6 @@ import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
-import type { DependenciesBlockDTO } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -39,16 +38,18 @@ import { JsChunkGroupOrigin } from '@rspack/binding';
 import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
+import type { JsCompilerModuleContext } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
+import type { JsDependenciesBlock } from '@rspack/binding';
 import { JsDependency } from '@rspack/binding';
 import { JsDependencyMut } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
-import type { JsModule } from '@rspack/binding';
+import { JsModule } from '@rspack/binding';
 import { JsPathData } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
@@ -57,7 +58,6 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
-import { ModuleDto } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -268,7 +268,15 @@ interface BaseModuleConfig {
 // @public (undocumented)
 interface BaseResolveRequest {
     	// (undocumented)
-    descriptionFileData?: object;
+    __innerRequest?: string;
+    	// (undocumented)
+    __innerRequest_relativePath?: string;
+    	// (undocumented)
+    __innerRequest_request?: string;
+    	// (undocumented)
+    context?: object;
+    	// (undocumented)
+    descriptionFileData?: JsonObject;
     	// (undocumented)
     descriptionFilePath?: string;
     	// (undocumented)
@@ -1268,11 +1276,14 @@ export type Dependencies = Name[];
 
 // @public (undocumented)
 class DependenciesBlock {
-    constructor(binding: DependenciesBlockDTO);
     // (undocumented)
-    get blocks(): DependenciesBlock[];
+    static __from_binding(binding: JsDependenciesBlock): DependenciesBlock;
     // (undocumented)
-    get dependencies(): Dependency[];
+    static __to_binding(block: DependenciesBlock): JsDependenciesBlock;
+    // (undocumented)
+    readonly blocks: DependenciesBlock[];
+    // (undocumented)
+    readonly dependencies: Dependency[];
 }
 
 // @public (undocumented)
@@ -1850,7 +1861,12 @@ export type ExternalItemObjectUnknown = {
 };
 
 // @public
-export type ExternalItemValue = string | boolean | string[] | Record<string, string | string[]>;
+export type ExternalItemValue = string | boolean | string[] | {
+    root: string | string[];
+    commonjs: string | string[];
+    commonjs2: string | string[];
+    amd?: string | string[];
+};
 
 // @public
 export type Externals = ExternalItem | ExternalItem[];
@@ -2468,20 +2484,35 @@ interface JsMinifyOptions {
 }
 
 // @public (undocumented)
-type JsonArray = JsonValue[];
+type JsonArray = JsonValue_2[];
 
 // @public (undocumented)
-type JsonObject = {
-    [Key in string]: JsonValue;
+type JsonObject = { [index: string]: JsonValue } & {
+    	[index: string]:
+    		| undefined
+    		| null
+    		| string
+    		| number
+    		| boolean
+    		| JsonObject
+    		| JsonValue[];
+};
+
+// @public (undocumented)
+type JsonObject_2 = {
+    [Key in string]: JsonValue_2;
 } & {
-    [Key in string]?: JsonValue | undefined;
+    [Key in string]?: JsonValue_2 | undefined;
 };
 
 // @public (undocumented)
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
-type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
+
+// @public (undocumented)
+type JsonValue_2 = JsonPrimitive | JsonObject_2 | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -3361,21 +3392,21 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule | ModuleDto, compilation?: Compilation);
+    constructor(module: JsModule | JsCompilerModuleContext, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(module: JsModule | ModuleDto, compilation?: Compilation): Module;
+    static __from_binding(binding: JsModule | JsCompilerModuleContext, compilation?: Compilation): Module;
     // (undocumented)
-    get blocks(): DependenciesBlock[];
-    buildInfo: Record<string, any>;
-    buildMeta: Record<string, any>;
+    readonly blocks: DependenciesBlock[];
+    readonly buildInfo: Record<string, any>;
+    readonly buildMeta: Record<string, any>;
     // (undocumented)
-    context?: Readonly<string>;
+    readonly context?: string;
     // (undocumented)
-    factoryMeta?: Readonly<JsFactoryMeta>;
+    readonly factoryMeta?: JsFactoryMeta;
     // (undocumented)
     identifier(): string;
     // (undocumented)
-    layer: null | string;
+    readonly layer: null | string;
     // (undocumented)
     readonly modules: Module[] | undefined;
     // (undocumented)
@@ -3383,17 +3414,17 @@ export class Module {
     // (undocumented)
     originalSource(): Source | null;
     // (undocumented)
-    rawRequest?: Readonly<string>;
+    readonly rawRequest?: string;
     // (undocumented)
-    request?: Readonly<string>;
+    readonly request?: string;
     // (undocumented)
-    resource?: Readonly<string>;
+    readonly resource?: string;
     // (undocumented)
     size(type?: string): number;
     // (undocumented)
-    type: string;
+    readonly type: string;
     // (undocumented)
-    userRequest?: Readonly<string>;
+    readonly userRequest?: string;
 }
 
 // @public (undocumented)
@@ -4329,10 +4360,10 @@ type ReadFileSync = {
 type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
 
 // @public (undocumented)
-type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject_2) => void;
 
 // @public (undocumented)
-type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject_2;
 
 // @public (undocumented)
 type Readlink = {
@@ -4990,9 +5021,9 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -5018,9 +5049,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -5124,9 +5155,9 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -5152,9 +5183,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -5258,9 +5289,9 @@ export const rspackOptions: z.ZodObject<{
         layer: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNull]>>;
     }, "strict", z.ZodTypeAny, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -5286,9 +5317,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }, {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -5959,7 +5990,22 @@ export const rspackOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
     }>>;
-    externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    }, "strict", z.ZodTypeAny, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -5984,7 +6030,22 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    }, "strict", z.ZodTypeAny, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6009,7 +6070,37 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    }, "strict", z.ZodTypeAny, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    }, "strict", z.ZodTypeAny, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6034,7 +6125,22 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    }, "strict", z.ZodTypeAny, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6059,7 +6165,22 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>]>>>]>]>>;
+    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
+        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
+        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
+    }, "strict", z.ZodTypeAny, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }, {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>]>>>]>]>>;
     externalsType: z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>;
     externalsPresets: z.ZodOptional<z.ZodObject<{
         node: z.ZodOptional<z.ZodBoolean>;
@@ -7766,8 +7887,8 @@ export const rspackOptions: z.ZodObject<{
         maxEntrypointSize?: number | undefined;
     }>, z.ZodLiteral<false>]>>;
 }, "strict", z.ZodTypeAny, {
-    context?: string | undefined;
     dependencies?: string[] | undefined;
+    context?: string | undefined;
     module?: {
         generator?: Record<string, Record<string, any>> | {
             css?: {
@@ -7926,9 +8047,9 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -7954,9 +8075,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -7982,9 +8103,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -8310,35 +8431,65 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     loader?: Record<string, any> | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
-    externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+    externals?: string | RegExp | Record<string, string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>) | (string | RegExp | Record<string, string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>))[] | undefined;
     externalsType?: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
@@ -8371,8 +8522,8 @@ export const rspackOptions: z.ZodObject<{
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args: unknown[]) => boolean))[] | undefined;
     bail?: boolean | undefined;
 }, {
-    context?: string | undefined;
     dependencies?: string[] | undefined;
+    context?: string | undefined;
     module?: {
         generator?: Record<string, Record<string, any>> | {
             css?: {
@@ -8531,9 +8682,9 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     entry?: string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -8559,9 +8710,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -8587,9 +8738,9 @@ export const rspackOptions: z.ZodObject<{
         wasmLoading?: string | false | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
+        layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        layer?: string | null | undefined;
         runtime?: string | false | undefined;
         library?: {
             type: string;
@@ -8915,35 +9066,65 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     loader?: Record<string, any> | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
-    externals?: string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+    externals?: string | RegExp | Record<string, string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>) | (string | RegExp | Record<string, string | boolean | string[] | Record<string, string | string[]>> | ((args_0: {
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>) | (string | RegExp | Record<string, string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | Record<string, string | string[]> | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | Record<string, string | string[]>>))[] | undefined;
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
+        root: string | string[];
+        commonjs: string | string[];
+        commonjs2: string | string[];
+        amd?: string | string[] | undefined;
+    }>))[] | undefined;
     externalsType?: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;

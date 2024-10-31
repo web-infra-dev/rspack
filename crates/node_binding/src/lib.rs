@@ -183,7 +183,7 @@ impl Rspack {
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
-    JsCompilationWrapper::cleanup(compilation.id());
+    JsCompilationWrapper::cleanup_last_compilation(compilation.id());
   }
 }
 

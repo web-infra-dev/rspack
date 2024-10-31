@@ -312,6 +312,7 @@ const MODULES_GROUPERS = (
 			groupModulesByAttributes,
 			groupModulesByType,
 			groupModulesByPath,
+			groupModulesByLayer,
 			groupModulesByExtension
 		} = options;
 		if (groupModulesByAttributes) {
@@ -364,7 +365,18 @@ const MODULES_GROUPERS = (
 				}
 			});
 		}
-		// not support groupModulesByLayer
+		if (groupModulesByLayer) {
+			groupConfigs.push({
+				getKeys: module => /** @type {string[]} */ [module.layer],
+				createGroup: (key, children, _modules) => ({
+					type: "modules by layer",
+					layer: key,
+					children,
+					...moduleGroup(children)
+				})
+			});
+		}
+
 		if (groupModulesByPath || groupModulesByExtension) {
 			groupConfigs.push({
 				getKeys: module => {

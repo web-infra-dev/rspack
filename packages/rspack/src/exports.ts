@@ -85,7 +85,7 @@ import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
 
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
-export { type OutputFileSystem } from "./util/fs";
+export type { OutputFileSystem } from "./util/fs";
 
 ///// Internal Plugins /////
 export type { BannerPluginArgument } from "./builtin-plugin";
@@ -275,9 +275,9 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 
-export {
-	type LoaderOptions as LightningcssLoaderOptions,
-	type FeatureOptions as LightningcssFeatureOptions
+export type {
+	LoaderOptions as LightningcssLoaderOptions,
+	FeatureOptions as LightningcssFeatureOptions
 } from "./builtin-loader/lightningcss/index";
 
 ///// Experiments Stuff /////

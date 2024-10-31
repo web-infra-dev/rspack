@@ -112,7 +112,7 @@ module.exports = {
 ### 对象
 
 :::warning
-带有 `{ root, amd, commonjs, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
+带有 `{ root, commonjs, commonjs2, amd?, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
 :::
 
 ```js title="rspack.config.js"
@@ -126,17 +126,10 @@ module.exports = {
 
   externals: {
     lodash: {
-      commonjs: 'lodash',
-      amd: 'lodash',
-      root: '_', // 指向全局变量
-    },
-  },
-
-  // 或者
-
-  externals: {
-    subtract: {
-      root: ['math', 'subtract'],
+      root: '_', // 必须，指向全局变量
+      commonjs: 'lodash', // 必须
+      commonjs2: 'lodash', // 必须
+      amd: 'lodash', // 可选
     },
   },
 };

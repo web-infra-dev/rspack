@@ -7,7 +7,6 @@ const NodeEnvironment =
 	require("jest-environment-node");
 
 class CustomEnvironment extends NodeEnvironment {
-
 	// Workaround for `Symbol('JEST_STATE_SYMBOL')`
 	async handleTestEvent(event, state) {
 		if (!this.global.JEST_STATE_SYMBOL) {
