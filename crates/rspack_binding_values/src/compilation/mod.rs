@@ -137,7 +137,7 @@ impl JsCompilation {
       .filter_map(|module_id| {
         compilation
           .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(self.0.as_ptr())))
+          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
       })
       .collect::<Vec<_>>()
   }
@@ -152,7 +152,7 @@ impl JsCompilation {
       .filter_map(|module_id| {
         compilation
           .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(self.0.as_ptr())))
+          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
       })
       .collect::<Vec<_>>()
   }
@@ -629,9 +629,9 @@ pub struct JsCompilationWrapper(NonNull<rspack_core::Compilation>);
 unsafe impl Send for JsCompilationWrapper {}
 
 impl JsCompilationWrapper {
-  pub fn new(compilation: *const Compilation) -> Self {
+  pub fn new(compilation: &Compilation) -> Self {
     #[allow(clippy::unwrap_used)]
-    Self(NonNull::new(compilation as *mut Compilation).unwrap())
+    Self(NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap())
   }
 
   pub fn cleanup_last_compilation(compilation_id: CompilationId) {

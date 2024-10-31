@@ -270,8 +270,8 @@ impl JsModule {
 
     Ok(match module.try_as_concatenated_module() {
       Ok(concatenated_module) => match self.compilation {
-        Some(compilation_ptr) => {
-          let compilation = unsafe { compilation_ptr.as_ref() };
+        Some(compilation) => {
+          let compilation = unsafe { compilation.as_ref() };
 
           let inner_modules = concatenated_module
             .get_modules()
@@ -279,7 +279,7 @@ impl JsModule {
             .filter_map(|inner_module_info| {
               compilation
                 .module_by_identifier(&inner_module_info.id)
-                .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation_ptr.as_ptr())))
+                .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
             })
             .collect::<Vec<_>>();
           Either::A(inner_modules)
@@ -314,14 +314,16 @@ pub struct JsModuleWrapper {
 unsafe impl Send for JsModuleWrapper {}
 
 impl JsModuleWrapper {
-  pub fn new(module: *const dyn Module, compilation: Option<*const Compilation>) -> Self {
-    let identifier = unsafe { &*module }.identifier();
+  pub fn new(module: &dyn Module, compilation: Option<&Compilation>) -> Self {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    let identifier = module.identifier();
 
     #[allow(clippy::unwrap_used)]
     Self {
       identifier,
-      module: NonNull::new(module as *mut dyn Module).unwrap(),
-      compilation: compilation.map(|c| NonNull::new(c as *mut Compilation).unwrap()),
+      module: NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
+      compilation: compilation
+        .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
     }
   }
 
