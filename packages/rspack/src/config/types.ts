@@ -1312,7 +1312,15 @@ export type ExternalItemValue =
 	| string
 	| boolean
 	| string[]
-	| Record<string, string | string[]>;
+	| {
+			/**
+			 * only available when libraryTarget and externalsType is 'umd'
+			 */
+			root: string | string[];
+			commonjs: string | string[];
+			commonjs2: string | string[];
+			amd?: string | string[];
+	  };
 
 /**
  * If an dependency matches exactly a property of the object, the property value is used as dependency.
