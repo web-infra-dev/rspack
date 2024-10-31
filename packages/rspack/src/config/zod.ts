@@ -1,10 +1,12 @@
 import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import { z } from "zod";
+import * as z from "zod";
 import { Chunk } from "../Chunk";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import type * as t from "./types";
+
+z.objectUtil;
 
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
