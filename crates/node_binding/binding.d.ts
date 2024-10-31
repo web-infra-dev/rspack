@@ -19,28 +19,6 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export class DependenciesBlockDto {
-  get dependencies(): Array<JsDependency>
-  get blocks(): Array<DependenciesBlockDto>
-}
-export type DependenciesBlockDTO = DependenciesBlockDto
-
-export class DependenciesDto {
-  get fileDependencies(): Array<string>
-  get addedFileDependencies(): Array<string>
-  get removedFileDependencies(): Array<string>
-  get contextDependencies(): Array<string>
-  get addedContextDependencies(): Array<string>
-  get removedContextDependencies(): Array<string>
-  get missingDependencies(): Array<string>
-  get addedMissingDependencies(): Array<string>
-  get removedMissingDependencies(): Array<string>
-  get buildDependencies(): Array<string>
-  get addedBuildDependencies(): Array<string>
-  get removedBuildDependencies(): Array<string>
-}
-export type DependenciesDTO = DependenciesDto
-
 export class EntryDataDto {
   get dependencies(): Array<JsDependency>
   get includeDependencies(): Array<JsDependency>
@@ -73,8 +51,8 @@ export class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
-  get modules(): Array<ModuleDTO>
-  get builtModules(): Array<ModuleDTO>
+  get modules(): Array<JsModule>
+  get builtModules(): Array<JsModule>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): Array<JsChunk>
   getNamedChunkKeys(): Array<string>
@@ -92,7 +70,7 @@ export class JsCompilation {
   get entrypoints(): Record<string, JsChunkGroup>
   get chunkGroups(): Array<JsChunkGroup>
   get hash(): string | null
-  dependencies(): DependenciesDto
+  dependencies(): JsDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
@@ -139,6 +117,26 @@ export class JsContextModuleFactoryBeforeResolveData {
   set recursive(recursive: boolean)
 }
 
+export class JsDependencies {
+  get fileDependencies(): Array<string>
+  get addedFileDependencies(): Array<string>
+  get removedFileDependencies(): Array<string>
+  get contextDependencies(): Array<string>
+  get addedContextDependencies(): Array<string>
+  get removedContextDependencies(): Array<string>
+  get missingDependencies(): Array<string>
+  get addedMissingDependencies(): Array<string>
+  get removedMissingDependencies(): Array<string>
+  get buildDependencies(): Array<string>
+  get addedBuildDependencies(): Array<string>
+  get removedBuildDependencies(): Array<string>
+}
+
+export class JsDependenciesBlock {
+  get dependencies(): Array<JsDependency>
+  get blocks(): Array<JsDependenciesBlock>
+}
+
 export class JsDependency {
   get type(): string
   get category(): string
@@ -165,6 +163,23 @@ export class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export class JsModule {
+  get context(): string | undefined
+  get originalSource(): JsCompatSource | undefined
+  get resource(): string | undefined
+  get moduleIdentifier(): string
+  get nameForCondition(): string | undefined
+  get request(): string | undefined
+  get userRequest(): string | undefined
+  get rawRequest(): string | undefined
+  get factoryMeta(): JsFactoryMeta | undefined
+  get type(): string
+  get layer(): string | undefined
+  get blocks(): Array<JsDependenciesBlock>
+  size(ty?: string | undefined | null): number
+  get modules(): JsModule[] | undefined
+}
+
 export class JsResolver {
   resolveSync(path: string, request: string): string | false
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): this
@@ -182,24 +197,6 @@ export class JsStats {
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
 
-export class ModuleDto {
-  get context(): string | undefined
-  get originalSource(): JsCompatSource | undefined
-  get resource(): string | undefined
-  get moduleIdentifier(): string
-  get nameForCondition(): string | undefined
-  get request(): string | undefined
-  get userRequest(): string | undefined
-  get rawRequest(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
-  get blocks(): Array<DependenciesBlockDto>
-  size(ty?: string | undefined | null): number
-  get modules(): ModuleDTO[] | undefined
-}
-export type ModuleDTO = ModuleDto
-
 export class Rspack {
   constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
@@ -209,29 +206,29 @@ export class Rspack {
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
 }
 
-export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
+export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
 
-export function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+export function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, jsCompilation: JsCompilation): JsModule[]
 
-export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): ModuleDTO[]
+export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, jsCompilation: JsCompilation): JsModule[]
 
-export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, compilation: JsCompilation): Array<JsModule>
+export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, jsCompilation: JsCompilation): JsModule[]
 
-export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
+export function __chunk_group_inner_get_chunk_group(ukey: number, jsCompilation: JsCompilation): JsChunkGroup
 
-export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
+export function __chunk_inner_can_be_initial(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
 
-export function __chunk_inner_get_all_async_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
+export function __chunk_inner_get_all_async_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
 
-export function __chunk_inner_get_all_initial_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
+export function __chunk_inner_get_all_initial_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
 
-export function __chunk_inner_get_all_referenced_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
+export function __chunk_inner_get_all_referenced_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
 
-export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
+export function __chunk_inner_has_runtime(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
 
-export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
+export function __chunk_inner_is_only_initial(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
 
-export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
+export function __entrypoint_inner_get_runtime_chunk(ukey: number, jsCompilation: JsCompilation): JsChunk
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName
@@ -451,7 +448,7 @@ export interface JsBuildTimeExecutionOption {
 }
 
 export interface JsCacheGroupTestCtx {
-  module: ModuleDTO
+  module: JsModule
 }
 
 export interface JsChunk {
@@ -488,7 +485,7 @@ export interface JsChunkGroup {
 }
 
 export interface JsChunkGroupOrigin {
-  module?: ModuleDTO
+  module?: JsModule | undefined
   request?: string
 }
 
@@ -510,6 +507,21 @@ export interface JsCodegenerationResults {
 export interface JsCompatSource {
   source: string | Buffer
   map?: string
+}
+
+export interface JsCompilerModuleContext {
+  context?: string
+  originalSource?: JsCompatSource
+  resource?: string
+  moduleIdentifier: string
+  nameForCondition?: string
+  request?: string
+  userRequest?: string
+  rawRequest?: string
+  factoryMeta?: JsFactoryMeta
+  type: string
+  layer?: string
+  useSourceMap?: boolean
 }
 
 export interface JsCreateData {
@@ -644,7 +656,7 @@ export interface JsLoaderContext {
   resourceData: Readonly<JsResourceData>
   /** Will be deprecated. Use module.module_identifier instead */
   _moduleIdentifier: Readonly<string>
-  _module: JsModule
+  _module: JsCompilerModuleContext
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: null | Buffer
@@ -672,21 +684,6 @@ export interface JsLoaderItem {
 export enum JsLoaderState {
   Pitching = 'Pitching',
   Normal = 'Normal'
-}
-
-export interface JsModule {
-  context?: string
-  originalSource?: JsCompatSource
-  resource?: string
-  moduleIdentifier: string
-  nameForCondition?: string
-  request?: string
-  userRequest?: string
-  rawRequest?: string
-  factoryMeta?: JsFactoryMeta
-  type: string
-  layer?: string
-  useSourceMap?: boolean
 }
 
 export interface JsModuleDescriptor {
