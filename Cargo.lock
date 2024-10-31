@@ -4383,7 +4383,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "indicatif",
- "lazy_static",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
