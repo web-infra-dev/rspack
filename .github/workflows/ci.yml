@@ -345,7 +345,7 @@ jobs:
         continue-on-error: true
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
-          owner: ${{ github.repository_owner }}
+          owner: "rspack-contrib"
           repo: "rspack-ecosystem-ci"
           workflow_file_name: "ecosystem-ci-from-commit.yml"
           github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}

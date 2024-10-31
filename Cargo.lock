@@ -4071,7 +4071,6 @@ dependencies = [
  "derivative",
  "futures",
  "itertools 0.13.0",
- "pathdiff",
  "rayon",
  "regex",
  "rspack_base64",

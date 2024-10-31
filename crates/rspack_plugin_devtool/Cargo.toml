@@ -14,7 +14,6 @@ dashmap                  = { workspace = true }
 derivative               = { workspace = true }
 futures                  = { workspace = true }
 itertools                = { workspace = true }
-pathdiff                 = { workspace = true }
 rayon                    = { workspace = true }
 regex                    = { workspace = true }
 rspack_base64            = { version = "0.1.0", path = "../rspack_base64" }

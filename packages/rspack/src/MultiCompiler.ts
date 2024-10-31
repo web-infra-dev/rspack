@@ -9,13 +9,13 @@
  */
 
 import * as liteTapable from "@rspack/lite-tapable";
-import asyncLib from "neo-async";
 import type { Compiler, RspackOptions, Stats } from ".";
 import MultiStats from "./MultiStats";
 import MultiWatching from "./MultiWatching";
 import type { WatchOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import ArrayQueue from "./util/ArrayQueue";
+import asyncLib from "./util/asyncLib";
 import type { InputFileSystem, WatchFileSystem } from "./util/fs";
 
 interface Node<T> {

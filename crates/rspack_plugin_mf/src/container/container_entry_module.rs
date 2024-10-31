@@ -97,7 +97,7 @@ impl DependenciesBlock for ContainerEntryModule {
 impl Module for ContainerEntryModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
   }
 

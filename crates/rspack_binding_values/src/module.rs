@@ -264,7 +264,7 @@ impl JsModule {
         let compilation = unsafe { compilation.as_ref() };
 
         let ty = ty.map(|s| SourceType::from(s.as_str()));
-        module.size(ty.as_ref(), compilation)
+        module.size(ty.as_ref(), Some(compilation))
       }
       None => 0f64, // TODO fix
     })

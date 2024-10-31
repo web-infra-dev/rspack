@@ -46,7 +46,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
     module
       .source_types()
       .iter()
-      .map(|ty| (*ty, module.size(Some(ty), compilation)))
+      .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
       .collect(),
   )
 }

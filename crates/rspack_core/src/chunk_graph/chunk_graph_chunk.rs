@@ -51,7 +51,7 @@ fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
   for module in modules {
     for source_type in module.source_types() {
-      size += module.size(Some(source_type), compilation);
+      size += module.size(Some(source_type), Some(compilation));
     }
   }
   size
@@ -381,7 +381,7 @@ impl ChunkGraph {
           + m
             .source_types()
             .iter()
-            .fold(0.0, |acc, t| acc + m.size(Some(t), compilation))
+            .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
       })
   }
 
@@ -397,7 +397,7 @@ impl ChunkGraph {
       let module = module_graph.module_by_identifier(identifier);
       if let Some(module) = module {
         for source_type in module.source_types() {
-          let size = module.size(Some(source_type), compilation);
+          let size = module.size(Some(source_type), Some(compilation));
           sizes
             .entry(*source_type)
             .and_modify(|s| *s += size)
@@ -406,7 +406,7 @@ impl ChunkGraph {
       } else {
         let runtime_module = compilation.runtime_modules.get(identifier);
         if let Some(runtime_module) = runtime_module {
-          let size = runtime_module.size(Some(&SourceType::Runtime), compilation);
+          let size = runtime_module.size(Some(&SourceType::Runtime), Some(compilation));
           sizes
             .entry(SourceType::Runtime)
             .and_modify(|s| *s += size)
