@@ -499,7 +499,8 @@ pub struct JsAddingRuntimeModule {
   pub name: String,
   #[napi(ts_type = "() => String")]
   pub generator: GenerateFn,
-  pub cacheable: bool,
+  pub dependent_hash: bool,
+  pub full_hash: bool,
   pub isolate: bool,
   pub stage: u32,
 }
@@ -508,7 +509,8 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
       name: value.name,
-      cacheable: value.cacheable,
+      full_hash: value.full_hash,
+      dependent_hash: value.dependent_hash,
       isolate: value.isolate,
       stage: RuntimeModuleStage::from(value.stage),
       generator: Arc::new(move || value.generator.blocking_call_with_sync(())),

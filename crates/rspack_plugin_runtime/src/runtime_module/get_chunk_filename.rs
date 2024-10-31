@@ -75,8 +75,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.id
   }
 
-  fn cacheable(&self) -> bool {
-    false
+  fn dependent_hash(&self) -> bool {
+    true
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
@@ -317,7 +317,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       }
     }
-
+    dbg!(&dynamic_url);
     Ok(
       RawSource::from(format!(
         "// This function allow to reference chunks

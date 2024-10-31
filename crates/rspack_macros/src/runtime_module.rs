@@ -180,7 +180,11 @@ pub fn impl_runtime_module(
         use rspack_util::ext::DynHash;
         self.name().dyn_hash(hasher);
         self.stage().dyn_hash(hasher);
-        self.get_generated_code(compilation)?.dyn_hash(hasher);
+        if self.full_hash() || self.dependent_hash() {
+          self.generate_with_custom(compilation)?.dyn_hash(hasher);
+        } else {
+          self.get_generated_code(compilation)?.dyn_hash(hasher);
+        }
         Ok(())
       }
     }

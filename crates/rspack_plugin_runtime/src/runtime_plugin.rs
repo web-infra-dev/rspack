@@ -167,10 +167,7 @@ async fn js_chunk_hash(
     .chunk_graph
     .get_chunk_runtime_modules_iterable(chunk_ukey)
   {
-    if let Some((hash, _)) = compilation
-      .runtime_module_code_generation_results
-      .get(identifier)
-    {
+    if let Some(hash) = compilation.runtime_modules_hash.get(identifier) {
       hash.hash(hasher);
     }
   }

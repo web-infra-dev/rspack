@@ -422,15 +422,21 @@ impl Chunk {
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id.hash(hasher);
     self.ids.hash(hasher);
-    for module in compilation
+    for module_identifier in compilation
       .chunk_graph
-      .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
+      .get_ordered_chunk_modules_identifier(&self.ukey)
     {
-      if let Some(hash) = compilation
+      if let Some(hash) = compilation.runtime_modules_hash.get(&module_identifier) {
+        hash.hash(hasher);
+      } else if let Some(hash) = compilation
         .code_generation_results
-        .get_hash(&module.identifier(), Some(&self.runtime))
+        .get_hash(&module_identifier, Some(&self.runtime))
       {
         hash.hash(hasher);
+      } else {
+        unreachable!(
+          "chunk modules should have code_generation_results hash or runtime_modules_hash"
+        );
       }
     }
     "entry".hash(hasher);

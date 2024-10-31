@@ -196,13 +196,13 @@ pub fn render_runtime_modules(
     .map(|(identifier, runtime_module)| {
       (
         compilation
-          .runtime_module_code_generation_results
+          .runtime_modules_code_generation_source
           .get(identifier)
           .expect("should have runtime module result"),
         runtime_module,
       )
     })
-    .try_for_each(|((_, source), module)| -> Result<()> {
+    .try_for_each(|(source, module)| -> Result<()> {
       if source.size() == 0 {
         return Ok(());
       }
@@ -226,7 +226,7 @@ pub fn render_runtime_modules(
           "!function() {\n"
         }));
       }
-      if module.cacheable() {
+      if !(module.full_hash() || module.dependent_hash()) {
         sources.add(source.clone());
       } else {
         sources.add(module.generate_with_custom(compilation)?);

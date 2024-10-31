@@ -324,7 +324,8 @@ export function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diag
 export interface JsAddingRuntimeModule {
   name: string
   generator: () => String
-  cacheable: boolean
+  dependentHash: boolean
+  fullHash: boolean
   isolate: boolean
   stage: number
 }

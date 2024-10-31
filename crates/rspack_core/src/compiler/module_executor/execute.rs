@@ -298,7 +298,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
           name: runtime_module.name().to_string(),
           name_for_condition: runtime_module.name_for_condition().map(|n| n.to_string()),
           module_type: *runtime_module.module_type(),
-          cacheable: runtime_module.cacheable(),
+          cacheable: !(runtime_module.full_hash() || runtime_module.dependent_hash()),
           size: runtime_module_size
             .get(&identifier)
             .map_or(0 as f64, |s| s.to_owned()),

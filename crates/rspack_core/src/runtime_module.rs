@@ -12,9 +12,11 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
-  // webpack fullHash || dependentHash
-  fn cacheable(&self) -> bool {
-    true
+  fn full_hash(&self) -> bool {
+    false
+  }
+  fn dependent_hash(&self) -> bool {
+    false
   }
   // if wrap iife
   fn should_isolate(&self) -> bool {

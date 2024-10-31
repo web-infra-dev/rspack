@@ -171,6 +171,7 @@ impl CodeGenerationResult {
       source.hash(&mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
