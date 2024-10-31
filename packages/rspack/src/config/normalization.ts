@@ -87,7 +87,7 @@ import type {
 	WatchOptions,
 	WebassemblyModuleFilename,
 	WorkerPublicPath
-} from "./zod";
+} from "./types";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
@@ -214,7 +214,8 @@ export const getNormalizedRspackOptions = (
 					output.devtoolFallbackModuleFilenameTemplate,
 				chunkLoadTimeout: output.chunkLoadTimeout,
 				charset: output.charset,
-				environment: cloneObject(output.environment)
+				environment: cloneObject(output.environment),
+				compareBeforeEmit: output.compareBeforeEmit
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -321,7 +322,8 @@ export const getNormalizedRspackOptions = (
 							providedExports: true,
 							modulesHashes: true,
 							modulesCodegen: true,
-							modulesRuntimeRequirements: true
+							modulesRuntimeRequirements: true,
+							buildChunkGraph: true
 						} satisfies Incremental)
 					: options
 			)
@@ -518,6 +520,7 @@ export interface OutputNormalized {
 	charset?: boolean;
 	chunkLoadTimeout?: number;
 	cssHeadDataCompression?: boolean;
+	compareBeforeEmit?: boolean;
 }
 
 export interface ModuleOptionsNormalized {

@@ -138,7 +138,7 @@ module.exports = {
 ```ts
 type HtmlRspackPluginOptions = {
   title?: string;
-  filename?: string;
+  filename?: string | ((entry: string) => string);
   template?: string;
   templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
   templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
@@ -189,7 +189,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`filename`',
-      type: '`string|undefined`',
+      type: '`string|undefined|((entry: string) => string)`',
       default: "'index.html'",
       description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
     },

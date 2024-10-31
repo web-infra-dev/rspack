@@ -1,6 +1,7 @@
 use std::{
   any::Any,
   collections::VecDeque,
+  fmt::Debug,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -31,7 +32,7 @@ pub enum TaskType {
 ///
 /// See test for more example
 #[async_trait::async_trait]
-pub trait Task<Ctx>: Send + Any + AsAny {
+pub trait Task<Ctx>: Debug + Send + Any + AsAny {
   /// Return the task type
   ///
   /// Return `TaskType::Sync` will run `self::sync_run`
@@ -148,6 +149,7 @@ mod test {
     async_return_error: bool,
   }
 
+  #[derive(Debug)]
   struct SyncTask;
   impl Task<Context> for SyncTask {
     fn get_task_type(&self) -> TaskType {
@@ -170,6 +172,7 @@ mod test {
     }
   }
 
+  #[derive(Debug)]
   struct AsyncTask {
     async_return_error: bool,
   }

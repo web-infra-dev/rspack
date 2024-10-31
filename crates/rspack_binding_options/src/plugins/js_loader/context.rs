@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_binding_values::{JsModule, JsResourceData, ToJsModule as _};
+use rspack_binding_values::{JsCompilerModuleContext, JsResourceData, ToJsModule};
 use rspack_core::{LoaderContext, RunnerContext};
 use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
@@ -60,7 +60,7 @@ pub struct JsLoaderContext {
   #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
   pub module_identifier: String,
   #[napi(js_name = "_module")]
-  pub module: JsModule,
+  pub module: JsCompilerModuleContext,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 

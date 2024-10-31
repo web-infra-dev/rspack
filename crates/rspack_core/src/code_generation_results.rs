@@ -210,11 +210,12 @@ impl CodeGenerationResults {
       })
   }
 
-  pub fn clear_entry(
-    &mut self,
-    module_identifier: &ModuleIdentifier,
-  ) -> Option<(ModuleIdentifier, RuntimeSpecMap<CodeGenResultId>)> {
-    self.map.remove_entry(module_identifier)
+  pub fn remove(&mut self, module_identifier: &ModuleIdentifier) -> Option<()> {
+    let runtime_map = self.map.remove(module_identifier)?;
+    for result in runtime_map.get_values() {
+      self.module_generation_result_map.remove(result)?;
+    }
+    Some(())
   }
 
   pub fn get(

@@ -178,13 +178,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         context.top_level_mark,
         false,
       ));
-      // dbg!(&resource_data.resource_path);
-      // dbg!(lexer.clone().collect_vec());
       program.visit_with(&mut semicolon::InsertedSemicolons {
         semicolons: &mut semicolons,
         tokens: &lexer.collect_vec(),
       });
-      // dbg!(&semicolons);
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;

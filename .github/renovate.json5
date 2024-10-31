@@ -22,6 +22,12 @@
   "assignees": [],
   "packageRules": [
     {
+			"matchPackagePatterns": ["*"],
+			"semanticCommitType": "chore",
+			// always bump package.json
+			"rangeStrategy": "bump"
+		},
+    {
       "groupName": "github-actions",
       "matchManagers": [
         "github-actions"

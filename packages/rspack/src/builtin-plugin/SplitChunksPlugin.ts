@@ -11,7 +11,7 @@ import {
 import { Chunk } from "../Chunk";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
-import type { OptimizationSplitChunksOptions } from "../config/zod";
+import type { OptimizationSplitChunksOptions } from "../config";
 import { JsSplitChunkSizes } from "../util/SplitChunkSize";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 

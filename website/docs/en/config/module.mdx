@@ -211,6 +211,15 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: '/.*/' }]}
+/>
+
+Set a regular expression to match wrapped dynamic dependencies.
+
 #### module.parser.javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
@@ -802,13 +811,66 @@ Matches all modules that match this resource, and will match against Resource (t
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-:::warning
-This configuration will only take effect when `experiments.layers = true`.
-:::
-
 - **Type:** `string`
+- **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
+
+:::warning
+This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+:::
+
+A basic example:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        issuerLayer: 'other-layer',
+      },
+    ],
+  },
+};
+```
+
+A more complex example is the combination with [entry options](/config/entry#entrydescriptionlayer) to build modern and legacy bundles at the same time:
+
+```js title=rspack.config.js
+module.exports = {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'modern',
+    },
+    'index-legacy': {
+      import: './src/index.js',
+      layer: 'legacy',
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        issuerLayer: 'modern',
+        options: {
+          env: { targets: ['chrome >= 100'] },
+        },
+      },
+      {
+        test: /\.js$/,
+        issuerLayer: 'legacy',
+        options: {
+          env: { targets: ['ie >= 11'] },
+        },
+      },
+    ],
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
 
 ### Rule.dependency
 
@@ -903,6 +965,37 @@ The following import will match:
 ```ts
 import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
+```
+
+It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/features/builtin-swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
+
+```diff title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            experimental: {
++             keepImportAttributes: true,
+            },
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
 ```
 
 ### Rule.loaders
@@ -1006,13 +1099,27 @@ Used to mark the type of the matching module, which affects how the module is ha
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-:::warning
-This configuration will only take effect when `experiments.layers = true`.
-:::
-
 - **Type:** `string`
 
-Used to mark the layer of the matching module.
+Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
+
+:::warning
+This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+:::
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
 
 ### Rule.use
 

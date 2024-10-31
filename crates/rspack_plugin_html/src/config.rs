@@ -119,7 +119,7 @@ impl std::fmt::Debug for TemplateRenderFn {
 pub struct HtmlRspackPluginOptions {
   /// emitted file name in output path
   #[serde(default = "default_filename")]
-  pub filename: String,
+  pub filename: Vec<String>,
   /// template html file
   pub template: Option<String>,
   #[serde(skip)]
@@ -152,8 +152,8 @@ pub struct HtmlRspackPluginOptions {
   pub base: Option<HtmlRspackPluginBaseOptions>,
 }
 
-fn default_filename() -> String {
-  String::from("index.html")
+fn default_filename() -> Vec<String> {
+  vec![String::from("index.html")]
 }
 
 fn default_script_loading() -> HtmlScriptLoading {

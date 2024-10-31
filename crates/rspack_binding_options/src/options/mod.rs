@@ -1,6 +1,6 @@
 use napi_derive::napi;
 use rspack_core::{
-  unaffected_cache::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
+  incremental::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
   ModuleOptions, OutputOptions, References,
 };
 
@@ -97,6 +97,9 @@ impl TryFrom<RawOptions> for CompilerOptions {
           }
           if value.modules_runtime_requirements {
             passes.insert(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS);
+          }
+          if value.build_chunk_graph {
+            passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
           }
           passes
         }

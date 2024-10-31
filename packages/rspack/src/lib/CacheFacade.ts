@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import asyncLib from "neo-async";
+import asyncLib from "../util/asyncLib";
 import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
 import { mergeEtags } from "./cache/mergeEtags.js";
 

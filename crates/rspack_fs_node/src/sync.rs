@@ -12,6 +12,12 @@ pub struct NodeWritableFileSystem {
   _data: PhantomData<*mut ()>,
 }
 
+impl std::fmt::Debug for NodeWritableFileSystem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("NodeWritableFileSystem").finish()
+  }
+}
+
 impl NodeWritableFileSystem {
   pub fn new(env: Env, fs: NodeFS) -> napi::Result<Self> {
     Ok(Self {

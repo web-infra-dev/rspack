@@ -12,6 +12,7 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./hot/*": "./hot/*.js",
@@ -29,7 +30,7 @@
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "node scripts/check-documentation-coverage.mjs",
     "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/api.md etc/api.md"
+    "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
   "files": [
     "dist",
@@ -48,17 +49,16 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@swc/core": "1.4.0",
+    "@swc/core": "1.7.40",
+    "@swc/types": "0.1.12",
     "@types/graceful-fs": "4.1.9",
-    "@types/neo-async": "^2.6.6",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",
     "browserslist": "^4.21.3",
     "cross-env": "^7.0.3",
-    "enhanced-resolve": "5.12.0",
-    "graceful-fs": "4.2.10",
+    "enhanced-resolve": "5.17.1",
+    "graceful-fs": "4.2.11",
     "json-parse-even-better-errors": "^3.0.0",
-    "neo-async": "2.6.2",
     "prebundle": "^1.1.0",
     "tsc-alias": "^1.8.8",
     "tsup": "^8.3.0",
@@ -67,7 +67,7 @@
     "webpack-dev-server": "5.0.4",
     "webpack-sources": "3.2.3",
     "zod": "^3.23.8",
-    "zod-validation-error": "3.3.1"
+    "zod-validation-error": "3.4.0"
   },
   "dependencies": {
     "@module-federation/runtime-tools": "0.5.1",

@@ -228,6 +228,7 @@ pub struct JavascriptParserOptions {
   pub url: Option<JavascriptParserUrl>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
@@ -644,8 +645,7 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:

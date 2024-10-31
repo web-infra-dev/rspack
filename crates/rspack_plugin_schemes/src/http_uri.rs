@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -31,8 +30,7 @@ impl HttpUriPlugin {
   }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct HttpUriPluginOptions {
   pub allowed_uris: HttpUriOptionsAllowedUris,
   pub cache_location: Option<String>,
@@ -40,7 +38,6 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
-  #[derivative(Debug = "ignore")]
   pub filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
   pub http_client: Option<Arc<dyn HttpClient>>,
 }

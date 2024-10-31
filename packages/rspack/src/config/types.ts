@@ -1,5 +1,6 @@
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import type { PathData } from "../Compilation";
+import type * as webpackDevServer from "webpack-dev-server";
+import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type { Chunk } from "../exports";
@@ -569,13 +570,13 @@ export type Output = {
 
 	/**
 	 * The prefix length of the hash digest to use.
-	 * @default 20
+	 * @default 16
 	 * */
 	hashDigestLength?: HashDigestLength;
 
 	/**
 	 * The hashing algorithm to use.
-	 * @default 'md4'
+	 * @default 'xxhash64'
 	 * */
 	hashFunction?: HashFunction;
 
@@ -632,6 +633,11 @@ export type Output = {
 
 	/** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
 	environment?: Environment;
+
+	/**
+	 * Check if to be emitted file already exists and have the same content before writing to output filesystem.
+	 */
+	compareBeforeEmit?: boolean;
 };
 
 //#endregion
@@ -1002,6 +1008,11 @@ export type JavascriptParserOptions = {
 	wrappedContextCritical?: boolean;
 
 	/**
+	 * Set the inner regular expression for partial dynamic dependencies
+	 * */
+	wrappedContextRegExp?: RegExp;
+
+	/**
 	 * Warn or error for using non-existent exports and conflicting re-exports.
 	 * @default 'auto'
 	 */
@@ -1301,7 +1312,15 @@ export type ExternalItemValue =
 	| string
 	| boolean
 	| string[]
-	| Record<string, string | string[]>;
+	| {
+			/**
+			 * only available when libraryTarget and externalsType is 'umd'
+			 */
+			root: string | string[];
+			commonjs: string | string[];
+			commonjs2: string | string[];
+			amd?: string | string[];
+	  };
 
 /**
  * If an dependency matches exactly a property of the object, the property value is used as dependency.
@@ -2397,6 +2416,11 @@ export type Incremental = {
 	 * Enable incremental module runtime requirements.
 	 */
 	modulesRuntimeRequirements?: boolean;
+
+	/**
+	 * Enable incremental build chunk graph.
+	 */
+	buildChunkGraph?: boolean;
 };
 
 /**
@@ -2452,3 +2476,226 @@ export type Experiments = {
 	rspackFuture?: RspackFutureOptions;
 };
 //#endregion
+
+//#region Watch
+export type Watch = boolean;
+//#endregion
+
+//#region WatchOptions
+
+/** Options for watch mode. */
+export type WatchOptions = {
+	/**
+	 * Add a delay before rebuilding once the first file changed.
+	 * This allows webpack to aggregate any other changes made during this time period into one rebuild.
+	 * @default 5
+	 */
+	aggregateTimeout?: number;
+
+	/**
+	 * Follow symlinks while looking for files.
+	 * This is usually not needed as webpack already resolves symlinks ('resolve.symlinks' and 'resolve.alias').
+	 */
+	followSymlinks?: boolean;
+
+	/**
+	 * Ignore some files from being watched.
+	 */
+	ignored?: string | RegExp | string[];
+
+	/**
+	 * Turn on polling by passing true, or specifying a poll interval in milliseconds.
+	 * @default false
+	 */
+	poll?: number | boolean;
+
+	/**
+	 * Stop watching when stdin stream has ended.
+	 */
+	stdin?: boolean;
+};
+//#endregion
+
+//#region DevServer
+/**
+ * Options for devServer, it based on `webpack-dev-server@5`
+ * */
+export interface DevServer extends webpackDevServer.Configuration {}
+//#endregion
+
+//#region IgnoreWarnings
+/**
+ * An array of either regular expressions or functions that determine if a warning should be ignored.
+ */
+export type IgnoreWarnings = (
+	| RegExp
+	| ((error: Error, compilation: Compilation) => boolean)
+)[];
+//#endregion
+
+//#region Profile
+/**
+ * Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool.
+ * */
+export type Profile = boolean;
+//#endregion
+
+//#region Bail
+/**
+ * Fail out on the first error instead of tolerating it.
+ * @default false
+ * */
+export type Bail = boolean;
+//#endregion
+
+//#region Performance
+/** Options to control how Rspack notifies you of assets and entry points that exceed a specific file limit.   */
+export type Performance =
+	| false
+	| {
+			/**
+			 * Filter function to select assets that are checked.
+			 */
+			assetFilter?: (assetFilename: string) => boolean;
+			/**
+			 * Sets the format of the hints: warnings, errors or nothing at all.
+			 */
+			hints?: false | "warning" | "error";
+			/**
+			 * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
+			 * @default 250000
+			 */
+			maxAssetSize?: number;
+			/**
+			 * Total size of an entry point (in bytes).
+			 * @default 250000
+			 */
+			maxEntrypointSize?: number;
+	  };
+//#endregion
+
+export type RspackOptions = {
+	/**
+	 * The name of the Rspack configuration.
+	 */
+	name?: Name;
+	/**
+	 * An array of dependencies required by the project.
+	 */
+	dependencies?: Dependencies;
+	/**
+	 * The entry point of the application.
+	 */
+	entry?: Entry;
+	/**
+	 * Configuration for the output of the compilation.
+	 */
+	output?: Output;
+	/**
+	 * The environment in which the code should run.
+	 */
+	target?: Target;
+	/**
+	 * The mode in which Rspack should operate.
+	 */
+	mode?: Mode;
+	/**
+	 * Options for experimental features.
+	 */
+	experiments?: Experiments;
+	/**
+	 * External libraries that should not be bundled.
+	 */
+	externals?: Externals;
+	/**
+	 * The type of externals.
+	 */
+	externalsType?: ExternalsType;
+	/**
+	 * Presets for external libraries.
+	 */
+	externalsPresets?: ExternalsPresets;
+	/**
+	 * Logging options for infrastructure.
+	 */
+	infrastructureLogging?: InfrastructureLogging;
+	/**
+	 * Options for caching.
+	 */
+	cache?: CacheOptions;
+	/**
+	 * The context in which the compilation should occur.
+	 */
+	context?: Context;
+	/**
+	 * The source map configuration.
+	 */
+	devtool?: DevTool;
+	/**
+	 * Options for Node.js environment.
+	 */
+	node?: Node;
+	/**
+	 * Configuration for loaders.
+	 */
+	loader?: Loader;
+	/**
+	 * Warnings to ignore during compilation.
+	 */
+	ignoreWarnings?: IgnoreWarnings;
+	/**
+	 * Options for watch mode.
+	 */
+	watchOptions?: WatchOptions;
+	/**
+	 * Whether to enable watch mode.
+	 */
+	watch?: Watch;
+	/**
+	 * Options for the stats output.
+	 */
+	stats?: StatsValue;
+	/**
+	 * Options for snapshotting.
+	 */
+	snapshot?: SnapshotOptions;
+	/**
+	 * Optimization options.
+	 */
+	optimization?: Optimization;
+	/**
+	 * Options for resolving modules.
+	 */
+	resolve?: ResolveOptions;
+	/**
+	 * Options for resolving loader modules.
+	 */
+	resolveLoader?: ResolveOptions;
+	/**
+	 * Plugins to use during compilation.
+	 */
+	plugins?: Plugins;
+	/**
+	 * Configuration for the development server.
+	 */
+	devServer?: DevServer;
+	/**
+	 * Options for module configuration.
+	 */
+	module?: ModuleOptions;
+	/**
+	 * Whether to capture a profile of the application.
+	 */
+	profile?: Profile;
+	/**
+	 * Whether to fail on the first error.
+	 */
+	bail?: Bail;
+	/**
+	 * Performance optimization options.
+	 */
+	performance?: Performance;
+};
+
+/** Configuration for Rspack */
+export type Configuration = RspackOptions;

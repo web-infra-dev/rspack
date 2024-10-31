@@ -8,8 +8,8 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  fast_set, get_chunk_from_ukey, unaffected_cache::IncrementalPasses, ChunkKind, Compilation,
-  Compiler, ModuleExecutor, RuntimeSpec,
+  fast_set, get_chunk_from_ukey, incremental::IncrementalPasses, ChunkKind, Compilation, Compiler,
+  ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -71,7 +71,6 @@ impl Compiler {
         self.loader_resolver_factory.clone(),
         Some(records),
         self.old_cache.clone(),
-        self.unaffected_modules_cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,

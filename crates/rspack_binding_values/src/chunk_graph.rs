@@ -2,11 +2,18 @@ use napi_derive::napi;
 use rspack_core::{ChunkUkey, SourceType};
 use rspack_napi::napi::Result;
 
-use crate::{JsChunk, JsCompilation, JsModule, ToJsModule};
+use crate::{JsChunk, JsCompilation, JsModuleWrapper};
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_modules")]
-pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
-  let compilation = &compilation.0;
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_modules",
+  ts_return_type = "JsModule[]"
+)]
+pub fn get_chunk_modules(
+  js_chunk_ukey: u32,
+  js_compilation: &JsCompilation,
+) -> Vec<JsModuleWrapper> {
+  let compilation = unsafe { js_compilation.0.as_ref() };
+
   let module_graph = compilation.get_module_graph();
   let modules = compilation
     .chunk_graph
@@ -14,13 +21,20 @@ pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec
 
   return modules
     .iter()
-    .filter_map(|module| module.to_js_module().ok())
+    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
     .collect::<Vec<_>>();
 }
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_entry_modules")]
-pub fn get_chunk_entry_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
-  let compilation = &compilation.0;
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_entry_modules",
+  ts_return_type = "JsModule[]"
+)]
+pub fn get_chunk_entry_modules(
+  js_chunk_ukey: u32,
+  js_compilation: &JsCompilation,
+) -> Vec<JsModuleWrapper> {
+  let compilation = unsafe { js_compilation.0.as_ref() };
+
   let modules = compilation
     .chunk_graph
     .get_chunk_entry_modules(&ChunkUkey::from(js_chunk_ukey));
@@ -28,16 +42,17 @@ pub fn get_chunk_entry_modules(js_chunk_ukey: u32, compilation: &JsCompilation) 
   return modules
     .iter()
     .filter_map(|module| module_graph.module_by_identifier(module))
-    .filter_map(|module| module.to_js_module().ok())
+    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
     .collect::<Vec<_>>();
 }
 
 #[napi(js_name = "__chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable")]
 pub fn get_chunk_entry_dependent_chunks_iterable(
   js_chunk_ukey: u32,
-  compilation: &JsCompilation,
+  js_compilation: &JsCompilation,
 ) -> Vec<JsChunk> {
-  let compilation = &compilation.0;
+  let compilation = unsafe { js_compilation.0.as_ref() };
+
   let chunks = compilation
     .chunk_graph
     .get_chunk_entry_dependent_chunks_iterable(
@@ -52,13 +67,17 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
     .collect::<Vec<_>>();
 }
 
-#[napi(js_name = "__chunk_graph_inner_get_chunk_modules_iterable_by_source_type")]
+#[napi(
+  js_name = "__chunk_graph_inner_get_chunk_modules_iterable_by_source_type",
+  ts_return_type = "JsModule[]"
+)]
 pub fn get_chunk_modules_iterable_by_source_type(
   js_chunk_ukey: u32,
   source_type: String,
-  compilation: &JsCompilation,
-) -> Result<Vec<JsModule>> {
-  let compilation = &compilation.0;
+  js_compilation: &JsCompilation,
+) -> Result<Vec<JsModuleWrapper>> {
+  let compilation = unsafe { js_compilation.0.as_ref() };
+
   Ok(
     compilation
       .chunk_graph
@@ -67,7 +86,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
         SourceType::from(source_type.as_str()),
         &compilation.get_module_graph(),
       )
-      .filter_map(|module| module.to_js_module().ok())
+      .map(|module| JsModuleWrapper::new(module, Some(compilation)))
       .collect(),
   )
 }

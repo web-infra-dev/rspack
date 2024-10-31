@@ -2,12 +2,12 @@
 
 exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
 body {
-  & ._-ca56f23580d7bbb484-used {
+  & ._-ec1c834ac8cc99e-used {
     color: #00f;
   }
 }
 
-head{--webpack--909:used:_-ca56f23580d7bē484-ĀĂ/&_368;}
+head{--webpack--909:used:_-ec1c834aĊcc99e-ĀĂ/&_368;}
 `;
 
 exports[`config config/builtin-lightningcss-loader/minify exported tests css content minifyed 1`] = `
@@ -17,96 +17,96 @@ head{--webpack--909:&_487;}
 
 exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
-  style: -ca56f23580d7bbb484-style,
+  style: -ec1c834ac8cc99e-style,
 }
 `;
 
 exports[`config config/builtins/css-modules-composes exported tests css modules composes 1`] = `
 Object {
-  simple-bar: -a7200a43b5c2530b1414-simple-bar -f27007fff641a72c371d-imported-simple,
-  simple-foo: -a7200a43b5c2530b1414-simple-foo -f27007fff641a72c371d-imported-simple,
+  simple-bar: -bd00b1e0e0954270-simple-bar -e631de715f468814-imported-simple,
+  simple-foo: -bd00b1e0e0954270-simple-foo -e631de715f468814-imported-simple,
 }
 `;
 
 exports[`config config/builtins/css-modules-composes-preprocessers exported tests css modules with css preprocessers 1`] = `
 Object {
-  class: -a7200a43b5c2530b1414-class -feb80f2fe6d30-lessClass,
-  ghi: -a7200a43b5c2530b1414-ghi,
-  other: -a7200a43b5c2530b1414-other -ebd90a48d100efd-scssClass,
-  otherClassName: -a7200a43b5c2530b1414-otherClassName globalClassName,
+  class: -bd00b1e0e0954270-class -a700d75440d0c95b-lessClass,
+  ghi: -bd00b1e0e0954270-ghi,
+  other: -bd00b1e0e0954270-other -c82bab3b83825a-scssClass,
+  otherClassName: -bd00b1e0e0954270-otherClassName globalClassName,
 }
 `;
 
 exports[`config config/builtins/css-modules-composes-sass exported tests css modules in scss 1`] = `
 Object {
-  bar: -f1f00e6e62b9a7fadb02-bar -a3b1929b59eeacf15a4-foo,
+  bar: -f71ebaec3a61562-bar -d2e32b33f9cd5760-foo,
 }
 `;
 
 exports[`config config/builtins/css-modules-dedupe exported tests css modules dedupe 1`] = `
 Object {
-  backButton: -baa5c4d806a1671b-backButton -e683a459bd7b289e1b8d-secondaryButton -d8686a334ddc6bdd0-button,
-  nextButton: -baa5c4d806a1671b-nextButton -a510fa2734ece860e70-primaryButton -d8686a334ddc6bdd0-button,
+  backButton: -f9dde4a2b9fd39e-backButton -c0cdf795e5ee8e4-secondaryButton -ff2973456bd9e-button,
+  nextButton: -f9dde4a2b9fd39e-nextButton -fe530a949364eca-primaryButton -ff2973456bd9e-button,
 }
 `;
 
 exports[`config config/builtins/css-modules-exports-only exported tests css modules exportsOnly 1`] = `
 Object {
-  simple-bar: -a7200a43b5c2530b1414-simple-bar -f27007fff641a72c371d-imported-simple,
-  simple-foo: -a7200a43b5c2530b1414-simple-foo -f27007fff641a72c371d-imported-simple,
+  simple-bar: -bd00b1e0e0954270-simple-bar -e631de715f468814-imported-simple,
+  simple-foo: -bd00b1e0e0954270-simple-foo -e631de715f468814-imported-simple,
 }
 `;
 
 exports[`config config/builtins/css-modules-local-ident-name-hash exported tests css modules localIdentName with hash 1`] = `
 Object {
-  #: ccc05d01b5ed91e5a4d,
-  ##: c16d3dd30b7cca2d412d,
-  #.#.#: c6e8935740a6209cd48e,
-  #fake-id: c053ba4f7badbc242,
-  ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.: f5775dd999dc95dd350,
-  -a-b-c-: e171381fc62026ffe05b,
-  -a0-34a___f: e6419db424263d77191e,
-  .: b1061101d3ff1517822,
-  123: c6f16686ef1ceab9728,
-  1a2b3c: ea6ff32ba4e9ad9e4c71,
-  :): c8ad14da9eacd8206f95,
-  :\`(: ab034bce3407ac44d,
-  :hover: d64a685363ea14300,
-  :hover:focus:active: f1ba6ba717fdcfbecc52,
-  <><<<>><>: a8471bf6e63738086bfa,
-  <p>: f4a8269a3b7c6f38759d,
-  ?: d4a79a8d3ea0285a,
-  @: dba948edd127566bb,
-  B&W?: d26b7b08b3ee0fec8093,
-  [attr=value]: cf98e323da83a7ef1,
-  _: b21bb2384964fa8226c0,
-  _test: acd3c0528ed3c3330,
-  className: a20f38af3e2122251,
-  f!o!o: a4a2e3c31408bb709fb,
-  f'o'o: c1712d83c24d5b7bd9d,
-  f*o*o: f5ce693ef2ea116b05,
-  f+o+o: e3714c708c213b9e,
-  f/o/o: cd9b24dbefa12afeaba5,
-  f/o/o: f90fa90fb52121fce923,
-  foo.bar: a7554930d53d1d95676,
-  foo/bar: e21d87979464d92960b9,
-  foo/bar/baz: e26519aba0f8e105eb13,
-  foo/bar: f93c23331183aeac60,
-  foo/bar/baz: aa79627c6f36d0c8f9,
-  f~o~o: f4c89337b4a84e05,
-  m_x_@: f106c601eea0160783bb,
-  someId: f7dad309581ff59a8c1,
-  subClass: f904cf1d95567c868707,
-  test: c8e76de9832d60b206c2,
-  {}: e73bdae84335b77,
-  ©: d4c6ea8dbaf492a7e42e,
-  “‘’”: d3df6d853c11234b8,
-  ⌘⌥: bbb74fa7684d2b07,
-  ☺☃: d09672ed2a23417fa543,
-  ♥: f5682d5025ab700972a0,
-  𝄞♪♩♫♬: b7e928b15b6057d2f8,
-  💩: bb34b4e107a01390e3fb,
-  😍: e5439193d7906536aeac,
+  #: c36b985d54c6917,
+  ##: ab513cc8abd7e7d,
+  #.#.#: b6aa9e623eb8be,
+  #fake-id: d65fd648c910d0f,
+  ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.: fe85c4cd33dc7b53,
+  -a-b-c-: b1d2002fed1364,
+  -a0-34a___f: bd6992764ef,
+  .: f8dc72200543c02,
+  123: fc54982b169de010,
+  1a2b3c: e0d288534c575c7c,
+  :): ce45aa5fbb24,
+  :\`(: c3a47328b233,
+  :hover: c9cb40d597d6145,
+  :hover:focus:active: adb078f8a010,
+  <><<<>><>: e57bed6057bf,
+  <p>: d4d795aa031981a3,
+  ?: ca312bbe575926f7,
+  @: e73735f9a6fa1e2a,
+  B&W?: c28b11d8276955d9,
+  [attr=value]: aefb3cf784f22f09,
+  _: b892aeed406cef6,
+  _test: f95d7802389a,
+  className: b88ec9c3ddaa088,
+  f!o!o: bc20be6f8aa6ba2b,
+  f'o'o: a1ad39e5bcb2a,
+  f*o*o: ee490440b4d27dd,
+  f+o+o: b2f2e8203ab92e0,
+  f/o/o: e8e6467eba546855,
+  f/o/o: ac4b388a402f1b,
+  foo.bar: bf09604a510669,
+  foo/bar: f06b4ed00041408a,
+  foo/bar/baz: b62901907350b529,
+  foo/bar: cf1721b3e29,
+  foo/bar/baz: db46f3e1d8ecc82b,
+  f~o~o: e22953bae58b7,
+  m_x_@: eede355cc6b0366,
+  someId: f39bfe4a4606a57c,
+  subClass: dbb85e97d7af8a70,
+  test: db0a8ac9537cb87c,
+  {}: c849d7d50310c200,
+  ©: fc4038317,
+  “‘’”: b1f8cf023766,
+  ⌘⌥: cad802,
+  ☺☃: a5266303d99e4a3,
+  ♥: b3f2fd830,
+  𝄞♪♩♫♬: c573deb3b242a81b,
+  💩: f17b76fb4694950,
+  😍: d57d2641b441,
 }
 `;
 
@@ -165,52 +165,52 @@ Object {
 
 exports[`config config/builtins/css-modules-locals-convention-camelCase exported tests css modules localsConvention with camelCase 1`] = `
 Object {
-  btn--info_is-disabled_1: -a7200a43b5c2530b1414-btn--info_is-disabled_1,
-  btn-info_is-disabled: -a7200a43b5c2530b1414-btn-info_is-disabled,
-  btnInfoIsDisabled: -a7200a43b5c2530b1414-btn-info_is-disabled,
-  btnInfoIsDisabled1: -a7200a43b5c2530b1414-btn--info_is-disabled_1,
-  fooBar: -a7200a43b5c2530b1414-foo_bar,
-  foo_bar: -a7200a43b5c2530b1414-foo_bar,
-  simple: -a7200a43b5c2530b1414-simple,
+  btn--info_is-disabled_1: -bd00b1e0e0954270-btn--info_is-disabled_1,
+  btn-info_is-disabled: -bd00b1e0e0954270-btn-info_is-disabled,
+  btnInfoIsDisabled: -bd00b1e0e0954270-btn-info_is-disabled,
+  btnInfoIsDisabled1: -bd00b1e0e0954270-btn--info_is-disabled_1,
+  fooBar: -bd00b1e0e0954270-foo_bar,
+  foo_bar: -bd00b1e0e0954270-foo_bar,
+  simple: -bd00b1e0e0954270-simple,
 }
 `;
 
 exports[`config config/builtins/css-modules-locals-convention-camelCaseOnly exported tests css modules localsConvention with camelCaseOnly 1`] = `
 Object {
-  btnInfoIsDisabled: -a7200a43b5c2530b1414-btn-info_is-disabled,
-  btnInfoIsDisabled1: -a7200a43b5c2530b1414-btn--info_is-disabled_1,
-  fooBar: -a7200a43b5c2530b1414-foo_bar,
-  simple: -a7200a43b5c2530b1414-simple,
+  btnInfoIsDisabled: -bd00b1e0e0954270-btn-info_is-disabled,
+  btnInfoIsDisabled1: -bd00b1e0e0954270-btn--info_is-disabled_1,
+  fooBar: -bd00b1e0e0954270-foo_bar,
+  simple: -bd00b1e0e0954270-simple,
 }
 `;
 
 exports[`config config/builtins/css-modules-locals-convention-dashes exported tests css modules localsConvention with dashes 1`] = `
 Object {
-  btn--info_is-disabled_1: -a7200a43b5c2530b1414-btn--info_is-disabled_1,
-  btn-info-is-disabled: -a7200a43b5c2530b1414-btn-info_is-disabled,
-  btn-info-is-disabled-1: -a7200a43b5c2530b1414-btn--info_is-disabled_1,
-  btn-info_is-disabled: -a7200a43b5c2530b1414-btn-info_is-disabled,
-  foo-bar: -a7200a43b5c2530b1414-foo_bar,
-  foo_bar: -a7200a43b5c2530b1414-foo_bar,
-  simple: -a7200a43b5c2530b1414-simple,
+  btn--info_is-disabled_1: -bd00b1e0e0954270-btn--info_is-disabled_1,
+  btn-info-is-disabled: -bd00b1e0e0954270-btn-info_is-disabled,
+  btn-info-is-disabled-1: -bd00b1e0e0954270-btn--info_is-disabled_1,
+  btn-info_is-disabled: -bd00b1e0e0954270-btn-info_is-disabled,
+  foo-bar: -bd00b1e0e0954270-foo_bar,
+  foo_bar: -bd00b1e0e0954270-foo_bar,
+  simple: -bd00b1e0e0954270-simple,
 }
 `;
 
 exports[`config config/builtins/css-modules-pseudo exported tests css modules pseudo syntax 1`] = `
 Object {
-  bar: -a7200a43b5c2530b1414-bar,
-  bav: -a7200a43b5c2530b1414-bav,
-  foo: -a7200a43b5c2530b1414-foo,
-  four: -a7200a43b5c2530b1414-four,
-  one: -a7200a43b5c2530b1414-one,
-  three: -a7200a43b5c2530b1414-three,
-  two: -a7200a43b5c2530b1414-two,
+  bar: -bd00b1e0e0954270-bar,
+  bav: -bd00b1e0e0954270-bav,
+  foo: -bd00b1e0e0954270-foo,
+  four: -bd00b1e0e0954270-four,
+  one: -bd00b1e0e0954270-one,
+  three: -bd00b1e0e0954270-three,
+  two: -bd00b1e0e0954270-two,
 }
 `;
 
 exports[`config config/builtins/css-modules-simple exported tests css modules simple test 1`] = `
 Object {
-  style: -ca56f23580d7bbb484-style,
+  style: -ec1c834ac8cc99e-style,
 }
 `;
 
@@ -264,17 +264,17 @@ exports[`config config/css/export-selector exported tests should have correct cs
 head{--webpack--imported_js:foo:foo/bar:b/ a/ r/local:local/dashName:dashName/&/.//style/.module/.css/?imported;}
 `;
 
-exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `5d8d67b36a3d70a5cea9.png`;
+exports[`config config/css/rewrite-url exported tests should rewrite the css url() 1`] = `ac673538c200453e.png`;
 
 exports[`config config/css/rewrite-url exported tests should rewrite the css url() 2`] = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvfXsAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcwXsC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg==`;
 
-exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `5d8d67b36a3d70a5cea9.png`;
+exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 1`] = `ac673538c200453e.png`;
 
-exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `5d8d67b36a3d70a5cea9.png`;
+exports[`config config/css/rewrite-url-css-variables exported tests should rewrite the css url() in css variables 2`] = `ac673538c200453e.png`;
 
-exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `/image/logo.5d8d67b3.png`;
+exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `/image/logo.ac673538.png`;
 
-exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `/image/logo.5d8d67b3.png`;
+exports[`config config/css/rewrite-url-with-css-filename exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `/image/logo.ac673538.png`;
 
 exports[`config config/css/urls exported tests css urls should works 1`] = `
 /* @supports (background-image: url("unknown.png")) {
@@ -321,7 +321,7 @@ div {
 
 div {
 	a1: url();
-	a114: url(09a1a1112c577c279435.png);
+	a114: url(7bc91c245a8a10a4.png);
 }
 
 div {
@@ -330,6 +330,53 @@ div {
 }
 
 head{--webpack--120:&_13;}
+`;
+
+exports[`config config/externals/reexport-star exported tests reexport star from external module 1`] = `
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+import * as __WEBPACK_EXTERNAL_MODULE_external2_alias__ from "external2-alias";
+export * from "external1-alias";
+export * from "external2-alias";
+
+;// CONCATENATED MODULE: external "external1-alias"
+
+;// CONCATENATED MODULE: external "external2-alias"
+
+;// CONCATENATED MODULE: ./case1.js
+`;
+
+exports[`config config/externals/reexport-star exported tests reexport star from external module 2`] = `
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+export * from "external1-alias";
+
+;// CONCATENATED MODULE: external "external1-alias"
+
+;// CONCATENATED MODULE: ./case2.js
+
+
+
+
+
+
+var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias__.a;
+var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias__.b;
+export { __WEBPACK_EXTERNAL_MODULE_external1_alias__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };
+`;
+
+exports[`config config/externals/reexport-star exported tests reexport star from external module 3`] = `
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+
+;// CONCATENATED MODULE: external "external1-alias"
+
+;// CONCATENATED MODULE: ./case3/foo.js
+
+const foo = 2
+
+;// CONCATENATED MODULE: ./case3/index.js
+
+const bar = 1
+
+export { bar, foo };
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: .cjs should bail out 1`] = `
@@ -558,6 +605,86 @@ const value = foo + (bar_default())
 export { value };
 `;
 
+exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat, even with bailout reason 1`] = `
+var __webpack_modules__ = ({
+"974": (function (module) {
+module.exports = 'foo'
+
+
+}),
+
+});
+/************************************************************************/
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+/************************************************************************/
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = function (module) {
+	var getter = module && module.__esModule ?
+		function () { return module['default']; } :
+		function () { return module; };
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+
+
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
+/************************************************************************/
+
+// EXTERNAL MODULE: ./g/foo.js
+var foo = __webpack_require__("974");
+var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
+;// CONCATENATED MODULE: ./g/index.js
+
+
+
+
+var __webpack_exports__foo = (foo_default());
+export { __webpack_exports__foo as foo };
+`;
+
 exports[`config config/library/modern-module-force-concaten step  should pass: unambiguous should bail out 1`] = `const c = 'c'`;
 
 exports[`config config/optimization/minimizer-esm-asset exported tests minimizing an asset file of esm type should success 1`] = `console.log(import.meta.url);export const a=1;`;
@@ -636,10 +763,10 @@ exports[`config config/schemes/data-imports exported tests data imports 1`] = `
 
 
 .class {
-  a: url(26a611d6d05cbb01eXsvg);
-  b: url(26a611d6d05cbb01eXsvg);
-  c: url(26a611d6d05cbb01e459);
-  d: url(26a611d6d05cbb01e459);
+  a: url(7159cadb6967ca3cXsvg);
+  b: url(7159cadb6967ca3cXsvg);
+  c: url(7159cadb6967ca3c);
+  d: url(7159cadb6967ca3c);
 }
 
 head{--webpack--909:&_653,Ā47ĄĀ645ą_49Ď571;}

@@ -1,7 +1,7 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  unaffected_cache::{IncrementalPasses, Mutation, Mutations},
+  incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType,
   ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
@@ -14,21 +14,35 @@ pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let module_graph = compilation.get_module_graph();
-  let modules: IdentifierSet = if compilation
+  let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+    .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
   {
-    compilation
-      .unaffected_modules_cache
-      .get_affected_modules_with_module_graph()
-      .lock()
-      .expect("should lock")
-      .clone()
+    let rebuild_modules: IdentifierSet = mutations
+      .iter()
+      .filter_map(|mutation| match mutation {
+        Mutation::ModuleBuild { module } => Some(*module),
+        _ => None,
+      })
+      .collect();
+    let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+      Mutation::ModuleRevoke { module } => (!rebuild_modules.contains(module)).then_some(*module),
+      _ => None,
+    });
+    for revoked_module in revoked_modules {
+      compilation.async_modules.remove(&revoked_module);
+    }
+    rebuild_modules
   } else {
-    module_graph.modules().keys().copied().collect()
+    compilation
+      .get_module_graph()
+      .modules()
+      .keys()
+      .copied()
+      .collect()
   };
 
+  let module_graph = compilation.get_module_graph();
   let mut sync_modules = LinkedHashSet::new();
   let mut async_modules = LinkedHashSet::new();
   for module_identifier in modules {

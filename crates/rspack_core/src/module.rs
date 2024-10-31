@@ -200,7 +200,8 @@ pub trait Module:
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
   /// The size of the original source, which will used as a parameter for code-splitting.
-  fn size(&self, source_type: Option<&SourceType>, compilation: &Compilation) -> f64;
+  /// Only when calculating the size of the RuntimeModule is the Compilation depended on
+  fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
@@ -648,6 +649,10 @@ mod test {
           unreachable!()
         }
 
+        fn remove_dependency_id(&mut self, _: DependencyId) {
+          unreachable!()
+        }
+
         fn get_dependencies(&self) -> &[DependencyId] {
           unreachable!()
         }
@@ -667,7 +672,11 @@ mod test {
           unreachable!()
         }
 
-        fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+        fn size(
+          &self,
+          _source_type: Option<&SourceType>,
+          _compilation: Option<&Compilation>,
+        ) -> f64 {
           unreachable!()
         }
 

@@ -107,6 +107,7 @@ pub struct RawOutputOptions {
   #[napi(ts_type = r#""module" | "text/javascript" | "false""#)]
   pub script_type: String,
   pub environment: RawEnvironment,
+  pub compare_before_emit: bool,
 }
 
 impl TryFrom<RawOutputOptions> for OutputOptions {
@@ -160,6 +161,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       environment: value.environment.into(),
       charset: value.charset,
       chunk_load_timeout: value.chunk_load_timeout,
+      compare_before_emit: value.compare_before_emit,
     })
   }
 }

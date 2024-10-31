@@ -4,7 +4,6 @@ mod make;
 mod module_executor;
 use std::sync::Arc;
 
-use derivative::Derivative;
 use rspack_error::Result;
 use rspack_fs::{
   AsyncNativeFileSystem, AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem,
@@ -19,10 +18,11 @@ use tracing::instrument;
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
+use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
-use crate::unaffected_cache::{IncrementalPasses, UnaffectedModulesCache};
 use crate::{
-  fast_set, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory, SharedPluginDriver,
+  fast_set, include_hash, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
@@ -51,13 +51,10 @@ pub struct CompilerHooks {
   pub asset_emitted: CompilerAssetEmittedHook,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
-  #[derivative(Debug = "ignore")]
   pub output_filesystem: Box<dyn AsyncWritableFileSystem + Send + Sync>,
-  #[derivative(Debug = "ignore")]
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
@@ -68,7 +65,6 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
-  unaffected_modules_cache: Arc<UnaffectedModulesCache>,
 }
 
 impl Compiler {
@@ -110,7 +106,6 @@ impl Compiler {
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
-    let unaffected_modules_cache = Arc::new(UnaffectedModulesCache::default());
     let module_executor = ModuleExecutor::default();
     let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(AsyncNativeFileSystem {}));
 
@@ -124,7 +119,6 @@ impl Compiler {
         loader_resolver_factory.clone(),
         None,
         old_cache.clone(),
-        unaffected_modules_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -137,7 +131,6 @@ impl Compiler {
       loader_resolver_factory,
       old_cache,
       emitted_asset_versions: Default::default(),
-      unaffected_modules_cache,
       input_filesystem,
     }
   }
@@ -165,7 +158,6 @@ impl Compiler {
         self.loader_resolver_factory.clone(),
         None,
         self.old_cache.clone(),
-        self.unaffected_modules_cache.clone(),
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -349,9 +341,7 @@ impl Compiler {
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
-      let filename = filename
-        .split_once('?')
-        .map_or(filename, |(filename, _query)| filename);
+      let (filename, query) = filename.split_once('?').unwrap_or((filename, ""));
       let file_path = output_path.join(filename);
       self
         .output_filesystem
@@ -362,12 +352,54 @@ impl Compiler {
         )
         .await?;
 
-      self
-        .output_filesystem
-        .write(&file_path, source.buffer().as_ref())
-        .await?;
+      let content = source.buffer();
 
-      self.compilation.emitted_assets.insert(filename.to_string());
+      let mut immutable = asset.info.immutable.unwrap_or(false);
+      if !query.is_empty() {
+        immutable = immutable
+          && (include_hash(filename, &asset.info.content_hash)
+            || include_hash(filename, &asset.info.chunk_hash)
+            || include_hash(filename, &asset.info.full_hash));
+      }
+
+      let stat = match self
+        .output_filesystem
+        .stat(file_path.as_path().as_ref())
+        .await
+      {
+        Ok(stat) => Some(stat),
+        Err(_) => None,
+      };
+
+      let need_write = if !self.options.output.compare_before_emit {
+        // write when compare_before_emit is false
+        true
+      } else if !stat.as_ref().is_some_and(|stat| stat.is_file) {
+        // write when not exists or not a file
+        true
+      } else if immutable {
+        // do not write when asset is immutable and the file exists
+        false
+      } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
+        match self
+          .output_filesystem
+          .read_file(file_path.as_path().as_ref())
+          .await
+        {
+          // write when content is different
+          Ok(c) => content != c,
+          // write when file can not be read
+          Err(_) => true,
+        }
+      } else {
+        // write if content length is different
+        true
+      };
+
+      if need_write {
+        self.output_filesystem.write(&file_path, &content).await?;
+        self.compilation.emitted_assets.insert(filename.to_string());
+      }
 
       let info = AssetEmittedInfo {
         output_path: output_path.to_owned(),

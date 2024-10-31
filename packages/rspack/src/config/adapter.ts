@@ -72,7 +72,7 @@ import type {
 	SnapshotOptions,
 	StatsValue,
 	Target
-} from "./zod";
+} from "./types";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -257,7 +257,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
 		charset: output.charset!,
 		chunkLoadTimeout: output.chunkLoadTimeout!,
-		environment: output.environment!
+		environment: output.environment!,
+		compareBeforeEmit: output.compareBeforeEmit!
 	};
 }
 
@@ -665,6 +666,7 @@ function getRawJavascriptParserOptions(
 		url: parser.url?.toString(),
 		exprContextCritical: parser.exprContextCritical,
 		wrappedContextCritical: parser.wrappedContextCritical,
+		wrappedContextRegExp: parser.wrappedContextRegExp,
 		exportsPresence:
 			parser.exportsPresence === false ? "false" : parser.exportsPresence,
 		importExportsPresence:
@@ -910,7 +912,8 @@ function getRawIncremental(
 		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
 		modulesHashes: incremental.modulesHashes!,
 		modulesCodegen: incremental.modulesCodegen!,
-		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!
+		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,
+		buildChunkGraph: incremental.buildChunkGraph!
 	};
 }
 

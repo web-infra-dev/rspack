@@ -83,7 +83,7 @@ impl Module for DelegatedModule {
     .into()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
   }
 
@@ -229,6 +229,10 @@ impl DependenciesBlock for DelegatedModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
   }
 }
 

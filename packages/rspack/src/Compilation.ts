@@ -56,7 +56,7 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
-export { type AssetInfo } from "./util/AssetInfo";
+export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -412,7 +412,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get namedChunkGroups() {
 		return createReadonlyMap<ChunkGroup>({
-			keys: (): MapIterator<string> => {
+			keys: (): ReturnType<string[]["values"]> => {
 				const names = this.#inner.getNamedChunkGroupKeys();
 				return names[Symbol.iterator]();
 			},
@@ -450,7 +450,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get namedChunks() {
 		return createReadonlyMap<Chunk>({
-			keys: (): IterableIterator<string> => {
+			keys: (): ReturnType<string[]["values"]> => {
 				const names = this.#inner.getNamedChunkKeys();
 				return names[Symbol.iterator]();
 			},
@@ -1240,22 +1240,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 export type EntryData = binding.JsEntryData;
 
-/**
- * Copied from `lib.es2015.iterable.d.ts` in TS 5.6 for compatibility
- * 1. In 5.6 and after, `IterableIterator` cannot be assigned to 'MapIterator'
- * 2. Before 5.6, Cannot find name 'MapIterator'
- * @see https://devblogs.microsoft.com/typescript/announcing-typescript-5-6/#iterator-helper-methods
- */
-interface IteratorObject<T, TReturn = unknown, TNext = unknown>
-	extends Iterator<T, TReturn, TNext> {
-	[Symbol.iterator](): IteratorObject<T, TReturn, TNext>;
-}
-type BuiltinIteratorReturn = any;
-interface MapIterator<T>
-	extends IteratorObject<T, BuiltinIteratorReturn, unknown> {
-	[Symbol.iterator](): MapIterator<T>;
-}
-
 export class Entries implements Map<string, EntryData> {
 	#data: binding.JsEntries;
 
@@ -1284,28 +1268,17 @@ export class Entries implements Map<string, EntryData> {
 		return this.#data.size;
 	}
 
-	entries(): MapIterator<[string, binding.JsEntryData]> {
-		const self = this;
-		const keys = this.keys();
-		return {
-			[Symbol.iterator]() {
-				return this;
-			},
-			next() {
-				const { done, value } = keys.next();
-				return {
-					done,
-					value: done ? (undefined as any) : [value, self.get(value)!]
-				};
-			}
-		};
+	*entries(): ReturnType<Map<string, EntryData>["entries"]> {
+		for (const key of this.keys()) {
+			yield [key, this.get(key)!];
+		}
 	}
 
-	values(): MapIterator<binding.JsEntryData> {
+	values(): ReturnType<Map<string, EntryData>["values"]> {
 		return this.#data.values()[Symbol.iterator]();
 	}
 
-	[Symbol.iterator](): MapIterator<[string, binding.JsEntryData]> {
+	[Symbol.iterator](): ReturnType<Map<string, EntryData>["entries"]> {
 		return this.entries();
 	}
 
@@ -1330,7 +1303,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.#data.get(key);
 	}
 
-	keys(): MapIterator<string> {
+	keys(): ReturnType<Map<string, EntryData>["keys"]> {
 		return this.#data.keys()[Symbol.iterator]();
 	}
 }

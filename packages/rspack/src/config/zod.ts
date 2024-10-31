@@ -1,13 +1,10 @@
 import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import type * as webpackDevServer from "webpack-dev-server";
 import { z } from "zod";
 import { Chunk } from "../Chunk";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import type * as t from "./types";
-
-export type * from "./types";
 
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
@@ -367,7 +364,8 @@ const output = z.strictObject({
 		devtoolFallbackModuleFilenameTemplate.optional(),
 	chunkLoadTimeout: z.number().optional(),
 	charset: z.boolean().optional(),
-	environment: environment.optional()
+	environment: environment.optional(),
+	compareBeforeEmit: z.boolean().optional()
 }) satisfies z.ZodType<t.Output>;
 //#endregion
 
@@ -527,6 +525,7 @@ const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
 const wrappedContextCritical = z.boolean();
+const wrappedContextRegExp = z.instanceof(RegExp);
 const exportsPresence = z.enum(["error", "warn", "auto"]).or(z.literal(false));
 const importExportsPresence = z
 	.enum(["error", "warn", "auto"])
@@ -551,6 +550,7 @@ const javascriptParserOptions = z.strictObject({
 	url: javascriptParserUrl.optional(),
 	exprContextCritical: exprContextCritical.optional(),
 	wrappedContextCritical: wrappedContextCritical.optional(),
+	wrappedContextRegExp: wrappedContextRegExp.optional(),
 	exportsPresence: exportsPresence.optional(),
 	importExportsPresence: importExportsPresence.optional(),
 	reexportExportsPresence: reexportExportsPresence.optional(),
@@ -800,7 +800,12 @@ const externalItemValue = z
 	.or(z.boolean())
 	.or(z.string().array().min(1))
 	.or(
-		z.record(z.string().or(z.string().array()))
+		z.strictObject({
+			root: z.string().or(z.string().array()),
+			commonjs: z.string().or(z.string().array()),
+			commonjs2: z.string().or(z.string().array()),
+			amd: z.string().or(z.string().array()).optional()
+		})
 	) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
@@ -1241,7 +1246,8 @@ const incremental = z.strictObject({
 	dependenciesDiagnostics: z.boolean().optional(),
 	modulesHashes: z.boolean().optional(),
 	modulesCodegen: z.boolean().optional(),
-	modulesRuntimeRequirements: z.boolean().optional()
+	modulesRuntimeRequirements: z.boolean().optional(),
+	buildChunkGraph: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
 const experiments = z.strictObject({
@@ -1258,8 +1264,7 @@ const experiments = z.strictObject({
 //#endregion
 
 //#region Watch
-const watch = z.boolean();
-export type Watch = z.infer<typeof watch>;
+const watch = z.boolean() satisfies z.ZodType<t.Watch>;
 //#endregion
 
 //#region WatchOptions
@@ -1274,13 +1279,11 @@ const watchOptions = z.strictObject({
 		.optional(),
 	poll: z.number().or(z.boolean()).optional(),
 	stdin: z.boolean().optional()
-});
-export type WatchOptions = z.infer<typeof watchOptions>;
+}) satisfies z.ZodType<t.WatchOptions>;
 //#endregion
 
 //#region DevServer
-export interface DevServer extends webpackDevServer.Configuration {}
-const devServer = z.custom<DevServer>();
+const devServer = z.custom<t.DevServer>();
 //#endregion
 
 //#region IgnoreWarnings
@@ -1292,18 +1295,15 @@ const ignoreWarnings = z
 			.args(z.instanceof(Error), z.custom<Compilation>())
 			.returns(z.boolean())
 	)
-	.array();
-export type IgnoreWarnings = z.infer<typeof ignoreWarnings>;
+	.array() satisfies z.ZodType<t.IgnoreWarnings>;
 //#endregion
 
 //#region Profile
-const profile = z.boolean();
-export type Profile = z.infer<typeof profile>;
+const profile = z.boolean() satisfies z.ZodType<t.Profile>;
 //#endregion
 
 //#region Bail
-const bail = z.boolean();
-export type Bail = z.infer<typeof bail>;
+const bail = z.boolean() satisfies z.ZodType<t.Bail>;
 //#endregion
 
 //#region Performance
@@ -1314,8 +1314,7 @@ const performance = z
 		maxAssetSize: z.number().optional(),
 		maxEntrypointSize: z.number().optional()
 	})
-	.or(z.literal(false));
-export type Performance = z.infer<typeof performance>;
+	.or(z.literal(false)) satisfies z.ZodType<t.Performance>;
 //#endregion
 
 export const rspackOptions = z.strictObject({
@@ -1349,6 +1348,4 @@ export const rspackOptions = z.strictObject({
 	profile: profile.optional(),
 	bail: bail.optional(),
 	performance: performance.optional()
-});
-export type RspackOptions = z.infer<typeof rspackOptions>;
-export type Configuration = RspackOptions;
+}) satisfies z.ZodType<t.RspackOptions>;

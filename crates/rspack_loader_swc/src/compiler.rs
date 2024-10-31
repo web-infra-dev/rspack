@@ -30,12 +30,11 @@ use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
 };
 use swc_core::common::{BytePos, SourceFile};
-use swc_core::ecma::ast::{EsVersion, Program};
+use swc_core::ecma::ast::{EsVersion, Pass, Program};
 use swc_core::ecma::parser::{
   parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
 };
 use swc_core::ecma::transforms::base::helpers::{self, Helpers};
-use swc_core::ecma::visit::{Fold, FoldWith};
 use swc_core::{
   base::{config::Options, try_with_handler},
   common::Globals,
@@ -340,9 +339,9 @@ impl SwcCompiler {
     &'a self,
     program: Option<Program>,
     before_pass: impl FnOnce(&Program) -> P + 'a,
-  ) -> Result<BuiltInput<impl Fold + 'a>, Error>
+  ) -> Result<BuiltInput<impl Pass + 'a>, Error>
   where
-    P: Fold + 'a,
+    P: Pass + 'a,
   {
     let built = self.run(|| {
       try_with_handler(self.cm.clone(), Default::default(), |handler| {
@@ -381,17 +380,14 @@ impl SwcCompiler {
     }
   }
 
-  pub fn transform(&self, config: BuiltInput<impl Fold>) -> Result<Program, Error> {
+  pub fn transform(&self, config: BuiltInput<impl Pass>) -> Result<Program, Error> {
     let program = config.program;
     let mut pass = config.pass;
 
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
         try_with_handler(self.cm.clone(), Default::default(), |handler| {
-          HANDLER.set(handler, || {
-            // Fold module
-            Ok(program.fold_with(&mut pass))
-          })
+          HANDLER.set(handler, || Ok(program.apply(&mut pass)))
         })
       })
     });

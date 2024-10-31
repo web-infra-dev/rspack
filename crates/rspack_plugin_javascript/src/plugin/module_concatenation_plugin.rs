@@ -550,7 +550,6 @@ impl ModuleConcatenationPlugin {
   ) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 
-    // dbg!(&config);
     let root_module_id = config.root_module;
     if used_modules.contains(&root_module_id) {
       return Ok(());
@@ -597,7 +596,10 @@ impl ModuleConcatenationPlugin {
           .unwrap_or_else(|| panic!("should have module {}", id));
         let inner_module = ConcatenatedInnerModule {
           id: *id,
-          size: module.size(Some(&rspack_core::SourceType::JavaScript), compilation),
+          size: module.size(
+            Some(&rspack_core::SourceType::JavaScript),
+            Some(compilation),
+          ),
           original_source_hash: module.original_source().map(|source| {
             let mut hasher = DefaultHasher::default();
             source.dyn_hash(&mut hasher);

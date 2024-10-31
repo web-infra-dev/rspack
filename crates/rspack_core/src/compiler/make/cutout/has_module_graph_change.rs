@@ -232,6 +232,10 @@ mod t {
       self.deps.push(dependency);
     }
 
+    fn remove_dependency_id(&mut self, dependency: DependencyId) {
+      self.deps.retain(|dep| dep != &dependency);
+    }
+
     fn get_dependencies(&self) -> &[DependencyId] {
       &self.deps
     }
@@ -266,7 +270,7 @@ mod t {
       todo!()
     }
 
-    fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+    fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
       todo!()
     }
 
