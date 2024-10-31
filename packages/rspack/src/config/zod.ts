@@ -800,7 +800,12 @@ const externalItemValue = z
 	.or(z.boolean())
 	.or(z.string().array().min(1))
 	.or(
-		z.record(z.string().or(z.string().array()))
+		z.strictObject({
+			root: z.string().or(z.string().array()),
+			commonjs: z.string().or(z.string().array()),
+			commonjs2: z.string().or(z.string().array()),
+			amd: z.string().or(z.string().array()).optional()
+		})
 	) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(

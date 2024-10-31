@@ -15,7 +15,7 @@ pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
     })
     .collect::<Result<Vec<_>>>()?
     .into_iter()
-    .filter_map(|v| v)
+    .flatten()
     .collect::<Vec<_>>();
   serde_json::to_string(&value).map_err(|e| error!(e.to_string()))
 }
