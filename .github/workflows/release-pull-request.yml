@@ -23,7 +23,7 @@ on:
           - alpha
           - beta
           - rc
-        
+
   schedule:
     # 08:00 AM Beijing Time on every Tuesday
     - cron: "0 0 * * 2"
