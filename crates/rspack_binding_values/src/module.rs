@@ -224,7 +224,7 @@ impl ModuleDTO {
   pub fn size(&self, ty: Option<String>) -> f64 {
     let module = self.module();
     let ty = ty.map(|s| SourceType::from(s.as_str()));
-    module.size(ty.as_ref(), self.compilation)
+    module.size(ty.as_ref(), Some(self.compilation))
   }
 
   #[napi(getter, ts_return_type = "ModuleDTO[] | undefined")]
