@@ -84,7 +84,8 @@
   "packageManager": "pnpm@9.12.3",
   "pnpm": {
     "patchedDependencies": {
-      "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch"
+      "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch",
+      "rollup-plugin-dts": "patches/rollup-plugin-dts.patch"
     }
   },
   "lint-staged": {

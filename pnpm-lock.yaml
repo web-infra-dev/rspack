@@ -8,6 +8,9 @@ patchedDependencies:
   graceful-fs@4.2.10:
     hash: ivtm2a2cfr5pomcfbedhmr5v2q
     path: patches/graceful-fs@4.2.10.patch
+  rollup-plugin-dts:
+    hash: ae3wyaqpjyjp5gck7zzwzn3cfq
+    path: patches/rollup-plugin-dts.patch
 
 importers:
 
@@ -17075,7 +17078,7 @@ snapshots:
     dependencies:
       '@vercel/ncc': 0.38.1
       rollup: 4.24.0
-      rollup-plugin-dts: 6.1.0(rollup@4.24.0)(typescript@5.6.3)
+      rollup-plugin-dts: 6.1.0(patch_hash=ae3wyaqpjyjp5gck7zzwzn3cfq)(rollup@4.24.0)(typescript@5.6.3)
     transitivePeerDependencies:
       - typescript
 
@@ -17933,7 +17936,7 @@ snapshots:
 
   robust-predicates@3.0.2: {}
 
-  rollup-plugin-dts@6.1.0(rollup@4.24.0)(typescript@5.6.3):
+  rollup-plugin-dts@6.1.0(patch_hash=ae3wyaqpjyjp5gck7zzwzn3cfq)(rollup@4.24.0)(typescript@5.6.3):
     dependencies:
       magic-string: 0.30.12
       rollup: 4.24.0
