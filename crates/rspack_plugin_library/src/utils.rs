@@ -13,7 +13,10 @@ pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
         ExternalRequest::Map(map) => map.get("amd").map(|r| r.primary()),
       })
     })
-    .collect::<Result<Vec<_>>>()?;
+    .collect::<Result<Vec<_>>>()?
+    .into_iter()
+    .filter_map(|v| v)
+    .collect::<Vec<_>>();
   serde_json::to_string(&value).map_err(|e| error!(e.to_string()))
 }
 
