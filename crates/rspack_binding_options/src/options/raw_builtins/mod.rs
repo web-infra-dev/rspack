@@ -19,7 +19,7 @@ use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use rspack_binding_values::entry::JsEntryPluginOptions;
-use rspack_core::{BoxPlugin, Plugin, PluginExt};
+use rspack_core::{BoxPlugin, CompilerOptions, Plugin, PluginExt};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -204,7 +204,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, _env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {

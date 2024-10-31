@@ -35,6 +35,7 @@ impl CodeGenerateOccasion {
     } else {
       match provide(job.module, &job.runtime) {
         Ok(res) => {
+          println!("{cache_key}: {}", res.inner_size());
           storage.set(cache_key, res.clone());
           (Ok(res), job.runtimes, false)
         }

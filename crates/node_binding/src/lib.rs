@@ -48,17 +48,17 @@ impl Rspack {
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
+    let mut compiler_options: rspack_core::CompilerOptions = options
+      .try_into()
+      .map_err(|e| Error::from_reason(format!("{e}")))?;
+
     let mut plugins = Vec::new();
     let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_plugin.clone().boxed());
     for bp in builtin_plugins {
-      bp.append_to(env, &mut plugins)
+      bp.append_to(&mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
-
-    let compiler_options: rspack_core::CompilerOptions = options
-      .try_into()
-      .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 

@@ -159,6 +159,13 @@ impl CodeGenerationResult {
     debug_assert!(result.is_none());
   }
 
+  pub fn inner_size(&self) -> usize {
+    self.inner.iter().fold(0, |mut acc, (_, s)| {
+      acc += s.buffer().len();
+      acc
+    })
+  }
+
   pub fn set_hash(
     &mut self,
     hash_function: &HashFunction,
@@ -218,9 +225,11 @@ impl CodeGenerationResults {
     runtimes: impl IntoIterator<Item = RuntimeSpec>,
   ) {
     let codegen_res_id = codegen_res.id;
-    self
+    let a = self
       .module_generation_result_map
       .insert(codegen_res_id, codegen_res);
+    dbg!(codegen_res_id);
+    assert!(a.is_none());
     for runtime in runtimes {
       self.add(module_identifier, runtime, codegen_res_id);
     }
