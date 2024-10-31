@@ -28,6 +28,11 @@
 			]
 		},
 		{
+			groupName: "pnpm",
+			matchPackageNames: ["pnpm"],
+			matchUpdateTypes: ["minor"]
+		},
+		{
 			groupName: "ignored github-actions upload-download-actions",
 			matchManagers: ["github-actions"],
 			matchPackageNames: [
