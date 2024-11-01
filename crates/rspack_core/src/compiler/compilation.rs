@@ -745,7 +745,7 @@ impl Compilation {
     }
 
     let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make_module_graph(self, artifact)?;
+    self.make_artifact = make_module_graph(self, artifact).await?;
     Ok(())
   }
 
@@ -759,7 +759,8 @@ impl Compilation {
       self,
       artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
-    )?;
+    )
+    .await?;
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1066,7 +1067,8 @@ impl Compilation {
           .copied()
           .collect(),
       )],
-    )?;
+    )
+    .await?;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {

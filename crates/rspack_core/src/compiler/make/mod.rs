@@ -103,7 +103,7 @@ pub enum MakeParam {
   ForceBuildModules(IdentifierSet),
 }
 
-pub fn make_module_graph(
+pub async fn make_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
 ) -> Result<MakeArtifact> {
@@ -142,18 +142,18 @@ pub fn make_module_graph(
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
 
-  artifact = update_module_graph(compilation, artifact, params)?;
+  artifact = update_module_graph(compilation, artifact, params).await?;
   Ok(artifact)
 }
 
-pub fn update_module_graph(
+pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {
   let mut cutout = Cutout::default();
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
-  artifact = repair(compilation, artifact, build_dependencies)?;
+  artifact = repair(compilation, artifact, build_dependencies).await?;
   cutout.fix_artifact(&mut artifact);
   Ok(artifact)
 }
