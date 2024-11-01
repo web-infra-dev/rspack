@@ -386,9 +386,6 @@ impl ToNapiValue for JsModuleWrapper {
             let mut instance = unassociated_ref.from_napi_value()?;
             instance.as_mut().attach(compilation_ptr.as_ptr());
 
-            if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-              instance.module = RefCell::new(val.module);
-            }
             let napi_value = ToNapiValue::to_napi_value(env, &unassociated_ref);
             refs.insert(module.identifier(), unassociated_ref);
             napi_value
@@ -396,11 +393,6 @@ impl ToNapiValue for JsModuleWrapper {
             match refs.entry(module.identifier()) {
               std::collections::hash_map::Entry::Occupied(entry) => {
                 let r = entry.get();
-
-                let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
-                if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-                  instance.module = RefCell::new(val.module);
-                }
                 ToNapiValue::to_napi_value(env, r)
               }
               std::collections::hash_map::Entry::Vacant(entry) => {
@@ -411,11 +403,6 @@ impl ToNapiValue for JsModuleWrapper {
                 }
                 .into_instance(Env::from_raw(env))?;
                 let r = entry.insert(OneShotRef::new(env, instance)?);
-
-                let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
-                if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-                  instance.module = RefCell::new(val.module);
-                }
                 ToNapiValue::to_napi_value(env, r)
               }
             }
@@ -442,11 +429,6 @@ impl ToNapiValue for JsModuleWrapper {
             }
             .into_instance(Env::from_raw(env))?;
             let r = entry.insert(OneShotRef::new(env, instance)?);
-
-            let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
-            if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-              instance.module = RefCell::new(val.module)
-            }
             ToNapiValue::to_napi_value(env, r)
           }
         }
