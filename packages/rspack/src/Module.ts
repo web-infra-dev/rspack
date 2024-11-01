@@ -218,7 +218,7 @@ export class Module {
 	declare readonly context?: string;
 	declare readonly resource?: string;
 	declare readonly request?: string;
-	declare readonly userRequest?: string;
+	declare userRequest?: string;
 	declare readonly rawRequest?: string;
 	declare readonly type: string;
 	declare readonly layer: null | string;
@@ -288,6 +288,9 @@ export class Module {
 				enumerable: true,
 				get(): string | undefined {
 					return module.userRequest;
+				},
+				set(val: string) {
+					module.userRequest = val;
 				}
 			},
 			rawRequest: {

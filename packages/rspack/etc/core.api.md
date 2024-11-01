@@ -3423,7 +3423,7 @@ export class Module {
     // (undocumented)
     readonly type: string;
     // (undocumented)
-    readonly userRequest?: string;
+    userRequest?: string;
     // (undocumented)
     readonly useSourceMap: boolean;
 }
