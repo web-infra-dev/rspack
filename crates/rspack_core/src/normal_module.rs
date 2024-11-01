@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
+  ptr::NonNull,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
@@ -420,7 +421,8 @@ impl Module for NormalModule {
       RunnerContext {
         options: build_context.compiler_options.clone(),
         resolver_factory: build_context.resolver_factory.clone(),
-        module: self,
+        #[allow(clippy::unwrap_used)]
+        module: NonNull::new(self).unwrap(),
         module_source_map_kind: self.source_map_kind,
       },
       build_context.fs.clone(),
