@@ -6859,8 +6859,8 @@ export const rspackOptions: z.ZodObject<{
     plugins: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodType<t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction, z.ZodTypeDef, t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
     devServer: z.ZodOptional<z.ZodType<t.DevServer, z.ZodTypeDef, t.DevServer>>;
     module: z.ZodOptional<z.ZodObject<{
-        defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, "many">>;
-        rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, "many">>;
+        defaultRules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
+        rules: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<"...">, z.ZodType<t.RuleSetRule, z.ZodTypeDef, t.RuleSetRule>]>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>, "many">>;
         parser: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
             asset: z.ZodOptional<z.ZodObject<{
                 dataUrlCondition: z.ZodOptional<z.ZodObject<{
@@ -7616,8 +7616,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
-        rules?: ("..." | t.RuleSetRule)[] | undefined;
+        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -7764,8 +7764,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
-        rules?: ("..." | t.RuleSetRule)[] | undefined;
+        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -7934,8 +7934,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
-        rules?: ("..." | t.RuleSetRule)[] | undefined;
+        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -8569,8 +8569,8 @@ export const rspackOptions: z.ZodObject<{
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
-        defaultRules?: ("..." | t.RuleSetRule)[] | undefined;
-        rules?: ("..." | t.RuleSetRule)[] | undefined;
+        defaultRules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
+        rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
                 url?: boolean | "relative" | undefined;
@@ -9315,8 +9315,8 @@ export type RuleSetRule = {
     resolve?: ResolveOptions;
     sideEffects?: boolean;
     enforce?: "pre" | "post";
-    oneOf?: RuleSetRule[];
-    rules?: RuleSetRule[];
+    oneOf?: (RuleSetRule | Falsy)[];
+    rules?: (RuleSetRule | Falsy)[];
 };
 
 // @public
