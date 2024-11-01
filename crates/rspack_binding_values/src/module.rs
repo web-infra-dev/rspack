@@ -360,6 +360,15 @@ impl JsModuleWrapper {
       refs_by_compilation_id.remove(&compilation_id)
     });
   }
+
+  pub fn attach(&mut self, compilation: *const Compilation) {
+    if self.compilation.is_none() {
+      self.compilation = Some(
+        #[allow(clippy::unwrap_used)]
+        NonNull::new(compilation as *mut Compilation).unwrap(),
+      );
+    }
+  }
 }
 
 impl ToNapiValue for JsModuleWrapper {

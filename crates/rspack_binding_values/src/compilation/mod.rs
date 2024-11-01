@@ -512,7 +512,7 @@ impl JsCompilation {
     let compilation = unsafe { self.0.as_mut() };
 
     callbackify(env, f, async {
-      let modules = compilation
+      let mut modules = compilation
         .rebuild_module(
           IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
@@ -524,6 +524,11 @@ impl JsCompilation {
         )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+
+      modules
+        .iter_mut()
+        .for_each(|module| module.attach(compilation));
+
       Ok(modules)
     })
   }
