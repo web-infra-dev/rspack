@@ -267,7 +267,15 @@ interface BaseModuleConfig {
 // @public (undocumented)
 interface BaseResolveRequest {
     	// (undocumented)
-    descriptionFileData?: object;
+    __innerRequest?: string;
+    	// (undocumented)
+    __innerRequest_relativePath?: string;
+    	// (undocumented)
+    __innerRequest_request?: string;
+    	// (undocumented)
+    context?: object;
+    	// (undocumented)
+    descriptionFileData?: JsonObject;
     	// (undocumented)
     descriptionFilePath?: string;
     	// (undocumented)
@@ -2475,20 +2483,35 @@ interface JsMinifyOptions {
 }
 
 // @public (undocumented)
-type JsonArray = JsonValue[];
+type JsonArray = JsonValue_2[];
 
 // @public (undocumented)
-type JsonObject = {
-    [Key in string]: JsonValue;
+type JsonObject = { [index: string]: JsonValue } & {
+    	[index: string]:
+    		| undefined
+    		| null
+    		| string
+    		| number
+    		| boolean
+    		| JsonObject
+    		| JsonValue[];
+};
+
+// @public (undocumented)
+type JsonObject_2 = {
+    [Key in string]: JsonValue_2;
 } & {
-    [Key in string]?: JsonValue | undefined;
+    [Key in string]?: JsonValue_2 | undefined;
 };
 
 // @public (undocumented)
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
-type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
+
+// @public (undocumented)
+type JsonValue_2 = JsonPrimitive | JsonObject_2 | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -4338,10 +4361,10 @@ type ReadFileSync = {
 type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
 
 // @public (undocumented)
-type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject_2) => void;
 
 // @public (undocumented)
-type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject_2;
 
 // @public (undocumented)
 type Readlink = {
