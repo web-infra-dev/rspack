@@ -171,6 +171,7 @@ export class JsModule {
   get nameForCondition(): string | undefined
   get request(): string | undefined
   get userRequest(): string | undefined
+  set userRequest(val: string)
   get rawRequest(): string | undefined
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string

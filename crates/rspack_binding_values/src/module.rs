@@ -119,6 +119,18 @@ impl JsModule {
       self.identifier
     )))
   }
+
+  fn as_mut(&mut self) -> napi::Result<&mut dyn Module> {
+    let module = unsafe { self.module.borrow_mut().as_mut() };
+    if module.identifier() == self.identifier {
+      return Ok(module);
+    }
+
+    Err(napi::Error::from_reason(format!(
+      "Unable to access module with id = {} now. The module have been removed on the Rust side.",
+      self.identifier
+    )))
+  }
 }
 
 #[napi]
@@ -190,6 +202,18 @@ impl JsModule {
     Ok(match module.try_as_normal_module() {
       Ok(normal_module) => Either::A(normal_module.user_request()),
       Err(_) => Either::B(()),
+    })
+  }
+
+  #[napi(setter)]
+  pub fn set_user_request(&mut self, val: String) -> napi::Result<()> {
+    let module: &mut dyn Module = self.as_mut()?;
+
+    Ok(match module.try_as_normal_module_mut() {
+      Ok(normal_module) => {
+        *normal_module.user_request_mut() = val;
+      }
+      Err(_) => (),
     })
   }
 
