@@ -8,13 +8,14 @@ use super::{add::AddTask, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilerOptions, Context, ExportInfoData, ExportsInfoData, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleProfile,
-  Resolve,
+  BoxDependency, CompilationId, CompilerOptions, Context, ExportInfoData, ExportsInfoData,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleProfile, Resolve,
 };
 
 #[derive(Debug)]
 pub struct FactorizeTask {
+  pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_source: Option<BoxSource>,

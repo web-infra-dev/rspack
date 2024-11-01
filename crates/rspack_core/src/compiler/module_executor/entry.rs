@@ -22,6 +22,7 @@ impl Task<MakeTaskContext> for EntryTask {
 
     module_graph.add_dependency(dep.clone());
     Ok(vec![Box::new(FactorizeTask {
+      compilation_id: context.compilation_id,
       module_factory: context
         .dependency_factories
         .get(dep.dependency_type())

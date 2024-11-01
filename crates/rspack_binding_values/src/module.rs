@@ -3,8 +3,7 @@ use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
-  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  Compilation, CompilationId, Module, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -12,71 +11,12 @@ use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults, JsDependency};
+use crate::{JsChunk, JsCodegenerationResults, JsDependenciesBlock};
 
 #[derive(Default)]
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
-}
-
-#[napi]
-pub struct JsDependenciesBlock {
-  block_id: AsyncDependenciesBlockIdentifier,
-  compilation: NonNull<Compilation>,
-}
-
-impl JsDependenciesBlock {
-  pub fn new(block_id: AsyncDependenciesBlockIdentifier, compilation: *const Compilation) -> Self {
-    #[allow(clippy::unwrap_used)]
-    Self {
-      block_id,
-      compilation: NonNull::new(compilation as *mut Compilation).unwrap(),
-    }
-  }
-
-  fn block<'a>(&self, module_graph: &'a ModuleGraph) -> &'a AsyncDependenciesBlock {
-    module_graph.block_by_id(&self.block_id).unwrap_or_else(|| {
-      panic!(
-        "Cannot find block with id = {:?}. It might have been removed on the Rust side.",
-        self.block_id
-      )
-    })
-  }
-}
-
-#[napi]
-impl JsDependenciesBlock {
-  #[napi(getter)]
-  pub fn dependencies(&self) -> Vec<JsDependency> {
-    let compilation = unsafe { self.compilation.as_ref() };
-
-    let module_graph = compilation.get_module_graph();
-    let block = self.block(&module_graph);
-    block
-      .get_dependencies()
-      .iter()
-      .filter_map(|dependency_id| {
-        module_graph
-          .dependency_by_id(dependency_id)
-          .map(JsDependency::new)
-      })
-      .collect::<Vec<_>>()
-  }
-
-  #[napi(getter)]
-  pub fn blocks(&self) -> Vec<JsDependenciesBlock> {
-    let compilation = unsafe { self.compilation.as_ref() };
-
-    let module_graph = compilation.get_module_graph();
-    let block = self.block(&module_graph);
-    let blocks = block.get_blocks();
-    blocks
-      .iter()
-      .cloned()
-      .map(|block_id| JsDependenciesBlock::new(block_id, self.compilation.as_ptr()))
-      .collect::<Vec<_>>()
-  }
 }
 
 #[napi]
@@ -342,7 +282,6 @@ unsafe impl Send for JsModuleWrapper {}
 
 impl JsModuleWrapper {
   pub fn new(module: &dyn Module, compilation: Option<&Compilation>) -> Self {
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     let identifier = module.identifier();
 
     #[allow(clippy::unwrap_used)]

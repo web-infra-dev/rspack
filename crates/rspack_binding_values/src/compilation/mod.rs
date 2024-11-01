@@ -634,6 +634,22 @@ impl JsCompilationWrapper {
     Self(NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap())
   }
 
+  pub fn compilation_by_id(compilation_id: &CompilationId) -> Option<&mut Compilation> {
+    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
+      let refs = ref_cell.borrow_mut();
+      match refs.get(compilation_id) {
+        Some(r) => match r.from_napi_value() {
+          Ok(mut instance) => {
+            let compilation = unsafe { instance.0.as_mut() };
+            Some(compilation)
+          }
+          Err(_) => None,
+        },
+        None => None,
+      }
+    })
+  }
+
   pub fn cleanup_last_compilation(compilation_id: CompilationId) {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
       let mut refs = ref_cell.borrow_mut();

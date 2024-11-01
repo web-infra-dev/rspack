@@ -2,9 +2,9 @@ use napi::bindgen_prelude::{
   ClassInstance, Either, FromNapiValue, ToNapiValue, TypeName, ValidateNapiValue,
 };
 use napi_derive::napi;
-use rspack_core::{AfterResolveData, BeforeResolveData};
+use rspack_core::{AfterResolveData, BeforeResolveData, CompilationId};
 
-use crate::{JsDependencyMut, RawRegex};
+use crate::{JsDependencyWrapper, RawRegex};
 
 #[napi]
 pub struct JsContextModuleFactoryBeforeResolveData(Box<BeforeResolveData>);
@@ -111,43 +111,46 @@ pub type JsContextModuleFactoryBeforeResolveResult =
   Either<bool, JsContextModuleFactoryBeforeResolveDataWrapper>;
 
 #[napi]
-pub struct JsContextModuleFactoryAfterResolveData(Box<AfterResolveData>);
+pub struct JsContextModuleFactoryAfterResolveData {
+  compilation_id: CompilationId,
+  inner: Box<AfterResolveData>,
+}
 
 #[napi]
 impl JsContextModuleFactoryAfterResolveData {
   #[napi(getter)]
   pub fn resource(&self) -> &str {
-    self.0.resource.as_str()
+    self.inner.resource.as_str()
   }
 
   #[napi(setter)]
   pub fn set_resource(&mut self, resource: String) {
-    self.0.resource = resource.into();
+    self.inner.resource = resource.into();
   }
 
   #[napi(getter)]
   pub fn context(&self) -> &str {
-    &self.0.context
+    &self.inner.context
   }
 
   #[napi(setter)]
   pub fn set_context(&mut self, context: String) {
-    self.0.context = context;
+    self.inner.context = context;
   }
 
   #[napi(getter)]
   pub fn request(&self) -> &str {
-    &self.0.request
+    &self.inner.request
   }
 
   #[napi(setter)]
   pub fn set_request(&mut self, request: String) {
-    self.0.request = request;
+    self.inner.request = request;
   }
 
   #[napi(getter)]
   pub fn reg_exp(&self) -> Either<RawRegex, ()> {
-    match &self.0.reg_exp {
+    match &self.inner.reg_exp {
       Some(r) => Either::A(r.clone().into()),
       None => Either::B(()),
     }
@@ -155,7 +158,7 @@ impl JsContextModuleFactoryAfterResolveData {
 
   #[napi(setter)]
   pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RawRegex, ()>) {
-    self.0.reg_exp = match raw_reg_exp {
+    self.inner.reg_exp = match raw_reg_exp {
       Either::A(raw_reg_exp) => match raw_reg_exp.try_into() {
         Ok(reg_exp) => Some(reg_exp),
         Err(_) => None,
@@ -166,34 +169,40 @@ impl JsContextModuleFactoryAfterResolveData {
 
   #[napi(getter)]
   pub fn recursive(&self) -> bool {
-    self.0.recursive
+    self.inner.recursive
   }
 
   #[napi(setter)]
   pub fn set_recursive(&mut self, recursive: bool) {
-    self.0.recursive = recursive;
+    self.inner.recursive = recursive;
   }
 
-  #[napi(getter)]
-  pub fn dependencies(&mut self) -> Vec<JsDependencyMut> {
+  #[napi(getter, ts_return_type = "JsDependency[]")]
+  pub fn dependencies(&self) -> Vec<JsDependencyWrapper> {
     self
-      .0
+      .inner
       .dependencies
-      .iter_mut()
-      .map(JsDependencyMut::new)
+      .iter()
+      .map(|dep| JsDependencyWrapper::new(dep.as_ref(), self.compilation_id))
       .collect::<Vec<_>>()
   }
 }
 
-pub struct JsContextModuleFactoryAfterResolveDataWrapper(Box<AfterResolveData>);
+pub struct JsContextModuleFactoryAfterResolveDataWrapper {
+  compilation_id: CompilationId,
+  inner: Box<AfterResolveData>,
+}
 
 impl JsContextModuleFactoryAfterResolveDataWrapper {
-  pub fn new(data: Box<AfterResolveData>) -> Self {
-    JsContextModuleFactoryAfterResolveDataWrapper(data)
+  pub fn new(data: Box<AfterResolveData>, compilation_id: CompilationId) -> Self {
+    JsContextModuleFactoryAfterResolveDataWrapper {
+      compilation_id,
+      inner: data,
+    }
   }
 
   pub fn take(self) -> Box<AfterResolveData> {
-    self.0
+    self.inner
   }
 }
 
@@ -206,7 +215,10 @@ impl FromNapiValue for JsContextModuleFactoryAfterResolveDataWrapper {
       <ClassInstance<JsContextModuleFactoryAfterResolveData> as FromNapiValue>::from_napi_value(
         env, napi_val,
       )?;
-    Ok(Self(instance.0.clone()))
+    Ok(Self {
+      compilation_id: instance.compilation_id,
+      inner: instance.inner.clone(),
+    })
   }
 }
 
@@ -215,7 +227,10 @@ impl ToNapiValue for JsContextModuleFactoryAfterResolveDataWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let js_val = JsContextModuleFactoryAfterResolveData(val.0);
+    let js_val = JsContextModuleFactoryAfterResolveData {
+      compilation_id: val.compilation_id,
+      inner: val.inner,
+    };
     ToNapiValue::to_napi_value(env, js_val)
   }
 }
