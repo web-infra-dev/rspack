@@ -855,10 +855,8 @@ impl Compilation {
       .into_par_iter()
       .map(|job| {
         let module = job.module;
-        let runtimes = job.runtimes.clone();
         (
           module,
-          runtimes,
           self
             .old_cache
             .code_generate_occasion
@@ -866,22 +864,21 @@ impl Compilation {
               let module = module_graph
                 .module_by_identifier(&module)
                 .expect("should have module");
-              module.code_generation(self, Some(runtime), None)
+              module
+                .code_generation(self, Some(runtime), None)
+                .map(|mut codegen_res| {
+                  codegen_res.set_hash(
+                    &self.options.output.hash_function,
+                    &self.options.output.hash_digest,
+                    &self.options.output.hash_salt,
+                  );
+                  codegen_res
+                })
             }),
         )
       })
-      .map(|(module, runtime, result)| match result {
-        Ok((result, runtime, from_cache)) => (module, result, runtime, from_cache, None),
-        Err(err) => (
-          module,
-          CodeGenerationResult::default(),
-          runtime,
-          false,
-          Some(err),
-        ),
-      })
       .collect::<Vec<_>>();
-    for (module, mut codegen_res, runtimes, from_cache, err) in results {
+    for (module, (codegen_res, runtimes, from_cache)) in results {
       if let Some(counter) = cache_counter {
         if from_cache {
           counter.hit();
@@ -889,19 +886,23 @@ impl Compilation {
           counter.miss();
         }
       }
-      codegen_res.set_hash(
-        &self.options.output.hash_function,
-        &self.options.output.hash_digest,
-        &self.options.output.hash_salt,
-      );
+      let codegen_res = match codegen_res {
+        Ok(codegen_res) => codegen_res,
+        Err(err) => {
+          self.push_diagnostic(Diagnostic::from(err).with_module_identifier(Some(module)));
+          let mut codegen_res = CodeGenerationResult::default();
+          codegen_res.set_hash(
+            &self.options.output.hash_function,
+            &self.options.output.hash_digest,
+            &self.options.output.hash_salt,
+          );
+          codegen_res
+        }
+      };
       self
         .code_generation_results
         .insert(module, codegen_res, runtimes);
       self.code_generated_modules.insert(module);
-
-      if let Some(err) = err {
-        self.push_diagnostic(Diagnostic::from(err).with_module_identifier(Some(module)));
-      }
     }
     Ok(())
   }
@@ -1590,27 +1591,27 @@ impl Compilation {
 
     let unordered_runtime_chunks = self.get_chunk_graph_entries();
     let start = logger.time("hashing: hash chunks");
-    let other_chunks = self
+    let other_chunks: Vec<_> = self
       .chunk_by_ukey
       .keys()
-      .filter(|key| !unordered_runtime_chunks.contains(key));
-    //   .collect();
-    // // create hash for runtime modules in other chunks
-    // for chunk in &other_chunks {
-    //   for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
-    //     let runtime_module = &self.runtime_modules[runtime_module_identifier];
-    //     let mut hasher = RspackHash::from(&self.options.output);
-    //     runtime_module.update_hash(&mut hasher, self, None)?;
-    //     let digest = hasher.digest(&self.options.output.hash_digest);
-    //     self
-    //       .runtime_modules_hash
-    //       .insert(*runtime_module_identifier, digest);
-    //   }
-    // }
+      .filter(|key| !unordered_runtime_chunks.contains(key))
+      .collect();
+    // create hash for runtime modules in other chunks
+    for chunk in &other_chunks {
+      for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
+        let runtime_module = &self.runtime_modules[runtime_module_identifier];
+        let mut hasher = RspackHash::from(&self.options.output);
+        runtime_module.update_hash(&mut hasher, self, None)?;
+        let digest = hasher.digest(&self.options.output.hash_digest);
+        self
+          .runtime_modules_hash
+          .insert(*runtime_module_identifier, digest);
+      }
+    }
     // create hash for other chunks
     let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
       other_chunks
-        // .into_iter()
+        .into_iter()
         .map(|chunk| async {
           let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
           Ok((*chunk, hash_result))
