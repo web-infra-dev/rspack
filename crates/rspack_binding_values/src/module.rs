@@ -4,8 +4,7 @@ use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
-  CompilerModuleContext, DependenciesBlock, Module, ModuleGraph, ModuleIdentifier,
-  RuntimeModuleStage, SourceType,
+  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -289,6 +288,12 @@ impl JsModule {
       Err(_) => Either::B(()),
     })
   }
+
+  #[napi(getter)]
+  pub fn use_source_map(&mut self) -> napi::Result<bool> {
+    let module = self.as_ref()?;
+    Ok(module.get_source_map_kind().source_map())
+  }
 }
 
 type ModuleInstanceRefs = IdentifierMap<OneShotRef<ClassInstance<JsModule>>>;
@@ -428,46 +433,17 @@ impl ToNapiValue for JsModuleWrapper {
   }
 }
 
-#[derive(Default)]
-#[napi(object)]
-pub struct JsCompilerModuleContext {
-  pub context: Option<String>,
-  pub original_source: Option<JsCompatSource>,
-  pub resource: Option<String>,
-  pub module_identifier: String,
-  pub name_for_condition: Option<String>,
-  pub request: Option<String>,
-  pub user_request: Option<String>,
-  pub raw_request: Option<String>,
-  pub factory_meta: Option<JsFactoryMeta>,
-  pub r#type: String,
-  pub layer: Option<String>,
-  pub use_source_map: Option<bool>,
-}
+impl FromNapiValue for JsModuleWrapper {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let instance: ClassInstance<JsModule> = FromNapiValue::from_napi_value(env, napi_val)?;
+    let module = instance.module.borrow();
 
-pub trait ToJsModule {
-  fn to_js_module(&self) -> Result<JsCompilerModuleContext>;
-}
-
-impl ToJsModule for CompilerModuleContext {
-  fn to_js_module(&self) -> Result<JsCompilerModuleContext> {
-    let module = JsCompilerModuleContext {
-      context: self.context.as_ref().map(|c| c.to_string()),
-      module_identifier: self.module_identifier.to_string(),
-      name_for_condition: self.name_for_condition.clone(),
-      r#type: self.r#type.to_string(),
-      layer: self.layer.clone(),
-      resource: self.resource_data.as_ref().map(|r| r.resource.to_string()),
-      original_source: None,
-      request: self.request.clone(),
-      user_request: self.user_request.clone(),
-      raw_request: self.raw_request.clone(),
-      factory_meta: self.factory_meta.as_ref().map(|fm| JsFactoryMeta {
-        side_effect_free: fm.side_effect_free,
-      }),
-      use_source_map: Some(self.use_source_map),
-    };
-    Ok(module)
+    Ok(JsModuleWrapper {
+      identifier: instance.identifier,
+      #[allow(clippy::unwrap_used)]
+      module: NonNull::new(module.as_ptr()).unwrap(),
+      compilation: instance.compilation,
+    })
   }
 }
 

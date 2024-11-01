@@ -38,7 +38,6 @@ import { JsChunkGroupOrigin } from '@rspack/binding';
 import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
-import type { JsCompilerModuleContext } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
@@ -3392,9 +3391,9 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule | JsCompilerModuleContext, compilation?: Compilation);
+    constructor(module: JsModule, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(binding: JsModule | JsCompilerModuleContext, compilation?: Compilation): Module;
+    static __from_binding(binding: JsModule, compilation?: Compilation): Module;
     // (undocumented)
     readonly blocks: DependenciesBlock[];
     readonly buildInfo: Record<string, any>;
@@ -3425,6 +3424,8 @@ export class Module {
     readonly type: string;
     // (undocumented)
     readonly userRequest?: string;
+    // (undocumented)
+    readonly useSourceMap: boolean;
 }
 
 // @public (undocumented)

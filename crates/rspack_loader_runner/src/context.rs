@@ -34,7 +34,7 @@ impl State {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct LoaderContext<Context: 'static> {
+pub struct LoaderContext<Context> {
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[derivative(Debug = "ignore")]

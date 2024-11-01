@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
+  ptr::NonNull,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
@@ -385,7 +386,7 @@ impl Module for NormalModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.clear_diagnostics();
@@ -417,7 +418,13 @@ impl Module for NormalModule {
       self.loaders.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
-      build_context.runner_context,
+      RunnerContext {
+        options: build_context.compiler_options.clone(),
+        resolver_factory: build_context.resolver_factory.clone(),
+        #[allow(clippy::unwrap_used)]
+        module: NonNull::new(self).unwrap(),
+        module_source_map_kind: self.source_map_kind,
+      },
       build_context.fs.clone(),
     )
     .await;
@@ -513,7 +520,7 @@ impl Module for NormalModule {
         module_source_map_kind: *self.get_source_map_kind(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
-        compiler_options: build_context.compiler_options,
+        compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
