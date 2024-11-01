@@ -705,7 +705,7 @@ Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodul
 
 ## module.rules
 
-- **Type:** `Rule[]`
+- **Type:** `(Rule | Falsy)[]`
 - **Default:** `[]`
 
 An array of rules that match the module's requests when it is created. These rules can modify the creation behavior of the module. They can apply Loader, etc. to the module.
@@ -1223,7 +1223,7 @@ A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when 
 
 ### Rule.oneOf
 
-- **Type:** <code>[Rule](#rule)[]</code>
+- **Type:** <code>([Rule](#rule) | Falsy)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.
