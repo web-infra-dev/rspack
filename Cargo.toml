@@ -45,6 +45,7 @@ parcel_sourcemap   = { version = "2.1.1" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
+pollster           = { version = "*" }
 proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }

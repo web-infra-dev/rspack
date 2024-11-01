@@ -22,7 +22,6 @@ use rspack_error::error;
 use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
-use tokio::runtime::Handle;
 
 use crate::RawResolveOptions;
 
@@ -586,10 +585,10 @@ impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
 
 impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
   fn from(value: RawAssetGeneratorDataUrlWrapper) -> Self {
-    let handle = Handle::current();
+    use pollster::block_on;
     match value.0 {
       Either::A(a) => Self::Options(a.into()),
-      Either::B(b) => Self::Func(Arc::new(move |ctx| handle.block_on(b.call(ctx.into())))),
+      Either::B(b) => Self::Func(Arc::new(move |ctx| block_on(b.call(ctx.into())))),
     }
   }
 }
