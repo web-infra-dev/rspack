@@ -15,19 +15,19 @@ export class ModuleConcatenationPlugin extends RspackBuiltinPlugin {
 		if (incremental.modulesHashes) {
 			incremental.modulesHashes = false;
 			logger.warn(
-				"`optimization.concatenateModules` can't be used with `incremental.modulesHashes` as module concatenation is a global effect. `incremental.modulesHashes` has been overrided to false."
+				"`optimization.concatenateModules` can't be used with `incremental.modulesHashes` as module concatenation is a global effect. `incremental.modulesHashes` has been overridden to false."
 			);
 		}
 		if (incremental.modulesCodegen) {
 			incremental.modulesCodegen = false;
 			logger.warn(
-				"`optimization.concatenateModules` can't be used with `incremental.modulesCodegen` as module concatenation is a global effect. `incremental.modulesCodegen` has been overrided to false."
+				"`optimization.concatenateModules` can't be used with `incremental.modulesCodegen` as module concatenation is a global effect. `incremental.modulesCodegen` has been overridden to false."
 			);
 		}
 		if (incremental.modulesRuntimeRequirements) {
 			incremental.modulesRuntimeRequirements = false;
 			logger.warn(
-				"`optimization.concatenateModules` can't be used with `incremental.modulesRuntimeRequirements` as module concatenation is a global effect. `incremental.modulesRuntimeRequirements` has been overrided to false."
+				"`optimization.concatenateModules` can't be used with `incremental.modulesRuntimeRequirements` as module concatenation is a global effect. `incremental.modulesRuntimeRequirements` has been overridden to false."
 			);
 		}
 		return createBuiltinPlugin(this.name, undefined);

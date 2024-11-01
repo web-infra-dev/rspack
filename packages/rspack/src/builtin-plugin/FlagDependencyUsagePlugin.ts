@@ -19,19 +19,19 @@ export class FlagDependencyUsagePlugin extends RspackBuiltinPlugin {
 		if (incremental.modulesHashes) {
 			incremental.modulesHashes = false;
 			logger.warn(
-				"`optimization.usedExports` can't be used with `incremental.modulesHashes` as export usage is a global effect. `incremental.modulesHashes` has been overrided to false."
+				"`optimization.usedExports` can't be used with `incremental.modulesHashes` as export usage is a global effect. `incremental.modulesHashes` has been overridden to false."
 			);
 		}
 		if (incremental.modulesCodegen) {
 			incremental.modulesCodegen = false;
 			logger.warn(
-				"`optimization.usedExports` can't be used with `incremental.modulesCodegen` as export usage is a global effect. `incremental.modulesCodegen` has been overrided to false."
+				"`optimization.usedExports` can't be used with `incremental.modulesCodegen` as export usage is a global effect. `incremental.modulesCodegen` has been overridden to false."
 			);
 		}
 		if (incremental.modulesRuntimeRequirements) {
 			incremental.modulesRuntimeRequirements = false;
 			logger.warn(
-				"`optimization.usedExports` can't be used with `incremental.modulesRuntimeRequirements` as export usage is a global effect. `incremental.modulesRuntimeRequirements` has been overrided to false."
+				"`optimization.usedExports` can't be used with `incremental.modulesRuntimeRequirements` as export usage is a global effect. `incremental.modulesRuntimeRequirements` has been overridden to false."
 			);
 		}
 		return createBuiltinPlugin(this.name, this.global);
