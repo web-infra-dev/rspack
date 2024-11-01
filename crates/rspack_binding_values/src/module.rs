@@ -209,12 +209,10 @@ impl JsModule {
   pub fn set_user_request(&mut self, val: String) -> napi::Result<()> {
     let module: &mut dyn Module = self.as_mut()?;
 
-    Ok(match module.try_as_normal_module_mut() {
-      Ok(normal_module) => {
-        *normal_module.user_request_mut() = val;
-      }
-      Err(_) => (),
-    })
+    if let Ok(normal_module) = module.try_as_normal_module_mut() {
+      *normal_module.user_request_mut() = val;
+    }
+    Ok(())
   }
 
   #[napi(getter)]
