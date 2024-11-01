@@ -321,7 +321,7 @@ impl ChunkGraph {
 
   pub fn get_ordered_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
-    let mut modules = Vec::from_iter(chunk_graph_chunk.modules.iter().copied());
+    let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk.modules.iter().copied().collect();
     // SAFETY: module identifier is unique
     modules.sort_unstable_by_key(|m| m.as_str());
     modules
