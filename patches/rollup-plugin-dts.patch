@@ -1,0 +1,27 @@
+diff --git a/dist/rollup-plugin-dts.mjs b/dist/rollup-plugin-dts.mjs
+index 4a9412285c48c37d03340a086c771f8e61fd82ac..c1b7d3b95979811b71b49a53aba4ca07901e2a9d 100644
+--- a/dist/rollup-plugin-dts.mjs
++++ b/dist/rollup-plugin-dts.mjs
+@@ -351,6 +351,10 @@ class NamespaceFixer {
+                         code += `type ${ns.name}_${exportedName}${typeParams.in} = ${localName}${typeParams.out};\n`;
+                         code += `declare const ${ns.name}_${exportedName}: typeof ${localName};\n`;
+                     }
++                    else if (type === "namespace") {
++                        // namespaces may contain both types and values
++                        code += `import ${ns.name}_${exportedName} = ${localName};\n`;
++                    }
+                     else {
+                         // functions and vars are just values
+                         code += `declare const ${ns.name}_${exportedName}: typeof ${localName};\n`;
+@@ -1404,6 +1408,11 @@ class Transformer {
+     }
+     convertImportDeclaration(node) {
+         if (ts.isImportEqualsDeclaration(node)) {
++            if (ts.isEntityName(node.moduleReference)) {
++                const scope = this.createDeclaration(node, node.name);
++                scope.pushReference(scope.convertEntityName(node.moduleReference));
++                return;
++            }
+             // assume its like `import default`
+             if (!ts.isExternalModuleReference(node.moduleReference)) {
+                 throw new UnsupportedSyntaxError(node, "ImportEquals should have a literal source.");
