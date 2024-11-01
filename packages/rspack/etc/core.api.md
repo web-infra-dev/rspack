@@ -9316,8 +9316,8 @@ export type RuleSetRule = {
     resolve?: ResolveOptions;
     sideEffects?: boolean;
     enforce?: "pre" | "post";
-    oneOf?: RuleSetRule[];
-    rules?: RuleSetRule[];
+    oneOf?: (RuleSetRule | Falsy)[];
+    rules?: (RuleSetRule | Falsy)[];
 };
 
 // @public

@@ -460,24 +460,28 @@ const getRawModuleRule = (
 			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
-			? rule.oneOf.map((rule, index) =>
-					getRawModuleRule(
-						rule,
-						`${path}.oneOf[${index}]`,
-						options,
-						rule.type ?? upperType
+			? rule.oneOf
+					.filter(Boolean)
+					.map((rule, index) =>
+						getRawModuleRule(
+							rule as RuleSetRule,
+							`${path}.oneOf[${index}]`,
+							options,
+							(rule as RuleSetRule).type ?? upperType
+						)
 					)
-				)
 			: undefined,
 		rules: rule.rules
-			? rule.rules.map((rule, index) =>
-					getRawModuleRule(
-						rule,
-						`${path}.rules[${index}]`,
-						options,
-						rule.type ?? upperType
+			? rule.rules
+					.filter(Boolean)
+					.map((rule, index) =>
+						getRawModuleRule(
+							rule as RuleSetRule,
+							`${path}.rules[${index}]`,
+							options,
+							(rule as RuleSetRule).type ?? upperType
+						)
 					)
-				)
 			: undefined,
 		enforce: rule.enforce
 	};
