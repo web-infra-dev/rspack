@@ -5,7 +5,6 @@ use rspack_binding_values::JsChunk;
 use rspack_napi::string::JsStringExt;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_napi::JsRegExp;
-use tokio::runtime::Handle;
 
 pub type Chunks = Either3<JsRegExp, JsString, ThreadsafeFunction<JsChunk, bool>>;
 

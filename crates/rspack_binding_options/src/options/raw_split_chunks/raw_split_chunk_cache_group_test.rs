@@ -38,7 +38,7 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
   match raw {
     Either3::A(str) => CacheGroupTest::String(str),
     Either3::B(regexp) => CacheGroupTest::RegExp(regexp.into()),
-    Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |ctx| handle.block_on(v.call(ctx.into())))),
+    Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |ctx| block_on(v.call(ctx.into())))),
   }
 }
 
