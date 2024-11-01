@@ -288,6 +288,12 @@ impl JsModule {
       Err(_) => Either::B(()),
     })
   }
+
+  #[napi(getter)]
+  pub fn use_source_map(&mut self) -> napi::Result<bool> {
+    let module = self.as_ref()?;
+    Ok(module.get_source_map_kind().source_map())
+  }
 }
 
 type ModuleInstanceRefs = IdentifierMap<OneShotRef<ClassInstance<JsModule>>>;

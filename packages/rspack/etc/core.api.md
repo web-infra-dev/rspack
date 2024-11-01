@@ -38,7 +38,6 @@ import { JsChunkGroupOrigin } from '@rspack/binding';
 import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
-import type { JsCompilerModuleContext } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
@@ -268,15 +267,7 @@ interface BaseModuleConfig {
 // @public (undocumented)
 interface BaseResolveRequest {
     	// (undocumented)
-    __innerRequest?: string;
-    	// (undocumented)
-    __innerRequest_relativePath?: string;
-    	// (undocumented)
-    __innerRequest_request?: string;
-    	// (undocumented)
-    context?: object;
-    	// (undocumented)
-    descriptionFileData?: JsonObject;
+    descriptionFileData?: object;
     	// (undocumented)
     descriptionFilePath?: string;
     	// (undocumented)
@@ -2484,35 +2475,20 @@ interface JsMinifyOptions {
 }
 
 // @public (undocumented)
-type JsonArray = JsonValue_2[];
+type JsonArray = JsonValue[];
 
 // @public (undocumented)
-type JsonObject = { [index: string]: JsonValue } & {
-    	[index: string]:
-    		| undefined
-    		| null
-    		| string
-    		| number
-    		| boolean
-    		| JsonObject
-    		| JsonValue[];
-};
-
-// @public (undocumented)
-type JsonObject_2 = {
-    [Key in string]: JsonValue_2;
+type JsonObject = {
+    [Key in string]: JsonValue;
 } & {
-    [Key in string]?: JsonValue_2 | undefined;
+    [Key in string]?: JsonValue | undefined;
 };
 
 // @public (undocumented)
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
-type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
-
-// @public (undocumented)
-type JsonValue_2 = JsonPrimitive | JsonObject_2 | JsonArray;
+type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -3392,9 +3368,9 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule | JsCompilerModuleContext, compilation?: Compilation);
+    constructor(module: JsModule, compilation?: Compilation);
     // (undocumented)
-    static __from_binding(binding: JsModule | JsCompilerModuleContext, compilation?: Compilation): Module;
+    static __from_binding(binding: JsModule, compilation?: Compilation): Module;
     // (undocumented)
     readonly blocks: DependenciesBlock[];
     readonly buildInfo: Record<string, any>;
@@ -3425,6 +3401,8 @@ export class Module {
     readonly type: string;
     // (undocumented)
     readonly userRequest?: string;
+    // (undocumented)
+    readonly useSourceMap: boolean;
 }
 
 // @public (undocumented)
@@ -4360,10 +4338,10 @@ type ReadFileSync = {
 type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
 
 // @public (undocumented)
-type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject_2) => void;
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
 
 // @public (undocumented)
-type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject_2;
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
 
 // @public (undocumented)
 type Readlink = {
