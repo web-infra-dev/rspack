@@ -88,7 +88,7 @@ export const applyRspackOptionsDefaults = (
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, { development });
+	applyExperimentsDefaults(options.experiments, { production });
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -194,7 +194,7 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{ development }: { development: boolean }
+	{ production }: { production: boolean }
 ) => {
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
@@ -205,7 +205,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "topLevelAwait", true);
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
-	D(experiments, "incremental", development ? {} : false);
+	D(experiments, "incremental", !production ? {} : false);
 	if (typeof experiments.incremental === "object") {
 		D(experiments.incremental, "make", true);
 		D(experiments.incremental, "inferAsyncModules", false);
