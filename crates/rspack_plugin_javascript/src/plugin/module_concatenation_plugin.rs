@@ -10,10 +10,10 @@ use rspack_core::concatenated_module::{
   is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
-  CompilationOptimizeChunkModules, CompilerOptions, ExportInfoProvided, ExtendedReferencedExport,
+  filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
+  CompilerModuleContext, CompilerOptions, ExportInfoProvided, ExtendedReferencedExport,
   LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  Plugin, PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  Plugin, PluginContext, ProvidedExports, RunnerContext, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -489,8 +489,8 @@ impl ModuleConcatenationPlugin {
                 format!(
                   "{} (expected runtime {}, module is only referenced in {})",
                   readable_identifier,
-                  runtime_to_string(runtime),
-                  runtime_to_string(runtime_condition.as_spec().expect("should be spec"))
+                  runtime,
+                  runtime_condition.as_spec().expect("should be spec")
                 )
               })
               .collect::<Vec<_>>()
