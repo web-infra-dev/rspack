@@ -265,10 +265,10 @@ this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8
 
 When you use SWC's Wasm plugin, SWC will generate cache files in the `.swc` directory of the current project by default. If you want to adjust this directory, you can modify the `cacheRoot` configuration, such as:
 
-```ts
+```js
 const path = require('path');
 
-export default {
+module.exports = {
   module: {
     rules: [
       {
