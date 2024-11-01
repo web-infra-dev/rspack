@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use derivative::Derivative;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 
@@ -11,16 +10,13 @@ use crate::{
   DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
-#[derive(Derivative)]
-#[derivative(Debug)]
-
+#[derive(Debug)]
 pub struct BuildTask {
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
-  #[derivative(Debug = "ignore")]
   pub fs: Arc<dyn ReadableFileSystem>,
 }
 

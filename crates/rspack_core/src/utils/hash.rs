@@ -2,6 +2,8 @@ use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+use rustc_hash::FxHashSet as HashSet;
+
 pub fn calc_hash<T: Hash>(t: &T) -> u64 {
   let mut s = DefaultHasher::new();
   t.hash(&mut s);
@@ -27,6 +29,10 @@ pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPat
     pattern: pattern.to_string(),
     len,
   })
+}
+
+pub fn include_hash(filename: &str, hashes: &HashSet<String>) -> bool {
+  hashes.iter().any(|hash| filename.contains(hash))
 }
 
 pub trait Replacer {

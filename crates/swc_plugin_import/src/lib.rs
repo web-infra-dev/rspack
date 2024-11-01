@@ -18,7 +18,7 @@ use swc_core::{
       ImportSpecifier, Module, ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
     atoms::Atom,
-    visit::{as_folder, Fold, VisitMut, VisitWith},
+    visit::{visit_mut_pass, VisitMut, VisitWith},
   },
 };
 
@@ -151,7 +151,9 @@ const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 /// Panic:
 ///
 /// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
-pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
+pub fn plugin_import(
+  config: &Vec<ImportOptions>,
+) -> swc_core::ecma::visit::VisitMutPass<ImportPlugin<'_>> {
   let mut renderer = handlebars::Handlebars::new();
 
   renderer.register_helper(
@@ -310,7 +312,7 @@ pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
     }
   });
 
-  as_folder(ImportPlugin { config, renderer })
+  visit_mut_pass(ImportPlugin { config, renderer })
 }
 
 #[derive(Debug)]

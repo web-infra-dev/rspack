@@ -17,7 +17,7 @@ console.log('yep');
 Loader 可以将该文件转化为以下文件，并使用 `matchResource` 来应用用户指定的 CSS 处理规则：
 
 ```js title="file.js (transformed by loader)"
-import './file.js.css!=! extract-style-loader/getStyles!./file.js';
+import './file.js.css!=!extract-style-loader/getStyles!./file.js';
 console.log('yep');
 ```
 

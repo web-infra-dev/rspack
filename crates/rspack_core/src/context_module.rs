@@ -817,6 +817,10 @@ impl DependenciesBlock for ContextModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -846,7 +850,11 @@ impl Module for ContextModule {
     self.identifier.as_str().into()
   }
 
-  fn size(&self, _source_type: Option<&crate::SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(
+    &self,
+    _source_type: Option<&crate::SourceType>,
+    _compilation: Option<&Compilation>,
+  ) -> f64 {
     160.0
   }
 

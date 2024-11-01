@@ -677,7 +677,7 @@ impl Stats<'_> {
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
-        size: module.size(Some(t), self.compilation),
+        size: module.size(Some(t), Some(self.compilation)),
       })
       .collect_vec();
 
@@ -699,7 +699,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       layer: module.get_layer().map(|layer| layer.into()),
-      size: module.size(None, self.compilation),
+      size: module.size(None, Some(self.compilation)),
       sizes,
       built,
       code_generated,

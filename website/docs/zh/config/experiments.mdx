@@ -223,6 +223,53 @@ module.exports = {
 };
 ```
 
+## experiments.incremental
+
+<ApiMeta addedVersion="1.1.0-beta.0" />
+
+- **类型：** `undefined | boolean | Incremental`
+- **默认值：** `undefined`
+
+```ts
+type Incremental = {
+  make?: boolean;
+  emitAssets?: boolean;
+  inferAsyncModules?: boolean;
+  providedExports?: boolean;
+  dependenciesDiagnostics?: boolean;
+  modulesHashes?: boolean;
+  modulesCodegen?: boolean;
+  modulesRuntimeRequirements?: boolean;
+  buildChunkGraph?: boolean;
+};
+```
+
+是否增量地进行重构建，加快重构建的速度。
+
+`true` 表示对全部阶段启用增量，`false` 表示对全部阶段关闭增量，也可以仅对指定的部分阶段开启增量：
+
+```ts
+module.exports = {
+  experiments: {
+    // 对全部阶段启用增量
+    incremental: true,
+    // 对全部阶段关闭增量
+    incremental: false,
+    // 仅对指定的部分阶段开启增量
+    incremental: {
+      make: true,
+      emitAssets: true,
+    },
+  },
+};
+```
+
+目前 Rspack 默认开启 `make` 和 `emitAssets` 阶段的增量，这也是之前 Rspack v1.0 的默认行为。随着该特性的进一步稳定，我们会默认开启更多阶段的增量，直到完全启用。
+
+:::tip
+该特性属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
+:::
+
 ## experiments.rspackFuture
 
 - **类型：** `object`

@@ -580,6 +580,7 @@ const applyOutputDefaults = (
 	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
+	D(output, "compareBeforeEmit", true);
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	F(output, "pathinfo", () => development);
 	D(
@@ -588,9 +589,11 @@ const applyOutputDefaults = (
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 
-	D(output, "hashFunction", futureDefaults ? "xxhash64" : "md4");
+	// IGNORE(output.hashFunction): Rspack uses faster xxhash64 by default
+	D(output, "hashFunction", "xxhash64");
 	D(output, "hashDigest", "hex");
-	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
+	// IGNORE(output.hashDigestLength): xxhash64 uses 16-bit hash
+	D(output, "hashDigestLength", 16);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));

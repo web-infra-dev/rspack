@@ -3,8 +3,8 @@
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 PublicPath: auto
 asset bundle.js 2.6 KiB {909} [emitted] (name: main)
-asset 2710c5e36f8babb0a3a4.png 7 bytes ({909}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
-Entrypoint main 2.6 KiB (7 bytes) = bundle.js 2.6 KiB (2710c5e36f8babb0a3a4.png 7 bytes)
+asset 98396dbfd5c74c34.png 7 bytes ({909}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
+Entrypoint main 2.6 KiB (7 bytes) = bundle.js 2.6 KiB (98396dbfd5c74c34.png 7 bytes)
 chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascript) 1.61 KiB (runtime) [entry] [rendered]
   > ./index main
   ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
@@ -59,7 +59,7 @@ runtime modules 1.61 KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (75a3437c65e54d5331bb)
+Rspack compiled successfully (2d43d99dc1ab0913)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `

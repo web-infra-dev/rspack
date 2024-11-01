@@ -116,7 +116,7 @@ impl Module for LazyCompilationProxyModule {
     self.create_data.issuer_layer.as_ref()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     200f64
   }
 
@@ -323,6 +323,10 @@ impl DependenciesBlock for LazyCompilationProxyModule {
 
   fn add_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
     self.dependencies.push(dependency);
+  }
+
+  fn remove_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
+    self.dependencies.retain(|d| d != &dependency);
   }
 
   fn get_dependencies(&self) -> &[rspack_core::DependencyId] {

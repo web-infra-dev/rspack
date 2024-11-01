@@ -1,12 +1,12 @@
 import type {
 	JsCodegenerationResult,
+	JsCompilerModuleContext,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
-	JsFactoryMeta,
-	JsModule,
-	ModuleDTO
+	JsFactoryMeta
 } from "@rspack/binding";
+import { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
@@ -210,56 +210,149 @@ export type ContextModuleFactoryAfterResolveResult =
 	| false
 	| ContextModuleFactoryAfterResolveData;
 
+const MODULE_MAPPINGS = new WeakMap<
+	JsModule | JsCompilerModuleContext,
+	Module
+>();
+
 export class Module {
-	#inner: JsModule | ModuleDTO;
+	#inner: JsModule | JsCompilerModuleContext;
 	#originalSource?: Source;
 
-	context?: Readonly<string>;
-	resource?: Readonly<string>;
-	request?: Readonly<string>;
-	userRequest?: Readonly<string>;
-	rawRequest?: Readonly<string>;
-	type: string;
-	layer: null | string;
+	declare readonly context?: string;
+	declare readonly resource?: string;
+	declare readonly request?: string;
+	declare readonly userRequest?: string;
+	declare readonly rawRequest?: string;
+	declare readonly type: string;
+	declare readonly layer: null | string;
 
-	factoryMeta?: Readonly<JsFactoryMeta>;
+	declare readonly factoryMeta?: JsFactoryMeta;
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
 	 * @see {@link Compilation#customModules}
 	 */
-	buildInfo: Record<string, any>;
+	declare readonly buildInfo: Record<string, any>;
 
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
 	 * @see {@link Compilation#customModules}
 	 */
-	buildMeta: Record<string, any>;
+	declare readonly buildMeta: Record<string, any>;
+
+	declare readonly modules: Module[] | undefined;
+
+	declare readonly blocks: DependenciesBlock[];
 
 	static __from_binding(
-		module: JsModule | ModuleDTO,
+		binding: JsModule | JsCompilerModuleContext,
 		compilation?: Compilation
 	) {
-		return new Module(module, compilation);
+		let module = MODULE_MAPPINGS.get(binding);
+		if (module) {
+			return module;
+		}
+		module = new Module(binding, compilation);
+		MODULE_MAPPINGS.set(binding, module);
+		return module;
 	}
 
-	constructor(module: JsModule | ModuleDTO, compilation?: Compilation) {
+	constructor(
+		module: JsModule | JsCompilerModuleContext,
+		compilation?: Compilation
+	) {
 		this.#inner = module;
-		this.type = module.type;
-		this.layer = module.layer ?? null;
-		this.context = module.context;
-		this.resource = module.resource;
-		this.request = module.request;
-		this.userRequest = module.userRequest;
-		this.rawRequest = module.rawRequest;
 
-		this.factoryMeta = module.factoryMeta;
-		const customModule = compilation?.__internal__getCustomModule(
-			module.moduleIdentifier
-		);
-		this.buildInfo = customModule?.buildInfo || {};
-		this.buildMeta = customModule?.buildMeta || {};
+		Object.defineProperties(this, {
+			type: {
+				enumerable: true,
+				get(): string | null {
+					return module.type || null;
+				}
+			},
+			layer: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.layer;
+				}
+			},
+			context: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.context;
+				}
+			},
+			resource: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.resource;
+				}
+			},
+			request: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.request;
+				}
+			},
+			userRequest: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.userRequest;
+				}
+			},
+			rawRequest: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.rawRequest;
+				}
+			},
+			factoryMeta: {
+				enumerable: true,
+				get(): JsFactoryMeta | undefined | undefined {
+					return module.factoryMeta;
+				}
+			},
+			modules: {
+				enumerable: true,
+				get(): Module[] | undefined {
+					if (module instanceof JsModule) {
+						return module.modules
+							? module.modules.map(m => Module.__from_binding(m))
+							: undefined;
+					}
+					return undefined;
+				}
+			},
+			buildInfo: {
+				enumerable: true,
+				get(): Record<string, any> {
+					const customModule = compilation?.__internal__getCustomModule(
+						module.moduleIdentifier
+					);
+					return customModule?.buildInfo || {};
+				}
+			},
+			buildMeta: {
+				enumerable: true,
+				get(): Record<string, any> {
+					const customModule = compilation?.__internal__getCustomModule(
+						module.moduleIdentifier
+					);
+					return customModule?.buildMeta || {};
+				}
+			},
+			blocks: {
+				enumerable: true,
+				get(): DependenciesBlock[] {
+					if ("blocks" in module) {
+						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
+					}
+					return [];
+				}
+			}
+		});
 	}
 
 	originalSource(): Source | null {
@@ -282,13 +375,6 @@ export class Module {
 			return this.#inner.nameForCondition;
 		}
 		return null;
-	}
-
-	get blocks(): DependenciesBlock[] {
-		if ("blocks" in this.#inner) {
-			return this.#inner.blocks.map(b => new DependenciesBlock(b));
-		}
-		return [];
 	}
 
 	size(type?: string): number {

@@ -71,6 +71,10 @@ impl DependenciesBlock for RawModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -100,7 +104,7 @@ impl Module for RawModule {
     Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     f64::max(1.0, self.source.size() as f64)
   }
 

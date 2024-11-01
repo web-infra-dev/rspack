@@ -358,6 +358,7 @@ fn is_pure_call_expr(
     let expr = Expr::Call(call_expr.clone());
     !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
+      in_strict: false,
       is_unresolved_ref_safe: false,
     })
   } else {
@@ -433,6 +434,7 @@ pub fn is_pure_expression<'a>(
       _ => !expr.may_have_side_effects(&ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,
+        in_strict: false,
       }),
     }
   }

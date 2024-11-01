@@ -1,4 +1,3 @@
-use derivative::Derivative;
 use napi_derive::napi;
 use rspack_napi::{
   regexp::{JsRegExp, JsRegExpExt},
@@ -8,8 +7,7 @@ use rspack_plugin_ignore::{CheckResourceContent, IgnorePluginOptions};
 
 type RawCheckResource = ThreadsafeFunction<(String, String), bool>;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawIgnorePluginOptions {
   #[napi(ts_type = "RegExp")]

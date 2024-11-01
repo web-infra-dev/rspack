@@ -223,6 +223,8 @@ tests/plugin-test/css-extract/js
 
 tests/plugin-test/html-plugin/js
 
+tests/plugin-test/copy-plugin/build
+
 /webpack-examples/**/dist
 
 smoke-example
@@ -236,3 +238,6 @@ diff_output
 
 # rspress build output
 /website/doc_build
+
+# xcode trace
+*.trace

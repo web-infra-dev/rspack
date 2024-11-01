@@ -214,7 +214,8 @@ export const getNormalizedRspackOptions = (
 					output.devtoolFallbackModuleFilenameTemplate,
 				chunkLoadTimeout: output.chunkLoadTimeout,
 				charset: output.charset,
-				environment: cloneObject(output.environment)
+				environment: cloneObject(output.environment),
+				compareBeforeEmit: output.compareBeforeEmit
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -519,6 +520,7 @@ export interface OutputNormalized {
 	charset?: boolean;
 	chunkLoadTimeout?: number;
 	cssHeadDataCompression?: boolean;
+	compareBeforeEmit?: boolean;
 }
 
 export interface ModuleOptionsNormalized {

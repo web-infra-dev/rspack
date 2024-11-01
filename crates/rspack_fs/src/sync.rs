@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fs::Metadata;
 use std::io;
 use std::path::Path;
@@ -8,7 +9,7 @@ use rspack_paths::Utf8Path;
 // pubResolverFileSystem
 use super::Result;
 
-pub trait WritableFileSystem {
+pub trait WritableFileSystem: Debug {
   /// Creates a new, empty directory at the provided path.
   ///
   /// NOTE: If a parent of the given path doesn’t exist, this function is supposed to return an error.
@@ -29,7 +30,7 @@ pub trait WritableFileSystem {
   fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 }
 
-pub trait ReadableFileSystem: Send + Sync {
+pub trait ReadableFileSystem: Debug + Send + Sync {
   /// See [std::fs::read]
   fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
 

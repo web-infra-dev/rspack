@@ -1,10 +1,17 @@
 use futures::future::BoxFuture;
-use rspack_fs::r#async::AsyncWritableFileSystem;
+use napi::{bindgen_prelude::Either3, Either};
+use rspack_fs::r#async::{AsyncWritableFileSystem, FileStat};
 use rspack_paths::Utf8Path;
 
 use crate::node::ThreadsafeNodeFS;
 
 pub struct AsyncNodeWritableFileSystem(ThreadsafeNodeFS);
+
+impl std::fmt::Debug for AsyncNodeWritableFileSystem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AsyncNodeWritableFileSystem").finish()
+  }
+}
 
 impl AsyncNodeWritableFileSystem {
   pub fn new(tsfs: ThreadsafeNodeFS) -> napi::Result<Self> {
@@ -103,6 +110,70 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
           ))
         })
         .map(|_| ())
+    };
+    Box::pin(fut)
+  }
+
+  // TODO: support read_dir options
+  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<Vec<String>>> {
+    let fut = async {
+      let dir = dir.as_str().to_string();
+      let res = self.0.read_dir.call(dir).await.map_err(|e| {
+        rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })?;
+      match res {
+        Either::A(files) => Ok(files),
+        Either::B(_) => Err(rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          "output file system call read dir failed",
+        ))),
+      }
+    };
+    Box::pin(fut)
+  }
+
+  // TODO: support read_file options
+  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<Vec<u8>>> {
+    let fut = async {
+      let file = file.as_str().to_string();
+      let res = self.0.read_file.call(file).await.map_err(|e| {
+        rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })?;
+
+      match res {
+        Either3::A(data) => Ok(data.to_vec()),
+        Either3::B(str) => Ok(str.into_bytes()),
+        Either3::C(_) => Err(rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          "output file system call read file failed",
+        ))),
+      }
+    };
+    Box::pin(fut)
+  }
+
+  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<FileStat>> {
+    let fut = async {
+      let file = file.as_str().to_string();
+      let res = self.0.stat.call(file).await.map_err(|e| {
+        rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })?;
+      match res {
+        Either::A(stat) => Ok(FileStat::from(stat)),
+        Either::B(_) => Err(rspack_fs::Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          "output file system call stat failed",
+        ))),
+      }
     };
     Box::pin(fut)
   }
