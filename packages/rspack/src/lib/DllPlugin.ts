@@ -22,7 +22,8 @@ export type DllPluginOptions = {
 	context?: string;
 
 	/**
-	 * If true, only entry points will be exposed (default: true).
+	 * If true, only entry points will be exposed.
+	 * @default true
 	 */
 	entryOnly?: boolean;
 
@@ -56,6 +57,8 @@ const dllPluginOptions = z.object({
 	type: z.string().optional()
 }) satisfies z.ZodType<DllPluginOptions>;
 
+const DLL_PLUGIN_NAME = "DllPlugin";
+
 export class DllPlugin {
 	private options: DllPluginOptions;
 
@@ -68,7 +71,7 @@ export class DllPlugin {
 	}
 
 	apply(compiler: Compiler) {
-		compiler.hooks.entryOption.tap("DllPlugin", (context, entry) => {
+		compiler.hooks.entryOption.tap(DLL_PLUGIN_NAME, (context, entry) => {
 			if (typeof entry === "function") {
 				throw new Error(
 					"DllPlugin doesn't support dynamic entry (function) yet"

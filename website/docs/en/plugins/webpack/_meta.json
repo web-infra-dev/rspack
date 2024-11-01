@@ -23,5 +23,7 @@
   "javascript-modules-plugin",
   "internal-plugins",
   "no-emit-on-errors-plugin",
-  "context-replacement-plugin"
+  "context-replacement-plugin",
+  "dll-plugin",
+  "dll-reference-plugin"
 ]
