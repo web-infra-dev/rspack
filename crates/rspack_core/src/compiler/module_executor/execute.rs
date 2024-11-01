@@ -6,7 +6,7 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
-use tokio::{runtime::Handle, sync::oneshot::Sender};
+use tokio::sync::oneshot::Sender;
 
 use crate::{
   compiler::make::repair::MakeTaskContext,
@@ -162,18 +162,14 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation.create_module_hashes(modules.clone())?;
 
     compilation.code_generation_modules(&mut None, modules.clone())?;
-
-    Handle::current().block_on(async {
-      compilation
-        .process_runtime_requirements(
-          modules.clone(),
-          once(chunk_ukey),
-          once(chunk_ukey),
-          compilation.plugin_driver.clone(),
-        )
-        .await
-    })?;
-
+    compilation
+      .process_runtime_requirements(
+        modules.clone(),
+        once(chunk_ukey),
+        once(chunk_ukey),
+        compilation.plugin_driver.clone(),
+      )
+      .await?;
     let runtime_modules = compilation
       .chunk_graph
       .get_chunk_runtime_modules_iterable(&chunk_ukey)

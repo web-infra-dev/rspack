@@ -146,11 +146,12 @@ mod test {
 
   #[derive(Debug)]
   struct SyncTask;
+  #[async_trait::async_trait]
   impl Task<Context> for SyncTask {
     fn get_task_type(&self) -> TaskType {
       TaskType::Sync
     }
-    fn sync_run(self: Box<Self>, context: &mut Context) -> TaskResult<Context> {
+    async fn sync_run(self: Box<Self>, context: &mut Context) -> TaskResult<Context> {
       if context.sync_return_error {
         return Err(miette!("throw sync error"));
       }
