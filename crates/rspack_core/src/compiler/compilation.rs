@@ -34,9 +34,9 @@ use crate::{
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
-  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey,
-  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  runtime_to_string, to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk,
+  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind,
+  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn,
   Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
@@ -881,7 +881,7 @@ impl Compilation {
         ),
       })
       .collect::<Vec<_>>();
-    for (module, codegen_res, runtimes, from_cache, err) in results {
+    for (module, mut codegen_res, runtimes, from_cache, err) in results {
       if let Some(counter) = cache_counter {
         if from_cache {
           counter.hit();
@@ -889,17 +889,14 @@ impl Compilation {
           counter.miss();
         }
       }
-
-      let codegen_res_id = codegen_res.id;
+      codegen_res.set_hash(
+        &self.options.output.hash_function,
+        &self.options.output.hash_digest,
+        &self.options.output.hash_salt,
+      );
       self
         .code_generation_results
-        .module_generation_result_map
-        .insert(codegen_res_id, codegen_res);
-      for runtime in runtimes {
-        self
-          .code_generation_results
-          .add(module, runtime, codegen_res_id);
-      }
+        .insert(module, codegen_res, runtimes);
       self.code_generated_modules.insert(module);
 
       if let Some(err) = err {
@@ -1592,23 +1589,38 @@ impl Compilation {
     }
 
     let unordered_runtime_chunks = self.get_chunk_graph_entries();
-    dbg!(&unordered_runtime_chunks);
     let start = logger.time("hashing: hash chunks");
-    let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      self
-        .chunk_by_ukey
-        .keys()
-        .filter(|key| !unordered_runtime_chunks.contains(key))
+    let other_chunks: Vec<_> = self
+      .chunk_by_ukey
+      .keys()
+      .filter(|key| !unordered_runtime_chunks.contains(key))
+      .collect();
+    // create hash for runtime modules in other chunks
+    for chunk in &other_chunks {
+      for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
+        let runtime_module = &self.runtime_modules[runtime_module_identifier];
+        let mut hasher = RspackHash::from(&self.options.output);
+        runtime_module.update_hash(&mut hasher, self, None)?;
+        let digest = hasher.digest(&self.options.output.hash_digest);
+        self
+          .runtime_modules_hash
+          .insert(*runtime_module_identifier, digest);
+      }
+    }
+    // create hash for other chunks
+    let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
+      other_chunks
+        .into_iter()
         .map(|chunk| async {
           let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
           Ok((*chunk, hash_result))
         })
         .collect::<FuturesResults<_>>()
         .into_inner();
-
-    try_process_chunk_hash_results(self, other_chunk_hash_results)?;
+    try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
+    // collect references for runtime chunks
     let mut runtime_chunks_map: HashMap<ChunkUkey, (Vec<ChunkUkey>, u32)> =
       unordered_runtime_chunks
         .into_iter()
@@ -1634,7 +1646,7 @@ impl Compilation {
         remaining += 1;
       }
     }
-    dbg!(&runtime_chunks_map);
+    // sort runtime chunks by its references
     let mut runtime_chunks = Vec::with_capacity(runtime_chunks_map.len());
     for (runtime_chunk, (_, remaining)) in &runtime_chunks_map {
       if *remaining == 0 {
@@ -1685,7 +1697,7 @@ impl Compilation {
       }
       i += 1;
     }
-    // If there are still remaining references we have cycles and want to create a warning
+    // create warning for remaining circular references
     if remaining > 0 {
       let mut circular: Vec<_> = runtime_chunks_map
         .iter()
@@ -1707,7 +1719,10 @@ impl Compilation {
       self.push_diagnostic(diagnostic!(severity = Severity::Warn, "Circular dependency between chunks with runtime ({})\nThis prevents using hashes of each other and should be avoided.", circular_names).boxed().into());
     }
 
-    // runtime chunks should be hashed after all other chunks
+    // create hash for runtime chunks and the runtime modules within them
+    // The subsequent runtime chunks and runtime modules will depend on
+    // the hash results of the previous runtime chunks and runtime modules.
+    // Therefore, create hashes one by one in sequence.
     let start = logger.time("hashing: hash runtime chunks");
     for runtime_chunk_ukey in runtime_chunks {
       for runtime_module_identifier in self
@@ -1736,6 +1751,7 @@ impl Compilation {
     }
     logger.time_end(start);
 
+    // create full hash
     self
       .chunk_by_ukey
       .values()
@@ -1871,8 +1887,11 @@ impl Compilation {
   ) -> Result<()> {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
-    let runtime_module_identifier =
-      ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
+    let runtime_module_identifier = ModuleIdentifier::from(format!(
+      "{}/{}",
+      runtime_to_string(&chunk.runtime),
+      module.identifier()
+    ));
     module.attach(*chunk_ukey);
     self.chunk_graph.add_module(runtime_module_identifier);
     self

@@ -144,7 +144,7 @@ module.exports = {
 		      main.js,
 		    ],
 		    filteredModules: undefined,
-		    hash: 75f0f3b8e9564b9f,
+		    hash: 717b293a41af1b65,
 		    id: 909,
 		    idHints: Array [],
 		    initial: true,

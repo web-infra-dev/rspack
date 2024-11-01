@@ -284,11 +284,6 @@ impl Module for LazyCompilationProxyModule {
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
     codegen_result.runtime_requirements = runtime_requirements;
     codegen_result.data = codegen_data;
-    codegen_result.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
 
     Ok(codegen_result)
   }

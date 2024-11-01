@@ -317,7 +317,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       }
     }
-    dbg!(&dynamic_url);
     Ok(
       RawSource::from(format!(
         "// This function allow to reference chunks

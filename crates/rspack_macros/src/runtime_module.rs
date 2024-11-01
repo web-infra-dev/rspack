@@ -163,11 +163,6 @@ pub fn impl_runtime_module(
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
         result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation)?);
-        result.set_hash(
-          &compilation.options.output.hash_function,
-          &compilation.options.output.hash_digest,
-          &compilation.options.output.hash_salt,
-        );
         Ok(result)
       }
 

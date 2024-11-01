@@ -194,15 +194,12 @@ impl Task<MakeTaskContext> for ExecuteTask {
         runtime_module_source.size() as f64,
       );
       let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
-      let result_id = result.id;
 
-      compilation
-        .code_generation_results
-        .module_generation_result_map
-        .insert(result.id, result);
-      compilation
-        .code_generation_results
-        .add(*runtime_id, runtime.clone(), result_id);
+      compilation.code_generation_results.insert(
+        *runtime_id,
+        result,
+        std::iter::once(runtime.clone()),
+      );
       compilation
         .code_generated_modules
         .insert(runtime_module.identifier());

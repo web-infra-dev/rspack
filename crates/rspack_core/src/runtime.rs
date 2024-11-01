@@ -167,8 +167,16 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
 }
 
 pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
-  let arr = runtime.iter().map(|item| item.as_ref()).collect::<Vec<_>>();
-  arr.join(",")
+  let mut s = String::new();
+  let mut iter = runtime.iter();
+  if let Some(first) = iter.next() {
+    s += first;
+  }
+  for r in iter {
+    s += ",";
+    s += r;
+  }
+  s
 }
 
 pub fn filter_runtime(

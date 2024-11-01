@@ -1037,11 +1037,6 @@ impl Module for ContextModule {
           .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       }
     }
-    code_generation_result.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
     Ok(code_generation_result)
   }
 
