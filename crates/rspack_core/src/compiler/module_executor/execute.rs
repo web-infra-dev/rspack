@@ -54,13 +54,13 @@ pub struct ExecuteTask {
     Vec<ExecutedRuntimeModule>,
   )>,
 }
-
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for ExecuteTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       entry_dep_id,
       layer,

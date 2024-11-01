@@ -15,12 +15,12 @@ pub struct AddTask {
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
-
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;
     let module_graph =

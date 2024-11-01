@@ -39,7 +39,7 @@ pub trait Task<Ctx>: Debug + Send + Any + AsAny {
   /// Sync task process
   ///
   /// The context is shared with all tasks
-  fn sync_run(self: Box<Self>, _context: &mut Ctx) -> TaskResult<Ctx> {
+  async fn sync_run(self: Box<Self>, _context: &mut Ctx) -> TaskResult<Ctx> {
     unreachable!();
   }
 
@@ -92,7 +92,7 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
         }
         TaskType::Sync => {
           // merge sync task result directly
-          match task.sync_run(ctx) {
+          match task.sync_run(ctx).await {
             Ok(r) => queue.extend(r),
             Err(e) => {
               is_expected_shutdown.store(true, Ordering::Relaxed);

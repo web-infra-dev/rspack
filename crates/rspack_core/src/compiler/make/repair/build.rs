@@ -100,12 +100,12 @@ struct BuildResultTask {
   pub diagnostics: Vec<Diagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
-
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,
       build_result,
