@@ -1,9 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RealDependencyLocation, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ESMExportInitFragment,
+  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -11,13 +11,13 @@ use swc_core::ecma::atoms::Atom;
 #[derive(Debug, Clone)]
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   pub name: Atom,
   pub value: Atom, // id
 }
 
 impl ESMExportSpecifierDependency {
-  pub fn new(name: Atom, value: Atom, range: RealDependencyLocation) -> Self {
+  pub fn new(name: Atom, value: Atom, range: DependencyRange) -> Self {
     Self {
       name,
       value,

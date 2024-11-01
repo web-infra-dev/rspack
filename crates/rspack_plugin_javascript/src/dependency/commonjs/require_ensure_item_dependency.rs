@@ -1,6 +1,6 @@
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ModuleDependency, RealDependencyLocation,
+  DependencyId, DependencyRange, DependencyType, ModuleDependency,
 };
 use rspack_util::atom::Atom;
 
@@ -8,11 +8,11 @@ use rspack_util::atom::Atom;
 pub struct RequireEnsureItemDependency {
   id: DependencyId,
   request: Atom,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl RequireEnsureItemDependency {
-  pub fn new(request: Atom, range: RealDependencyLocation) -> Self {
+  pub fn new(request: Atom, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -34,7 +34,7 @@ impl Dependency for RequireEnsureItemDependency {
     &DependencyType::RequireEnsureItem
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

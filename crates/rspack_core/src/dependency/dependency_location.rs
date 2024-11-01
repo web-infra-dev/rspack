@@ -4,16 +4,16 @@ use derivative::Derivative;
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone, Hash)]
-pub struct RealDependencyLocation {
+pub struct DependencyRange {
   pub end: u32,
   pub start: u32,
   #[derivative(Debug = "ignore", Hash = "ignore")]
   source: Option<Arc<dyn SourceLocation>>,
 }
 
-impl RealDependencyLocation {
+impl DependencyRange {
   pub fn new(start: u32, end: u32) -> Self {
-    RealDependencyLocation {
+    DependencyRange {
       end,
       start,
       source: None,
@@ -26,7 +26,7 @@ impl RealDependencyLocation {
   }
 }
 
-impl From<(u32, u32)> for RealDependencyLocation {
+impl From<(u32, u32)> for DependencyRange {
   fn from(range: (u32, u32)) -> Self {
     Self {
       start: range.0,
@@ -36,7 +36,7 @@ impl From<(u32, u32)> for RealDependencyLocation {
   }
 }
 
-impl From<swc_core::common::Span> for RealDependencyLocation {
+impl From<swc_core::common::Span> for DependencyRange {
   fn from(span: swc_core::common::Span) -> Self {
     Self {
       start: span.lo.0.saturating_sub(1),
@@ -46,7 +46,7 @@ impl From<swc_core::common::Span> for RealDependencyLocation {
   }
 }
 
-impl fmt::Display for RealDependencyLocation {
+impl fmt::Display for DependencyRange {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if let Some(source) = &self.source {
       let (start, end) = source.look_up_range_pos(self.start, self.end);
@@ -71,19 +71,19 @@ impl fmt::Display for RealDependencyLocation {
 }
 
 #[derive(Debug, Clone)]
-pub struct SyntheticDependencyLocation {
+pub struct DependencyName {
   pub name: String,
 }
 
-impl SyntheticDependencyLocation {
+impl DependencyName {
   pub fn new(name: &str) -> Self {
-    SyntheticDependencyLocation {
+    DependencyName {
       name: name.to_string(),
     }
   }
 }
 
-impl fmt::Display for SyntheticDependencyLocation {
+impl fmt::Display for DependencyName {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{}", self.name)
   }
@@ -91,8 +91,8 @@ impl fmt::Display for SyntheticDependencyLocation {
 
 #[derive(Debug, Clone)]
 pub enum DependencyLocation {
-  Real(RealDependencyLocation),
-  Synthetic(SyntheticDependencyLocation),
+  Real(DependencyRange),
+  Synthetic(DependencyName),
 }
 
 impl fmt::Display for DependencyLocation {

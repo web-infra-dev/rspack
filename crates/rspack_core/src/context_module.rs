@@ -25,9 +25,9 @@ use crate::{
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, RealDependencyLocation,
-  Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyRange, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static WEBPACK_CHUNK_NAME_PLACEHOLDER: LazyLock<Regex> =
@@ -891,7 +891,7 @@ impl Module for ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
-      let loc = RealDependencyLocation::new(
+      let loc = DependencyRange::new(
         self.options.context_options.start,
         self.options.context_options.end,
       );
