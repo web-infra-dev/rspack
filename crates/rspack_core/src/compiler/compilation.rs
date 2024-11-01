@@ -1590,27 +1590,27 @@ impl Compilation {
 
     let unordered_runtime_chunks = self.get_chunk_graph_entries();
     let start = logger.time("hashing: hash chunks");
-    let other_chunks: Vec<_> = self
+    let other_chunks = self
       .chunk_by_ukey
       .keys()
-      .filter(|key| !unordered_runtime_chunks.contains(key))
-      .collect();
-    // create hash for runtime modules in other chunks
-    for chunk in &other_chunks {
-      for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
-        let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let mut hasher = RspackHash::from(&self.options.output);
-        runtime_module.update_hash(&mut hasher, self, None)?;
-        let digest = hasher.digest(&self.options.output.hash_digest);
-        self
-          .runtime_modules_hash
-          .insert(*runtime_module_identifier, digest);
-      }
-    }
+      .filter(|key| !unordered_runtime_chunks.contains(key));
+    //   .collect();
+    // // create hash for runtime modules in other chunks
+    // for chunk in &other_chunks {
+    //   for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
+    //     let runtime_module = &self.runtime_modules[runtime_module_identifier];
+    //     let mut hasher = RspackHash::from(&self.options.output);
+    //     runtime_module.update_hash(&mut hasher, self, None)?;
+    //     let digest = hasher.digest(&self.options.output.hash_digest);
+    //     self
+    //       .runtime_modules_hash
+    //       .insert(*runtime_module_identifier, digest);
+    //   }
+    // }
     // create hash for other chunks
     let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
       other_chunks
-        .into_iter()
+        // .into_iter()
         .map(|chunk| async {
           let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
           Ok((*chunk, hash_result))
