@@ -1,9 +1,39 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import type { Compiler } from "../Compiler";
+import type { Incremental } from "../config";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
-import { create } from "./base";
+export class FlagDependencyUsagePlugin extends RspackBuiltinPlugin {
+	name = BuiltinPluginName.FlagDependencyUsagePlugin;
+	affectedHooks = "compilation" as const;
 
-export const FlagDependencyUsagePlugin = create(
-	BuiltinPluginName.FlagDependencyUsagePlugin,
-	(global: boolean) => global,
-	"compilation"
-);
+	constructor(private global: boolean) {
+		super();
+	}
+
+	raw(compiler: Compiler): BuiltinPlugin {
+		const incremental = compiler.options.experiments.incremental as Incremental;
+		const logger = compiler.getInfrastructureLogger(
+			"rspack.FlagDependencyUsagePlugin"
+		);
+		if (incremental.modulesHashes) {
+			incremental.modulesHashes = false;
+			logger.warn(
+				"`optimization.usedExports` can't be used with `incremental.modulesHashes` as export usage is a global effect. `incremental.modulesHashes` has been overrided to false."
+			);
+		}
+		if (incremental.modulesCodegen) {
+			incremental.modulesCodegen = false;
+			logger.warn(
+				"`optimization.usedExports` can't be used with `incremental.modulesCodegen` as export usage is a global effect. `incremental.modulesCodegen` has been overrided to false."
+			);
+		}
+		if (incremental.modulesRuntimeRequirements) {
+			incremental.modulesRuntimeRequirements = false;
+			logger.warn(
+				"`optimization.usedExports` can't be used with `incremental.modulesRuntimeRequirements` as export usage is a global effect. `incremental.modulesRuntimeRequirements` has been overrided to false."
+			);
+		}
+		return createBuiltinPlugin(this.name, this.global);
+	}
+}

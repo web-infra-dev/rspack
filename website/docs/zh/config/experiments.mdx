@@ -1,5 +1,6 @@
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -227,8 +228,13 @@ module.exports = {
 
 <ApiMeta addedVersion="1.1.0-beta.0" />
 
-- **类型：** `undefined | boolean | Incremental`
-- **默认值：** `undefined`
+<PropertyType
+  type="boolean | Incremental"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: '{ make: true, emitAssets: true }', mode: 'development' },
+  ]}
+/>
 
 ```ts
 type Incremental = {
@@ -244,11 +250,21 @@ type Incremental = {
 };
 ```
 
-是否增量地进行重构建，加快重构建的速度。
+是否增量地进行重构建，加快重构建或 HMR 的速度，建议仅在开发时启用：
+
+```js
+const isDev = process.env.NODE_ENV;
+module.exports = {
+  mode: isDev ? 'development' : 'production',
+  experiments: {
+    incremental: isDev,
+  },
+};
+```
 
 `true` 表示对全部阶段启用增量，`false` 表示对全部阶段关闭增量，也可以仅对指定的部分阶段开启增量：
 
-```ts
+```js
 module.exports = {
   experiments: {
     // 对全部阶段启用增量

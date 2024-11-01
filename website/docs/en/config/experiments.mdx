@@ -1,5 +1,6 @@
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -229,8 +230,13 @@ module.exports = {
 
 <ApiMeta addedVersion="1.1.0-beta.0" />
 
-- **Type:** `undefined | boolean | Incremental`
-- **Default:** `undefined`
+<PropertyType
+  type="boolean | Incremental"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: '{ make: true, emitAssets: true }', mode: 'development' },
+  ]}
+/>
 
 ```ts
 type Incremental = {
@@ -246,11 +252,21 @@ type Incremental = {
 };
 ```
 
-Whether to enable incremental rebuild to speed up the rebuild speed.
+Whether to enable incremental rebuild to speed up the rebuild speed. It is recommended to enable it only during development.
+
+```js
+const isDev = process.env.NODE_ENV;
+module.exports = {
+  mode: isDev ? 'development' : 'production',
+  experiments: {
+    incremental: isDev,
+  },
+};
+```
 
 `true` means enable incremental for all stages. `false` means disable incremental for all stages. Incremental can also be enabled only for specified partial stages:
 
-```ts
+```js
 module.exports = {
   experiments: {
     // enable incremental for all stages
