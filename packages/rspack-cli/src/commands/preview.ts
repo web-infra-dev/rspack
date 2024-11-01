@@ -69,8 +69,8 @@ async function getPreviewConfig(
 			static: {
 				directory: options.dir
 					? path.join(item.context ?? process.cwd(), options.dir)
-					: (item.output?.path ??
-						path.join(item.context ?? process.cwd(), defaultRoot)),
+					: item.output?.path ??
+						path.join(item.context ?? process.cwd(), defaultRoot),
 				publicPath: options.publicPath ?? "/"
 			},
 			port: options.port ?? 8080,
