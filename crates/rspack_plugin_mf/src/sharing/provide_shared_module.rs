@@ -143,7 +143,7 @@ impl Module for ProvideSharedModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut blocks = vec![];

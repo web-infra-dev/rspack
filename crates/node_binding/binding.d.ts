@@ -178,6 +178,7 @@ export class JsModule {
   get blocks(): Array<JsDependenciesBlock>
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
+  get useSourceMap(): boolean
 }
 
 export class JsResolver {
@@ -509,21 +510,6 @@ export interface JsCompatSource {
   map?: string
 }
 
-export interface JsCompilerModuleContext {
-  context?: string
-  originalSource?: JsCompatSource
-  resource?: string
-  moduleIdentifier: string
-  nameForCondition?: string
-  request?: string
-  userRequest?: string
-  rawRequest?: string
-  factoryMeta?: JsFactoryMeta
-  type: string
-  layer?: string
-  useSourceMap?: boolean
-}
-
 export interface JsCreateData {
   request: string
   userRequest: string
@@ -656,7 +642,7 @@ export interface JsLoaderContext {
   resourceData: Readonly<JsResourceData>
   /** Will be deprecated. Use module.module_identifier instead */
   _moduleIdentifier: Readonly<string>
-  _module: JsCompilerModuleContext
+  _module: JsModule
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: null | Buffer

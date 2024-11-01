@@ -1,6 +1,5 @@
 import type {
 	JsCodegenerationResult,
-	JsCompilerModuleContext,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
@@ -210,13 +209,10 @@ export type ContextModuleFactoryAfterResolveResult =
 	| false
 	| ContextModuleFactoryAfterResolveData;
 
-const MODULE_MAPPINGS = new WeakMap<
-	JsModule | JsCompilerModuleContext,
-	Module
->();
+const MODULE_MAPPINGS = new WeakMap<JsModule, Module>();
 
 export class Module {
-	#inner: JsModule | JsCompilerModuleContext;
+	#inner: JsModule;
 	#originalSource?: Source;
 
 	declare readonly context?: string;
@@ -226,7 +222,6 @@ export class Module {
 	declare readonly rawRequest?: string;
 	declare readonly type: string;
 	declare readonly layer: null | string;
-
 	declare readonly factoryMeta?: JsFactoryMeta;
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
@@ -241,15 +236,11 @@ export class Module {
 	 * @see {@link Compilation#customModules}
 	 */
 	declare readonly buildMeta: Record<string, any>;
-
 	declare readonly modules: Module[] | undefined;
-
 	declare readonly blocks: DependenciesBlock[];
+	declare readonly useSourceMap: boolean;
 
-	static __from_binding(
-		binding: JsModule | JsCompilerModuleContext,
-		compilation?: Compilation
-	) {
+	static __from_binding(binding: JsModule, compilation?: Compilation) {
 		let module = MODULE_MAPPINGS.get(binding);
 		if (module) {
 			return module;
@@ -259,10 +250,7 @@ export class Module {
 		return module;
 	}
 
-	constructor(
-		module: JsModule | JsCompilerModuleContext,
-		compilation?: Compilation
-	) {
+	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
 
 		Object.defineProperties(this, {
@@ -360,6 +348,12 @@ export class Module {
 						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
 					}
 					return [];
+				}
+			},
+			useSourceMap: {
+				enumerable: true,
+				get(): boolean {
+					return module.useSourceMap;
 				}
 			}
 		});
