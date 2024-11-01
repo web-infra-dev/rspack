@@ -3424,7 +3424,7 @@ export class Module {
     // (undocumented)
     readonly type: string;
     // (undocumented)
-    readonly userRequest?: string;
+    userRequest?: string;
 }
 
 // @public (undocumented)

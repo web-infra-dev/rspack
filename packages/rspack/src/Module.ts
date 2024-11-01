@@ -222,7 +222,7 @@ export class Module {
 	declare readonly context?: string;
 	declare readonly resource?: string;
 	declare readonly request?: string;
-	declare readonly userRequest?: string;
+	declare userRequest?: string;
 	declare readonly rawRequest?: string;
 	declare readonly type: string;
 	declare readonly layer: null | string;
@@ -300,6 +300,16 @@ export class Module {
 				enumerable: true,
 				get(): string | undefined {
 					return module.userRequest;
+				},
+				set(val: string) {
+					// In monaco-editor-webpack-plugin, a new value is set for module.userRequest to avoid a bug in the NamedModulesPlugin.
+					// See https://github.com/webpack/webpack/issues/4613#issuecomment-325178346 for details
+					//
+					// However, the NamedModulesPlugin is outdated, and internally,
+					// Rspack doesn't depend on module.userRequest to generate the identifier of the module.
+					//
+					// So far, we don't really have the need to modify userRequest.
+					// For the moment, we allow the user to set userRequest, but no actual modification will be carried out.
 				}
 			},
 			rawRequest: {
