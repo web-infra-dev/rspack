@@ -261,6 +261,34 @@ module.exports = {
 
 this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
 
+#### Set cache root
+
+When you use SWC's Wasm plugin, SWC will generate cache files in the `.swc` directory of the current project by default. If you want to adjust this directory, you can modify the `cacheRoot` configuration, such as:
+
+```js
+const path = require('path');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              experimental: {
+                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### rspackExperiments
 
 Experimental features provided by rspack.
