@@ -17,7 +17,7 @@ once_cell          = { workspace = true }
 owo-colors         = "3.5.0"
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_paths       = { version = "0.1.0", path = "../rspack_paths" }
-swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
+swc_core           = { workspace = true, features = ["common"] }
 termcolor          = "1"
 textwrap           = "0.15.2"
 thiserror          = "1"

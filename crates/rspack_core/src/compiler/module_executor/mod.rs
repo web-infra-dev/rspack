@@ -64,7 +64,9 @@ impl ModuleExecutor {
     make_artifact.diagnostics = Default::default();
     make_artifact.has_module_graph_change = false;
 
-    make_artifact = update_module_graph(compilation, make_artifact, params).unwrap_or_default();
+    make_artifact = update_module_graph(compilation, make_artifact, params)
+      .await
+      .unwrap_or_default();
 
     let mut ctx = MakeTaskContext::new(compilation, make_artifact);
     let (event_sender, event_receiver) = unbounded_channel();
@@ -82,7 +84,8 @@ impl ModuleExecutor {
             event_sender: event_sender.clone(),
           })
         },
-      );
+      )
+      .await;
 
       stop_sender
         .send(ctx.transform_to_make_artifact())

@@ -9,7 +9,6 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
 };
-
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
@@ -18,6 +17,7 @@ mod extract_url_and_global;
 mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
+mod future_extension;
 mod hash;
 mod identifier;
 mod module_rules;
@@ -38,6 +38,7 @@ pub use self::extract_url_and_global::*;
 pub use self::fast_actions::*;
 pub use self::file_counter::FileCounter;
 pub use self::find_graph_roots::*;
+pub use self::future_extension::*;
 pub use self::hash::*;
 pub use self::identifier::*;
 pub use self::module_rules::*;

@@ -10,10 +10,7 @@ use std::{
 
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
-use tokio::{
-  runtime::Handle,
-  sync::mpsc::{self, error::TryRecvError},
-};
+use tokio::sync::mpsc::{self, error::TryRecvError};
 
 /// Result returned by task
 ///
@@ -53,15 +50,15 @@ pub trait Task<Ctx>: Debug + Send + Any + AsAny {
 }
 
 /// Run task loop
-pub fn run_task_loop<Ctx: 'static>(
+pub async fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
 ) -> Result<()> {
-  run_task_loop_with_event(ctx, init_tasks, |_, task| task)
+  run_task_loop_with_event(ctx, init_tasks, |_, task| task).await
 }
 
 /// Run task loop with event
-pub fn run_task_loop_with_event<Ctx: 'static>(
+pub async fn run_task_loop_with_event<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
   before_task_run: impl Fn(&mut Ctx, Box<dyn Task<Ctx>>) -> Box<dyn Task<Ctx>>,
@@ -73,7 +70,7 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
   let is_expected_shutdown: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
   let mut queue: VecDeque<Box<dyn Task<Ctx>>> = VecDeque::from(init_tasks);
   let mut active_task_count = 0;
-  tokio::task::block_in_place(|| loop {
+  loop {
     let task = queue.pop_front();
     if task.is_none() && active_task_count == 0 {
       return Ok(());
@@ -107,10 +104,8 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
     }
 
     let data = if queue.is_empty() && active_task_count != 0 {
-      Handle::current().block_on(async {
-        let res = rx.recv().await.expect("should recv success");
-        Ok(res)
-      })
+      let res = rx.recv().await.expect("should recv success");
+      Ok(res)
     } else {
       rx.try_recv()
     };
@@ -132,7 +127,7 @@ pub fn run_task_loop_with_event<Ctx: 'static>(
         panic!("unexpected recv error")
       }
     }
-  })
+  }
 }
 
 #[cfg(test)]
@@ -204,7 +199,8 @@ mod test {
       vec![Box::new(AsyncTask {
         async_return_error: false,
       })],
-    );
+    )
+    .await;
     assert!(res.is_ok(), "task loop should be run success");
     assert_eq!(context.call_sync_task_count, 7);
 
@@ -219,7 +215,8 @@ mod test {
       vec![Box::new(AsyncTask {
         async_return_error: false,
       })],
-    );
+    )
+    .await;
     assert!(
       format!("{:?}", res).contains("throw sync error"),
       "should return sync error"
@@ -237,7 +234,8 @@ mod test {
       vec![Box::new(AsyncTask {
         async_return_error: false,
       })],
-    );
+    )
+    .await;
     assert!(
       format!("{:?}", res).contains("throw async error"),
       "should return async error"

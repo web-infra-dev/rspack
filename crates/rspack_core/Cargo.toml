@@ -16,6 +16,7 @@ derivative = { workspace = true }
 dyn-clone = "1.0.17"
 either = { workspace = true }
 futures = { workspace = true }
+futures-task = "0.3.31"
 hashlink = { workspace = true }
 hex = { workspace = true }
 indexmap = { workspace = true, features = ["rayon"] }
@@ -55,7 +56,6 @@ swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_codegen",
   "ecma_quote",
-  "common_concurrent",
   "swc_ecma_ast",
   "ecma_transforms_react",
   "ecma_transforms_module",

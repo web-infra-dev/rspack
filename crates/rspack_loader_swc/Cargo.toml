@@ -34,5 +34,4 @@ stacker                  = { workspace = true }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 swc_plugin_import        = { version = "0.1.5", path = "../swc_plugin_import" }
-tokio                    = { workspace = true }
 url                      = "2.5.0"
