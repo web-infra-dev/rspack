@@ -4599,7 +4599,6 @@ name = "rspack_regex"
 version = "0.1.0"
 dependencies = [
  "cow-utils",
- "derivative",
  "napi-h",
  "regex-syntax 0.8.3",
  "regress",

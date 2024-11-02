@@ -3,21 +3,29 @@
 mod algo;
 mod napi;
 
+use std::fmt::Debug;
+
 use cow_utils::CowUtils;
-use derivative::Derivative;
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 use self::algo::Algo;
 
 /// Using wrapper type required by [TryFrom] trait
-#[derive(Derivative, Clone, Hash)]
-#[derivative(Debug)]
+#[derive(Clone, Hash)]
 pub struct RspackRegex {
-  #[derivative(Debug = "ignore")]
   algo: Box<Algo>,
   pub flags: String,
   pub source: String,
+}
+
+impl Debug for RspackRegex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RspackRegex")
+      .field("flags", &self.flags)
+      .field("source", &self.source)
+      .finish()
+  }
 }
 
 impl RspackRegex {

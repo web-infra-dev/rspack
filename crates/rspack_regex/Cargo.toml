@@ -10,7 +10,6 @@ version     = "0.1.0"
 
 [dependencies]
 cow-utils    = { workspace = true }
-derivative   = { workspace = true }
 napi         = { workspace = true }
 regex-syntax = { version = "0.8.3", default-features = false, features = ["std"] }
 regress      = "0.10.0"
