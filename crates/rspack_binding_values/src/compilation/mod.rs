@@ -50,8 +50,9 @@ impl JsCompilation {
     }
 
     Err(napi::Error::from_reason(format!(
-      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side.",
-      self.id
+      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
+      self.id,
+      compilation.id()
     )))
   }
 
@@ -62,8 +63,9 @@ impl JsCompilation {
     }
 
     Err(napi::Error::from_reason(format!(
-      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side.",
-      self.id
+      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
+      self.id,
+      compilation.id()
     )))
   }
 }
