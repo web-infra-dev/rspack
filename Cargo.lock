@@ -3920,7 +3920,6 @@ dependencies = [
  "napi-h",
  "oneshot",
  "rspack_error",
- "rspack_regex",
  "tokio",
 ]
 
