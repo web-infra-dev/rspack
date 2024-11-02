@@ -343,6 +343,15 @@ export class Module {
 					return [];
 				}
 			},
+			dependencies: {
+				enumerable: true,
+				get(): Dependency[] {
+					if ("dependencies" in module) {
+						return module.dependencies.map(d => Dependency.__from_binding(d));
+					}
+					return [];
+				}
+			},
 			useSourceMap: {
 				enumerable: true,
 				get(): boolean {
