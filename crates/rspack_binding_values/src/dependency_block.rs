@@ -1,18 +1,14 @@
-use std::{cell::RefCell, ptr::NonNull, sync::Arc};
+use std::{cell::RefCell, ptr::NonNull};
 
 use napi_derive::napi;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
-  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, CompilationId, DependenciesBlock,
+  ModuleGraph,
 };
-use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
-use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rspack_util::source_map::SourceMapKind;
+use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults, JsCompilationWrapper, JsDependency, JsDependencyWrapper};
+use crate::{JsCompilationWrapper, JsDependencyWrapper};
 
 #[derive(Default)]
 #[napi(object)]
@@ -31,25 +27,27 @@ impl JsDependenciesBlock {
   pub fn new(block: &AsyncDependenciesBlock, compilation_id: CompilationId) -> Self {
     #[allow(clippy::unwrap_used)]
     Self {
-        compilation_id,
+      compilation_id,
       block_id: block.identifier(),
-      block: NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock).unwrap(),
+      block: NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock)
+        .unwrap(),
     }
   }
 
-  fn as_ref(&mut self) -> napi::Result<&AsyncDependenciesBlock> {
-    let block = unsafe { self.block.as_ref() };
-    if block.identifier() == self.block_id {
-      return Ok(block);
-    }
-
+  fn as_ref(&mut self) -> napi::Result<(&AsyncDependenciesBlock, ModuleGraph)> {
     if let Some(compilation) = JsCompilationWrapper::compilation_by_id(&self.compilation_id) {
       let module_graph = compilation.get_module_graph();
+
+      let block = unsafe { self.block.as_ref() };
+      if block.identifier() == self.block_id {
+        return Ok((block, module_graph));
+      }
+
       if let Some(block) = module_graph.block_by_id(&self.block_id) {
         self.block =
           NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock)
             .unwrap();
-        return Ok(unsafe { self.block.as_ref() });
+        return Ok((unsafe { self.block.as_ref() }, module_graph));
       }
     }
 
@@ -75,34 +73,39 @@ impl JsDependenciesBlock {
 #[napi]
 impl JsDependenciesBlock {
   #[napi(getter, ts_return_type = "JsDependency")]
-  pub fn dependencies(&self) -> Vec<JsDependencyWrapper> {
-    let compilation = unsafe { self.compilation.as_ref() };
+  pub fn dependencies(&mut self) -> Result<Vec<JsDependencyWrapper>> {
+    let compilation_id = self.compilation_id;
+    let (block, module_graph) = self.as_ref()?;
 
-    let module_graph = compilation.get_module_graph();
-    let block = self.block(&module_graph);
-    block
-      .get_dependencies()
-      .iter()
-      .filter_map(|dependency_id| {
-        module_graph
-          .dependency_by_id(dependency_id)
-          .map(|dep| JsDependencyWrapper::new(dep, self.compilation))
-      })
-      .collect::<Vec<_>>()
+    Ok(
+      block
+        .get_dependencies()
+        .iter()
+        .filter_map(|dependency_id| {
+          module_graph
+            .dependency_by_id(dependency_id)
+            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation_id))
+        })
+        .collect::<Vec<_>>(),
+    )
   }
 
   #[napi(getter)]
-  pub fn blocks(&self) -> Vec<JsDependenciesBlock> {
-    let compilation = unsafe { self.compilation.as_ref() };
+  pub fn blocks(&mut self) -> Result<Vec<JsDependenciesBlock>> {
+    let compilation_id = self.compilation_id;
+    let (block, module_graph) = self.as_ref()?;
 
-    let module_graph = compilation.get_module_graph();
-    let block = self.block(&module_graph);
-    let blocks = block.get_blocks();
-    blocks
-      .iter()
-      .cloned()
-      .map(|block_id| JsDependenciesBlock::new(block_id, self.compilation.as_ptr()))
-      .collect::<Vec<_>>()
+    Ok(
+      block
+        .get_blocks()
+        .iter()
+        .filter_map(|block_id| {
+          module_graph
+            .block_by_id(block_id)
+            .map(|block| JsDependenciesBlock::new(block, compilation_id))
+        })
+        .collect::<Vec<_>>(),
+    )
   }
 }
 
@@ -118,18 +121,19 @@ thread_local! {
 pub struct JsDependenciesBlockWrapper {
   compilation_id: CompilationId,
   block_id: AsyncDependenciesBlockIdentifier,
-  block: NonNull<dyn DependenciesBlock>,
+  block: NonNull<AsyncDependenciesBlock>,
 }
 
 impl JsDependenciesBlockWrapper {
-  pub fn new(block: &dyn DependenciesBlock, compilation_id: CompilationId) -> Self {
-    let block_id = *block.id
+  pub fn new(block: &AsyncDependenciesBlock, compilation_id: CompilationId) -> Self {
+    let block_id = block.identifier();
 
     #[allow(clippy::unwrap_used)]
     Self {
       compilation_id,
-      dependency_id,
-      dependency: NonNull::new(dependency as *const dyn Dependency as *mut dyn Dependency).unwrap(),
+      block_id,
+      block: NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock)
+        .unwrap(),
     }
   }
 
@@ -157,16 +161,16 @@ impl ToNapiValue for JsDependenciesBlockWrapper {
         }
       };
 
-      match refs.entry(val.dependency_id) {
+      match refs.entry(val.block_id) {
         std::collections::hash_map::Entry::Occupied(occupied_entry) => {
           let r = occupied_entry.get();
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let instance: ClassInstance<JsDependency> = JsDependency {
+          let instance: ClassInstance<JsDependenciesBlock> = JsDependenciesBlock {
             compilation_id: val.compilation_id,
-            dependency_id: val.dependency_id,
-            dependency: val.dependency,
+            block_id: val.block_id,
+            block: val.block,
           }
           .into_instance(Env::from_raw(env))?;
           let r = vacant_entry.insert(OneShotRef::new(env, instance)?);
