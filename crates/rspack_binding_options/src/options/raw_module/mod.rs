@@ -5,7 +5,7 @@ use derivative::Derivative;
 use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{JsFilename, RawRegex};
+use rspack_binding_values::JsFilename;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -49,7 +49,8 @@ impl Debug for RawModuleRuleUse {
 #[rspack_napi_macros::tagged_union]
 pub enum RawRuleSetCondition {
   string(String),
-  regexp(RawRegex),
+  #[napi(ts_type = "RegExp")]
+  regexp(RspackRegex),
   logical(Vec<RawRuleSetLogicalConditions>),
   array(Vec<RawRuleSetCondition>),
   #[napi(ts_type = r#"(value: string) => boolean"#)]
