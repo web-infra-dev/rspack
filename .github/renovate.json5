@@ -13,6 +13,11 @@
 	],
 	assignees: ["@SoonIter"],
 	packageRules: [
+		// manually update peer dependencies
+		{
+			depTypeList: ["peerDependencies"],
+			enabled: false
+		},
 		{
 			matchPackagePatterns: ["*"],
 			semanticCommitType: "chore",
