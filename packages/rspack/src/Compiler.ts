@@ -81,6 +81,8 @@ export interface AssetEmittedInfo {
 	compilation: Compilation;
 }
 
+const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
+
 class Compiler {
 	#instance?: binding.Rspack;
 	#initial: boolean;
@@ -706,8 +708,14 @@ class Compiler {
 	}
 
 	#createCompilation(native: binding.JsCompilation): Compilation {
-		const compilation = new Compilation(this, native);
-		compilation.name = this.name;
+		let compilation = COMPILATION_WEAK_MAP.get(native);
+
+		if (!compilation) {
+			compilation = new Compilation(this, native);
+			compilation.name = this.name;
+			COMPILATION_WEAK_MAP.set(native, compilation);
+		}
+
 		this.#compilation = compilation;
 		return compilation;
 	}
@@ -762,9 +770,7 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilerThisCompilation,
 				() => this.hooks.thisCompilation,
 				queried => (native: binding.JsCompilation) => {
-					if (this.#compilation === undefined) {
-						this.#createCompilation(native);
-					}
+					this.#createCompilation(native);
 					queried.call(this.#compilation!, this.#compilationParams!);
 				}
 			),
