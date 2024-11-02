@@ -82,7 +82,7 @@ impl JsDependenciesBlock {
 #[napi]
 pub struct JsModule {
   identifier: ModuleIdentifier,
-  module: RefCell<NonNull<dyn Module>>,
+  module: NonNull<dyn Module>,
   compilation: Option<NonNull<Compilation>>,
 }
 
@@ -96,8 +96,8 @@ impl JsModule {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<&dyn Module> {
-    let module = unsafe { self.module.borrow().as_ref() };
+  fn as_ref(&mut self) -> napi::Result<&'static dyn Module> {
+    let module = unsafe { self.module.as_ref() };
     if module.identifier() == self.identifier {
       return Ok(module);
     }
@@ -106,7 +106,7 @@ impl JsModule {
       let compilation = unsafe { compilation.as_ref() };
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
         let module = module.as_ref();
-        *self.module.borrow_mut() = {
+        self.module = {
           #[allow(clippy::unwrap_used)]
           NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap()
         };
@@ -120,8 +120,8 @@ impl JsModule {
     )))
   }
 
-  fn as_mut(&mut self) -> napi::Result<&mut dyn Module> {
-    let module = unsafe { self.module.borrow_mut().as_mut() };
+  fn as_mut(&mut self) -> napi::Result<&'static mut dyn Module> {
+    let module = unsafe { self.module.as_mut() };
     if module.identifier() == self.identifier {
       return Ok(module);
     }
@@ -407,7 +407,7 @@ impl ToNapiValue for JsModuleWrapper {
               std::collections::hash_map::Entry::Vacant(entry) => {
                 let instance: ClassInstance<JsModule> = JsModule {
                   identifier: val.identifier,
-                  module: RefCell::new(val.module),
+                  module: val.module,
                   compilation: Some(compilation_ptr),
                 }
                 .into_instance(Env::from_raw(env))?;
@@ -426,14 +426,14 @@ impl ToNapiValue for JsModuleWrapper {
 
             let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
             if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-              instance.module = RefCell::new(val.module);
+              instance.module = val.module;
             }
             ToNapiValue::to_napi_value(env, r)
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
             let instance = JsModule {
               identifier: val.identifier,
-              module: RefCell::new(val.module),
+              module: val.module,
               compilation: None,
             }
             .into_instance(Env::from_raw(env))?;
@@ -449,7 +449,7 @@ impl ToNapiValue for JsModuleWrapper {
 impl FromNapiValue for JsModuleWrapper {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let instance: ClassInstance<JsModule> = FromNapiValue::from_napi_value(env, napi_val)?;
-    let module = instance.module.borrow();
+    let module = instance.module;
 
     Ok(JsModuleWrapper {
       identifier: instance.identifier,
