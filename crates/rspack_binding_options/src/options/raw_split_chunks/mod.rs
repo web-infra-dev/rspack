@@ -14,7 +14,6 @@ use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
 use rspack_napi::string::JsStringExt;
-use rspack_napi::JsRegExp;
 use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
@@ -75,10 +74,10 @@ pub struct RawCacheGroupOptions {
   pub chunks: Option<Chunks>,
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
-  pub r#type: Option<Either<JsRegExp, JsString>>,
+  pub r#type: Option<Either<RspackRegex, JsString>>,
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
-  pub layer: Option<Either<JsRegExp, JsString>>,
+  pub layer: Option<Either<RspackRegex, JsString>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -284,13 +283,10 @@ pub struct RawFallbackCacheGroupOptions {
 }
 
 fn create_module_type_filter(
-  raw: Either<JsRegExp, JsString>,
+  raw: Either<RspackRegex, JsString>,
 ) -> rspack_plugin_split_chunks::ModuleTypeFilter {
   match raw {
-    Either::A(js_reg) => {
-      let regex: RspackRegex = js_reg.into();
-      Arc::new(move |m| regex.test(m.module_type().as_str()))
-    }
+    Either::A(regex) => Arc::new(move |m| regex.test(m.module_type().as_str())),
     Either::B(js_str) => {
       let type_str = js_str.into_string();
       Arc::new(move |m| m.module_type().as_str() == type_str.as_str())
@@ -299,17 +295,14 @@ fn create_module_type_filter(
 }
 
 fn create_module_layer_filter(
-  raw: Either<JsRegExp, JsString>,
+  raw: Either<RspackRegex, JsString>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either::A(js_reg) => {
-      let regex: RspackRegex = js_reg.into();
-      Arc::new(move |m| {
-        m.get_layer()
-          .map(|layer| regex.test(layer))
-          .unwrap_or_default()
-      })
-    }
+    Either::A(regex) => Arc::new(move |m| {
+      m.get_layer()
+        .map(|layer| regex.test(layer))
+        .unwrap_or_default()
+    }),
     Either::B(js_str) => {
       let test = js_str.into_string();
       Arc::new(move |m| {

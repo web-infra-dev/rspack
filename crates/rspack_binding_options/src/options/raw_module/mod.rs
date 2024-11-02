@@ -20,7 +20,6 @@ use rspack_core::{
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_napi::JsRegExp;
 use rspack_regex::RspackRegex;
 
 use crate::RawResolveOptions;
@@ -265,7 +264,7 @@ pub struct RawJavascriptParserOptions {
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
   #[napi(ts_type = "RegExp")]
-  pub wrapped_context_reg_exp: Option<JsRegExp>,
+  pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
@@ -304,9 +303,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
       expr_context_critical: value.expr_context_critical,
-      wrapped_context_reg_exp: value
-        .wrapped_context_reg_exp
-        .map(|context_reg_exp| context_reg_exp.into()),
+      wrapped_context_reg_exp: value.wrapped_context_reg_exp,
       wrapped_context_critical: value.wrapped_context_critical,
       exports_presence: value
         .exports_presence
@@ -868,7 +865,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
   }
 }
 
-type RawModuleNoParseRule = Either3<String, JsRegExp, ThreadsafeFunction<String, Option<bool>>>;
+type RawModuleNoParseRule = Either3<String, RspackRegex, ThreadsafeFunction<String, Option<bool>>>;
 type RawModuleNoParseRules = Either<RawModuleNoParseRule, Vec<RawModuleNoParseRule>>;
 
 struct RawModuleNoParseRuleWrapper(RawModuleNoParseRule);
@@ -888,7 +885,7 @@ impl From<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
   fn from(x: RawModuleNoParseRuleWrapper) -> Self {
     match x.0 {
       Either3::A(v) => Self::AbsPathPrefix(v),
-      Either3::B(v) => Self::Regexp(v.into()),
+      Either3::B(v) => Self::Regexp(v),
       Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(v)),
     }
   }
