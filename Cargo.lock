@@ -4192,7 +4192,6 @@ dependencies = [
  "itertools 0.13.0",
  "path-clean 1.0.1",
  "rayon",
- "regex",
  "rspack_base64",
  "rspack_core",
  "rspack_dojang",
