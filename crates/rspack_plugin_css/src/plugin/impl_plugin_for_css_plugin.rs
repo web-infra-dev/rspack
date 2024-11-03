@@ -27,7 +27,7 @@ use crate::parser_and_generator::{
   CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssUsedExports,
 };
 use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::{escape_css, AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX};
+use crate::utils::{escape_css, AUTO_PUBLIC_PATH_PLACEHOLDER};
 use crate::{plugin::CssPluginInner, CssPlugin};
 
 struct CssModuleDebugInfo<'a> {
@@ -339,9 +339,10 @@ async fn render_manifest(
   asset_info.set_css_unused_idents(unused_idents);
 
   let content = source.source();
-  let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
-    .find_iter(&content)
-    .map(|mat| (mat.start(), mat.end()))
+  let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
+  let auto_public_path_matches: Vec<_> = content
+    .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
+    .map(|(index, _)| (index, index + len))
     .collect();
   let source = if !auto_public_path_matches.is_empty() {
     let mut replace = ReplaceSource::new(source);

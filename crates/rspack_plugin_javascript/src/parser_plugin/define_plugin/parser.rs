@@ -21,9 +21,7 @@ static WEBPACK_REQUIRE_FUNCTION_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)")
     .expect("should init `WEBPACK_REQUIRE_FUNCTION_REGEXP`")
 });
-static WEBPACK_REQUIRE_IDENTIFIER_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new("__webpack_require__").expect("should init `WEBPACK_REQUIRE_IDENTIFIER_REGEXP`")
-});
+static WEBPACK_REQUIRE_IDENTIFIER: &str = "__webpack_require__";
 
 type OnEvaluateIdentifier = dyn Fn(
     &DefineRecord,
@@ -546,7 +544,7 @@ fn dep(
 
   if WEBPACK_REQUIRE_FUNCTION_REGEXP.is_match(&code) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if WEBPACK_REQUIRE_IDENTIFIER_REGEXP.is_match(&code) {
+  } else if code.contains(WEBPACK_REQUIRE_IDENTIFIER) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)

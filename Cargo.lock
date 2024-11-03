@@ -4657,6 +4657,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags 2.5.0",
  "concat-string",
+ "cow-utils",
  "dashmap 5.5.3",
  "indexmap 2.2.6",
  "itoa",
