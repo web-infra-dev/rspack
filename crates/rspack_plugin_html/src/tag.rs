@@ -265,7 +265,7 @@ impl fmt::Display for HtmlPluginTag {
         String::new()
       }
     );
-    write!(f, "{}", res)
+    write!(f, "{res}")
   }
 }
 

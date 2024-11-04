@@ -518,7 +518,7 @@ fn alternative_requests(
     items.push(item.clone());
     for module in resolve_options.modules() {
       let dir = module.cow_replace('\\', "/");
-      if item.request.starts_with(&format!("./{}/", dir)) {
+      if item.request.starts_with(&format!("./{dir}/")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
           item.request[dir.len() + 3..].to_string(),

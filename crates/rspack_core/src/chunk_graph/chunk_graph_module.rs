@@ -78,7 +78,7 @@ impl ChunkGraph {
     self
       .chunk_graph_module_by_module_identifier
       .get_mut(&module_identifier)
-      .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier))
+      .unwrap_or_else(|| panic!("Module({module_identifier}) should be added before using"))
   }
 
   pub(crate) fn expect_chunk_graph_module(
@@ -88,7 +88,7 @@ impl ChunkGraph {
     self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
-      .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier))
+      .unwrap_or_else(|| panic!("Module({module_identifier}) should be added before using"))
   }
 
   pub(crate) fn get_chunk_graph_module_mut(
@@ -104,7 +104,7 @@ impl ChunkGraph {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
-      .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier));
+      .unwrap_or_else(|| panic!("Module({module_identifier}) should be added before using"));
     &chunk_graph_module.chunks
   }
 

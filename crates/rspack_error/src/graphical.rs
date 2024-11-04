@@ -183,7 +183,7 @@ impl GraphicalReportHandler {
     if self.links == LinkStyle::Link && diagnostic.url().is_some() {
       let url = diagnostic.url().unwrap(); // safe
       let code = if let Some(code) = diagnostic.code() {
-        format!("{} ", code)
+        format!("{code} ")
       } else {
         "".to_string()
       };
@@ -193,8 +193,8 @@ impl GraphicalReportHandler {
         code.style(severity_style),
         "(link)".style(self.theme.styles.link)
       );
-      write!(header, "{}", link)?;
-      writeln!(f, "{}", header)?;
+      write!(header, "{link}")?;
+      writeln!(f, "{header}")?;
       writeln!(f)?;
     } else if let Some(code) = diagnostic.code() {
       write!(header, "{}", code.style(severity_style),)?;
@@ -202,7 +202,7 @@ impl GraphicalReportHandler {
         let url = diagnostic.url().unwrap(); // safe
         write!(header, " ({})", url.style(self.theme.styles.link))?;
       }
-      writeln!(f, "{}", header)?;
+      writeln!(f, "{header}")?;
       writeln!(f)?;
     }
     Ok(())
@@ -443,11 +443,11 @@ impl GraphicalReportHandler {
 
     if let Some(source_name) = contents.name() {
       let source_name = source_name.style(self.theme.styles.link);
-      writeln!(f, "[{}:{}:{}]", source_name, source_line, source_col)?;
+      writeln!(f, "[{source_name}:{source_line}:{source_col}]")?;
     } else if lines.len() <= 1 {
       writeln!(f, "{}", self.theme.characters.hbar.to_string().repeat(3))?;
     } else {
-      writeln!(f, "[{}:{}]", source_line, source_col)?;
+      writeln!(f, "[{source_line}:{source_col}]")?;
     }
 
     // Now it's time for the fun part--actually rendering everything!
@@ -720,7 +720,7 @@ impl GraphicalReportHandler {
         (hl, vbar_offset)
       })
       .collect();
-    writeln!(f, "{}", underlines)?;
+    writeln!(f, "{underlines}")?;
 
     for hl in single_liners.iter().rev() {
       if let Some(label) = hl.label() {

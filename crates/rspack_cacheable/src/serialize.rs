@@ -27,7 +27,7 @@ impl std::fmt::Display for SerializeError {
     match self {
       Self::BoxedError(error) => error.fmt(f),
       Self::MessageError(msg) => {
-        write!(f, "{}", msg)
+        write!(f, "{msg}")
       }
       Self::NoContext => {
         write!(f, "no context")

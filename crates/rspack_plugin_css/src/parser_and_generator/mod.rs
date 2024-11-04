@@ -526,7 +526,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               right,
             )?
           } else {
-            format!("{}{}module.exports = {{}}{};\n", ns_obj, left, right)
+            format!("{ns_obj}{left}module.exports = {{}}{right};\n")
           }
         };
         generate_context

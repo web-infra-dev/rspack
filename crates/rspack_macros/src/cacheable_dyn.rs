@@ -159,7 +159,7 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
       panic!("cacheable_dyn unsupported this target")
     }
   };
-  let archived_target_ident = Ident::new(&format!("Archived{}", target_ident_str), input.span());
+  let archived_target_ident = Ident::new(&format!("Archived{target_ident_str}"), input.span());
   #[allow(clippy::disallowed_methods)]
   let dyn_id_ident = Ident::new(
     &format!(

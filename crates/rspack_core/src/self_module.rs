@@ -28,7 +28,7 @@ pub struct SelfModule {
 
 impl SelfModule {
   pub fn new(module_identifier: ModuleIdentifier) -> Self {
-    let identifier = format!("self {}", module_identifier);
+    let identifier = format!("self {module_identifier}");
     Self {
       identifier: ModuleIdentifier::from(identifier.as_str()),
       readable_identifier: identifier,

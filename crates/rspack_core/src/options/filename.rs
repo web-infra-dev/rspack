@@ -253,7 +253,7 @@ fn render_template(
           replace_all_placeholder(
             t,
             EXT_PLACEHOLDER,
-            &ext.map(|ext| format!(".{}", ext)).unwrap_or_default(),
+            &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
           )
         });
     } else if let Some(ResourceParsedData {

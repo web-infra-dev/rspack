@@ -143,8 +143,7 @@ impl CssPlugin {
       .unwrap_or("None".into());
 
     start.add(RawSource::from(format!(
-      "/* #region {:?} */\n",
-      debug_module_id,
+      "/* #region {debug_module_id:?} */\n",
     )));
 
     start.add(RawSource::from(format!(
@@ -263,7 +262,7 @@ fn lzw_encode(input: &str) -> String {
   let max_code = 0xFFFF;
 
   for c in input.chars().skip(1) {
-    let next_phrase = format!("{}{}", phrase, c);
+    let next_phrase = format!("{phrase}{c}");
     if map.contains_key(&next_phrase) {
       phrase = next_phrase;
     } else {

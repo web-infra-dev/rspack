@@ -125,7 +125,7 @@ pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
     && !escaped.starts_with("--")
     && PREFIX_UNDERSCORE_REGEX.is_match(&escaped)
   {
-    format!("_{}", escaped).into()
+    format!("_{escaped}").into()
   } else {
     escaped
   }
@@ -157,7 +157,7 @@ pub fn css_modules_exports_to_string<'a>(
   left: &str,
   right: &str,
 ) -> Result<String> {
-  let mut code = format!("{}{}module.exports = {{\n", ns_obj, left);
+  let mut code = format!("{ns_obj}{left}module.exports = {{\n");
   let module_graph = compilation.get_module_graph();
   for (key, elements) in exports {
     let content = elements
@@ -293,7 +293,7 @@ pub fn unescape(s: &str) -> Cow<str> {
         if m.len() > 2 {
           if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16) {
             if let Some(ch) = char::from_u32(r_u32) {
-              return Some(format!("{}", ch));
+              return Some(format!("{ch}"));
             }
           }
           None

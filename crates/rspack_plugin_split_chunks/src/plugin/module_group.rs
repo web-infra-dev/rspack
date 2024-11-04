@@ -471,7 +471,7 @@ impl SplitChunksPlugin {
                   entry.get().to_string()
                 },
                 hash_map::Entry::Vacant(entry) => {
-                  let key = format!("{:x}", selected_chunks_key);
+                  let key = format!("{selected_chunks_key:x}");
                   entry.insert(key.clone());
                   key
                 },

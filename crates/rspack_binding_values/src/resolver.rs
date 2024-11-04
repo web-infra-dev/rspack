@@ -37,7 +37,7 @@ impl JsResolver {
     match self.resolver.resolve(Path::new(&path), &request) {
       Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),
       Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-      Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+      Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
     }
   }
 

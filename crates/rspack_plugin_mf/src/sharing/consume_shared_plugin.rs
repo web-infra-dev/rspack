@@ -43,7 +43,7 @@ pub enum ConsumeVersion {
 impl fmt::Display for ConsumeVersion {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      ConsumeVersion::Version(v) => write!(f, "{}", v),
+      ConsumeVersion::Version(v) => write!(f, "{v}"),
       ConsumeVersion::False => write!(f, "*"),
     }
   }

@@ -722,10 +722,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
-    export_map.push((
-      key.into(),
-      format!("/* {} */ {}", comment, return_value).into(),
-    ));
+    export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())
@@ -784,7 +781,7 @@ impl ESMExportImportedSpecifierDependency {
   fn get_return_value(name: String, value_key: ValueKey) -> String {
     match value_key {
       ValueKey::False => "/* unused export */ undefined".to_string(),
-      ValueKey::Null => format!("{}_default.a", name),
+      ValueKey::Null => format!("{name}_default.a"),
       ValueKey::Str(str) if str.is_empty() => name,
       ValueKey::Str(str) => format!("{}{}", name, property_access(vec![str], 0)),
       ValueKey::Vec(value_key) => format!("{}{}", name, property_access(value_key, 0)),
@@ -1247,7 +1244,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         self
           .name
           .as_ref()
-          .map(|name| format!("(reexported as '{}')", name))
+          .map(|name| format!("(reexported as '{name}')"))
           .unwrap_or_default(),
         should_error,
       ) {

@@ -92,7 +92,7 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
 }
 
 fn plugin_inner_ident(ident: &syn::Ident) -> syn::Ident {
-  let inner_name = format!("{}Inner", ident);
+  let inner_name = format!("{ident}Inner");
   syn::Ident::new(&inner_name, ident.span())
 }
 

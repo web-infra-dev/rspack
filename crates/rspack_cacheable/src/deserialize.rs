@@ -25,7 +25,7 @@ impl std::fmt::Display for DeserializeError {
     match self {
       Self::BoxedError(error) => error.fmt(f),
       Self::MessageError(msg) => {
-        write!(f, "{}", msg)
+        write!(f, "{msg}")
       }
       Self::DynCheckBytesNotRegister => {
         write!(f, "cacheable_dyn check bytes not register")

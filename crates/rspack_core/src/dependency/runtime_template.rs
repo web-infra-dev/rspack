@@ -683,7 +683,7 @@ fn throw_missing_module_error_function(request: &str) -> String {
 }
 
 pub fn throw_missing_module_error_block(request: &str) -> String {
-  let e = format!("Cannot find module '{}'", request);
+  let e = format!("Cannot find module '{request}'");
   format!(
     "var e = new Error({}); e.code = 'MODULE_NOT_FOUND'; throw e;",
     json!(e)

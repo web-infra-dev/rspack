@@ -51,13 +51,13 @@ fn create_resource_identifier_for_context_dependency(
     }
     group_options += " {";
     if let Some(o) = group.prefetch_order {
-      group_options.push_str(&format!("prefetchOrder: {},", o));
+      group_options.push_str(&format!("prefetchOrder: {o},"));
     }
     if let Some(o) = group.preload_order {
-      group_options.push_str(&format!("preloadOrder: {},", o));
+      group_options.push_str(&format!("preloadOrder: {o},"));
     }
     if let Some(o) = group.fetch_priority {
-      group_options.push_str(&format!("fetchPriority: {},", o));
+      group_options.push_str(&format!("fetchPriority: {o},"));
     }
     group_options += "}";
   }

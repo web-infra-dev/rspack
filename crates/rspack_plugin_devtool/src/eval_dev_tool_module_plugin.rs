@@ -242,7 +242,7 @@ fn encode_uri(string: &str) -> Cow<str> {
           let mut b = [0u8; 4];
           let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
           for octet in octets {
-            s.push_str(&format!("%{:02X}", octet));
+            s.push_str(&format!("%{octet:02X}"));
           }
           r = Cow::Owned(s);
         }
@@ -250,7 +250,7 @@ fn encode_uri(string: &str) -> Cow<str> {
           let mut b = [0u8; 4];
           let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
           for octet in octets {
-            inner.push_str(&format!("%{:02X}", octet));
+            inner.push_str(&format!("%{octet:02X}"));
           }
           r = Cow::Owned(inner);
         }

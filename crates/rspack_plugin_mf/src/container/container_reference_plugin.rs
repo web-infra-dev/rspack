@@ -96,7 +96,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               }
             })
             .collect(),
-          format!(".{}", internal_request),
+          format!(".{internal_request}"),
           config.share_scope.clone(),
           key.to_string(),
         )

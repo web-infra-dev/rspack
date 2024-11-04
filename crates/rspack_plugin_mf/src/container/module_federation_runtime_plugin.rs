@@ -74,9 +74,7 @@ if(!{federation_global}){{
         {chunk_matcher}
     }};
 }}
-"#,
-    federation_global = federation_global,
-    chunk_matcher = chunk_matcher
+"#
   )
 }
 

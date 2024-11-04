@@ -86,7 +86,7 @@ fn render_startup(
       "var {var_name} = __webpack_exports__{};\n",
       property_access(vec![used_name], 0)
     )));
-    exports.push(format!("{var_name} as {}", info_name));
+    exports.push(format!("{var_name} as {info_name}"));
   }
   if !exports.is_empty() {
     source.add(RawSource::from(format!(

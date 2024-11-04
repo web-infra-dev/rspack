@@ -183,7 +183,7 @@ fn render_startup(
         } else if info_name == final_name {
           exports.push(info_name.to_string());
         } else {
-          exports.push(format!("{} as {}", final_name, info_name));
+          exports.push(format!("{final_name} as {info_name}"));
         }
       }
     }
@@ -191,12 +191,9 @@ fn render_startup(
     for (final_name, info_name) in exports_with_property_access.iter() {
       let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
 
-      source.add(RawSource::from(format!(
-        "var {var_name} = {};\n",
-        final_name
-      )));
+      source.add(RawSource::from(format!("var {var_name} = {final_name};\n")));
 
-      exports.push(format!("{} as {}", var_name, info_name));
+      exports.push(format!("{var_name} as {info_name}"));
     }
   }
 

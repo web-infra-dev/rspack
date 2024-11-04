@@ -238,9 +238,9 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&String]) -> S
         )
       })
       .join(",");
-    format!("{{ {} }}[chunkId]", content)
+    format!("{{ {content} }}[chunkId]")
   };
-  format!("if ({}) return {};", condition, filename)
+  format!("if ({condition}) return {filename};")
 }
 
 pub fn create_fake_chunk(

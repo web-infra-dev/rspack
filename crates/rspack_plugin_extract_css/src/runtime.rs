@@ -79,12 +79,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
 
     for (attr_key, attr_value) in attributes {
-      attr += &format!("linkTag.setAttribute({}, {});\n", attr_key, attr_value);
+      attr += &format!("linkTag.setAttribute({attr_key}, {attr_value});\n");
     }
     let runtime = runtime.cow_replace("__SET_ATTRIBUTES__", &attr);
 
     let runtime = if let Some(link_type) = &self.link_type {
-      runtime.cow_replace("__SET_LINKTYPE__", &format!("linkTag.type={};", link_type))
+      runtime.cow_replace("__SET_LINKTYPE__", &format!("linkTag.type={link_type};"))
     } else {
       runtime.cow_replace("__SET_LINKTYPE__", "")
     };
@@ -96,9 +96,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         "__CROSS_ORIGIN_LOADING__",
         &format!(
           "if (linkTag.href.indexOf(window.location.origin + '/') !== 0) {{
-  linkTag.crossOrigin = \"{}\";
-}}",
-          cross_origin_loading
+  linkTag.crossOrigin = \"{cross_origin_loading}\";
+}}"
         ),
       )
     } else {

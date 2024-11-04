@@ -219,7 +219,7 @@ mod test {
     )
     .await;
     assert!(
-      format!("{:?}", res).contains("throw sync error"),
+      format!("{res:?}").contains("throw sync error"),
       "should return sync error"
     );
     assert_eq!(context.call_sync_task_count, 0);
@@ -238,7 +238,7 @@ mod test {
     )
     .await;
     assert!(
-      format!("{:?}", res).contains("throw async error"),
+      format!("{res:?}").contains("throw async error"),
       "should return async error"
     );
     assert_eq!(context.call_sync_task_count, 1);

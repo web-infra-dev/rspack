@@ -262,7 +262,7 @@ impl Module for LazyCompilationProxyModule {
       ))
     } else {
       RawSource::from(format!(
-        "{}
+        "{client}
         var resolveSelf, onError;
         module.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
         if (module.hot) {{
@@ -270,10 +270,8 @@ impl Module for LazyCompilationProxyModule {
           if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
           module.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
         }}
-        {}
-      ",
-        client,
-        keep_active
+        {keep_active}
+      "
       ))
     };
 

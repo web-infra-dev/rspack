@@ -151,7 +151,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_key = ref_module
     .map(|i| i.as_str())
     .unwrap_or(module_dependency.request());
-  let key = format!("ESM import {}", module_key);
+  let key = format!("ESM import {module_key}");
 
   // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
   if let Some(import_emitted_map) = import_emitted_runtime::get_map() {
@@ -198,7 +198,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
       source_order,
-      InitFragmentKey::ESMImport(format!("{} compat", key)),
+      InitFragmentKey::ESMImport(format!("{key} compat")),
       None,
       runtime_condition,
     )));

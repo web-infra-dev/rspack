@@ -93,7 +93,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       match with_hmr {
         true => {
           let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-          format!("{} = {} || ", state_expression, state_expression)
+          format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
       },

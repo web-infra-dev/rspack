@@ -116,21 +116,21 @@ impl Module for CssModule {
         "".into()
       },
       if let Some(layer) = &self.layer {
-        format!(" (layer {})", layer)
+        format!(" (layer {layer})")
       } else {
         "".into()
       },
       if let Some(supports) = &self.supports
         && !supports.is_empty()
       {
-        format!(" (supports {})", supports)
+        format!(" (supports {supports})")
       } else {
         "".into()
       },
       if let Some(media) = &self.media
         && !media.is_empty()
       {
-        format!(" (media {})", media)
+        format!(" (media {media})")
       } else {
         "".into()
       }

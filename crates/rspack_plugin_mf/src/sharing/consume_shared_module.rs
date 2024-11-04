@@ -69,7 +69,7 @@ impl ConsumeSharedModule {
         options
           .import
           .as_ref()
-          .map(|r| format!("/{}", r))
+          .map(|r| format!("/{r}"))
           .unwrap_or_default()
       ),
       readable_identifier: identifier,
@@ -197,7 +197,7 @@ impl Module for ConsumeSharedModule {
         function += "Singleton";
       }
       let version = json_stringify(&version.to_string());
-      args.push(format!("loaders.parseRange({})", version));
+      args.push(format!("loaders.parseRange({version})"));
       function += "VersionCheck";
     } else if self.options.singleton {
       function += "Singleton";

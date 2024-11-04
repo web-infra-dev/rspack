@@ -354,18 +354,18 @@ impl PluginCssExtract {
           && !supports.is_empty()
         {
           need_supports = true;
-          source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
+          source.add(RawSource::from(format!("@supports ({supports}) {{\n")));
         }
 
         if let Some(media) = &module.media
           && !media.is_empty()
         {
           need_media = true;
-          source.add(RawSource::from(format!("@media {} {{\n", media)));
+          source.add(RawSource::from(format!("@media {media} {{\n")));
         }
 
         if let Some(layer) = &module.layer {
-          source.add(RawSource::from(format!("@layer {} {{\n", layer)));
+          source.add(RawSource::from(format!("@layer {layer} {{\n")));
         }
 
         let undo_path = get_undo_path(&filename, compilation.options.output.path.as_str(), false);

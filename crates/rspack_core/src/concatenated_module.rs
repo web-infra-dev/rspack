@@ -743,7 +743,7 @@ impl Module for ConcatenatedModule {
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(high, &format!(": {}", new_name), None);
+                  source.insert(high, &format!(": {new_name}"), None);
                   continue;
                 }
 
@@ -1184,11 +1184,7 @@ impl Module for ConcatenatedModule {
       match info {
         ModuleInfo::Concatenated(info) => {
           result.add(RawSource::from(
-            format!(
-              "\n;// CONCATENATED MODULE: {}\n",
-              module_readable_identifier
-            )
-            .as_str(),
+            format!("\n;// CONCATENATED MODULE: {module_readable_identifier}\n").as_str(),
           ));
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
           result.add(info.source.clone().expect("should have source"));
@@ -1202,8 +1198,7 @@ impl Module for ConcatenatedModule {
         }
         ModuleInfo::External(info) => {
           result.add(RawSource::from(format!(
-            "\n// EXTERNAL MODULE: {}\n",
-            module_readable_identifier
+            "\n// EXTERNAL MODULE: {module_readable_identifier}\n"
           )));
 
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -1219,7 +1214,7 @@ impl Module for ConcatenatedModule {
 
           if condition != "true" {
             is_conditional = true;
-            result.add(RawSource::from(format!("if ({}) {{\n", condition)));
+            result.add(RawSource::from(format!("if ({condition}) {{\n")));
           }
 
           result.add(RawSource::from(format!(
@@ -1693,7 +1688,7 @@ impl ConcatenatedModule {
       let module_graph = compilation.get_module_graph();
       let module = module_graph
         .module_by_identifier(&module_id)
-        .unwrap_or_else(|| panic!("should have module {}", module_id));
+        .unwrap_or_else(|| panic!("should have module {module_id}"));
       let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
       let CodeGenerationResult {
         mut inner,
@@ -1839,7 +1834,7 @@ impl ConcatenatedModule {
             info
               .internal_names
               .iter()
-              .map(|(name, symbol)| format!("{}: {}", name, symbol))
+              .map(|(name, symbol)| format!("{name}: {symbol}"))
               .collect::<Vec<String>>()
               .join(", ")
           )
@@ -1856,11 +1851,11 @@ impl ConcatenatedModule {
     };
     if is_property_access && as_call && !call_context {
       return if asi_safe.unwrap_or_default() {
-        format!("(0,{})", reference)
+        format!("(0,{reference})")
       } else if let Some(_asi_safe) = asi_safe {
-        format!(";(0,{})", reference)
+        format!(";(0,{reference})")
       } else {
-        format!("/*#__PURE__*/Object({})", reference)
+        format!("/*#__PURE__*/Object({reference})")
       };
     }
     reference
@@ -1978,13 +1973,13 @@ impl ConcatenatedModule {
               .cloned()
               .expect("should have default access name");
             let default_export = if as_call {
-              format!("{}()", default_access_name)
+              format!("{default_access_name}()")
             } else if let Some(true) = asi_safe {
-              format!("({}())", default_access_name)
+              format!("({default_access_name}())")
             } else if let Some(false) = asi_safe {
-              format!(";({}())", default_access_name)
+              format!(";({default_access_name}())")
             } else {
-              format!("{}.a", default_access_name)
+              format!("{default_access_name}.a")
             };
 
             return Binding::Raw(RawBinding {

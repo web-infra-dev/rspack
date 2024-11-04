@@ -90,7 +90,7 @@ impl DependencyTemplate for ESMAcceptDependency {
           content.push_str(stmts.0.as_str());
           content.push_str(stmts.1.as_str());
         } else {
-          content.push_str(format!("if ({}) {{\n", condition).as_str());
+          content.push_str(format!("if ({condition}) {{\n").as_str());
           content.push_str(stmts.0.as_str());
           content.push_str(stmts.1.as_str());
           content.push_str("\n}\n");

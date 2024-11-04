@@ -152,7 +152,7 @@ fn render(
   source.add(RawSource::from("return {\n"));
   if !is_has_external_modules {
     // setter : { [function(module){},...] },
-    let setters = format!("setters: [{}],\n", setters);
+    let setters = format!("setters: [{setters}],\n");
     source.add(RawSource::from(setters))
   }
   source.add(RawSource::from("execute: function() {\n"));

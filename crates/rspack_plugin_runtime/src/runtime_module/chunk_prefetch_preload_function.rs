@@ -22,8 +22,7 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
   ) -> Self {
     Self::with_default(
       Identifier::from(format!(
-        "webpack/runtime/chunk_prefetch_function/{}",
-        child_type
+        "webpack/runtime/chunk_prefetch_function/{child_type}"
       )),
       runtime_function,
       runtime_handlers,

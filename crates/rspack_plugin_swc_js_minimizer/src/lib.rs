@@ -211,7 +211,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           ..Default::default()
           };
         let extract_comments_option = options.extract_comments.as_ref().map(|extract_comments| {
-          let comments_filename = format!("{}.LICENSE.txt", filename);
+          let comments_filename = format!("{filename}.LICENSE.txt");
           let banner = match &extract_comments.banner {
             OptionWrapper::Default => {
               let dir = Path::new(filename).parent().expect("should has parent");

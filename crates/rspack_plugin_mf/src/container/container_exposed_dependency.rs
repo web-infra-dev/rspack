@@ -13,7 +13,7 @@ pub struct ContainerExposedDependency {
 
 impl ContainerExposedDependency {
   pub fn new(exposed_name: String, request: String) -> Self {
-    let resource_identifier = format!("exposed dependency {}={}", exposed_name, request);
+    let resource_identifier = format!("exposed dependency {exposed_name}={request}");
     Self {
       id: DependencyId::new(),
       request,

@@ -71,7 +71,7 @@ pub enum ProvideVersion {
 impl fmt::Display for ProvideVersion {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      ProvideVersion::Version(v) => write!(f, "{}", v),
+      ProvideVersion::Version(v) => write!(f, "{v}"),
       ProvideVersion::False => write!(f, "0"),
     }
   }

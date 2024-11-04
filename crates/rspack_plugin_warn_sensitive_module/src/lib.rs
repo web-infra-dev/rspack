@@ -27,13 +27,13 @@ impl WarnCaseSensitiveModulesPlugin {
 
     for m in modules {
       if let Some(boxed_m) = graph.module_by_identifier(&m) {
-        let mut module_msg = format!("  - {}\n", m);
+        let mut module_msg = format!("  - {m}\n");
         graph
           .get_incoming_connections(&boxed_m.identifier())
           .iter()
           .for_each(|c| {
             if let Some(original_identifier) = c.original_module_identifier {
-              module_msg.push_str(&format!("    - used by {}\n", original_identifier));
+              module_msg.push_str(&format!("    - used by {original_identifier}\n"));
             }
           });
 

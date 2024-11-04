@@ -88,7 +88,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       match with_hmr {
         true => {
           let state_expression = format!("{}_jsonp", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-          format!("{} = {} || ", state_expression, state_expression)
+          format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
       },
@@ -139,7 +139,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
         CrossOriginLoading::Enable(_) => {
-          format!("link.crossOrigin = {}", cross_origin_loading)
+          format!("link.crossOrigin = {cross_origin_loading}")
         }
       };
       source.add(RawSource::from(
@@ -160,10 +160,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
             format!(
               r#"
               if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = {}
+                link.crossOrigin = {cross_origin_loading}
               }}
-              "#,
-              cross_origin_loading
+              "#
             )
           }
         }

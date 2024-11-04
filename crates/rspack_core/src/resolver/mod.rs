@@ -135,7 +135,7 @@ pub fn resolve_for_error_hints(
       {
         // If the specifier is a relative path pointing to the current directory,
         // we can suggest the path relative to the current directory.
-        format!("{}{}", prefix, relative_path)
+        format!("{prefix}{relative_path}")
       } else if PARENT_PATH_REGEX.is_match(args.specifier) {
         // If the specifier is a relative path to which the parent directory is,
         // then we return the relative path directly.
@@ -241,7 +241,7 @@ which tries to resolve these kind of requests in the current directory too.",
                   let mut suggestion = file.path().relative(&args.context).assert_utf8();
 
                   if !suggestion.as_str().starts_with('.') {
-                    suggestion = Utf8PathBuf::from(format!("./{}", suggestion));
+                    suggestion = Utf8PathBuf::from(format!("./{suggestion}"));
                   }
                   Some(suggestion)
                 } else {

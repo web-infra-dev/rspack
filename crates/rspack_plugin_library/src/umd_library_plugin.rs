@@ -329,7 +329,7 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
         let expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
-          format!("require({})", primary)
+          format!("require({primary})")
         };
         Ok(expr)
       })
