@@ -1,0 +1,105 @@
+---
+date: 2024-11-6 16:00:00
+sidebar: false
+---
+
+# Announcing Rspack 1.1
+
+> November 6, 2024
+
+<!-- TODO: replace the banner -->
+
+![Rspack 1.1](https://assets.rspack.dev/rspack/rspack-banner-v1-0.png)
+
+---
+
+Rspack v1.1 has been released!
+
+Notable changes in Rspack v1.1:
+
+- [Performance Improvement](#performance-improvement):
+  - [Using Async Thread Pool](#use-async-thread-pool): Significantly improved the performance of make phase of cold starts through more reasonable thread scheduling.
+  - [Experimental Unaffected Cache](#experimental-unaffected-cache): Significantly improved the performance of the seal phase of incremental builds through caching.
+  - [Experimental Build Chunk Graph](#experimental-build-chunk-graph): Significantly improved the performance of chunk graph generation of incremental builds through new algorithm.
+  - [Bundled Rspack](#bundled-rspack): Bundle `@rspack/core` for faster startup.
+- [Exciting New Features](#exciting-new-features):
+  - [Improvement of Built-in HTML Plugin](#improvement-of-built-in-html-plugin): Refactored the built-in HTML plugin and support multiple important features.
+  - [Improvement of Types](#improvement-of-types): Added JSDoc for all configuration options.
+- [Ecosystem Cooperation](#ecosystem-cooperation):
+  - TODO @chenjiahan
+
+## Performance Improvement
+
+### Use Async Thread Pool
+
+TODO: @hardfist
+
+<!-- What's change -->
+
+<!-- Data Comparison -->
+
+### Experimental Unaffected Cache
+
+TODO: @ahabhgk
+
+<!-- What's change -->
+
+<!-- Data Comparison -->
+
+<!-- How to Use -->
+
+### Experimental Build Chunk Graph
+
+TODO: @jserfeng
+
+<!-- What's change -->
+
+<!-- Data Comparison -->
+
+<!-- How to Use -->
+
+### Bundled Rspack
+
+TODO: @chenjiahan
+
+<!-- What's change -->
+
+<!-- Data Comparison -->
+
+<!-- Maybe Breaking Change -->
+
+## Exciting New Features
+
+### Improvement of Built-in HTML Plugin
+
+TODO: @LingyuCoder
+
+<!-- What's it used for -->
+
+<!-- how to use -->
+
+### Improvement of Types
+
+TODO: @GiveMe-A-Name
+
+<!-- What's it used for -->
+
+<!-- how to use -->
+
+## Ecosystem Cooperation
+
+### Docusaurus
+
+TODO: @chenjiahan
+
+### Rsbuild v1.1
+
+TODO: @9aoy
+
+## Migration Guide
+
+### Upgrade the SWC plugins
+
+In version v1.1, the Rust crate `swc_core` has been upgraded to `4.0.2`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+
+For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of SWC。
