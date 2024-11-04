@@ -5,7 +5,7 @@ use napi::{
   Env,
 };
 use napi_derive::napi;
-use rspack_core::{CompilationId, Dependency, DependencyId};
+use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -116,20 +116,21 @@ thread_local! {
 }
 
 pub struct JsDependencyWrapper {
-  compilation_id: CompilationId,
   dependency_id: DependencyId,
   dependency: NonNull<dyn Dependency>,
+  compilation: Option<NonNull<Compilation>>,
 }
 
 impl JsDependencyWrapper {
-  pub fn new(dependency: &dyn Dependency, compilation_id: CompilationId) -> Self {
+  pub fn new(dependency: &dyn Dependency, compilation: Option<&Compilation>) -> Self {
     let dependency_id = *dependency.id();
 
     #[allow(clippy::unwrap_used)]
     Self {
-      compilation_id,
       dependency_id,
       dependency: NonNull::new(dependency as *const dyn Dependency as *mut dyn Dependency).unwrap(),
+      compilation: compilation
+        .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
     }
   }
 
@@ -147,6 +148,8 @@ impl ToNapiValue for JsDependencyWrapper {
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     DEPENDENCY_INSTANCE_REFS.with(|refs| {
+      let compilation = unsafe { val.compilation.as_ref() };
+
       let mut refs_by_compilation_id = refs.borrow_mut();
       let entry = refs_by_compilation_id.entry(val.compilation_id);
       let refs = match entry {
