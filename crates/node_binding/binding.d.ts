@@ -99,8 +99,8 @@ export class JsContextModuleFactoryAfterResolveData {
   set context(context: string)
   get request(): string
   set request(request: string)
-  get regExp(): RawRegex | undefined
-  set regExp(rawRegExp: RawRegex | undefined)
+  get regExp(): RegExp | undefined
+  set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
   get dependencies(): Array<JsDependencyMut>
@@ -111,8 +111,8 @@ export class JsContextModuleFactoryBeforeResolveData {
   set context(context: string)
   get request(): string
   set request(request: string)
-  get regExp(): RawRegex | undefined
-  set regExp(rawRegExp: RawRegex | undefined)
+  get regExp(): RegExp | undefined
+  set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
 }
@@ -1189,10 +1189,10 @@ export interface RawContainerReferencePluginOptions {
 }
 
 export interface RawContextReplacementPluginOptions {
-  resourceRegExp: RawRegex
+  resourceRegExp: RegExp
   newContentResource?: string
   newContentRecursive?: boolean
-  newContentRegExp?: RawRegex
+  newContentRegExp?: RegExp
   newContentCreateContextMap?: Record<string, string>
 }
 
@@ -1723,11 +1723,6 @@ export interface RawProvideOptions {
   strictVersion?: boolean
 }
 
-export interface RawRegex {
-  source: string
-  flags: string
-}
-
 export interface RawRelated {
   sourceMap?: string
 }
@@ -1801,7 +1796,7 @@ export interface RawRspackFuture {
 export interface RawRuleSetCondition {
   type: RawRuleSetConditionType
   string?: string
-  regexp?: RawRegex
+  regexp?: RegExp
   logical?: Array<RawRuleSetLogicalConditions>
   array?: Array<RawRuleSetCondition>
   func?: (value: string) => boolean
