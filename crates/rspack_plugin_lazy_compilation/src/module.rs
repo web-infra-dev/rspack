@@ -7,9 +7,9 @@ use rspack_core::{
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RealDependencyLocation,
-  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
+  Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
@@ -137,12 +137,8 @@ impl Module for LazyCompilationProxyModule {
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let client_dep = CommonJsRequireDependency::new(
-      self.client.clone(),
-      RealDependencyLocation::new(0, 0),
-      None,
-      false,
-    );
+    let client_dep =
+      CommonJsRequireDependency::new(self.client.clone(), DependencyRange::new(0, 0), None, false);
     let mut dependencies = vec![];
     let mut blocks = vec![];
 

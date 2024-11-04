@@ -1,22 +1,22 @@
 use rspack_core::{
   block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, RealDependencyLocation,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
   RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
 pub struct RequireEnsureDependency {
   id: DependencyId,
-  range: RealDependencyLocation,
-  content_range: RealDependencyLocation,
-  error_handler_range: Option<RealDependencyLocation>,
+  range: DependencyRange,
+  content_range: DependencyRange,
+  error_handler_range: Option<DependencyRange>,
 }
 
 impl RequireEnsureDependency {
   pub fn new(
-    range: RealDependencyLocation,
-    content_range: RealDependencyLocation,
-    error_handler_range: Option<RealDependencyLocation>,
+    range: DependencyRange,
+    content_range: DependencyRange,
+    error_handler_range: Option<DependencyRange>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -40,7 +40,7 @@ impl Dependency for RequireEnsureDependency {
     &DependencyType::RequireEnsure
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

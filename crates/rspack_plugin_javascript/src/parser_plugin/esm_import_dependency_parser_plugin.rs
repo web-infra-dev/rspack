@@ -1,5 +1,5 @@
 use rspack_core::{
-  ConstDependency, Dependency, DependencyType, ImportAttributes, RealDependencyLocation, SpanExt,
+  ConstDependency, Dependency, DependencyRange, DependencyType, ImportAttributes, SpanExt,
 };
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
@@ -70,7 +70,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
-    let range: RealDependencyLocation = import_decl.span.into();
+    let range: DependencyRange = import_decl.span.into();
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
@@ -134,7 +134,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-    let range: RealDependencyLocation = ident.span.into();
+    let range: DependencyRange = ident.span.into();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -201,7 +201,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
-    let range: RealDependencyLocation = span.into();
+    let range: DependencyRange = span.into();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -265,7 +265,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
-    let range: RealDependencyLocation = span.into();
+    let range: DependencyRange = span.into();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,

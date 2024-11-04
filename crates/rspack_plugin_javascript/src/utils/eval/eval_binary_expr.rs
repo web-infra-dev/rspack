@@ -1,4 +1,4 @@
-use rspack_core::{RealDependencyLocation, SpanExt};
+use rspack_core::{DependencyRange, SpanExt};
 use swc_core::{
   common::Spanned,
   ecma::ast::{BinExpr, BinaryOp},
@@ -529,10 +529,7 @@ pub fn eval_binary_expression(
   evaluated
 }
 
-fn join_locations(
-  start: Option<&RealDependencyLocation>,
-  end: Option<&RealDependencyLocation>,
-) -> (u32, u32) {
+fn join_locations(start: Option<&DependencyRange>, end: Option<&DependencyRange>) -> (u32, u32) {
   match (start, end) {
     (None, None) => unreachable!("invalid range"),
     (None, Some(end)) => (end.start, end.end),

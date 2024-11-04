@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleGraph,
-  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -12,8 +12,8 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireContextDependency {
   id: DependencyId,
-  range: RealDependencyLocation,
-  range_callee: RealDependencyLocation,
+  range: DependencyRange,
+  range_callee: DependencyRange,
   resource_identifier: String,
   options: ContextOptions,
   optional: bool,
@@ -23,8 +23,8 @@ pub struct CommonJsRequireContextDependency {
 impl CommonJsRequireContextDependency {
   pub fn new(
     options: ContextOptions,
-    range: RealDependencyLocation,
-    range_callee: RealDependencyLocation,
+    range: DependencyRange,
+    range_callee: DependencyRange,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
@@ -53,7 +53,7 @@ impl Dependency for CommonJsRequireContextDependency {
     &DependencyType::CommonJSRequireContext
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

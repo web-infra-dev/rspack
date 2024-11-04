@@ -2,10 +2,10 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, RealDependencyLocation, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
@@ -23,7 +23,7 @@ pub struct ESMImportSpecifierDependency {
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
@@ -43,7 +43,7 @@ impl ESMImportSpecifierDependency {
     source_order: i32,
     shorthand: bool,
     asi_safe: bool,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
@@ -228,7 +228,7 @@ impl Dependency for ESMImportSpecifierDependency {
     Some(self.range.to_string())
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 
