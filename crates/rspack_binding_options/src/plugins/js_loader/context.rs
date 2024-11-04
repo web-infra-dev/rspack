@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_binding_values::{JsModuleWrapper, JsResourceData};
+use rspack_binding_values::{JsModuleWrapper, JsResourceData, JsRspackError};
 use rspack_core::{LoaderContext, RunnerContext};
 use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
@@ -81,6 +81,8 @@ pub struct JsLoaderContext {
   pub loader_index: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
+  #[napi(js_name = "__internal__error")]
+  pub error: Option<JsRspackError>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -137,6 +139,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
+      error: None,
     })
   }
 }
