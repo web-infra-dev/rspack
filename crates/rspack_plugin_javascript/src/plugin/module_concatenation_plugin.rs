@@ -11,9 +11,9 @@ use rspack_core::concatenated_module::{
 };
 use rspack_core::{
   filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
-  CompilerModuleContext, CompilerOptions, ExportInfoProvided, ExtendedReferencedExport,
-  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  Plugin, PluginContext, ProvidedExports, RunnerContext, RuntimeCondition, RuntimeSpec, SourceType,
+  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
+  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
