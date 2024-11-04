@@ -1,8 +1,5 @@
-use std::collections::VecDeque;
-
-use rspack_collections::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
+use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::{entry::EntryTask, execute::ExecuteTask};
 use crate::{
@@ -11,30 +8,25 @@ use crate::{
   Dependency, DependencyId, LoaderImportDependency, ModuleIdentifier,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct UnfinishCounter {
   is_building: bool,
   unfinished_child_module_count: usize,
 }
 
 impl UnfinishCounter {
-  fn new() -> Self {
-    UnfinishCounter {
-      is_building: true,
-      unfinished_child_module_count: 0,
-    }
-  }
-
-  fn set_unfinished_child_module_count(&mut self, count: usize) {
+  fn set_children(&mut self, size: usize) {
     self.is_building = false;
-    self.unfinished_child_module_count = count;
+    self.unfinished_child_module_count = size;
   }
 
-  fn minus_one(&mut self) {
+  fn minus_one(&mut self) -> bool {
     if self.is_building || self.unfinished_child_module_count == 0 {
       panic!("UnfinishDepCount Error")
     }
     self.unfinished_child_module_count -= 1;
+
+    self.is_finished()
   }
 
   fn is_finished(&self) -> bool {
@@ -68,24 +60,26 @@ pub enum ExecuteParam {
 // send event can only use in sync task
 #[derive(Debug)]
 pub enum Event {
-  StartBuild(ModuleIdentifier),
-  // origin_module_identifier and current dependency id and target_module_identifier
-  FinishDeps(
+  Add(
     Option<ModuleIdentifier>,
+    ModuleIdentifier,
     DependencyId,
-    Option<ModuleIdentifier>,
+    bool,
   ),
-  // current_module_identifier and sub dependency count
-  FinishModule(ModuleIdentifier, usize),
+  ProcessDeps(ModuleIdentifier, usize),
+  FinishModule(ModuleIdentifier),
   ExecuteModule(ExecuteParam, ExecuteTask),
-  Stop(),
+  Stop,
 }
 
 #[derive(Debug)]
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
   execute_task_map: HashMap<DependencyId, ExecuteTaskList>,
-  running_module_map: IdentifierMap<UnfinishCounter>,
+  running_module_map: HashMap<ModuleIdentifier, UnfinishCounter>,
+  imported_module: HashMap<ModuleIdentifier, DependencyId>,
+  finished_modules: HashSet<ModuleIdentifier>,
+  module_deps: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
 impl CtrlTask {
@@ -94,6 +88,60 @@ impl CtrlTask {
       event_receiver,
       execute_task_map: Default::default(),
       running_module_map: Default::default(),
+      imported_module: Default::default(),
+      finished_modules: Default::default(),
+      module_deps: Default::default(),
+    }
+  }
+
+  fn try_finish(
+    &mut self,
+    module: ModuleIdentifier,
+  ) -> Option<Vec<Box<dyn Task<MakeTaskContext>>>> {
+    // finish this module and its importers if could
+    self.finish_module(module);
+
+    // check if we are ready to execute
+    let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
+    for (m, dep_id) in &self.imported_module {
+      if self.finished_modules.contains(m)
+        && let Some(tasks) = self.execute_task_map.remove(dep_id)
+      {
+        res.extend(tasks.into_vec());
+      }
+    }
+
+    if !res.is_empty() {
+      Some(res)
+    } else {
+      None
+    }
+  }
+
+  fn finish_module(&mut self, module_identifier: ModuleIdentifier) {
+    let finished = !self.finished_modules.insert(module_identifier);
+    if finished {
+      return;
+    }
+
+    // finish all incomings recursively
+    let mut to_be_finished: Vec<rspack_collections::Identifier> = vec![];
+
+    if let Some(importers) = self.module_deps.get(&module_identifier) {
+      for importer in importers {
+        let importer = *importer;
+
+        if let Some(counter) = self.running_module_map.get_mut(&importer) {
+          let finished = counter.minus_one();
+          if finished {
+            to_be_finished.push(importer);
+          }
+        }
+      }
+    }
+
+    for importer in to_be_finished {
+      self.finish_module(importer);
     }
   }
 }
@@ -108,64 +156,50 @@ impl Task<MakeTaskContext> for CtrlTask {
     while let Some(event) = self.event_receiver.recv().await {
       tracing::info!("CtrlTask async receive {:?}", event);
       match event {
-        Event::StartBuild(module_identifier) => {
+        Event::Add(orig_module, target_module, dep_id, is_self_module) => {
+          if let Some(orig_module) = orig_module {
+            self
+              .module_deps
+              .entry(target_module)
+              .or_default()
+              .insert(orig_module);
+
+            if is_self_module {
+              let counter = self.running_module_map.entry(orig_module).or_default();
+              let finish = counter.minus_one();
+              if finish && let Some(mut tasks) = self.try_finish(orig_module) {
+                tasks.push(self);
+                return Ok(tasks);
+              }
+            }
+          } else {
+            self.imported_module.insert(target_module, dep_id);
+          }
+        }
+        Event::ProcessDeps(module, deps) => {
           self
             .running_module_map
-            .insert(module_identifier, UnfinishCounter::new());
+            .entry(module)
+            .or_default()
+            .set_children(deps);
         }
-        Event::FinishDeps(origin_module_identifier, dep_id, target_module_graph) => {
-          if let Some(target_module_graph) = target_module_graph {
-            if self.running_module_map.contains_key(&target_module_graph)
-              && Some(target_module_graph) != origin_module_identifier
-            {
-              continue;
-            }
-          }
-
-          // target module finished
-          let Some(origin_module_identifier) = origin_module_identifier else {
-            // origin_module_identifier is none means entry dep
-            let mut tasks = self
-              .execute_task_map
-              .remove(&dep_id)
-              .expect("should have execute task")
-              .into_vec();
+        Event::FinishModule(module) => {
+          // finish this module and its importers if could
+          if let Some(mut tasks) = self.try_finish(module) {
             tasks.push(self);
             return Ok(tasks);
-          };
-
-          let value = self
-            .running_module_map
-            .get_mut(&origin_module_identifier)
-            .expect("should have counter");
-          value.minus_one();
-          if value.is_finished() {
-            return Ok(vec![Box::new(FinishModuleTask {
-              ctrl_task: self,
-              module_identifier: origin_module_identifier,
-            })]);
-          }
-        }
-        Event::FinishModule(mid, size) => {
-          let value = self
-            .running_module_map
-            .get_mut(&mid)
-            .expect("should have counter");
-          value.set_unfinished_child_module_count(size);
-          if value.is_finished() {
-            return Ok(vec![Box::new(FinishModuleTask {
-              ctrl_task: self,
-              module_identifier: mid,
-            })]);
           }
         }
         Event::ExecuteModule(param, execute_task) => {
           match param {
             ExecuteParam::Entry(dep, layer) => {
+              // user call importModule the first time
               let dep_id = dep.id();
               if let Some(tasks) = self.execute_task_map.get_mut(dep_id) {
+                // already compiled this entry, but not finished
                 tasks.add_task(execute_task)
               } else {
+                // setup compile
                 let mut list = ExecuteTaskList::default();
                 list.add_task(execute_task);
                 self.execute_task_map.insert(*dep_id, list);
@@ -181,168 +215,12 @@ impl Task<MakeTaskContext> for CtrlTask {
             }
           };
         }
-        Event::Stop() => {
+        Event::Stop => {
           return Ok(vec![]);
         }
       }
     }
     // if channel has been closed, finish this task
     Ok(vec![])
-  }
-}
-
-#[derive(Debug)]
-struct FinishModuleTask {
-  ctrl_task: Box<CtrlTask>,
-  module_identifier: ModuleIdentifier,
-}
-#[async_trait::async_trait]
-impl Task<MakeTaskContext> for FinishModuleTask {
-  fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
-  }
-
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
-    let Self {
-      mut ctrl_task,
-      module_identifier,
-    } = *self;
-    let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
-    let module_graph =
-      MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
-    let mut queue = VecDeque::new();
-    queue.push_back(module_identifier);
-
-    // clean ctrl task events
-    loop {
-      let event = ctrl_task.event_receiver.try_recv();
-      tracing::info!("CtrlTask sync receive {:?}", event);
-      let Ok(event) = event else {
-        if matches!(event, Err(TryRecvError::Empty)) {
-          break;
-        } else {
-          panic!("clean ctrl_task event failed");
-        }
-      };
-
-      match event {
-        Event::StartBuild(module_identifier) => {
-          ctrl_task
-            .running_module_map
-            .insert(module_identifier, UnfinishCounter::new());
-        }
-        Event::FinishDeps(origin_module_identifier, dep_id, target_module_graph) => {
-          if let Some(target_module_graph) = target_module_graph {
-            if ctrl_task
-              .running_module_map
-              .contains_key(&target_module_graph)
-              && Some(target_module_graph) != origin_module_identifier
-            {
-              continue;
-            }
-          }
-
-          // target module finished
-          let Some(origin_module_identifier) = origin_module_identifier else {
-            // origin_module_identifier is none means entry dep
-            let execute_task = ctrl_task
-              .execute_task_map
-              .remove(&dep_id)
-              .expect("should have execute task")
-              .into_vec();
-            res.extend(execute_task);
-            continue;
-          };
-
-          let value = ctrl_task
-            .running_module_map
-            .get_mut(&origin_module_identifier)
-            .expect("should have counter");
-          value.minus_one();
-          if value.is_finished() {
-            queue.push_back(origin_module_identifier);
-          }
-        }
-        Event::FinishModule(mid, size) => {
-          let value = ctrl_task
-            .running_module_map
-            .get_mut(&mid)
-            .expect("should have counter");
-          value.set_unfinished_child_module_count(size);
-          if value.is_finished() {
-            queue.push_back(mid);
-          }
-        }
-        Event::ExecuteModule(param, execute_task) => {
-          match param {
-            ExecuteParam::Entry(dep, layer) => {
-              let dep_id = dep.id();
-              if let Some(tasks) = ctrl_task.execute_task_map.get_mut(dep_id) {
-                tasks.add_task(execute_task)
-              } else {
-                let mut list = ExecuteTaskList::default();
-                list.add_task(execute_task);
-                ctrl_task.execute_task_map.insert(*dep_id, list);
-                res.push(Box::new(EntryTask { dep, layer }));
-              }
-            }
-            ExecuteParam::DependencyId(dep_id) => {
-              if let Some(tasks) = ctrl_task.execute_task_map.get_mut(&dep_id) {
-                tasks.add_task(execute_task)
-              } else {
-                res.push(Box::new(execute_task));
-              }
-            }
-          };
-        }
-        Event::Stop() => {
-          return Ok(vec![]);
-        }
-      }
-    }
-
-    while let Some(module_identifier) = queue.pop_front() {
-      tracing::info!("finish build module {:?}", module_identifier);
-      ctrl_task.running_module_map.remove(&module_identifier);
-
-      let mgm = module_graph
-        .module_graph_module_by_identifier(&module_identifier)
-        .expect("should have mgm");
-
-      let mut original_module_identifiers = HashSet::default();
-      for dep_id in mgm.incoming_connections() {
-        let connection = module_graph
-          .connection_by_dependency_id(dep_id)
-          .expect("should have connection");
-        if let Some(original_module_identifier) = &connection.original_module_identifier {
-          // skip self reference
-          if original_module_identifier != &module_identifier {
-            original_module_identifiers.insert(*original_module_identifier);
-          }
-        } else {
-          // entry
-          let execute_task = ctrl_task
-            .execute_task_map
-            .remove(&connection.dependency_id)
-            .expect("should have execute task")
-            .into_vec();
-          res.extend(execute_task);
-        }
-      }
-
-      for id in original_module_identifiers {
-        let value = ctrl_task
-          .running_module_map
-          .get_mut(&id)
-          .expect("should have counter");
-        value.minus_one();
-        if value.is_finished() {
-          queue.push_back(id);
-        }
-      }
-    }
-
-    res.push(ctrl_task);
-    Ok(res)
   }
 }

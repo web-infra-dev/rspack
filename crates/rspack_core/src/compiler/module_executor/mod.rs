@@ -97,7 +97,7 @@ impl ModuleExecutor {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")
-      .send(Event::Stop())
+      .send(Event::Stop)
       .expect("should success");
 
     let stop_receiver = std::mem::take(&mut self.stop_receiver);

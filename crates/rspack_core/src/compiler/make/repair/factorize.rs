@@ -60,7 +60,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
     let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
     let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
     let factorize_result_task = FactorizeResultTask {
-      //      dependency: dep_id,
       original_module_identifier: self.original_module_identifier,
       factory_result: None,
       dependencies: vec![],
