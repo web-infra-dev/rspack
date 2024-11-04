@@ -461,10 +461,9 @@ impl Module for NormalModule {
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);
           let e = ModuleBuildError(r).boxed();
-          let d = Diagnostic::from(e)
+          Diagnostic::from(e)
             .with_stack(stack)
-            .with_hide_stack(hide_stack);
-          d
+            .with_hide_stack(hide_stack)
         };
 
         self.source = NormalModuleSource::BuiltFailed(diagnostic.clone());
