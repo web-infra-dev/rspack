@@ -600,11 +600,6 @@ impl Module for NormalModule {
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
-      code_generation_result.set_hash(
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
-      );
       code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)
     } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
@@ -619,11 +614,6 @@ impl Module for NormalModule {
           RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
       }
-      code_generation_result.set_hash(
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
-      );
       Ok(code_generation_result)
     } else {
       Err(error!(

@@ -127,18 +127,13 @@ impl Module for RawModule {
   #[tracing::instrument(name = "RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
-    compilation: &crate::Compilation,
+    _compilation: &crate::Compilation,
     _runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(self.runtime_requirements);
     cgr.add(SourceType::JavaScript, self.source.clone());
-    cgr.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
     Ok(cgr)
   }
 

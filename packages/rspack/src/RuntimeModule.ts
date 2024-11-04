@@ -24,7 +24,8 @@ export class RuntimeModule {
 			name: module.name,
 			stage: module.stage,
 			generator: module.generate.bind(module),
-			cacheable: !(module.fullHash || module.dependentHash),
+			fullHash: module.fullHash,
+			dependentHash: module.dependentHash,
 			isolate: module.shouldIsolate()
 		};
 	}

@@ -1109,9 +1109,9 @@ impl Stats<'_> {
     let code_generated = self.compilation.code_generated_modules.contains(identifier);
     let size = self
       .compilation
-      .runtime_module_code_generation_results
+      .runtime_modules_code_generation_source
       .get(identifier)
-      .map_or(0 as f64, |(_, source)| source.size() as f64);
+      .map_or(0 as f64, |source| source.size() as f64);
 
     let mut stats = StatsModule {
       r#type: "module",
@@ -1165,7 +1165,7 @@ impl Stats<'_> {
       stats.identifier = Some(module.identifier());
       stats.name = Some(module.name().as_str().into());
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
-      stats.cacheable = Some(module.cacheable());
+      stats.cacheable = Some(!(module.full_hash() || module.dependent_hash()));
       stats.optional = Some(false);
       stats.orphan = Some(orphan);
       stats.dependent = Some(false);
