@@ -59,6 +59,7 @@ idents
 Idents
 iife
 Iife
+incrementality
 indicatif
 inituit
 innovatively
