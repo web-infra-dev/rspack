@@ -276,6 +276,29 @@ impl JsModule {
     })
   }
 
+  #[napi(getter)]
+  pub fn dependencies(&self) -> napi::Result<Vec<JsDependency>> {
+    Ok(match self.compilation {
+      Some(compilation) => {
+        let compilation = unsafe { compilation.as_ref() };
+        let module_graph = compilation.get_module_graph();
+        let module = self.as_ref()?;
+        let dependencies = module.get_dependencies();
+        dependencies
+          .iter()
+          .filter_map(|dependency_id| {
+            module_graph
+              .dependency_by_id(dependency_id)
+              .map(JsDependency::new)
+          })
+          .collect::<Vec<_>>()
+      }
+      None => {
+        vec![]
+      }
+    })
+  }
+
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
     let module = self.as_ref()?;
