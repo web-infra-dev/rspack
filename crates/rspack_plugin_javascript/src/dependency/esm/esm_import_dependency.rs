@@ -21,7 +21,7 @@ use swc_core::ecma::atoms::Atom;
 use super::create_resource_identifier_for_esm_dependency;
 
 // TODO: find a better way to implement this for performance
-// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/ESMImportDependency.js#L361-L365
+// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by ESMAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
 pub mod import_emitted_runtime {
