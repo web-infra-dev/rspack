@@ -17,20 +17,20 @@ Rspack v1.1 has been released!
 
 Notable changes in Rspack v1.1:
 
-- [Performance Improvement](#performance-improvement):
-  - [Using Async Thread Pool](#use-async-thread-pool): Significantly improved the performance of make phase of cold starts through more reasonable thread scheduling.
-  - [Experimental New Incremental Rebuild](#experimental-new-incremental-rebuild): A new experimental incremental rebuild feature to significantly improved the performance of rebuild.
-    - [Incremental Build Chunk Graph](#experimental-incremental-build-chunk-graph): Significantly improved the performance of chunk graph generation of incremental rebuilds through new algorithm.
-  - [Bundled Rspack](#bundled-rspack): Bundle `@rspack/core` for faster startup.
-- [Exciting New Features](#exciting-new-features):
+- [Performance improvements](#performance-improvements):
+  - [Using async thread pool](#use-async-thread-pool): Significantly improved the performance of make phase of cold starts through more reasonable thread scheduling.
+  - [Experimental new incremental rebuild](#experimental-new-incremental-rebuild): A new experimental incremental rebuild feature to significantly improved the performance of rebuild.
+    - [Incremental build chunk graph](#experimental-incremental-build-chunk-graph): Significantly improved the performance of chunk graph generation of incremental rebuilds through new algorithm.
+  - [Bundled Rspack core](#bundled-rspack-core): Bundle `@rspack/core` for faster startup.
+- [New features](#new-features):
   - [Improvement of Built-in HTML Plugin](#improvement-of-built-in-html-plugin): Refactored the built-in HTML plugin and support multiple important features.
   - [Improvement of Types](#improvement-of-types): Added JSDoc for all configuration options.
-- [Ecosystem Cooperation](#ecosystem-cooperation):
+- [Ecosystem cooperation](#ecosystem-cooperation):
   - TODO @chenjiahan
 
-## Performance Improvement
+## Performance improvements
 
-### Use Async Thread Pool
+### Use async thread pool
 
 TODO: @hardfist
 
@@ -38,7 +38,7 @@ TODO: @hardfist
 
 {/* Data Comparison */}
 
-### Experimental New Incremental Rebuild
+### Experimental new incremental rebuild
 
 In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild). As this feature gradually stabilized, we removed the experiments configuration and enabled it by default. However, this feature only enabled incrementality for the `make` and `emitAssets` stages of the rebuild. For many projects, the loader in the `make` stage takes a lot of time. At that time, this feature had a relatively obvious performance improvement in rebuild for these projects. But there are still some projects that take a lot of time in stages other than `make`. Therefore, we optimized and expanded this feature and gradually introduced this feature into other stages, such as `buildChunkGraph`, `providedExports`, `moduleCodegen`, etc. In Rspack v1.1, we introduced [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
 
@@ -62,7 +62,7 @@ See [`experiments.incremental`](https://rspack.dev/config/experiments#experiment
 
 This is still an experimental feature and we need more work to stabilize it, but we hope you can try it out and provide us with some bugs and feedback at https://github.com/web-infra-dev/rspack/issues/8106.
 
-#### Incremental Build Chunk Graph
+#### Incremental build chunk graph
 
 TODO: @jserfeng
 
@@ -72,7 +72,7 @@ TODO: @jserfeng
 
 {/* How to Use */}
 
-### Bundled Rspack
+### Bundled Rspack core
 
 TODO: @chenjiahan
 
@@ -82,9 +82,9 @@ TODO: @chenjiahan
 
 {/* Maybe Breaking Change */}
 
-## Exciting New Features
+## New features
 
-### Improvement of Built-in HTML Plugin
+### Improvement of built-in HTML plugin
 
 In earlier versions of Rspack, the built-in `HtmlRspackPlugin` was implemented. However, its capabilities were severely lacking. It lacked some configuration options and did not support `hooks`, which made those plugins implemented based on the `hooks` of `HtmlWebpackPlugin` incompatible with Rspack.
 
@@ -125,7 +125,7 @@ See intellisense in IDE:
 
 ![configuration intellisense in IDE](https://assets.rspack.dev/rspack/assets/rspack-v1.1-config-intellisense.png)
 
-## Ecosystem Cooperation
+## Ecosystem
 
 ### Docusaurus
 
@@ -175,7 +175,7 @@ Rsbuild 1.1 adds the following static assets-related configurations:
 - [output.filename.assets](https://rsbuild.dev/config/output/filename): Used to set the name of other static assets.
 - [output.distPath.assets](https://rsbuild.dev/config/output/dist-path): Used to set the output directory of other static assets.
 
-## Migration Guide
+## Upgrade guide
 
 ### Upgrade the SWC plugins
 
