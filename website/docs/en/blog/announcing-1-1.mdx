@@ -18,7 +18,7 @@ Rspack v1.1 has been released!
 Notable changes in Rspack v1.1:
 
 - [Performance improvements](#performance-improvements):
-  - [Using async thread pool](#use-async-thread-pool): Significantly improved the performance of make phase of cold starts through more reasonable thread scheduling.
+  - [Better scheduling strategy](#better-scheduling-strategy): Make Rspack 10% faster than v1.0.
   - [Experimental new incremental rebuild](#experimental-new-incremental-rebuild): A new experimental incremental rebuild feature to significantly improved the performance of rebuild.
     - [Incremental build chunk graph](#experimental-incremental-build-chunk-graph): Significantly improved the performance of chunk graph generation of incremental rebuilds through new algorithm.
   - [Bundled Rspack core](#bundled-rspack-core): Bundle `@rspack/core` for faster startup.
@@ -30,17 +30,21 @@ Notable changes in Rspack v1.1:
 
 ## Performance improvements
 
-### Use async thread pool
+### Better scheduling strategy
 
-TODO: @hardfist
+Rspack v1.1 is 10% faster than v1.0.
 
-{/* What's change */}
+![Rspack v1.1 vs v1.0](https://assets.rspack.dev/rspack/assets/rspack-1-1-perf-comparison.png)
 
-{/* Data Comparison */}
+A major optimization is that Rspack uses a better scheduling strategy inspired by [Using Rustlang’s Async Tokio Runtime for CPU-Bound Tasks](https://thenewstack.io/using-rustlangs-async-tokio-runtime-for-cpu-bound-tasks/) and SWC's optimization for better concurrency support, which allows better scheduling of async tasks.
 
 ### Experimental new incremental rebuild
 
-In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild). As this feature gradually stabilized, we removed the experiments configuration and enabled it by default. However, this feature only enabled incrementality for the `make` and `emitAssets` stages of the rebuild. For many projects, the loader in the `make` stage takes a lot of time. At that time, this feature had a relatively obvious performance improvement in rebuild for these projects. But there are still some projects that take a lot of time in stages other than `make`. Therefore, we optimized and expanded this feature and gradually introduced this feature into other stages, such as `buildChunkGraph`, `providedExports`, `moduleCodegen`, etc. In Rspack v1.1, we introduced [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
+In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild). As this feature gradually stabilized, we removed the experiments configuration and enabled it by default.
+
+However, this feature only enabled incrementality for the `make` and `emitAssets` stages of the rebuild. For many projects, the loader in the `make` stage takes a lot of time. At that time, this feature had a relatively obvious performance improvement in rebuild for these projects. But there are still some projects that take a lot of time in stages other than `make`. Therefore, we optimized and expanded this feature and gradually introduced this feature into other stages, such as `buildChunkGraph`, `providedExports`, `moduleCodegen`, etc.
+
+In Rspack v1.1, we introduced [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
 
 In a case of 10000 React components, the HMR becomes 38% faster:
 
