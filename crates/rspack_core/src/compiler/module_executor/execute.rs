@@ -3,7 +3,6 @@ use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
-use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::oneshot::Sender;
@@ -31,6 +30,7 @@ pub type ExecuteModuleId = u32;
 
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
+  pub error: Option<String>,
   pub cacheable: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -48,7 +48,7 @@ pub struct ExecuteTask {
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub result_sender: Sender<(
-    Result<ExecuteModuleResult>,
+    ExecuteModuleResult,
     CompilationAssets,
     IdentifierSet,
     Vec<ExecutedRuntimeModule>,
@@ -217,39 +217,37 @@ impl Task<MakeTaskContext> for ExecuteTask {
       );
 
     let module_graph = compilation.get_module_graph();
-    let mut execute_result = match exports {
+    let mut execute_result = modules.iter().fold(
+      ExecuteModuleResult {
+        cacheable: true,
+        id,
+        ..Default::default()
+      },
+      |mut res, m| {
+        let module = module_graph.module_by_identifier(m).expect("unreachable");
+        let build_info = &module.build_info();
+        if let Some(info) = build_info {
+          res
+            .file_dependencies
+            .extend(info.file_dependencies.iter().cloned());
+          res
+            .context_dependencies
+            .extend(info.context_dependencies.iter().cloned());
+          res
+            .missing_dependencies
+            .extend(info.missing_dependencies.iter().cloned());
+          res
+            .build_dependencies
+            .extend(info.build_dependencies.iter().cloned());
+          if !info.cacheable {
+            res.cacheable = false;
+          }
+        }
+        res
+      },
+    );
+    match exports {
       Ok(_) => {
-        let mut result = modules.iter().fold(
-          ExecuteModuleResult {
-            cacheable: true,
-            ..Default::default()
-          },
-          |mut res, m| {
-            let module = module_graph.module_by_identifier(m).expect("unreachable");
-            let build_info = &module.build_info();
-            if let Some(info) = build_info {
-              res
-                .file_dependencies
-                .extend(info.file_dependencies.iter().cloned());
-              res
-                .context_dependencies
-                .extend(info.context_dependencies.iter().cloned());
-              res
-                .missing_dependencies
-                .extend(info.missing_dependencies.iter().cloned());
-              res
-                .build_dependencies
-                .extend(info.build_dependencies.iter().cloned());
-              if !info.cacheable {
-                res.cacheable = false;
-              }
-            }
-            res
-          },
-        );
-
-        result.id = id;
-
         for m in modules.iter() {
           let codegen_result = codegen_results.get(m, Some(&runtime));
 
@@ -264,18 +262,19 @@ impl Task<MakeTaskContext> for ExecuteTask {
             );
           }
         }
-
-        Ok(result)
       }
-      Err(e) => Err(e),
+      Err(e) => {
+        execute_result.cacheable = false;
+        execute_result.error = Some(e.to_string());
+      }
     };
 
     let assets = std::mem::take(compilation.assets_mut());
     let code_generated_modules = std::mem::take(&mut compilation.code_generated_modules);
     let module_assets = std::mem::take(&mut compilation.module_assets);
-    if let Ok(ref mut result) = execute_result {
-      result.assets = assets.keys().cloned().collect::<HashSet<_>>();
-      result.assets.extend(
+    if execute_result.error.is_none() {
+      execute_result.assets = assets.keys().cloned().collect::<HashSet<_>>();
+      execute_result.assets.extend(
         module_assets
           .values()
           .flat_map(|m| m.iter().map(|i| i.to_owned()).collect_vec())

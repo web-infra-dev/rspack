@@ -633,7 +633,7 @@ impl JsCompilation {
         .module_executor
         .as_ref()
         .expect("should have module executor");
-      let result = module_executor
+      let res = module_executor
         .import_module(
           request,
           layer,
@@ -643,37 +643,32 @@ impl JsCompilation {
           original_module.map(ModuleIdentifier::from),
         )
         .await;
-      match result {
-        Ok(res) => {
-          let js_result = JsExecuteModuleResult {
-            cacheable: res.cacheable,
-            file_dependencies: res
-              .file_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            context_dependencies: res
-              .context_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            build_dependencies: res
-              .build_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            missing_dependencies: res
-              .missing_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            assets: res.assets.into_iter().collect(),
-            id: res.id,
-          };
-          Ok(js_result)
-        }
-        Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),
-      }
+      let js_result = JsExecuteModuleResult {
+        cacheable: res.cacheable,
+        file_dependencies: res
+          .file_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        context_dependencies: res
+          .context_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        build_dependencies: res
+          .build_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        missing_dependencies: res
+          .missing_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        assets: res.assets.into_iter().collect(),
+        id: res.id,
+      };
+      Ok(js_result)
     })
   }
 
