@@ -5,10 +5,10 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawSource, Source},
-  throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_util::source_map::ModuleSourceMapConfig;
@@ -92,7 +92,7 @@ impl Module for DelegatedModule {
 
   async fn build(
     &mut self,
-    _build_context: rspack_core::BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
