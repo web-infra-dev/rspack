@@ -277,7 +277,7 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn dependencies(&self) -> napi::Result<Vec<JsDependency>> {
+  pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependency>> {
     Ok(match self.compilation {
       Some(compilation) => {
         let compilation = unsafe { compilation.as_ref() };
