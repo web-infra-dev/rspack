@@ -255,7 +255,7 @@ pub enum AssetParserDataUrl {
 
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetParserDataUrlOptions {
-  pub max_size: Option<u32>,
+  pub max_size: Option<f64>,
 }
 
 #[derive(Debug, Clone, MergeFrom)]
