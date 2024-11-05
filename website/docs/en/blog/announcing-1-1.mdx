@@ -19,8 +19,7 @@ Notable changes in Rspack v1.1:
 
 - [Performance improvements](#performance-improvements):
   - [Better scheduling strategy](#better-scheduling-strategy): Make Rspack 10% faster than v1.0.
-  - [Experimental new incremental rebuild](#experimental-new-incremental-rebuild): A new experimental incremental rebuild feature to significantly improved the performance of rebuild.
-    - [Incremental build chunk graph](#experimental-incremental-build-chunk-graph): Significantly improved the performance of chunk graph generation of incremental rebuilds through new algorithm.
+  - [New incremental rebuild](#new-incremental-rebuild): Experimental feature that makes HMR up to 38% faster.
   - [Bundled Rspack core](#bundled-rspack-core): Bundle `@rspack/core` for faster startup.
 - [New features](#new-features):
   - [Improvement of Built-in HTML Plugin](#improvement-of-built-in-html-plugin): Refactored the built-in HTML plugin and support multiple important features.
@@ -38,7 +37,7 @@ Rspack v1.1 is 10% faster than v1.0.
 
 A major optimization is that Rspack uses a better scheduling strategy inspired by [Using Rustlang’s Async Tokio Runtime for CPU-Bound Tasks](https://thenewstack.io/using-rustlangs-async-tokio-runtime-for-cpu-bound-tasks/) and SWC's optimization for better concurrency support, which allows better scheduling of async tasks.
 
-### Experimental new incremental rebuild
+### New incremental rebuild
 
 In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild). As this feature gradually stabilized, we removed the experiments configuration and enabled it by default.
 
@@ -53,7 +52,8 @@ In a case of 10000 React components, the HMR becomes 38% faster:
 In Rspack v1.1 you can enable this feature in development mode by:
 
 ```js title=rspack.config.js
-const isDev = process.env.NODE_ENV;
+const isDev = process.env.NODE_ENV === 'development';
+
 module.exports = {
   mode: isDev ? 'development' : 'production',
   experiments: {
@@ -62,9 +62,9 @@ module.exports = {
 };
 ```
 
-See [`experiments.incremental`](https://rspack.dev/config/experiments#experimentsincremental) for more details.
+> See [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental) for more details.
 
-This is still an experimental feature and we need more work to stabilize it, but we hope you can try it out and provide us with some bugs and feedback at https://github.com/web-infra-dev/rspack/issues/8106.
+This is still an experimental feature and we need more work to stabilize it. If you are interested, give it a try and send bug reports and feedback to [rspack/issues/8106](https://github.com/web-infra-dev/rspack/issues/8106).
 
 #### Incremental build chunk graph
 
