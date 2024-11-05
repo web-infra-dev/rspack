@@ -17,15 +17,16 @@ Rspack v1.1 has been released!
 
 Notable changes in Rspack v1.1:
 
-- [Performance improvements](#performance-improvements):
-  - [Better scheduling strategy](#better-scheduling-strategy): Make Rspack 10% faster than v1.0.
-  - [New incremental rebuild](#new-incremental-rebuild): Experimental feature that makes HMR up to 38% faster.
-  - [Bundled Rspack core](#bundled-rspack-core): Bundle `@rspack/core` for faster startup.
-- [New features](#new-features):
-  - [Improvement of Built-in HTML Plugin](#improvement-of-built-in-html-plugin): Refactored the built-in HTML plugin and support multiple important features.
-  - [Improvement of Types](#improvement-of-types): Added JSDoc for all configuration options.
-- [Ecosystem cooperation](#ecosystem-cooperation):
-  - TODO @chenjiahan
+- Performance improvements
+  - [Better scheduling strategy](#better-scheduling-strategy): Make Rspack **10% faster** than v1.0.
+  - [New incremental rebuild](#new-incremental-rebuild): Experimental feature that makes HMR **up to 38% faster**.
+- New features
+  - [Improved HTML Plugin](#improved-html-plugin): Refactored the built-in HTML plugin with new features.
+  - [Improved JSDoc](#improved-jsdoc): Added JSDoc for all configuration options.
+- Ecosystem
+  - [Docusaurus Faster](#docusaurus-faster): Use Rspack as the bundler for Docusaurus sites.
+  - [Nuxt Rspack Builder](#nuxt-rspack-builder): Experimental Rspack builder for Nuxt.
+- [Rsbuild v1.1](#rsbuild-v11)
 
 ## Performance improvements
 
@@ -43,7 +44,7 @@ In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebu
 
 However, this feature only enabled incrementality for the `make` and `emitAssets` stages of the rebuild. For many projects, the loader in the `make` stage takes a lot of time. At that time, this feature had a relatively obvious performance improvement in rebuild for these projects. But there are still some projects that take a lot of time in stages other than `make`. Therefore, we optimized and expanded this feature and gradually introduced this feature into other stages, such as `buildChunkGraph`, `providedExports`, `moduleCodegen`, etc.
 
-In Rspack v1.1, we introduced [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
+In Rspack v1.1, we introduced [experiments.incremental](/config/experiments#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
 
 In a case of 10000 React components, the HMR becomes 38% faster:
 
@@ -62,35 +63,15 @@ module.exports = {
 };
 ```
 
-> See [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental) for more details.
+> See [experiments.incremental](/config/experiments#experimentsincremental) for more details.
 
 This is still an experimental feature and we need more work to stabilize it. If you are interested, give it a try and send bug reports and feedback to [rspack/issues/8106](https://github.com/web-infra-dev/rspack/issues/8106).
 
-#### Incremental build chunk graph
-
-TODO: @jserfeng
-
-{/* What's change */}
-
-{/* Data Comparison */}
-
-{/* How to Use */}
-
-### Bundled Rspack core
-
-TODO: @chenjiahan
-
-{/* What's change */}
-
-{/* Data Comparison */}
-
-{/* Maybe Breaking Change */}
-
 ## New features
 
-### Improvement of built-in HTML plugin
+### Improved HTML Plugin
 
-In earlier versions of Rspack, the built-in `HtmlRspackPlugin` was implemented. However, its capabilities were severely lacking. It lacked some configuration options and did not support `hooks`, which made those plugins implemented based on the `hooks` of `HtmlWebpackPlugin` incompatible with Rspack.
+In earlier versions of Rspack, the built-in [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) was implemented. However, its capabilities were severely lacking. It lacked some configuration options and did not support `hooks`, which made those plugins implemented based on the `hooks` of `HtmlWebpackPlugin` incompatible with Rspack.
 
 Therefore, we refactored `HtmlRspackPlugin`. While supporting most of the configuration options of `HtmlWebpackPlugin`, we also completed the alignment of `hooks`. Now you can get these hooks through `HtmlRspackPlugin.getCompilationHooks` and use them to modify the content of the HTML assets like below:
 
@@ -117,9 +98,9 @@ module.exports = {
 };
 ```
 
-See [`HtmlRspackPlugin`](https://rspack.dev/plugins/rspack/html-rspack-plugin) for more details
+> See [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) for more details.
 
-### Improvement of Types
+### Improved JSDoc
 
 In the initial versions of Rspack, we used `zod` to validate user configurations, inferring all types from it. However, the absence of JSDoc made it challenging to comprehend the generated `zod` types when examining the `.d.ts` files or using intellisense in an editor.
 
@@ -131,11 +112,23 @@ See intellisense in IDE:
 
 ## Ecosystem
 
-### Docusaurus
+### Docusaurus Faster
 
-TODO: @chenjiahan
+[Docusaurus v3.6](https://docusaurus.io/blog/docusaurus-v3.6) brings the `Docusaurus Faster` options that allow users to use Rspack as the bundler for Docusaurus sites.
 
-### Rsbuild v1.1
+The [Docusaurus Faster](https://docusaurus.io/blog/releases/3.6#docusaurus-faster) project's goal is to reduce the build times and memory consumption of Docusaurus. Docusaurus team have worked on multiple optimizations and modernized their infrastructure to use faster Rust-based tools like Rspack and SWC.
+
+Benchmarks on community site show that the production site can build 2 to 4 times faster.
+
+### Nuxt Rspack builder
+
+[Nuxt v3.14](https://nuxt.com/blog/v3-14) brings a new first-class Nuxt builder for Rspack.
+
+It's still experimental and Nuxt team refactored the internal Nuxt virtual file system to use `unplugin` to make this possible.
+
+You can try [nuxt-rspack-starter](https://github.com/danielroe/nuxt-rspack-starter) to get started, or install [@nuxt/rspack-builder](https://www.npmjs.com/package/@nuxt/rspack-builder) and set `builder: 'rspack'` in the Nuxt config file.
+
+## Rsbuild v1.1
 
 Rsbuild 1.1 has been released along with Rspack 1.1!
 
@@ -147,7 +140,7 @@ Notable changes:
 - Added [Use Web Workers](https://rsbuild.dev/guide/basic/web-workers) guide to help web workers project migration
 - [Rsbuild-ecosystem-ci](https://github.com/rspack-contrib/rsbuild-ecosystem-ci) allows us to run integration tests for Rsbuild ecosystem projects
 
-#### Support for CLI shortcuts
+### Support for CLI shortcuts
 
 Rsbuild supports enabling CLI shortcuts through the `dev.cliShortcuts` configuration and is enabled by default when using the Rsbuild CLI.
 
@@ -155,7 +148,7 @@ Rsbuild CLI shortcut keys provide shortcut functions such as clear console, open
 
 ![](https://assets.rspack.dev/rsbuild/assets/rsbuild-cli-shortcuts.jpeg)
 
-#### New `server.base` configuration
+### New `server.base` configuration
 
 By default, the base path of the server is `/`, and users can access output files such as `index.html` and public folder assets through http://localhost:3000/.
 
@@ -169,7 +162,7 @@ export default {
 };
 ```
 
-#### New assets-related configurations
+### New assets-related configurations
 
 By default, Rsbuild treats common image, font, audio, and video files as static assets. Through the source.assetsInclude config, you can specify additional file types that should be treated as static assets. These added static assets are processed using the same rules as the built-in supported static assets.
 
