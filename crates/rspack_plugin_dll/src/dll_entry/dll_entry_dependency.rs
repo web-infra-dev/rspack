@@ -34,8 +34,8 @@ impl DllEntryDependency {
   }
 }
 
-// It would not create module by rspack,if depdency is not ModuleDependency.
-// So we impl ModuleDepedency for [DllEntryDependency]
+// It would not create module by rspack,if dependency is not ModuleDependency.
+// So we impl ModuleDependency for [DllEntryDependency]
 impl ModuleDependency for DllEntryDependency {
   fn request(&self) -> &str {
     "dll main"
