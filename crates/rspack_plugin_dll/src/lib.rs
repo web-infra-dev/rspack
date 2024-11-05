@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 mod dll_entry;
 mod dll_reference;
-mod flag_alll_modules_as_used_plugin;
+mod flag_all_modules_as_used_plugin;
 mod lib_manifest_plugin;
 
 pub(crate) type DllManifestContent = HashMap<String, DllManifestContentItem>;
@@ -38,5 +38,5 @@ pub use dll_entry::dll_entry_plugin::{DllEntryPlugin, DllEntryPluginOptions};
 pub use dll_reference::dll_reference_agency_plugin::{
   DllReferenceAgencyPlugin, DllReferencePluginAgencyOptions,
 };
-pub use flag_alll_modules_as_used_plugin::FlagAllModulesAsUsedPlugin;
+pub use flag_all_modules_as_used_plugin::FlagAllModulesAsUsedPlugin;
 pub use lib_manifest_plugin::{LibManifestPlugin, LibManifestPluginOptions};

@@ -467,6 +467,23 @@ impl<'a> ModuleGraph<'a> {
     }
   }
 
+  pub fn add_extra_reason(&mut self, module_identifier: &ModuleIdentifier, explanation: String) {
+    let dependency_id = DependencyId::new();
+
+    let mut connection =
+      ModuleGraphConnection::new(dependency_id, None, module_identifier.clone(), true, false);
+
+    connection.add_explanation(explanation);
+
+    let mg = self
+      .module_graph_module_by_identifier_mut(module_identifier)
+      .expect("Should have moduleGraphModule");
+
+    mg.add_incoming_connection(dependency_id);
+
+    self.add_connection(connection, None);
+  }
+
   pub fn get_depth(&self, module_id: &ModuleIdentifier) -> Option<usize> {
     self
       .module_graph_module_by_identifier(module_id)

@@ -1378,6 +1378,10 @@ export interface RawFallbackCacheGroupOptions {
   automaticNameDelimiter?: string
 }
 
+export interface RawFlagAllModulesAsUsedPluginOptions {
+  explanation: string
+}
+
 export interface RawFuncUseCtx {
   resource?: string
   realResource?: string

@@ -93,7 +93,7 @@ export class DllPlugin {
 		new LibManifestPlugin(this.options).apply(compiler);
 
 		if (!this.options.entryOnly) {
-			new FlagAllModulesAsUsedPlugin().apply(compiler);
+			new FlagAllModulesAsUsedPlugin("DllPlugin").apply(compiler);
 		}
 	}
 }

@@ -1,14 +1,23 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  get_entry_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeDependencies,
-  CompilerOptions, Plugin, PluginContext, RuntimeSpec,
+  get_entry_runtime, merge_runtime, ApplyContext, BoxModule, Compilation,
+  CompilationOptimizeDependencies, CompilerOptions, FactoryMeta, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
 #[derive(Debug, Default)]
-pub struct FlagAllModulesAsUsedPlugin;
+pub struct FlagAllModulesAsUsedPlugin {
+  explanation: String,
+}
+
+impl FlagAllModulesAsUsedPlugin {
+  pub fn new(explanation: String) -> Self {
+    Self::new_inner(explanation)
+  }
+}
 
 impl Plugin for FlagAllModulesAsUsedPlugin {
   fn name(&self) -> &'static str {
@@ -21,6 +30,12 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
+
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .module
+      .tap(nmf_module::new(self));
 
     Ok(())
   }
@@ -43,15 +58,24 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
   for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);
     exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
-
-    // TODO: module_graph add extra reason
-    // FIXME Panic: we can not find module in active_partial
-    // if let Some(module) = mg.module_by_identifier_mut(&module_id) {
-    //   module.set_factory_meta(FactoryMeta {
-    //     side_effect_free: Some(false),
-    //   })
-    // };
+    mg.add_extra_reason(&module_id, self.explanation.clone());
   }
 
   Ok(None)
+}
+
+#[plugin_hook(NormalModuleFactoryModule for FlagAllModulesAsUsedPlugin)]
+async fn nmf_module(
+  &self,
+  _data: &mut ModuleFactoryCreateData,
+  _create_date: &mut NormalModuleCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  // set all modules have effects. To avoid any module remove by tree shakeing.
+  // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L43-L47
+  module.set_factory_meta(FactoryMeta {
+    side_effect_free: Some(false),
+  });
+
+  Ok(())
 }

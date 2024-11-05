@@ -99,3 +99,9 @@ impl From<RawDllReferencePluginAgencyOptions> for DllReferencePluginAgencyOption
     }
   }
 }
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawFlagAllModulesAsUsedPluginOptions {
+  pub explanation: String,
+}

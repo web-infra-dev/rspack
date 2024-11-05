@@ -1,4 +1,6 @@
-use std::hash::Hash;
+use std::{collections::HashSet, hash::Hash};
+
+use itertools::Itertools;
 
 use crate::{DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
@@ -14,6 +16,8 @@ pub struct ModuleGraphConnection {
 
   pub active: bool,
   pub conditional: bool,
+
+  explanations: HashSet<String>,
 }
 
 impl Hash for ModuleGraphConnection {
@@ -43,6 +47,19 @@ impl ModuleGraphConnection {
       active,
       conditional,
       resolved_original_module_identifier: original_module_identifier,
+      explanations: Default::default(),
+    }
+  }
+
+  pub fn add_explanation(&mut self, explanation: String) {
+    self.explanations.insert(explanation);
+  }
+
+  pub fn explanation(&self) -> Option<String> {
+    if self.explanations.is_empty() {
+      None
+    } else {
+      Some(self.explanations.iter().join(" "))
     }
   }
 

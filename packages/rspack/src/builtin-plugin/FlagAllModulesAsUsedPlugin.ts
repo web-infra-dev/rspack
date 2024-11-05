@@ -1,7 +1,14 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawFlagAllModulesAsUsedPluginOptions
+} from "@rspack/binding";
 import { create } from "./base";
 
 export const FlagAllModulesAsUsedPlugin = create(
 	BuiltinPluginName.FlagAllModulesAsUsedPlugin,
-	(): undefined => {}
+	(explanation: string): RawFlagAllModulesAsUsedPluginOptions => {
+		return {
+			explanation
+		};
+	}
 );

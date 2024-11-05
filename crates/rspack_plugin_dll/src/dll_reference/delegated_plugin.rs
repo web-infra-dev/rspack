@@ -60,7 +60,7 @@ impl Plugin for DelegatedPlugin {
       .context
       .normal_module_factory_hooks
       .module
-      .tap(module::new(self));
+      .tap(nmf_module::new(self));
 
     Ok(())
   }
@@ -126,7 +126,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
 }
 
 #[plugin_hook(NormalModuleFactoryModule for DelegatedPlugin)]
-async fn module(
+async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
   _create_data: &mut NormalModuleCreateData,
