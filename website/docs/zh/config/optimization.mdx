@@ -10,28 +10,72 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ## optimization.moduleIds
 
-<PropertyType type="'natural' | 'named' | 'deterministic'" />
+<PropertyType
+  type="'natural' | 'named' | 'deterministic'"
+  defaultValueList={[
+    { defaultValue: "'deterministic'", mode: 'production' },
+    { defaultValue: "'named'", mode: 'development' },
+  ]}
+/>
 
-| 选项            | 描述                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------- |
-| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                             |
-| `named`         | 使用有意义、方便调试的内容当作模块 id。此选项会在开发环境下默认开启。                   |
-| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。此选项会在生产环境下默认开启。 |
+设置 Rspack 在生成模块 id 时使用的算法。
+
+支持以下字符串值：
+
+| 选项            | 描述                                                                         |
+| --------------- | ---------------------------------------------------------------------------- |
+| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                  |
+| `named`         | 使用有意义、方便调试的内容当作模块 id。                                      |
+| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。 |
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    moduleIds: 'deterministic',
+  },
+};
+```
 
 ## optimization.chunkIds
 
-<PropertyType type="'named' | 'deterministic'" />
+<PropertyType
+  type="'named' | 'deterministic'"
+  defaultValueList={[
+    { defaultValue: "'named'", mode: 'development' },
+    { defaultValue: "'deterministic'", mode: 'production' },
+  ]}
+/>
 
-| 选项              | 描述                                                                                                |
-| ----------------- | --------------------------------------------------------------------------------------------------- |
-| `'named'`         | 使用有意义、方便调试的内容当作 Chunk id。此选项会在开发环境下默认开启。                             |
-| `'deterministic'` | 简短的数字 id，在多次编译的场景下，会尽量保持其稳定性。适合长期缓存。此选项会在生产环境下默认开启。 |
+设置 Rspack 在生成 Chunk id 时使用的算法。
+
+支持以下字符串值：
+
+| 选项              | 描述                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `'named'`         | 使用有意义、方便调试的内容当作 Chunk id。                                                |
+| `'deterministic'` | 简短的数字 id，在多次编译的场景下，会尽量保持其稳定性。适合长期缓存。默认使用 3 位数字。 |
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    chunkIds: 'deterministic',
+  },
+};
+```
 
 ## optimization.mergeDuplicateChunks
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否合并重复 Chunk，设置成 `false` 会关掉合并重复 Chunk 行为。
+是否合并重复的 chunks，将 `optimization.mergeDuplicateChunks` 设置成 `false` 来关闭该优化。
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    mergeDuplicateChunks: false,
+  },
+};
+```
 
 ## optimization.minimize
 
@@ -43,7 +87,15 @@ import WebpackLicense from '@components/WebpackLicense';
   ]}
 />
 
-是否对产物进行压缩。
+是否使用 [`optimization.minimizer`](#optimizationminimizer) 中声明的压缩器对产物进行压缩。
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    minimize: true,
+  },
+};
+```
 
 ## optimization.minimizer
 
@@ -57,32 +109,27 @@ import WebpackLicense from '@components/WebpackLicense';
   ]}
 />
 
-自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
-和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin)。当声明了 `optimization.minimizer`，默认压缩器会被禁用。
+自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin)。
+
+当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用。
 
 ```js title=rspack.config.js
-const terserPlugin = require('terser-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+
 module.exports = {
-  context: __dirname,
-  target: 'node',
-  entry: {
-    main: './index.js',
-  },
   optimization: {
-    minimize: true,
-    minimizer: [new terserPlugin()],
+    minimizer: [new TerserPlugin()],
   },
 };
 ```
 
-使用内置压缩器和自定义选项：
+使用 Rspack 内置的压缩器，并自定义压缩选项：
 
 ```js title=rspack.config.js
 const rspack = require('@rspack/core');
+
 module.exports = {
-  // ...
   optimization: {
-    minimize: process.env.NODE_ENV === 'production',
     // 当声明了 `optimization.minimizer`，默认压缩器会被禁用
     // 但你可以配合使用 '...'，它代表默认压缩器
     minimizer: [
@@ -107,20 +154,65 @@ module.exports = {
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-移除打包过程中产生的空 Chunk。
+检测并移除打包过程中产生的空 Chunk。将 `optimization.removeEmptyChunks` 设置为 `false` 来禁用该优化。
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    removeEmptyChunks: false,
+  },
+};
+```
 
 ## optimization.runtimeChunk
 
 <PropertyType
-  type="boolean | string | ((entrypoint: { name: string }) => string)"
+  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-用来控制 runtime chunk 如何生成。
+用来控制 Rspack 的 [runtime](/misc/glossary#runtime) chunk 如何生成。
 
-设置为 `true` 或 `'multiple'` 会为每个入口点添加一个仅包含运行时的额外 chunk。
+默认为 `false`，这意味着运行时代码会被内联到入口的 chunks 中。
 
-设置为 `'single'` 会将所有入口点的运行时代码抽离到一个单独的 chunk。
+设置为 `true` 或 `'multiple'` 会为每个入口添加一个仅包含运行时的额外 chunk。该设置等同于：
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    runtimeChunk: {
+      name: entrypoint => `runtime~${entrypoint.name}`,
+    },
+  },
+};
+```
+
+设置为 `'single'` 会将所有入口的运行时代码抽离到一个单独的 chunk。该设置等同于：
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    runtimeChunk: 'runtime',
+  },
+};
+```
+
+设置为对象时，可以提供 `name` 属性，该属性代表 runtime chunk 的名称。
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    runtimeChunk: {
+      // 这将生成一个名为 `my-name.js` 的 chunk
+      name: 'my-name',
+    },
+  },
+};
+```
+
+:::tip
+被导入的模块在每个 runtime chunk 中是单独初始化的，因此，如果你在单个页面中包含多个入口 chunks，请留意这种行为。你需要将 `optimization.runtimeChunk` 设置为 `'single'` 或使用其他配置，以保证页面仅包含一个 runtime 实例。
+:::
 
 ## optimization.realContentHash
 
@@ -356,4 +448,12 @@ module.exports = {
   ]}
 />
 
-开启 optimization.emitOnErrors 时，即使编译过程中发生错误也会生成产物。关键错误会被注入到产物代码中，运行它们时会抛出错误。
+开启 `optimization.emitOnErrors` 时，即使编译过程中发生错误，Rspack 也会生成产物。这些错误会被注入到产物代码中，运行它们时会抛出错误。
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    emitOnErrors: true,
+  },
+};
+```
