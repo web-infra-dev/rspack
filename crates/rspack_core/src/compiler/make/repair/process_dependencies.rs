@@ -5,11 +5,13 @@ use rustc_hash::FxHashMap as HashMap;
 use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile, NormalModuleSource,
+  CompilationId, ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile,
+  NormalModuleSource,
 };
 
 #[derive(Debug)]
 pub struct ProcessDependenciesTask {
+  pub compilation_id: CompilationId,
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
 }
@@ -21,6 +23,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
 
   async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
+      compilation_id,
       original_module_identifier,
       dependencies,
     } = *self;
@@ -96,6 +99,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         })
         .clone();
       res.push(Box::new(FactorizeTask {
+        compilation_id,
         module_factory,
         original_module_identifier: Some(module.identifier()),
         original_module_context: module.get_context(),

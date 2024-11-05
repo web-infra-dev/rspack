@@ -8,7 +8,7 @@ use super::{entry::EntryTask, execute::ExecuteTask};
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
-  Dependency, DependencyId, LoaderImportDependency, ModuleIdentifier,
+  CompilationId, Dependency, DependencyId, LoaderImportDependency, ModuleIdentifier,
 };
 
 #[derive(Debug)]
@@ -83,14 +83,16 @@ pub enum Event {
 
 #[derive(Debug)]
 pub struct CtrlTask {
+  compilation_id: CompilationId,
   pub event_receiver: UnboundedReceiver<Event>,
   execute_task_map: HashMap<DependencyId, ExecuteTaskList>,
   running_module_map: IdentifierMap<UnfinishCounter>,
 }
 
 impl CtrlTask {
-  pub fn new(event_receiver: UnboundedReceiver<Event>) -> Self {
+  pub fn new(compilation_id: CompilationId, event_receiver: UnboundedReceiver<Event>) -> Self {
     Self {
+      compilation_id,
       event_receiver,
       execute_task_map: Default::default(),
       running_module_map: Default::default(),
@@ -141,6 +143,7 @@ impl Task<MakeTaskContext> for CtrlTask {
           value.minus_one();
           if value.is_finished() {
             return Ok(vec![Box::new(FinishModuleTask {
+              compilation_id: self.compilation_id,
               ctrl_task: self,
               module_identifier: origin_module_identifier,
             })]);
@@ -154,6 +157,7 @@ impl Task<MakeTaskContext> for CtrlTask {
           value.set_unfinished_child_module_count(size);
           if value.is_finished() {
             return Ok(vec![Box::new(FinishModuleTask {
+              compilation_id: self.compilation_id,
               ctrl_task: self,
               module_identifier: mid,
             })]);
@@ -169,7 +173,14 @@ impl Task<MakeTaskContext> for CtrlTask {
                 let mut list = ExecuteTaskList::default();
                 list.add_task(execute_task);
                 self.execute_task_map.insert(*dep_id, list);
-                return Ok(vec![Box::new(EntryTask { dep, layer }), self]);
+                return Ok(vec![
+                  Box::new(EntryTask {
+                    compilation_id: self.compilation_id,
+                    dep,
+                    layer,
+                  }),
+                  self,
+                ]);
               }
             }
             ExecuteParam::DependencyId(dep_id) => {
@@ -193,6 +204,7 @@ impl Task<MakeTaskContext> for CtrlTask {
 
 #[derive(Debug)]
 struct FinishModuleTask {
+  compilation_id: CompilationId,
   ctrl_task: Box<CtrlTask>,
   module_identifier: ModuleIdentifier,
 }
@@ -204,6 +216,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
 
   async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
+      compilation_id,
       mut ctrl_task,
       module_identifier,
     } = *self;
@@ -283,7 +296,11 @@ impl Task<MakeTaskContext> for FinishModuleTask {
                 let mut list = ExecuteTaskList::default();
                 list.add_task(execute_task);
                 ctrl_task.execute_task_map.insert(*dep_id, list);
-                res.push(Box::new(EntryTask { dep, layer }));
+                res.push(Box::new(EntryTask {
+                  compilation_id,
+                  dep,
+                  layer,
+                }));
               }
             }
             ExecuteParam::DependencyId(dep_id) => {

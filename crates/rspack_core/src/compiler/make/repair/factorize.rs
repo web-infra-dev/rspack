@@ -8,13 +8,14 @@ use super::{add::AddTask, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilerOptions, Context, ExportInfoData, ExportsInfoData, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleProfile,
-  Resolve,
+  BoxDependency, CompilationId, CompilerOptions, Context, ExportInfoData, ExportsInfoData,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleProfile, Resolve,
 };
 
 #[derive(Debug)]
 pub struct FactorizeTask {
+  pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_source: Option<BoxSource>,
@@ -60,6 +61,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
     let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
     let factorize_result_task = FactorizeResultTask {
+      compilation_id: self.compilation_id,
       //      dependency: dep_id,
       original_module_identifier: self.original_module_identifier,
       factory_result: None,
@@ -79,6 +81,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
+      compilation_id: self.compilation_id,
       resolve_options: self.resolve_options,
       options: self.options.clone(),
       context,
@@ -151,6 +154,7 @@ pub struct ExportsInfoRelated {
 
 #[derive(Debug)]
 pub struct FactorizeResultTask {
+  pub compilation_id: CompilationId,
   //  pub dependency: DependencyId,
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
@@ -204,6 +208,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
   }
   async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {
+      compilation_id,
       original_module_identifier,
       factory_result,
       dependencies,
@@ -273,6 +278,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
     tracing::trace!("Module created: {}", &module_identifier);
 
     Ok(vec![Box::new(AddTask {
+      compilation_id,
       original_module_identifier,
       module,
       module_graph_module: Box::new(mgm),

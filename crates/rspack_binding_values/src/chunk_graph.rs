@@ -21,7 +21,7 @@ pub fn get_chunk_modules(
 
   return modules
     .iter()
-    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+    .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)))
     .collect::<Vec<_>>();
 }
 
@@ -42,7 +42,7 @@ pub fn get_chunk_entry_modules(
   return modules
     .iter()
     .filter_map(|module| module_graph.module_by_identifier(module))
-    .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+    .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)))
     .collect::<Vec<_>>();
 }
 
@@ -86,7 +86,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
         SourceType::from(source_type.as_str()),
         &compilation.get_module_graph(),
       )
-      .map(|module| JsModuleWrapper::new(module, Some(compilation)))
+      .map(|module| JsModuleWrapper::new(module, compilation.id(), Some(compilation)))
       .collect(),
   )
 }

@@ -6,12 +6,13 @@ use rspack_fs::ReadableFileSystem;
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerOptions,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerOptions,
   DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct BuildTask {
+  pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -27,6 +28,7 @@ impl Task<MakeTaskContext> for BuildTask {
   }
   async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
+      compilation_id,
       compiler_options,
       resolver_factory,
       plugin_driver,
@@ -41,12 +43,13 @@ impl Task<MakeTaskContext> for BuildTask {
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(&mut module)
+      .call(compilation_id, &mut module)
       .await?;
 
     let result = module
       .build(
         BuildContext {
+          compilation_id,
           compiler_options: compiler_options.clone(),
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
@@ -59,7 +62,7 @@ impl Task<MakeTaskContext> for BuildTask {
     plugin_driver
       .compilation_hooks
       .succeed_module
-      .call(&mut module)
+      .call(compilation_id, &mut module)
       .await?;
 
     let build_result = result.map(|t| {
@@ -78,6 +81,7 @@ impl Task<MakeTaskContext> for BuildTask {
     build_result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
       vec![Box::new(BuildResultTask {
+        compilation_id,
         module,
         build_result: Box::new(build_result),
         diagnostics,
@@ -89,6 +93,7 @@ impl Task<MakeTaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
+  pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
@@ -101,6 +106,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
   }
   async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
+      compilation_id,
       mut module,
       build_result,
       diagnostics,
@@ -187,6 +193,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
     module_graph.add_module(module);
 
     Ok(vec![Box::new(ProcessDependenciesTask {
+      compilation_id,
       dependencies: all_dependencies,
       original_module_identifier: module_identifier,
     })])

@@ -83,16 +83,14 @@ impl JsDependenciesBlock {
 pub struct JsModule {
   identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
+  compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
 
 impl JsModule {
-  fn attach(&mut self, compilation: *const Compilation) {
+  fn attach(&mut self, compilation: NonNull<Compilation>) {
     if self.compilation.is_none() {
-      self.compilation = Some(
-        #[allow(clippy::unwrap_used)]
-        NonNull::new(compilation as *mut Compilation).unwrap(),
-      );
+      self.compilation = Some(compilation);
     }
   }
 
@@ -300,7 +298,9 @@ impl JsModule {
             .filter_map(|inner_module_info| {
               compilation
                 .module_by_identifier(&inner_module_info.id)
-                .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+                .map(|module| {
+                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+                })
             })
             .collect::<Vec<_>>();
           Either::A(inner_modules)
@@ -324,8 +324,6 @@ type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleIn
 
 thread_local! {
   static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilationId = Default::default();
-
-  static UNASSOCIATED_MODULE_INSTANCE_REFS: RefCell<ModuleInstanceRefs> = Default::default();
 }
 
 // The difference between JsModuleWrapper and JsModule is:
@@ -335,13 +333,18 @@ thread_local! {
 pub struct JsModuleWrapper {
   identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
+  compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
 
 unsafe impl Send for JsModuleWrapper {}
 
 impl JsModuleWrapper {
-  pub fn new(module: &dyn Module, compilation: Option<&Compilation>) -> Self {
+  pub fn new(
+    module: &dyn Module,
+    compilation_id: CompilationId,
+    compilation: Option<&Compilation>,
+  ) -> Self {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     let identifier = module.identifier();
 
@@ -349,6 +352,7 @@ impl JsModuleWrapper {
     Self {
       identifier,
       module: NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
+      compilation_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
     }
@@ -366,89 +370,53 @@ impl ToNapiValue for JsModuleWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let module = unsafe { val.module.as_ref() };
 
-    match val.compilation {
-      Some(compilation_ptr) => MODULE_INSTANCE_REFS.with(|refs| {
-        let compilation = unsafe { compilation_ptr.as_ref() };
-
-        let mut refs_by_compilation_id = refs.borrow_mut();
-        let entry = refs_by_compilation_id.entry(compilation.id());
-        let refs = match entry {
-          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-          std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = IdentifierMap::default();
-            entry.insert(refs)
-          }
-        };
-
-        UNASSOCIATED_MODULE_INSTANCE_REFS.with(|ref_cell| {
-          let mut unassociated_refs = ref_cell.borrow_mut();
-          if let Some(unassociated_ref) = unassociated_refs.remove(&module.identifier()) {
-            let mut instance = unassociated_ref.from_napi_value()?;
-            instance.as_mut().attach(compilation_ptr.as_ptr());
-
-            if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-              instance.module = val.module;
-            }
-            let napi_value = ToNapiValue::to_napi_value(env, &unassociated_ref);
-            refs.insert(module.identifier(), unassociated_ref);
-            napi_value
-          } else {
-            match refs.entry(module.identifier()) {
-              std::collections::hash_map::Entry::Occupied(entry) => {
-                let r = entry.get();
-                ToNapiValue::to_napi_value(env, r)
-              }
-              std::collections::hash_map::Entry::Vacant(entry) => {
-                let instance: ClassInstance<JsModule> = JsModule {
-                  identifier: val.identifier,
-                  module: val.module,
-                  compilation: Some(compilation_ptr),
-                }
-                .into_instance(Env::from_raw(env))?;
-                let r = entry.insert(OneShotRef::new(env, instance)?);
-                ToNapiValue::to_napi_value(env, r)
-              }
-            }
-          }
-        })
-      }),
-      None => UNASSOCIATED_MODULE_INSTANCE_REFS.with(|ref_cell| {
-        let mut refs = ref_cell.borrow_mut();
-        match refs.entry(module.identifier()) {
-          std::collections::hash_map::Entry::Occupied(entry) => {
-            let r = entry.get();
-
-            let mut instance: ClassInstance<JsModule> = r.from_napi_value()?;
-            if !std::ptr::addr_eq(instance.module.as_ptr(), val.module.as_ptr()) {
-              instance.module = val.module;
-            }
-            ToNapiValue::to_napi_value(env, r)
-          }
-          std::collections::hash_map::Entry::Vacant(entry) => {
-            let instance = JsModule {
-              identifier: val.identifier,
-              module: val.module,
-              compilation: None,
-            }
-            .into_instance(Env::from_raw(env))?;
-            let r = entry.insert(OneShotRef::new(env, instance)?);
-            ToNapiValue::to_napi_value(env, r)
-          }
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compilation_id = refs.borrow_mut();
+      let entry = refs_by_compilation_id.entry(val.compilation_id);
+      let refs = match entry {
+        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          let refs = IdentifierMap::default();
+          entry.insert(refs)
         }
-      }),
-    }
+      };
+
+      match refs.entry(module.identifier()) {
+        std::collections::hash_map::Entry::Occupied(entry) => {
+          let r = entry.get();
+          let mut instance = r.from_napi_value()?;
+          if let Some(compilation) = val.compilation {
+            instance.attach(compilation);
+          } else {
+            instance.module = val.module;
+          }
+          ToNapiValue::to_napi_value(env, r)
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          let instance: ClassInstance<JsModule> = JsModule {
+            identifier: val.identifier,
+            module: val.module,
+            compilation_id: val.compilation_id,
+            compilation: val.compilation,
+          }
+          .into_instance(Env::from_raw(env))?;
+          let r = entry.insert(OneShotRef::new(env, instance)?);
+          ToNapiValue::to_napi_value(env, r)
+        }
+      }
+    })
   }
 }
 
 impl FromNapiValue for JsModuleWrapper {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let instance: ClassInstance<JsModule> = FromNapiValue::from_napi_value(env, napi_val)?;
-    let module = instance.module;
 
     Ok(JsModuleWrapper {
       identifier: instance.identifier,
       #[allow(clippy::unwrap_used)]
-      module: NonNull::new(module.as_ptr()).unwrap(),
+      module: instance.module.clone(),
+      compilation_id: instance.compilation_id,
       compilation: instance.compilation,
     })
   }

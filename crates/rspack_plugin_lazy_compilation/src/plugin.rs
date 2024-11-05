@@ -2,8 +2,8 @@ use std::sync::LazyLock;
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
+  ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
+  CompilerOptions, DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
   NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::Result;
@@ -29,16 +29,16 @@ pub enum LazyCompilationTest<F: LazyCompilationTestCheck> {
 }
 
 pub trait LazyCompilationTestCheck: Send + Sync + Debug {
-  fn test(&self, module: &dyn Module) -> bool;
+  fn test(&self, compilation_id: CompilationId, module: &dyn Module) -> bool;
 }
 
 impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
-  fn test(&self, module: &dyn Module) -> bool {
+  fn test(&self, compilation_id: CompilationId, module: &dyn Module) -> bool {
     match self {
       LazyCompilationTest::Regex(regex) => {
         regex.test(&module.name_for_condition().unwrap_or("".into()))
       }
-      LazyCompilationTest::Fn(f) => f.test(module),
+      LazyCompilationTest::Fn(f) => f.test(compilation_id, module),
     }
   }
 }
@@ -64,9 +64,9 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     Self::new_inner(Mutex::new(backend), entries, imports, test, cacheable)
   }
 
-  fn check_test(&self, module: &BoxModule) -> bool {
+  fn check_test(&self, compilation_id: CompilationId, module: &BoxModule) -> bool {
     if let Some(test) = &self.inner.test {
-      test.test(module.as_ref())
+      test.test(compilation_id, module.as_ref())
     } else {
       true
     }
@@ -149,7 +149,7 @@ async fn normal_module_factory_module(
   }
 
   if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
-    || !self.check_test(module)
+    || !self.check_test(module_factory_create_data.compilation_id, module)
   {
     return Ok(());
   }

@@ -137,7 +137,7 @@ impl JsCompilation {
       .filter_map(|module_id| {
         compilation
           .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+          .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)))
       })
       .collect::<Vec<_>>()
   }
@@ -152,7 +152,7 @@ impl JsCompilation {
       .filter_map(|module_id| {
         compilation
           .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+          .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)))
       })
       .collect::<Vec<_>>()
   }
@@ -512,13 +512,15 @@ impl JsCompilation {
     let compilation = unsafe { self.0.as_mut() };
 
     callbackify(env, f, async {
+      let compilation_id = compilation.id();
+
       let modules = compilation
         .rebuild_module(
           IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.as_ref(), None))
+              .map(|module| JsModuleWrapper::new(module.as_ref(), compilation_id, None))
               .collect::<Vec<_>>()
           },
         )

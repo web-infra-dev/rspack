@@ -35,7 +35,11 @@ impl FromNapiValue for RawChunkOptionNameCtx {
 impl<'a> From<ChunkNameGetterFnCtx<'a>> for RawChunkOptionNameCtx {
   fn from(value: ChunkNameGetterFnCtx<'a>) -> Self {
     RawChunkOptionNameCtx {
-      module: JsModuleWrapper::new(value.module, Some(value.compilation)),
+      module: JsModuleWrapper::new(
+        value.module,
+        value.compilation.id(),
+        Some(value.compilation),
+      ),
       chunks: value
         .chunks
         .iter()

@@ -1,11 +1,12 @@
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Dependency, LoaderImportDependency, ModuleProfile,
+  CompilationId, Dependency, LoaderImportDependency, ModuleProfile,
 };
 
 #[derive(Debug)]
 pub struct EntryTask {
+  pub compilation_id: CompilationId,
   pub dep: Box<LoaderImportDependency>,
   pub layer: Option<String>,
 }
@@ -16,12 +17,17 @@ impl Task<MakeTaskContext> for EntryTask {
   }
 
   async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
-    let Self { dep, layer } = *self;
+    let Self {
+      compilation_id,
+      dep,
+      layer,
+    } = *self;
     let mut module_graph =
       MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     module_graph.add_dependency(dep.clone());
     Ok(vec![Box::new(FactorizeTask {
+      compilation_id,
       module_factory: context
         .dependency_factories
         .get(dep.dependency_type())

@@ -4,7 +4,7 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_binding_values::{JsModuleWrapper, RawRegex};
-use rspack_core::ModuleIdentifier;
+use rspack_core::{CompilationId, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{
   backend::{Backend, ModuleInfo},
@@ -41,10 +41,10 @@ pub struct LazyCompilationTestFn {
 }
 
 impl LazyCompilationTestCheck for LazyCompilationTestFn {
-  fn test(&self, m: &dyn rspack_core::Module) -> bool {
+  fn test(&self, compilation_id: CompilationId, m: &dyn rspack_core::Module) -> bool {
     let res = self
       .tsfn
-      .blocking_call_with_sync(JsModuleWrapper::new(m, None))
+      .blocking_call_with_sync(JsModuleWrapper::new(m, compilation_id, None))
       .expect("failed to invoke lazyCompilation.test");
 
     res.unwrap_or(false)
