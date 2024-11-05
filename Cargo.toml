@@ -71,8 +71,8 @@ xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
 napi        = { package = "napi-h", version = "=2.16.1" }
-napi-build  = { version = "2" }
-napi-derive = { version = "2" }
+napi-build  = { version = "2.1.3" }
+napi-derive = { version = "2.16.12" }
 
 # Serialize and Deserialize
 inventory = { version = "0.1" }
