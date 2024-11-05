@@ -10,7 +10,6 @@ use anyhow::Context;
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
@@ -282,8 +281,7 @@ pub fn append_hash(url: &str, hash: &str) -> String {
 
 pub fn generate_posix_path(path: &str) -> Cow<'_, str> {
   if env::consts::OS == "windows" {
-    let reg = Regex::new(r"[/\\]").expect("Invalid RegExp");
-    reg.replace_all(path, "/")
+    path.cow_replace(&['/', '\\'] as &[char], "/")
   } else {
     path.into()
   }

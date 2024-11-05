@@ -1,9 +1,39 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import type { Compiler } from "../Compiler";
+import type { Incremental } from "../config";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
-import { create } from "./base";
+export class MangleExportsPlugin extends RspackBuiltinPlugin {
+	name = BuiltinPluginName.MangleExportsPlugin;
+	affectedHooks = "compilation" as const;
 
-export const MangleExportsPlugin = create(
-	BuiltinPluginName.MangleExportsPlugin,
-	(deterministic: boolean) => deterministic,
-	"compilation"
-);
+	constructor(private deterministic: boolean) {
+		super();
+	}
+
+	raw(compiler: Compiler): BuiltinPlugin {
+		const incremental = compiler.options.experiments.incremental as Incremental;
+		const logger = compiler.getInfrastructureLogger(
+			"rspack.MangleExportsPlugin"
+		);
+		if (incremental.modulesHashes) {
+			incremental.modulesHashes = false;
+			logger.warn(
+				"`optimization.mangleExports` can't be used with `incremental.modulesHashes` as export mangling is a global effect. `incremental.modulesHashes` has been overridden to false."
+			);
+		}
+		if (incremental.modulesCodegen) {
+			incremental.modulesCodegen = false;
+			logger.warn(
+				"`optimization.mangleExports` can't be used with `incremental.modulesCodegen` as export mangling is a global effect. `incremental.modulesCodegen` has been overridden to false."
+			);
+		}
+		if (incremental.modulesRuntimeRequirements) {
+			incremental.modulesRuntimeRequirements = false;
+			logger.warn(
+				"`optimization.mangleExports` can't be used with `incremental.modulesRuntimeRequirements` as export mangling is a global effect. `incremental.modulesRuntimeRequirements` has been overridden to false."
+			);
+		}
+		return createBuiltinPlugin(this.name, this.deterministic);
+	}
+}

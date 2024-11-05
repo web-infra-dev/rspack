@@ -44,7 +44,7 @@ const CONTENT_COMPARATOR = async (p, a, b) => {
 		};
 		aa = await format(aa, o);
 		bb = await format(bb, o);
-	} catch (e) { }
+	} catch (e) {}
 	return aa === bb;
 };
 

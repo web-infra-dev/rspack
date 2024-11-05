@@ -82,7 +82,7 @@ impl MakeTaskContext {
   }
 }
 
-pub fn repair(
+pub async fn repair(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
   build_dependencies: HashSet<BuildDependency>,
@@ -140,6 +140,6 @@ pub fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = MakeTaskContext::new(compilation, artifact);
-  run_task_loop(&mut ctx, init_tasks)?;
+  run_task_loop(&mut ctx, init_tasks).await?;
   Ok(ctx.transform_to_make_artifact())
 }

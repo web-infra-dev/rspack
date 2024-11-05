@@ -398,5 +398,6 @@ jobs:
       - lint
       - rust_check
       - rust_test
+    # after merged to main branch
     if: ${{ !failure() && github.event_name == 'push' }}
     uses: ./.github/workflows/preview-commit.yml

@@ -350,165 +350,168 @@ impl SourceMapDevToolPlugin {
       }
     }
 
-    mapped_sources
-      .into_par_iter()
+    let futures = mapped_sources
+      .into_iter()
       .map(|(filename, source, source_map)| {
-        let source_map_json = match source_map {
-          Some(map) => Some(map.to_json().into_diagnostic()?),
-          None => None,
-        };
-
-        let mut asset = compilation
-          .assets()
-          .get(&filename)
-          .unwrap_or_else(|| {
-            panic!(
-              "expected to find filename '{}' in compilation.assets, but it was not present",
-              &filename
-            )
-          })
-          .clone();
-        let Some(source_map_json) = source_map_json else {
-          return Ok(MappedAsset {
-            asset: (filename, asset),
-            source_map: None,
-          });
-        };
-        let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
-        let current_source_mapping_url_comment = match &self.source_mapping_url_comment {
-          Some(SourceMappingUrlComment::String(s)) => {
-            let s = if css_extension_detected {
-              URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
-            } else {
-              Cow::from(s)
-            };
-            Some(SourceMappingUrlCommentRef::String(s))
-          }
-          Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
-          None => None,
-        };
-
-        if let Some(source_map_filename_config) = &self.source_map_filename {
-          let chunk = file_to_chunk.get(&filename);
-          let source_type = if css_extension_detected {
-            &SourceType::Css
-          } else {
-            &SourceType::JavaScript
+        async {
+          let source_map_json = match source_map {
+            Some(map) => Some(map.to_json().into_diagnostic()?),
+            None => None,
           };
-          let filename = match &self.file_context {
-            Some(file_context) => Cow::Owned(
-              relative(Path::new(file_context), Path::new(&filename))
-                .to_string_lossy()
-                .to_string(),
-            ),
-            None => Cow::Borrowed(&filename),
-          };
-          let data = PathData::default().filename(&filename);
-          let data = match chunk {
-            Some(chunk) => data
-              .chunk(chunk)
-              .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
-            None => data,
-          };
-          let source_map_filename = compilation
-            .get_asset_path(source_map_filename_config, data)
-            .always_ok();
 
-          if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
-            let source_map_url = if let Some(public_path) = &self.public_path {
-              format!("{public_path}{source_map_filename}")
-            } else {
-              let mut file_path = PathBuf::new();
-              file_path.push(Component::RootDir);
-              file_path.extend(Path::new(filename.as_ref()).components());
-
-              let mut source_map_path = PathBuf::new();
-              source_map_path.push(Component::RootDir);
-              source_map_path.extend(Path::new(&source_map_filename).components());
-
-              relative(
-                #[allow(clippy::unwrap_used)]
-                file_path.parent().unwrap(),
-                &source_map_path,
+          let mut asset = compilation
+            .assets()
+            .get(&filename)
+            .unwrap_or_else(|| {
+              panic!(
+                "expected to find filename '{}' in compilation.assets, but it was not present",
+                &filename
               )
-              .to_string_lossy()
-              .to_string()
+            })
+            .clone();
+          let Some(source_map_json) = source_map_json else {
+            return Ok(MappedAsset {
+              asset: (filename, asset),
+              source_map: None,
+            });
+          };
+          let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
+          let current_source_mapping_url_comment = match &self.source_mapping_url_comment {
+            Some(SourceMappingUrlComment::String(s)) => {
+              let s = if css_extension_detected {
+                URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
+              } else {
+                Cow::from(s)
+              };
+              Some(SourceMappingUrlCommentRef::String(s))
+            }
+            Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
+            None => None,
+          };
+
+          if let Some(source_map_filename_config) = &self.source_map_filename {
+            let chunk = file_to_chunk.get(&filename);
+            let source_type = if css_extension_detected {
+              &SourceType::Css
+            } else {
+              &SourceType::JavaScript
             };
-            let data = data.url(&source_map_url);
+            let filename = match &self.file_context {
+              Some(file_context) => Cow::Owned(
+                relative(Path::new(file_context), Path::new(&filename))
+                  .to_string_lossy()
+                  .to_string(),
+              ),
+              None => Cow::Borrowed(&filename),
+            };
+            let data = PathData::default().filename(&filename);
+            let data = match chunk {
+              Some(chunk) => data
+                .chunk(chunk)
+                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+              None => data,
+            };
+            let source_map_filename = compilation
+              .get_asset_path(source_map_filename_config, data)
+              .always_ok();
+
+            if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
+              let source_map_url = if let Some(public_path) = &self.public_path {
+                format!("{public_path}{source_map_filename}")
+              } else {
+                let mut file_path = PathBuf::new();
+                file_path.push(Component::RootDir);
+                file_path.extend(Path::new(filename.as_ref()).components());
+
+                let mut source_map_path = PathBuf::new();
+                source_map_path.push(Component::RootDir);
+                source_map_path.extend(Path::new(&source_map_filename).components());
+
+                relative(
+                  #[allow(clippy::unwrap_used)]
+                  file_path.parent().unwrap(),
+                  &source_map_path,
+                )
+                .to_string_lossy()
+                .to_string()
+              };
+              let data = data.url(&source_map_url);
+              let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+                SourceMappingUrlCommentRef::String(s) => compilation
+                  .get_asset_path(&FilenameTemplate::from(s.to_string()), data)
+                  .always_ok(),
+                SourceMappingUrlCommentRef::Fn(f) => {
+                  let comment = f(data).await?;
+                  FilenameTemplate::from(comment)
+                    .render(data, None, output_options.hash_digest_length)
+                    .always_ok()
+                }
+              };
+              asset.source = Some(
+                ConcatSource::new([
+                  source.clone(),
+                  RawSource::from(
+                    current_source_mapping_url_comment
+                      .cow_replace("[url]", &source_map_url)
+                      .into_owned(),
+                  )
+                  .boxed(),
+                ])
+                .boxed(),
+              );
+              asset.info.related.source_map = Some(source_map_filename.clone());
+            } else {
+              asset.source = Some(source.clone());
+            }
+            let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
+            if let Some(asset) = compilation.assets().get(filename.as_ref()) {
+              // set source map asset version to be the same as the target asset
+              source_map_asset_info.version = asset.info.version.clone();
+            }
+            let source_map_asset = CompilationAsset::new(
+              Some(RawSource::from(source_map_json).boxed()),
+              source_map_asset_info,
+            );
+            Ok(MappedAsset {
+              asset: (filename.to_string(), asset),
+              source_map: Some((source_map_filename, source_map_asset)),
+            })
+          } else {
+            let current_source_mapping_url_comment = current_source_mapping_url_comment.expect(
+              "SourceMapDevToolPlugin: append can't be false when no filename is provided.",
+            );
             let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-              SourceMappingUrlCommentRef::String(s) => compilation
-                .get_asset_path(&FilenameTemplate::from(s.to_string()), data)
-                .always_ok(),
-              SourceMappingUrlCommentRef::Fn(f) => {
-                let comment = futures::executor::block_on(f(data))?;
-                FilenameTemplate::from(comment)
-                  .render(data, None, output_options.hash_digest_length)
-                  .always_ok()
+              SourceMappingUrlCommentRef::String(s) => s,
+              SourceMappingUrlCommentRef::Fn(_) => {
+                return Err(error!(
+                  "SourceMapDevToolPlugin: append can't be a function when no filename is provided"
+                ))
               }
             };
+            let base64 = rspack_base64::encode_to_string(source_map_json.as_bytes());
             asset.source = Some(
               ConcatSource::new([
                 source.clone(),
                 RawSource::from(
                   current_source_mapping_url_comment
-                    .cow_replace("[url]", &source_map_url)
+                    .cow_replace(
+                      "[url]",
+                      &format!("data:application/json;charset=utf-8;base64,{base64}"),
+                    )
                     .into_owned(),
                 )
                 .boxed(),
               ])
               .boxed(),
             );
-            asset.info.related.source_map = Some(source_map_filename.clone());
-          } else {
-            asset.source = Some(source.clone());
+            Ok(MappedAsset {
+              asset: (filename, asset),
+              source_map: None,
+            })
           }
-          let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
-          if let Some(asset) = compilation.assets().get(filename.as_ref()) {
-            // set source map asset version to be the same as the target asset
-            source_map_asset_info.version = asset.info.version.clone();
-          }
-          let source_map_asset = CompilationAsset::new(
-            Some(RawSource::from(source_map_json).boxed()),
-            source_map_asset_info,
-          );
-          Ok(MappedAsset {
-            asset: (filename.to_string(), asset),
-            source_map: Some((source_map_filename, source_map_asset)),
-          })
-        } else {
-          let current_source_mapping_url_comment = current_source_mapping_url_comment
-            .expect("SourceMapDevToolPlugin: append can't be false when no filename is provided.");
-          let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-            SourceMappingUrlCommentRef::String(s) => s,
-            SourceMappingUrlCommentRef::Fn(_) => {
-              return Err(error!(
-                "SourceMapDevToolPlugin: append can't be a function when no filename is provided"
-              ))
-            }
-          };
-          let base64 = rspack_base64::encode_to_string(source_map_json.as_bytes());
-          asset.source = Some(
-            ConcatSource::new([
-              source.clone(),
-              RawSource::from(
-                current_source_mapping_url_comment
-                  .cow_replace(
-                    "[url]",
-                    &format!("data:application/json;charset=utf-8;base64,{base64}"),
-                  )
-                  .into_owned(),
-              )
-              .boxed(),
-            ])
-            .boxed(),
-          );
-          Ok(MappedAsset {
-            asset: (filename, asset),
-            source_map: None,
-          })
         }
-      })
-      .collect::<Result<Vec<_>>>()
+      });
+    join_all(futures).await.into_iter().collect()
   }
 }
 

@@ -11,7 +11,7 @@ use itertools::Itertools;
 pub use require_context_dependency::RequireContextDependency;
 pub use require_resolve_context_dependency::RequireResolveContextDependency;
 use rspack_core::{
-  module_raw, ContextDependency, ContextMode, ContextOptions, GroupOptions, RealDependencyLocation,
+  module_raw, ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
   TemplateContext, TemplateReplaceSource,
 };
 
@@ -104,7 +104,7 @@ fn context_dependency_template_as_id(
   dep: &dyn ContextDependency,
   source: &mut TemplateReplaceSource,
   code_generatable_context: &mut TemplateContext,
-  range: &RealDependencyLocation,
+  range: &DependencyRange,
 ) {
   let TemplateContext {
     compilation,

@@ -1,6 +1,5 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, DependencyCategory, RealDependencyLocation,
-  SpanExt,
+  ConstDependency, ContextDependency, ContextMode, DependencyCategory, DependencyRange, SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
@@ -57,7 +56,7 @@ fn create_require_resolve_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
   expr: &Expr,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   weak: bool,
 ) -> RequireResolveContextDependency {
   let start = range.start;
@@ -180,7 +179,7 @@ impl CommonJsImportsParserPlugin {
 
     let (members, first_arg) = extract_require_call_info(parser, mem_expr)?;
 
-    let range: RealDependencyLocation = mem_expr.span.into();
+    let range: DependencyRange = mem_expr.span.into();
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
@@ -201,7 +200,7 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     param.is_string().then(|| {
-      let range_expr: RealDependencyLocation = param.range().into();
+      let range_expr: DependencyRange = param.range().into();
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
         range_expr.with_source(parser.source_map.clone()),
@@ -262,7 +261,7 @@ impl CommonJsImportsParserPlugin {
         }
       }
       if !is_expression {
-        let range: RealDependencyLocation = call_expr.callee.span().into();
+        let range: DependencyRange = call_expr.callee.span().into();
         parser
           .presentational_dependencies
           .push(Box::new(RequireHeaderDependency::new(
@@ -283,7 +282,7 @@ impl CommonJsImportsParserPlugin {
     {
       self.process_require_context(parser, call_expr, &param);
     } else {
-      let range: RealDependencyLocation = call_expr.callee.span().into();
+      let range: DependencyRange = call_expr.callee.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(RequireHeaderDependency::new(

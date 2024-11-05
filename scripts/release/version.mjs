@@ -65,7 +65,7 @@ export async function version_handler(version, options) {
 					nextVersion = semver.inc(lastVersion, "prerelease", pre);
 				} else {
 					// different pre tag
-					nextVersion = `${lastVersion.split(existsPreTag)[0]}${pre}.0`
+					nextVersion = `${lastVersion.split(existsPreTag)[0]}${pre}.0`;
 				}
 			} else {
 				nextVersion = semver.inc(lastVersion, `pre${version}`, pre);

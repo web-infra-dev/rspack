@@ -897,10 +897,10 @@ export type RuleSetRule = {
 	enforce?: "pre" | "post";
 
 	/** A kind of Nested Rule, an array of Rules from which only the first matching Rule is used when the parent Rule matches. */
-	oneOf?: RuleSetRule[];
+	oneOf?: (RuleSetRule | Falsy)[];
 
 	/** A kind of Nested Rule, an array of Rules that is also used when the parent Rule matches. */
-	rules?: RuleSetRule[];
+	rules?: (RuleSetRule | Falsy)[];
 };
 
 /** A list of rules. */

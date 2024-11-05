@@ -1,18 +1,18 @@
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ModuleDependency, RealDependencyLocation, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssImportDependency {
   id: DependencyId,
   request: String,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl CssImportDependency {
-  pub fn new(request: String, range: RealDependencyLocation) -> Self {
+  pub fn new(request: String, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -34,7 +34,7 @@ impl Dependency for CssImportDependency {
     &DependencyType::CssImport
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

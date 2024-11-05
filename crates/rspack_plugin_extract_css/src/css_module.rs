@@ -167,12 +167,12 @@ impl Module for CssModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
       build_info: BuildInfo {
-        hash: Some(self.compute_hash(build_context.compiler_options)),
+        hash: Some(self.compute_hash(&build_context.compiler_options)),
         cacheable: self.cacheable,
         file_dependencies: self.file_dependencies.clone(),
         context_dependencies: self.context_dependencies.clone(),

@@ -4,6 +4,7 @@ module.exports = {
 	entry: {
 		main: "./src/index.js"
 	},
+	mode: "development",
 	plugins: [
 		new rspack.HtmlRspackPlugin({
 			template: "./src/index.html"

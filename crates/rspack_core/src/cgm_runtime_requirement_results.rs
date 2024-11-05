@@ -13,19 +13,6 @@ impl CgmRuntimeRequirementsResults {
     requirements.get(runtime)
   }
 
-  pub fn set(
-    &mut self,
-    module: ModuleIdentifier,
-    runtime: RuntimeSpec,
-    runtime_requirements: RuntimeGlobals,
-  ) {
-    let requirements = self
-      .module_to_runtime_requirements
-      .entry(module)
-      .or_default();
-    requirements.set(runtime, runtime_requirements);
-  }
-
   pub fn set_runtime_requirements(
     &mut self,
     module: ModuleIdentifier,
@@ -34,5 +21,9 @@ impl CgmRuntimeRequirementsResults {
     self
       .module_to_runtime_requirements
       .insert(module, runtime_requirements_map);
+  }
+
+  pub fn remove(&mut self, module: &ModuleIdentifier) -> Option<RuntimeSpecMap<RuntimeGlobals>> {
+    self.module_to_runtime_requirements.remove(module)
   }
 }

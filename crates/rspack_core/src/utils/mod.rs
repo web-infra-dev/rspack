@@ -9,7 +9,6 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
 };
-
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;

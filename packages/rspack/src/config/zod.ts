@@ -484,8 +484,8 @@ const baseRuleSetRule = z.strictObject({
 }) satisfies z.ZodType<t.RuleSetRule>;
 
 const ruleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule.extend({
-	oneOf: z.lazy(() => ruleSetRule.array()).optional(),
-	rules: z.lazy(() => ruleSetRule.array()).optional()
+	oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
+	rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
 });
 
 const ruleSetRules = z.array(

@@ -1,5 +1,6 @@
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -224,6 +225,68 @@ module.exports = {
   },
 };
 ```
+
+## experiments.incremental
+
+<ApiMeta addedVersion="1.1.0-beta.0" />
+
+<PropertyType
+  type="boolean | Incremental"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: '{ make: true, emitAssets: true }', mode: 'development' },
+  ]}
+/>
+
+```ts
+type Incremental = {
+  make?: boolean;
+  emitAssets?: boolean;
+  inferAsyncModules?: boolean;
+  providedExports?: boolean;
+  dependenciesDiagnostics?: boolean;
+  modulesHashes?: boolean;
+  modulesCodegen?: boolean;
+  modulesRuntimeRequirements?: boolean;
+  buildChunkGraph?: boolean;
+};
+```
+
+Whether to enable incremental rebuild to speed up the rebuild speed. It is recommended to enable it only during development.
+
+```js
+const isDev = process.env.NODE_ENV;
+module.exports = {
+  mode: isDev ? 'development' : 'production',
+  experiments: {
+    incremental: isDev,
+  },
+};
+```
+
+`true` means enable incremental for all stages. `false` means disable incremental for all stages. Incremental can also be enabled only for specified partial stages:
+
+```js
+module.exports = {
+  experiments: {
+    // enable incremental for all stages
+    incremental: true,
+    // disable incremental for all stages
+    incremental: false,
+    // enable only for specified partial stages
+    incremental: {
+      make: true,
+      emitAssets: true,
+    },
+  },
+};
+```
+
+Currently, incremental for the `make` and `emitAssets` stages is enabled by default. This is also the default behavior since Rspack v1.0. As this feature further stabilizes, we will enable incremental for more stages by default.
+
+:::tip
+This feature is experimental. You can check its relevant progress at [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106). You can also report bugs and any related feedback here.
+:::
 
 ## experiments.rspackFuture
 

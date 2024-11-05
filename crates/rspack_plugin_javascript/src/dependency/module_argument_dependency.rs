@@ -1,17 +1,17 @@
 use rspack_core::{
-  AsDependency, Compilation, DependencyTemplate, RealDependencyLocation, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyRange, DependencyTemplate, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
   id: Option<&'static str>,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(id: Option<&'static str>, range: RealDependencyLocation) -> Self {
+  pub fn new(id: Option<&'static str>, range: DependencyRange) -> Self {
     Self { id, range }
   }
 

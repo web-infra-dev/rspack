@@ -63,7 +63,7 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   Ok(())
 }
 
-async fn create_loader_context<Context: 'static>(
+async fn create_loader_context<Context>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -103,7 +103,7 @@ async fn create_loader_context<Context: 'static>(
   Ok(loader_context)
 }
 
-pub async fn run_loaders<Context: 'static + Send>(
+pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   resource_data: Arc<ResourceData>,
   plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,

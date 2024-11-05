@@ -1,6 +1,6 @@
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RealDependencyLocation,
+  DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
   RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
@@ -16,7 +16,7 @@ pub struct WasmImportDependency {
   // only_direct_import: bool,
   /// the WASM AST node
   pub desc: WasmNode,
-  span: Option<RealDependencyLocation>,
+  span: Option<DependencyRange>,
 }
 
 impl WasmImportDependency {
