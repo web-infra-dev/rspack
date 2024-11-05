@@ -7,13 +7,13 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyConditionFn, DependencyId, DependencyTemplate, DependencyType,
-  ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode,
-  ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec,
+  ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RealDependencyLocation, RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -40,7 +40,7 @@ pub struct ESMExportImportedSpecifierDependency {
   pub export_all: bool,
   pub source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
@@ -55,7 +55,7 @@ impl ESMExportImportedSpecifierDependency {
     name: Option<Atom>,
     export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     export_presence_mode: ExportPresenceMode,
     attributes: Option<ImportAttributes>,
   ) -> Self {
@@ -1042,7 +1042,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     Some(self.range.to_string())
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

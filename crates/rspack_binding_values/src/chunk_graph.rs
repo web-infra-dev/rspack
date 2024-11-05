@@ -12,7 +12,7 @@ pub fn get_chunk_modules(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
 ) -> Vec<JsModuleWrapper> {
-  let compilation = unsafe { js_compilation.0.as_ref() };
+  let compilation = unsafe { js_compilation.inner.as_ref() };
 
   let module_graph = compilation.get_module_graph();
   let modules = compilation
@@ -33,7 +33,7 @@ pub fn get_chunk_entry_modules(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
 ) -> Vec<JsModuleWrapper> {
-  let compilation = unsafe { js_compilation.0.as_ref() };
+  let compilation = unsafe { js_compilation.inner.as_ref() };
 
   let modules = compilation
     .chunk_graph
@@ -51,7 +51,7 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
   js_chunk_ukey: u32,
   js_compilation: &JsCompilation,
 ) -> Vec<JsChunk> {
-  let compilation = unsafe { js_compilation.0.as_ref() };
+  let compilation = unsafe { js_compilation.inner.as_ref() };
 
   let chunks = compilation
     .chunk_graph
@@ -76,7 +76,7 @@ pub fn get_chunk_modules_iterable_by_source_type(
   source_type: String,
   js_compilation: &JsCompilation,
 ) -> Result<Vec<JsModuleWrapper>> {
-  let compilation = unsafe { js_compilation.0.as_ref() };
+  let compilation = unsafe { js_compilation.inner.as_ref() };
 
   Ok(
     compilation

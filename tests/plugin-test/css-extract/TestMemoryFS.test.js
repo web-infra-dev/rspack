@@ -32,6 +32,10 @@ describe("TestMemoryFS", () => {
 				return;
 			}
 
+			// CHANGE: The compilation instance of Rspack will be dropped on the Rust side after compilation.
+			// So we should obtain all the assets information after the next time the compile. 
+			const names1 = assetsNames(stats1.compilation.getAssets());
+
 			compiler.run((err2, stats2) => {
 				if (err2) {
 					done(err2);
@@ -39,9 +43,8 @@ describe("TestMemoryFS", () => {
 					return;
 				}
 
-				expect(assetsNames(stats1.compilation.getAssets())).toEqual(
-					assetsNames(stats2.compilation.getAssets())
-				);
+				const names2 = assetsNames(stats2.compilation.getAssets());
+				expect(names1).toEqual(names2);
 
 				done();
 			});

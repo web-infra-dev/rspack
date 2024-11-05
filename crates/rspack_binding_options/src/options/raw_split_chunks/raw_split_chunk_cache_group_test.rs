@@ -3,12 +3,12 @@ use std::sync::Arc;
 use napi::bindgen_prelude::{Either3, FromNapiValue};
 use napi_derive::napi;
 use rspack_binding_values::JsModuleWrapper;
-use rspack_napi::regexp::{JsRegExp, JsRegExpExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
+use rspack_regex::RspackRegex;
 
 pub(super) type RawCacheGroupTest =
-  Either3<String, JsRegExp, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
+  Either3<String, RspackRegex, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
 
 #[napi(object, object_from_js = false)]
 pub struct JsCacheGroupTestCtx {
@@ -41,7 +41,7 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
   use pollster::block_on;
   match raw {
     Either3::A(str) => CacheGroupTest::String(str),
-    Either3::B(regexp) => CacheGroupTest::RegExp(regexp.to_rspack_regex()),
+    Either3::B(regexp) => CacheGroupTest::RegExp(regexp),
     Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |ctx| block_on(v.call(ctx.into())))),
   }
 }

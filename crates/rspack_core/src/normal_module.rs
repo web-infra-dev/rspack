@@ -29,14 +29,16 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  contextify, diagnostics::ModuleBuildError, get_context, impl_module_meta_info,
-  module_update_hash, AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
+  contextify,
+  diagnostics::{CapturedLoaderError, ModuleBuildError},
+  get_context, impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier,
+  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
+  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -435,16 +437,38 @@ impl Module for NormalModule {
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(r) => {
-        let node_error = r.downcast_ref::<NodeError>();
-        let stack = node_error.and_then(|e| e.stack.clone());
-        let hide_stack = node_error.and_then(|e| e.hide_stack);
-        let e = ModuleBuildError(r).boxed();
-        let d = Diagnostic::from(e)
+      Err(mut r) => {
+        let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+          build_info.file_dependencies = captured_error.take_file_dependencies();
+          build_info.context_dependencies = captured_error.take_context_dependencies();
+          build_info.missing_dependencies = captured_error.take_missing_dependencies();
+          build_info.build_dependencies = captured_error.take_build_dependencies();
+
+          let stack = captured_error.take_stack();
+          Diagnostic::from(
+            ModuleBuildError(error!(if captured_error.hide_stack.unwrap_or_default() {
+              captured_error.take_message()
+            } else {
+              stack
+                .clone()
+                .unwrap_or_else(|| captured_error.take_message())
+            }))
+            .boxed(),
+          )
           .with_stack(stack)
-          .with_hide_stack(hide_stack);
-        self.source = NormalModuleSource::BuiltFailed(d.clone());
-        self.add_diagnostic(d);
+          .with_hide_stack(captured_error.hide_stack)
+        } else {
+          let node_error = r.downcast_ref::<NodeError>();
+          let stack = node_error.and_then(|e| e.stack.clone());
+          let hide_stack = node_error.and_then(|e| e.hide_stack);
+          let e = ModuleBuildError(r).boxed();
+          Diagnostic::from(e)
+            .with_stack(stack)
+            .with_hide_stack(hide_stack)
+        };
+
+        self.source = NormalModuleSource::BuiltFailed(diagnostic.clone());
+        self.add_diagnostic(diagnostic);
 
         build_info.hash =
           Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
@@ -601,11 +625,6 @@ impl Module for NormalModule {
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
-      code_generation_result.set_hash(
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
-      );
       code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)
     } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
@@ -620,11 +639,6 @@ impl Module for NormalModule {
           RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
       }
-      code_generation_result.set_hash(
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
-      );
       Ok(code_generation_result)
     } else {
       Err(error!(

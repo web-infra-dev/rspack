@@ -11,6 +11,7 @@ version     = "0.1.0"
 [dependencies]
 bitflags      = { workspace = true }
 concat-string = { workspace = true }
+cow-utils     = { workspace = true }
 dashmap       = { workspace = true }
 indexmap      = { workspace = true }
 itoa          = { version = "1.0.11" }

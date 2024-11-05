@@ -5,7 +5,7 @@
 ```javascript
 Array [
   Object {
-    "main.c730a4b10be8bd2e.js": (() => { // webpackBootstrap
+    "main.1a8159bf5e440aaa.js": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook"

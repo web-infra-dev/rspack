@@ -541,10 +541,7 @@ function getRawRuleSetCondition(
 	if (condition instanceof RegExp) {
 		return {
 			type: RawRuleSetConditionType.regexp,
-			regexp: {
-				source: condition.source,
-				flags: condition.flags
-			}
+			regexp: condition
 		};
 	}
 	if (typeof condition === "function") {

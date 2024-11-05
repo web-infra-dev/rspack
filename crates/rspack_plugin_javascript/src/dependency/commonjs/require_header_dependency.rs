@@ -1,18 +1,17 @@
 use rspack_core::DependencyId;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, RealDependencyLocation,
-  RuntimeSpec,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyRange, RuntimeSpec,
 };
 use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
 
 #[derive(Debug, Clone)]
 pub struct RequireHeaderDependency {
   id: DependencyId,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl RequireHeaderDependency {
-  pub fn new(range: RealDependencyLocation) -> Self {
+  pub fn new(range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       range,

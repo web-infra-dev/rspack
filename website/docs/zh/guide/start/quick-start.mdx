@@ -117,70 +117,46 @@ npm init -y
 - [从 Vite 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vite)
 - [从 Storybook 迁移](/guide/migration/storybook)
 
-## 社区生态
-
-社区中已经有一些基于 Rspack 的工具链：
-
-- 如果你需要开发一个静态站点（如文档站），可以尝试 [Rspress](https://rspress.dev)。
-- 如果你需要开发一个工具库或组件库，可以尝试 [Rslib](https://github.com/web-infra-dev/rslib)。
-- 如果你需要分析构建过程和构建产物，可以尝试 [Rsdoctor](https://rsdoctor.dev)。
-- 如果你需要一个 React 全栈框架来构建 Web 应用，可以尝试 [Modern.js](https://modernjs.dev/)。
-- 如果你需要在 Monorepo 中使用 Rspack，打造快速、可扩展的构建系统，可以尝试 [Nx](https://nx.dev)。
-
-> 访问 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 来发现更多 Rspack 生态中的项目。
+## 生态
 
 ### Rspress
 
-Rspress 是一个基于 Rspack 的静态站点生成器，它包含如下的特性：
+[Rspress](https://rspress.dev) 是一个基于 Rsbuild、React 和 MDX 的静态站点生成器，内置了一套默认的文档主题，你可以通过 Rspress 来快速搭建一个文档站点，同时也可以自定义主题，来满足个性化静态站需求，比如博客站、产品主页等。
 
-- 🚀 快速构建：基于 Rust 构建工具和 Markdown/MDX 编译器，构建速度极快，为你带来更舒适的开发体验。
-- 📚 MDX 支持：MDX 是一种强大的内容编写方式，允许你在 Markdown 中使用 React 组件。
-- 📦 内置全文搜索：在构建过程中自动生成全文搜索索引，提供开箱即用的全文搜索能力。
-- 🌈 静态站点生成：在生产环境中，它会自动构建成静态 HTML 文件，可以轻松部署到任何地方。
-- 🔌 提供插件系统：提供一个插件系统，你可以根据自己的需要定制构建过程和自定义主题。
+### Rslib
 
-你可以访问 [官网](https://rspress.dev) 了解更多关于 Rspress 的信息。
+[Rslib](https://github.com/web-infra-dev/rslib) 是一个基于 Rsbuild 的 npm 库开发工具，它复用了 Rsbuild 精心设计的构建配置和插件系统，使开发者能够以简单直观的方式创建 JavaScript 库。
+
+### Rsdoctor
+
+[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果您需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
 
 ### Modern.js
 
-[Modern.js](https://modernjs.dev/) 是字节跳动 Web 工程体系的开源版本，它提供了一个基于 Rspack 实现的渐进式 React 框架，并为开发 Web 应用提供了完整的解决方案。框架支持嵌套路由、服务器端渲染（SSR），并提供开箱即用的 CSS 解决方案，比如 styled-components 和 Tailwind CSS。
+[Modern.js](https://modernjs.dev/) 是一个基于 Rspack 实现的渐进式 React 框架，支持嵌套路由、服务器端渲染（SSR）和模块联邦，并提供开箱即用的 CSS 解决方案。
 
-请阅读 [官方文档](https://modernjs.dev/guides/get-started/introduction) 来了解更多关于 Modern.js 的信息。
+### Nx
 
-### 使用 Nx
+[Nx](https://nx.dev/) 是一个强大的开源构建系统，提供了工具来提升生产力、优化 CI 性能和维护代码质量。
 
-Nx 是一个快速、可扩展的构建系统，Rspack 团队与 Nx 团队合作提供了 [Rspack Nx 插件](https://www.npmjs.com/package/@nx/rspack)。该插件会给你一个预设项目，将 Rspack 与 React、TypeScript、ESLint、Jest 和用于 e2e 测试的 Cypress 整合在一起，使你能迅速搭建一个用于生产环境的应用。
+Rspack 团队与 Nx 团队合作提供了 [Rspack Nx 插件](https://nx.dev/nx-api/rspack)。该插件包含在 Nx Workspace 中管理 Rspack 项目的执行器、生成器和实用工具。
 
-运行以下命令，用 React 和 Rspack 建立一个新的 Nx workspace。
+### Docusaurus
 
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-  <Tab>
+[Docusaurus](https://docusaurus.io/) 是一个用于快速构建、部署和维护开源项目网站的工具。
 
-```sh
-npx create-nx-workspace myrspackapp --preset=@nx/rspack
-```
+Docusaurus v3.6 支持使用 Rspack 作为打包工具，详见 [Docusaurus Faster](https://docusaurus.io/blog/releases/3.6#docusaurus-faster)。
 
-  </Tab>
+### Storybook
 
-  <Tab>
+[Storybook Rsbuild](https://storybook.rsbuild.dev/) 允许你使用 Rsbuild 作为 Storybook 的构建工具，并提供了 React 和 Vue 等 UI 框架的集成。
 
-```sh
-yarn create nx-workspace myrspackapp --preset=@nx/rspack --pm=yarn
-```
+### Nuxt
 
-  </Tab>
+[Nuxt](https://nuxt.com/) 是一个开源框架，提供了直观且可扩展的方式来使用 Vue.js 创建类型安全、高性能和生产级的全栈 Web 应用程序和网站。
 
-  <Tab>
+Nuxt v3.14 引入了对 Rspack 的官方支持，详见 [Nuxt 3.14](https://nuxt.com/blog/v3-14)。
 
-```sh
-pnpm create nx-workspace myrspackapp --preset=@nx/rspack  --pm=pnpm
-```
+### 更多
 
-  </Tab>
-</Tabs>
-
-这个预设项目已经包含了 Rspack、TypeScript、TSX 和 React。此外，它还配备了用于测试的 Jest 和 Cypress 、用于代码规范校验的 ESLint。
-
-创建成功后，你可以直接用 `npm start` 来启动开发服务器。你也可以运行 `npm run build` 来为生产环境构建应用程序、运行 `npm run test` 来运行单元测试。
-
-> 你可以在 [https://nx.dev](https://nx.dev) 了解更多关于 Nx 的信息。
+访问 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 来发现更多 Rspack 生态中的项目。

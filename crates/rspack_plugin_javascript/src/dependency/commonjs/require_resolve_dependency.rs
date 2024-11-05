@@ -1,7 +1,7 @@
 use rspack_core::{
   module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  RealDependencyLocation, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -9,12 +9,12 @@ pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,
   pub weak: bool,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   optional: bool,
 }
 
 impl RequireResolveDependency {
-  pub fn new(request: String, range: RealDependencyLocation, weak: bool, optional: bool) -> Self {
+  pub fn new(request: String, range: DependencyRange, weak: bool, optional: bool) -> Self {
     Self {
       range,
       request,
@@ -38,7 +38,7 @@ impl Dependency for RequireResolveDependency {
     &DependencyType::RequireResolve
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

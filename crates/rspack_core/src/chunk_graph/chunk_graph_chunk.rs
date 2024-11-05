@@ -314,9 +314,17 @@ impl ChunkGraph {
       .collect()
   }
 
-  pub fn get_chunk_module_identifiers(&self, chunk: &ChunkUkey) -> &IdentifierSet {
+  pub fn get_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> &IdentifierSet {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     &chunk_graph_chunk.modules
+  }
+
+  pub fn get_ordered_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
+    let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk.modules.iter().copied().collect();
+    // SAFETY: module identifier is unique
+    modules.sort_unstable_by_key(|m| m.as_str());
+    modules
   }
 
   pub fn get_ordered_chunk_modules<'module>(
@@ -425,6 +433,23 @@ impl ChunkGraph {
   pub fn get_number_of_entry_modules(&self, chunk: &ChunkUkey) -> usize {
     let cgc = self.expect_chunk_graph_chunk(chunk);
     cgc.entry_modules.len()
+  }
+
+  pub fn has_chunk_full_hash_modules(
+    &self,
+    chunk: &ChunkUkey,
+    runtime_modules: &IdentifierMap<Box<dyn RuntimeModule>>,
+  ) -> bool {
+    let cgc = self.expect_chunk_graph_chunk(chunk);
+    for runtime_module in &cgc.runtime_modules {
+      let runtime_module = runtime_modules
+        .get(runtime_module)
+        .expect("should have runtime_module");
+      if !runtime_module.full_hash() {
+        return true;
+      }
+    }
+    false
   }
 
   pub fn add_chunk_runtime_requirements(

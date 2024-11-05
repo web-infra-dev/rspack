@@ -8,7 +8,6 @@ use dashmap::{mapref::entry::Entry, DashSet};
 pub use execute::ExecuteModuleId;
 pub use execute::ExecutedRuntimeModule;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
-use rspack_error::Result;
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
@@ -190,7 +189,7 @@ impl ModuleExecutor {
     base_uri: Option<String>,
     original_module_context: Option<Context>,
     original_module_identifier: Option<Identifier>,
-  ) -> Result<ExecuteModuleResult> {
+  ) -> ExecuteModuleResult {
     let sender = self
       .event_sender
       .as_ref()
@@ -227,7 +226,7 @@ impl ModuleExecutor {
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
       rx.await.expect("should receiver success");
 
-    if let Ok(execute_result) = &execute_result
+    if execute_result.error.is_none()
       && let Some(original_module_identifier) = original_module_identifier
     {
       self
