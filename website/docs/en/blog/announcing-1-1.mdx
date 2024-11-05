@@ -32,7 +32,7 @@ Notable changes in Rspack v1.1:
 
 ### Better scheduling strategy
 
-Rspack v1.1 is 10% faster than v1.0.
+According to our benchmarks, Rspack v1.1 is **10% faster** than v1.0.
 
 ![Rspack v1.1 vs v1.0](https://assets.rspack.dev/rspack/assets/rspack-1-1-perf-comparison.png)
 
@@ -102,9 +102,9 @@ module.exports = {
 
 ### Improved JSDoc
 
-In the initial versions of Rspack, we used `zod` to validate user configurations, inferring all types from it. However, the absence of JSDoc made it challenging to comprehend the generated `zod` types when examining the `.d.ts` files or using intellisense in an editor.
+Rspack uses [zod](https://github.com/colinhacks/zod) to validate user configurations and inferring all types from them. However, the inferred types lack JSDoc comments, and the generated types are quite hard to understand.
 
-With this update, we have refactored the configuration types and added JSDoc comments for all types to enhance clarity and understanding.
+We have recently refactored the configuration types and added JSDoc comments for all of them to improve readability.
 
 See intellisense in IDE:
 
@@ -130,25 +130,17 @@ You can try [nuxt-rspack-starter](https://github.com/danielroe/nuxt-rspack-start
 
 ## Rsbuild v1.1
 
-Rsbuild 1.1 has been released along with Rspack 1.1!
+Rsbuild 1.1 has also been released. It upgrades to Rspack v1.1 and adds several new features.
 
-Notable changes:
+### CLI shortcuts
 
-- Support for CLI shortcuts
-- New `server.base` configuration
-- New assets-related configurations
-- Added [Use Web Workers](https://rsbuild.dev/guide/basic/web-workers) guide to help web workers project migration
-- [Rsbuild-ecosystem-ci](https://github.com/rspack-contrib/rsbuild-ecosystem-ci) allows us to run integration tests for Rsbuild ecosystem projects
-
-### Support for CLI shortcuts
-
-Rsbuild supports enabling CLI shortcuts through the `dev.cliShortcuts` configuration and is enabled by default when using the Rsbuild CLI.
+Rsbuild now supports enabling CLI shortcuts through the [dev.cliShortcuts](https://rsbuild.dev/config/dev/cli-shortcuts) configuration. When you use the Rsbuild CLI, it is enabled by default.
 
 Rsbuild CLI shortcut keys provide shortcut functions such as clear console, open in browser, restart server, etc. You can press `h + Enter` to display all shortcut keys.
 
 ![](https://assets.rspack.dev/rsbuild/assets/rsbuild-cli-shortcuts.jpeg)
 
-### New `server.base` configuration
+### Server base path
 
 By default, the base path of the server is `/`, and users can access output files such as `index.html` and public folder assets through http://localhost:3000/.
 
@@ -162,15 +154,15 @@ export default {
 };
 ```
 
-### New assets-related configurations
+### Extend assets types
 
 By default, Rsbuild treats common image, font, audio, and video files as static assets. Through the source.assetsInclude config, you can specify additional file types that should be treated as static assets. These added static assets are processed using the same rules as the built-in supported static assets.
 
 Rsbuild 1.1 adds the following static assets-related configurations:
 
-- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include): Used to set the additional files that should be treated as static assets.
-- [output.filename.assets](https://rsbuild.dev/config/output/filename): Used to set the name of other static assets.
-- [output.distPath.assets](https://rsbuild.dev/config/output/dist-path): Used to set the output directory of other static assets.
+- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include): Set the additional files that should be treated as static assets.
+- [output.filename.assets](https://rsbuild.dev/config/output/filename): Set the name of other static assets.
+- [output.distPath.assets](https://rsbuild.dev/config/output/dist-path): Set the output directory of other static assets.
 
 ## Upgrade guide
 
