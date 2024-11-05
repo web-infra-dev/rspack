@@ -13,7 +13,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ## module.defaultRules
 
-- **类型：** `Rule[]`
+- **类型：** `(Rule | Falsy)[]`
 
 应用于模块的默认规则。
 
@@ -211,6 +211,15 @@ module.exports = {
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
 
+#### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: '/.*/' }]}
+/>
+
+设置正则表达式，用于匹配包裹的动态依赖。
+
 #### module.parser.javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
@@ -244,6 +253,12 @@ module.exports = {
 <PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 `module.parser.javascript.exportsPresence` 的配置。
+
+#### module.parser.javascript.strictExportPresence
+
+- **类型：** `boolean`
+
+当导入的名称在导入模块中不存在时，发出错误而不是警告。
 
 #### module.parser.javascript.worker
 
@@ -611,20 +626,21 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `true`
 
-是否为 CSS 的导出添加 `__esModule`，如果添加则会在 esm-cjs interop 时当作 ES Module，否则当作 CommonJS Module。
+是否为 CSS 的导出添加 `__esModule`，如果添加则会在 esm-cjs interop 时当作 ES modules，否则当作 CommonJS modules。
 
-比如在使用第三方组件库的 cjs 产物时，有时需要添加该配置确保 esm-cjs interop 正确，以拿到正确的导出（可配合 [Rule.test](#ruletest) 等匹配条件只为该组件库添加）。
+比如在使用第三方组件库的 CommonJS 产物时，有时需要添加该配置确保 esm-cjs interop 正确，以拿到正确的导出（可配合 [Rule.test](#ruletest) 等匹配条件只为该组件库添加）。
 
 组件库源码：
 
 ```js
 import style from './style.css';
+
 export function Button() {
   return <button className={style.btn}></button>;
 }
 ```
 
-组件库发布的 cjs 产物：
+组件库发布的 CommonJS 产物：
 
 ```js
 'use strict';
@@ -793,14 +809,66 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-:::warning
-只有在 `experiments.layers = true` 时该配置才会生效
-:::
-
-- **类型：** [`Condition`](/config/module#condition)
+- **Type:** `string`
 - **默认值：** `undefined`
 
-匹配所有符合这个资源的模块，会和引入当前模块的模块的 layer 进行匹配。
+匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
+
+:::warning
+只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
+:::
+
+一个基础示例：
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        issuerLayer: 'other-layer',
+      },
+    ],
+  },
+};
+```
+
+一个更复杂的示例是结合 [entry options](/config/entry#entrydescriptionlayer) 来同时构建 modern 和 legacy 产物：
+
+```js title=rspack.config.js
+module.exports = {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'modern',
+    },
+    'index-legacy': {
+      import: './src/index.js',
+      layer: 'legacy',
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        issuerLayer: 'modern',
+        options: {
+          env: { targets: ['chrome >= 100'] },
+        },
+      },
+      {
+        test: /\.js$/,
+        issuerLayer: 'legacy',
+        options: {
+          env: { targets: ['ie >= 11'] },
+        },
+      },
+    ],
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
 
 ### Rule.dependency
 
@@ -897,6 +965,37 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
+需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
+
+```diff title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            experimental: {
++             keepImportAttributes: true,
+            },
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
 ### Rule.loaders
 
 :::warning
@@ -969,6 +1068,16 @@ module.exports = {
 
 标记模块是否存在副作用。
 
+### Rule.enforce
+
+<PropertyType type="'pre' | 'post'" />
+
+指定 loader 的类型。
+
+当指定为 'pre' 时，该 loader 会在其他所有 loader 之前执行。
+
+当指定为 'post' 时，该 loader 会在其他所有 loader 之后执行。
+
 ### Rule.type
 
 - **类型：** `'javascript/auto' | 'typescript' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'tsx' | 'jsx'`
@@ -976,7 +1085,7 @@ module.exports = {
 用于标记匹配的模块的类型，这会影响 Rspack 内置对于该模块的处理方式。例如：当模块被标记为 `'typescript'` 则会使用 TS parser/generator 对模块进行处理。
 
 - `'javascript/auto'`：JavaScript 模块，支持的模块系统：CommonJS、ESM，暂没有对 AMD 模块支持的计划。
-- `'javascript/esm'`：JavaScript 模块，当作严格 ES Module 处理。
+- `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'css'`：CSS 模块。
 - `'css/module'`：CSS Modules 模块。
@@ -988,13 +1097,28 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
+- **类型：** `string`
+- **默认值：** `undefined`
+
+用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
+
 :::warning
-只有在 `experiments.layers = true` 时该配置才会生效
+只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
 :::
 
-- **类型：** `string`
-
-用于标识匹配的模块的 layer。
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
 
 ### Rule.use
 
@@ -1097,7 +1221,7 @@ module.exports = {
 
 ### Rule.oneOf
 
-- **类型：** <code>[Rule](#rule)[]</code>
+- **类型：** <code>([Rule](#rule) | Falsy)[]</code>
 - **默认值：** `undefined`
 
 [嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule

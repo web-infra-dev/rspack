@@ -1,7 +1,6 @@
 import type fs from "node:fs";
 import path from "node:path";
 import type { StatsError } from "@rspack/core";
-import prettyFormat from "pretty-format";
 import merge from "webpack-merge";
 
 import type {
@@ -13,61 +12,12 @@ import type {
 } from "../type";
 import { SimpleTaskProcessor } from "./simple";
 
-type TStatsDiagnostics = {
-	errors: StatsError[];
-	warnings: StatsError[];
-};
-
-const CWD_PATTERN = new RegExp(
-	path.join(process.cwd(), "../../").replace(/\\/g, "/"),
-	"gm"
-);
-const ERROR_STACK_PATTERN = /(│.* at ).*/g;
-
-function cleanErrorStack(message: string) {
-	return message.replace(ERROR_STACK_PATTERN, "$1xxx");
+class RspackStatsDiagnostics {
+	constructor(
+		public errors: StatsError[],
+		public warnings: StatsError[]
+	) {}
 }
-
-function cleanError(err: Error) {
-	const result: Partial<Record<keyof Error, any>> = {};
-	for (const key of Object.getOwnPropertyNames(err)) {
-		result[key as keyof Error] = err[key as keyof Error];
-	}
-
-	if (result.message) {
-		result.message = cleanErrorStack(err.message);
-	}
-
-	if (result.stack) {
-		result.stack = cleanErrorStack(result.stack);
-	}
-
-	return result;
-}
-
-function serialize(received: unknown) {
-	return prettyFormat(received, prettyFormatOptions)
-		.replace(CWD_PATTERN, "<cwd>")
-		.trim();
-}
-
-const prettyFormatOptions = {
-	escapeRegex: false,
-	printFunctionName: false,
-	plugins: [
-		{
-			test(val: any) {
-				return typeof val === "string";
-			},
-			print(val: any) {
-				return `"${val
-					.replace(/\\/gm, "/")
-					.replace(/"/gm, '\\"')
-					.replace(/\r?\n/gm, "\\n")}"`;
-			}
-		}
-	]
-};
 
 export interface IErrorProcessorOptions<T extends ECompilerType> {
 	name: string;
@@ -77,7 +27,7 @@ export interface IErrorProcessorOptions<T extends ECompilerType> {
 		context: ITestContext
 	) => TCompilerOptions<T>;
 	build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-	check?: (stats: TStatsDiagnostics) => Promise<void>;
+	check?: (stats: RspackStatsDiagnostics) => Promise<void>;
 }
 
 export class ErrorProcessor<
@@ -161,36 +111,11 @@ export class ErrorProcessor<
 		env.expect(Array.isArray(errors)).toBe(true);
 		env.expect(Array.isArray(warnings)).toBe(true);
 
-		await this._errorOptions.check?.({
-			errors: errors as StatsError[],
-			warnings: warnings as StatsError[]
-		});
-	}
-
-	static addSnapshotSerializer(expectImpl: jest.Expect) {
-		expectImpl.addSnapshotSerializer({
-			test(received) {
-				return received.errors || received.warnings;
-			},
-			print(received) {
-				return serialize({
-					errors: (received as TStatsDiagnostics).errors.map(e =>
-						cleanError(e as unknown as Error)
-					),
-					warnings: (received as TStatsDiagnostics).warnings.map(e =>
-						cleanError(e as unknown as Error)
-					)
-				});
-			}
-		});
-
-		expectImpl.addSnapshotSerializer({
-			test(received) {
-				return received.message;
-			},
-			print(received) {
-				return serialize(cleanError(received as Error));
-			}
-		});
+		await this._errorOptions.check?.(
+			new RspackStatsDiagnostics(
+				errors as StatsError[],
+				warnings as StatsError[]
+			)
+		);
 	}
 }

@@ -101,7 +101,7 @@ fn render(
   let module_graph = compilation.get_module_graph();
   let modules = compilation
     .chunk_graph
-    .get_chunk_module_identifiers(chunk_ukey)
+    .get_chunk_modules_identifier(chunk_ukey)
     .iter()
     .filter_map(|identifier| {
       module_graph
@@ -132,12 +132,9 @@ fn render(
     let normalize_name = compilation
       .get_path(
         &FilenameTemplate::from(name.to_string()),
-        PathData::default().chunk(chunk).content_hash_optional(
-          chunk
-            .content_hash
-            .get(&SourceType::JavaScript)
-            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-        ),
+        PathData::default()
+          .chunk(chunk)
+          .content_hash_type(SourceType::JavaScript),
       )
       .always_ok();
     source.add(RawSource::from(format!(

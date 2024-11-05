@@ -14,12 +14,12 @@ module.exports = {
 		- esm import specifier ./components ./main.js
 		- esm import ./components ./main.js
 		+ [inactive] from origin ./main.js + XX modules
-		+ [inactive] harmony side effect evaluation ./components ./main.js + XX modules ./main.js XX:XX-XX
-		+ [inactive] harmony import specifier ./components ./main.js + XX modules ./main.js XX:XX-XX
-		+ [inactive] harmony import specifier ./components ./main.js + XX modules ./main.js XX:XX-XX
+		+ [inactive] ESM side effect evaluation ./components ./main.js + XX modules ./main.js XX:XX-XX
+		+ [inactive] ESM import specifier ./components ./main.js + XX modules ./main.js XX:XX-XX
+		+ [inactive] ESM import specifier ./components ./main.js + XX modules ./main.js XX:XX-XX
 		+ [inactive] from origin ./foo.js
-		+ [inactive] harmony side effect evaluation ./components ./foo.js XX:XX-XX
-		+ [inactive] harmony import specifier ./components ./foo.js XX:XX-XX
+		+ [inactive] ESM side effect evaluation ./components ./foo.js XX:XX-XX
+		+ [inactive] ESM import specifier ./components ./foo.js XX:XX-XX
 		@@ -19,5 +21,6 @@
 		- esm export ./CompA ./components/src/CompAB/index.js
 		- esm export import specifier ./CompA ./components/src/CompAB/index.js
@@ -27,11 +27,11 @@ module.exports = {
 		- esm import specifier ./components ./foo.js
 		- esm import specifier ./components ./main.js
 		+ [inactive] from origin ./components/src/CompAB/index.js
-		+ [inactive] harmony side effect evaluation ./CompA ./components/src/CompAB/index.js XX:XX-XX
-		+ [inactive] harmony export imported specifier ./CompA ./components/src/CompAB/index.js XX:XX-XX
-		+ [inactive] harmony export imported specifier ./CompAB ./components/src/index.js XX:XX-XX (skipped side-effect-free modules)
-		+ harmony import specifier ./components ./foo.js XX:XX-XX (skipped side-effect-free modules)
-		+ harmony import specifier ./components ./main.js + XX modules ./main.js XX:XX-XX (skipped side-effect-free modules)
+		+ [inactive] ESM side effect evaluation ./CompA ./components/src/CompAB/index.js XX:XX-XX
+		+ [inactive] ESM export imported specifier ./CompA ./components/src/CompAB/index.js XX:XX-XX
+		+ [inactive] ESM export imported specifier ./CompAB ./components/src/index.js XX:XX-XX (skipped side-effect-free modules)
+		+ ESM import specifier ./components ./foo.js XX:XX-XX (skipped side-effect-free modules)
+		+ ESM import specifier ./components ./main.js + XX modules ./main.js XX:XX-XX (skipped side-effect-free modules)
 		@@ -25,6 +28,9 @@
 		- esm import ./utils ./components/src/CompAB/CompA.js
 		- esm import specifier ./utils ./components/src/CompAB/CompA.js
@@ -40,14 +40,14 @@ module.exports = {
 		- esm import ./utils ./components/src/CompAB/CompB.js
 		- esm import specifier ./utils ./components/src/CompAB/CompB.js
 		+ from origin ./components/src/CompAB/CompA.js
-		+ [inactive] harmony side effect evaluation ./utils ./components/src/CompAB/CompA.js XX:XX-XX
-		+ harmony import specifier ./utils ./components/src/CompAB/CompA.js XX:XX-XX
+		+ [inactive] ESM side effect evaluation ./utils ./components/src/CompAB/CompA.js XX:XX-XX
+		+ ESM import specifier ./utils ./components/src/CompAB/CompA.js XX:XX-XX
 		+ from origin ./components/src/CompAB/CompB.js
-		+ [inactive] harmony side effect evaluation ./utils ./components/src/CompAB/CompB.js XX:XX-XX
-		+ harmony import specifier ./utils ./components/src/CompAB/CompB.js XX:XX-XX
+		+ [inactive] ESM side effect evaluation ./utils ./components/src/CompAB/CompB.js XX:XX-XX
+		+ ESM import specifier ./utils ./components/src/CompAB/CompB.js XX:XX-XX
 		+ from origin ./main.js + XX modules
-		+ [inactive] harmony side effect evaluation ./utils ./main.js + XX modules ./components/src/CompAB/CompB.js XX:XX-XX
-		+ harmony import specifier ./utils ./main.js + XX modules ./components/src/CompAB/CompB.js XX:XX-XX
+		+ [inactive] ESM side effect evaluation ./utils ./main.js + XX modules ./components/src/CompAB/CompB.js XX:XX-XX
+		+ ESM import specifier ./utils ./main.js + XX modules ./components/src/CompAB/CompB.js XX:XX-XX
 		@@ -32,3 +38,1 @@
 		- ./main.js XX bytes [orphan] [built]
 		- [no exports used]
@@ -67,10 +67,10 @@ module.exports = {
 		- |   esm export import specifier ./CompAB ./components/src/index.js
 		- |   esm import specifier ./components ./main.js
 		+ |   [inactive] from origin ./components/src/CompAB/index.js
-		+ |     [inactive] harmony side effect evaluation ./CompB ./components/src/CompAB/index.js XX:XX-XX
-		+ |     [inactive] harmony export imported specifier ./CompB ./components/src/CompAB/index.js XX:XX-XX
-		+ |   [inactive] harmony export imported specifier ./CompAB ./components/src/index.js XX:XX-XX (skipped side-effect-free modules)
-		+ |   harmony import specifier ./components ./main.js XX:XX-XX (skipped side-effect-free modules)
+		+ |     [inactive] ESM side effect evaluation ./CompB ./components/src/CompAB/index.js XX:XX-XX
+		+ |     [inactive] ESM export imported specifier ./CompB ./components/src/CompAB/index.js XX:XX-XX
+		+ |   [inactive] ESM export imported specifier ./CompAB ./components/src/index.js XX:XX-XX (skipped side-effect-free modules)
+		+ |   ESM import specifier ./components ./main.js XX:XX-XX (skipped side-effect-free modules)
 		@@ -46,2 +51,2 @@
 		- import() ./foo ./main.js
 		- Rspack x.x.x compiled successfully in X.XX

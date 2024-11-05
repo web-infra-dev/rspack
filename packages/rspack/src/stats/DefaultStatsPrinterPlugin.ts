@@ -312,6 +312,8 @@ const SIMPLE_PRINTERS: Record<
 						: `from: ${sourceFilename}`
 				)
 			: undefined,
+	"asset.info.copied": (copied, { green, formatFlag }) =>
+		copied ? green(formatFlag("copied")) : undefined,
 	"asset.info.development": (development, { green, formatFlag }) =>
 		development ? green(formatFlag("dev")) : undefined,
 	"asset.info.hotModuleReplacement": (
@@ -779,6 +781,7 @@ const PREFERRED_ORDERS: Record<string, string[]> = {
 	"asset.info": [
 		"immutable",
 		"sourceFilename",
+		"copied",
 		"javascriptModule",
 		"development",
 		"hotModuleReplacement"

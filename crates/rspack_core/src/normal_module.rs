@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
+  ptr::NonNull,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
@@ -28,14 +29,16 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, diagnostics::ModuleBuildError, get_context,
-  impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier, BoxLoader,
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult,
-  Compilation, ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
+  contextify,
+  diagnostics::{CapturedLoaderError, ModuleBuildError},
+  get_context, impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier,
+  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
+  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -253,6 +256,10 @@ impl NormalModule {
     &self.user_request
   }
 
+  pub fn user_request_mut(&mut self) -> &mut String {
+    &mut self.user_request
+  }
+
   pub fn raw_request(&self) -> &str {
     &self.raw_request
   }
@@ -339,6 +346,10 @@ impl DependenciesBlock for NormalModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -369,7 +380,7 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
       *size_ref
     } else {
@@ -381,7 +392,7 @@ impl Module for NormalModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.clear_diagnostics();
@@ -413,22 +424,50 @@ impl Module for NormalModule {
       self.loaders.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
-      build_context.runner_context,
+      RunnerContext {
+        options: build_context.compiler_options.clone(),
+        resolver_factory: build_context.resolver_factory.clone(),
+        #[allow(clippy::unwrap_used)]
+        module: NonNull::new(self).unwrap(),
+        module_source_map_kind: self.source_map_kind,
+      },
       build_context.fs.clone(),
     )
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(r) => {
-        let node_error = r.downcast_ref::<NodeError>();
-        let stack = node_error.and_then(|e| e.stack.clone());
-        let hide_stack = node_error.and_then(|e| e.hide_stack);
-        let e = ModuleBuildError(r).boxed();
-        let d = Diagnostic::from(e)
+      Err(mut r) => {
+        let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+          build_info.file_dependencies = captured_error.take_file_dependencies();
+          build_info.context_dependencies = captured_error.take_context_dependencies();
+          build_info.missing_dependencies = captured_error.take_missing_dependencies();
+          build_info.build_dependencies = captured_error.take_build_dependencies();
+
+          let stack = captured_error.take_stack();
+          Diagnostic::from(
+            ModuleBuildError(error!(if captured_error.hide_stack.unwrap_or_default() {
+              captured_error.take_message()
+            } else {
+              stack
+                .clone()
+                .unwrap_or_else(|| captured_error.take_message())
+            }))
+            .boxed(),
+          )
           .with_stack(stack)
-          .with_hide_stack(hide_stack);
-        self.source = NormalModuleSource::BuiltFailed(d.clone());
-        self.add_diagnostic(d);
+          .with_hide_stack(captured_error.hide_stack)
+        } else {
+          let node_error = r.downcast_ref::<NodeError>();
+          let stack = node_error.and_then(|e| e.stack.clone());
+          let hide_stack = node_error.and_then(|e| e.hide_stack);
+          let e = ModuleBuildError(r).boxed();
+          Diagnostic::from(e)
+            .with_stack(stack)
+            .with_hide_stack(hide_stack)
+        };
+
+        self.source = NormalModuleSource::BuiltFailed(diagnostic.clone());
+        self.add_diagnostic(diagnostic);
 
         build_info.hash =
           Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
@@ -509,7 +548,7 @@ impl Module for NormalModule {
         module_source_map_kind: *self.get_source_map_kind(),
         loaders: &self.loaders,
         resource_data: &self.resource_data,
-        compiler_options: build_context.compiler_options,
+        compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
@@ -585,11 +624,6 @@ impl Module for NormalModule {
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
-      code_generation_result.set_hash(
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
-      );
       code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)
     } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
@@ -604,11 +638,6 @@ impl Module for NormalModule {
           RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
       }
-      code_generation_result.set_hash(
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
-        &compilation.options.output.hash_salt,
-      );
       Ok(code_generation_result)
     } else {
       Err(error!(
@@ -721,7 +750,7 @@ impl Module for NormalModule {
             module_chain.remove(&self.identifier());
             return ConnectionState::Bool(true);
           } else if !matches!(state, ConnectionState::CircularConnection) {
-            current = add_connection_states(current, state);
+            current = current + state;
           }
         }
       }

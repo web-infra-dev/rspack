@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
 use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, LazyLock, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
 use async_trait::async_trait;
-use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
@@ -41,6 +41,7 @@ impl std::fmt::Debug for ProgressPluginOptions {
   }
 }
 
+static MULTI_PROGRESS: LazyLock<MultiProgress> = LazyLock::new(MultiProgress::new);
 #[derive(Debug, Default)]
 pub struct ProgressPluginDisplayOptions {
   // the prefix name of progress bar
@@ -101,7 +102,7 @@ impl ProgressPlugin {
         Some(progress_bar)
       }
     };
-
+    let progress_bar = progress_bar.map(|x| MULTI_PROGRESS.add(x));
     Self::new_inner(
       options,
       progress_bar,
@@ -247,15 +248,20 @@ impl ProgressPlugin {
 
   fn progress_bar_handler(&self, percent: f64, msg: String, state_items: Vec<String>) {
     if let Some(progress_bar) = &self.progress_bar {
-      progress_bar.set_message(msg + " " + state_items.join(" ").as_str());
-      progress_bar.set_position((percent * 100.0) as u64);
+      let msg = msg + " " + state_items.join(" ").as_str();
+      if percent == 1.0 {
+        progress_bar.finish_with_message(msg);
+      } else {
+        progress_bar.set_message(msg);
+        progress_bar.set_position((percent * 100.0) as u64);
+      }
     }
   }
 
   fn sealing_hooks_report(&self, name: &str, index: i32) -> Result<()> {
     let number_of_sealing_hooks = 38;
     self.handler(
-      0.7 + 0.25 * (index / number_of_sealing_hooks) as f64,
+      0.7 + 0.25 * (index as f64 / number_of_sealing_hooks as f64),
       "sealing".to_string(),
       vec![name.to_string()],
       None,
@@ -308,7 +314,7 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  self.handler(0.01, String::from("make"), vec![], None)?;
+  self.handler(0.1, String::from("make"), vec![], None)?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
   Ok(())

@@ -28,7 +28,7 @@ impl ModuleDeps {
         .dependency_by_id(dep_id)
         .expect("should have dependency");
 
-      let Some(conn) = module_graph.connection_by_dependency(dep_id) else {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
       let identifier = conn.module_identifier();
@@ -232,6 +232,10 @@ mod t {
       self.deps.push(dependency);
     }
 
+    fn remove_dependency_id(&mut self, dependency: DependencyId) {
+      self.deps.retain(|dep| dep != &dependency);
+    }
+
     fn get_dependencies(&self) -> &[DependencyId] {
       &self.deps
     }
@@ -266,7 +270,7 @@ mod t {
       todo!()
     }
 
-    fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+    fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
       todo!()
     }
 

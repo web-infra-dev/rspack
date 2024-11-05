@@ -597,7 +597,7 @@ console.log(__webpack_require__.h);
 
 Called during adding runtime modules to the compilation.
 
-- **Type:** `SyncBailHook<[Chunk, Set<RuntimeGlobals>]>`
+- **Type:** `HookMap<SyncBailHook<[Chunk, Set<RuntimeGlobals>]>>`
 - **Arguments:**
   - `Chunk`: chunk instance
   - `Set<RuntimeGlobals>`: runtime requirements
@@ -616,7 +616,8 @@ module.exports = {
             super('custom');
           }
 
-          generate(compilation) {
+          generate() {
+            const compilation = this.compilation;
             return `
             __webpack_require__.mock = function(file) {
               return ${RuntimeGlobals.publicPath} + "/subpath/" + file;
@@ -626,14 +627,13 @@ module.exports = {
         }
 
         compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
-          compilation.hooks.runtimeRequirementInTree.tap(
-            'CustomPlugin',
-            (chunk, set) => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
               // add a runtime module to access public path
               set.add(RuntimeGlobals.publicPath);
               compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
-            },
-          );
+            });
         });
       },
     },

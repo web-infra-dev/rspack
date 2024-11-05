@@ -145,7 +145,7 @@ impl Module for CssModule {
       .map(|resource| resource.split('?').next().unwrap_or(resource).into())
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     self.content.len() as f64
   }
 
@@ -161,14 +161,18 @@ impl Module for CssModule {
     &*SOURCE_TYPE
   }
 
+  fn need_id(&self) -> bool {
+    false
+  }
+
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
       build_info: BuildInfo {
-        hash: Some(self.compute_hash(build_context.compiler_options)),
+        hash: Some(self.compute_hash(&build_context.compiler_options)),
         cacheable: self.cacheable,
         file_dependencies: self.file_dependencies.clone(),
         context_dependencies: self.context_dependencies.clone(),
@@ -228,6 +232,10 @@ impl DependenciesBlock for CssModule {
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {
     self.dependencies.push(dependency)
+  }
+
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
   }
 
   fn get_dependencies(&self) -> &[DependencyId] {

@@ -10,11 +10,15 @@ class Plugin {
                         resolveData.regExp = /[/\\](en(\.js)?|zh(\.js)?)$/;
                         return resolveData;
                     }
+                    for (const d of resolveData.dependencies) {
+                        if (d.critical) d.critical = false;
+                    }
                 });
             }
         );
     }
 }
+
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
     context: __dirname,

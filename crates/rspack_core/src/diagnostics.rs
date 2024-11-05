@@ -1,15 +1,16 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 use itertools::Itertools;
 use rspack_error::{
-  impl_diagnostic_transparent,
+  error, impl_diagnostic_transparent,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
   DiagnosticExt, Error, TraceableError,
 };
 use rspack_util::ext::AsAny;
+use rustc_hash::FxHashSet;
 
-use crate::{BoxLoader, RealDependencyLocation};
+use crate::{BoxLoader, DependencyRange};
 
 ///////////////////// Module Factory /////////////////////
 
@@ -18,7 +19,7 @@ use crate::{BoxLoader, RealDependencyLocation};
 pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
 
 impl EmptyDependency {
-  pub fn new(span: RealDependencyLocation) -> Self {
+  pub fn new(span: DependencyRange) -> Self {
     Self(
       TraceableError::from_lazy_file(
         span.start as usize,
@@ -78,6 +79,7 @@ impl miette::Diagnostic for ModuleBuildError {
 }
 
 /// Represent any errors or warnings during module parse
+///
 /// This does NOT aligned with webpack as webpack does not have parse warning.
 /// However, rspack may create warning during parsing stage, taking CSS as an example.
 #[derive(Debug, Error)]
@@ -143,6 +145,93 @@ impl ModuleParseError {
       help,
       source,
     }
+  }
+}
+
+#[derive(Debug)]
+pub struct CapturedLoaderError {
+  pub message: String,
+  pub stack: Option<String>,
+  pub hide_stack: Option<bool>,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+}
+
+impl CapturedLoaderError {
+  pub fn new(
+    message: String,
+    stack: Option<String>,
+    hide_stack: Option<bool>,
+    file_dependencies: Vec<String>,
+    context_dependencies: Vec<String>,
+    missing_dependencies: Vec<String>,
+    build_dependencies: Vec<String>,
+  ) -> Self {
+    Self {
+      message,
+      stack,
+      hide_stack,
+      file_dependencies,
+      context_dependencies,
+      missing_dependencies,
+      build_dependencies,
+    }
+  }
+
+  pub fn take_message(&mut self) -> String {
+    std::mem::take(&mut self.message)
+  }
+
+  pub fn take_stack(&mut self) -> Option<String> {
+    std::mem::take(&mut self.stack)
+  }
+
+  pub fn take_file_dependencies(&mut self) -> FxHashSet<PathBuf> {
+    std::mem::take(&mut self.file_dependencies)
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+
+  pub fn take_context_dependencies(&mut self) -> FxHashSet<PathBuf> {
+    std::mem::take(&mut self.context_dependencies)
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+
+  pub fn take_missing_dependencies(&mut self) -> FxHashSet<PathBuf> {
+    std::mem::take(&mut self.missing_dependencies)
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+
+  pub fn take_build_dependencies(&mut self) -> FxHashSet<PathBuf> {
+    std::mem::take(&mut self.build_dependencies)
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+}
+
+impl std::error::Error for CapturedLoaderError {
+  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+    None
+  }
+}
+
+impl std::fmt::Display for CapturedLoaderError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "CapturedLoaderError: {}", self.message)
+  }
+}
+
+impl rspack_error::miette::Diagnostic for CapturedLoaderError {
+  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    Some(Box::new("CapturedLoaderError"))
   }
 }
 

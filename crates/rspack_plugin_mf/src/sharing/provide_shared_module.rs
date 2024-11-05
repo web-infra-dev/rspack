@@ -62,7 +62,7 @@ impl ProvideSharedModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(identifier.clone()),
+      identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!("webpack/sharing/provide/{}/{}", &share_scope, &name),
       readable_identifier: identifier,
       name,
@@ -100,6 +100,10 @@ impl DependenciesBlock for ProvideSharedModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -109,7 +113,7 @@ impl DependenciesBlock for ProvideSharedModule {
 impl Module for ProvideSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
   }
 
@@ -139,7 +143,7 @@ impl Module for ProvideSharedModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut blocks = vec![];

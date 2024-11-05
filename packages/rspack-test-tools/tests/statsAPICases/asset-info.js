@@ -32,67 +32,67 @@ module.exports = {
 		expect(stats?.toJson(statsOptions).assets).toMatchInlineSnapshot(`
 		Array [
 		  Object {
-		    "auxiliaryChunkIdHints": Array [],
-		    "auxiliaryChunkNames": Array [
-		      "main",
+		    auxiliaryChunkIdHints: Array [],
+		    auxiliaryChunkNames: Array [
+		      main,
 		    ],
-		    "auxiliaryChunks": Array [
-		      "909",
+		    auxiliaryChunks: Array [
+		      909,
 		    ],
-		    "cached": false,
-		    "chunkIdHints": Array [],
-		    "chunkNames": Array [],
-		    "chunks": Array [],
-		    "emitted": true,
-		    "filteredRelated": 0,
-		    "info": Object {
-		      "chunkhash": Array [],
-		      "contenthash": Array [],
-		      "fullhash": Array [
-		        "89a353e9c515885abd8e",
+		    cached: false,
+		    chunkIdHints: Array [],
+		    chunkNames: Array [],
+		    chunks: Array [],
+		    emitted: true,
+		    filteredRelated: 0,
+		    info: Object {
+		      chunkhash: Array [],
+		      contenthash: Array [],
+		      fullhash: Array [
+		        c560fa876f51d750,
 		      ],
-		      "immutable": true,
-		      "isOverSizeLimit": false,
-		      "related": Object {},
-		      "sourceFilename": "fixtures/asset/image.png",
+		      immutable: true,
+		      isOverSizeLimit: false,
+		      related: Object {},
+		      sourceFilename: fixtures/asset/image.png,
 		    },
-		    "isOverSizeLimit": false,
-		    "name": "89a353e9c515885abd8e.png",
-		    "related": Array [],
-		    "size": 14910,
-		    "type": "asset",
+		    isOverSizeLimit: false,
+		    name: c560fa876f51d750.png,
+		    related: Array [],
+		    size: 14910,
+		    type: asset,
 		  },
 		  Object {
-		    "auxiliaryChunkIdHints": Array [],
-		    "auxiliaryChunkNames": Array [],
-		    "auxiliaryChunks": Array [],
-		    "cached": false,
-		    "chunkIdHints": Array [],
-		    "chunkNames": Array [
-		      "main",
+		    auxiliaryChunkIdHints: Array [],
+		    auxiliaryChunkNames: Array [],
+		    auxiliaryChunks: Array [],
+		    cached: false,
+		    chunkIdHints: Array [],
+		    chunkNames: Array [
+		      main,
 		    ],
-		    "chunks": Array [
-		      "909",
+		    chunks: Array [
+		      909,
 		    ],
-		    "emitted": true,
-		    "filteredRelated": 0,
-		    "info": Object {
-		      "chunkhash": Array [],
-		      "contenthash": Array [],
-		      "fullhash": Array [],
-		      "isOverSizeLimit": false,
-		      "javascriptModule": false,
-		      "related": Object {
-		        "sourceMap": Array [
-		          "main.js.map",
+		    emitted: true,
+		    filteredRelated: 0,
+		    info: Object {
+		      chunkhash: Array [],
+		      contenthash: Array [],
+		      fullhash: Array [],
+		      isOverSizeLimit: false,
+		      javascriptModule: false,
+		      related: Object {
+		        sourceMap: Array [
+		          main.js.map,
 		        ],
 		      },
 		    },
-		    "isOverSizeLimit": false,
-		    "name": "main.js",
-		    "related": Array [],
-		    "size": 2763,
-		    "type": "asset",
+		    isOverSizeLimit: false,
+		    name: main.js,
+		    related: Array [],
+		    size: 2759,
+		    type: asset,
 		  },
 		]
 	`);

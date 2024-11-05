@@ -19,6 +19,8 @@ pub trait DependenciesBlock {
 
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
+  fn remove_dependency_id(&mut self, _dependency: DependencyId);
+
   fn get_dependencies(&self) -> &[DependencyId];
 }
 
@@ -45,9 +47,21 @@ pub fn dependencies_block_update_hash(
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
+impl AsyncDependenciesBlockIdentifier {
+  pub fn as_identifier(self) -> Identifier {
+    self.0
+  }
+}
+
 impl From<String> for AsyncDependenciesBlockIdentifier {
   fn from(value: String) -> Self {
     Self(value.into())
+  }
+}
+
+impl From<Identifier> for AsyncDependenciesBlockIdentifier {
+  fn from(value: Identifier) -> Self {
+    Self(value)
   }
 }
 
@@ -182,14 +196,12 @@ impl DependenciesBlock for AsyncDependenciesBlock {
     self.dependency_ids.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependency_ids.retain(|dep| dep != &dependency);
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
-  }
-}
-
-impl AsyncDependenciesBlock {
-  pub fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependency_ids.retain(|dep| dep != &dependency);
   }
 }
 

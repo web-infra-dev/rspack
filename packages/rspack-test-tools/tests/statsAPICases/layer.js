@@ -22,10 +22,10 @@ module.exports = {
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
 		expect(stats?.toString(options)).toMatchInlineSnapshot(`
-		"./fixtures/abc.js (in test) 83 bytes [built] [code generated]
+		./fixtures/abc.js (in test) 83 bytes [built] [code generated]
 		./fixtures/a.js (in test) 55 bytes [built] [code generated]
 		./fixtures/b.js (in test) 94 bytes [built] [code generated]
-		./fixtures/c.js (in test) 72 bytes [built] [code generated]"
+		./fixtures/c.js (in test) 72 bytes [built] [code generated]
 	`);
 	}
 };

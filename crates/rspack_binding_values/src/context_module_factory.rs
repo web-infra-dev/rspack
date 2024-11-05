@@ -3,8 +3,9 @@ use napi::bindgen_prelude::{
 };
 use napi_derive::napi;
 use rspack_core::{AfterResolveData, BeforeResolveData};
+use rspack_regex::RspackRegex;
 
-use crate::RawRegex;
+use crate::JsDependencyMut;
 
 #[napi]
 pub struct JsContextModuleFactoryBeforeResolveData(Box<BeforeResolveData>);
@@ -31,21 +32,18 @@ impl JsContextModuleFactoryBeforeResolveData {
     self.0.request = request;
   }
 
-  #[napi(getter)]
-  pub fn reg_exp(&self) -> Either<RawRegex, ()> {
+  #[napi(getter, ts_return_type = "RegExp | undefined")]
+  pub fn reg_exp(&self) -> Either<RspackRegex, ()> {
     match &self.0.reg_exp {
-      Some(r) => Either::A(r.clone().into()),
+      Some(r) => Either::A(r.clone()),
       None => Either::B(()),
     }
   }
 
-  #[napi(setter)]
-  pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RawRegex, ()>) {
+  #[napi(setter, ts_args_type = "rawRegExp: RegExp | undefined")]
+  pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RspackRegex, ()>) {
     self.0.reg_exp = match raw_reg_exp {
-      Either::A(raw_reg_exp) => match raw_reg_exp.try_into() {
-        Ok(reg_exp) => Some(reg_exp),
-        Err(_) => None,
-      },
+      Either::A(regex) => Some(regex),
       Either::B(_) => None,
     };
   }
@@ -145,21 +143,18 @@ impl JsContextModuleFactoryAfterResolveData {
     self.0.request = request;
   }
 
-  #[napi(getter)]
-  pub fn reg_exp(&self) -> Either<RawRegex, ()> {
+  #[napi(getter, ts_return_type = "RegExp | undefined")]
+  pub fn reg_exp(&self) -> Either<RspackRegex, ()> {
     match &self.0.reg_exp {
-      Some(r) => Either::A(r.clone().into()),
+      Some(r) => Either::A(r.clone()),
       None => Either::B(()),
     }
   }
 
-  #[napi(setter)]
-  pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RawRegex, ()>) {
+  #[napi(setter, ts_args_type = "rawRegExp: RegExp | undefined")]
+  pub fn set_reg_exp(&mut self, raw_reg_exp: Either<RspackRegex, ()>) {
     self.0.reg_exp = match raw_reg_exp {
-      Either::A(raw_reg_exp) => match raw_reg_exp.try_into() {
-        Ok(reg_exp) => Some(reg_exp),
-        Err(_) => None,
-      },
+      Either::A(regex) => Some(regex),
       Either::B(_) => None,
     };
   }
@@ -172,6 +167,16 @@ impl JsContextModuleFactoryAfterResolveData {
   #[napi(setter)]
   pub fn set_recursive(&mut self, recursive: bool) {
     self.0.recursive = recursive;
+  }
+
+  #[napi(getter)]
+  pub fn dependencies(&mut self) -> Vec<JsDependencyMut> {
+    self
+      .0
+      .dependencies
+      .iter_mut()
+      .map(JsDependencyMut::new)
+      .collect::<Vec<_>>()
   }
 }
 

@@ -7,9 +7,9 @@ use rspack_core::{
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RealDependencyLocation,
-  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
+  Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
@@ -116,7 +116,7 @@ impl Module for LazyCompilationProxyModule {
     self.create_data.issuer_layer.as_ref()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     200f64
   }
 
@@ -134,15 +134,11 @@ impl Module for LazyCompilationProxyModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let client_dep = CommonJsRequireDependency::new(
-      self.client.clone(),
-      RealDependencyLocation::new(0, 0),
-      None,
-      false,
-    );
+    let client_dep =
+      CommonJsRequireDependency::new(self.client.clone(), DependencyRange::new(0, 0), None, false);
     let mut dependencies = vec![];
     let mut blocks = vec![];
 
@@ -284,11 +280,6 @@ impl Module for LazyCompilationProxyModule {
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
     codegen_result.runtime_requirements = runtime_requirements;
     codegen_result.data = codegen_data;
-    codegen_result.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
 
     Ok(codegen_result)
   }
@@ -323,6 +314,10 @@ impl DependenciesBlock for LazyCompilationProxyModule {
 
   fn add_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
     self.dependencies.push(dependency);
+  }
+
+  fn remove_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
+    self.dependencies.retain(|d| d != &dependency);
   }
 
   fn get_dependencies(&self) -> &[rspack_core::DependencyId] {

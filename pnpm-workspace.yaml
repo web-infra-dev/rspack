@@ -1,6 +1,7 @@
 packages:
   - "packages/*"
   - "scripts"
+  - "website"
   - "packages/playground/fixtures/**"
   - "packages/create-rspack/**"
   - "npm/*"
@@ -12,6 +13,5 @@ packages:
   - "tests/webpack-test"
   - "tests/plugin-test"
   - "tests/webpack-cli-test"
-  - "tests/diff-test/*"
   # this following is used to test resolve in monorepo
   - "packages/rspack-test-tools/tests/normalCases/resolve/pnpm-workspace/packages/*"

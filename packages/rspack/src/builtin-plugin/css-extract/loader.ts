@@ -1,8 +1,7 @@
 import path from "node:path";
 
 import type { Filename, LoaderContext, LoaderDefinition } from "../..";
-import { CssExtractRspackPlugin } from "./index";
-import { stringifyLocal, stringifyRequest } from "./utils";
+import { PLUGIN_NAME, stringifyLocal, stringifyRequest } from "./utils";
 
 export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
@@ -47,7 +46,7 @@ export function hotLoader(
         // ${Date.now()}
         var cssReload = require(${stringifyRequest(
 					context.loaderContext,
-					path.join(__dirname, "hmr/hotModuleReplacement.js")
+					path.join(__dirname, "cssExtractHmr.js")
 				)}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
         // only invalidate when locals change
         if (
@@ -250,7 +249,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			return "";
 		})();
 
-		let resultSource = `// extracted by ${CssExtractRspackPlugin.pluginName}`;
+		let resultSource = `// extracted by ${PLUGIN_NAME}`;
 
 		// only attempt hotreloading if the css is actually used for something other than hash values
 		resultSource +=

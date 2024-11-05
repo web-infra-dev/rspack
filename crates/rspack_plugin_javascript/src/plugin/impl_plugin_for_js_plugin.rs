@@ -24,7 +24,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
-  // HarmonyModulesPlugin
+  // ESMModulesPlugin
   compilation.set_dependency_factory(
     DependencyType::EsmImport,
     params.normal_module_factory.clone(),
@@ -70,6 +70,11 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::RequireContext,
     params.context_module_factory.clone(),
+  );
+  // RequireEnsurePlugin
+  compilation.set_dependency_factory(
+    DependencyType::RequireEnsureItem,
+    params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
     DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import),
@@ -210,8 +215,8 @@ async fn content_hash(
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
-    if let Some((hash, _)) = compilation
-      .runtime_module_code_generation_results
+    if let Some(hash) = compilation
+      .runtime_modules_hash
       .get(runtime_module_idenfitier)
     {
       hash.hash(&mut hasher);
@@ -255,12 +260,7 @@ async fn render_manifest(
     filename_template,
     PathData::default()
       .chunk(chunk)
-      .content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      )
+      .content_hash_type(SourceType::JavaScript)
       .runtime(&chunk.runtime),
   )?;
   asset_info.set_javascript_module(compilation.options.output.module);

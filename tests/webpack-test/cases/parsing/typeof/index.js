@@ -23,9 +23,9 @@ it("should answer typeof exports correctly", function () {
 // it("should answer typeof require.include correctly", function () {
 // 	expect(typeof require.include).toBe("function");
 // });
-// it("should answer typeof require.ensure correctly", function () {
-// 	expect(typeof require.ensure).toBe("function");
-// });
+it("should answer typeof require.ensure correctly", function () {
+	expect(typeof require.ensure).toBe("function");
+});
 it("should answer typeof require.resolve correctly", function () {
 	expect(typeof require.resolve).toBe("function");
 });
@@ -43,6 +43,6 @@ it("should not parse filtered stuff", function () {
 	if (typeof module != "object") module = require("fail");
 	if (typeof exports == "undefined") exports = require("fail");
 	// if (typeof require.include !== "function") require.include("fail");
-	// if (typeof require.ensure !== "function")
-	// 	require.ensure(["fail"], function () { });
+	if (typeof require.ensure !== "function")
+		require.ensure(["fail"], function () { });
 });

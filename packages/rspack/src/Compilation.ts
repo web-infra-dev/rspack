@@ -56,7 +56,7 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
-export { type AssetInfo } from "./util/AssetInfo";
+export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -65,7 +65,9 @@ export interface Asset {
 	info: AssetInfo;
 }
 
-export type PathData = JsPathData;
+export type PathData = Omit<JsPathData, "chunk"> & {
+	chunk?: Chunk | binding.JsChunkPathData;
+};
 
 export interface LogEntry {
 	type: string;
@@ -212,9 +214,8 @@ export class Compilation {
 			[Chunk, Set<string>],
 			void
 		>;
-		runtimeRequirementInTree: liteTapable.SyncBailHook<
-			[Chunk, Set<string>],
-			void
+		runtimeRequirementInTree: liteTapable.HookMap<
+			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		seal: liteTapable.SyncHook<[], void>;
@@ -348,10 +349,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunk",
 				"runtimeRequirements"
 			]),
-			runtimeRequirementInTree: new liteTapable.SyncBailHook([
-				"chunk",
-				"runtimeRequirements"
-			]),
+			runtimeRequirementInTree: new liteTapable.HookMap(
+				() => new liteTapable.SyncBailHook(["chunk", "runtimeRequirements"])
+			),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([])
@@ -412,7 +412,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get namedChunkGroups() {
 		return createReadonlyMap<ChunkGroup>({
-			keys: (): IterableIterator<string> => {
+			keys: (): ReturnType<string[]["values"]> => {
 				const names = this.#inner.getNamedChunkGroupKeys();
 				return names[Symbol.iterator]();
 			},
@@ -431,6 +431,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
+	get builtModules(): ReadonlySet<Module> {
+		return new Set(
+			this.#inner.builtModules.map(module =>
+				Module.__from_binding(module, this)
+			)
+		);
+	}
+
 	get chunks(): ReadonlySet<Chunk> {
 		return memoizeValue(() => new Set(this.__internal__getChunks()));
 	}
@@ -442,7 +450,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get namedChunks() {
 		return createReadonlyMap<Chunk>({
-			keys: (): IterableIterator<string> => {
+			keys: (): ReturnType<string[]["values"]> => {
 				const names = this.#inner.getNamedChunkKeys();
 				return names[Symbol.iterator]();
 			},
@@ -784,12 +792,24 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		];
 
 		for (const item of proxyMethod) {
-			const proxyedMethod = new Proxy(errors[item.method as any], {
+			const proxiedMethod = new Proxy(errors[item.method as any], {
 				apply: item.handler as any
 			});
-			errors[item.method as any] = proxyedMethod;
+			errors[item.method as any] = proxiedMethod;
 		}
 		return errors;
+	}
+
+	set errors(errors: RspackError[]) {
+		const inner = this.#inner;
+		const length = inner.getErrors().length;
+		inner.spliceDiagnostic(
+			0,
+			length,
+			errors.map(error => {
+				return JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error);
+			})
+		);
 	}
 
 	get warnings(): RspackError[] {
@@ -877,28 +897,64 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		];
 
 		for (const item of proxyMethod) {
-			const proxyedMethod = new Proxy(warnings[item.method as any], {
+			const proxiedMethod = new Proxy(warnings[item.method as any], {
 				apply: item.handler as any
 			});
-			warnings[item.method as any] = proxyedMethod;
+			warnings[item.method as any] = proxiedMethod;
 		}
 		return warnings;
 	}
 
+	set warnings(warnings: RspackError[]) {
+		const inner = this.#inner;
+		const length = inner.getWarnings().length;
+		inner.spliceDiagnostic(
+			0,
+			length,
+			warnings.map(warning => {
+				return JsRspackDiagnostic.__to_binding(warning, JsRspackSeverity.Warn);
+			})
+		);
+	}
+
 	getPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPath(filename, data);
+		return this.#inner.getPath(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPathWithInfo(filename, data);
+		return this.#inner.getPathWithInfo(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getAssetPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPath(filename, data);
+		return this.#inner.getAssetPath(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPathWithInfo(filename, data);
+		return this.#inner.getAssetPathWithInfo(filename, {
+			...data,
+			chunk:
+				data.chunk instanceof Chunk
+					? data.chunk.__internal_to_path_data_chunk()
+					: data.chunk
+		});
 	}
 
 	getLogger(name: string | (() => string)) {
@@ -1212,28 +1268,17 @@ export class Entries implements Map<string, EntryData> {
 		return this.#data.size;
 	}
 
-	entries(): IterableIterator<[string, binding.JsEntryData]> {
-		const self = this;
-		const keys = this.keys();
-		return {
-			[Symbol.iterator]() {
-				return this;
-			},
-			next() {
-				const { done, value } = keys.next();
-				return {
-					done,
-					value: done ? (undefined as any) : [value, self.get(value)!]
-				};
-			}
-		};
+	*entries(): ReturnType<Map<string, EntryData>["entries"]> {
+		for (const key of this.keys()) {
+			yield [key, this.get(key)!];
+		}
 	}
 
-	values(): IterableIterator<binding.JsEntryData> {
+	values(): ReturnType<Map<string, EntryData>["values"]> {
 		return this.#data.values()[Symbol.iterator]();
 	}
 
-	[Symbol.iterator](): IterableIterator<[string, binding.JsEntryData]> {
+	[Symbol.iterator](): ReturnType<Map<string, EntryData>["entries"]> {
 		return this.entries();
 	}
 
@@ -1258,7 +1303,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.#data.get(key);
 	}
 
-	keys(): IterableIterator<string> {
+	keys(): ReturnType<Map<string, EntryData>["keys"]> {
 		return this.#data.keys()[Symbol.iterator]();
 	}
 }

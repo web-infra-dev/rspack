@@ -8,7 +8,7 @@
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5);
+/* ESM import */ var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5);
 
 
 
@@ -25,7 +25,7 @@ __webpack_require__.r(__webpack_exports__);
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7);
+/* ESM import */ var _styleA_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7);
 
 
 

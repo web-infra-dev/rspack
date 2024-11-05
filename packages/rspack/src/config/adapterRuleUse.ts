@@ -24,7 +24,7 @@ import type {
 	RuleSetLoaderWithOptions,
 	RuleSetUseItem,
 	Target
-} from "./zod";
+} from "./types";
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -252,14 +252,24 @@ type GetLoaderOptions = (
 	options: ComposeJsUseOptions
 ) => RuleSetLoaderWithOptions["options"];
 
-const getSwcLoaderOptions: GetLoaderOptions = (o, _) => {
-	if (o && typeof o === "object" && o.rspackExperiments) {
-		const expr = o.rspackExperiments;
-		if (expr.import || expr.pluginImport) {
-			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
+const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
+	if (options && typeof options === "object") {
+		// enable `disableAllLints` by default to reduce performance overhead
+		options.jsc ??= {};
+		options.jsc.experimental ??= {};
+		options.jsc.experimental.disableAllLints ??= true;
+
+		// resolve `rspackExperiments.import` options
+		const { rspackExperiments } = options;
+		if (rspackExperiments) {
+			if (rspackExperiments.import || rspackExperiments.pluginImport) {
+				rspackExperiments.import = resolvePluginImport(
+					rspackExperiments.import || rspackExperiments.pluginImport
+				);
+			}
 		}
 	}
-	return o;
+	return options;
 };
 
 const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {

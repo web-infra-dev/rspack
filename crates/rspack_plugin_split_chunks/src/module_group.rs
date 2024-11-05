@@ -57,7 +57,7 @@ impl ModuleGroup {
     if self.modules.len() != old_len {
       module.source_types().iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
-        *size += module.size(Some(ty), compilation);
+        *size += module.size(Some(ty), Some(compilation));
       });
     }
   }
@@ -69,7 +69,7 @@ impl ModuleGroup {
     if self.modules.len() != old_len {
       module.source_types().iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
-        *size -= module.size(Some(ty), compilation);
+        *size -= module.size(Some(ty), Some(compilation));
         *size = size.max(0.0)
       });
     }

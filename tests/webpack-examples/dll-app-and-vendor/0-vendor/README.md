@@ -67,9 +67,9 @@ module.exports = __webpack_require__;
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "square": () => (/* binding */ square)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "square": () => (/* binding */ square)
+/* ESM export */ });
 function square(n) {
 	return n * n;
 }
@@ -110,7 +110,7 @@ function square(n) {
 /************************************************************************/
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
+/******/ 		// define getter functions for ESM exports
 /******/ 		__webpack_require__.d = (exports, definition) => {
 /******/ 			for(var key in definition) {
 /******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {

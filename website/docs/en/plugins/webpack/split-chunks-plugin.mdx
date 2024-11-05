@@ -273,6 +273,12 @@ chunk baz
       chunk shared-2 (exports only value2)
 ```
 
+### splitChunks.defaultSizeTypes
+
+- **Types:** `string[]`
+
+Sets the size types which are used when a number is used for sizes.
+
 ### splitChunks.cacheGroups
 
 Cache groups can inherit and/or override any options from `splitChunks.*`; but `test`, `priority` and `reuseExistingChunk` can only be configured on cache group level. To disable any of the default cache groups, set them to `false`.
@@ -358,3 +364,9 @@ cacheGroup: {
 In chunks Foo and Bar, the module B, due to the configuration of cacheGroup, will be split into a new chunk that only contains module B. This new chunk is identical in terms of the modules it contains with chunk Bar, so chunk Bar can be directly reused.
 
 If the setting of reuseExistingChunk is set to `false`, then the module B in chunks Bar and Foo will be moved to a new chunk, and chunk Bar, since it no longer contains any modules, will be deleted as an empty chunk.
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.type
+
+- **Types:** `string | RegExp`
+
+Allows to assign modules to a cache group by module type.

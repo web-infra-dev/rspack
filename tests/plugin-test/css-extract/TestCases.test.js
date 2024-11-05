@@ -140,6 +140,11 @@ describe("TestCases", () => {
 						return {
 							...config,
 							optimization: { moduleIds: "named", chunkIds: "named", ...config.optimization },
+							output: {
+								hashFunction: "md4",
+								hashDigestLength: 20,
+								...config.output,
+							},
 							experiments: {
 								css: false,
 								rspackFuture: {
@@ -157,6 +162,11 @@ describe("TestCases", () => {
 							moduleIds: "named",
 							chunkIds: "named",
 							...config.optimization,
+						},
+						output: {
+							hashFunction: "md4",
+							hashDigestLength: 20,
+							...config.output,
 						},
 						experiments: {
 							css: false,

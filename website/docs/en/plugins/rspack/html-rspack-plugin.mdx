@@ -138,11 +138,11 @@ You can pass some configuration options to `rspack.HtmlRspackPlugin`. Allowed op
 ```ts
 type HtmlRspackPluginOptions = {
   title?: string;
-  filename?: string;
+  filename?: string | ((entry: string) => string);
   template?: string;
   templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
   templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
-  inject?: 'head' | 'body' | false;
+  inject?: 'head' | 'body' | boolean;
   publicPath?: string;
   base?: string | {
     href?: string;
@@ -189,7 +189,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`filename`',
-      type: '`string|undefined`',
+      type: '`string|undefined|((entry: string) => string)`',
       default: "'index.html'",
       description:
         'The file to write the HTML to. Defaults to `index.html`. You can specify a subdirectory here too (eg: pages/index.html).',
@@ -216,7 +216,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`inject`',
-      type: "`'head' | 'body' | false | undefined`",
+      type: "`'head' | 'body' | boolean | undefined`",
       default: 'undefined',
       description:
         'The script and link tag inject position in `template`. Use false to not inject. If not specified, it will be automatically determined based on `scriptLoading`.',

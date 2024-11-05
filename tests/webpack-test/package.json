@@ -6,6 +6,7 @@
   "main": "./dist/index.d.ts",
   "scripts": {
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest",
+    "testu": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest -u",
     "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --json --colors | node scripts/test-metric.js",
     "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --logHeapUsage --json"
   },
@@ -16,7 +17,7 @@
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "node-polyfill-webpack-plugin": "3.0.0",
-    "@types/node": "^20.9.4",
+    "@types/node": "^20.12.7",
     "@types/rimraf": "3.0.2",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",
@@ -57,7 +58,7 @@
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
-    "@swc/helpers": "0.5.1",
+    "@swc/helpers": "0.5.13",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
     "graceful-fs": "4.2.10",

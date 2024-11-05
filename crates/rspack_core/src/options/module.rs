@@ -196,7 +196,7 @@ impl ExportPresenceMode {
       ExportPresenceMode::Auto => Some(
         module
           .build_meta()
-          .map(|m| m.strict_harmony_module)
+          .map(|m| m.strict_esm_module)
           .unwrap_or_default(),
       ),
     }
@@ -228,6 +228,7 @@ pub struct JavascriptParserOptions {
   pub url: Option<JavascriptParserUrl>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
@@ -235,6 +236,10 @@ pub struct JavascriptParserOptions {
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<bool>,
+  pub require_as_expression: Option<bool>,
+  pub require_dynamic: Option<bool>,
+  pub require_resolve: Option<bool>,
+  pub import_dynamic: Option<bool>,
 }
 
 #[derive(Debug, Clone, MergeFrom)]
@@ -640,8 +645,7 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:

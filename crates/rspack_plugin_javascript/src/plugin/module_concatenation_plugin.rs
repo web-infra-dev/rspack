@@ -7,14 +7,13 @@ use std::hash::Hasher;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::concatenated_module::{
-  is_harmony_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
+  is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, runtime_to_string, ApplyContext, Compilation,
-  CompilationOptimizeChunkModules, CompilerModuleContext, CompilerOptions, ExportInfoProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RunnerContext,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
+  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
+  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -162,17 +161,17 @@ impl ModuleConcatenationPlugin {
     let module = mg.module_by_identifier(&mi).expect("should have module");
     for d in module.get_dependencies() {
       let dep = mg.dependency_by_id(d).expect("should have dependency");
-      let is_harmony_import_like = is_harmony_dep_like(dep);
-      if !is_harmony_import_like {
+      let is_esm_import_like = is_esm_dep_like(dep);
+      if !is_esm_import_like {
         continue;
       }
-      let Some(con) = mg.connection_by_dependency(d) else {
+      let Some(con) = mg.connection_by_dependency_id(d) else {
         continue;
       };
       if !con.is_target_active(mg, runtime) {
         continue;
       }
-      // SAFETY: because it is extends harmony dep, we can ensure the dep has been
+      // SAFETY: because it is extends ESM dep, we can ensure the dep has been
       // implemented ModuleDependency Trait.
       let module_dep = dep.as_module_dependency().expect("should be module dep");
       let imported_names = module_dep.get_referenced_exports(mg, None);
@@ -271,10 +270,7 @@ impl ModuleConcatenationPlugin {
       return Some(problem);
     }
 
-    let get_incoming_connections_by_origin_module =
-      module_graph.get_incoming_connections_by_origin_module(module_id);
-
-    let incoming_connections = get_incoming_connections_by_origin_module;
+    let incoming_connections = module_graph.get_incoming_connections_by_origin_module(module_id);
 
     if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
       let active_non_modules_connections = incoming_connections_from_non_modules
@@ -386,13 +382,13 @@ impl ModuleConcatenationPlugin {
       return Some(problem);
     }
 
-    let mut non_harmony_connections = HashMap::default();
+    let mut non_esm_connections = HashMap::default();
     for (origin_module, connections) in incoming_connections_from_modules.iter() {
       let selected: Vec<_> = connections
         .iter()
         .filter(|&connection| {
           if let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) {
-            !is_harmony_dep_like(dep)
+            !is_esm_dep_like(dep)
           } else {
             false
           }
@@ -401,13 +397,13 @@ impl ModuleConcatenationPlugin {
         .collect();
 
       if !selected.is_empty() {
-        non_harmony_connections.insert(origin_module, connections);
+        non_esm_connections.insert(origin_module, connections);
       }
     }
 
-    if !non_harmony_connections.is_empty() {
+    if !non_esm_connections.is_empty() {
       let problem = {
-        let names: Vec<_> = non_harmony_connections
+        let names: Vec<_> = non_esm_connections
           .iter()
           .map(|(origin_module, connections)| {
             let module = module_graph
@@ -493,8 +489,8 @@ impl ModuleConcatenationPlugin {
                 format!(
                   "{} (expected runtime {}, module is only referenced in {})",
                   readable_identifier,
-                  runtime_to_string(runtime),
-                  runtime_to_string(runtime_condition.as_spec().expect("should be spec"))
+                  runtime,
+                  runtime_condition.as_spec().expect("should be spec")
                 )
               })
               .collect::<Vec<_>>()
@@ -553,7 +549,6 @@ impl ModuleConcatenationPlugin {
   ) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 
-    // dbg!(&config);
     let root_module_id = config.root_module;
     if used_modules.contains(&root_module_id) {
       return Ok(());
@@ -600,7 +595,10 @@ impl ModuleConcatenationPlugin {
           .unwrap_or_else(|| panic!("should have module {}", id));
         let inner_module = ConcatenatedInnerModule {
           id: *id,
-          size: module.size(Some(&rspack_core::SourceType::JavaScript), compilation),
+          size: module.size(
+            Some(&rspack_core::SourceType::JavaScript),
+            Some(compilation),
+          ),
           original_source_hash: module.original_source().map(|source| {
             let mut hasher = DefaultHasher::default();
             source.dyn_hash(&mut hasher);
@@ -634,14 +632,9 @@ impl ModuleConcatenationPlugin {
     new_module
       .build(
         rspack_core::BuildContext {
-          runner_context: RunnerContext {
-            options: compilation.options.clone(),
-            resolver_factory: compilation.resolver_factory.clone(),
-            module: CompilerModuleContext::from_module(&new_module),
-            module_source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
-          },
+          resolver_factory: compilation.resolver_factory.clone(),
           plugin_driver: compilation.plugin_driver.clone(),
-          compiler_options: &compilation.options,
+          compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
         },
         Some(compilation),
@@ -663,12 +656,9 @@ impl ModuleConcatenationPlugin {
       if m == &root_module_id {
         continue;
       }
-      module_graph.copy_outgoing_module_connections(m, &new_module.id(), |c, mg| {
-        let dep = mg
-          .dependency_by_id(&c.dependency_id)
-          .expect("should have dependency");
-        c.original_module_identifier.as_ref() == Some(m)
-          && !(is_harmony_dep_like(dep) && modules_set.contains(c.module_identifier()))
+      module_graph.copy_outgoing_module_connections(m, &new_module.id(), |con, dep| {
+        con.original_module_identifier.as_ref() == Some(m)
+          && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
       });
       // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
       for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
@@ -702,7 +692,7 @@ impl ModuleConcatenationPlugin {
       } else {
         Some(*c.module_identifier())
       };
-      let inner_connection = is_harmony_dep_like(dep)
+      let inner_connection = is_esm_dep_like(dep)
         && if let Some(other_module) = other_module {
           modules_set.contains(&other_module)
         } else {
@@ -778,7 +768,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             export_info.is_reexport(&module_graph)
-              && export_info.get_target(&module_graph, None).is_none()
+              && export_info.get_target(&module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();

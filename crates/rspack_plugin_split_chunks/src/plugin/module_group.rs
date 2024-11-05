@@ -455,7 +455,7 @@ impl SplitChunksPlugin {
               ChunkNameGetter::String(name) => Some(name.to_string()),
               ChunkNameGetter::Disabled => None,
               ChunkNameGetter::Fn(f) => {
-                let ctx = ChunkNameGetterFnCtx { module, chunks: &selected_chunks, cache_group_key: &cache_group.key };
+                let ctx = ChunkNameGetterFnCtx { module, chunks: &selected_chunks, cache_group_key: &cache_group.key, compilation };
                 f(ctx)?
               }
             };

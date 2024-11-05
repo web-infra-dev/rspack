@@ -13,7 +13,6 @@ use super::MakeArtifact;
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
-  unaffected_cache::UnaffectedModulesCache,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilerOptions, DependencyType, Module, ModuleFactory,
   ModuleProfile, NormalModuleSource, ResolverFactory, SharedPluginDriver,
@@ -22,12 +21,12 @@ use crate::{
 pub struct MakeTaskContext {
   // compilation info
   pub plugin_driver: SharedPluginDriver,
+  pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub old_cache: Arc<OldCache>,
-  pub unaffected_modules_cache: Arc<UnaffectedModulesCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
 
   pub artifact: MakeArtifact,
@@ -37,11 +36,11 @@ impl MakeTaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
     Self {
       plugin_driver: compilation.plugin_driver.clone(),
+      buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
       old_cache: compilation.old_cache.clone(),
-      unaffected_modules_cache: compilation.unaffected_modules_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       fs: compilation.input_filesystem.clone(),
       artifact,
@@ -63,11 +62,11 @@ impl MakeTaskContext {
     let mut compilation = Compilation::new(
       self.compiler_options.clone(),
       self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
       self.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,
       self.old_cache.clone(),
-      self.unaffected_modules_cache.clone(),
       None,
       Default::default(),
       Default::default(),
@@ -83,7 +82,7 @@ impl MakeTaskContext {
   }
 }
 
-pub fn repair(
+pub async fn repair(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
   build_dependencies: HashSet<BuildDependency>,
@@ -141,6 +140,6 @@ pub fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = MakeTaskContext::new(compilation, artifact);
-  run_task_loop(&mut ctx, init_tasks)?;
+  run_task_loop(&mut ctx, init_tasks).await?;
   Ok(ctx.transform_to_make_artifact())
 }

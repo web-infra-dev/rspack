@@ -9,6 +9,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
+#[derive(Debug)]
 pub struct OverwriteTask {
   pub origin_task: Box<dyn Task<MakeTaskContext>>,
   pub event_sender: UnboundedSender<Event>,
@@ -20,7 +21,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
     self.origin_task.get_task_type()
   }
 
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       origin_task,
       event_sender,
@@ -31,7 +32,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
       .downcast_ref::<ProcessDependenciesTask>()
     {
       let original_module_identifier = process_dependencies_task.original_module_identifier;
-      let res = origin_task.sync_run(context)?;
+      let res = origin_task.sync_run(context).await?;
       event_sender
         .send(Event::FinishModule(original_module_identifier, res.len()))
         .expect("should success");
@@ -43,7 +44,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
     {
       let dep_id = *factorize_result_task.dependencies[0].id();
       let original_module_identifier = factorize_result_task.original_module_identifier;
-      let res = origin_task.sync_run(context)?;
+      let res = origin_task.sync_run(context).await?;
       if res.is_empty() {
         event_sender
           .send(Event::FinishDeps(original_module_identifier, dep_id, None))
@@ -57,7 +58,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
       let original_module_identifier = add_task.original_module_identifier;
       let target_module_identifier = add_task.module.identifier();
 
-      let res = origin_task.sync_run(context)?;
+      let res = origin_task.sync_run(context).await?;
       if res.is_empty() {
         event_sender
           .send(Event::FinishDeps(
@@ -75,7 +76,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
     }
 
     // other task
-    origin_task.sync_run(context)
+    origin_task.sync_run(context).await
   }
 
   async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {

@@ -73,8 +73,8 @@ export function fibonacciJavascript(i) {
 
 __webpack_require__.a(module, async (__webpack_handle_async_dependencies__) => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _add_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./add.wasm */ 1);
-/* harmony import */ var _math__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./math */ 2);
+/* ESM import */ var _add_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./add.wasm */ 1);
+/* ESM import */ var _math__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./math */ 2);
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_math__WEBPACK_IMPORTED_MODULE_1__, _add_wasm__WEBPACK_IMPORTED_MODULE_0__]);
 ([_math__WEBPACK_IMPORTED_MODULE_1__, _add_wasm__WEBPACK_IMPORTED_MODULE_0__] = __webpack_async_dependencies__.then ? await __webpack_async_dependencies__ : __webpack_async_dependencies__);
 
@@ -132,16 +132,16 @@ module.exports = __webpack_require__.v(exports, module.id, "0eaeab8b9fa3cef100d1
 
 __webpack_require__.a(module, async (__webpack_handle_async_dependencies__) => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "add": () => (/* reexport safe */ _add_wasm__WEBPACK_IMPORTED_MODULE_0__.add),
-/* harmony export */   "factorial": () => (/* reexport safe */ _factorial_wasm__WEBPACK_IMPORTED_MODULE_1__.factorial),
-/* harmony export */   "fibonacci": () => (/* reexport safe */ _fibonacci_wasm__WEBPACK_IMPORTED_MODULE_2__.fibonacci),
-/* harmony export */   "factorialJavascript": () => (/* binding */ factorialJavascript),
-/* harmony export */   "fibonacciJavascript": () => (/* binding */ fibonacciJavascript)
-/* harmony export */ });
-/* harmony import */ var _add_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./add.wasm */ 1);
-/* harmony import */ var _factorial_wasm__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./factorial.wasm */ 3);
-/* harmony import */ var _fibonacci_wasm__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./fibonacci.wasm */ 4);
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "add": () => (/* reexport safe */ _add_wasm__WEBPACK_IMPORTED_MODULE_0__.add),
+/* ESM export */   "factorial": () => (/* reexport safe */ _factorial_wasm__WEBPACK_IMPORTED_MODULE_1__.factorial),
+/* ESM export */   "fibonacci": () => (/* reexport safe */ _fibonacci_wasm__WEBPACK_IMPORTED_MODULE_2__.fibonacci),
+/* ESM export */   "factorialJavascript": () => (/* binding */ factorialJavascript),
+/* ESM export */   "fibonacciJavascript": () => (/* binding */ fibonacciJavascript)
+/* ESM export */ });
+/* ESM import */ var _add_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./add.wasm */ 1);
+/* ESM import */ var _factorial_wasm__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./factorial.wasm */ 3);
+/* ESM import */ var _fibonacci_wasm__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./fibonacci.wasm */ 4);
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_fibonacci_wasm__WEBPACK_IMPORTED_MODULE_2__, _factorial_wasm__WEBPACK_IMPORTED_MODULE_1__, _add_wasm__WEBPACK_IMPORTED_MODULE_0__]);
 ([_fibonacci_wasm__WEBPACK_IMPORTED_MODULE_2__, _factorial_wasm__WEBPACK_IMPORTED_MODULE_1__, _add_wasm__WEBPACK_IMPORTED_MODULE_0__] = __webpack_async_dependencies__.then ? await __webpack_async_dependencies__ : __webpack_async_dependencies__);
 
@@ -297,7 +297,7 @@ module.exports = __webpack_require__.v(exports, module.id, "5a6637e8d63cdf9c72da
 /******/ 	
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
+/******/ 		// define getter functions for ESM exports
 /******/ 		__webpack_require__.d = (exports, definition) => {
 /******/ 			for(var key in definition) {
 /******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {

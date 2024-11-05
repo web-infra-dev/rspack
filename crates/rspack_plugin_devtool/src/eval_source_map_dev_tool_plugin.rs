@@ -104,7 +104,7 @@ fn eval_source_map_devtool_plugin_render_module_content(
         let modules = sources.iter().map(|source| {
           if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
-            let identifier = ModuleIdentifier::from(source.clone());
+            let identifier = ModuleIdentifier::from(source.as_str());
             match compilation
               .get_module_graph()
               .module_by_identifier(&identifier)

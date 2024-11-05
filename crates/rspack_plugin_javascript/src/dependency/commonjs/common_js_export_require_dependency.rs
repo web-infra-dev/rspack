@@ -1,11 +1,11 @@
 use itertools::Itertools;
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportInfoProvided,
-  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable,
-  RealDependencyLocation, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -18,7 +18,7 @@ pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   base: ExportsBase,
   names: Vec<Atom>,
   ids: Vec<Atom>,
@@ -29,7 +29,7 @@ impl CommonJsExportRequireDependency {
   pub fn new(
     request: String,
     optional: bool,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     base: ExportsBase,
     names: Vec<Atom>,
     result_used: bool,
@@ -179,7 +179,7 @@ impl Dependency for CommonJsExportRequireDependency {
       let Some(name) = self.names.first() else {
         unreachable!();
       };
-      let from = mg.connection_by_dependency(&self.id)?;
+      let from = mg.connection_by_dependency_id(&self.id)?;
       Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
@@ -196,7 +196,7 @@ impl Dependency for CommonJsExportRequireDependency {
         ..Default::default()
       })
     } else if self.names.is_empty() {
-      let from = mg.connection_by_dependency(&self.id)?;
+      let from = mg.connection_by_dependency_id(&self.id)?;
       if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(

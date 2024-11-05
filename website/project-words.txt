@@ -72,6 +72,7 @@ jscexperimentalplugins
 JSCPU
 jscpuprofile
 kaffi
+kuaishou
 Kyrylo
 lightningcss
 lingyucoder
@@ -110,6 +111,7 @@ NestJS
 ngtools
 noimport
 nosources
+nuxt
 nwjs
 Omereshone
 optimizationemitonerrors
@@ -151,6 +153,7 @@ Rust
 rustup
 sanyuan
 Shenzhen
+shulaoda
 sockjs
 sokra
 solidjs

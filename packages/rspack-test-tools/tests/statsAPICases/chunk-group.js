@@ -22,241 +22,241 @@ module.exports = {
 		};
 		expect(stats?.toJson(statsOptions).entrypoints).toMatchInlineSnapshot(`
 		Object {
-		  "main": Object {
-		    "assets": Array [
+		  main: Object {
+		    assets: Array [
 		      Object {
-		        "name": "main.js",
-		        "size": 14505,
+		        name: main.js,
+		        size: 14505,
 		      },
 		    ],
-		    "assetsSize": 14505,
-		    "auxiliaryAssets": Array [
+		    assetsSize: 14505,
+		    auxiliaryAssets: Array [
 		      Object {
-		        "name": "main.js.map",
-		        "size": 684,
+		        name: main.js.map,
+		        size: 684,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 684,
-		    "childAssets": Object {},
-		    "children": Object {
-		      "prefetch": Array [
+		    auxiliaryAssetsSize: 684,
+		    childAssets: Object {},
+		    children: Object {
+		      prefetch: Array [
 		        Object {
-		          "assets": Array [
+		          assets: Array [
 		            Object {
-		              "name": "chunk.js",
-		              "size": 862,
+		              name: chunk.js,
+		              size: 858,
 		            },
 		          ],
-		          "assetsSize": 862,
-		          "auxiliaryAssets": Array [
+		          assetsSize: 858,
+		          auxiliaryAssets: Array [
 		            Object {
-		              "name": "chunk.js.map",
-		              "size": 514,
+		              name: chunk.js.map,
+		              size: 514,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 514,
-		          "chunks": Array [
-		            "919",
+		          auxiliaryAssetsSize: 514,
+		          chunks: Array [
+		            919,
 		          ],
-		          "name": "chunk",
+		          name: chunk,
 		        },
 		      ],
 		    },
-		    "chunks": Array [
-		      "909",
+		    chunks: Array [
+		      909,
 		    ],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": false,
-		    "name": "main",
+		    filteredAssets: 0,
+		    isOverSizeLimit: false,
+		    name: main,
 		  },
 		}
 	`);
 		expect(stats?.toJson(statsOptions).namedChunkGroups).toMatchInlineSnapshot(`
 		Object {
-		  "chunk": Object {
-		    "assets": Array [
+		  chunk: Object {
+		    assets: Array [
 		      Object {
-		        "name": "chunk.js",
-		        "size": 862,
+		        name: chunk.js,
+		        size: 858,
 		      },
 		    ],
-		    "assetsSize": 862,
-		    "auxiliaryAssets": Array [
+		    assetsSize: 858,
+		    auxiliaryAssets: Array [
 		      Object {
-		        "name": "chunk.js.map",
-		        "size": 514,
+		        name: chunk.js.map,
+		        size: 514,
 		      },
 		    ],
-		    "auxiliaryAssetsSize": 514,
-		    "childAssets": Object {
-		      "prefetch": Array [
-		        "chunk-b.js",
+		    auxiliaryAssetsSize: 514,
+		    childAssets: Object {
+		      prefetch: Array [
+		        chunk-b.js,
 		      ],
-		      "preload": Array [
-		        "chunk-b.js",
-		      ],
-		    },
-		    "children": Object {
-		      "prefetch": Array [
-		        Object {
-		          "assets": Array [
-		            Object {
-		              "name": "chunk-c.js",
-		              "size": 136,
-		            },
-		          ],
-		          "assetsSize": 136,
-		          "auxiliaryAssets": Array [],
-		          "auxiliaryAssetsSize": 0,
-		          "chunks": Array [
-		            "212",
-		          ],
-		          "name": "chunk-c",
-		        },
-		        Object {
-		          "assets": Array [
-		            Object {
-		              "name": "chunk-a.js",
-		              "size": 136,
-		            },
-		          ],
-		          "assetsSize": 136,
-		          "auxiliaryAssets": Array [],
-		          "auxiliaryAssetsSize": 0,
-		          "chunks": Array [
-		            "807",
-		          ],
-		          "name": "chunk-a",
-		        },
-		      ],
-		      "preload": Array [
-		        Object {
-		          "assets": Array [
-		            Object {
-		              "name": "chunk-b.js",
-		              "size": 136,
-		            },
-		          ],
-		          "assetsSize": 136,
-		          "auxiliaryAssets": Array [],
-		          "auxiliaryAssetsSize": 0,
-		          "chunks": Array [
-		            "805",
-		          ],
-		          "name": "chunk-b",
-		        },
+		      preload: Array [
+		        chunk-b.js,
 		      ],
 		    },
-		    "chunks": Array [
-		      "919",
-		    ],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": undefined,
-		    "name": "chunk",
-		  },
-		  "chunk-a": Object {
-		    "assets": Array [
-		      Object {
-		        "name": "chunk-a.js",
-		        "size": 136,
-		      },
-		    ],
-		    "assetsSize": 136,
-		    "auxiliaryAssets": Array [],
-		    "auxiliaryAssetsSize": 0,
-		    "childAssets": Object {},
-		    "children": Object {},
-		    "chunks": Array [
-		      "807",
-		    ],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": undefined,
-		    "name": "chunk-a",
-		  },
-		  "chunk-b": Object {
-		    "assets": Array [
-		      Object {
-		        "name": "chunk-b.js",
-		        "size": 136,
-		      },
-		    ],
-		    "assetsSize": 136,
-		    "auxiliaryAssets": Array [],
-		    "auxiliaryAssetsSize": 0,
-		    "childAssets": Object {},
-		    "children": Object {},
-		    "chunks": Array [
-		      "805",
-		    ],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": undefined,
-		    "name": "chunk-b",
-		  },
-		  "chunk-c": Object {
-		    "assets": Array [
-		      Object {
-		        "name": "chunk-c.js",
-		        "size": 136,
-		      },
-		    ],
-		    "assetsSize": 136,
-		    "auxiliaryAssets": Array [],
-		    "auxiliaryAssetsSize": 0,
-		    "childAssets": Object {},
-		    "children": Object {},
-		    "chunks": Array [
-		      "212",
-		    ],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": undefined,
-		    "name": "chunk-c",
-		  },
-		  "main": Object {
-		    "assets": Array [
-		      Object {
-		        "name": "main.js",
-		        "size": 14505,
-		      },
-		    ],
-		    "assetsSize": 14505,
-		    "auxiliaryAssets": Array [
-		      Object {
-		        "name": "main.js.map",
-		        "size": 684,
-		      },
-		    ],
-		    "auxiliaryAssetsSize": 684,
-		    "childAssets": Object {},
-		    "children": Object {
-		      "prefetch": Array [
+		    children: Object {
+		      prefetch: Array [
 		        Object {
-		          "assets": Array [
+		          assets: Array [
 		            Object {
-		              "name": "chunk.js",
-		              "size": 862,
+		              name: chunk-c.js,
+		              size: 136,
 		            },
 		          ],
-		          "assetsSize": 862,
-		          "auxiliaryAssets": Array [
+		          assetsSize: 136,
+		          auxiliaryAssets: Array [],
+		          auxiliaryAssetsSize: 0,
+		          chunks: Array [
+		            212,
+		          ],
+		          name: chunk-c,
+		        },
+		        Object {
+		          assets: Array [
 		            Object {
-		              "name": "chunk.js.map",
-		              "size": 514,
+		              name: chunk-a.js,
+		              size: 136,
 		            },
 		          ],
-		          "auxiliaryAssetsSize": 514,
-		          "chunks": Array [
-		            "919",
+		          assetsSize: 136,
+		          auxiliaryAssets: Array [],
+		          auxiliaryAssetsSize: 0,
+		          chunks: Array [
+		            807,
 		          ],
-		          "name": "chunk",
+		          name: chunk-a,
+		        },
+		      ],
+		      preload: Array [
+		        Object {
+		          assets: Array [
+		            Object {
+		              name: chunk-b.js,
+		              size: 136,
+		            },
+		          ],
+		          assetsSize: 136,
+		          auxiliaryAssets: Array [],
+		          auxiliaryAssetsSize: 0,
+		          chunks: Array [
+		            805,
+		          ],
+		          name: chunk-b,
 		        },
 		      ],
 		    },
-		    "chunks": Array [
-		      "909",
+		    chunks: Array [
+		      919,
 		    ],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": false,
-		    "name": "main",
+		    filteredAssets: 0,
+		    isOverSizeLimit: undefined,
+		    name: chunk,
+		  },
+		  chunk-a: Object {
+		    assets: Array [
+		      Object {
+		        name: chunk-a.js,
+		        size: 136,
+		      },
+		    ],
+		    assetsSize: 136,
+		    auxiliaryAssets: Array [],
+		    auxiliaryAssetsSize: 0,
+		    childAssets: Object {},
+		    children: Object {},
+		    chunks: Array [
+		      807,
+		    ],
+		    filteredAssets: 0,
+		    isOverSizeLimit: undefined,
+		    name: chunk-a,
+		  },
+		  chunk-b: Object {
+		    assets: Array [
+		      Object {
+		        name: chunk-b.js,
+		        size: 136,
+		      },
+		    ],
+		    assetsSize: 136,
+		    auxiliaryAssets: Array [],
+		    auxiliaryAssetsSize: 0,
+		    childAssets: Object {},
+		    children: Object {},
+		    chunks: Array [
+		      805,
+		    ],
+		    filteredAssets: 0,
+		    isOverSizeLimit: undefined,
+		    name: chunk-b,
+		  },
+		  chunk-c: Object {
+		    assets: Array [
+		      Object {
+		        name: chunk-c.js,
+		        size: 136,
+		      },
+		    ],
+		    assetsSize: 136,
+		    auxiliaryAssets: Array [],
+		    auxiliaryAssetsSize: 0,
+		    childAssets: Object {},
+		    children: Object {},
+		    chunks: Array [
+		      212,
+		    ],
+		    filteredAssets: 0,
+		    isOverSizeLimit: undefined,
+		    name: chunk-c,
+		  },
+		  main: Object {
+		    assets: Array [
+		      Object {
+		        name: main.js,
+		        size: 14505,
+		      },
+		    ],
+		    assetsSize: 14505,
+		    auxiliaryAssets: Array [
+		      Object {
+		        name: main.js.map,
+		        size: 684,
+		      },
+		    ],
+		    auxiliaryAssetsSize: 684,
+		    childAssets: Object {},
+		    children: Object {
+		      prefetch: Array [
+		        Object {
+		          assets: Array [
+		            Object {
+		              name: chunk.js,
+		              size: 858,
+		            },
+		          ],
+		          assetsSize: 858,
+		          auxiliaryAssets: Array [
+		            Object {
+		              name: chunk.js.map,
+		              size: 514,
+		            },
+		          ],
+		          auxiliaryAssetsSize: 514,
+		          chunks: Array [
+		            919,
+		          ],
+		          name: chunk,
+		        },
+		      ],
+		    },
+		    chunks: Array [
+		      909,
+		    ],
+		    filteredAssets: 0,
+		    isOverSizeLimit: false,
+		    name: main,
 		  },
 		}
 	`);

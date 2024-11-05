@@ -106,7 +106,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     queue.push_back(block_id);
     while let Some(module_id) = queue.pop_front() {
       let module_graph = self.compilation.get_module_graph();
-      // dbg!(&module_id);
       let (blocks, dependencies) = match module_id {
         ModuleOrAsyncDependenciesBlock::Module(module) => {
           let block = module_graph
@@ -145,14 +144,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
       for dep_id in dep_id_list.into_iter() {
         let module_graph = self.compilation.get_module_graph();
-        let connection = module_graph.connection_by_dependency(&dep_id);
+        let connection = module_graph.connection_by_dependency_id(&dep_id);
 
         let connection = if let Some(connection) = connection {
           connection
         } else {
           continue;
         };
-        let active_state = connection.get_active_state(&module_graph, runtime.as_ref());
+        let active_state = connection.active_state(&module_graph, runtime.as_ref());
 
         match active_state {
           ConnectionState::Bool(false) => {
@@ -247,7 +246,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
           }
-          // dbg!(&exports_map);
           map.insert(
             *connection.module_identifier(),
             ProcessModuleReferencedExports::Map(exports_map),
@@ -257,7 +255,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
 
     for (module_id, referenced_exports) in map {
-      // dbg!(&module_id, &referenced_exports);
       let normalized_refs = match referenced_exports {
         ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
         ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
@@ -338,7 +335,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             let last_one = i == len - 1;
             if !last_one {
               let nested_info = export_info.get_nested_exports_info(&module_graph);
-              // dbg!(&nested_info);
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info.set_used_conditionally(
                   &mut module_graph,

@@ -1,5 +1,5 @@
 use rspack_core::{
-  ConstDependency, RealDependencyLocation, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
+  ConstDependency, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
@@ -156,7 +156,7 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       WEBPACK_MODULE => {
-        let range: RealDependencyLocation = ident.span.into();
+        let range: DependencyRange = ident.span.into();
         parser
           .presentational_dependencies
           .push(Box::new(ModuleArgumentDependency::new(
@@ -325,7 +325,6 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       if s == "require" {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
-        not_supported_expr!(is_require_ensure, expr, "require.ensure");
         not_supported_expr!(is_require_config, expr, "require.config");
         not_supported_expr!(is_require_version, expr, "require.version");
         not_supported_expr!(is_require_amd, expr, "require.amd");
@@ -371,7 +370,7 @@ impl JavascriptParserPlugin for APIPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
-      let range: RealDependencyLocation = expr.span().into();
+      let range: DependencyRange = expr.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
@@ -413,7 +412,6 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       if s == "require" {
         not_supported_call!(is_require_config, "require.config()");
-        not_supported_call!(is_require_ensure, "require.ensure()");
         not_supported_call!(is_require_include, "require.include()");
         not_supported_call!(is_require_onerror, "require.onError()");
         not_supported_call!(is_require_main_require, "require.main.require()");

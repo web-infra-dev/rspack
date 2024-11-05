@@ -1,3 +1,3 @@
 module.exports = [
-	[/JavaScript parsing error: let is disallowed as a lexically bound name/]
+	[/JavaScript parsing error: Unexpected token `let`. Expected let is reserved in const, let, class declaration/]
 ];

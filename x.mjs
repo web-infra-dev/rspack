@@ -173,7 +173,7 @@ extractorCommand
 	.description("update api extractor snapshots")
 	.action(async () => {
 		await $`pnpm -w build:js`;
-		await $`pnpm --filter '@rspack/*' api-extractor --local`;
+		await $`pnpm --filter "@rspack/*" api-extractor --local`;
 	});
 
 extractorCommand
@@ -181,7 +181,7 @@ extractorCommand
 	.description("test api extractor snapshots")
 	.action(async () => {
 		try {
-			await $`pnpm --filter '@rspack/*' api-extractor:ci`;
+			await $`pnpm --filter "@rspack/*" api-extractor:ci`;
 		} catch (e) {
 			console.error(
 				`Api-extractor testing failed. Did you forget to update the snapshots locally?
@@ -253,6 +253,7 @@ program
 program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
+	.option("--pre <string>", "pre-release tag")
 	.description("bump version")
 	.action(version_handler);
 

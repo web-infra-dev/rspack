@@ -3,10 +3,10 @@ use std::collections::hash_map::Entry;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
-  PluginContext,
+  incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
+  CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
+  ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -39,10 +39,12 @@ impl<'a> FlagDependencyExportsState<'a> {
         .module_graph_module_by_identifier(&module_id)
         .expect("mgm should exist");
       let exports_info = mgm.exports;
+      // Reset exports provide info back to initial
+      exports_info.reset_provide_info(self.mg);
 
       let module = self
         .mg
-        .module_by_identifier(&mgm.module_identifier)
+        .module_by_identifier(&module_id)
         .expect("should have module");
       let is_module_without_exports = if let Some(build_meta) = module.build_meta() {
         build_meta.exports_type == BuildMetaExportsType::Unset
@@ -152,7 +154,6 @@ impl<'a> FlagDependencyExportsState<'a> {
     exports_info: ExportsInfo,
   ) {
     let exports = &export_desc.exports;
-    // dbg!(&exports);
     let global_can_mangle = &export_desc.can_mangle;
     let global_from = export_desc.from.as_ref();
     let global_priority = &export_desc.priority;
@@ -305,7 +306,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       // Recalculate target exportsInfo
-      let target = export_info.get_target(self.mg, None);
+      let target = export_info.get_target(self.mg);
 
       let mut target_exports_info: Option<ExportsInfo> = None;
       if let Some(target) = target {
@@ -353,13 +354,11 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let modules: IdentifierSet = if compilation.options.incremental().provided_exports_enabled() {
-    compilation
-      .unaffected_modules_cache
-      .get_affected_modules_with_module_graph()
-      .lock()
-      .expect("should lock")
-      .clone()
+  let modules: IdentifierSet = if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
+  {
+    mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph())
   } else {
     compilation
       .get_module_graph()

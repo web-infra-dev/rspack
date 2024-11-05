@@ -23,17 +23,17 @@ module.exports = {
 	async check() {
 		expect(stats.entrypoints).toMatchInlineSnapshot(`
 		Object {
-		  "main": Object {
-		    "assets": Array [],
-		    "assetsSize": 0,
-		    "auxiliaryAssets": Array [],
-		    "auxiliaryAssetsSize": 0,
-		    "childAssets": Object {},
-		    "children": Object {},
-		    "chunks": Array [],
-		    "filteredAssets": 0,
-		    "isOverSizeLimit": undefined,
-		    "name": "main",
+		  main: Object {
+		    assets: Array [],
+		    assetsSize: 0,
+		    auxiliaryAssets: Array [],
+		    auxiliaryAssetsSize: 0,
+		    childAssets: Object {},
+		    children: Object {},
+		    chunks: Array [],
+		    filteredAssets: 0,
+		    isOverSizeLimit: undefined,
+		    name: main,
 		  },
 		}
 	`);

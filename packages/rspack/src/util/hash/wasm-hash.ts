@@ -21,7 +21,7 @@ type Exports = WebAssembly.Instance["exports"] & {
 	final: (b: number) => void;
 };
 
-class WasmHash {
+export class WasmHash {
 	exports: Exports;
 	instancesPool: WebAssembly.Instance[];
 	buffered: number;

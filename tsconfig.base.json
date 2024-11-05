@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "CommonJS", // DO NOT CHANGE: https://github.com/web-infra-dev/rspack/pull/4650
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2021",
     "esModuleInterop": true,

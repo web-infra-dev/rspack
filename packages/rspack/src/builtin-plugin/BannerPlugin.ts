@@ -3,45 +3,51 @@ import {
 	type JsChunk,
 	type RawBannerPluginOptions
 } from "@rspack/binding";
-import { z } from "zod";
 
 import { create } from "./base";
 
-const rule = z.string().or(z.instanceof(RegExp));
-export type Rule = z.infer<typeof rule>;
+export type Rule = string | RegExp;
 
-const rules = rule.or(rule.array());
-export type Rules = z.infer<typeof rules>;
+export type Rules = Rule[] | Rule;
 
-const bannerFunction = z
-	.function()
-	.args(
-		z.object({
-			hash: z.string(),
-			chunk: z.custom<JsChunk>(),
-			filename: z.string()
-		})
-	)
-	.returns(z.string());
-export type BannerFunction = z.infer<typeof bannerFunction>;
+export type BannerFunction = (args: {
+	hash: string;
+	chunk: JsChunk;
+	filename: string;
+}) => string;
 
-const bannerContent = z.string().or(bannerFunction);
-export type BannerContent = z.infer<typeof bannerContent>;
+export type BannerContent = string | BannerFunction;
 
-const bannerPluginOptions = z.strictObject({
-	banner: bannerContent,
-	entryOnly: z.boolean().optional(),
-	exclude: rules.optional(),
-	include: rules.optional(),
-	raw: z.boolean().optional(),
-	footer: z.boolean().optional(),
-	stage: z.number().optional(),
-	test: rules.optional()
-});
-export type BannerPluginOptions = z.infer<typeof bannerPluginOptions>;
+export type BannerPluginOptions = {
+	/** Specifies the banner, it will be wrapped in a comment. */
+	banner: BannerContent;
 
-const bannerPluginArgument = bannerContent.or(bannerPluginOptions);
-export type BannerPluginArgument = z.infer<typeof bannerPluginArgument>;
+	/** If true, the banner will only be added to the entry chunks. */
+	entryOnly?: boolean;
+
+	/** Exclude all modules matching any of these conditions. */
+	exclude?: Rules;
+
+	/** Include all modules matching any of these conditions. */
+	include?: Rules;
+
+	/** If true, banner will not be wrapped in a comment. */
+	raw?: boolean;
+
+	/** If true, banner will be placed at the end of the output. */
+	footer?: boolean;
+
+	/**
+	 * The stage of the compilation in which the banner should be injected.
+	 * @default PROCESS_ASSETS_STAGE_ADDITIONS (-100)
+	 */
+	stage?: number;
+
+	/** Include all modules that pass test assertion. */
+	test?: Rules;
+};
+
+export type BannerPluginArgument = BannerContent | BannerPluginOptions;
 
 export const BannerPlugin = create(
 	BuiltinPluginName.BannerPlugin,

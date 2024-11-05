@@ -14,7 +14,7 @@ cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
 derivative = { workspace = true }
 dyn-clone = "1.0.17"
-either = "1"
+either = { workspace = true }
 futures = { workspace = true }
 hashlink = { workspace = true }
 hex = { workspace = true }

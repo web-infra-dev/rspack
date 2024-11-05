@@ -144,6 +144,14 @@ where
     self.inner.entry(id)
   }
 
+  pub fn get_mut(&mut self, id: &<Item as DatabaseItem>::ItemUkey) -> Option<&mut Item> {
+    self.inner.get_mut(id)
+  }
+
+  pub fn get(&self, id: &<Item as DatabaseItem>::ItemUkey) -> Option<&Item> {
+    self.inner.get(id)
+  }
+
   pub fn expect_get(&self, id: &<Item as DatabaseItem>::ItemUkey) -> &Item {
     self
       .inner

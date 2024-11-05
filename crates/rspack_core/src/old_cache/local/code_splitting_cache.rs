@@ -5,7 +5,10 @@ use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-use crate::{Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation};
+use crate::{
+  build_chunk_graph::code_splitter::CodeSplitter, incremental::IncrementalPasses, Chunk,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+};
 
 #[derive(Debug, Default)]
 pub struct CodeSplittingCache {
@@ -16,6 +19,7 @@ pub struct CodeSplittingCache {
   async_entrypoints: Vec<ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
+  pub(crate) code_splitter: CodeSplitter,
 }
 
 #[instrument(skip_all)]
@@ -27,13 +31,20 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  let is_incremental_rebuild = compilation.options.incremental().make_enabled();
-  if !is_incremental_rebuild {
+  if !compilation
+    .incremental
+    .can_read_mutations(IncrementalPasses::MAKE)
+  {
     task(compilation).await?;
     return Ok(());
   }
 
-  if !compilation.has_module_import_export_change() {
+  let has_change = compilation.has_module_import_export_change();
+  if !has_change
+    || compilation
+      .incremental
+      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
+  {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
@@ -45,7 +56,9 @@ where
       s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
     });
 
-    return Ok(());
+    if !has_change {
+      return Ok(());
+    }
   }
 
   let compilation = task(compilation).await?;

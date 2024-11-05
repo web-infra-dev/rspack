@@ -1,27 +1,22 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use derivative::Derivative;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerModuleContext,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, RunnerContext,
-  SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerOptions,
+  DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
-#[derive(Derivative)]
-#[derivative(Debug)]
-
+#[derive(Debug)]
 pub struct BuildTask {
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
-  #[derivative(Debug = "ignore")]
   pub fs: Arc<dyn ReadableFileSystem>,
 }
 
@@ -52,14 +47,9 @@ impl Task<MakeTaskContext> for BuildTask {
     let result = module
       .build(
         BuildContext {
-          runner_context: RunnerContext {
-            options: compiler_options.clone(),
-            resolver_factory: resolver_factory.clone(),
-            module: CompilerModuleContext::from_module(module.as_ref()),
-            module_source_map_kind: *module.get_source_map_kind(),
-          },
+          compiler_options: compiler_options.clone(),
+          resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
-          compiler_options: &compiler_options,
           fs: fs.clone(),
         },
         None,
@@ -104,12 +94,12 @@ struct BuildResultTask {
   pub diagnostics: Vec<Diagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
-
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,
       build_result,

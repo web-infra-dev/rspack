@@ -50,15 +50,7 @@ export class HotNewIncrementalProcessor<
 		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
 			const rspackOptions = options as TCompilerOptions<ECompilerType.Rspack>;
 			rspackOptions.experiments ??= {};
-			rspackOptions.experiments.incremental ??= {
-				make: true,
-				emitAssets: true,
-				inferAsyncModules: true,
-				providedExports: true,
-				moduleHashes: true,
-				moduleCodegen: true,
-				moduleRuntimeRequirements: true
-			};
+			rspackOptions.experiments.incremental ??= true;
 		} else {
 			throw new Error(
 				"HotNewIncrementalProcessor should only used for Rspack."

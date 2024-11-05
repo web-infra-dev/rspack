@@ -159,7 +159,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.23.6
+      - uses: crate-ci/typos@v1.26.8
         with:
           files: .
 
@@ -267,7 +267,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --workspace --all-targets -- -D warnings
+          args: --workspace --all-targets --tests -- -D warnings
 
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
@@ -288,7 +288,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.2
+      - uses: cargo-bins/cargo-binstall@v1.10.9
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
@@ -345,7 +345,7 @@ jobs:
         continue-on-error: true
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
-          owner: ${{ github.repository_owner }}
+          owner: "rspack-contrib"
           repo: "rspack-ecosystem-ci"
           workflow_file_name: "ecosystem-ci-from-commit.yml"
           github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
@@ -388,3 +388,16 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+  pkg-preview:
+    name: Pkg Preview
+    needs:
+      - test-linux
+      - test-windows
+      - cargo-deny
+      - lint
+      - rust_check
+      - rust_test
+    # after merged to main branch
+    if: ${{ !failure() && github.event_name == 'push' }}
+    uses: ./.github/workflows/preview-commit.yml

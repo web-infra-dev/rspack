@@ -11,15 +11,18 @@ use swc_core::ecma::ast::Expr;
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
-// FIXME: delete this after `parserOptions.wrappedContextRegExp.source`
-const DEFAULT_WRAPPED_CONTEXT_REGEXP: &str = ".*";
-
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
   expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
   let mut critical = None;
+  let wrapped_context_reg_exp = parser
+    .javascript_options
+    .wrapped_context_reg_exp
+    .as_ref()
+    .expect("should have wrapped_context_reg_exp")
+    .source();
 
   if param.is_template_string() {
     let quasis = param.quasis();
@@ -47,10 +50,10 @@ pub fn create_context_dependency(
     let reg = format!(
       "^{}{}{}{}$",
       quote_meta(&prefix),
-      DEFAULT_WRAPPED_CONTEXT_REGEXP,
+      wrapped_context_reg_exp,
       quasis[1..quasis.len() - 1]
         .iter()
-        .map(|q| quote_meta(q.string().as_str()) + DEFAULT_WRAPPED_CONTEXT_REGEXP)
+        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
         .join(""),
       quote_meta(&postfix)
     );
@@ -148,7 +151,7 @@ pub fn create_context_dependency(
     };
 
     let reg = format!(
-      "^{}{DEFAULT_WRAPPED_CONTEXT_REGEXP}{}$",
+      "^{}{wrapped_context_reg_exp}{}$",
       quote_meta(&prefix),
       quote_meta(&postfix)
     );

@@ -144,15 +144,21 @@
     "enabled": true,
 
     /**
+     * DEFAULT VALUE: "[ "complete" ]"
+     */
+    "reportVariants": ["complete"],
+
+    /**
      * The filename for the API report files.  It will be combined with "reportFolder" or "reportTempFolder" to produce
      * a full file path.
      *
      * The file extension should be ".api.md", and the string should not contain a path separator such as "\" or "/".
+     * API Extractor will automatically append an appropriate file extension such as .api.md
      *
      * SUPPORTED TOKENS: <packageName>, <unscopedPackageName>
-     * DEFAULT VALUE: "<unscopedPackageName>.api.md"
+     * DEFAULT VALUE: "<unscopedPackageName>"
      */
-    "reportFileName": "api.md",
+    "reportFileName": "<unscopedPackageName>",
 
     /**
      * Specifies the folder where the API report file is written.  The file name portion is determined by
@@ -165,7 +171,7 @@
      * prepend a folder token such as "<projectFolder>".
      *
      * SUPPORTED TOKENS: <projectFolder>, <packageName>, <unscopedPackageName>
-     * DEFAULT VALUE: "<projectFolder>/temp/"
+     * DEFAULT VALUE: "<projectFolder>/etc/"
      */
     "reportFolder": "<projectFolder>/etc/",
 

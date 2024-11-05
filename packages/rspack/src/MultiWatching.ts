@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import asyncLib from "neo-async";
+import asyncLib from "./util/asyncLib";
 
 import type { Callback } from "@rspack/lite-tapable";
 import type { MultiCompiler } from "./MultiCompiler";
@@ -43,7 +43,7 @@ class MultiWatching {
 	}
 
 	close(callback: Callback<Error, void>) {
-		asyncLib.forEach(
+		asyncLib.each(
 			this.watchings,
 			(watching, finishedCallback) => {
 				watching.close(finishedCallback);

@@ -5,7 +5,7 @@ class MockNormalRuntimeModule extends RuntimeModule {
     super("mock-normal", RuntimeModule.STAGE_NORMAL);
   }
 
-  generate(compilation) {
+  generate() {
     return `__webpack_require__.mockNormal = "normal";`;
   }
 }
@@ -15,7 +15,7 @@ class MockTriggerRuntimeModule extends RuntimeModule {
     super("mock-trigger", RuntimeModule.STAGE_TRIGGER);
   }
 
-  generate(compilation) {
+  generate() {
     return `__webpack_require__.mockTrigger = "trigger";`;
   }
 }
@@ -34,11 +34,14 @@ module.exports = {
     providedExports: false
   },
   plugins: [
+		/**
+		 * @param {import('@rspack/core').Compiler} compiler
+		 */
     compiler => {
       compiler.hooks.thisCompilation.tap(
         "MockRuntimePlugin",
         (compilation) => {
-          compilation.hooks.runtimeRequirementInTree.tap("MockRuntimePlugin", (chunk, set) => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap("MockRuntimePlugin", (chunk, set) => {
             set.add(RuntimeGlobals.publicPath);
             set.add(RuntimeGlobals.getChunkScriptFilename);
             compilation.addRuntimeModule(

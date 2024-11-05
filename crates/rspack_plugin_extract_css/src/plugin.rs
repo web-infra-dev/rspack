@@ -36,24 +36,12 @@ pub static MODULE_TYPE: LazyLock<ModuleType> =
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
   LazyLock::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
 
-pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
-pub static AUTO_PUBLIC_PATH_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(AUTO_PUBLIC_PATH).expect("should compile"));
-
-pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
-pub static ABSOLUTE_PUBLIC_PATH_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(ABSOLUTE_PUBLIC_PATH).expect("should compile"));
-
 pub static BASE_URI: &str = "webpack://";
-pub static BASE_URI_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(BASE_URI).expect("should compile"));
-
+pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
+pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__mini_css_extract_plugin_single_dot_path_segment__";
-pub static SINGLE_DOT_PATH_SEGMENT_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(SINGLE_DOT_PATH_SEGMENT).expect("should compile"));
 
-static STARTS_WITH_AT_IMPORT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new("^@import url").expect("should compile"));
+static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
 struct CssOrderConflicts {
   chunk: ChunkUkey,
@@ -332,7 +320,7 @@ impl PluginCssExtract {
     for module in used_modules {
       let content = Cow::Borrowed(module.content.as_str());
       let readable_identifier = module.readable_identifier(&compilation.options.context);
-      let starts_with_at_import = STARTS_WITH_AT_IMPORT_REGEX.is_match(&content);
+      let starts_with_at_import = content.starts_with(STARTS_WITH_AT_IMPORT);
 
       let header = self.options.pathinfo.then(|| {
         let req_str = readable_identifier.cow_replace("*/", "*_/");
@@ -382,11 +370,11 @@ impl PluginCssExtract {
 
         let undo_path = get_undo_path(&filename, compilation.options.output.path.as_str(), false);
 
-        let content = ABSOLUTE_PUBLIC_PATH_RE.replace_all(&content, "");
-        let content = SINGLE_DOT_PATH_SEGMENT_RE.replace_all(&content, ".");
-        let content = AUTO_PUBLIC_PATH_RE.replace_all(&content, &undo_path);
-        let content = BASE_URI_RE.replace_all(
-          &content,
+        let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
+        let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
+        let content = content.cow_replace(AUTO_PUBLIC_PATH, &undo_path);
+        let content = content.cow_replace(
+          BASE_URI,
           chunk
             .get_entry_options(&compilation.chunk_group_by_ukey)
             .and_then(|entry_options| entry_options.base_uri.as_ref())
@@ -591,12 +579,9 @@ async fn render_manifest(
       rendered_modules,
       filename_template,
       compilation,
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SOURCE_TYPE[0])
-          .map(|hash| hash.encoded()),
-      ),
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_type(SOURCE_TYPE[0]),
     )
     .await?;
 

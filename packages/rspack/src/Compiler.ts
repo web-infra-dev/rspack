@@ -33,6 +33,7 @@ import { ThreadsafeWritableNodeFS } from "./FileSystem";
 import {
 	CodeGenerationResult,
 	ContextModuleFactoryAfterResolveData,
+	ContextModuleFactoryBeforeResolveData,
 	Module
 } from "./Module";
 import { NormalModuleFactory } from "./NormalModuleFactory";
@@ -79,6 +80,8 @@ export interface AssetEmittedInfo {
 	targetPath: string;
 	compilation: Compilation;
 }
+
+const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
 
 class Compiler {
 	#instance?: binding.Rspack;
@@ -705,8 +708,14 @@ class Compiler {
 	}
 
 	#createCompilation(native: binding.JsCompilation): Compilation {
-		const compilation = new Compilation(this, native);
-		compilation.name = this.name;
+		let compilation = COMPILATION_WEAK_MAP.get(native);
+
+		if (!compilation) {
+			compilation = new Compilation(this, native);
+			compilation.name = this.name;
+			COMPILATION_WEAK_MAP.set(native, compilation);
+		}
+
 		this.#compilation = compilation;
 		return compilation;
 	}
@@ -761,9 +770,7 @@ class Compiler {
 				binding.RegisterJsTapKind.CompilerThisCompilation,
 				() => this.hooks.thisCompilation,
 				queried => (native: binding.JsCompilation) => {
-					if (this.#compilation === undefined) {
-						this.#createCompilation(native);
-					}
+					this.#createCompilation(native);
 					queried.call(this.#compilation!, this.#compilationParams!);
 				}
 			),
@@ -840,21 +847,25 @@ class Compiler {
 							};
 						}
 				),
-			registerCompilationRuntimeRequirementInTree: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
-				() => this.#compilation!.hooks.runtimeRequirementInTree,
-				queried =>
-					({
-						chunk,
-						runtimeRequirements
-					}: binding.JsRuntimeRequirementInTreeArg) => {
-						const set = __from_binding_runtime_globals(runtimeRequirements);
-						queried.call(Chunk.__from_binding(chunk, this.#compilation!), set);
-						return {
-							runtimeRequirements: __to_binding_runtime_globals(set)
-						};
-					}
-			),
+			registerCompilationRuntimeRequirementInTree:
+				this.#createHookMapRegisterTaps(
+					binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
+					() => this.#compilation!.hooks.runtimeRequirementInTree,
+					queried =>
+						({
+							chunk: rawChunk,
+							runtimeRequirements
+						}: binding.JsRuntimeRequirementInTreeArg) => {
+							const set = __from_binding_runtime_globals(runtimeRequirements);
+							const chunk = Chunk.__from_binding(rawChunk, this.#compilation!);
+							for (const r of set) {
+								queried.for(r).call(chunk, set);
+							}
+							return {
+								runtimeRequirements: __to_binding_runtime_globals(set)
+							};
+						}
+				),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
 				() => this.#compilation!.hooks.runtimeModule,
@@ -1159,7 +1170,15 @@ class Compiler {
 								| false
 								| binding.JsContextModuleFactoryBeforeResolveData
 						) => {
-							return queried.promise(bindingData);
+							const data = bindingData
+								? ContextModuleFactoryBeforeResolveData.__from_binding(
+										bindingData
+									)
+								: false;
+							const result = await queried.promise(data);
+							return result
+								? ContextModuleFactoryBeforeResolveData.__to_binding(result)
+								: false;
 						}
 				),
 			registerContextModuleFactoryAfterResolveTaps:
@@ -1178,11 +1197,10 @@ class Compiler {
 										bindingData
 									)
 								: false;
-							const ret = await queried.promise(data);
-							const result = ret
-								? ContextModuleFactoryAfterResolveData.__to_binding(ret)
+							const result = await queried.promise(data);
+							return result
+								? ContextModuleFactoryAfterResolveData.__to_binding(result)
 								: false;
-							return result;
 						}
 				),
 			registerJavascriptModulesChunkHashTaps: this.#createHookRegisterTaps(

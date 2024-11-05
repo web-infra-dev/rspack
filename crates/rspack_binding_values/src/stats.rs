@@ -11,7 +11,7 @@ use rspack_napi::{
     bindgen_prelude::{Buffer, FromNapiValue, Result, SharedReference, ToNapiValue},
     Either,
   },
-  Ref,
+  OneShotRef,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
@@ -19,8 +19,8 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
-  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
-  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, Ref>> = Default::default();
+  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef<JsModuleDescriptor>>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, OneShotRef<JsStatsModuleCommonAttributes>>> = Default::default();
 }
 
 #[napi(object, object_from_js = false)]
@@ -59,8 +59,7 @@ impl ToNapiValue for JsModuleDescriptorWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
-          let r = Ref::new(env, napi_value, 1)?;
+          let r = OneShotRef::new(env, val.0)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }
@@ -413,6 +412,7 @@ pub struct JsStatsAssetInfo {
   pub development: Option<bool>,
   pub hot_module_replacement: Option<bool>,
   pub source_filename: Option<String>,
+  pub copied: Option<bool>,
   pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
   pub chunkhash: Vec<String>,
@@ -438,6 +438,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
       development: stats.development,
       hot_module_replacement: stats.hot_module_replacement,
       source_filename: stats.source_filename,
+      copied: stats.copied,
       immutable: stats.immutable,
       javascript_module: stats.javascript_module,
       chunkhash: stats.chunk_hash,
@@ -563,8 +564,7 @@ impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
               ToNapiValue::to_napi_value(env, r)
             }
             std::collections::hash_map::Entry::Vacant(entry) => {
-              let napi_value = ToNapiValue::to_napi_value(env, val.0)?;
-              let r = Ref::new(env, napi_value, 1)?;
+              let r = OneShotRef::new(env, val.0)?;
               let r = entry.insert(r);
               ToNapiValue::to_napi_value(env, r)
             }
@@ -989,7 +989,7 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
   fn from(stats: rspack_core::StatsChunkGroupAsset) -> Self {
     Self {
       name: stats.name,
-      size: stats.size,
+      size: stats.size as f64,
     }
   }
 }
@@ -1022,11 +1022,11 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
       name: stats.name,
       chunks: stats.chunks,
       assets: stats.assets.into_iter().map(Into::into).collect(),
-      assets_size: stats.assets_size,
+      assets_size: stats.assets_size as f64,
       auxiliary_assets: stats
         .auxiliary_assets
         .map(|assets| assets.into_iter().map(Into::into).collect()),
-      auxiliary_assets_size: stats.auxiliary_assets_size,
+      auxiliary_assets_size: stats.auxiliary_assets_size.map(|inner| inner as f64),
       children: stats.children.map(|i| i.into()),
       child_assets: stats.child_assets.map(|i| i.into()),
       is_over_size_limit: stats.is_over_size_limit,
@@ -1227,16 +1227,12 @@ impl ToNapiValue for JsStatsCompilationWrapper {
 
     MODULE_DESCRIPTOR_REFS.with(|refs| {
       let mut refs = refs.borrow_mut();
-      for (_, mut r) in refs.drain() {
-        let _ = r.unref(env);
-      }
+      refs.drain();
     });
 
     MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
       let mut refs = refs.borrow_mut();
-      for (_, mut r) in refs.drain() {
-        let _ = r.unref(env);
-      }
+      refs.drain();
     });
 
     napi_value

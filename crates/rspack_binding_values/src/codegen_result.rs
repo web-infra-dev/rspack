@@ -29,11 +29,10 @@ impl From<CodeGenerationResult> for JsCodegenerationResult {
 
 impl From<CodeGenerationResults> for JsCodegenerationResults {
   fn from(results: CodeGenerationResults) -> Self {
-    let id_result_map = results.module_generation_result_map;
+    let (map, id_result_map) = results.into_inner();
 
     Self {
-      map: results
-        .map
+      map: map
         .into_iter()
         .map(|(module_id, runtime_result_map)| {
           let mut runtime_map: HashMap<String, JsCodegenerationResult> = Default::default();

@@ -8,9 +8,7 @@ pub trait ResultInfallibleExt {
 impl<T> ResultInfallibleExt for Result<T, Infallible> {
   type Ok = T;
   fn always_ok(self) -> T {
-    match self {
-      Ok(ok) => ok,
-      Err(infallible) => match infallible {},
-    }
+    let Ok(ok) = self;
+    ok
   }
 }

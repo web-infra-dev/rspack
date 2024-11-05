@@ -1,8 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  create_exports_object_referenced, module_raw, Compilation, DependencyType,
-  ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RealDependencyLocation, RuntimeSpec,
-  UsedName,
+  create_exports_object_referenced, module_raw, Compilation, DependencyRange, DependencyType,
+  ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -16,16 +15,11 @@ pub struct ProvideDependency {
   request: Atom,
   identifier: String,
   ids: Vec<Atom>,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl ProvideDependency {
-  pub fn new(
-    range: RealDependencyLocation,
-    request: Atom,
-    identifier: String,
-    ids: Vec<Atom>,
-  ) -> Self {
+  pub fn new(range: DependencyRange, request: Atom, identifier: String, ids: Vec<Atom>) -> Self {
     Self {
       range,
       request,
@@ -98,7 +92,7 @@ impl DependencyTemplate for ProvideDependency {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    let Some(con) = module_graph.connection_by_dependency(&self.id) else {
+    let Some(con) = module_graph.connection_by_dependency_id(&self.id) else {
       // not find connection, maybe because it's not resolved in make phase, and `bail` is false
       return;
     };

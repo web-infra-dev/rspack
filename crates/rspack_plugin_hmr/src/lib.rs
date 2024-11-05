@@ -160,7 +160,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       new_modules = compilation
         .chunk_graph
-        .get_chunk_graph_chunk(&current_chunk.ukey)
+        .expect_chunk_graph_chunk(&current_chunk.ukey)
         .modules
         .iter()
         .filter_map(|module| updated_modules.contains(module).then_some(*module))
@@ -191,7 +191,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
       hot_update_chunk.id = Some(chunk_id.to_string());
-      hot_update_chunk.runtime = new_runtime.clone();
+      hot_update_chunk.runtime = if let Some(current_chunk) = current_chunk {
+        current_chunk.runtime.clone()
+      } else {
+        new_runtime.clone()
+      };
       let ukey = hot_update_chunk.ukey;
 
       if let Some(current_chunk) = current_chunk {

@@ -439,7 +439,8 @@ module.exports = {
             super('custom');
           }
 
-          generate(compilation) {
+          generate() {
+            const compilation = this.compilation;
             return `
             __webpack_require__.mock = function() {
               // ...
@@ -449,14 +450,13 @@ module.exports = {
         }
 
         compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
-          compilation.hooks.runtimeRequirementInTree.tap(
-            'CustomPlugin',
-            (chunk, set) => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
               if (chunk.name === 'main') {
                 compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
               }
-            },
-          );
+            });
         });
       },
     },
@@ -658,6 +658,22 @@ The mapping from names to chunk groups.
 **Type:** `ReadonlySet<Module>`
 
 List of all modules, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### builtModules
+
+**Type:** `ReadonlySet<Module>`
+
+List of built modules that were not be cached, with the structure as follows:
 
 <Collapse>
   <CollapsePanel

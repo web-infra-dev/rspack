@@ -280,12 +280,7 @@ export class RspackOptionsApply {
 								lazyOptions,
 								new Module(jsModule)
 							)
-					: lazyOptions.test
-						? {
-								source: lazyOptions.test.source,
-								flags: lazyOptions.test.flags
-							}
-						: undefined,
+					: lazyOptions.test,
 				lazyOptions.backend
 			).apply(compiler);
 		}

@@ -19,14 +19,14 @@ module.exports = {
 		  "errors": Array [],
 		  "warnings": Array [
 		    Object {
-		      "message": "  ⚠ Error: test push\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n  │     at xxx\\n",
+		      "message": "  ⚠ Error: test push/n  │     at xxx/n  │     at xxx/n  │     at xxx/n  │     at xxx/n  │     at xxx/n  │     at xxx/n",
 		      "moduleTrace": Array [],
-		      "stack": "Error: test push\\n    at Object.fn (<cwd>packages/rspack-test-tools/tests/errorCases/warning-test-push.js:10:33)\\n    at next (<cwd>node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:523:25)\\n    at AsyncSeriesHook.callAsyncStageRange (<cwd>node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:543:9)\\n    at AsyncSeriesHook.callAsync (<cwd>node_modules/.pnpm/@rspack+lite-tapable@1.0.0/node_modules/@rspack/lite-tapable/dist/index.js:82:21)\\n    at <cwd>packages/rspack/dist/Compiler.js:458:41\\n    at <cwd>packages/rspack/dist/Compiler.js:525:23",
+		      "stack": "Error: test push/n    at Object.fn (<ROOT>/tests/errorCases/warning-test-push.js<LINE_COL>)/n    at next (<WORKSPACE>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at AsyncSeriesHook.callAsyncStageRange (<WORKSPACE>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at AsyncSeriesHook.callAsync (<WORKSPACE>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)/n    at <WORKSPACE>/packages/rspack/dist/index.js<LINE_COL>/n    at <WORKSPACE>/packages/rspack/dist/index.js<LINE_COL>",
 		    },
 		    Object {
-		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:/n  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack./n         ╭────/n       1 │ require.main.require('./file');/n         · ──────────────────────────────/n         ╰────/n      /n",
 		      "moduleId": "./require.main.require.js",
-		      "moduleIdentifier": "<cwd>packages/rspack-test-tools/tests/fixtures/errors/require.main.require.js",
+		      "moduleIdentifier": "<ROOT>/tests/fixtures/errors/require.main.require.js",
 		      "moduleName": "./require.main.require.js",
 		      "moduleTrace": Array [],
 		      "stack": undefined,

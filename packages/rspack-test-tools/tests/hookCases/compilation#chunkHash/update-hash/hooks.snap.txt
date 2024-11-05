@@ -4,7 +4,7 @@
 
 ```javascript
 Array [
-  Chunk {
+  _Chunk {
     "auxiliaryFiles": Set {},
     "chunkReason": undefined,
     "contentHash": Object {},
@@ -27,8 +27,8 @@ Array [
     "encoding": undefined,
     "hash": WasmHash {
       "buffered": 0,
-      "chunkSize": 64,
-      "digestSize": 32,
+      "chunkSize": 32,
+      "digestSize": 16,
       "exports": Object {
         "final": [Function],
         "init": [Function],

@@ -72,7 +72,7 @@ import type {
 	SnapshotOptions,
 	StatsValue,
 	Target
-} from "./zod";
+} from "./types";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -257,7 +257,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
 		charset: output.charset!,
 		chunkLoadTimeout: output.chunkLoadTimeout!,
-		environment: output.environment!
+		environment: output.environment!,
+		compareBeforeEmit: output.compareBeforeEmit!
 	};
 }
 
@@ -459,24 +460,28 @@ const getRawModuleRule = (
 			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
-			? rule.oneOf.map((rule, index) =>
-					getRawModuleRule(
-						rule,
-						`${path}.oneOf[${index}]`,
-						options,
-						rule.type ?? upperType
+			? rule.oneOf
+					.filter(Boolean)
+					.map((rule, index) =>
+						getRawModuleRule(
+							rule as RuleSetRule,
+							`${path}.oneOf[${index}]`,
+							options,
+							(rule as RuleSetRule).type ?? upperType
+						)
 					)
-				)
 			: undefined,
 		rules: rule.rules
-			? rule.rules.map((rule, index) =>
-					getRawModuleRule(
-						rule,
-						`${path}.rules[${index}]`,
-						options,
-						rule.type ?? upperType
+			? rule.rules
+					.filter(Boolean)
+					.map((rule, index) =>
+						getRawModuleRule(
+							rule as RuleSetRule,
+							`${path}.rules[${index}]`,
+							options,
+							(rule as RuleSetRule).type ?? upperType
+						)
 					)
-				)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -536,10 +541,7 @@ function getRawRuleSetCondition(
 	if (condition instanceof RegExp) {
 		return {
 			type: RawRuleSetConditionType.regexp,
-			regexp: {
-				source: condition.source,
-				flags: condition.flags
-			}
+			regexp: condition
 		};
 	}
 	if (typeof condition === "function") {
@@ -665,6 +667,7 @@ function getRawJavascriptParserOptions(
 		url: parser.url?.toString(),
 		exprContextCritical: parser.exprContextCritical,
 		wrappedContextCritical: parser.wrappedContextCritical,
+		wrappedContextRegExp: parser.wrappedContextRegExp,
 		exportsPresence:
 			parser.exportsPresence === false ? "false" : parser.exportsPresence,
 		importExportsPresence:
@@ -682,7 +685,11 @@ function getRawJavascriptParserOptions(
 					? ["..."]
 					: []
 				: parser.worker,
-		overrideStrict: parser.overrideStrict
+		overrideStrict: parser.overrideStrict,
+		requireAsExpression: parser.requireAsExpression,
+		requireDynamic: parser.requireDynamic,
+		requireResolve: parser.requireResolve,
+		importDynamic: parser.importDynamic
 	};
 }
 
@@ -903,9 +910,11 @@ function getRawIncremental(
 		emitAssets: incremental.emitAssets!,
 		inferAsyncModules: incremental.inferAsyncModules!,
 		providedExports: incremental.providedExports!,
-		moduleHashes: incremental.moduleHashes!,
-		moduleCodegen: incremental.moduleCodegen!,
-		moduleRuntimeRequirements: incremental.moduleRuntimeRequirements!
+		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
+		modulesHashes: incremental.modulesHashes!,
+		modulesCodegen: incremental.modulesCodegen!,
+		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,
+		buildChunkGraph: incremental.buildChunkGraph!
 	};
 }
 

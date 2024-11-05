@@ -138,11 +138,11 @@ module.exports = {
 ```ts
 type HtmlRspackPluginOptions = {
   title?: string;
-  filename?: string;
+  filename?: string | ((entry: string) => string);
   template?: string;
   templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
   templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
-  inject?: 'head' | 'body' | false;
+  inject?: 'head' | 'body' | boolean;
   publicPath?: string;
   base?: string | {
     href?: string;
@@ -189,7 +189,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`filename`',
-      type: '`string|undefined`',
+      type: '`string|undefined|((entry: string) => string)`',
       default: "'index.html'",
       description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
     },
@@ -215,7 +215,7 @@ type HtmlRspackPluginOptions = {
     },
     {
       name: '`inject`',
-      type: "`'head'|'body'|false|undefined`",
+      type: "`'head'|'body'|boolean|undefined`",
       default: 'undefined',
       description:
         '产物注入位置，使用 `false` 则不注入，不指定时则会根据 scriptLoading 的配置自动判断',

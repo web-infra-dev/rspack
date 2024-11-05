@@ -75,8 +75,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.id
   }
 
-  fn cacheable(&self) -> bool {
-    false
+  fn dependent_hash(&self) -> bool {
+    true
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
@@ -234,7 +234,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             PathData::default()
               .chunk(&fake_chunk)
               .hash_optional(Some(full_hash.as_str()))
-              .content_hash_optional(content_hash.as_deref()),
+              .content_hash_optional(content_hash.as_deref())
           )
           .always_ok()
       )
@@ -305,6 +305,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk(&fake_chunk)
               .hash_optional(Some(full_hash.as_str()))
               .content_hash_optional(content_hash.as_deref())
+              .content_hash_type(self.source_type),
           )?,
         );
 
@@ -316,7 +317,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       }
     }
-
     Ok(
       RawSource::from(format!(
         "// This function allow to reference chunks

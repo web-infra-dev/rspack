@@ -83,7 +83,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
-            format!("'{dirname}'").into(),
+            serde_json::to_string(&dirname)
+              .expect("should render dirname")
+              .into(),
             None,
           )));
         return Some(true);

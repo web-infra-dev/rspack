@@ -211,6 +211,15 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: '/.*/' }]}
+/>
+
+Set a regular expression to match wrapped dynamic dependencies.
+
 #### module.parser.javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
@@ -244,6 +253,12 @@ Warn or error for using non-existent exports, defaulting to the configuration of
 <PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.strictExportPresence
+
+- **Type:** `boolean`
+
+Emit errors instead of warnings when imported names don't exist in imported module.
 
 #### module.parser.javascript.worker
 
@@ -613,20 +628,21 @@ Customize the format of the local class names generated for CSS modules, besides
 
 This configuration is available for improved ESM-CJS interoperability purposes.
 
-Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES Module during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES modules during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
 
-For example, a common use case, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
 
 The original source code of the third-party component library:
 
 ```js
 import style from './style.css';
+
 export function Button() {
   return <button className={style.btn}></button>;
 }
 ```
 
-The cjs format output published by the third-party component library:
+The CommonJS format output published by the third-party component library:
 
 ```js
 'use strict';
@@ -689,7 +705,7 @@ Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodul
 
 ## module.rules
 
-- **Type:** `Rule[]`
+- **Type:** `(Rule | Falsy)[]`
 - **Default:** `[]`
 
 An array of rules that match the module's requests when it is created. These rules can modify the creation behavior of the module. They can apply Loader, etc. to the module.
@@ -795,13 +811,66 @@ Matches all modules that match this resource, and will match against Resource (t
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-:::warning
-This configuration will only take effect when `experiments.layers = true`.
-:::
-
 - **Type:** `string`
+- **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
+
+:::warning
+This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+:::
+
+A basic example:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        issuerLayer: 'other-layer',
+      },
+    ],
+  },
+};
+```
+
+A more complex example is the combination with [entry options](/config/entry#entrydescriptionlayer) to build modern and legacy bundles at the same time:
+
+```js title=rspack.config.js
+module.exports = {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'modern',
+    },
+    'index-legacy': {
+      import: './src/index.js',
+      layer: 'legacy',
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        issuerLayer: 'modern',
+        options: {
+          env: { targets: ['chrome >= 100'] },
+        },
+      },
+      {
+        test: /\.js$/,
+        issuerLayer: 'legacy',
+        options: {
+          env: { targets: ['ie >= 11'] },
+        },
+      },
+    ],
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
 
 ### Rule.dependency
 
@@ -898,6 +967,37 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
+It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/features/builtin-swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
+
+```diff title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            experimental: {
++             keepImportAttributes: true,
+            },
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
 ### Rule.loaders
 
 :::warning
@@ -970,6 +1070,16 @@ For specific generator options and the corresponding module type, you can refer 
 
 Flag the module for side effects
 
+### Rule.enforce
+
+<PropertyType type="'pre' | 'post'" />
+
+Specifies the category of the loader.
+
+When specified as 'pre', the loader will execute before all other loaders.
+
+When specified as 'post', the loader will execute after all other loaders.
+
 ### Rule.type
 
 - **Type:** `'javascript/auto' | 'typescript' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
@@ -977,7 +1087,7 @@ Flag the module for side effects
 Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing. For example, when a module is marked as `'typescript'` then the module is processed using the TS parser/generator.
 
 - `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ESM, no plans for AMD module support at this time.
-- `'javascript/esm'`：JavaScript modules, treated as ES Module.
+- `'javascript/esm'`：JavaScript modules, treated as ES modules.
 - `'javascript/dynamic'`：JavaScript modules, treated as Script.
 - `'css'`: CSS module
 - `'css/module'`: CSS Modules module
@@ -989,13 +1099,27 @@ Used to mark the type of the matching module, which affects how the module is ha
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-:::warning
-This configuration will only take effect when `experiments.layers = true`.
-:::
-
 - **Type:** `string`
 
-Used to mark the layer of the matching module.
+Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
+
+:::warning
+This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+:::
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
 
 ### Rule.use
 
@@ -1099,7 +1223,7 @@ A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when 
 
 ### Rule.oneOf
 
-- **Type:** <code>[Rule](#rule)[]</code>
+- **Type:** <code>([Rule](#rule) | Falsy)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.

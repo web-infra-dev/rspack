@@ -100,6 +100,10 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
+      fn remove_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
+        unreachable!()
+      }
+
       fn get_dependencies(&self) -> &[::rspack_core::DependencyId] {
         unreachable!()
       }
@@ -114,8 +118,11 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: &::rspack_core::Compilation) -> f64 {
-        self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64)
+      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
+        match compilation {
+          Some(compilation) => self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64),
+          None => 0f64
+        }
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
@@ -156,11 +163,6 @@ pub fn impl_runtime_module(
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
         result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation)?);
-        result.set_hash(
-          &compilation.options.output.hash_function,
-          &compilation.options.output.hash_digest,
-          &compilation.options.output.hash_salt,
-        );
         Ok(result)
       }
 
@@ -173,7 +175,11 @@ pub fn impl_runtime_module(
         use rspack_util::ext::DynHash;
         self.name().dyn_hash(hasher);
         self.stage().dyn_hash(hasher);
-        self.get_generated_code(compilation)?.dyn_hash(hasher);
+        if self.full_hash() || self.dependent_hash() {
+          self.generate_with_custom(compilation)?.dyn_hash(hasher);
+        } else {
+          self.get_generated_code(compilation)?.dyn_hash(hasher);
+        }
         Ok(())
       }
     }

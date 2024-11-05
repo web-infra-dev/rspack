@@ -101,6 +101,7 @@ impl Stats<'_> {
                 development: asset.info.development,
                 hot_module_replacement: asset.info.hot_module_replacement,
                 source_filename: asset.info.source_filename.clone(),
+                copied: asset.info.copied,
                 is_over_size_limit: asset.info.is_over_size_limit,
               },
               emitted: self.compilation.emitted_assets.contains(name),
@@ -676,7 +677,7 @@ impl Stats<'_> {
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
-        size: module.size(Some(t), self.compilation),
+        size: module.size(Some(t), Some(self.compilation)),
       })
       .collect_vec();
 
@@ -698,7 +699,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       layer: module.get_layer().map(|layer| layer.into()),
-      size: module.size(None, self.compilation),
+      size: module.size(None, Some(self.compilation)),
       sizes,
       built,
       code_generated,
@@ -785,7 +786,7 @@ impl Stats<'_> {
         .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
         .count() as u32;
 
-      let profile = if let Some(p) = mgm.get_profile()
+      let profile = if let Some(p) = mgm.profile()
         && let Some(factory) = p.factory.duration()
         && let Some(building) = p.building.duration()
       {
@@ -830,7 +831,7 @@ impl Stats<'_> {
         self
           .compilation
           .chunk_graph
-          .get_chunk_graph_module(mgm.module_identifier)
+          .expect_chunk_graph_module(mgm.module_identifier)
           .chunks
           .iter()
           .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
@@ -857,11 +858,11 @@ impl Stats<'_> {
 
     if options.reasons {
       let mut reasons: Vec<StatsModuleReason> = mgm
-        .get_incoming_connections_unordered()
+        .incoming_connections()
         .iter()
-        .filter_map(|connection_id| {
+        .filter_map(|dep_id| {
           // the connection is removed
-          let connection = module_graph.connection_by_connection_id(connection_id)?;
+          let connection = module_graph.connection_by_dependency_id(dep_id)?;
           let (module_name, module_id) = connection
             .original_module_identifier
             .and_then(|i| module_graph.module_by_identifier(&i))
@@ -1097,7 +1098,7 @@ impl Stats<'_> {
     let mut chunks: Vec<String> = self
       .compilation
       .chunk_graph
-      .get_chunk_graph_module(*identifier)
+      .expect_chunk_graph_module(*identifier)
       .chunks
       .iter()
       .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
@@ -1108,9 +1109,9 @@ impl Stats<'_> {
     let code_generated = self.compilation.code_generated_modules.contains(identifier);
     let size = self
       .compilation
-      .runtime_module_code_generation_results
+      .runtime_modules_code_generation_source
       .get(identifier)
-      .map_or(0 as f64, |(_, source)| source.size() as f64);
+      .map_or(0 as f64, |source| source.size() as f64);
 
     let mut stats = StatsModule {
       r#type: "module",
@@ -1164,7 +1165,7 @@ impl Stats<'_> {
       stats.identifier = Some(module.identifier());
       stats.name = Some(module.name().as_str().into());
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
-      stats.cacheable = Some(module.cacheable());
+      stats.cacheable = Some(!(module.full_hash() || module.dependent_hash()));
       stats.optional = Some(false);
       stats.orphan = Some(orphan);
       stats.dependent = Some(false);

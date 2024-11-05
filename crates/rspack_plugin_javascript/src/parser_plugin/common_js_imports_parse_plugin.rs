@@ -1,6 +1,5 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, DependencyCategory, RealDependencyLocation,
-  SpanExt,
+  ConstDependency, ContextDependency, ContextMode, DependencyCategory, DependencyRange, SpanExt,
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
@@ -57,7 +56,7 @@ fn create_require_resolve_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
   expr: &Expr,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   weak: bool,
 ) -> RequireResolveContextDependency {
   let start = range.start;
@@ -91,6 +90,10 @@ pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
   fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
+    if matches!(parser.javascript_options.require_resolve, Some(false)) {
+      return;
+    }
+
     if call_expr.args.len() != 1 {
       return;
     }
@@ -176,7 +179,7 @@ impl CommonJsImportsParserPlugin {
 
     let (members, first_arg) = extract_require_call_info(parser, mem_expr)?;
 
-    let range: RealDependencyLocation = mem_expr.span.into();
+    let range: DependencyRange = mem_expr.span.into();
     let param = parser.evaluate_expression(&first_arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
@@ -197,7 +200,7 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     param.is_string().then(|| {
-      let range_expr: RealDependencyLocation = param.range().into();
+      let range_expr: DependencyRange = param.range().into();
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
         range_expr.with_source(parser.source_map.clone()),
@@ -258,7 +261,7 @@ impl CommonJsImportsParserPlugin {
         }
       }
       if !is_expression {
-        let range: RealDependencyLocation = call_expr.callee.span().into();
+        let range: DependencyRange = call_expr.callee.span().into();
         parser
           .presentational_dependencies
           .push(Box::new(RequireHeaderDependency::new(
@@ -268,6 +271,10 @@ impl CommonJsImportsParserPlugin {
       }
     }
 
+    if matches!(parser.javascript_options.require_dynamic, Some(false)) && !param.is_string() {
+      return None;
+    }
+
     // FIXME: should support `LocalModuleDependency`
     if self
       .process_require_item(parser, call_expr.span, &param)
@@ -275,7 +282,7 @@ impl CommonJsImportsParserPlugin {
     {
       self.process_require_context(parser, call_expr, &param);
     } else {
-      let range: RealDependencyLocation = call_expr.callee.span().into();
+      let range: DependencyRange = call_expr.callee.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(RequireHeaderDependency::new(
@@ -290,6 +297,10 @@ impl CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser,
     ident: &Ident,
   ) -> Option<bool> {
+    if parser.javascript_options.require_as_expression == Some(false) {
+      return None;
+    }
+
     let start = ident.span().real_lo();
     let end = ident.span().real_hi();
     let mut dep = CommonJsRequireContextDependency::new(

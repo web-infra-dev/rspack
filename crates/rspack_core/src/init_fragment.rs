@@ -29,16 +29,16 @@ pub struct InitFragmentContents {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
   Unique(u32),
-  HarmonyImport(String),
-  HarmonyExportStar(String), // TODO: align with webpack and remove this
-  HarmonyExports,
+  ESMImport(String),
+  ESMExportStar(String), // TODO: align with webpack and remove this
+  ESMExports,
   CommonJsExports(String),
   ModuleExternal(String),
   ExternalModule(String),
   AwaitDependencies,
-  HarmonyCompatibility,
+  ESMCompatibility,
   ModuleDecorator(String /* module_id */),
-  HarmonyFakeNamespaceObjectFragment(String),
+  ESMFakeNamespaceObjectFragment(String),
   Const(String),
 }
 
@@ -56,7 +56,7 @@ impl InitFragmentKey {
     fragments: Vec<Box<dyn InitFragment<C>>>,
   ) -> Box<dyn InitFragment<C>> {
     match self {
-      InitFragmentKey::HarmonyImport(_) => {
+      InitFragmentKey::ESMImport(_) => {
         let mut iter = fragments.into_iter();
         let first = iter
           .next()
@@ -64,7 +64,7 @@ impl InitFragmentKey {
         let first = first
           .into_any()
           .downcast::<ConditionalInitFragment>()
-          .expect("fragment of InitFragmentKey::HarmonyImport should be a ConditionalInitFragment");
+          .expect("fragment of InitFragmentKey::ESMImport should be a ConditionalInitFragment");
 
         if matches!(first.runtime_condition, RuntimeCondition::Boolean(true)) {
           return first;
@@ -75,9 +75,7 @@ impl InitFragmentKey {
           let fragment = fragment
             .into_any()
             .downcast::<ConditionalInitFragment>()
-            .expect(
-              "fragment of InitFragmentKey::HarmonyImport should be a ConditionalInitFragment",
-            );
+            .expect("fragment of InitFragmentKey::ESMImport should be a ConditionalInitFragment");
           res = ConditionalInitFragment::merge(res, fragment);
           if matches!(res.runtime_condition, RuntimeCondition::Boolean(true)) {
             return res;
@@ -85,7 +83,7 @@ impl InitFragmentKey {
         }
         res
       }
-      InitFragmentKey::HarmonyExports => {
+      InitFragmentKey::ESMExports => {
         let mut export_map: Vec<(Atom, Atom)> = vec![];
         let mut iter = fragments.into_iter();
         let first = iter
@@ -93,22 +91,18 @@ impl InitFragmentKey {
           .expect("keyed_fragments should at least have one value");
         let first = first
           .into_any()
-          .downcast::<HarmonyExportInitFragment>()
-          .expect(
-            "fragment of InitFragmentKey::HarmonyExports should be a HarmonyExportInitFragment",
-          );
+          .downcast::<ESMExportInitFragment>()
+          .expect("fragment of InitFragmentKey::ESMExports should be a ESMExportInitFragment");
         let export_argument = first.exports_argument;
         export_map.extend(first.export_map);
         for fragment in iter {
           let fragment = fragment
             .into_any()
-            .downcast::<HarmonyExportInitFragment>()
-            .expect(
-              "fragment of InitFragmentKey::HarmonyExports should be a HarmonyExportInitFragment",
-            );
+            .downcast::<ESMExportInitFragment>()
+            .expect("fragment of InitFragmentKey::ESMExports should be a ESMExportInitFragment");
           export_map.extend(fragment.export_map);
         }
-        HarmonyExportInitFragment::new(export_argument, export_map).boxed()
+        ESMExportInitFragment::new(export_argument, export_map).boxed()
       }
       InitFragmentKey::AwaitDependencies => {
         let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
@@ -139,13 +133,13 @@ impl InitFragmentKey {
         }
         res
       }
-      InitFragmentKey::HarmonyFakeNamespaceObjectFragment(_)
-      | InitFragmentKey::HarmonyExportStar(_)
+      InitFragmentKey::ESMFakeNamespaceObjectFragment(_)
+      | InitFragmentKey::ESMExportStar(_)
       | InitFragmentKey::ModuleExternal(_)
       | InitFragmentKey::ModuleDecorator(_)
       | InitFragmentKey::CommonJsExports(_)
       | InitFragmentKey::Const(_) => first(fragments),
-      InitFragmentKey::HarmonyCompatibility | InitFragmentKey::Unique(_) => {
+      InitFragmentKey::ESMCompatibility | InitFragmentKey::Unique(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {:?}", self);
         first(fragments)
       }
@@ -199,11 +193,11 @@ impl<C, T: InitFragment<C> + 'static> InitFragmentExt<C> for T {
 pub enum InitFragmentStage {
   StageConstants,
   StageAsyncBoundary,
-  StageHarmonyExports,
-  StageHarmonyImports,
+  StageESMExports,
+  StageESMImports,
   StageProvides,
   StageAsyncDependencies,
-  StageAsyncHarmonyImports,
+  StageAsyncESMImports,
 }
 
 /// InitFragment.addToSource
@@ -338,13 +332,13 @@ impl<C> InitFragment<C> for NormalInitFragment {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct HarmonyExportInitFragment {
+pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
   export_map: Vec<(Atom, Atom)>,
 }
 
-impl HarmonyExportInitFragment {
+impl ESMExportInitFragment {
   pub fn new(exports_argument: ExportsArgument, export_map: Vec<(Atom, Atom)>) -> Self {
     Self {
       exports_argument,
@@ -353,7 +347,7 @@ impl HarmonyExportInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment {
+impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
     context.add_runtime_requirements(RuntimeGlobals::EXPORTS);
     context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -383,7 +377,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment
   }
 
   fn stage(&self) -> InitFragmentStage {
-    InitFragmentStage::StageHarmonyExports
+    InitFragmentStage::StageESMExports
   }
 
   fn position(&self) -> i32 {
@@ -391,7 +385,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment
   }
 
   fn key(&self) -> &InitFragmentKey {
-    &InitFragmentKey::HarmonyExports
+    &InitFragmentKey::ESMExports
   }
 }
 

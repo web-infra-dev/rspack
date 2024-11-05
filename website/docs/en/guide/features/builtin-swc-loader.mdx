@@ -8,7 +8,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 If you need to use `builtin:swc-loader` in your project, configure it as follows:
 
-To transpile `ts` files:
+### TypeScript Transpilation
+
+To transpile `.ts` files:
 
 ```js
 module.exports = {
@@ -32,7 +34,9 @@ module.exports = {
 };
 ```
 
-Or to transpile `jsx` files:
+### JSX Transpilation
+
+To transpile React's `.jsx` files:
 
 ```js
 module.exports = {
@@ -67,7 +71,102 @@ module.exports = {
 };
 ```
 
-Additionally, you can directly refer to [`example-builtin-swc-loader`](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) for more usage guidelines.
+### Syntax Lowering
+
+SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
+
+#### jsc.target
+
+[jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              target: 'es2015',
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+#### env.targets
+
+[env.targets](https://swc.rs/docs/configuration/compilation#envtargets) uses the [browserslist](https://github.com/browserslist/browserslist) syntax to specify browser range, for example:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+:::tip
+`jsc.target` and `env.targets` cannot be configured at the same time, choose one according to your needs.
+:::
+
+### Polyfill Injection
+
+When using higher versions of JavaScript syntax and APIs in your project, to ensure that the compiled code can run in lower version browsers, you will typically need to perform two parts of the downgrade: syntax downgrading and polyfill injection.
+
+SWC supports injecting [core-js](https://github.com/zloirock/core-js) as an API polyfill, which can be configured using [env.mode](https://swc.rs/docs/configuration/compilation#envmode) and [env.coreJs](https://swc.rs/docs/configuration/compilation#envcorejs):
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              mode: 'usage',
+              coreJs: '3.26.1',
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## Type declaration
 
@@ -161,6 +260,34 @@ module.exports = {
 ```
 
 this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
+
+#### Set cache root
+
+When you use SWC's Wasm plugin, SWC will generate cache files in the `.swc` directory of the current project by default. If you want to adjust this directory, you can modify the `cacheRoot` configuration, such as:
+
+```js
+const path = require('path');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              experimental: {
+                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ### rspackExperiments
 

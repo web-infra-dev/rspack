@@ -17,7 +17,8 @@ pub struct RuntimeModuleFromJs {
   pub name: String,
   #[derivative(Debug = "ignore")]
   pub generator: GenerateFn,
-  pub cacheable: bool,
+  pub full_hash: bool,
+  pub dependent_hash: bool,
   pub isolate: bool,
   pub stage: RuntimeModuleStage,
 }
@@ -32,8 +33,12 @@ impl RuntimeModule for RuntimeModuleFromJs {
     Ok(RawSource::from(res).boxed())
   }
 
-  fn cacheable(&self) -> bool {
-    self.cacheable
+  fn full_hash(&self) -> bool {
+    self.full_hash
+  }
+
+  fn dependent_hash(&self) -> bool {
+    self.dependent_hash
   }
 
   fn should_isolate(&self) -> bool {

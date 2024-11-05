@@ -220,7 +220,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'html-webpack-tags-plugin',
       url: 'https://github.com/jharris4/html-webpack-tags-plugin',
-      status: CompatibleStatus.PartiallyCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['html-webpack-tags-plugin-desc'],
     },
     {
@@ -237,13 +237,13 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'webpackbar',
       url: 'https://www.npmjs.com/package/webpackbar',
       status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+      description: i18n[lang]['progress-plugin-desc'],
     },
     {
       name: 'progress-bar-webpack-plugin',
       url: 'https://www.npmjs.com/package/progress-bar-webpack-plugin',
       status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['progress-plugin-function-un-support-desc'],
+      description: i18n[lang]['progress-plugin-desc'],
     },
     {
       name: 'image-minimizer-webpack-plugin',
@@ -301,7 +301,8 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-assets-manifest',
       url: 'https://github.com/webdeveric/webpack-assets-manifest',
-      status: CompatibleStatus.Compatible,
+      status: CompatibleStatus.PartiallyCompatible,
+      description: i18n[lang]['webpack-assets-manifest-desc'],
     },
     {
       name: 'git-revision-webpack-plugin',

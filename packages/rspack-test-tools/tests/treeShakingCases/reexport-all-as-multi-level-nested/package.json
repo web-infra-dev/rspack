@@ -1,5 +1,5 @@
 {
-  "name": "example-basic",
+  "name": "example-reexport-all-as-multi-level-nested",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

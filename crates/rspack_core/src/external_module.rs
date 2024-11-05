@@ -120,6 +120,30 @@ fn get_source_for_import(
   )
 }
 
+/**
+ * Resolve the detailed external type from the raw external type.
+ * e.g. resolve "module" or "import" from "module-import" type
+ */
+fn resolve_external_type<'a>(
+  external_type: &'a str,
+  dependency_meta: &'a DependencyMeta,
+) -> &'a str {
+  match external_type {
+    "module-import" => {
+      if let Some(external_type) = dependency_meta.external_type.as_ref() {
+        match external_type {
+          ExternalTypeEnum::Import => "import",
+          ExternalTypeEnum::Module => "module",
+        }
+      } else {
+        "module"
+      }
+    }
+
+    import_or_module => import_or_module,
+  }
+}
+
 #[impl_source_map_config]
 #[derive(Debug)]
 pub struct ExternalModule {
@@ -160,7 +184,8 @@ impl ExternalModule {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       id: Identifier::from(format!(
-        "external {external_type} {}",
+        "external {} {}",
+        resolve_external_type(external_type.as_str(), &dependency_meta),
         serde_json::to_string(&request).expect("invalid json to_string")
       )),
       request,
@@ -185,6 +210,10 @@ impl ExternalModule {
     }
   }
 
+  fn resolve_external_type(&self) -> &str {
+    resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
+  }
+
   fn get_source(
     &self,
     compilation: &Compilation,
@@ -195,8 +224,9 @@ impl ExternalModule {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let mut runtime_requirements: RuntimeGlobals = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
+    let resolved_external_type = self.resolve_external_type();
 
-    let source = match self.external_type.as_str() {
+    let source = match resolved_external_type {
       "this" if let Some(request) = request => format!(
         "{} = (function() {{ return {}; }}());",
         get_namespace_object_export(concatenation_scope, supports_const),
@@ -227,7 +257,7 @@ impl ExternalModule {
             NormalInitFragment::new(
               "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from \"module\";\n"
                 .to_string(),
-              InitFragmentStage::StageHarmonyImports,
+              InitFragmentStage::StageESMImports,
               0,
               InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
@@ -260,67 +290,57 @@ impl ExternalModule {
           to_identifier(id)
         )
       }
-      "module" | "import" | "module-import" if let Some(request) = request => {
-        match self.get_module_import_type(external_type) {
-          "import" => {
-            format!(
-              "{} = {};",
-              get_namespace_object_export(concatenation_scope, supports_const),
-              get_source_for_import(request, compilation)
-            )
-          }
-          "module" => {
-            if compilation.options.output.module {
-              let id = to_identifier(&request.primary);
-              chunk_init_fragments.push(
-                NormalInitFragment::new(
-                  format!(
-                    "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
-                    id.clone(),
-                    json_stringify(request.primary())
-                  ),
-                  InitFragmentStage::StageHarmonyImports,
-                  0,
-                  InitFragmentKey::ModuleExternal(request.primary().into()),
-                  None,
-                )
-                .boxed(),
-              );
-
-              if let Some(concatenation_scope) = concatenation_scope {
-                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{}__", id);
-                let namespace_export_with_name =
-                  format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
-                concatenation_scope.register_namespace_export(&namespace_export_with_name);
-                String::new()
-              } else {
-                format!(
-                  r#"
-  {} = __WEBPACK_EXTERNAL_MODULE_{}__;
-  "#,
-                  get_namespace_object_export(concatenation_scope, supports_const),
-                  id.clone()
-                )
-              }
-            } else {
-              format!(
-                "{} = {};",
-                get_namespace_object_export(concatenation_scope, supports_const),
-                get_source_for_import(request, compilation)
-              )
-            }
-          }
-          r#type => panic!(
-            "Unhandled external type: {} in \"module-import\" type",
-            r#type
-          ),
-        }
-      }
+      "import" if let Some(request) = request => format!(
+        "{} = {};",
+        get_namespace_object_export(concatenation_scope, supports_const),
+        get_source_for_import(request, compilation)
+      ),
       "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_default_case(false, request)
       ),
+      "module" if let Some(request) = request => {
+        if compilation.options.output.module {
+          let id = to_identifier(&request.primary);
+          chunk_init_fragments.push(
+            NormalInitFragment::new(
+              format!(
+                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
+                id.clone(),
+                json_stringify(request.primary())
+              ),
+              InitFragmentStage::StageESMImports,
+              0,
+              InitFragmentKey::ModuleExternal(request.primary().into()),
+              None,
+            )
+            .boxed(),
+          );
+
+          if let Some(concatenation_scope) = concatenation_scope {
+            let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{}__", id);
+            let namespace_export_with_name =
+              format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
+            concatenation_scope.register_namespace_export(&namespace_export_with_name);
+            String::new()
+          } else {
+            format!(
+              r#"
+{} = __WEBPACK_EXTERNAL_MODULE_{}__;
+"#,
+              get_namespace_object_export(concatenation_scope, supports_const),
+              id.clone()
+            )
+          }
+        } else {
+          format!(
+            "{} = {};",
+            get_namespace_object_export(concatenation_scope, supports_const),
+            get_source_for_import(request, compilation)
+          )
+        }
+      }
       "script" if let Some(request) = request => {
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
@@ -357,22 +377,6 @@ if(typeof {global} !== "undefined") return resolve();
       runtime_requirements,
     ))
   }
-
-  fn get_module_import_type<'a>(&self, external_type: &'a ExternalType) -> &'a str {
-    match external_type.as_str() {
-      "module-import" => {
-        if let Some(external_type) = self.dependency_meta.external_type.as_ref() {
-          match external_type {
-            ExternalTypeEnum::Import => "import",
-            ExternalTypeEnum::Module => "module",
-          }
-        } else {
-          "module"
-        }
-      }
-      import_or_module => import_or_module,
-    }
-  }
 }
 
 impl Identifiable for ExternalModule {
@@ -392,6 +396,10 @@ impl DependenciesBlock for ExternalModule {
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {
     self.dependencies.push(dependency)
+  }
+
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
   }
 
   fn get_dependencies(&self) -> &[DependencyId] {
@@ -456,7 +464,7 @@ impl Module for ExternalModule {
     ))
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0
@@ -464,11 +472,10 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let (_, external_type) = self.get_request_and_external_type();
-
+    let resolved_external_type = self.resolve_external_type();
     let build_info = BuildInfo {
       top_level_declarations: Some(FxHashSet::default()),
       strict: true,
@@ -483,18 +490,15 @@ impl Module for ExternalModule {
       optimization_bailouts: vec![],
     };
     // TODO add exports_type for request
-    match self.external_type.as_str() {
+    match resolved_external_type {
       "this" => build_result.build_info.strict = false,
       "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "script" | "promise" => build_result.build_meta.has_top_level_await = true,
-      "module" | "import" | "module-import" => match self.get_module_import_type(external_type) {
-        "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-        "import" => {
-          build_result.build_meta.has_top_level_await = true;
-          build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
-        }
-        _ => {}
-      },
+      "import" => {
+        build_result.build_meta.has_top_level_await = true;
+        build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
+      }
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
     build_result
@@ -549,11 +553,6 @@ impl Module for ExternalModule {
         cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
         cgr.runtime_requirements.insert(runtime_requirements);
-        cgr.set_hash(
-          &compilation.options.output.hash_function,
-          &compilation.options.output.hash_digest,
-          &compilation.options.output.hash_salt,
-        );
       }
     };
     if concatenation_scope.is_none() {

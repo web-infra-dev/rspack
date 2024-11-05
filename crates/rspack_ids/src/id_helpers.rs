@@ -44,6 +44,7 @@ pub fn get_used_module_ids_and_modules(
     .get_module_graph()
     .modules()
     .values()
+    .filter(|m| m.need_id())
     .for_each(|module| {
       let module_id = chunk_graph.get_module_id(module.identifier());
       if let Some(module_id) = module_id {
@@ -337,7 +338,7 @@ pub fn get_short_chunk_name(
     .map(|id| {
       module_graph
         .module_by_identifier(id)
-        .expect("Module not found")
+        .unwrap_or_else(|| panic!("Module not found {}", id))
     })
     .collect::<Vec<_>>();
   let short_module_names = modules

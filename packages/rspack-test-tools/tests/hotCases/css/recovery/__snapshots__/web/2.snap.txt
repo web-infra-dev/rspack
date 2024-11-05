@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 7627
+- Update: main.hot-update.js, size: 6903
 
 ## Manifest
 
@@ -20,12 +20,11 @@
 ## Update
 
 
-### main.LAST_HASH.hot-update.js
+### main.hot-update.js
 
 #### Changed Modules
-- ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js
-- ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js
-- ./index.css?6674
+- ../../../../../rspack/dist/cssExtractHmr.js
+- ./index.css
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -34,235 +33,239 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('main', {
-"../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"../../../../../rspack/dist/cssExtractHmr.js": (function (module) {
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.cssReload = void 0;
-const normalizeUrl_1 = __webpack_require__(/*! ./normalizeUrl */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js");
-const srcByModuleId = Object.create(null);
-const noDocument = typeof document === "undefined";
-const { forEach } = Array.prototype;
-function debounce(fn, time) {
-    let timeout = 0;
-    return function (...args) {
-        const self = this;
-        const functionCall = function functionCall() {
-            return fn.apply(self, args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(functionCall, time);
-    };
-}
-function noop() { }
-function getCurrentScriptUrl(moduleId) {
-    let src = srcByModuleId[moduleId];
-    if (!src) {
-        if (document.currentScript) {
-            ({ src } = document.currentScript);
-        }
-        else {
-            const scripts = document.getElementsByTagName("script");
-            const lastScriptTag = scripts[scripts.length - 1];
-            if (lastScriptTag) {
-                ({ src } = lastScriptTag);
-            }
-        }
-        srcByModuleId[moduleId] = src;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/runtime/cssExtractHmr.ts
+var cssExtractHmr_exports = {};
+__export(cssExtractHmr_exports, {
+  cssReload: () => cssReload,
+  normalizeUrl: () => normalizeUrl
+});
+module.exports = __toCommonJS(cssExtractHmr_exports);
+function normalizeUrl(url) {
+  const urlString = url.trim();
+  if (/^data:/i.test(urlString)) {
+    return urlString;
+  }
+  const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
+  const components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+  const host = components[0].toLowerCase().replace(//.$/, "");
+  components[0] = "";
+  const path = components.reduce((accumulator, item) => {
+    switch (item) {
+      case "..":
+        accumulator.pop();
+        break;
+      case ".":
+        break;
+      default:
+        accumulator.push(item);
     }
-    return (fileMap) => {
-        if (!src) {
-            return null;
-        }
-        const splitResult = src.match(/([^//]+)/.js$/);
-        // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
-        const filename = splitResult && splitResult[1];
-        if (!filename || !fileMap) {
-            return [src.replace(".js", ".css")];
-        }
-        return fileMap.split(",").map(mapRule => {
-            const reg = new RegExp(`${filename}/.js$`, "g");
-            return (0, normalizeUrl_1.normalizeUrl)(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
-        });
+    return accumulator;
+  }, []).join("/");
+  return protocol + host + path;
+}
+var srcByModuleId = /* @__PURE__ */ Object.create(null);
+var noDocument = typeof document === "undefined";
+var { forEach } = Array.prototype;
+function debounce(fn, time) {
+  let timeout = 0;
+  return function(...args) {
+    const self = this;
+    const functionCall = function functionCall2() {
+      return fn.apply(self, args);
     };
+    clearTimeout(timeout);
+    timeout = setTimeout(functionCall, time);
+  };
+}
+function noop() {
+}
+function getCurrentScriptUrl(moduleId) {
+  let src = srcByModuleId[moduleId];
+  if (!src) {
+    if (document.currentScript) {
+      ({ src } = document.currentScript);
+    } else {
+      const scripts = document.getElementsByTagName("script");
+      const lastScriptTag = scripts[scripts.length - 1];
+      if (lastScriptTag) {
+        ({ src } = lastScriptTag);
+      }
+    }
+    srcByModuleId[moduleId] = src;
+  }
+  return (fileMap) => {
+    if (!src) {
+      return null;
+    }
+    const splitResult = src.match(/([^//]+)/.js$/);
+    const filename = splitResult && splitResult[1];
+    if (!filename || !fileMap) {
+      return [src.replace(".js", ".css")];
+    }
+    return fileMap.split(",").map((mapRule) => {
+      const reg = new RegExp(`${filename}/.js$`, "g");
+      return normalizeUrl(
+        src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`)
+      );
+    });
+  };
 }
 function updateCss(el, url) {
-    let normalizedUrl;
-    if (!url) {
-        if (!el.href) {
-            return;
-        }
-        normalizedUrl = el.href.split("?")[0];
+  let normalizedUrl;
+  if (!url) {
+    if (!el.href) {
+      return;
     }
-    else {
-        normalizedUrl = url;
+    normalizedUrl = el.href.split("?")[0];
+  } else {
+    normalizedUrl = url;
+  }
+  if (!isUrlRequest(normalizedUrl)) {
+    return;
+  }
+  if (el.isLoaded === false) {
+    return;
+  }
+  if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
+    return;
+  }
+  el.visited = true;
+  const newEl = el.cloneNode();
+  newEl.isLoaded = false;
+  newEl.addEventListener("load", () => {
+    if (newEl.isLoaded) {
+      return;
     }
-    if (!isUrlRequest(normalizedUrl)) {
-        return;
+    newEl.isLoaded = true;
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
     }
-    if (el.isLoaded === false) {
-        // We seem to be about to replace a css link that hasn't loaded yet.
-        // We're probably changing the same file more than once.
-        return;
+  });
+  newEl.addEventListener("error", () => {
+    if (newEl.isLoaded) {
+      return;
     }
-    if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
-        return;
+    newEl.isLoaded = true;
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
     }
-    el.visited = true;
-    const newEl = el.cloneNode();
-    newEl.isLoaded = false;
-    newEl.addEventListener("load", () => {
-        if (newEl.isLoaded) {
-            return;
-        }
-        newEl.isLoaded = true;
-        if (el.parentNode) {
-            el.parentNode.removeChild(el);
-        }
-    });
-    newEl.addEventListener("error", () => {
-        if (newEl.isLoaded) {
-            return;
-        }
-        newEl.isLoaded = true;
-        if (el.parentNode) {
-            el.parentNode.removeChild(el);
-        }
-    });
-    newEl.href = `${normalizedUrl}?${Date.now()}`;
-    const parent = el.parentNode;
-    if (!parent) {
-        return;
-    }
-    if (el.nextSibling) {
-        parent.insertBefore(newEl, el.nextSibling);
-    }
-    else {
-        parent.appendChild(newEl);
-    }
+  });
+  newEl.href = `${normalizedUrl}?${Date.now()}`;
+  const parent = el.parentNode;
+  if (!parent) {
+    return;
+  }
+  if (el.nextSibling) {
+    parent.insertBefore(newEl, el.nextSibling);
+  } else {
+    parent.appendChild(newEl);
+  }
 }
 function getReloadUrl(href, src) {
-    let ret = "";
-    const normalizedHref = (0, normalizeUrl_1.normalizeUrl)(href);
-    src.some(url => {
-        if (normalizedHref.indexOf(src) > -1) {
-            ret = url;
-        }
-    });
-    return ret;
+  let ret = "";
+  const normalizedHref = normalizeUrl(href);
+  src.some((url) => {
+    if (normalizedHref.indexOf(src) > -1) {
+      ret = url;
+    }
+  });
+  return ret;
 }
 function reloadStyle(src) {
-    if (!src) {
-        return false;
+  if (!src) {
+    return false;
+  }
+  const elements = document.querySelectorAll("link");
+  let loaded = false;
+  forEach.call(elements, (el) => {
+    if (!el.href) {
+      return;
     }
-    const elements = document.querySelectorAll("link");
-    let loaded = false;
-    forEach.call(elements, el => {
-        if (!el.href) {
-            return;
-        }
-        const url = getReloadUrl(el.href, src);
-        if (!isUrlRequest(url)) {
-            return;
-        }
-        if (el.visited === true) {
-            return;
-        }
-        if (url) {
-            updateCss(el, url);
-            loaded = true;
-        }
-    });
-    return loaded;
+    const url = getReloadUrl(el.href, src);
+    if (!isUrlRequest(url)) {
+      return;
+    }
+    if (el.visited === true) {
+      return;
+    }
+    if (url) {
+      updateCss(el, url);
+      loaded = true;
+    }
+  });
+  return loaded;
 }
 function reloadAll() {
-    const elements = document.querySelectorAll("link");
-    forEach.call(elements, el => {
-        if (el.visited === true) {
-            return;
-        }
-        updateCss(el);
-    });
+  const elements = document.querySelectorAll("link");
+  forEach.call(elements, (el) => {
+    if (el.visited === true) {
+      return;
+    }
+    updateCss(el);
+  });
 }
 function isUrlRequest(url) {
-    // An URL is not an request if
-    // It is not http or https
-    if (!/^[a-zA-Z][a-zA-Z/d+/-.]*:/.test(url)) {
-        return false;
-    }
-    return true;
+  if (!/^[a-zA-Z][a-zA-Z/d+/-.]*:/.test(url)) {
+    return false;
+  }
+  return true;
 }
 function cssReload(moduleId, options) {
-    if (noDocument) {
-        console.log("no window.document found, will not HMR CSS");
-        return noop;
+  if (noDocument) {
+    console.log("[HMR] No `window.document` found, CSS HMR disabled");
+    return noop;
+  }
+  const getScriptSrc = getCurrentScriptUrl(moduleId);
+  function update() {
+    const src = getScriptSrc(options.filename);
+    const reloaded = reloadStyle(src);
+    if (options.locals) {
+      console.log("[HMR] Detected local CSS Modules. Reload all CSS");
+      reloadAll();
+      return;
     }
-    const getScriptSrc = getCurrentScriptUrl(moduleId);
-    function update() {
-        const src = getScriptSrc(options.filename);
-        const reloaded = reloadStyle(src);
-        if (options.locals) {
-            console.log("[HMR] Detected local css modules. Reload all css");
-            reloadAll();
-            return;
-        }
-        if (reloaded) {
-            // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
-            console.log("[HMR] css reload %s", src && src.join(" "));
-        }
-        else {
-            console.log("[HMR] Reload all css");
-            reloadAll();
-        }
+    if (reloaded) {
+      console.log("[HMR] CSS reload %s", src && src.join(" "));
+    } else {
+      console.log("[HMR] Reload all CSS");
+      reloadAll();
     }
-    return debounce(update, 50);
+  }
+  return debounce(update, 50);
 }
-exports.cssReload = cssReload;
+// Annotate the CommonJS export names for ESM import in node:
+0 && 0;
 
 
 }),
-"../../../../../rspack/dist/builtin-plugin/css-extract/hmr/normalizeUrl.js": (function (__unused_webpack_module, exports) {
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.normalizeUrl = void 0;
-function normalizeUrl(url) {
-    const urlString = url.trim();
-    if (/^data:/i.test(urlString)) {
-        return urlString;
-    }
-    const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
-    const components = urlString
-        .replace(new RegExp(protocol, "i"), "")
-        .split("/");
-    const host = components[0].toLowerCase().replace(//.$/, "");
-    components[0] = "";
-    const path = components
-        .reduce((accumulator, item) => {
-        switch (item) {
-            case "..":
-                accumulator.pop();
-                break;
-            case ".":
-                break;
-            default:
-                accumulator.push(item);
-        }
-        return accumulator;
-    }, [])
-        .join("/");
-    return protocol + host + path;
-}
-exports.normalizeUrl = normalizeUrl;
-
-
-}),
-"./index.css?6674": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
       (function() {
         var localsJsonString = undefined;
-        var cssReload = (__webpack_require__(/*! ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")/* .cssReload */.cssReload)(module.id, {});
+        var cssReload = (__webpack_require__(/*! ../../../../../rspack/dist/cssExtractHmr.js */ "../../../../../rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
         // only invalidate when locals change
         if (
           module.hot.data &&

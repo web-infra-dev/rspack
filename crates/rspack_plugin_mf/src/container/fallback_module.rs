@@ -74,6 +74,10 @@ impl DependenciesBlock for FallbackModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -83,7 +87,7 @@ impl DependenciesBlock for FallbackModule {
 impl Module for FallbackModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
 
@@ -117,7 +121,7 @@ impl Module for FallbackModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let build_info = BuildInfo {

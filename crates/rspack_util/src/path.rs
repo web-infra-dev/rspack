@@ -1,12 +1,43 @@
-use std::path::{Path, PathBuf};
+use std::path::{Component, Components, Path, PathBuf};
+
+fn normalize(parts: Components, allow_above_root: bool) -> Vec<Component> {
+  let mut res = vec![];
+  for p in parts {
+    match &p {
+      Component::CurDir => (),
+      Component::ParentDir => {
+        if !matches!(
+          res.last(),
+          Some(Component::ParentDir) | Some(Component::RootDir)
+        ) {
+          res.pop();
+        } else if allow_above_root {
+          res.push(p);
+        }
+      }
+      _ => res.push(p),
+    }
+  }
+  res
+}
 
 pub fn relative(from: &Path, to: &Path) -> PathBuf {
   if from == to {
     return PathBuf::new();
   }
 
-  let mut from_iter = from.components();
-  let mut to_iter = to.components();
+  let is_from_absolute = matches!(from.components().next(), Some(Component::RootDir));
+  let is_to_absolute = matches!(to.components().next(), Some(Component::RootDir));
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe
+
+  // Normalize the path
+  let from = normalize(from.components(), !is_from_absolute);
+  let to = normalize(to.components(), !is_to_absolute);
+
+  let mut from_iter = from.iter();
+  let mut to_iter = to.iter();
   let mut common_parts = 0;
 
   let from_remain = loop {
@@ -24,7 +55,7 @@ pub fn relative(from: &Path, to: &Path) -> PathBuf {
     result.push("..");
   }
 
-  let to_iter = to.components().skip(common_parts);
+  let to_iter = to.into_iter().skip(common_parts);
   for part in to_iter {
     result.push(part.as_os_str());
   }
@@ -59,6 +90,8 @@ mod test {
       ("/baz-quux", "/baz", "../baz"),
       ("/baz", "/baz-quux", "../baz-quux"),
       ("/page1/page2/foo", "/", "../../.."),
+      // Fix https://github.com/web-infra-dev/rspack/issues/8219
+      ("/", "/../maps/main.js.map", "maps/main.js.map"),
     ];
 
     for (from, to, expected) in test_cases {

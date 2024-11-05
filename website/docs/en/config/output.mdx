@@ -168,6 +168,28 @@ module.exports = {
 };
 ```
 
+## output.compareBeforeEmit
+
+<ApiMeta addedVersion={'1.1.0'} />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Tells Rspack to check if to be emitted file already exists and has the same content before writing to the output file system.
+
+:::warning
+Rspack will not write output file when file already exists on disk with the same content.
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    compareBeforeEmit: false,
+  },
+};
+```
+
 ## output.crossOriginLoading
 
 - **Type:** `false | 'anonymous' | 'use-credentials'`
@@ -326,7 +348,7 @@ module.exports = {
 - **Type:** `('fetch-streaming' | 'fetch' | 'async-node' | string | false)[]`
 - **Default:** Determined by [`output.wasmLoading`](#outputwasmloading) and [`output.workerWasmLoading`](#workerWasmLoading)
 
-List of wasm loading types enabled for use by entry points.
+List of Wasm loading types enabled for use by entry points.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -355,6 +377,8 @@ module.exports = {
       const: true,
       // The environment supports destructuring ('{ a, b } = obj').
       destructuring: true,
+      // The environment supports 'document' variable.
+      document: true,
       // The environment supports an async import() function to import EcmaScript modules.
       dynamicImport: false,
       // The environment supports an async import() when creating a worker, only for web targets at the moment.
@@ -527,7 +551,7 @@ Substitutions available on URL-level:
 
 :::
 
-The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:16]` (defaults to 20). Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
+The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:12]` (defaults to 16). Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
 
 It is possible to filter out placeholder replacement when you want to use one of the placeholders in the actual file name. For example, to output a file `[name].js`, you have to escape the `[name]` placeholder by adding backslashes between the brackets. So that `[\name\]` generates `[name]` instead of getting replaced with the `name` of the asset.
 
@@ -599,18 +623,14 @@ The encoding to use when generating the hash. Using `'base64'` for filenames mig
 ## output.hashDigestLength
 
 - **Type:** `number`
-- **Default:** `20`
+- **Default:** `16`
 
 The prefix length of the hash digest to use.
-
-:::tip
-The default value for `hashDigestLength` is `20`. When the feature [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) is enabled, it will use `16` as the default value.
-:::
 
 ## output.hashFunction
 
 - **Type:** `'md4' | 'xxhash64'`
-- **Default:** `'md4'`
+- **Default:** `'xxhash64'`
 
 The hashing algorithm to use.
 
@@ -624,7 +644,7 @@ module.exports = {
 ```
 
 :::tip
-`hashFunction` supports `xxhash64` as a faster algorithm, which will be used as default when [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) is enabled.
+Rspack uses the faster `xxhash64` algorithm by default since v1.1.
 :::
 
 ## output.hashSalt
@@ -1057,7 +1077,7 @@ module.exports = {
 };
 ```
 
-Output ES Module.
+Output ES modules.
 
 However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand. In addition, you can track the development progress in [this thread](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975).
 
@@ -1652,6 +1672,12 @@ module.exports = {
   },
 };
 ```
+
+## output.strictModuleExceptionHandling
+
+- **Types:** boolean
+
+Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required.
 
 ## output.trustedTypes
 

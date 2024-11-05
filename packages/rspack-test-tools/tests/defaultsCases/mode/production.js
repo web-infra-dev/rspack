@@ -8,6 +8,19 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-     "incremental": Object {
+		-       "buildChunkGraph": false,
+		-       "dependenciesDiagnostics": false,
+		-       "emitAssets": true,
+		-       "inferAsyncModules": false,
+		-       "make": true,
+		-       "modulesCodegen": false,
+		-       "modulesHashes": false,
+		-       "modulesRuntimeRequirements": false,
+		-       "providedExports": false,
+		-     },
+		+     "incremental": false,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
@@ -51,11 +64,12 @@ module.exports = {
 		-     "usedExports": false,
 		+     "usedExports": true,
 		@@ ... @@
-		-   "performance": false,
+		+   },
 		+   "performance": Object {
 		+     "hints": "warning",
 		+     "maxAssetSize": 250000,
 		+     "maxEntrypointSize": 250000,
-		+   },
+		@@ ... @@
+		-   "performance": false,
 	`)
 };

@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 52
-- Update: main.LAST_HASH.hot-update.js, size: 530
+- Update: main.LAST_HASH.hot-update.js, size: 526
 
 ## Manifest
 
@@ -38,7 +38,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (42);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (42);
 
 
 }),

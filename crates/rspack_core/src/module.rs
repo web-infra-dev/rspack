@@ -22,14 +22,14 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ModuleDependency,
-  ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, RunnerContext,
+  ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, ResolverFactory,
   RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
-pub struct BuildContext<'a> {
-  pub runner_context: RunnerContext,
+pub struct BuildContext {
+  pub compiler_options: Arc<CompilerOptions>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
-  pub compiler_options: &'a CompilerOptions,
   pub fs: Arc<dyn ReadableFileSystem>,
 }
 
@@ -50,7 +50,7 @@ pub struct BuildInfo {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
-  pub harmony_named_exports: HashSet<Atom>,
+  pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
@@ -68,7 +68,7 @@ impl Default for BuildInfo {
       context_dependencies: HashSet::default(),
       missing_dependencies: HashSet::default(),
       build_dependencies: HashSet::default(),
-      harmony_named_exports: HashSet::default(),
+      esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
@@ -144,7 +144,7 @@ impl Display for ExportsArgument {
 
 #[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
-  pub strict_harmony_module: bool,
+  pub strict_esm_module: bool,
   pub has_top_level_await: bool,
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
@@ -198,13 +198,14 @@ pub trait Module:
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
   /// The size of the original source, which will used as a parameter for code-splitting.
-  fn size(&self, source_type: Option<&SourceType>, compilation: &Compilation) -> f64;
+  /// Only when calculating the size of the RuntimeModule is the Compilation depended on
+  fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
@@ -248,11 +249,11 @@ pub trait Module:
     get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
   }
 
-  fn get_strict_harmony_module(&self) -> bool {
+  fn get_strict_esm_module(&self) -> bool {
     self
       .build_meta()
       .as_ref()
-      .is_some_and(|m| m.strict_harmony_module)
+      .is_some_and(|m| m.strict_esm_module)
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
@@ -367,6 +368,10 @@ pub trait Module:
 
     false
   }
+
+  fn need_id(&self) -> bool {
+    true
+  }
 }
 
 fn get_exports_type_impl(
@@ -417,7 +422,7 @@ fn get_exports_type_impl(
             if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
               handle_default(default_object)
             } else {
-              let Some(target) = export_info.get_target(mg, None) else {
+              let Some(target) = export_info.get_target(mg) else {
                 return ExportsType::Dynamic;
               };
               if target
@@ -497,7 +502,7 @@ pub trait ModuleExt {
   fn boxed(self) -> Box<dyn Module>;
 }
 
-impl<T: Module + 'static> ModuleExt for T {
+impl<T: Module> ModuleExt for T {
   fn boxed(self) -> Box<dyn Module> {
     Box::new(self)
   }
@@ -642,6 +647,10 @@ mod test {
           unreachable!()
         }
 
+        fn remove_dependency_id(&mut self, _: DependencyId) {
+          unreachable!()
+        }
+
         fn get_dependencies(&self) -> &[DependencyId] {
           unreachable!()
         }
@@ -661,7 +670,11 @@ mod test {
           unreachable!()
         }
 
-        fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+        fn size(
+          &self,
+          _source_type: Option<&SourceType>,
+          _compilation: Option<&Compilation>,
+        ) -> f64 {
           unreachable!()
         }
 
@@ -671,7 +684,7 @@ mod test {
 
         async fn build(
           &mut self,
-          _build_context: BuildContext<'_>,
+          _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {
           unreachable!()

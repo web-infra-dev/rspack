@@ -29,6 +29,10 @@ impl Dependency for LoaderImportDependency {
     &self.id
   }
 
+  fn get_context(&self) -> Option<&Context> {
+    Some(&self.context)
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::LoaderImport
   }

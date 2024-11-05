@@ -35,7 +35,7 @@ use swc_core::{
       hygiene::hygiene,
       resolver,
     },
-    visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith},
+    visit::{noop_visit_type, Visit, VisitMutWith, VisitWith},
   },
 };
 use swc_ecma_minifier::{
@@ -215,9 +215,8 @@ pub fn minify(
           let program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
               let program = program
-                .fold_with(&mut resolver(unresolved_mark, top_level_mark, false))
-                .fold_with(&mut paren_remover(Some(&comments as &dyn Comments)));
-
+                .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+                .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
               let mut program = swc_ecma_minifier::optimize(
                 program,
                 cm.clone(),
@@ -227,13 +226,14 @@ pub fn minify(
                 &swc_ecma_minifier::option::ExtraOptions {
                   unresolved_mark,
                   top_level_mark,
+                  mangle_name_cache: None,
                 },
               );
 
               if !is_mangler_enabled {
                 program.visit_mut_with(&mut hygiene())
               }
-              program.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+              program.apply(&mut fixer(Some(&comments as &dyn Comments)))
             })
           });
 

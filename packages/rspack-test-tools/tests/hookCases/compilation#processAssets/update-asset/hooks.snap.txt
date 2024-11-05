@@ -5,7 +5,7 @@
 ```javascript
 Array [
   Object {
-    "main.b3ac23329906ebf4b74c.js": (() => { // webpackBootstrap
+    "main.1a8159bf5e440aaa.js": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {
 module.exports = "This is hook"
@@ -62,7 +62,7 @@ undefined
 ```javascript
 Array [
   Object {
-    "main.4042176317972221cc00.js": // UPDATED
+    "main.1590878c5d48d051.js": // UPDATED
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 "600": (function (module) {

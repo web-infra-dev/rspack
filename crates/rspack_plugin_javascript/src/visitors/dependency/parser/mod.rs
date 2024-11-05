@@ -226,7 +226,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
-  // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
+  // TODO: remove `is_esm` after `ESMExports::isEnabled`
   pub(crate) is_esm: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) parser_exports_state: Option<bool>,
@@ -245,7 +245,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
-  pub(crate) last_harmony_import_order: i32,
+  pub(crate) last_esm_import_order: i32,
   pub(crate) inner_graph: InnerGraphState,
 }
 
@@ -285,11 +285,14 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
+    plugins.push(Box::new(
+      parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
+    ));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
+      plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
+      plugins.push(Box::new(parser_plugin::ESMDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
       plugins.push(Box::new(
@@ -301,8 +304,8 @@ impl<'parser> JavascriptParser<'parser> {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }
 
-      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::ESMImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
@@ -347,7 +350,7 @@ impl<'parser> JavascriptParser<'parser> {
     let mut db = ScopeInfoDB::new();
 
     Self {
-      last_harmony_import_order: 0,
+      last_esm_import_order: 0,
       comments,
       javascript_options,
       source_map,

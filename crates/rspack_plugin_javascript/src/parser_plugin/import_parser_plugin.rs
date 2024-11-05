@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, ContextDependency, DependencyLocation, DynamicImportMode, GroupOptions,
-  ImportAttributes, RealDependencyLocation,
+  AsyncDependenciesBlock, ContextDependency, DependencyLocation, DependencyRange,
+  DynamicImportMode, GroupOptions, ImportAttributes,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -131,7 +131,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
         Some(DependencyLocation::Real(
-          Into::<RealDependencyLocation>::into(node.span).with_source(parser.source_map.clone()),
+          Into::<DependencyRange>::into(node.span).with_source(parser.source_map.clone()),
         )),
         None,
         vec![dep],
@@ -146,6 +146,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser.blocks.push(Box::new(block));
       Some(true)
     } else {
+      if matches!(parser.javascript_options.import_dynamic, Some(false)) {
+        return None;
+      }
+
       let ContextModuleScanResult {
         context,
         reg,
@@ -165,7 +169,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           category: DependencyCategory::Esm,
           request: format!("{}{}{}", context.clone(), query, fragment),
           context,
-          namespace_object: if parser.build_meta.strict_harmony_module {
+          namespace_object: if parser.build_meta.strict_esm_module {
             ContextNameSpaceObject::Strict
           } else {
             ContextNameSpaceObject::Bool(true)

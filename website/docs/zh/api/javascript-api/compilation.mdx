@@ -439,7 +439,8 @@ module.exports = {
             super('custom', RuntimeModule.STAGE_NORMAL);
           }
 
-          generate(compilation) {
+          generate() {
+            const compilation = this.compilation;
             return `
             __webpack_require__.mock = function() {
               // ...
@@ -449,14 +450,13 @@ module.exports = {
         }
 
         compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
-          compilation.hooks.runtimeRequirementInTree.tap(
-            'CustomPlugin',
-            (chunk, set) => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
               if (chunk.name === 'main') {
                 compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
               }
-            },
-          );
+            });
         });
       },
     },
@@ -655,6 +655,22 @@ getCache(name: string): CacheFacade;
 **类型：** `ReadonlySet<Module>`
 
 获取所有模块，其结构如下：
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### builtModules
+
+**类型：** `ReadonlySet<Module>`
+
+获取未缓存被构建的模块，其结构如下：
 
 <Collapse>
   <CollapsePanel

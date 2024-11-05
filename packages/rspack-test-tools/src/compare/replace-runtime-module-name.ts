@@ -9,6 +9,8 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/compat": "webpack/runtime/compat",
 	"webpack/runtime/create_fake_namespace_object":
 		"webpack/runtime/create fake namespace object",
+	"webpack/runtime/create_script_url":
+		"webpack/runtime/trusted types script url",
 	"webpack/runtime/create_script": "webpack/runtime/trusted types script",
 	"webpack/runtime/define_property_getters":
 		"webpack/runtime/define property getters",
@@ -53,7 +55,7 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/remote": "webpack/runtime/remotes loading",
 	"webpack/runtime/share": "webpack/runtime/sharing",
 	"webpack/runtime/consume_shared": "webpack/runtime/consumes",
-	"webpack/runtime/harmony_module_decorator":
+	"webpack/runtime/esm_module_decorator":
 		"webpack/runtime/harmony module decorator",
 	"webpack/runtime/node_module_decorator":
 		"webpack/runtime/node module decorator",

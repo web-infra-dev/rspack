@@ -1,5 +1,6 @@
 ---
-date: 2024-08-28 16:00:00
+date: 2024-08-28 16:00:01
+sidebar: false
 ---
 
 # Rspack 1.0 发布公告
@@ -207,7 +208,7 @@ Rspack 提供了一些实验性特性，这些特性可以通过 [experiments](h
 
 #### SWC 相关特性
 
-Rspack 基于 SWC 实现，而 SWC 目前处于 pre-1.0 阶段。为了及时地跟进 SWC 的修复和优化，我们会定期升级 SWC 版本，这可能会包含 SWC 的一些不兼容变更，或是导致低版本的 SWC Wasm 插件不可用。在这种情况下，我们会发布 Rspack 的 minor 版本，并在更新日志中说明。
+Rspack 基于 SWC 实现，而 SWC 目前处于 pre-1.0 阶段。为了及时地跟进 SWC 的修复和优化，我们会定期升级 SWC 版本，这可能会包含 SWC 的一些不兼容变更，或是导致低版本的 SWC Wasm 插件不可用。在这种情况下，如果 SWC 升级包含 breaking change，我们会发布 Rspack 的 minor 版本，并在更新日志中说明,；如果 SWC 升级不包含 breaking change，我们可能会发布在 Rspack 的 patch 或者 minor 版本。
 
 #### TS 类型
 
@@ -215,3 +216,7 @@ Rspack 基于 SWC 实现，而 SWC 目前处于 pre-1.0 阶段。为了及时地
 
 - TypeScript 自身不遵循 semver，它可能在 minor 版本引入一些不兼容变更，使得 Rspack 需要调整类型。
 - Rspack 可能会利用一些高版本 TypeScript 引入的特性，对一些使用低版本 TypeScript 的项目造成影响。
+
+#### 修复兼容 webpack 的 Bug
+
+如果在 Rspack 之前版本中错误地实现了 webpack 的 API，那么我们可能在非 major 版本进行修复，并对齐 webpack API 的行为。

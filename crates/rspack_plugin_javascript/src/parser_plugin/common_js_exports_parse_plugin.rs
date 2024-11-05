@@ -1,5 +1,5 @@
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, RealDependencyLocation, RuntimeGlobals,
+  BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
   RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::atoms::Atom;
@@ -269,7 +269,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser.append_module_runtime();
       // matches!( self.build_meta.exports_type, BuildMetaExportsType::Namespace)
       let decorator = if parser.is_esm {
-        RuntimeGlobals::HARMONY_MODULE_DECORATOR
+        RuntimeGlobals::ESM_MODULE_DECORATOR
       } else {
         RuntimeGlobals::NODE_MODULE_DECORATOR
       };
@@ -391,7 +391,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // exports.aaa = require('xx');
           // module.exports.aaa = require('xx');
           // this.aaa = require('xx');
-          let range: RealDependencyLocation = assign_expr.span.into();
+          let range: DependencyRange = assign_expr.span.into();
           parser
             .dependencies
             .push(Box::new(CommonJsExportRequireDependency::new(

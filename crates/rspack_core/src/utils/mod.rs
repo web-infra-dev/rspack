@@ -9,7 +9,6 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
 };
-
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
@@ -216,8 +215,8 @@ pub fn compare_chunks_with_graph(
   chunk_a_ukey: &ChunkUkey,
   chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a_ukey);
-  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b_ukey);
+  let cgc_a = chunk_graph.expect_chunk_graph_chunk(chunk_a_ukey);
+  let cgc_b = chunk_graph.expect_chunk_graph_chunk(chunk_b_ukey);
   if cgc_a.modules.len() > cgc_b.modules.len() {
     return Ordering::Less;
   }

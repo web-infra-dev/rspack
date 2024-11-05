@@ -86,7 +86,7 @@ impl SwcLoader {
       _ => loader_context.context.module_source_map_kind,
     };
 
-    let source = content.try_into_string()?;
+    let source = content.into_string_lossy();
     let c = SwcCompiler::new(
       resource_path.into_std_path_buf(),
       source.clone(),
@@ -122,7 +122,7 @@ impl SwcLoader {
       keep_comments: Some(true),
     };
 
-    let program = tokio::task::block_in_place(|| c.transform(built).map_err(AnyhowError::from))?;
+    let program = c.transform(built).map_err(AnyhowError::from)?;
     if source_map_kind.enabled() {
       let mut v = IdentCollector {
         names: Default::default(),

@@ -20,11 +20,11 @@ it("should load an async module from dll", function(done) {
 		.catch(done);
 });
 
-it("should load an harmony module from dll (default export)", function() {
+it("should load an ES module from dll (default export)", function() {
 	expect(d).toBe("d");
 });
 
-it("should load an harmony module from dll (star export)", function() {
+it("should load an ES module from dll (star export)", function() {
 	expect(x1).toBe(123);
 	expect(x2).toBe(123);
 	expect(y1).toBe(456);
