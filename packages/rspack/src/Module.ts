@@ -191,7 +191,6 @@ const MODULE_MAPPINGS = new WeakMap<JsModule, Module>();
 
 export class Module {
 	#inner: JsModule;
-	#originalSource?: Source;
 
 	declare readonly context?: string;
 	declare readonly resource?: string;
@@ -331,12 +330,8 @@ export class Module {
 	}
 
 	originalSource(): Source | null {
-		if (this.#originalSource) return this.#originalSource;
 		if (this.#inner.originalSource) {
-			this.#originalSource = JsSource.__from_binding(
-				this.#inner.originalSource
-			);
-			return this.#originalSource;
+			return JsSource.__from_binding(this.#inner.originalSource);
 		}
 		return null;
 	}
