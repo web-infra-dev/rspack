@@ -1289,7 +1289,7 @@ export interface RawDllEntyPluginOptions {
   name: string
 }
 
-export interface RawDllReferencePluginAgencyOptions {
+export interface RawDllReferenceAgencyPluginOptions {
   context?: string
   name?: string
   extensions: Array<string>

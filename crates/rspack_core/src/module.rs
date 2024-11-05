@@ -89,7 +89,7 @@ pub enum BuildMetaExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Clone, Copy, Hash, Deserialize)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum ExportsType {
   DefaultOnly,
   Namespace,

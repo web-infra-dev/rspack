@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_binding_values::JsFilename;
 use rspack_plugin_dll::{
-  DllEntryPluginOptions, DllReferencePluginAgencyOptions, LibManifestPluginOptions,
+  DllEntryPluginOptions, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
 };
 
 #[derive(Debug)]
@@ -63,7 +63,7 @@ impl From<RawLibManifestPluginOptions> for LibManifestPluginOptions {
 
 #[derive(Debug)]
 #[napi(object)]
-pub struct RawDllReferencePluginAgencyOptions {
+pub struct RawDllReferenceAgencyPluginOptions {
   pub context: Option<String>,
   pub name: Option<String>,
   pub extensions: Vec<String>,
@@ -74,9 +74,9 @@ pub struct RawDllReferencePluginAgencyOptions {
   pub manifest: Option<String>,
 }
 
-impl From<RawDllReferencePluginAgencyOptions> for DllReferencePluginAgencyOptions {
-  fn from(value: RawDllReferencePluginAgencyOptions) -> Self {
-    let RawDllReferencePluginAgencyOptions {
+impl From<RawDllReferenceAgencyPluginOptions> for DllReferenceAgencyPluginOptions {
+  fn from(value: RawDllReferenceAgencyPluginOptions) -> Self {
+    let RawDllReferenceAgencyPluginOptions {
       context,
       name,
       extensions,

@@ -16,7 +16,7 @@ mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
-use raw_dll::{RawDllReferencePluginAgencyOptions, RawFlagAllModulesAsUsedPluginOptions};
+use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use rspack_binding_values::entry::JsEntryPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
@@ -545,7 +545,7 @@ impl BuiltinPlugin {
         plugins.push(FlagAllModulesAsUsedPlugin::new(raw_options.explanation).boxed())
       }
       BuiltinPluginName::DllReferenceAgencyPlugin => {
-        let raw_options = downcast_into::<RawDllReferencePluginAgencyOptions>(self.options)?;
+        let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
       }

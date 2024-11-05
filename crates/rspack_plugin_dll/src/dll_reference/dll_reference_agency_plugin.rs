@@ -11,7 +11,7 @@ use super::delegated_plugin::{DelegatedPlugin, DelegatedPluginOptions};
 use crate::{DllManifest, DllManifestContent};
 
 #[derive(Debug, Clone)]
-pub struct DllReferencePluginAgencyOptions {
+pub struct DllReferenceAgencyPluginOptions {
   pub context: Option<Context>,
   pub name: Option<String>,
   pub content: Option<String>,
@@ -25,11 +25,11 @@ pub struct DllReferencePluginAgencyOptions {
 #[plugin]
 #[derive(Debug)]
 pub struct DllReferenceAgencyPlugin {
-  options: DllReferencePluginAgencyOptions,
+  options: DllReferenceAgencyPluginOptions,
 }
 
 impl DllReferenceAgencyPlugin {
-  pub fn new(options: DllReferencePluginAgencyOptions) -> Self {
+  pub fn new(options: DllReferenceAgencyPluginOptions) -> Self {
     Self::new_inner(options)
   }
 }
