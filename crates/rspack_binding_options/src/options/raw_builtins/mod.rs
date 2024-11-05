@@ -85,7 +85,7 @@ use rspack_plugin_worker::WorkerPlugin;
 pub use self::{
   raw_banner::RawBannerPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
-  raw_dll::{RawDllEntyPluginOptions, RawLibManifestPluginOptions},
+  raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
   raw_ignore::RawIgnorePluginOptions,
   raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
@@ -531,7 +531,7 @@ impl BuiltinPlugin {
         plugins.push(ContextReplacementPlugin::new(options).boxed());
       }
       BuiltinPluginName::DllEntryPlugin => {
-        let raw_options = downcast_into::<RawDllEntyPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawDllEntryPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(DllEntryPlugin::new(options).boxed());
       }

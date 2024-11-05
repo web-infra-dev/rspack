@@ -6,15 +6,15 @@ use rspack_plugin_dll::{
 
 #[derive(Debug)]
 #[napi(object)]
-pub struct RawDllEntyPluginOptions {
+pub struct RawDllEntryPluginOptions {
   pub context: String,
   pub entries: Vec<String>,
   pub name: String,
 }
 
-impl From<RawDllEntyPluginOptions> for DllEntryPluginOptions {
-  fn from(value: RawDllEntyPluginOptions) -> Self {
-    let RawDllEntyPluginOptions {
+impl From<RawDllEntryPluginOptions> for DllEntryPluginOptions {
+  fn from(value: RawDllEntryPluginOptions) -> Self {
+    let RawDllEntryPluginOptions {
       name,
       context,
       entries,

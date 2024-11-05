@@ -1283,7 +1283,7 @@ export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
-export interface RawDllEntyPluginOptions {
+export interface RawDllEntryPluginOptions {
   context: string
   entries: Array<string>
   name: string

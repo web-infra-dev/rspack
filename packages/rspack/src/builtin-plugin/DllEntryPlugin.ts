@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	type RawDllEntyPluginOptions
+	type RawDllEntryPluginOptions
 } from "@rspack/binding";
 import { create } from "./base";
 
@@ -14,7 +14,7 @@ export const DllEntryPlugin = create(
 		context: string,
 		entries: string[],
 		options: DllEntryPluginOptions
-	): RawDllEntyPluginOptions => {
+	): RawDllEntryPluginOptions => {
 		return {
 			context,
 			entries,

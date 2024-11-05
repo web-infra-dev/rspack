@@ -11,7 +11,7 @@ pub struct DllEntryDependency {
 
   pub entries: Vec<String>,
 
-  // TODO: The fiedls `name` for serialize & deserialize.
+  // TODO: The fields `name` for serialize & deserialize.
   pub name: String,
 
   id: DependencyId,

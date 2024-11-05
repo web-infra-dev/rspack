@@ -120,7 +120,7 @@ impl Module for DelegatedModule {
     let mut runtime_requirements = RuntimeGlobals::default();
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements.insert(RuntimeGlobals::MODULE);
-    let mut code_generation_reuslt = CodeGenerationResult {
+    let mut code_generation_result = CodeGenerationResult {
       runtime_requirements,
       ..Default::default()
     };
@@ -131,7 +131,7 @@ impl Module for DelegatedModule {
     let dependency = mg
       .dependency_by_id(&dep)
       .and_then(|dep| dep.downcast_ref::<DelegatedSourceDependency>())
-      .expect("Should be module depdency");
+      .expect("Should be module dependency");
 
     let str = match source_module {
       Some(_) => {
@@ -139,7 +139,7 @@ impl Module for DelegatedModule {
           "module.exports = {}",
           module_raw(
             compilation,
-            &mut code_generation_reuslt.runtime_requirements,
+            &mut code_generation_result.runtime_requirements,
             &dep,
             dependency.request(),
             false,
@@ -177,9 +177,9 @@ impl Module for DelegatedModule {
       Arc::new(raw_source)
     };
 
-    code_generation_reuslt = code_generation_reuslt.with_javascript(source);
+    code_generation_result = code_generation_result.with_javascript(source);
 
-    Ok(code_generation_reuslt)
+    Ok(code_generation_result)
   }
 
   fn need_build(&self) -> bool {
