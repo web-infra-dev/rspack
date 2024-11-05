@@ -318,7 +318,7 @@ impl JsModule {
   }
 }
 
-type ModuleInstanceRefs = IdentifierMap<OneShotRef<ClassInstance<JsModule>>>;
+type ModuleInstanceRefs = IdentifierMap<OneShotRef<JsModule>>;
 
 type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleInstanceRefs>>;
 
@@ -393,7 +393,7 @@ impl ToNapiValue for JsModuleWrapper {
       match refs.entry(module.identifier()) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          let mut instance = r.from_napi_value()?;
+          let instance = r.from_napi_mut_ref()?;
           if let Some(compilation) = val.compilation {
             instance.attach(compilation);
           } else {
@@ -402,14 +402,13 @@ impl ToNapiValue for JsModuleWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let instance: ClassInstance<JsModule> = JsModule {
+          let js_module = JsModule {
             identifier: val.identifier,
             module: val.module,
             compilation_id: val.compilation_id,
             compilation: val.compilation,
-          }
-          .into_instance(Env::from_raw(env))?;
-          let r = entry.insert(OneShotRef::new(env, instance)?);
+          };
+          let r = entry.insert(OneShotRef::new(env, js_module)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }
