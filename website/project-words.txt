@@ -111,6 +111,7 @@ NestJS
 ngtools
 noimport
 nosources
+nuxt
 nwjs
 Omereshone
 optimizationemitonerrors

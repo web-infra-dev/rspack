@@ -177,6 +177,7 @@ export class JsModule {
   get type(): string
   get layer(): string | undefined
   get blocks(): Array<JsDependenciesBlock>
+  get dependencies(): Array<JsDependency>
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
@@ -659,6 +660,7 @@ export interface JsLoaderContext {
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
+  __internal__error?: JsRspackError
 }
 
 export interface JsLoaderItem {
