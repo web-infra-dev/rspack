@@ -117,11 +117,13 @@ See [`HtmlRspackPlugin`](https://rspack.dev/plugins/rspack/html-rspack-plugin) f
 
 ### Improvement of Types
 
-TODO: @GiveMe-A-Name
+In the initial versions of Rspack, we used `zod` to validate user configurations, inferring all types from it. However, the absence of JSDoc made it challenging to comprehend the generated `zod` types when examining the `.d.ts` files or using intellisense in an editor.
 
-{/* What's it used for */}
+With this update, we have refactored the configuration types and added JSDoc comments for all types to enhance clarity and understanding.
 
-{/* how to use */}
+See intellisense in IDE:
+
+![configuration intellisense in IDE](https://assets.rspack.dev/rspack/assets/rspack-v1.1-config-intellisense.png)
 
 ## Ecosystem Cooperation
 
