@@ -13,6 +13,20 @@ pub struct RuntimeSpec {
   key: String,
 }
 
+impl std::fmt::Display for RuntimeSpec {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut iter = self.iter();
+    if let Some(first) = iter.next() {
+      write!(f, "{first}")?;
+    }
+    for r in iter {
+      write!(f, ",")?;
+      write!(f, "{r}")?;
+    }
+    Ok(())
+  }
+}
+
 impl std::hash::Hash for RuntimeSpec {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.key.hash(state);
@@ -167,8 +181,7 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
 }
 
 pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
-  let arr = runtime.iter().map(|item| item.as_ref()).collect::<Vec<_>>();
-  arr.join(",")
+  format!("{runtime}")
 }
 
 pub fn filter_runtime(

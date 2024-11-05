@@ -6350,7 +6350,6 @@ export const rspackOptions: z.ZodObject<{
         warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -6374,6 +6373,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -6427,7 +6427,6 @@ export const rspackOptions: z.ZodObject<{
         warningsSpace?: number | undefined;
     }, {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -6451,6 +6450,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -8354,7 +8354,6 @@ export const rspackOptions: z.ZodObject<{
     snapshot?: {} | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -8378,6 +8377,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -8989,7 +8989,6 @@ export const rspackOptions: z.ZodObject<{
     snapshot?: {} | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -9013,6 +9012,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;

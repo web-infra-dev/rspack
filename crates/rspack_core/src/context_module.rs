@@ -1,11 +1,11 @@
 use std::path::PathBuf;
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 use std::{borrow::Cow, hash::Hash};
 
+use cow_utils::CowUtils;
 use derivative::Derivative;
 use indoc::formatdoc;
 use itertools::Itertools;
-use regex::{Captures, Regex};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
@@ -25,17 +25,13 @@ use crate::{
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, RealDependencyLocation,
-  Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyRange, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
-static WEBPACK_CHUNK_NAME_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
-static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
-static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
+static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ContextMode {
@@ -891,7 +887,7 @@ impl Module for ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
-      let loc = RealDependencyLocation::new(
+      let loc = DependencyRange::new(
         self.options.context_options.start,
         self.options.context_options.end,
       );
@@ -922,17 +918,21 @@ impl Module for ContextModule {
         let name = group_options
           .and_then(|group_options| group_options.name.as_ref())
           .map(|name| {
-            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
+            let name = if !(name.contains(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER)
+              || name.contains(WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER))
+            {
               Cow::Owned(format!("{name}[index]"))
             } else {
               Cow::Borrowed(name)
             };
-            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
-              .replace_all(&name, |_: &Captures| index.to_string());
+
+            let name = name.cow_replace(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
+            let name = name.cow_replace(
+              WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER,
+              &to_path(&context_element_dependency.user_request),
+            );
+
             index += 1;
-            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER.replace_all(&name, |_: &Captures| {
-              to_path(&context_element_dependency.user_request)
-            });
             name.into_owned()
           });
         let preload_order = group_options.and_then(|o| o.preload_order);
@@ -1037,11 +1037,6 @@ impl Module for ContextModule {
           .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       }
     }
-    code_generation_result.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
     Ok(code_generation_result)
   }
 

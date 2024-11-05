@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyLocation,
-  GroupOptions, RealDependencyLocation, SpanExt,
+  DependencyRange, GroupOptions, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -143,7 +143,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     let mut block = AsyncDependenciesBlock::new(
       *parser.module_identifier,
       Some(DependencyLocation::Real(
-        Into::<RealDependencyLocation>::into(expr.span).with_source(parser.source_map.clone()),
+        Into::<DependencyRange>::into(expr.span).with_source(parser.source_map.clone()),
       )),
       None,
       deps,

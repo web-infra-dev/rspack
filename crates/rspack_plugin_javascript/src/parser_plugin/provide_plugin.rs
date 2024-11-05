@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  ApplyContext, CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PluginContext, RealDependencyLocation,
+  ApplyContext, CompilerOptions, DependencyRange, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -20,7 +20,7 @@ const MODULE_DOT: &str = r#"_dot_"#;
 fn create_provide_dep(
   name: &str,
   value: &ProvideValue,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 ) -> Option<ProvideDependency> {
   if let Some(requests) = value.get(name) {
     let name_identifier = if name.contains(SOURCE_DOT) {
@@ -90,7 +90,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let range: RealDependencyLocation = expr.callee.span().into();
+    let range: DependencyRange = expr.callee.span().into();
     create_provide_dep(
       for_name,
       &self.provide,
@@ -110,7 +110,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let range: RealDependencyLocation = expr.span().into();
+    let range: DependencyRange = expr.span().into();
     create_provide_dep(
       for_name,
       &self.provide,
@@ -128,7 +128,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    let range: RealDependencyLocation = ident.span.into();
+    let range: DependencyRange = ident.span.into();
     create_provide_dep(
       for_name,
       &self.provide,

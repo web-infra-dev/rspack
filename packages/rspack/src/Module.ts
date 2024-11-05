@@ -79,21 +79,10 @@ export class ContextModuleFactoryBeforeResolveData {
 			regExp: {
 				enumerable: true,
 				get(): RegExp | undefined {
-					if (!binding.regExp) {
-						return undefined;
-					}
-					const { source, flags } = binding.regExp;
-					return new RegExp(source, flags);
+					return binding.regExp;
 				},
 				set(val: RegExp | undefined) {
-					if (!val) {
-						binding.regExp = undefined;
-						return;
-					}
-					binding.regExp = {
-						source: val.source,
-						flags: val.flags
-					};
+					binding.regExp = val;
 				}
 			},
 			recursive: {
@@ -167,21 +156,10 @@ export class ContextModuleFactoryAfterResolveData {
 			regExp: {
 				enumerable: true,
 				get(): RegExp | undefined {
-					if (!binding.regExp) {
-						return undefined;
-					}
-					const { source, flags } = binding.regExp;
-					return new RegExp(source, flags);
+					return binding.regExp;
 				},
 				set(val: RegExp | undefined) {
-					if (!val) {
-						binding.regExp = undefined;
-						return;
-					}
-					binding.regExp = {
-						source: val.source,
-						flags: val.flags
-					};
+					binding.regExp = val;
 				}
 			},
 			recursive: {
@@ -339,6 +317,15 @@ export class Module {
 				get(): DependenciesBlock[] {
 					if ("blocks" in module) {
 						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
+					}
+					return [];
+				}
+			},
+			dependencies: {
+				enumerable: true,
+				get(): Dependency[] {
+					if ("dependencies" in module) {
+						return module.dependencies.map(d => Dependency.__from_binding(d));
 					}
 					return [];
 				}

@@ -61,7 +61,7 @@ impl ConsumeSharedModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(identifier.clone()),
+      identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
         "webpack/sharing/consume/{}/{}{}",
         &options.share_scope,

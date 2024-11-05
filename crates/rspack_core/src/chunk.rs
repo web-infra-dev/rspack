@@ -426,12 +426,28 @@ impl Chunk {
       .chunk_graph
       .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
     {
-      if let Some(hash) = compilation
+      let module_identifier = module.identifier();
+      let hash = compilation
         .code_generation_results
-        .get_hash(&module.identifier(), Some(&self.runtime))
-      {
-        hash.hash(hasher);
-      }
+        .get_hash(&module_identifier, Some(&self.runtime))
+        .unwrap_or_else(|| {
+          panic!("Module ({module_identifier}) should have hash result when updating chunk hash.");
+        });
+      hash.hash(hasher);
+    }
+    for (runtime_module_identifier, _) in compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(&self.ukey, compilation)
+    {
+      let hash = compilation
+        .runtime_modules_hash
+        .get(runtime_module_identifier)
+        .unwrap_or_else(|| {
+          panic!(
+            "Runtime module ({runtime_module_identifier}) should have hash result when updating chunk hash."
+          );
+        });
+      hash.hash(hasher);
     }
     "entry".hash(hasher);
     for (module, chunk_group) in compilation

@@ -1,7 +1,7 @@
 use napi::Either;
 use rspack_core::{
-  AdditionalData, LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding,
-  RunnerContext, BUILTIN_LOADER_PREFIX,
+  diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
+  NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
@@ -46,6 +46,21 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
+  if let Some(error) = from.error {
+    return Err(
+      CapturedLoaderError::new(
+        error.message,
+        error.stack,
+        error.hide_stack,
+        from.file_dependencies,
+        from.context_dependencies,
+        from.missing_dependencies,
+        from.build_dependencies,
+      )
+      .into(),
+    );
+  }
+
   to.cacheable = from.cacheable;
   to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
   to.context_dependencies = from

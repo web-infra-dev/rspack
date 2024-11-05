@@ -112,70 +112,46 @@ If you need to migrate from an existing project to Rspack or Rsbuild, you can re
 - [Migrating from Vite to Rsbuild](https://rsbuild.dev/guide/migration/vite)
 - [Migrating from Storybook](/guide/migration/storybook)
 
-## Community ecosystem
-
-There are already some Rspack-based toolchains in the community:
-
-- If you want to build a static site, you can try [Rspress](https://rspress.dev).
-- If you want to build a library or UI component, you can try [Rslib](https://github.com/web-infra-dev/rslib).
-- If you want to analyze the build process and build artifacts, you can try [Rsdoctor](https://rsdoctor.dev).
-- If you're looking for a full-stack React framework, you can try [Modern.js](https://modernjs.dev/en/).
-- If you want a fast and production-ready setup that works in a monorepo, you can try [Nx](https://nx.dev).
-
-> Visit [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) to discover more projects within the Rspack ecosystem.
+## Ecosystem
 
 ### Rspress
 
-Rspress is a static site generator based on Rspack. It provides a complete solution for building static sites and includes the following features:
+[Rspress](https://rspress.dev) is a static site generator based on Rsbuild, React and MDX. It comes with a default documentation theme, and you can quickly build a documentation site with Rspress. You can also customize the theme to meet your personalized static site needs, such as blog sites, product homepages, etc.
 
-- 🚀 Fast Startup: Based on Rust-based build tool and markdown/mdx compiler, the build speed is extremely fast, bringing you the ultimate development experience.
-- 📚 MDX Support: MDX is a powerful way to write content, allowing you to use React components in Markdown.
-- 📦 Built-in Full Text Search: Automatically generates a full-text search index for you during building process, providing out-of-the-box full-text search capabilities.
-- 🌈 Static Site Generation: In production, it automatically builds into static HTML files, which can be easily deployed anywhere.
-- 🔌 Providing Plugin System: Providing a plugin system, you can customize the build process and theme according to your needs.
+### Rslib
 
-Learn more about Rspress in the [official documentation](https://rspress.dev).
+[Rslib](https://github.com/web-infra-dev/rslib) is a library development tool based on Rsbuild, which reuses the carefully designed build configuration and plugin system of Rsbuild. It allows developers to create JavaScript libraries in a simple and intuitive way.
+
+### Rsdoctor
+
+[Rsdoctor](https://rsdoctor.dev/) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
 
 ### Modern.js
 
-[Modern.js Framework](https://modernjs.dev/en/) is a Rspack-based progressive React framework that provides a complete solution for building web applications. It supports nested routes, server-side rendering, and provides out-of-the-box CSS solutions such as styled components and Tailwind CSS.
+[Modern.js](https://modernjs.dev/en/) is a Rspack-based progressive React framework that supports nested routes, SSR, and provides out-of-the-box CSS solutions such as styled components and Tailwind CSS.
 
-Learn more about Modern.js in the [official documentation](https://modernjs.dev/en/guides/get-started/introduction).
+### Nx
 
-### Using Nx
+[Nx](https://nx.dev/) is a powerful open-source build system that provides tools and techniques for enhancing developer productivity, optimizing CI performance, and maintaining code quality.
 
-The fastest way to get up to speed quickly and leverage Rspack and React in a production-ready setting is to use the dedicated [Rspack Nx plugin](https://www.npmjs.com/package/@nx/rspack). This gives you a pre-configured setup, integrating Rspack with React, TypeScript, ESLint, Jest, and Cypress for e2e testing.
+Rspack team and Nx team have collaborated to provide the [Rspack Nx plugin](https://nx.dev/nx-api/rspack). This plugin contains executors, generators, and utilities for managing Rspack projects in an Nx Workspace.
 
-Run the following command to set up a new Nx workspace with React and Rspack:
+### Docusaurus
 
-<Tabs values={[{ label: 'npm' }, { label: 'yarn' }, { label: 'pnpm' }]}>
-  <Tab>
+[Docusaurus](https://docusaurus.io/) is a project for building, deploying, and maintaining open source project websites easily.
 
-```sh
-npx create-nx-workspace myrspackapp --preset=@nx/rspack
-```
+Docusaurus v3.6 supports Rspack as the bundler, see [Docusaurus Faster](https://docusaurus.io/blog/releases/3.6#docusaurus-faster) for details.
 
-  </Tab>
+### Storybook
 
-  <Tab>
+[Storybook Rsbuild](https://storybook.rsbuild.dev/) allows you to use Rsbuild as the build tool for Storybook, and provides UI framework integrations like React and Vue.
 
-```sh
-yarn create nx-workspace myrspackapp --preset=@nx/rspack --pm=yarn
-```
+### Nuxt
 
-  </Tab>
+[Nuxt](https://nuxt.com/) is a free and open-source framework with an intuitive and extendable way to create type-safe, performant and production-grade full-stack web applications and websites with Vue.js.
 
-  <Tab>
+Nuxt v3.14 introduces a new first-class Nuxt builder for Rspack, see [Nuxt 3.14](https://nuxt.com/blog/v3-14) for details.
 
-```sh
-pnpm create nx-workspace myrspackapp --preset=@nx/rspack  --pm=pnpm
-```
+### More
 
-  </Tab>
-</Tabs>
-
-The pre-configured setup is already ready to work with Rspack, TypeScript, TSX and React. In addition it also comes with Jest and Cypress for testing and ESLint for linting.
-
-Once created you can simply `npm start` (or `pnpm start` or `yarn start`) to start the development server. You can also run `npm run build` (or `pnpm run build` or `yarn run build`) to build the application for production and similarly run `npm run test` (or `pnpm run test` or `yarn run test`) to run the unit tests.
-
-> You can learn more about Nx at [https://nx.dev](https://nx.dev).
+Visit [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) to discover more projects within the Rspack ecosystem.

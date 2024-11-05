@@ -1,6 +1,6 @@
 use rspack_core::{
   module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ModuleDependency, RealDependencyLocation, RuntimeSpec,
+  DependencyRange, DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
@@ -9,11 +9,11 @@ use swc_core::ecma::atoms::Atom;
 pub struct ImportMetaHotAcceptDependency {
   id: DependencyId,
   request: Atom,
-  range: RealDependencyLocation,
+  range: DependencyRange,
 }
 
 impl ImportMetaHotAcceptDependency {
-  pub fn new(request: Atom, range: RealDependencyLocation) -> Self {
+  pub fn new(request: Atom, range: DependencyRange) -> Self {
     Self {
       request,
       range,
@@ -35,7 +35,7 @@ impl Dependency for ImportMetaHotAcceptDependency {
     &DependencyType::ImportMetaHotAccept
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 
