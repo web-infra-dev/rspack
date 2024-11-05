@@ -14,8 +14,8 @@ pub struct AMDRequireDependency {
   array_range: Option<(u32, u32)>,
   function_range: Option<(u32, u32)>,
   error_callback_range: Option<(u32, u32)>,
-  function_bind_this: bool,
-  error_callback_bind_this: bool,
+  pub function_bind_this: bool,
+  pub error_callback_bind_this: bool,
 }
 
 impl AMDRequireDependency {
