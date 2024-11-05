@@ -88,11 +88,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
       if request.starts_with(&scope_prefix) {
         let inner_request = format!(
           ".{}",
-          &request
-            .chars()
-            .skip(scope.len())
-            .into_iter()
-            .collect::<String>()
+          &request.chars().skip(scope.len()).collect::<String>()
         );
 
         if let Some(resolved) = self.options.content.get(&inner_request) {

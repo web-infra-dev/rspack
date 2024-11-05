@@ -471,7 +471,7 @@ impl<'a> ModuleGraph<'a> {
     let dependency_id = DependencyId::new();
 
     let mut connection =
-      ModuleGraphConnection::new(dependency_id, None, module_identifier.clone(), true, false);
+      ModuleGraphConnection::new(dependency_id, None, *module_identifier, true, false);
 
     connection.add_explanation(explanation);
 

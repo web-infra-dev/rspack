@@ -74,7 +74,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       },
     )?;
 
-    if use_paths.get(&target_path).is_some() {
+    if use_paths.contains(&target_path) {
       return Err(Error::msg("each chunk must have a unique path"));
     }
 
@@ -142,7 +142,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           ident.into_owned(),
           DllManifestContentItem {
             id: id.map(|id| id.to_string()),
-            build_meta: build_meta.map(|meta| meta.clone()),
+            build_meta: build_meta.cloned(),
             exports: provided_exports,
           },
         );
@@ -184,5 +184,5 @@ where
       return true;
     }
   }
-  return false;
+  false
 }

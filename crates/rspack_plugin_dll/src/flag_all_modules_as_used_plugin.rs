@@ -53,7 +53,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
 
   let mut mg = compilation.get_module_graph_mut();
 
-  let module_id_list: IdentifierSet = mg.modules().keys().cloned().collect();
+  let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
 
   for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);

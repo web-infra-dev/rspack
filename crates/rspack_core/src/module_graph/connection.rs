@@ -1,6 +1,7 @@
-use std::{collections::HashSet, hash::Hash};
+use std::hash::Hash;
 
 use itertools::Itertools;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
