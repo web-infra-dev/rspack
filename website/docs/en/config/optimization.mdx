@@ -10,22 +10,74 @@ Rspack will select appropriate optimization configuration based on the [`mode`](
 
 ## optimization.moduleIds
 
-<PropertyType type="'natural' | 'named' | 'deterministic'" />
+<PropertyType
+  type="'natural' | 'named' | 'deterministic'"
+  defaultValueList={[
+    { defaultValue: "'deterministic'", mode: 'production' },
+    { defaultValue: "'named'", mode: 'development' },
+  ]}
+/>
 
-| option          | description                                                                                                                         |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `natural`       | Use numeric ids in order of usage.                                                                                                  |
-| `named`         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode.                                 |
-| `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode. |
+Tells Rspack which algorithm to use when generating module ids.
+
+The following string values are supported:
+
+| option          | description                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `natural`       | Use numeric ids in order of usage.                                                                                             |
+| `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
+| `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    moduleIds: 'deterministic',
+  },
+};
+```
+
+The `deterministic` option is useful for long term caching, and results in smaller bundles compared to hashed. Length of the numeric value is chosen to fill a maximum of 80% of the id space. By default a minimum length of 3 digits is used when `optimization.moduleIds` is set to `deterministic`.
 
 ## optimization.chunkIds
 
-<PropertyType type="'named' | 'deterministic'" />
+<PropertyType
+  type="'named' | 'deterministic'"
+  defaultValueList={[
+    { defaultValue: "'named'", mode: 'development' },
+    { defaultValue: "'deterministic'", mode: 'production' },
+  ]}
+/>
 
-| option            | description                                                                                                                                         |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `'named'`         | Readable ids for better debugging. This option is enabled by default in development mode                                                            |
-| `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. This option is enabled by default in production mode. |
+Tells Rspack which algorithm to use when generating chunk ids.
+
+The following string values are supported:
+
+| option            | description                                                                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'named'`         | Readable ids for better debugging.                                                                                                             |
+| `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. By default a minimum length of 3 digits is used. |
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    chunkIds: 'deterministic',
+  },
+};
+```
+
+## optimization.mergeDuplicateChunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Whether to merge chunks which contain the same modules. Setting `optimization.mergeDuplicateChunks` to `false` will disable this optimization.
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    mergeDuplicateChunks: false,
+  },
+};
+```
 
 ## optimization.minimize
 
@@ -36,14 +88,16 @@ Rspack will select appropriate optimization configuration based on the [`mode`](
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
-Whether to minimize the bundle.
 
-## optimization.mergeDuplicateChunks
+Whether to use the minimizer declared in [`optimization.minimizer`](#optimizationminimizer) to minimize the bundle.
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-Whether to merge chunks which contain the same modules. Setting optimization.mergeDuplicateChunks
-to false will disable this optimization.
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    minimize: true,
+  },
+};
+```
 
 ## optimization.minimizer
 
@@ -57,33 +111,27 @@ to false will disable this optimization.
   ]}
 />
 
-Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin)
-and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) are used.
+Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) are used.
+
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
 ```js title=rspack.config.js
-const terserPlugin = require('terser-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+
 module.exports = {
-  context: __dirname,
-  target: 'node',
-  entry: {
-    main: './index.js',
-  },
   optimization: {
-    minimize: true,
-    minimizer: [new terserPlugin()],
+    minimizer: [new TerserPlugin()],
   },
 };
 ```
 
-Use the built-in minimizer with custom options:
+Use Rspack's built-in minimizer with custom options:
 
 ```js title=rspack.config.js
 const rspack = require('@rspack/core');
+
 module.exports = {
-  // ...
   optimization: {
-    minimize: process.env.NODE_ENV === 'production',
     // when `optimization.minimizer` is specified, the default minimizers are disabled by default
     // but you can use '...', it represents the default minimizers
     minimizer: [
@@ -108,20 +156,65 @@ module.exports = {
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-Remove empty chunks generated in the compilation.
+Detect and remove empty chunks generated in the compilation. Setting `optimization.removeEmptyChunks` to `false` will disable this optimization.
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    removeEmptyChunks: false,
+  },
+};
+```
 
 ## optimization.runtimeChunk
 
 <PropertyType
-  type="boolean | string | ((entrypoint: { name: string }) => string)"
+  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Used to control how the runtime chunk is generated.
+Used to control how the Rspack's [runtime](/misc/glossary#runtime) chunk is generated.
 
-Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point.
+Defaults to `false`, which means the runtime code is inlined into the entry chunks.
 
-Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk.
+Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point. This setting is an alias for:
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    runtimeChunk: {
+      name: entrypoint => `runtime~${entrypoint.name}`,
+    },
+  },
+};
+```
+
+Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk. This setting is an alias for:
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    runtimeChunk: 'runtime',
+  },
+};
+```
+
+By setting `optimization.runtimeChunk` to an object it can provide the `name` property which stands for the name for the runtime chunks.
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    runtimeChunk: {
+      // this will generate a chunk named `my-name.js`
+      name: 'my-name',
+    },
+  },
+};
+```
+
+:::tip
+Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
+:::
 
 ## optimization.realContentHash
 
@@ -362,4 +455,12 @@ When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to
   ]}
 />
 
-Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. Critical errors are emitted into the generated code and will cause errors at runtime.
+Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. The errors are emitted into the generated code and will cause errors at runtime.
+
+```js title=rspack.config.js
+module.exports = {
+  optimization: {
+    emitOnErrors: true,
+  },
+};
+```
