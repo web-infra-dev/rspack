@@ -58,7 +58,7 @@ module.exports = {
 };
 ```
 
-Checkout [our docs](https://rspack.dev/config/experiments#experimentsincremental) for more details.
+See [`experiments.incremental`](https://rspack.dev/config/experiments#experimentsincremental) for more details.
 
 This is still an experimental feature and we need more work to stabilize it, but we hope you can try it out and provide us with some bugs and feedback at https://github.com/web-infra-dev/rspack/issues/8106.
 
@@ -86,19 +86,44 @@ TODO: @chenjiahan
 
 ### Improvement of Built-in HTML Plugin
 
-TODO: @LingyuCoder
+In earlier versions of Rspack, the built-in `HtmlRspackPlugin` was implemented. However, its capabilities were severely lacking. It lacked some configuration options and did not support `hooks`, which made those plugins implemented based on the `hooks` of `HtmlWebpackPlugin` incompatible with Rspack.
 
-{/* What's it used for */}
+Therefore, we refactored `HtmlRspackPlugin`. While supporting most of the configuration options of `HtmlWebpackPlugin`, we also completed the alignment of `hooks`. Now you can get these hooks through `HtmlRspackPlugin.getCompilationHooks` and use them to modify the content of the HTML assets like below:
 
-{/* how to use */}
+```js
+const AddAttributePlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
+      HtmlRspackPlugin.getCompilationHooks(
+        compilation,
+      ).alterAssetTags.tapPromise('AddAttributePlugin', async data => {
+        data.assetTags.scripts = data.assetTags.scripts.map(tag => {
+          if (tag.tagName === 'script') {
+            tag.attributes.specialAttribute = true;
+          }
+          return tag;
+        });
+      });
+    });
+  },
+};
+
+module.exports = {
+  plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
+};
+```
+
+See [`HtmlRspackPlugin`](https://rspack.dev/plugins/rspack/html-rspack-plugin) for more details
 
 ### Improvement of Types
 
-TODO: @GiveMe-A-Name
+In the initial versions of Rspack, we used `zod` to validate user configurations, inferring all types from it. However, the absence of JSDoc made it challenging to comprehend the generated `zod` types when examining the `.d.ts` files or using intellisense in an editor.
 
-{/* What's it used for */}
+With this update, we have refactored the configuration types and added JSDoc comments for all types to enhance clarity and understanding.
 
-{/* how to use */}
+See intellisense in IDE:
+
+![configuration intellisense in IDE](https://assets.rspack.dev/rspack/assets/rspack-v1.1-config-intellisense.png)
 
 ## Ecosystem Cooperation
 
@@ -154,4 +179,4 @@ Rsbuild 1.1 adds the following static assets-related configurations:
 
 In version v1.1, the Rust crate `swc_core` has been upgraded to `4.0.2`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of SWC。
+For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core) of SWC。
