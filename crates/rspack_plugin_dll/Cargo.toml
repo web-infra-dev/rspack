@@ -12,7 +12,6 @@ rspack_collections      = { version = "0.1.0", path = "../rspack_collections" }
 rspack_core             = { version = "0.1.0", path = "../rspack_core" }
 rspack_error            = { version = "0.1.0", path = "../rspack_error" }
 rspack_hook             = { version = "0.1.0", path = "../rspack_hook" }
-rspack_macros           = { version = "0.1.0", path = "../rspack_macros" }
 rspack_plugin_externals = { version = "0.1.0", path = "../rspack_plugin_externals" }
 rspack_util             = { version = "0.1.0", path = "../rspack_util" }
 
@@ -24,3 +23,6 @@ tracing     = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
