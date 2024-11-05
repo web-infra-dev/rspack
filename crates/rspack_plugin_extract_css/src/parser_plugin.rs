@@ -66,6 +66,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
           )
           .collect::<Vec<_>>();
         self.cache.insert(data_str.clone(), deps.clone());
+        parser.build_info.strict = true;
         deps
       } else {
         vec![]

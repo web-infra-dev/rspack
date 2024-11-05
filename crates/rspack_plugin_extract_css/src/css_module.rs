@@ -174,6 +174,7 @@ impl Module for CssModule {
       build_info: BuildInfo {
         hash: Some(self.compute_hash(&build_context.compiler_options)),
         cacheable: self.cacheable,
+        strict: true,
         file_dependencies: self.file_dependencies.clone(),
         context_dependencies: self.context_dependencies.clone(),
         missing_dependencies: self.missing_dependencies.clone(),
