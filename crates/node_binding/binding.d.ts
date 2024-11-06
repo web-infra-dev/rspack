@@ -167,7 +167,7 @@ export class JsLoaderContext {
   get additionalData(): any
   set additionalData(val: any)
   get resourceData(): JsResourceData
-  get _module(): JsModuleWrapper
+  get _module(): JsModule
   get hot(): boolean
   get content(): null | Buffer | string
   set content(val: null | Buffer | string)

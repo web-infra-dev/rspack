@@ -120,7 +120,7 @@ impl JsLoaderContext {
     Ok(context.resource_data.as_ref().into())
   }
 
-  #[napi(getter, js_name = "_module", ts_type = "JsModule")]
+  #[napi(getter, js_name = "_module", ts_return_type = "JsModule")]
   pub fn module(&self) -> Result<JsModuleWrapper> {
     let context = self.as_ref()?;
 

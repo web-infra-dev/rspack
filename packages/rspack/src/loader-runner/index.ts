@@ -676,7 +676,7 @@ function createLoaderContext(
 			name,
 			source!,
 			assetInfo!,
-			context._moduleIdentifier
+			context._module.moduleIdentifier
 		);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
@@ -825,7 +825,8 @@ export async function runLoaders(
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = serializeObject(sourceMap);
+						// TODO: sourceMap 可以使用 Buffer 么？
+						context.sourceMap = sourceMap;
 						context.additionalData = additionalData;
 						break;
 					}
