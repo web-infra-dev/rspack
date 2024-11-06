@@ -3843,6 +3843,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stacker",
+ "swc",
  "swc_config",
  "swc_core",
  "swc_plugin_import",

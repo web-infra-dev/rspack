@@ -80,7 +80,7 @@ inventory = { version = "0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "5.0.0", features = ["manual-tokio-runtmie"] }
+swc                 = { version = "5.0.0" }
 swc_config          = { version = "=1.0.0" }
 swc_core            = { version = "=5.0.1", default-features = false }
 swc_ecma_minifier   = { version = "=5.0.0", default-features = false }
