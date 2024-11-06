@@ -164,8 +164,23 @@ Rsbuild 1.1 introduced some new configurations:
 
 ## Upgrade guide
 
-### Upgrade the SWC plugins
+### Upgrade SWC plugins
 
 In version v1.1, the Rust crate `swc_core` has been upgraded to `4.0.2`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
 For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core) of SWC。
+
+### Hash function
+
+Rspack's [output.hashFunction](/config/output#outputhashfunction) now defaults to the faster `xxhash64`, and the [output.hashDigestLength](/config/output#outputhashdigestlength) now defaults to `16` (prev `20`). This change will bring a significant performance improvement for large projects.
+
+If you prefer the previous hash function, you can set:
+
+```js title="rspack.config.js"
+module.exports = {
+  output: {
+    hashFunction: 'md5',
+    hashDigestLength: 20,
+  },
+};
+```
