@@ -195,6 +195,10 @@ export type TTestConfig<T extends ECompilerType> = {
 		ms: IBasicModuleScope,
 		stats?: TCompilerStatsCompilation<T>
 	) => IBasicModuleScope;
+	checkStats?: (
+		stepName: string,
+		stats: TCompilerStatsCompilation<T>
+	) => boolean;
 	findBundle?: (
 		index: number,
 		options: TCompilerOptions<T>
