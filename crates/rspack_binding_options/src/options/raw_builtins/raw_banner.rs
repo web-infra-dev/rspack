@@ -1,13 +1,10 @@
 use derivative::Derivative;
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::JsChunk;
+use rspack_binding_values::{into_asset_conditions, JsChunk, RawAssetConditions};
 use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_banner::{
-  BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
-};
-use rspack_regex::RspackRegex;
+use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
 #[napi(object)]
 pub struct RawBannerContentFnCtx {
@@ -45,11 +42,6 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
   }
 }
 
-type RawBannerRule = Either<String, RspackRegex>;
-type RawBannerRules = Either<RawBannerRule, Vec<RawBannerRule>>;
-struct RawBannerRuleWrapper(RawBannerRule);
-struct RawBannerRulesWrapper(RawBannerRules);
-
 #[derive(Derivative)]
 #[derivative(Debug)]
 #[napi(object, object_to_js = false)]
@@ -62,32 +54,11 @@ pub struct RawBannerPluginOptions {
   pub raw: Option<bool>,
   pub stage: Option<i32>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub test: Option<RawBannerRules>,
+  pub test: Option<RawAssetConditions>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub include: Option<RawBannerRules>,
+  pub include: Option<RawAssetConditions>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
-  pub exclude: Option<RawBannerRules>,
-}
-
-impl From<RawBannerRuleWrapper> for BannerRule {
-  fn from(x: RawBannerRuleWrapper) -> Self {
-    match x.0 {
-      Either::A(s) => BannerRule::String(s),
-      Either::B(r) => BannerRule::Regexp(r),
-    }
-  }
-}
-
-impl From<RawBannerRulesWrapper> for BannerRules {
-  fn from(x: RawBannerRulesWrapper) -> Self {
-    match x.0 {
-      Either::A(v) => BannerRules::Single(RawBannerRuleWrapper(v).into()),
-      Either::B(v) => v
-        .into_iter()
-        .map(|v| RawBannerRuleWrapper(v).into())
-        .collect(),
-    }
-  }
+  pub exclude: Option<RawAssetConditions>,
 }
 
 impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
@@ -99,9 +70,9 @@ impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
       footer: value.footer,
       raw: value.raw,
       stage: value.stage,
-      test: value.test.map(|v| RawBannerRulesWrapper(v).into()),
-      include: value.include.map(|v| RawBannerRulesWrapper(v).into()),
-      exclude: value.exclude.map(|v| RawBannerRulesWrapper(v).into()),
+      test: value.test.map(into_asset_conditions),
+      include: value.include.map(into_asset_conditions),
+      exclude: value.exclude.map(into_asset_conditions),
     })
   }
 }
