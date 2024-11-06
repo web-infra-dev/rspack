@@ -81,7 +81,6 @@ impl Task<MakeTaskContext> for BuildTask {
     build_result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
       vec![Box::new(BuildResultTask {
-        compilation_id,
         module,
         build_result: Box::new(build_result),
         diagnostics,
@@ -93,7 +92,6 @@ impl Task<MakeTaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
@@ -106,7 +104,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
   }
   async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
-      compilation_id,
       mut module,
       build_result,
       diagnostics,
@@ -193,7 +190,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
     module_graph.add_module(module);
 
     Ok(vec![Box::new(ProcessDependenciesTask {
-      compilation_id,
       dependencies: all_dependencies,
       original_module_identifier: module_identifier,
     })])

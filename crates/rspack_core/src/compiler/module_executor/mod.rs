@@ -72,12 +72,11 @@ impl ModuleExecutor {
     let (stop_sender, stop_receiver) = oneshot::channel();
     self.event_sender = Some(event_sender.clone());
     self.stop_receiver = Some(stop_receiver);
-    let compilation_id = compilation.id();
 
     tokio::spawn(async move {
       let _ = run_task_loop_with_event(
         &mut ctx,
-        vec![Box::new(CtrlTask::new(compilation_id, event_receiver))],
+        vec![Box::new(CtrlTask::new(event_receiver))],
         |_, task| {
           Box::new(OverwriteTask {
             origin_task: task,

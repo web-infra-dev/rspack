@@ -4,12 +4,11 @@ use super::{build::BuildTask, MakeTaskContext};
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilationId, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
 };
 
 #[derive(Debug)]
 pub struct AddTask {
-  pub compilation_id: CompilationId,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
@@ -74,7 +73,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
-      compilation_id: self.compilation_id,
+      compilation_id: context.compilation_id,
       module: self.module,
       current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),
