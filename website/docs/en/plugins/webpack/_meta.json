@@ -18,7 +18,6 @@
   "module-federation-plugin",
   "module-federation-plugin-v1",
   "no-emit-on-errors-plugin",
-  "context-replacement-plugin",
   "node-target-plugin",
   "node-template-plugin",
   "normal-module-replacement-plugin",
