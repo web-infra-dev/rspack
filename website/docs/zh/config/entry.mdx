@@ -105,6 +105,18 @@ module.exports = {
 };
 ```
 
+`import` 属性可以设置多个路径：
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    foo: {
+      import: ['./src/foo.js', './src/bar.js'],
+    },
+  },
+};
+```
+
 #### EntryDescription.runtime
 
 <PropertyType

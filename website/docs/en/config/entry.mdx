@@ -105,6 +105,18 @@ module.exports = {
 };
 ```
 
+Multiple paths can be set in the `import` property:
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    foo: {
+      import: ['./src/foo.js', './src/bar.js'],
+    },
+  },
+};
+```
+
 #### EntryDescription.runtime
 
 <PropertyType
