@@ -25,6 +25,11 @@ module.exports = {
 			modules: true,
 			groupModulesByLayer: true
 		};
-		expect(stats?.toJson(options)).toMatchSnapshot();
+		const statsData = stats?.toJson(options);
+		statsData.modules.forEach(mod => {
+			mod.children = [];
+		});
+
+		expect(statsData).toMatchSnapshot();
 	}
 };

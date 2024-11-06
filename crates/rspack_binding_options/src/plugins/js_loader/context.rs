@@ -96,7 +96,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
       module_identifier: module.identifier().to_string(),
-      module: JsModuleWrapper::new(module, None),
+      module: JsModuleWrapper::new(module, cx.context.compilation_id, None),
       hot: cx.hot,
       content: match cx.content() {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
