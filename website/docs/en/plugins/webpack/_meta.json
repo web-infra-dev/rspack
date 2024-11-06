@@ -19,8 +19,6 @@
   "module-federation-plugin-v1",
   "no-emit-on-errors-plugin",
   "context-replacement-plugin",
-  "dll-plugin",
-  "dll-reference-plugin",
   "node-target-plugin",
   "node-template-plugin",
   "normal-module-replacement-plugin",
@@ -29,5 +27,7 @@
   "runtime-chunk-plugin",
   "source-map-dev-tool-plugin",
   "split-chunks-plugin",
-  "internal-plugins"
+  "internal-plugins",
+  "dll-plugin",
+  "dll-reference-plugin"
 ]

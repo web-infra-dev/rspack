@@ -1,0 +1,165 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/plugins/dll-plugin/#dllreferenceplugin" />
+
+# DllReferencePlugin
+
+`DllReferencePlugin` 将引用的模块链接到预构建的模块。
+
+## 选项
+
+- **类型：**
+
+```ts
+type DllReferencePluginOptionsContent = {
+  /**
+   * Module info.
+   */
+  [k: string]: {
+    /**
+     * Meta information about the module.
+     */
+    buildMeta?: {
+      [k: string]: any;
+    };
+    /**
+     * Information about the provided exports of the module.
+     */
+    exports?: string[] | true;
+    /**
+     * Module ID.
+     */
+    id: number | string;
+  };
+};
+
+type DllReferencePluginOptionsManifest = {
+  /**
+   * The mappings from request to module info.
+   */
+  content: DllReferencePluginOptionsContent;
+  /**
+   * The name where the dll is exposed (external name).
+   */
+  name?: string;
+  /**
+   * The type how the dll is exposed (external type).
+   */
+  type?: DllReferencePluginOptionsSourceType;
+};
+
+/**
+ * The type how the dll is exposed (external type).
+ */
+type DllReferencePluginOptionsSourceType =
+  | 'var'
+  | 'assign'
+  | 'this'
+  | 'window'
+  | 'global'
+  | 'commonjs'
+  | 'commonjs2'
+  | 'commonjs-module'
+  | 'amd'
+  | 'amd-require'
+  | 'umd'
+  | 'umd2'
+  | 'jsonp'
+  | 'system';
+
+type DllReferencePluginOptions =
+  | {
+      /**
+       * Context of requests in the manifest (or content property) as absolute path.
+       */
+      context?: string;
+      /**
+       * Extensions used to resolve modules in the dll bundle (only used when using 'scope').
+       */
+      extensions?: string[];
+      /**
+       * An object containing content and name or a string to the absolute path of the JSON manifest to be loaded upon compilation.
+       */
+      manifest: string | DllReferencePluginOptionsManifest;
+      /**
+       * The name where the dll is exposed (external name, defaults to manifest.name).
+       */
+      name?: string;
+      /**
+       * Prefix which is used for accessing the content of the dll.
+       */
+      scope?: string;
+      /**
+       * How the dll is exposed (libraryTarget, defaults to manifest.type).
+       */
+      sourceType?: DllReferencePluginOptionsSourceType;
+      /**
+       * The way how the export of the dll bundle is used.
+       */
+      type?: 'require' | 'object';
+    }
+  | {
+      /**
+       * The mappings from request to module info.
+       */
+      content: DllReferencePluginOptionsContent;
+      /**
+       * Context of requests in the manifest (or content property) as absolute path.
+       */
+      context?: string;
+      /**
+       * Extensions used to resolve modules in the dll bundle (only used when using 'scope').
+       */
+      extensions?: string[];
+      /**
+       * The name where the dll is exposed (external name).
+       */
+      name: string;
+      /**
+       * Prefix which is used for accessing the content of the dll.
+       */
+      scope?: string;
+      /**
+       * How the dll is exposed (libraryTarget).
+       */
+      sourceType?: DllReferencePluginOptionsSourceType;
+      /**
+       * The way how the export of the dll bundle is used.
+       */
+      type?: 'require' | 'object';
+    };
+```
+
+当依赖被引用的时候，插件通过 dll manifest 文件将依赖名和预打包的模块链接起来。
+
+## 示例
+
+### 基础示例
+
+```js
+new rspack.DllReferencePlugin({
+  // 这里引用的 manifest 文件应该是由 Dll 插件生成的
+  manifest: require('../lib/manifest.json'),
+
+  name: '[name]_dll_lib',
+});
+```
+
+应用需要的依赖项将链接到由 `DllPlugin` 预构建的模块。
+
+### 使用 Scope
+
+通过配置 `scope`, dll 中的内容可以使用模块前缀的方式引用
+
+```js
+new rspack.DllReferencePlugin({
+  // 这里引用的 manifest 文件应该是由 Dll 插件生成的
+  manifest: require('../lib/manifest.json'),
+
+  name: '[name]_dll_lib',
+
+  scope: 'xyz',
+});
+```
+
+举例来说，通过 `require('xzy/abc')` 可以获取预构建模块中 `abc` 模块。
