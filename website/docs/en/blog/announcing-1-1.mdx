@@ -38,7 +38,7 @@ According to our benchmarks, Rspack v1.1 is **10% faster** than v1.0.
   alt="Rspack v1.1 vs v1.0"
 />
 
-A major optimization is that Rspack uses a better scheduling strategy inspired by [Using Rustlang’s Async Tokio Runtime for CPU-Bound Tasks](https://thenewstack.io/using-rustlangs-async-tokio-runtime-for-cpu-bound-tasks/) and SWC's optimization for better concurrency support, which allows better scheduling of async tasks.
+A major optimization is that Rspack uses a better scheduling strategy inspired by [Using Rustlang’s Async Tokio Runtime for CPU-Bound Tasks](https://thenewstack.io/using-rustlangs-async-tokio-runtime-for-cpu-bound-tasks/) and SWC optimization for better concurrency support, which allows better scheduling of async tasks.
 
 ### New incremental rebuild
 
@@ -52,7 +52,7 @@ In a case of 10000 React components, the HMR becomes 38% faster:
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1.1-new-incremental-compare.png"
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-new-incremental-compare.png"
   alt="10000 React Components with new incremental enabled"
 />
 
@@ -107,13 +107,17 @@ module.exports = {
 
 ### Improved JSDoc
 
-Rspack uses [zod](https://github.com/colinhacks/zod) to validate user configurations and inferring all types from them. However, the inferred types lack JSDoc comments, and the generated types are quite hard to understand.
+Rspack uses [zod](https://github.com/colinhacks/zod) to validate user configurations and infer all configuration types. However, the inferred types lack JSDoc comments and the generated types are quite complex and hard to understand.
 
-We have recently refactored the configuration types and added JSDoc comments for all of them to improve readability.
+To fix this, we recently refactored the configuration types and added JSDoc comments for all of them to improve readability.
 
-See intellisense in IDE:
+<img
+  width="850"
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-config-intellisense.png"
+  alt="configuration intellisense in IDE"
+/>
 
-![configuration intellisense in IDE](https://assets.rspack.dev/rspack/assets/rspack-v1.1-config-intellisense.png)
+> We're still looking to improve the JSDoc. If you're interested, feel free to submit pull requests. ❤️
 
 ## Ecosystem
 
