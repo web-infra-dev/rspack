@@ -11,7 +11,7 @@ sidebar: false
 
 ---
 
-Rspack v1.1 has been released!
+Rspack and Rsbuild v1.1 has been released!
 
 Notable changes:
 
@@ -24,7 +24,7 @@ Notable changes:
 - Ecosystem
   - [Docusaurus Faster](#docusaurus-faster): Use Rspack as the bundler for Docusaurus sites.
   - [Nuxt Rspack Builder](#nuxt-rspack-builder): Experimental Rspack builder for Nuxt.
-- [Rsbuild v1.1](#rsbuild-v11)
+- [Rsbuild v1.1](#rsbuild-v11): CLI shortcuts and new configurations.
 
 ## Performance improvements
 
@@ -149,26 +149,11 @@ The CLI shortcut allows you to clear the console, open the browser, restart the 
   alt="Rsbuild CLI shortcuts"
 />
 
-### Server base path
+### New configurations
 
-By default, the base path of the server is `/`, and users can access output files such as `index.html` and public folder assets through http://localhost:3000/.
+Rsbuild 1.1 introduced some new configurations:
 
-Rsbuild supports modifying the base path of the server through [server.base](https://rsbuild.dev/config/server/base). If you to access these files through `http://localhost:3000/foo/`, you can configure the following:
-
-```ts title="rsbuild.config.ts"
-export default {
-  server: {
-    base: '/foo',
-  },
-};
-```
-
-### Extend assets types
-
-By default, Rsbuild treats common image, font, audio, and video files as static assets. Through the source.assetsInclude config, you can specify additional file types that should be treated as static assets. These added static assets are processed using the same rules as the built-in supported static assets.
-
-Rsbuild 1.1 adds the following static assets-related configurations:
-
+- [server.base](https://rsbuild.dev/config/server/base): Set the base path of the server.
 - [source.assetsInclude](https://rsbuild.dev/config/source/assets-include): Set the additional files that should be treated as static assets.
 - [output.filename.assets](https://rsbuild.dev/config/output/filename): Set the name of other static assets.
 - [output.distPath.assets](https://rsbuild.dev/config/output/dist-path): Set the output directory of other static assets.
