@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashSet,
   sync::{Arc, LazyLock},
 };
 
@@ -23,10 +22,13 @@ use rspack_error::{
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::FxHashSet;
 
-use crate::utils::{export_locals_convention, unescape};
 use crate::{
-  dependency::CssUseLocalIdentDependency,
+  dependency::CssSelfReferenceLocalIdentDependency,
   utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions},
+};
+use crate::{
+  dependency::CssSelfReferenceLocalIdentReplacement,
+  utils::{export_locals_convention, unescape},
 };
 use crate::{
   dependency::{
@@ -263,11 +265,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
               },
             );
           }
-          dependencies.push(Box::new(CssUseLocalIdentDependency::new(
-            local_ident.clone(),
+          dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
             convention_names,
-            range.start,
-            range.end,
+            vec![CssSelfReferenceLocalIdentReplacement {
+              local_ident: local_ident.clone(),
+              start: range.start,
+              end: range.end,
+            }],
           )));
         }
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
@@ -317,11 +321,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
             let from = from.trim_matches(|c| c == '\'' || c == '"');
             let dep = CssComposeDependency::new(
               from.to_string(),
-              names.iter().map(|s| (*s).into()).collect::<Vec<Atom>>(),
+              names.iter().map(|s| (*s).into()).collect(),
               DependencyRange::new(range.start, range.end),
             );
             dep_id = Some(*dep.id());
             dependencies.push(Box::new(dep));
+          } else if from.is_none() {
+            dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+              names.iter().map(|s| (*s).into()).collect(),
+              vec![],
+            )));
           }
           let exports = self.exports.get_or_insert_default();
           for name in names {
@@ -442,32 +451,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         if let Some(exports) = &self.exports {
           let mg = compilation.get_module_graph();
+          let unused = get_unused_local_ident(exports, identifier, generate_context.runtime, &mg);
+          context.data.insert(unused);
 
           let used = get_used_exports(exports, identifier, generate_context.runtime, &mg);
-
-          let mut deps = HashSet::new();
-          let mut todo: Vec<_> = used.values().map(|v| *v).collect();
-
-          let mut idx = 0;
-
-          while idx < todo.len() {
-            let next = todo[idx];
-
-            for exp in next {
-              if deps.insert(exp.ident.clone()) {
-                if let Some(new) = exports.get(&exp.ident) {
-                  todo.push(new)
-                }
-              }
-            }
-
-            idx += 1;
-          }
-
-          let unused =
-            get_unused_local_ident(exports, identifier, generate_context.runtime, &mg, deps);
-
-          context.data.insert(unused);
 
           static RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#"\\"#).expect("should compile"));
@@ -660,16 +647,11 @@ fn get_unused_local_ident(
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
-  deps: HashSet<String>,
 ) -> CodeGenerationDataUnusedLocalIdent {
   CodeGenerationDataUnusedLocalIdent {
     idents: exports
       .iter()
       .filter(|(name, _)| {
-        if deps.contains(*name) {
-          return false;
-        }
-
         let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
         if let Some(export_info) = export_info {

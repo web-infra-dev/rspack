@@ -1,6 +1,7 @@
 #![allow(clippy::comparison_chain)]
 
 use std::hash::Hash;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -15,7 +16,7 @@ use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
   CompilerCompilation, CompilerOptions, DependencyType, LibIdentOptions, PublicPath,
-  RuntimeGlobals,
+  RuntimeGlobals, SelfModuleFactory,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -174,6 +175,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::CssCompose,
     params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CssSelfReferenceLocalIdent,
+    Arc::new(SelfModuleFactory {}),
   );
   Ok(())
 }

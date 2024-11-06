@@ -8,16 +8,16 @@ use rspack_util::atom::Atom;
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,
-  name: Vec<Atom>,
+  names: Vec<Atom>,
   range: DependencyRange,
 }
 
 impl CssComposeDependency {
-  pub fn new(request: String, name: Vec<Atom>, range: DependencyRange) -> Self {
+  pub fn new(request: String, names: Vec<Atom>, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
-      name,
       request,
+      names,
       range,
     }
   }
@@ -48,8 +48,12 @@ impl Dependency for CssComposeDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<rspack_core::ExtendedReferencedExport> {
-    vec![ExtendedReferencedExport::Array(self.name.clone())]
+  ) -> Vec<ExtendedReferencedExport> {
+    self
+      .names
+      .iter()
+      .map(|n| ExtendedReferencedExport::Array(vec![n.clone()]))
+      .collect()
   }
 }
 

@@ -18,7 +18,9 @@ module.exports = {
 		minimize: true,
 		minimizer: [
 			new rspack.LightningCssMinimizerRspackPlugin(),
-		]
+		],
+		providedExports: true,
+		usedExports: true,
 	},
 	experiments: {
 		css: true
