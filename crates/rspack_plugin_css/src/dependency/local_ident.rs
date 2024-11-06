@@ -1,10 +1,9 @@
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, ExtendedReferencedExport, ModuleDependency, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  ExportsOfExportsSpec, ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_util::ext::DynHash;
 
 use crate::utils::escape_css;
 

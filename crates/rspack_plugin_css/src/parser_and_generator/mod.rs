@@ -19,7 +19,7 @@ use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 
 use crate::{
