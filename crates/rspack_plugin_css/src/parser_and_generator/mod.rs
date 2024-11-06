@@ -22,8 +22,14 @@ use rspack_error::{
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 
-use crate::utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions};
-use crate::utils::{export_locals_convention, unescape};
+use crate::{
+  dependency::CssSelfReferenceLocalIdentDependency,
+  utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions},
+};
+use crate::{
+  dependency::CssSelfReferenceLocalIdentReplacement,
+  utils::{export_locals_convention, unescape},
+};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
@@ -232,8 +238,43 @@ impl ParserAndGenerator for CssParserAndGenerator {
             range.end,
           )));
         }
-        css_module_lexer::Dependency::LocalKeyframes { name, range, .. }
-        | css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
+        css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
+          let local_ident = LocalIdentOptions::new(
+            resource_data,
+            self
+              .local_ident_name
+              .as_ref()
+              .expect("should have local_ident_name for module_type css/auto or css/module"),
+            compiler_options,
+          )
+          .get_local_ident(name);
+          let exports = self.exports.get_or_insert_default();
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
+          let convention_names = export_locals_convention(name, convention);
+          for name in convention_names.iter() {
+            update_css_exports(
+              exports,
+              name.to_owned(),
+              CssExport {
+                ident: local_ident.clone(),
+                from: None,
+                id: None,
+              },
+            );
+          }
+          dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+            convention_names,
+            vec![CssSelfReferenceLocalIdentReplacement {
+              local_ident: local_ident.clone(),
+              start: range.start,
+              end: range.end,
+            }],
+          )));
+        }
+        css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
           let local_ident = LocalIdentOptions::new(
             resource_data,
             self
@@ -280,10 +321,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
             let from = from.trim_matches(|c| c == '\'' || c == '"');
             let dep = CssComposeDependency::new(
               from.to_string(),
+              names.iter().map(|s| (*s).into()).collect(),
               DependencyRange::new(range.start, range.end),
             );
             dep_id = Some(*dep.id());
             dependencies.push(Box::new(dep));
+          } else if from.is_none() {
+            dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+              names.iter().map(|s| (*s).into()).collect(),
+              vec![],
+            )));
           }
           let exports = self.exports.get_or_insert_default();
           for name in names {

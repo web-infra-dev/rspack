@@ -1,0 +1,26 @@
+.foo {
+  animation-name: slide-in;
+  composes: bar
+}
+
+.bar {
+  font-size: large;
+}
+
+.baz {
+  color: aliceblue;
+}
+
+@keyframes slide-in {
+  from {
+    translate: 150vw 0;
+    scale: 200% 1;
+  }
+
+  to {
+    translate: 0 0;
+    scale: 100% 1;
+  }
+}
+
+

@@ -32,7 +32,7 @@ rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 stacker                  = { workspace = true }
-swc                      = { version = "4.0.0", features = ["manual-tokio-runtmie"] }
+swc                      = { version = "5.0.0", features = ["manual-tokio-runtmie"] }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 swc_plugin_import        = { version = "0.1.5", path = "../swc_plugin_import" }

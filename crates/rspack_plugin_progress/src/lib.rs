@@ -10,7 +10,7 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
   CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
-  CompilationFinishModules, CompilationModuleIds, CompilationOptimizeChunkModules,
+  CompilationFinishModules, CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules,
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
@@ -321,7 +321,7 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationBuildModule for ProgressPlugin)]
-async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
+async fn build_module(&self, _compilation_id: CompilationId, module: &mut BoxModule) -> Result<()> {
   self
     .active_modules
     .write()
@@ -343,7 +343,11 @@ async fn build_module(&self, module: &mut BoxModule) -> Result<()> {
 }
 
 #[plugin_hook(CompilationSucceedModule for ProgressPlugin)]
-async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
+async fn succeed_module(
+  &self,
+  _compilation_id: CompilationId,
+  module: &mut BoxModule,
+) -> Result<()> {
   self.modules_done.fetch_add(1, Relaxed);
   self
     .last_active_module

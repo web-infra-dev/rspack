@@ -33,7 +33,7 @@ use rspack_core::{
   CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
   CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
-  CompilationFinishModulesHook, CompilationOptimizeChunkModules,
+  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
   CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
   CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
@@ -1011,10 +1011,14 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 
 #[async_trait]
 impl CompilationBuildModule for CompilationBuildModuleTap {
-  async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation_id: CompilationId,
+    module: &mut BoxModule,
+  ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
+      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
       .await
   }
 
@@ -1025,10 +1029,14 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
 
 #[async_trait]
 impl CompilationStillValidModule for CompilationStillValidModuleTap {
-  async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation_id: CompilationId,
+    module: &mut BoxModule,
+  ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
+      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
       .await
   }
 
@@ -1039,10 +1047,14 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
 
 #[async_trait]
 impl CompilationSucceedModule for CompilationSucceedModuleTap {
-  async fn run(&self, module: &mut BoxModule) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation_id: CompilationId,
+    module: &mut BoxModule,
+  ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), None))
+      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
       .await
   }
 
