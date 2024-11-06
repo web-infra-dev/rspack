@@ -53,16 +53,6 @@ Hook into the compiler to extract progress information. The `handler` must have 
 
 Plugins, which add entry chunks to the compilation.
 
-### EntryPlugin
-
-`EntryPlugin(context, entry, options)`
-
-Adds an entry chunk on compilation. The chunk is named `options.name` and contains only one module (plus dependencies). The module is resolved from `entry` in `context` (absolute path).
-
-- `context`: The base path for module resolution, under which the entry module resolution will be conducted.
-- `entry`: Specifies the module path to be used as an entry point.
-- `options`: Additional configurations for the entry module.
-
 ### DynamicEntryPlugin
 
 `DynamicEntryPlugin(context, entry)`

@@ -43,7 +43,7 @@ impl ESMDetectionParserPlugin {
   }
 }
 
-// Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ESMDetectionParserPlugin.js
+// Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 impl JavascriptParserPlugin for ESMDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
     let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);

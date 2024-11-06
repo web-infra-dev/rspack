@@ -651,7 +651,7 @@ impl ESMExportImportedSpecifierDependency {
           (Some(hidden), None) => hidden,
           (Some(hidden), Some(ignore)) => hidden.union(&ignore).cloned().collect(),
         };
-        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/ESMExportImportedSpecifierDependency.js#L1104-L1106
+        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
         let mut content = format!(
           r"
 /* ESM reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};

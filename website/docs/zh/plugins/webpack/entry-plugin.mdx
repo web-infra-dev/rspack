@@ -1,0 +1,39 @@
+# EntryPlugin
+
+在编译时添加一个入口 chunk。该 chunk 的名称为 `options.name`，仅包含一个模块（以及依赖项）。该模块是通过 `entry` 在 `context` 下（绝对路径）解析出来的。
+
+```js
+new rspack.EntryPlugin(context, entry, options);
+```
+
+## Options
+
+### context
+
+模块解析时的基础路径（绝对路径），入口模块的解析将在此路径下进行。
+
+- **Type:** `string`
+
+### entry
+
+指定要作为入口点的模块路径。
+
+- **Type:** `string`
+
+### options
+
+入口模块的额外配置。
+
+- **Type:**
+
+```ts
+type EntryOptions = {
+  name?: string;
+  runtime?: EntryRuntime;
+  chunkLoading?: ChunkLoading;
+  asyncChunks?: boolean;
+  publicPath?: PublicPath;
+  baseUri?: string;
+  filename?: Filename;
+};
+```
