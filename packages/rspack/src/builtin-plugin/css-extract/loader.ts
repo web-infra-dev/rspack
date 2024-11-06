@@ -258,10 +258,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				: result;
 
 		if (dependencies.length > 0) {
-			this.__internal__addParseMeta(
-				CssExtractRspackPlugin.pluginName,
-				JSON.stringify(dependencies)
-			);
+			this.__internal__addParseMeta(PLUGIN_NAME, JSON.stringify(dependencies));
 		}
 
 		callback(null, resultSource, undefined, data);
