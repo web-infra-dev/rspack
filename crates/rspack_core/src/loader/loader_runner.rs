@@ -4,10 +4,11 @@ use rspack_loader_runner::ResourceData;
 pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext, LoaderContextId};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{CompilerOptions, Module, ResolverFactory};
+use crate::{CompilationId, CompilerOptions, Module, ResolverFactory};
 
 #[derive(Debug, Clone)]
 pub struct RunnerContext {
+  pub compilation_id: CompilationId,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: NonNull<dyn Module>,

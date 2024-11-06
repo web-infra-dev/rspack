@@ -14,12 +14,12 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, Compilation, CompilerOptions, DependencyType, Module, ModuleFactory,
-  ModuleProfile, NormalModuleSource, ResolverFactory, SharedPluginDriver,
+  BuildDependency, Compilation, CompilationId, CompilerOptions, DependencyType, Module,
+  ModuleFactory, ModuleProfile, NormalModuleSource, ResolverFactory, SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
-  // compilation info
+  pub compilation_id: CompilationId,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
@@ -35,6 +35,7 @@ pub struct MakeTaskContext {
 impl MakeTaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
     Self {
+      compilation_id: compilation.id(),
       plugin_driver: compilation.plugin_driver.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
@@ -123,6 +124,7 @@ pub async fn repair(
           }
         });
       Some(Box::new(factorize::FactorizeTask {
+        compilation_id: compilation.id(),
         module_factory: compilation.get_dependency_factory(dependency),
         original_module_identifier: parent_module_identifier,
         original_module_source,

@@ -6,12 +6,13 @@ use rspack_fs::ReadableFileSystem;
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilerOptions,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerOptions,
   DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct BuildTask {
+  pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -27,6 +28,7 @@ impl Task<MakeTaskContext> for BuildTask {
   }
   async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
+      compilation_id,
       compiler_options,
       resolver_factory,
       plugin_driver,
@@ -41,12 +43,13 @@ impl Task<MakeTaskContext> for BuildTask {
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(&mut module)
+      .call(compilation_id, &mut module)
       .await?;
 
     let result = module
       .build(
         BuildContext {
+          compilation_id,
           compiler_options: compiler_options.clone(),
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
@@ -59,7 +62,7 @@ impl Task<MakeTaskContext> for BuildTask {
     plugin_driver
       .compilation_hooks
       .succeed_module
-      .call(&mut module)
+      .call(compilation_id, &mut module)
       .await?;
 
     let build_result = result.map(|t| {
