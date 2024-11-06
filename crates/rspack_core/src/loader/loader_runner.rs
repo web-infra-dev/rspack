@@ -1,6 +1,5 @@
 use std::{ptr::NonNull, sync::Arc};
 
-use rspack_loader_runner::ResourceData;
 pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext, LoaderContextId};
 use rspack_util::source_map::SourceMapKind;
 

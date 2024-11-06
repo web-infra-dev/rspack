@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_binding_values::{JsModule, JsResourceData, ToJsModule};
+use rspack_binding_values::{JsModuleWrapper, JsResourceData};
 use rspack_core::{AdditionalData, LoaderContext, LoaderContextId, RunnerContext};
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
 use rspack_napi::{threadsafe_js_value_ref::ThreadsafeJsValueRef, Ref};
@@ -83,19 +83,10 @@ impl JsLoaderContext {
     self.0.resource_data.as_ref().into()
   }
 
-  #[napi(getter, js_name = "_moduleIdentifier")]
-  pub fn module_identifier(&self) -> &str {
-    self.0.context.module.module_identifier.as_str()
-  }
-
-  #[napi(getter, js_name = "_module")]
-  pub fn module(&self) -> JsModule {
-    self
-      .0
-      .context
-      .module
-      .to_js_module()
-      .expect("CompilerModuleContext::to_js_module should not fail.")
+  #[napi(getter, js_name = "_module", ts_type = "JsModule")]
+  pub fn module(&self) -> JsModuleWrapper {
+    let module = unsafe { self.0.context.module.as_ref() };
+    JsModuleWrapper::new(module, self.0.context.compilation_id, None)
   }
 
   #[napi(getter)]
