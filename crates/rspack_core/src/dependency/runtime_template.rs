@@ -813,6 +813,16 @@ mod test_items_to_regexp {
       ),
       "[1234a]".to_string()
     );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["foo_js", "_js"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "(|foo)_js".to_string()
+    );
   }
 
   #[test]

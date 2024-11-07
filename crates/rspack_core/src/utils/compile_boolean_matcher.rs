@@ -369,11 +369,11 @@ fn get_common_suffix<'a, I: Iterator<Item = &'a str>>(mut items: I) -> &'a str {
         let item_byte = item[p - 1];
         if suffix_byte == item_byte {
           p -= 1;
-        } else {
-          suffix = &suffix[s + 1..];
-          break;
+          continue;
         }
       }
+      suffix = &suffix[s + 1..];
+      break;
     }
   }
 
