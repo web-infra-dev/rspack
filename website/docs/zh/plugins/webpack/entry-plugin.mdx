@@ -27,13 +27,16 @@ new rspack.EntryPlugin(context, entry, options);
 - **Type:**
 
 ```ts
-type EntryOptions = {
-  name?: string;
-  runtime?: EntryRuntime;
-  chunkLoading?: ChunkLoading;
-  asyncChunks?: boolean;
-  publicPath?: PublicPath;
-  baseUri?: string;
-  filename?: Filename;
-};
+type EntryOptions =
+  | string
+  | (Omit<EntryDescriptionNormalized, 'import'> & {
+      /**
+       * The name of the entry chunk.
+       */
+      name?: string;
+    });
 ```
+
+当 `options` 为字符串时，它的值会被作为 `name` 使用。
+
+请参考 [入口描述对象](/config/entry#入口描述对象) 了解所有可用的选项。

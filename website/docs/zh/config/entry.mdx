@@ -93,7 +93,29 @@ module.exports = {
   defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
 />
 
-入口模块的路径。
+一个或多个入口模块的路径。
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    foo: {
+      import: './src/foo.js',
+    },
+  },
+};
+```
+
+`import` 属性可以设置多个路径：
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    foo: {
+      import: ['./src/foo.js', './src/bar.js'],
+    },
+  },
+};
+```
 
 #### EntryDescription.runtime
 
@@ -124,7 +146,7 @@ module.exports = {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-设置当前入口在加载 chunk 时的加载方式。
+设置当前入口在加载 chunk 时的加载方式。默认包含的方式有 `'jsonp'` (web), `'import'` (ESM), `'import-scripts'` (WebWorker), `'require'` (sync node.js), `'async-node'` (async node.js)，其他方式可由插件提供。
 
 #### EntryDescription.asyncChunks
 
@@ -200,7 +222,7 @@ module.exports = {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-设置当前入口的 Layer，以在 split chunks, [rules](/config/module#ruleissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
+指定当前入口的模块所在的 layer。用于在 split chunks, [rules](/config/module#ruleissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
 
 :::warning
 只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。

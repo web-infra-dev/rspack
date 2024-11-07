@@ -5,30 +5,29 @@ import {
 } from "@rspack/binding";
 
 import {
-	type ChunkLoading,
-	type EntryRuntime,
-	type Filename,
-	type Layer,
-	type LibraryOptions,
-	type PublicPath,
+	type EntryDescriptionNormalized,
 	getRawChunkLoading,
 	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
 import { create } from "./base";
 
-export type EntryOptions = {
+/**
+ * Options for the `EntryPlugin`.
+ */
+export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
+	/**
+	 * The name of the entry chunk.
+	 */
 	name?: string;
-	runtime?: EntryRuntime;
-	chunkLoading?: ChunkLoading;
-	asyncChunks?: boolean;
-	publicPath?: PublicPath;
-	baseUri?: string;
-	filename?: Filename;
-	library?: LibraryOptions;
-	layer?: Layer;
-	dependOn?: string[];
 };
+
+/**
+ * The entry plugin that will handle creation of the `EntryDependency`.
+ * It adds an entry chunk on compilation. The chunk is named `options.name` and
+ * contains only one module (plus dependencies). The module is resolved from
+ * `entry` in `context` (absolute path).
+ */
 export const EntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
 	(

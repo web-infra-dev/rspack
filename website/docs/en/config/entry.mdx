@@ -93,7 +93,29 @@ When you set `entry` to an object, you can set the value of the entry to a descr
   defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
 />
 
-The path to the entry module.
+The path or paths to the entry modules.
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    foo: {
+      import: './src/foo.js',
+    },
+  },
+};
+```
+
+Multiple paths can be set in the `import` property:
+
+```ts title="rspack.config.js"
+module.exports = {
+  entry: {
+    foo: {
+      import: ['./src/foo.js', './src/bar.js'],
+    },
+  },
+};
+```
 
 #### EntryDescription.runtime
 
@@ -124,7 +146,7 @@ module.exports = {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-How this entry load other chunks.
+How this entry load other chunks. Methods included by default are `'jsonp'` (web), `'import'` (ESM), `'import-scripts'` (WebWorker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins.
 
 #### EntryDescription.asyncChunks
 
@@ -200,7 +222,7 @@ The default value can be affected by different [target](/config/target):
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-The layer of this entry, make the corresponding configuration take effect through layer matching in split chunks, [rules](/config/module#ruleissuerlayer), stats, and externals.
+Specifies the layer in which modules of this entrypoint are placed. Make the corresponding configuration take effect through layer matching in split chunks, [rules](/config/module#ruleissuerlayer), stats, and externals.
 
 :::warning
 This configuration will only take effect when [experiments.layers](/config/experiments#experimentslayers) is `true`.
