@@ -29,7 +29,6 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   for chunk in compilation.chunk_by_ukey.values_mut() {
     if let Some(name) = &chunk.name {
       chunk.id = Some(name.clone());
-      chunk.ids = vec![name.clone()];
     }
   }
 
@@ -66,7 +65,6 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   chunk_id_to_name.into_iter().for_each(|(chunk_ukey, name)| {
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
     chunk.id = Some(name.clone());
-    chunk.ids = vec![name];
   });
 
   if !unnamed_chunks.is_empty() {

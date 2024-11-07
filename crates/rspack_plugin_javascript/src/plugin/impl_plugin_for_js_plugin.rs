@@ -180,7 +180,6 @@ async fn content_hash(
     self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   } else {
     chunk.id.hash(&mut hasher);
-    chunk.ids.hash(&mut hasher);
   }
 
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;

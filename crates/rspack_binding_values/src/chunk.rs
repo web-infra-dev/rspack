@@ -40,7 +40,6 @@ impl JsChunk {
       filename_template,
       css_filename_template,
       id,
-      ids,
       id_name_hints,
       files,
       auxiliary_files,
@@ -63,7 +62,7 @@ impl JsChunk {
       inner_groups: chunk.groups.iter().map(|ukey| ukey.as_u32()).collect(),
       name: name.clone(),
       id: id.clone(),
-      ids: ids.clone(),
+      ids: id.clone().map_or(Vec::new(), |id| vec![id]),
       id_name_hints: Vec::from_iter(id_name_hints.clone()),
       filename_template: filename_template
         .as_ref()

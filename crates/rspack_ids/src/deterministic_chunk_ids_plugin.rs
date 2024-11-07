@@ -67,7 +67,6 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
     chunk.id = Some(id.to_string());
-    chunk.ids = vec![id.to_string()];
   });
 
   Ok(())

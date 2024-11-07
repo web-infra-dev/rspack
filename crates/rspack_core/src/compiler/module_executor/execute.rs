@@ -102,7 +102,6 @@ impl Task<MakeTaskContext> for ExecuteTask {
     let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
 
     chunk.id = chunk.name.clone();
-    chunk.ids = vec![chunk.id.clone().expect("id is set")];
     let runtime: RuntimeSpec = once("build time".into()).collect();
 
     chunk.runtime = runtime.clone();

@@ -32,7 +32,6 @@ pub struct Chunk {
   pub css_filename_template: Option<Filename>,
   pub ukey: ChunkUkey,
   pub id: Option<String>,
-  pub ids: Vec<String>,
   pub id_name_hints: HashSet<String>,
   pub prevent_integration: bool,
   pub files: HashSet<String>,
@@ -63,7 +62,6 @@ impl Chunk {
       css_filename_template: None,
       ukey: ChunkUkey::new(),
       id: None,
-      ids: vec![],
       id_name_hints: Default::default(),
       prevent_integration: false,
       files: Default::default(),
@@ -420,7 +418,6 @@ impl Chunk {
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id.hash(hasher);
-    self.ids.hash(hasher);
     for module in compilation
       .chunk_graph
       .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())

@@ -473,7 +473,6 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
           next_id += 1;
         }
         chunk.id = Some(next_id.to_string());
-        chunk.ids = vec![next_id.to_string()];
         next_id += 1;
       }
     }
@@ -482,7 +481,6 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id.is_none() {
         chunk.id = Some(next_id.to_string());
-        chunk.ids = vec![next_id.to_string()];
         next_id += 1;
       }
     }
