@@ -227,6 +227,17 @@ export class RspackCLI {
 		let loadedConfig = (await loadRspackConfig(
 			options
 		)) as NonNullable<LoadedRspackConfig>;
+
+		if (typeof loadedConfig === "function") {
+			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			// if return promise we should await its result
+			if (
+				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+			) {
+				loadedConfig = await loadedConfig;
+			}
+		}
+
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
@@ -264,15 +275,6 @@ export class RspackCLI {
 			}
 		}
 
-		if (typeof loadedConfig === "function") {
-			loadedConfig = loadedConfig(options.argv?.env, options.argv);
-			// if return promise we should await its result
-			if (
-				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
-			) {
-				loadedConfig = await loadedConfig;
-			}
-		}
 		return loadedConfig;
 	}
 
