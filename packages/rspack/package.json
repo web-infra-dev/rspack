@@ -17,6 +17,8 @@
     },
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
+    "./lib/*": "./lib/*.js",
+    "./lib/*.js": "./lib/*.js",
     "./package.json": "./package.json",
     "./module": "./module.d.ts"
   },
