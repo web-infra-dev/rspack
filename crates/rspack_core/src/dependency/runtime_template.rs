@@ -771,6 +771,7 @@ pub fn define_es_module_flag_statement(
 #[allow(unused_imports)]
 mod test_items_to_regexp {
   use crate::items_to_regexp;
+
   #[test]
   fn basic() {
     assert_eq!(
@@ -811,6 +812,26 @@ mod test_items_to_regexp {
           .collect::<Vec<_>>(),
       ),
       "[1234a]".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["西瓜汽水", "西瓜糖果", "西瓜冰沙"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "西瓜(冰沙|汽水|糖果)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["西瓜汽水", "苏打汽水", "橘子汽水"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "(橘子|苏打|西瓜)汽水".to_string()
     );
   }
 }
