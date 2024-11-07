@@ -1780,6 +1780,7 @@ modules by path ./node_modules/pmodule/*.js 232 bytes
     esm import specifier pmodule ./index.js
     esm export ./c ./node_modules/pmodule/b.js
     esm export import specifier ./c ./node_modules/pmodule/b.js
+    esm export import specifier ./b ./node_modules/pmodule/index.js
   ./node_modules/pmodule/a.js 60 bytes [orphan] [built]
     [module unused]
     esm export ./a ./node_modules/pmodule/index.js
@@ -1787,7 +1788,6 @@ modules by path ./node_modules/pmodule/*.js 232 bytes
   ./node_modules/pmodule/b.js 69 bytes [orphan] [built]
     [module unused]
     esm export ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
     esm export import specifier ./b ./node_modules/pmodule/index.js
     esm export import specifier ./b ./node_modules/pmodule/index.js
 modules by path ./*.js 213 bytes
@@ -1807,6 +1807,7 @@ modules by path ./*.js 213 bytes
     |   esm import specifier pmodule ./index.js
     |   esm export ./c ./node_modules/pmodule/b.js
     |   esm export import specifier ./c ./node_modules/pmodule/b.js
+    |   esm export import specifier ./b ./node_modules/pmodule/index.js
 Rspack x.x.x compiled successfully in X.23"
 `;
 
