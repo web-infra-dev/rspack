@@ -12,5 +12,8 @@ mod macros;
 mod native_fs;
 pub use native_fs::NativeFileSystem;
 
+mod memory_fs;
+pub use memory_fs::MemoryFileSystem;
+
 mod error;
 pub use error::{Error, Result};
