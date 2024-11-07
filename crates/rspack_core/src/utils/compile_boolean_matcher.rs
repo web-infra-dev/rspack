@@ -91,7 +91,10 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   items_set.sort_unstable();
 
   // Merge single char items: (a|b|c|d|ef) => ([abcd]|ef)
-  let count_of_single_char_items = items_set.iter().filter(|&item| item.len() == 1).count();
+  let count_of_single_char_items = items_set
+    .iter()
+    .filter(|&item| item.chars().count() == 1)
+    .count();
 
   // Special case for only single char items
   if count_of_single_char_items == items_set.len() {
@@ -108,7 +111,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     let mut single_char_items: String = String::new();
     let mut new_items = BTreeSet::new();
     for item in items {
-      if item.len() == 1 {
+      if item.chars().count() == 1 {
         single_char_items += &item;
         continue;
       }

@@ -813,25 +813,48 @@ mod test_items_to_regexp {
       ),
       "[1234a]".to_string()
     );
+  }
 
+  #[test]
+  fn multibyte() {
     assert_eq!(
       items_to_regexp(
-        vec!["西瓜汽水", "西瓜糖果", "西瓜冰沙"]
+        vec!["🍉", "🍊", "🍓", "🍐", "🍍🫙"]
           .into_iter()
           .map(String::from)
           .collect::<Vec<_>>(),
       ),
-      "西瓜(冰沙|汽水|糖果)".to_string()
+      "([🍉🍊🍐🍓]|🍍🫙)".to_string()
     );
 
     assert_eq!(
       items_to_regexp(
-        vec!["西瓜汽水", "苏打汽水", "橘子汽水"]
+        vec!["🫙🍉", "🫙🍊", "🫙🍓", "🫙🍐", "🍽🍍"]
           .into_iter()
           .map(String::from)
           .collect::<Vec<_>>(),
       ),
-      "(橘子|苏打|西瓜)汽水".to_string()
+      "(🫙[🍉🍊🍐🍓]|🍽🍍)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["🍉🍭", "🍊🍭", "🍓🍭", "🍐🍭", "🍍🫙"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "([🍉🍊🍐🍓]🍭|🍍🫙)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["🍉", "🍊", "🍓", "🍐", "🫙"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "[🍉🍊🍐🍓🫙]".to_string()
     );
   }
 }
