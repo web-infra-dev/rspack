@@ -12,7 +12,8 @@ homepage      = "https://rspack.dev/"
 license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"
 
-
+[workspace.metadata.cargo-shear]
+ignored = ["swc"]
 [workspace.dependencies]
 anyhow             = { version = "1.0.81", features = ["backtrace"] }
 anymap             = { version = "=1.0.0-beta.2" }
@@ -79,13 +80,15 @@ inventory = { version = "0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
+swc                 = { version = "5.0.0" }
 swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=5.0.0", default-features = false }
+swc_core            = { version = "=5.0.1", default-features = false }
 swc_ecma_minifier   = { version = "=5.0.0", default-features = false }
 swc_error_reporters = { version = "=5.0.0" }
 swc_html            = { version = "=5.0.0" }
 swc_html_minifier   = { version = "=5.0.0", default-features = false }
 swc_node_comments   = { version = "=4.0.0" }
+
 
 rspack_dojang = { version = "0.1.9" }
 [workspace.metadata.release]
