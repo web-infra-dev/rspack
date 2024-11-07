@@ -1414,7 +1414,7 @@ impl ExportInfo {
       .next()
       .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
     if original_target.dependency.as_ref() == Some(&target.dependency)
-      || original_target.export == target.export
+      && original_target.export == target.export
     {
       return None;
     }
