@@ -9,7 +9,7 @@ sidebar: false
 
 ![Rspack 1.1](https://assets.rspack.dev/rspack/rspack-banner-v1-1.png)
 
-> Posted by [@LingyuCoder](https://github.com/LingyuCoder), [@ahabhgk](https://github.com/ahabhgk), [@GiveMe-A-Name](https://github.com/GiveMe-A-Name), [@9aoy](https://github.com/9aoy), [@chenjiahan](https://github.com/chenjiahan)
+> 由 [@LingyuCoder](https://github.com/LingyuCoder)，[@ahabhgk](https://github.com/ahabhgk)，[@GiveMe-A-Name](https://github.com/GiveMe-A-Name)，[@9aoy](https://github.com/9aoy)，[@chenjiahan](https://github.com/chenjiahan) 发布
 
 ---
 
@@ -58,7 +58,7 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
   alt="启用新增量的 10000 个 React 组件"
 />
 
-在 Rspack v1.1 中，您可以在 `dev` 模式下通过以下方式启用此功能：
+在 Rspack v1.1 中，你可以在 `dev` 模式下通过以下方式启用此功能：
 
 ```js title=rspack.config.js
 const isDev = process.env.NODE_ENV === 'development';
@@ -73,7 +73,7 @@ module.exports = {
 
 > 更多详细信息请参考 [experiments.incremental](/config/experiments#experimentsincremental)。
 
-目前这是一个实验性功能，还需更多的验证以保证其稳定。如果您感兴趣可以尝试一下，并将错误报告和反馈提交至[#8106](https://github.com/web-infra-dev/rspack/issues/8106)。
+目前这是一个实验性功能，还需更多的验证以保证其稳定。如果你感兴趣可以尝试一下，并将错误报告和反馈提交至[#8106](https://github.com/web-infra-dev/rspack/issues/8106)。
 
 ## 新功能
 
@@ -81,7 +81,7 @@ module.exports = {
 
 在早前的 Rspack 版本中已实现了内置的 `HtmlRspackPlugin`，但它的能力缺失严重，缺少了部分配置项的同时，也不支持 `hooks`。这使得那些基于 `HtmlWebpackPlugin` 的 `hooks` 实现的插件无法在 `HtmlRspackPlugin` 中得到兼容。
 
-因此，我们大幅重构了 `HtmlRspackPlugin`，在对齐了更多 `HtmlWebpackPlugin` 配置项的同时，也完成了 `hooks` 对齐。现在您可以通过 `HtmlRspackPlugin.getCompilationHooks` 来获取它们，并使用其修改 HTML 产物的内容：
+因此，我们大幅重构了 `HtmlRspackPlugin`，在对齐了更多 `HtmlWebpackPlugin` 配置项的同时，也完成了 `hooks` 对齐。现在你可以通过 `HtmlRspackPlugin.getCompilationHooks` 来获取它们，并使用其修改 HTML 产物的内容：
 
 ```js
 const AddAttributePlugin = {
@@ -120,7 +120,7 @@ Rspack 使用 [zod](https://github.com/colinhacks/zod) 验证用户配置并推�
   alt="IDE 中的配置智能感知"
 />
 
-> 我们仍在寻求改进 JSDoc。如果您感兴趣，请随时提交 PR。❤️
+> 我们仍在寻求改进 JSDoc。如果你感兴趣，请随时提交 PR。❤️
 
 ## 生态系统
 
@@ -134,11 +134,11 @@ Rspack 使用 [zod](https://github.com/colinhacks/zod) 验证用户配置并推�
 
 ### Nuxt Rspack 构建器
 
-[Nuxt v3.14](https://nuxt.com/blog/v3-14) 将 Rspack 作为 Nuxt 内置支持的构建器。
+[Nuxt v3.14](https://nuxt.com/blog/v3-14) 将 Rspack 作为 Nuxt 官方支持的构建器。
 
 它仍然处于实验阶段，Nuxt 团队重构了内部的虚拟文件系统来支持 `unplugin` 以使得它成功运行。
 
-您可以尝试 [nuxt-rspack-starter](https://github.com/danielroe/nuxt-rspack-starter) 作为初始项目，或者安装 [@nuxt/rspack-builder](https://www.npmjs.com/package/@nuxt/rspack-builder) 并在 Nuxt 配置文件中设置 `builder: 'rspack'`。
+你可以尝试 [nuxt-rspack-starter](https://github.com/danielroe/nuxt-rspack-starter) 作为初始项目，或者安装 [@nuxt/rspack-builder](https://www.npmjs.com/package/@nuxt/rspack-builder) 并在 Nuxt 配置文件中设置 `builder: 'rspack'`。
 
 ## Rsbuild v1.1
 
@@ -146,9 +146,9 @@ Rsbuild v1.1 在升级到 Rspack v1.1 的同时引入了几个新功能。
 
 ### CLI 快捷方式
 
-Rsbuild 现在可通过 [dev.cliShortcuts](https://rsbuild.dev/config/dev/cli-shortcuts) 启用 CLI 快捷方式。如果您已在使用 Rsbuild CLI，则该功能默认开启。
+Rsbuild 现在可通过 [dev.cliShortcuts](https://rsbuild.dev/config/dev/cli-shortcuts) 启用 CLI 快捷方式。如果你已在使用 Rsbuild CLI，则该功能默认开启。
 
-CLI 快捷方式允许您清空控制台、打开浏览器、重启服务器或自定义任何您想要的注释。
+CLI 快捷方式允许你清空控制台、打开浏览器、重启服务器或自定义任何你想要的快捷键。
 
 <img
   width="650"
@@ -158,7 +158,7 @@ CLI 快捷方式允许您清空控制台、打开浏览器、重启服务器或�
 
 ### 查看静态资源
 
-Rsbuild 开发服务器现在会在 `/rsbuild-dev-server` 路径下提供了一个报告页面，允许您查看当前构建期间生成的所有静态资源。
+Rsbuild 开发服务器现在会在 `/rsbuild-dev-server` 路径下提供了一个报告页面，允许你查看当前构建期间生成的所有静态资源。
 
 <img
   src="https://assets.rspack.dev/rsbuild/assets/assets-report-page.png"
@@ -171,7 +171,7 @@ Rsbuild 开发服务器现在会在 `/rsbuild-dev-server` 路径下提供了一�
 Rsbuild 1.1 引入了一些新配置：
 
 - [server.base](https://rsbuild.dev/config/server/base)：设置服务器的基础路径。
-- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include)：设置应被视为静态资源的额外文件。
+- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include)：设置额外被作为静态资源处理的文件。
 - [output.filename.assets](https://rsbuild.dev/config/output/filename)：设置额外静态资源的名称。
 - [output.distPath.assets](https://rsbuild.dev/config/output/dist-path)：设置额外静态资源的输出目录。
 
@@ -187,7 +187,7 @@ Rsbuild 1.1 引入了一些新配置：
 
 Rspack 的 [output.hashFunction](/config/output#outputhashfunction) 现在默认为更快的 `xxhash64`，并且 [output.hashDigestLength](/config/output#outputhashdigestlength) 现在默认为 `16`（之前为 `20` ）。对于大型项目，此更改将带来显著的性能提升。
 
-如果您更喜欢以前的哈希函数，可以设置：
+如果你倾向于使用之前的哈希函数，可以设置：
 
 ```js title="rspack.config.js"
 module.exports = {
