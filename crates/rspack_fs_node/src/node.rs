@@ -58,7 +58,7 @@ pub(crate) struct NodeFSRef {
 }
 
 use napi::Either;
-use rspack_fs::r#async::FileStat;
+use rspack_fs::FileMetadata;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
@@ -94,11 +94,12 @@ pub struct NodeFsStats {
   pub size: u32,
 }
 
-impl From<NodeFsStats> for FileStat {
+impl From<NodeFsStats> for FileMetadata {
   fn from(value: NodeFsStats) -> Self {
     Self {
       is_file: value.is_file,
       is_directory: value.is_directory,
+      is_symlink: false,
       atime_ms: value.atime_ms as u64,
       mtime_ms: value.mtime_ms as u64,
       ctime_ms: value.ctime_ms as u64,

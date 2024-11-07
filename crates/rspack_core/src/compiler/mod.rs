@@ -5,9 +5,7 @@ mod module_executor;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_fs::{
-  AsyncNativeFileSystem, AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem,
-};
+use rspack_fs::{AsyncWritableFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -107,7 +105,7 @@ impl Compiler {
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
-    let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(AsyncNativeFileSystem {}));
+    let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
 
     Self {
       options: options.clone(),
