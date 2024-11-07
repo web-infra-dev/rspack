@@ -13,4 +13,189 @@ sidebar: false
 
 ---
 
-Rspack v1.1 和 Rsbuild v1.1 已正式发布！
+Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
+
+值得关注的变更如下：
+
+- 性能优化
+  - [优化调度策略](#优化调度策略)：相较于 1.0 版本性能提升达 **10%**。
+  - [新的增量构建](#新的增量构建)：实验性功能，开启后可使 HMR 性能提升高达 **38%**。
+- 新功能
+  - [优化 HTML 插件](#优化-html-插件)：用新功能重构内置的 HTML 插件。
+  - [优化 JSDoc](#优化-jsdoc)：为所有配置项添加了 JSDoc。
+- 生态系统
+  - [Docusaurus 构建提速](#docusaurus-构建提速)：使用 Rspack 打包 Docusaurus 站点。
+  - [Nuxt Rspack 构建器](#nuxt-rspack-构建器)：Nuxt 添加实验性的 Rspack 构建器。
+- [Rsbuild v1.1](#rsbuild-v11)：添加 CLI 快捷方式和新配置。
+
+## 性能优化
+
+### 优化调度策略
+
+根据我们的性能测试，Rspack v1.1 相较于 v1.0 性能提升达**10%**。
+
+<img
+  width="850"
+  src="https://assets.rspack.dev/rspack/assets/rspack-1-1-perf-comparison.png"
+  alt="Rspack v1.1 与 v1.0 的性能对比"
+/>
+
+优化主要源于 Rspack v1.1 采用了更佳的线程调度策略，其灵感来自于[《使用 Rust 语言的 Async Tokio 运行时处理 CPU 密集型任务》](https://thenewstack.io/using-rustlangs-async-tokio-runtime-for-cpu-bound-tasks/)，同时 SWC 也优化了其并发支持，从而能够更高效地调度异步任务。
+
+### 新的增量构建
+
+在 Rspack 0.x 的早期版本中，我们实现了[experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild)。随着这个功能逐渐稳定，我们移除了实验性配置并默认启用。
+
+然而，此功能仅在重新构建时的 `make` 和 `emitAssets` 阶段做到了增量。许多项目在 `make` 阶段运行 loader 会花费大量时间。当时对于这些项目，此功能在重新构建时有相对明显的性能提升。但仍有一些项目在 `make` 之外的其他阶段花费大量时间。因此，我们对这个功能进行了优化和扩展，逐渐将增量引入到其他阶段，如 `buildChunkGraph`、`providedExports`、`moduleCodegen` 等。
+
+在 Rspack v1.1 中，我们引入了 [experiments.incremental](/config/experiments#experimentsincremental) 作为 `experiments.incrementalRebuild` 的后继者和超集，旨在为开发者带来进一步的重新构建时的性能提升和更快的 HMR。
+
+在一个有 10000 个 React 组件的案例中，HMR 速度提升了 **38%**：
+
+<img
+  width="850"
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-new-incremental-compare.png"
+  alt="启用新增量的 10000 个 React 组件"
+/>
+
+在 Rspack v1.1 中，您可以在 `dev` 模式下通过以下方式启用此功能：
+
+```js title=rspack.config.js
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  mode: isDev ? 'development' : 'production',
+  experiments: {
+    incremental: isDev,
+  },
+};
+```
+
+> 更多详细信息请参考 [experiments.incremental](/config/experiments#experimentsincremental)。
+
+目前这是一个实验性功能，还需更多的验证以保证其稳定。如果您感兴趣可以尝试一下，并将错误报告和反馈提交至[#8106](https://github.com/web-infra-dev/rspack/issues/8106)。
+
+## 新功能
+
+### 优化 HTML 插件
+
+在早前的 Rspack 版本中已实现了内置的 `HtmlRspackPlugin`，但它的能力缺失严重，缺少了部分配置项的同时，也不支持 `hooks`。这使得那些基于 `HtmlWebpackPlugin` 的 `hooks` 实现的插件无法在 `HtmlRspackPlugin` 中得到兼容。
+
+因此，我们大幅重构了 `HtmlRspackPlugin`，在对齐了更多 `HtmlWebpackPlugin` 配置项的同时，也完成了 `hooks` 对齐。现在您可以通过 `HtmlRspackPlugin.getCompilationHooks` 来获取它们，并使用其修改 HTML 产物的内容：
+
+```js
+const AddAttributePlugin = {
+  apply: function (compiler) {
+    compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
+      HtmlRspackPlugin.getCompilationHooks(
+        compilation,
+      ).alterAssetTags.tapPromise('AddAttributePlugin', async data => {
+        data.assetTags.scripts = data.assetTags.scripts.map(tag => {
+          if (tag.tagName === 'script') {
+            tag.attributes.specialAttribute = true;
+          }
+          return tag;
+        });
+      });
+    });
+  },
+};
+
+module.exports = {
+  plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
+};
+```
+
+> 更多详细信息请参考 [HtmlRspackPlugin](https://rspack.dev/plugins/rspack/html-rspack-plugin)
+
+### 优化 JSDoc
+
+Rspack 使用 [zod](https://github.com/colinhacks/zod) 验证用户配置并推断配置类型。然而推断出的类型缺少 JSDoc 注释，使得生成的类型相当复杂且难以理解。
+
+为了解决这个问题，我们重构了配置的类型，并为所有类型都添加了 JSDoc 注释以提高可读性。
+
+<img
+  width="850"
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-config-intellisense.png"
+  alt="IDE 中的配置智能感知"
+/>
+
+> 我们仍在寻求改进 JSDoc。如果您感兴趣，请随时提交 PR。❤️
+
+## 生态系统
+
+### Docusaurus 构建提速
+
+[Docusaurus v3.6](https://docusaurus.io/blog/docusaurus-v3.6) 带来了`Docusaurus Faster` 选项，允许用户将 Rspack 用作 Docusaurus 站点的打包工具。
+
+[Docusaurus Faster](https://docusaurus.io/blog/releases/3.6#docusaurus-faster) 的目标是减少 Docusaurus 的构建耗时和内存占用。Docusaurus 团队致力于多项优化，并使用像 Rspack 和 SWC 这样基于 Rust 的高性能工具对其基础设施进行了现代化改造。
+
+在对其社区站点的性能测试中，生产模式下的站点的构建速度可以提速 2 到 4 倍。
+
+### Nuxt Rspack 构建器
+
+[Nuxt v3.14](https://nuxt.com/blog/v3-14) 将 Rspack 作为 Nuxt 内置支持的构建器。
+
+它仍然处于实验阶段，Nuxt 团队重构了内部的虚拟文件系统来支持 `unplugin` 以使得它成功运行。
+
+您可以尝试 [nuxt-rspack-starter](https://github.com/danielroe/nuxt-rspack-starter) 作为初始项目，或者安装 [@nuxt/rspack-builder](https://www.npmjs.com/package/@nuxt/rspack-builder) 并在 Nuxt 配置文件中设置 `builder: 'rspack'`。
+
+## Rsbuild v1.1
+
+Rsbuild v1.1 在升级到 Rspack v1.1 的同时引入了几个新功能。
+
+### CLI 快捷方式
+
+Rsbuild 现在可通过 [dev.cliShortcuts](https://rsbuild.dev/config/dev/cli-shortcuts) 启用 CLI 快捷方式。如果您已在使用 Rsbuild CLI，则该功能默认开启。
+
+CLI 快捷方式允许您清空控制台、打开浏览器、重启服务器或自定义任何您想要的注释。
+
+<img
+  width="650"
+  src="https://assets.rspack.dev/rsbuild/assets/rsbuild-cli-shortcuts.png"
+  alt="Rsbuild CLI 快捷方式"
+/>
+
+### 查看静态资源
+
+Rsbuild 开发服务器现在会在 `/rsbuild-dev-server` 路径下提供了一个报告页面，允许您查看当前构建期间生成的所有静态资源。
+
+<img
+  src="https://assets.rspack.dev/rsbuild/assets/assets-report-page.png"
+  alt="rsbuild-dev-server"
+  width="600"
+/>
+
+### 新配置
+
+Rsbuild 1.1 引入了一些新配置：
+
+- [server.base](https://rsbuild.dev/config/server/base)：设置服务器的基础路径。
+- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include)：设置应被视为静态资源的额外文件。
+- [output.filename.assets](https://rsbuild.dev/config/output/filename)：设置额外静态资源的名称。
+- [output.distPath.assets](https://rsbuild.dev/config/output/dist-path)：设置额外静态资源的输出目录。
+
+## 升级指南
+
+### 升级 SWC 插件
+
+在 Rspack v1.1 中，Rust 包中 `swc_core` 已升级到 `5.0.1`。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
+
+更多详细信息请参阅 [SWC 文档](https://swc.rs/docs/plugin/selecting-swc-core)。
+
+### 哈希函数
+
+Rspack 的 [output.hashFunction](/config/output#outputhashfunction) 现在默认为更快的 `xxhash64`，并且 [output.hashDigestLength](/config/output#outputhashdigestlength) 现在默认为 `16`（之前为 `20` ）。对于大型项目，此更改将带来显著的性能提升。
+
+如果您更喜欢以前的哈希函数，可以设置：
+
+```js title="rspack.config.js"
+module.exports = {
+  output: {
+    hashFunction: 'md5',
+    hashDigestLength: 20,
+  },
+};
+```
+
+> 相关 PR：[#8249](https://github.com/web-infra-dev/rspack/pull/8249)。
