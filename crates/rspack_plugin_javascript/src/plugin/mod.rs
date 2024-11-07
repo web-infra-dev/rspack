@@ -143,9 +143,7 @@ impl JsPlugin {
   }
 
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_chunk_runtime_requirements(chunk_ukey);
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
     let mut sources: Vec<Cow<str>> = Vec::new();
@@ -224,9 +222,7 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
   ) -> Result<RenderBootstrapResult> {
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_chunk_runtime_requirements(chunk_ukey);
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
@@ -549,9 +545,7 @@ impl JsPlugin {
       .output
       .environment
       .supports_arrow_function();
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_tree_runtime_requirements(chunk_ukey);
+    let runtime_requirements = ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
     let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;

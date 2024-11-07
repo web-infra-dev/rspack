@@ -144,7 +144,7 @@ impl CodeSplitter {
       self.mask_by_chunk.remove(chunk_ukey);
 
       if let Some(chunk_graph_chunk) = chunk_graph.remove_chunk_graph_chunk(chunk_ukey) {
-        for module_identifier in chunk_graph_chunk.modules {
+        for &module_identifier in chunk_graph_chunk.modules() {
           let Some(cgm) = chunk_graph.get_chunk_graph_module_mut(module_identifier) else {
             continue;
           };

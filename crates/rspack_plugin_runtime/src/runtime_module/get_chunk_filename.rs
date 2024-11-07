@@ -4,9 +4,9 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
+  get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
   RuntimeModule, SourceType,
 };
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
@@ -82,16 +82,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
-      .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
+      .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
         if (self.all_chunks)(runtime_requirements) {
           chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
         } else {
           let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
-          if compilation
-            .chunk_graph
-            .get_tree_runtime_requirements(&chunk.ukey)
+          if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey)
             .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
           {
             chunks.extend(
@@ -123,7 +121,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     if let Some(chunks) = chunks {
       chunks
         .iter()
-        .filter_map(|chunk_ukey| get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey))
+        .filter_map(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
         .for_each(|chunk| {
           let filename = (self.filename_for_chunk)(chunk, compilation);
 

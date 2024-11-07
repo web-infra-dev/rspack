@@ -2334,14 +2334,15 @@ export type ImportMetaName = string;
 // @public
 export type Incremental = {
     make?: boolean;
-    emitAssets?: boolean;
     inferAsyncModules?: boolean;
     providedExports?: boolean;
     dependenciesDiagnostics?: boolean;
+    buildChunkGraph?: boolean;
     modulesHashes?: boolean;
     modulesCodegen?: boolean;
     modulesRuntimeRequirements?: boolean;
-    buildChunkGraph?: boolean;
+    chunksRuntimeRequirements?: boolean;
+    emitAssets?: boolean;
 };
 
 // @public
@@ -6148,34 +6149,37 @@ export const rspackOptions: z.ZodObject<{
         layers: z.ZodOptional<z.ZodBoolean>;
         incremental: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
             make: z.ZodOptional<z.ZodBoolean>;
-            emitAssets: z.ZodOptional<z.ZodBoolean>;
             inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
             providedExports: z.ZodOptional<z.ZodBoolean>;
             dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
+            buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
             modulesHashes: z.ZodOptional<z.ZodBoolean>;
             modulesCodegen: z.ZodOptional<z.ZodBoolean>;
             modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
-            buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
+            chunksRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+            emitAssets: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         }, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -6212,13 +6216,14 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -6256,13 +6261,14 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8360,13 +8366,14 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8965,13 +8972,14 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {

@@ -189,7 +189,6 @@ impl SplitChunksPlugin {
       debug_assert!(&new_chunk_ukey != original_chunk);
       let [new_chunk, original_chunk] = compilation
         .chunk_by_ukey
-        ._todo_should_remove_this_method_inner_mut()
         .get_many_mut([&new_chunk_ukey, original_chunk])
         .expect("split_from_original_chunks failed");
       original_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);

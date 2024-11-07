@@ -3,12 +3,11 @@
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use rspack_collections::Database;
 use rspack_collections::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
-  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup,
+  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier,
   RuntimeGlobals, RuntimeModule, SourceType,
 };
@@ -27,12 +26,11 @@ pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
   ///
   /// use `LinkedHashMap` to keep the ordered from entry array.
-  pub(crate) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
-  pub modules: IdentifierSet,
-  pub runtime_requirements: RuntimeGlobals,
-  pub(crate) runtime_modules: Vec<ModuleIdentifier>,
+  pub(super) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
+  pub(super) modules: IdentifierSet,
+  pub(super) runtime_modules: Vec<ModuleIdentifier>,
 
-  pub(crate) source_types_by_module: Option<IdentifierMap<FxHashSet<SourceType>>>,
+  pub(super) source_types_by_module: Option<IdentifierMap<FxHashSet<SourceType>>>,
 }
 
 impl ChunkGraphChunk {
@@ -40,10 +38,13 @@ impl ChunkGraphChunk {
     Self {
       entry_modules: Default::default(),
       modules: Default::default(),
-      runtime_requirements: Default::default(),
       runtime_modules: Default::default(),
       source_types_by_module: Default::default(),
     }
+  }
+
+  pub fn modules(&self) -> &IdentifierSet {
+    &self.modules
   }
 }
 
@@ -452,30 +453,47 @@ impl ChunkGraph {
     false
   }
 
-  pub fn add_chunk_runtime_requirements(
-    &mut self,
-    chunk_ukey: &ChunkUkey,
+  pub fn set_chunk_runtime_requirements(
+    compilation: &mut Compilation,
+    chunk_ukey: ChunkUkey,
     runtime_requirements: RuntimeGlobals,
   ) {
-    let cgc = self.expect_chunk_graph_chunk_mut(*chunk_ukey);
-    cgc.runtime_requirements.insert(runtime_requirements);
+    compilation
+      .cgc_runtime_requirements_results
+      .insert(chunk_ukey, runtime_requirements);
   }
 
-  pub fn add_tree_runtime_requirements(
-    &mut self,
-    chunk_ukey: &ChunkUkey,
+  pub fn set_tree_runtime_requirements(
+    compilation: &mut Compilation,
+    chunk_ukey: ChunkUkey,
     runtime_requirements: RuntimeGlobals,
   ) {
-    self.add_chunk_runtime_requirements(chunk_ukey, runtime_requirements);
+    Self::set_chunk_runtime_requirements(compilation, chunk_ukey, runtime_requirements);
   }
 
-  pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &RuntimeGlobals {
-    let cgc = self.expect_chunk_graph_chunk(chunk_ukey);
-    &cgc.runtime_requirements
+  pub fn get_chunk_runtime_requirements<'a>(
+    compilation: &'a Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> &'a RuntimeGlobals {
+    compilation
+      .cgc_runtime_requirements_results
+      .get(chunk_ukey)
+      .unwrap_or_else(|| {
+        let c = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
+        panic!(
+          "Chunk({:?} {:?}) should have runtime requirements, {:?}",
+          c,
+          chunk_ukey,
+          &compilation.cgc_runtime_requirements_results.keys()
+        )
+      })
   }
 
-  pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &RuntimeGlobals {
-    self.get_chunk_runtime_requirements(chunk_ukey)
+  pub fn get_tree_runtime_requirements<'a>(
+    compilation: &'a Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> &'a RuntimeGlobals {
+    Self::get_chunk_runtime_requirements(compilation, chunk_ukey)
   }
 
   pub fn get_chunk_runtime_modules_in_order<'a>(
@@ -711,8 +729,8 @@ impl ChunkGraph {
     &self,
     chunk_ukey: &ChunkUkey,
     options: &ChunkSizeOptions,
-    chunk_by_ukey: &Database<Chunk>,
-    chunk_group_by_ukey: &Database<ChunkGroup>,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
     module_graph: &ModuleGraph,
     compilation: &Compilation,
   ) -> f64 {
@@ -741,8 +759,8 @@ impl ChunkGraph {
     chunk_a_ukey: &ChunkUkey,
     chunk_b_ukey: &ChunkUkey,
     options: &ChunkSizeOptions,
-    chunk_by_ukey: &Database<Chunk>,
-    chunk_group_by_ukey: &Database<ChunkGroup>,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
     module_graph: &ModuleGraph,
     compilation: &Compilation,
   ) -> f64 {
@@ -781,8 +799,8 @@ impl ChunkGraph {
     &mut self,
     a: &ChunkUkey,
     b: &ChunkUkey,
-    chunk_by_ukey: &mut Database<Chunk>,
-    chunk_group_by_ukey: &mut Database<ChunkGroup>,
+    chunk_by_ukey: &mut ChunkByUkey,
+    chunk_group_by_ukey: &mut ChunkGroupByUkey,
     module_graph: &ModuleGraph,
   ) {
     let chunk_b = chunk_by_ukey.expect_get(b).clone();

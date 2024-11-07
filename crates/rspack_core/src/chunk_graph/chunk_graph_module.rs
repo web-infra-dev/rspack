@@ -9,18 +9,18 @@ use rustc_hash::FxHasher;
 use tracing::instrument;
 
 use crate::{
-  get_chunk_group_from_ukey, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
   pub id: Option<String>,
-  pub(crate) entry_in_chunks: UkeySet<ChunkUkey>,
+  pub(super) entry_in_chunks: UkeySet<ChunkUkey>,
   pub chunks: UkeySet<ChunkUkey>,
-  pub(crate) runtime_in_chunks: UkeySet<ChunkUkey>,
+  pub(super) runtime_in_chunks: UkeySet<ChunkUkey>,
 }
 
 impl ChunkGraphModule {
@@ -165,7 +165,7 @@ impl ChunkGraph {
     self
       .block_to_chunk_group_ukey
       .get(block)
-      .and_then(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
+      .and_then(|ukey| chunk_group_by_ukey.get(ukey))
   }
 
   pub fn connect_block_and_chunk_group(

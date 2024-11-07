@@ -2,7 +2,8 @@ use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierSet, UkeySet};
+use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::oneshot::Sender;
@@ -163,12 +164,16 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     compilation.code_generation_modules(&mut None, modules.clone())?;
     compilation
-      .process_runtime_requirements(
-        modules.clone(),
-        once(chunk_ukey),
-        once(chunk_ukey),
+      .process_modules_runtime_requirements(modules.clone(), compilation.plugin_driver.clone())
+      .await?;
+    compilation
+      .process_chunks_runtime_requirements(
+        UkeySet::from_iter([chunk_ukey]),
         compilation.plugin_driver.clone(),
       )
+      .await?;
+    compilation
+      .process_entries_runtime_requirements(once(chunk_ukey), compilation.plugin_driver.clone())
       .await?;
     let runtime_modules = compilation
       .chunk_graph

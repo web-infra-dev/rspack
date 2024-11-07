@@ -2409,11 +2409,6 @@ export type Incremental = {
 	make?: boolean;
 
 	/**
-	 * Enable incremental asset emission.
-	 */
-	emitAssets?: boolean;
-
-	/**
 	 * Enable inference of async modules.
 	 */
 	inferAsyncModules?: boolean;
@@ -2427,6 +2422,11 @@ export type Incremental = {
 	 * Enables diagnostics for dependencies.
 	 */
 	dependenciesDiagnostics?: boolean;
+
+	/**
+	 * Enable incremental build chunk graph.
+	 */
+	buildChunkGraph?: boolean;
 
 	/**
 	 * Enable incremental module hashes.
@@ -2444,9 +2444,14 @@ export type Incremental = {
 	modulesRuntimeRequirements?: boolean;
 
 	/**
-	 * Enable incremental build chunk graph.
+	 * Enable incremental module runtime requirements.
 	 */
-	buildChunkGraph?: boolean;
+	chunksRuntimeRequirements?: boolean;
+
+	/**
+	 * Enable incremental asset emission.
+	 */
+	emitAssets?: boolean;
 };
 
 /**

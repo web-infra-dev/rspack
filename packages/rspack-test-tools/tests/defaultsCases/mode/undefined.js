@@ -10,6 +10,7 @@ module.exports = {
 		@@ ... @@
 		-     "incremental": Object {
 		-       "buildChunkGraph": false,
+		-       "chunksRuntimeRequirements": false,
 		-       "dependenciesDiagnostics": false,
 		-       "emitAssets": true,
 		-       "inferAsyncModules": false,

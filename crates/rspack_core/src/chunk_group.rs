@@ -8,9 +8,8 @@ use rspack_error::{error, Result};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
-  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority, Filename,
-  ModuleLayer,
+  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
+  DynamicImportFetchPriority, Filename, ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -262,7 +261,10 @@ impl ChunkGroup {
       .chunks
       .iter()
       .filter_map(|chunk| {
-        get_chunk_from_ukey(chunk, &compilation.chunk_by_ukey).and_then(|item| item.id.as_ref())
+        compilation
+          .chunk_by_ukey
+          .get(chunk)
+          .and_then(|item| item.id.as_ref())
       })
       .join("+")
   }
@@ -322,9 +324,7 @@ impl ChunkGroup {
     for order_key in orders {
       let mut list = vec![];
       for child_ukey in &self.children {
-        let Some(child_group) =
-          get_chunk_group_from_ukey(child_ukey, &compilation.chunk_group_by_ukey)
-        else {
+        let Some(child_group) = compilation.chunk_group_by_ukey.get(child_ukey) else {
           continue;
         };
         if let Some(order) = child_group

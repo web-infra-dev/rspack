@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
-  ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
+  get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind, ChunkLoading, ChunkUkey,
+  Compilation, PathData, SourceType,
 };
 use rspack_util::test::{
   HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
@@ -16,7 +16,7 @@ pub fn get_initial_chunk_ids(
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
 ) -> HashSet<String> {
   match chunk {
-    Some(chunk_ukey) => match get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey) {
+    Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
       Some(chunk) => {
         let mut js_chunks = chunk
           .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
@@ -145,7 +145,9 @@ pub fn is_enabled_for_chunk(
   expected: &ChunkLoading,
   compilation: &Compilation,
 ) -> bool {
-  let chunk_loading = get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey)
+  let chunk_loading = compilation
+    .chunk_by_ukey
+    .get(chunk_ukey)
     .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
     .and_then(|options| options.chunk_loading.as_ref())
     .unwrap_or(&compilation.options.output.chunk_loading);

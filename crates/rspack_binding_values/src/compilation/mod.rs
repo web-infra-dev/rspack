@@ -9,8 +9,6 @@ use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
-use rspack_core::get_chunk_from_ukey;
-use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ChunkUkey;
@@ -236,7 +234,7 @@ impl JsCompilation {
       compilation
         .named_chunks
         .get(&name)
-        .and_then(|c| get_chunk_from_ukey(c, &compilation.chunk_by_ukey).map(JsChunk::from)),
+        .and_then(|c| compilation.chunk_by_ukey.get(c).map(JsChunk::from)),
     )
   }
 
@@ -256,9 +254,10 @@ impl JsCompilation {
   #[napi]
   pub fn get_named_chunk_group(&self, name: String) -> Result<Option<JsChunkGroup>> {
     let compilation = self.as_ref()?;
-
     Ok(compilation.named_chunk_groups.get(&name).and_then(|c| {
-      get_chunk_group_from_ukey(c, &compilation.chunk_group_by_ukey)
+      compilation
+        .chunk_group_by_ukey
+        .get(c)
         .map(|cg| JsChunkGroup::from_chunk_group(cg, compilation))
     }))
   }

@@ -312,14 +312,15 @@ export const getNormalizedRspackOptions = (
 				options === true
 					? ({
 							make: true,
-							emitAssets: true,
 							dependenciesDiagnostics: true,
 							inferAsyncModules: true,
 							providedExports: true,
+							buildChunkGraph: true,
 							modulesHashes: true,
 							modulesCodegen: true,
 							modulesRuntimeRequirements: true,
-							buildChunkGraph: true
+							chunksRuntimeRequirements: true,
+							emitAssets: true
 						} satisfies Incremental)
 					: options
 			)

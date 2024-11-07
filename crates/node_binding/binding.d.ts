@@ -1463,14 +1463,15 @@ export interface RawIgnorePluginOptions {
 
 export interface RawIncremental {
   make: boolean
-  emitAssets: boolean
   inferAsyncModules: boolean
   providedExports: boolean
   dependenciesDiagnostics: boolean
+  buildChunkGraph: boolean
   modulesHashes: boolean
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean
-  buildChunkGraph: boolean
+  chunksRuntimeRequirements: boolean
+  emitAssets: boolean
 }
 
 export interface RawInfo {

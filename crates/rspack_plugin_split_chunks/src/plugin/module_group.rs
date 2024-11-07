@@ -279,7 +279,7 @@ impl SplitChunksPlugin {
   #[tracing::instrument(skip_all)]
   pub(crate) fn prepare_module_group_map(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
   ) -> Result<ModuleGroupMap> {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
@@ -508,7 +508,7 @@ impl SplitChunksPlugin {
     current_module_group: &ModuleGroup,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &UkeySet<ChunkUkey>,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
   ) {
     // remove all modules from other entries and update size
     let module_graph = compilation.get_module_graph();

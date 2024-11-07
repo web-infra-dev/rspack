@@ -5,8 +5,8 @@ use std::collections::HashSet;
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_collections::{UkeyMap, UkeySet};
 use rspack_core::{
-  compare_chunks_with_graph, get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkSizeOptions,
-  ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
+  compare_chunks_with_graph, ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks,
+  Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -175,7 +175,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
       }
       for group_ukey in queue.clone() {
         for modified_chunk_ukey in modified_chunks.clone() {
-          if let Some(m_chunk) = get_chunk_from_ukey(&modified_chunk_ukey, chunk_by_ukey) {
+          if let Some(m_chunk) = chunk_by_ukey.get(&modified_chunk_ukey) {
             if modified_chunk_ukey != a
               && modified_chunk_ukey != b
               && m_chunk.is_in_group(&group_ukey)
@@ -190,7 +190,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
             }
           }
         }
-        if let Some(group) = get_chunk_group_from_ukey(&group_ukey, chunk_group_by_ukey) {
+        if let Some(group) = chunk_group_by_ukey.get(&group_ukey) {
           for parent in group.parents_iterable() {
             queue.insert(*parent);
           }

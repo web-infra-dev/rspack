@@ -2,12 +2,13 @@ use std::hash::{Hash, Hasher};
 
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHasher;
 
 use crate::{
-  AffectType, ChunkGraph, Compilation, Module, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  AffectType, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -17,6 +18,7 @@ pub struct Mutations {
   affected_modules_with_module_graph: OnceCell<IdentifierSet>,
   affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
   modules_with_chunk_graph_cache: IdentifierDashMap<Option<u64>>,
+  affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
 #[derive(Debug)]
@@ -107,6 +109,21 @@ impl Mutations {
         )
       })
       .clone()
+  }
+
+  pub fn get_affected_chunks_with_chunk_graph(
+    &self,
+    compilation: &Compilation,
+  ) -> UkeySet<ChunkUkey> {
+    dbg!(self
+      .affected_chunks_with_chunk_graph
+      .get_or_init(|| {
+        compute_affected_chunks_with_chunk_graph(
+          self.get_affected_modules_with_chunk_graph(compilation),
+          &compilation.chunk_graph,
+        )
+      })
+      .clone())
   }
 }
 
@@ -280,4 +297,15 @@ fn compute_affected_modules_with_chunk_graph(
     cache.insert(module_identifier, Some(invalidate_key));
   }
   affected_modules.keys().copied().collect()
+}
+
+fn compute_affected_chunks_with_chunk_graph(
+  updated_modules: IdentifierSet,
+  chunk_graph: &ChunkGraph,
+) -> UkeySet<ChunkUkey> {
+  dbg!(&updated_modules);
+  updated_modules
+    .into_iter()
+    .flat_map(|m| chunk_graph.get_module_chunks(m).iter().copied())
+    .collect()
 }

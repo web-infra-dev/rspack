@@ -1098,8 +1098,7 @@ impl Stats<'_> {
     let mut chunks: Vec<String> = self
       .compilation
       .chunk_graph
-      .expect_chunk_graph_module(*identifier)
-      .chunks
+      .get_module_chunks(*identifier)
       .iter()
       .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
       .collect();

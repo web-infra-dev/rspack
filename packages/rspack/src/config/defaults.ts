@@ -215,6 +215,7 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "modulesHashes", false);
 		D(experiments.incremental, "modulesCodegen", false);
 		D(experiments.incremental, "modulesRuntimeRequirements", false);
+		D(experiments.incremental, "chunksRuntimeRequirements", false);
 		D(experiments.incremental, "emitAssets", true);
 	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration

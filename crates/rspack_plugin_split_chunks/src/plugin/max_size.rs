@@ -358,7 +358,6 @@ impl SplitChunksPlugin {
 
           let [new_part, chunk] = compilation
             .chunk_by_ukey
-            ._todo_should_remove_this_method_inner_mut()
             .get_many_mut([&new_chunk_ukey, &old_chunk])
             .expect("split_from_original_chunks failed");
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
