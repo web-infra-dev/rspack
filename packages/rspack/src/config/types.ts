@@ -1333,7 +1333,7 @@ export type ExternalItemValue =
 			root: string | string[];
 			commonjs: string | string[];
 			commonjs2: string | string[];
-			amd?: string | string[];
+			amd: string | string[];
 	  };
 
 /**

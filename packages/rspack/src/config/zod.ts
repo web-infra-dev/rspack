@@ -804,7 +804,7 @@ const externalItemValue = z
 			root: z.string().or(z.string().array()),
 			commonjs: z.string().or(z.string().array()),
 			commonjs2: z.string().or(z.string().array()),
-			amd: z.string().or(z.string().array()).optional()
+			amd: z.string().or(z.string().array())
 		})
 	) satisfies z.ZodType<t.ExternalItemValue>;
 
