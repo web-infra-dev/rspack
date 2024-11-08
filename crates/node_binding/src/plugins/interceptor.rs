@@ -389,7 +389,7 @@ pub enum RegisterJsTapKind {
 }
 
 #[derive(Default, Clone)]
-pub struct NonSkippableRegisters(Arc<std::sync::RwLock<Vec<RegisterJsTapKind>>>);
+pub struct NonSkippableRegisters(Arc<RwLock<Vec<RegisterJsTapKind>>>);
 
 impl NonSkippableRegisters {
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
