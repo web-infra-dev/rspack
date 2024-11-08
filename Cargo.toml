@@ -88,6 +88,8 @@ swc_error_reporters = { version = "=5.0.0" }
 swc_html            = { version = "=5.0.0" }
 swc_html_minifier   = { version = "=5.0.0", default-features = false }
 swc_node_comments   = { version = "=4.0.0" }
+swc_typescript      = { version = "=4.0.0" }
+
 
 
 rspack_dojang = { version = "0.1.9" }

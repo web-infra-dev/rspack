@@ -42,6 +42,7 @@ rspack_plugin_copy                     = { version = "0.1.0", path = "../rspack_
 rspack_plugin_css                      = { version = "0.1.0", path = "../rspack_plugin_css" }
 rspack_plugin_devtool                  = { version = "0.1.0", path = "../rspack_plugin_devtool" }
 rspack_plugin_dynamic_entry            = { version = "0.1.0", path = "../rspack_plugin_dynamic_entry" }
+rspack_plugin_emit_dts                 = { version = "0.1.0", path = "../rspack_plugin_emit_dts" }
 rspack_plugin_ensure_chunk_conditions  = { version = "0.1.0", path = "../rspack_plugin_ensure_chunk_conditions" }
 rspack_plugin_entry                    = { version = "0.1.0", path = "../rspack_plugin_entry" }
 rspack_plugin_externals                = { version = "0.1.0", path = "../rspack_plugin_externals" }

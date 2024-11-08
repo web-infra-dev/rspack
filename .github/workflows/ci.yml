@@ -399,5 +399,5 @@ jobs:
       - rust_check
       - rust_test
     # after merged to main branch
-    if: ${{ !failure() && github.event_name == 'push' }}
+    if: ${{ !failure() }}
     uses: ./.github/workflows/preview-commit.yml

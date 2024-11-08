@@ -66,6 +66,7 @@ import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
+import { RawSwcDtsEmitRspackPluginOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import sources = require('../compiled/webpack-sources');
@@ -4671,6 +4672,7 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
+        SwcDtsEmitRspackPlugin,
         ContextReplacementPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
@@ -9877,6 +9879,22 @@ type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void
 
 // @public (undocumented)
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
+
+// @public (undocumented)
+export class SwcDtsEmitRspackPlugin {
+    constructor(options?: SwcDtsEmitRspackPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    normalizeOptions(options: SwcDtsEmitRspackPluginOptions): RawSwcDtsEmitRspackPluginOptions;
+    // (undocumented)
+    options: SwcDtsEmitRspackPluginOptions;
+}
+
+// @public (undocumented)
+interface SwcDtsEmitRspackPluginOptions {
+    extension?: string;
+}
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {

@@ -61,6 +61,7 @@ export * from "./LightningCssMinimizerRspackPlugin";
 export * from "./RemoveDuplicateModulesPlugin";
 export * from "./LightningCssMinimizerRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
+export * from "./swc-dts-emit/index";
 export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
