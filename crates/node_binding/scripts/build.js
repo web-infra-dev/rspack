@@ -1,3 +1,6 @@
+const path = require("path");
+const { readFileSync, writeFileSync } = require("fs")
+
 const { spawn } = require("child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
@@ -27,7 +30,7 @@ async function build() {
 			"--dts",
 			"binding.d.ts",
 			"--no-js",
-			"--no-const-enum",
+			// "--no-const-enum",
 			"--no-dts-header",
 			"--pipe",
 			`"node ./scripts/dts-header.js"`
@@ -63,6 +66,12 @@ async function build() {
 		});
 
 		cp.on("error", reject);
-		cp.on("close", resolve);
+		cp.on("close", () => {
+			// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
+			let dts = path.resolve(__dirname, "../binding.d.ts");
+			writeFileSync(dts, readFileSync(dts, "utf8").replaceAll("const enum", "enum"));
+
+			resolve(null)
+		});
 	});
 }

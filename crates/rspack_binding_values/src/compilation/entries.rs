@@ -152,8 +152,8 @@ impl EntryOptionsDTO {
 
 #[napi(object, object_to_js = false)]
 pub struct JsEntryData {
-  pub dependencies: Vec<ClassInstance<JsDependency>>,
-  pub include_dependencies: Vec<ClassInstance<JsDependency>>,
+  pub dependencies: Vec<ClassInstance<'static, JsDependency>>,
+  pub include_dependencies: Vec<ClassInstance<'static, JsDependency>>,
   pub options: JsEntryOptions,
 }
 
@@ -214,7 +214,10 @@ impl EntryDataDTO {
   }
 
   #[napi(getter)]
-  pub fn options(&self, env: Env) -> Result<ClassInstance<EntryOptionsDTO>> {
+  pub fn options<'scope>(
+    &self,
+    env: &'scope Env,
+  ) -> Result<ClassInstance<'scope, EntryOptionsDTO>> {
     EntryOptionsDTO::new(self.entry_data.options.clone()).into_instance(env)
   }
 }

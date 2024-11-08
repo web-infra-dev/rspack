@@ -30,7 +30,7 @@ impl<T: ToNapiValue + 'static> OneShotRef<T> {
 
     // cleanup references to be executed when the JS thread exits normally
     let cleanup_flag = Rc::new(RefCell::new(false));
-    let mut env_wrapper = unsafe { Env::from_raw(env) };
+    let env_wrapper = Env::from_raw(env);
     let _ = env_wrapper.add_env_cleanup_hook(cleanup_flag.clone(), move |cleanup_flag| {
       if !*cleanup_flag.borrow() {
         *cleanup_flag.borrow_mut() = true;

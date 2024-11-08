@@ -1340,7 +1340,7 @@ class Compiler {
 		if (jsTaps.length > 0) {
 			const last = jsTaps[jsTaps.length - 1];
 			const old = last.function;
-			last.function = (...args) => {
+			last.function = (...args: any[]) => {
 				const result = old(...args);
 				if (result && typeof result.then === "function") {
 					return result.then((r: any) => {

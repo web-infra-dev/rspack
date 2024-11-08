@@ -4,6 +4,7 @@ mod entries;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr::NonNull;
+use std::sync::OnceLock;
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
@@ -78,8 +79,10 @@ impl JsCompilation {
   pub fn update_asset(
     &mut self,
     filename: String,
-    new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
+    new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
+    asset_info_update_or_function: Option<
+      Either<JsAssetInfo, Function<'_, JsAssetInfo, JsAssetInfo>>,
+    >,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -90,7 +93,7 @@ impl JsCompilation {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
               let js_compat_source: JsCompatSource =
-                new_source_fn.call1(original_source.to_js_compat_source())?;
+                new_source_fn.call(original_source.to_js_compat_source()?)?;
               js_compat_source.into()
             }
           };
@@ -102,11 +105,9 @@ impl JsCompilation {
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => Ok(
-                asset_info_fn
-                  .call1::<JsAssetInfo, JsAssetInfo>(original_info.clone().into())?
-                  .into(),
-              ),
+              Either::B(asset_info_fn) => {
+                Ok(asset_info_fn.call(original_info.clone().into())?.into())
+              }
             },
           )
           .transpose();
@@ -433,17 +434,17 @@ impl JsCompilation {
   }
 
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
-  pub fn push_native_diagnostic(&mut self, diagnostic: External<Diagnostic>) -> Result<()> {
+  pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    compilation.push_diagnostic(diagnostic.clone());
+    compilation.push_diagnostic((**diagnostic).clone());
     Ok(())
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
   pub fn push_native_diagnostics(
     &mut self,
-    mut diagnostics: External<Vec<Diagnostic>>,
+    diagnostics: &mut External<Vec<Diagnostic>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -582,12 +583,15 @@ impl JsCompilation {
     Ok(())
   }
 
+  /// This is a very unsafe function.
+  /// Please don't use this at the moment.
+  /// Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
   #[napi]
   pub fn rebuild_module(
     &mut self,
     env: Env,
     module_identifiers: Vec<String>,
-    f: JsFunction,
+    f: Function,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -626,7 +630,7 @@ impl JsCompilation {
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: JsFunction,
+    callback: Function,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
 
@@ -699,7 +703,7 @@ impl JsCompilation {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<ClassInstance<JsCompilation>>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<ClassInstance<'static, JsCompilation>>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -731,6 +735,10 @@ impl JsCompilationWrapper {
   }
 }
 
+thread_local! {
+  static STATIC_ENV: OnceLock<&'static Env> = const { OnceLock::new() };
+}
+
 impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
@@ -742,7 +750,10 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let env_wrapper = Env::from_raw(env);
+          // Leak `Env` to ensure `JsCompilation` being static.
+          // See `JsCompilation::into_instance` for details.
+          let env_wrapper =
+            STATIC_ENV.with(|lock| *lock.get_or_init(|| Box::leak(Box::new(Env::from_raw(env)))));
           let instance = JsCompilation {
             id: val.id,
             inner: val.inner,

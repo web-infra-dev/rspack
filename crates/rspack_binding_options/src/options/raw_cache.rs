@@ -4,7 +4,7 @@ use rspack_core::{CacheOptions, FileSystemCacheOptions, MemoryCacheOptions};
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCacheOptions {
-  pub r#type: &'static str,
+  pub r#type: String,
   pub max_generations: u32,
   pub max_age: u32,
   pub profile: bool,
@@ -29,7 +29,7 @@ impl From<RawCacheOptions> for CacheOptions {
       version,
     } = value;
 
-    match r#type {
+    match r#type.as_str() {
       "memory" => CacheOptions::Memory(MemoryCacheOptions { max_generations }),
       "filesystem" => CacheOptions::FileSystem(FileSystemCacheOptions {
         max_age,
