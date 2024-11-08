@@ -2,7 +2,7 @@ use std::fs::Metadata;
 
 use crate::{Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileMetadata {
   pub is_file: bool,
   pub is_directory: bool,

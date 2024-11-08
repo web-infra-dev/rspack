@@ -11,4 +11,4 @@ dunce        = { version = "1.0.5" }
 futures      = { workspace = true }
 rspack_error = { path = "../rspack_error", version = "0.1.0" }
 rspack_paths = { path = "../rspack_paths", version = "0.1.0" }
-tokio        = { workspace = true, features = ["fs"] }
+tokio        = { workspace = true, features = ["fs", "test-util", "macros"] }
