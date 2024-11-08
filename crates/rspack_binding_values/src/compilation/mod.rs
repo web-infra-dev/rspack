@@ -4,7 +4,6 @@ mod entries;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr::NonNull;
-use std::sync::OnceLock;
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
@@ -703,7 +702,7 @@ impl JsCompilation {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<ClassInstance<'static, JsCompilation>>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<JsCompilation>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -735,10 +734,6 @@ impl JsCompilationWrapper {
   }
 }
 
-thread_local! {
-  static STATIC_ENV: OnceLock<&'static Env> = const { OnceLock::new() };
-}
-
 impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
@@ -750,16 +745,11 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          // Leak `Env` to ensure `JsCompilation` being static.
-          // See `JsCompilation::into_instance` for details.
-          let env_wrapper =
-            STATIC_ENV.with(|lock| *lock.get_or_init(|| Box::leak(Box::new(Env::from_raw(env)))));
-          let instance = JsCompilation {
+          let js_compilation = JsCompilation {
             id: val.id,
             inner: val.inner,
-          }
-          .into_instance(env_wrapper)?;
-          let r = OneShotRef::new(env, instance)?;
+          };
+          let r = OneShotRef::new(env, js_compilation)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }
