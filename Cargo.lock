@@ -3911,6 +3911,7 @@ dependencies = [
  "async-trait",
  "color-backtrace",
  "cow-utils",
+ "futures",
  "napi-build",
  "napi-derive",
  "napi-h",

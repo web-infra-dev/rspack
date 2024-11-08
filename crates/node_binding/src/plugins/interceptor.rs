@@ -1,5 +1,4 @@
 use std::{
-  borrow::Cow,
   hash::Hash,
   sync::{Arc, RwLock},
 };
@@ -131,8 +130,7 @@ impl<T: 'static, R> Clone for RegisterJsTapsInner<T, R> {
 
 enum RegisterJsTapsCache<T: 'static, R> {
   NoCache,
-  Cache(Arc<tokio::sync::OnceCell<RegisterFunctionOutput<T, R>>>),
-  SyncCache(Arc<once_cell::sync::OnceCell<RegisterFunctionOutput<T, R>>>),
+  Cache(Arc<RwLock<Option<RegisterFunctionOutput<T, R>>>>),
 }
 
 impl<T: 'static, R> Clone for RegisterJsTapsCache<T, R> {
@@ -140,19 +138,14 @@ impl<T: 'static, R> Clone for RegisterJsTapsCache<T, R> {
     match self {
       Self::NoCache => Self::NoCache,
       Self::Cache(c) => Self::Cache(c.clone()),
-      Self::SyncCache(c) => Self::SyncCache(c.clone()),
     }
   }
 }
 
 impl<T: 'static, R> RegisterJsTapsCache<T, R> {
-  pub fn new(cache: bool, sync: bool) -> Self {
+  pub fn new(cache: bool, _sync: bool) -> Self {
     if cache {
-      if sync {
-        Self::SyncCache(Default::default())
-      } else {
-        Self::Cache(Default::default())
-      }
+      Self::Cache(Default::default())
     } else {
       Self::NoCache
     }
@@ -176,15 +169,27 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   pub async fn call_register(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<Cow<RegisterFunctionOutput<T, R>>> {
-    if let RegisterJsTapsCache::Cache(cache) = &self.cache {
-      let js_taps = cache
-        .get_or_try_init(|| self.call_register_impl(hook))
-        .await?;
-      Ok(Cow::Borrowed(js_taps))
+  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
+    if let RegisterJsTapsCache::Cache(rw) = &self.cache {
+      let cache = {
+        #[allow(clippy::unwrap_used)]
+        rw.read().unwrap().clone()
+      };
+      Ok(match cache {
+        Some(js_taps) => js_taps,
+        None => {
+          let js_taps = self.call_register_impl(hook).await?;
+          {
+            #[allow(clippy::unwrap_used)]
+            let mut cache = rw.write().unwrap();
+            *cache = Some(js_taps.clone());
+          }
+          js_taps
+        }
+      })
     } else {
       let js_taps = self.call_register_impl(hook).await?;
-      Ok(Cow::Owned(js_taps))
+      Ok(js_taps)
     }
   }
 
@@ -200,13 +205,27 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
   pub fn call_register_blocking(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<Cow<RegisterFunctionOutput<T, R>>> {
-    if let RegisterJsTapsCache::SyncCache(cache) = &self.cache {
-      let js_taps = cache.get_or_try_init(|| self.call_register_blocking_impl(hook))?;
-      Ok(Cow::Borrowed(js_taps))
+  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
+    if let RegisterJsTapsCache::Cache(rw) = &self.cache {
+      let cache = {
+        #[allow(clippy::unwrap_used)]
+        rw.read().unwrap().clone()
+      };
+      Ok(match cache {
+        Some(js_taps) => js_taps,
+        None => {
+          let js_taps = self.call_register_blocking_impl(hook)?;
+          {
+            #[allow(clippy::unwrap_used)]
+            let mut cache = rw.write().unwrap();
+            *cache = Some(js_taps.clone());
+          }
+          js_taps
+        }
+      })
     } else {
       let js_taps = self.call_register_blocking_impl(hook)?;
-      Ok(Cow::Owned(js_taps))
+      Ok(js_taps)
     }
   }
 
@@ -217,6 +236,17 @@ impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
     self.register.blocking_call_with_sync(used_stages)
+  }
+
+  fn clear_cache(&self) {
+    match &self.cache {
+      RegisterJsTapsCache::NoCache => {}
+      RegisterJsTapsCache::Cache(cache) => {
+        #[allow(clippy::unwrap_used)]
+        let mut cache = cache.write().unwrap();
+        *cache = None;
+      }
+    }
   }
 }
 
@@ -237,6 +267,12 @@ macro_rules! define_register {
     #[derive(Clone)]
     pub struct $name {
       inner: RegisterJsTapsInner<$arg, $ret>,
+    }
+
+    impl $name {
+      pub fn clear_cache(&self) {
+        self.inner.clear_cache();
+      }
     }
 
     #[derive(Clone)]
@@ -349,7 +385,7 @@ pub enum RegisterJsTapKind {
 }
 
 #[derive(Default, Clone)]
-pub struct NonSkippableRegisters(Arc<RwLock<Vec<RegisterJsTapKind>>>);
+pub struct NonSkippableRegisters(Arc<std::sync::RwLock<Vec<RegisterJsTapKind>>>);
 
 impl NonSkippableRegisters {
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
@@ -611,7 +647,7 @@ define_register!(
 define_register!(
   RegisterCompilerAssetEmittedTaps,
   tap = CompilerAssetEmittedTap<JsAssetEmittedArgs, Promise<()>> @ CompilerAssetEmittedHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilerAssetEmitted,
   skip = true,
@@ -621,7 +657,7 @@ define_register!(
 define_register!(
   RegisterCompilationBuildModuleTaps,
   tap = CompilationBuildModuleTap<JsModuleWrapper, ()> @ CompilationBuildModuleHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
   skip = true,
@@ -629,7 +665,7 @@ define_register!(
 define_register!(
   RegisterCompilationStillValidModuleTaps,
   tap = CompilationStillValidModuleTap<JsModuleWrapper, ()> @ CompilationStillValidModuleHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
   skip = true,
@@ -637,7 +673,7 @@ define_register!(
 define_register!(
   RegisterCompilationSucceedModuleTaps,
   tap = CompilationSucceedModuleTap<JsModuleWrapper, ()> @ CompilationSucceedModuleHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
   skip = true,
@@ -661,7 +697,7 @@ define_register!(
 define_register!(
   RegisterCompilationOptimizeModulesTaps,
   tap = CompilationOptimizeModulesTap<(), Option<bool>> @ CompilationOptimizeModulesHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationOptimizeModules,
   skip = true,
@@ -693,7 +729,7 @@ define_register!(
 define_register!(
   RegisterCompilationAdditionalTreeRuntimeRequirementsTaps,
   tap = CompilationAdditionalTreeRuntimeRequirementsTap<JsAdditionalTreeRuntimeRequirementsArg, Option<JsAdditionalTreeRuntimeRequirementsResult>> @ CompilationAdditionalTreeRuntimeRequirementsHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationAdditionalTreeRuntimeRequirements,
   skip = true,
@@ -701,7 +737,7 @@ define_register!(
 define_register!(
   RegisterCompilationRuntimeRequirementInTreeTaps,
   tap = CompilationRuntimeRequirementInTreeTap<JsRuntimeRequirementInTreeArg, Option<JsRuntimeRequirementInTreeResult>> @ CompilationRuntimeRequirementInTreeHook,
-  cache = false,
+  cache = true,
   sync = true,
   kind = RegisterJsTapKind::CompilationRuntimeRequirementInTree,
   skip = true,
@@ -709,7 +745,7 @@ define_register!(
 define_register!(
   RegisterCompilationRuntimeModuleTaps,
   tap = CompilationRuntimeModuleTap<JsRuntimeModuleArg, Option<JsRuntimeModule>> @ CompilationRuntimeModuleHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationRuntimeModule,
   skip = true,
@@ -717,7 +753,7 @@ define_register!(
 define_register!(
   RegisterCompilationChunkHashTaps,
   tap = CompilationChunkHashTap<JsChunk, Buffer> @ CompilationChunkHashHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationChunkHash,
   skip = true,
@@ -725,7 +761,7 @@ define_register!(
 define_register!(
   RegisterCompilationChunkAssetTaps,
   tap = CompilationChunkAssetTap<JsChunkAssetArgs, ()> @ CompilationChunkAssetHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationChunkAsset,
   skip = true,
@@ -767,7 +803,7 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
   tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryBeforeResolve,
   skip = true,
@@ -775,7 +811,7 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryFactorizeTaps,
   tap = NormalModuleFactoryFactorizeTap<JsFactorizeArgs, Promise<JsFactorizeOutput>> @ NormalModuleFactoryFactorizeHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryFactorize,
   skip = true,
@@ -783,7 +819,7 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryResolveTaps,
   tap = NormalModuleFactoryResolveTap<JsResolveArgs, Promise<JsResolveOutput>> @ NormalModuleFactoryResolveHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryResolve,
   skip = true,
@@ -791,7 +827,7 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryResolveForSchemeTaps,
   tap = NormalModuleFactoryResolveForSchemeTap<JsResolveForSchemeArgs, Promise<JsResolveForSchemeOutput>> @ NormalModuleFactoryResolveForSchemeHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryResolveForScheme,
   skip = true,
@@ -799,7 +835,7 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryAfterResolveTaps,
   tap = NormalModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryAfterResolve,
   skip = true,
@@ -807,7 +843,7 @@ define_register!(
 define_register!(
   RegisterNormalModuleFactoryCreateModuleTaps,
   tap = NormalModuleFactoryCreateModuleTap<JsNormalModuleFactoryCreateModuleArgs, Promise<()>> @ NormalModuleFactoryCreateModuleHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::NormalModuleFactoryCreateModule,
   skip = true,
@@ -817,7 +853,7 @@ define_register!(
 define_register!(
   RegisterContextModuleFactoryBeforeResolveTaps,
   tap = ContextModuleFactoryBeforeResolveTap<JsContextModuleFactoryBeforeResolveResult, Promise<JsContextModuleFactoryBeforeResolveResult>> @ ContextModuleFactoryBeforeResolveHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryBeforeResolve,
   skip = true,
@@ -825,7 +861,7 @@ define_register!(
 define_register!(
   RegisterContextModuleFactoryAfterResolveTaps,
   tap = ContextModuleFactoryAfterResolveTap<JsContextModuleFactoryAfterResolveResult, Promise<JsContextModuleFactoryAfterResolveResult>> @ ContextModuleFactoryAfterResolveHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::ContextModuleFactoryAfterResolve,
   skip = true,
@@ -835,7 +871,7 @@ define_register!(
 define_register!(
   RegisterJavascriptModulesChunkHashTaps,
   tap = JavascriptModulesChunkHashTap<JsChunk, Buffer> @ JavascriptModulesChunkHashHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::JavascriptModulesChunkHash,
   skip = true,
@@ -845,7 +881,7 @@ define_register!(
 define_register!(
   RegisterHtmlPluginBeforeAssetTagGenerationTaps,
   tap = HtmlPluginBeforeAssetTagGenerationTap<JsBeforeAssetTagGenerationData, Promise<JsBeforeAssetTagGenerationData>> @ HtmlPluginBeforeAssetTagGenerationHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginBeforeAssetTagGeneration,
   skip = true,
@@ -854,7 +890,7 @@ define_register!(
 define_register!(
   RegisterHtmlPluginAlterAssetTagsTaps,
   tap = HtmlPluginAlterAssetTagsTap<JsAlterAssetTagsData, Promise<JsAlterAssetTagsData>> @ HtmlPluginAlterAssetTagsHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginAlterAssetTags,
   skip = true,
@@ -863,7 +899,7 @@ define_register!(
 define_register!(
   RegisterHtmlPluginAlterAssetTagGroupsTaps,
   tap = HtmlPluginAlterAssetTagGroupsTap<JsAlterAssetTagGroupsData, Promise<JsAlterAssetTagGroupsData>> @ HtmlPluginAlterAssetTagGroupsHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginAlterAssetTagGroups,
   skip = true,
@@ -872,7 +908,7 @@ define_register!(
 define_register!(
   RegisterHtmlPluginAfterTemplateExecutionTaps,
   tap = HtmlPluginAfterTemplateExecutionTap<JsAfterTemplateExecutionData, Promise<JsAfterTemplateExecutionData>> @ HtmlPluginAfterTemplateExecutionHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginAfterTemplateExecution,
   skip = true,
@@ -881,7 +917,7 @@ define_register!(
 define_register!(
   RegisterHtmlPluginBeforeEmitTaps,
   tap = HtmlPluginBeforeEmitTap<JsBeforeEmitData, Promise<JsBeforeEmitData>> @ HtmlPluginBeforeEmitHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginBeforeEmit,
   skip = true,
@@ -890,7 +926,7 @@ define_register!(
 define_register!(
   RegisterHtmlPluginAfterEmitTaps,
   tap = HtmlPluginAfterEmitTap<JsAfterEmitData, Promise<JsAfterEmitData>> @ HtmlPluginAfterEmitHook,
-  cache = false,
+  cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginAfterEmit,
   skip = true,
